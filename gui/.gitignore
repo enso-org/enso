@@ -1,11 +1,19 @@
+dist
+
 # Rust
 /target
+/build/rust/target/
 **/*.rs.bk
-Cargo.lock
-bin/
 pkg/
 wasm-pack.log
 
 # IntelliJ
 .idea/
 *.iml
+
+# Visual Studio Code
+.vscode/
+
+# JavaScript
+node_modules
+.nvmrc
