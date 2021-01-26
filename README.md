@@ -1,8 +1,34 @@
-<img width="200" alt="Enso" src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png" align="right" />
+<p align="center">
+  <br/>
+  <a href="http://enso.org">
+      <img
+          src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png"
+          alt="Enso Visual Environmment"
+          width="136"
+      />
+  </a>
+  <br/>
+  <br/>
+  <a href="http://enso.org">
+      <img
+          src="https://user-images.githubusercontent.com/1623053/75661125-05664300-5c6d-11ea-9bd3-8a5355db9609.png"
+          alt="Enso Language"
+          width="240"
+      />
+  </a>
+  <br/>
+  <br/>
+  <br/>
+</p>
 
-# Enso
+
+### Overview
 
 <p>
+  <a href="http://chat.enso.org">
+    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
+         alt="Chat">
+  </a>
   <a href="https://github.com/enso-org/enso/actions">
     <img src="https://github.com/enso-org/enso/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
@@ -17,7 +43,9 @@
   </a>
 </p>
 
-## Get insights you can act on, fast.
+<br/>
+
+### Get insights you can act on, fast.
 
 Enso is an interactive data processing environment with both a visual and a textual programming language interface.
 
@@ -29,33 +57,39 @@ Enso is an interactive data processing environment with both a visual and a text
 <img width="600" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1790822/105632239-7056d480-5e52-11eb-98fd-476254b1df8b.png">
 </a>
 
-## Getting Started
+<br/>
+
+### Getting Started
 
 * Download Enso from the [GitHub Releases](https://github.com/enso-org/ide/releases).
 * Follow [the 101 tutorial](https://github.com/enso-org/tutorial_101) to take your first steps with Enso.
 * [Keep up with the latest updates](https://medium.com/@enso_org) with our developer blog, or subscribe to the [mailing list](http://eepurl.com/bRru9j).
 * Join us in the [Enso Discord](https://discord.gg/enso) to get help, share use cases, and meet other Enso users. 
 
-## Project components
+<br/>
+
+### Project components
 
 Enso consists of several sub projects:
 
 * The [Enso Language Compiler](https://github.com/enso-org/enso).
 * The [Enso Integrated Development Environment (IDE)](https://github.com/enso-org/ide).
 
-### Enso Engine
+#### Enso Engine
 This repository contains [Enso Engine](./engine/), which consists of the
 compiler, type-checker, runtime and language server. These components implement
 Enso the language in its entirety, and are usable in isolation. 
 
 You can download the Enso Engine from the [GitHub Releases](https://github.com/enso-org/enso/releases) of this repository. For more information on how to run the Enso Engine, please refer to the documentation on [getting Enso](https://github.com/enso-org/enso/blob/main/docs/getting-enso.md).
 
-### Enso IDE
+#### Enso IDE
 The [Enso IDE](https://github.com/enso-org/ide) is the desktop application that allows working with visual Enso. It consists of an Electron application, a high performance WebGL UI framework, and the Searcher which provides search, hints, and documentation for Enso functions.
 
 You can download the Enso IDE from the [GitHub Releases of the IDE repository](https://github.com/enso-org/ide/releases). For more information on usage of the IDE, please refer to the [101 tutorial](https://github.com/enso-org/tutorial_101) and the [product documentation](https://dev.enso.org/docs/ide/product/).
 
-## License
+<br/>
+
+### License
 
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
@@ -66,7 +100,9 @@ Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,
 including Enso Cloud and Enso Enterprise server managers.
 
-## Contributing to Enso
+<br/>
+
+### Contributing to Enso
 
 Enso is a community-driven open source project which is and will always be open
 and free to use. We are committed to a fully transparent development process and
@@ -84,7 +120,9 @@ If you believe that you have found a security vulnerability in Enso, or that you
 have a bug report that poses a security risk to Enso's users, please take a look
 at our [security guidelines](./docs/SECURITY.md) for a course of action.
 
-## Enso's Design
+<br/>
+
+### Enso's Design
 
 If you would like to gain a better understanding of the principles on which Enso
 is based, or just delve into the why's and what's of Enso's design, please take
