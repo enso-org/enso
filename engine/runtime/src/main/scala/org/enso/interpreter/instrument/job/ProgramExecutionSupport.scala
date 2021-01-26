@@ -386,25 +386,6 @@ trait ProgramExecutionSupport {
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
     ) {
-      // TODO: [DB] Remove when IDE implements new updates API
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                value.getExpressionId,
-                Option(value.getType),
-                methodPointer,
-                value.getProfilingInfo.map { case e: ExecutionTime =>
-                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
-                }.toVector,
-                value.wasCached()
-              )
-            )
-          )
-        )
-      )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(

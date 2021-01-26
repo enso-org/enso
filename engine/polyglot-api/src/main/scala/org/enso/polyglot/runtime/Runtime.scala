@@ -106,10 +106,6 @@ object Runtime {
         name  = "visualisationModified"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionValuesComputed],
-        name  = "expressionValuesComputed"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionUpdates],
         name  = "expressionUpdates"
       ),
@@ -251,24 +247,6 @@ object Runtime {
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
 
-    /** An update containing information about expression.
-      *
-      * @param expressionId expression id.
-      * @param expressionType the type of expression.
-      * @param methodCall the pointer to a method definition.
-      * @param profilingInfo profiling information about the execution of this
-      *                      expression
-      * @param fromCache whether or not the value for this expression came from
-      *                  the cache
-      */
-    case class ExpressionValueUpdate(
-      expressionId: ExpressionId,
-      expressionType: Option[String],
-      methodCall: Option[MethodPointer],
-      profilingInfo: Vector[ProfilingInfo],
-      fromCache: Boolean
-    )
-
     /** An update about the computed expression.
       *
       * @param expressionId the expression id
@@ -396,17 +374,6 @@ object Runtime {
       case class Expressions(value: Vector[ExpressionId])
           extends InvalidatedExpressions
     }
-
-    // TODO: [DB] Remove when IDE implements new updates API
-    /** A notification about updated expressions of the context.
-      *
-      * @param contextId the context's id.
-      * @param updates a list of updates.
-      */
-    case class ExpressionValuesComputed(
-      contextId: ContextId,
-      updates: Vector[ExpressionValueUpdate]
-    ) extends ApiNotification
 
     /** A notification about updated expressions of the context.
       *
