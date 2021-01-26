@@ -94,6 +94,19 @@ public abstract class IndirectInvokeCallableNode extends Node {
   }
 
   @Specialization
+  Stateful invokeDataflowError(
+      DataflowError error,
+      MaterializedFrame callerFrame,
+      Object state,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail) {
+    return new Stateful(state, error);
+  }
+
+  @Specialization
   public Stateful invokeDynamicSymbol(
       UnresolvedSymbol symbol,
       MaterializedFrame callerFrame,

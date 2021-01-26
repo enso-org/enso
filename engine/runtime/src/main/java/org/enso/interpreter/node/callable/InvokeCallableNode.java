@@ -143,6 +143,12 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Specialization
+  Stateful invokeDataflowError(
+      DataflowError error, VirtualFrame callerFrame, Object state, Object[] arguments) {
+    return new Stateful(state, error);
+  }
+
+  @Specialization
   public Stateful invokeDynamicSymbol(
       UnresolvedSymbol symbol, VirtualFrame callerFrame, Object state, Object[] arguments) {
     if (canApplyThis) {

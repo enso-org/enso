@@ -51,8 +51,13 @@ public class InstantiateNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     Object[] argumentValues = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
+      ConditionProfile profile = profiles[i];
       Object argument = arguments[i].executeGeneric(frame);
-      argumentValues[i] = argument;
+      if (profile.profile(TypesGen.isDataflowError(argument))) {
+        return argument;
+      } else {
+        argumentValues[i] = argument;
+      }
     }
     return constructor.newInstance(argumentValues);
   }
