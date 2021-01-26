@@ -410,14 +410,15 @@ trait ProgramExecutionSupport {
           Api.ExpressionUpdates(
             contextId,
             Set(
-              Api.ExpressionUpdate.ExpressionComputed(
+              Api.ExpressionUpdate(
                 value.getExpressionId,
                 Option(value.getType),
                 methodPointer,
                 value.getProfilingInfo.map { case e: ExecutionTime =>
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
-                value.wasCached()
+                value.wasCached(),
+                Api.ExpressionUpdate.Payload.Value()
               )
             )
           )

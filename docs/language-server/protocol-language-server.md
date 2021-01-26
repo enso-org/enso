@@ -25,6 +25,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
   - [`ExpressionUpdate`](#expressionupdate)
+  - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`ProfilingInfo`](#profilinginfo)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
@@ -277,13 +278,10 @@ interface ExecutionTime {
 
 ### `ExpressionUpdate`
 
-```typescript
-type ExpressionUpdate = Computed | Failed | Poisoned;
+An update about the computed expression.
 
-/**
- * An update about computed expression.
- */
-interface Computed {
+```typescript
+interface ExpressionUpdate {
   /**
    * The id of updated expression.
    */
@@ -298,36 +296,70 @@ interface Computed {
    * The updated pointer to the method call.
    */
   methodPointer?: SuggestionId;
+
+  /**
+   * Profiling information about the expression.
+   */
+  profilingInfo: ProfilingInfo[];
+
+  /**
+   * Wether or not the expression's value came from the cache.
+   */
+  fromCache: bool;
+
+  /**
+   * An extra information about the computed value.
+   */
+  payload: ExpressionUpdatePayload;
+}
+```
+
+### `ExpressionUpdatePayload`
+
+An information about the computed value.
+
+```typescript
+type ExpressionUpdatePayload = Value | DatafalowError | RuntimeError | Poisoned;
+
+/**
+ * An empty payload. Indicates that the expression was computed to a value.
+ */
+interface Value {}
+
+/**
+ * Indicates that the expression was computed to an error.
+ */
+interface DataflowError {
+  /**
+   * The list of expressions leading to the root error.
+   */
+  trace: ExpressionId[];
 }
 
 /**
- * An update about failed expression.
+ * Indicates that the expression failed with the runtime exception.
  */
-interface Failed {
-  /**
-   * The id of updated expression.
-   */
-  expressionId: ExpressionId;
-
+interface RuntimeError {
   /**
    * The error message.
    */
   message: String;
+
+  /**
+   * The stack trace.
+   */
+  trace: ExpressionId[];
 }
 
 /**
- * An update about expression not executed due to the failed dependency.
+ * Indicates that the expression was not computed due to a dependency,
+ * that failed with the runtime exception.
  */
 interface Poisoned {
   /**
-   * The id of updated expression.
+   * The list of expressions leading to the root expression that failed.
    */
-  expressionId: ExpressionId;
-
-  /**
-   * The failed expression that prevents the execution of this expression.
-   */
-  failedExpressionId: ExpressionId;
+  trace: ExpressionId[];
 }
 ```
 
@@ -886,6 +918,11 @@ interface Diagnostic {
    * The location of the diagnostic object in a file.
    */
   location?: Range;
+
+  /**
+   * The id of related expression.
+   */
+  expressionId?: ExpressionId;
 
   /**
    * The stack trace.

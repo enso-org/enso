@@ -11,6 +11,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
@@ -53,6 +54,7 @@ public class Builtins {
   private final AtomConstructor nothing;
 
   private final Bool bool;
+  private final DataflowError dataflowError;
   private final Error error;
   private final Meta meta;
   private final Module module;
@@ -78,6 +80,7 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     bool = new Bool(language, scope);
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    dataflowError = new DataflowError(language, scope);
     projectDescription =
         new AtomConstructor("Project_Description", scope)
             .initializeFields(
@@ -105,7 +108,6 @@ public class Builtins {
     AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
-    AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
     AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
@@ -121,7 +123,6 @@ public class Builtins {
     scope.registerConstructor(io);
     scope.registerConstructor(primIo);
     scope.registerConstructor(panic);
-    scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
     scope.registerConstructor(projectDescription);
@@ -144,8 +145,7 @@ public class Builtins {
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", RecoverPanicMethodGen.makeFunction(language));
-    scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
-    scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
+    scope.registerMethod(any, "catch", CatchAnyMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
@@ -280,6 +280,11 @@ public class Builtins {
   /** @return the container for ordering-related builtins */
   public Ordering ordering() {
     return ordering;
+  }
+
+  /** @return the container for the dataflow error-related builtins */
+  public DataflowError dataflowError() {
+    return dataflowError;
   }
 
   /**
