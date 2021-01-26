@@ -17,6 +17,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::suggestion_database;
 
+use analytics;
 use bimap::BiMap;
 use enso_data::text::TextChange;
 use enso_frp as frp;
@@ -286,6 +287,24 @@ impl Integration {
             eval_ project_frp.editing_aborted   (invalidate.trigger.emit(()));
             eval_ project_frp.save_module       (model.module_saved_in_ui());
         }
+
+        frp::extend! { network
+            eval_ editor_outs.node_added([]{analytics::remote_log(analytics::AnonymousData("node_added"))});
+            eval_ editor_outs.node_removed([]{analytics::remote_log(analytics::AnonymousData("node_removed"))});
+            eval_ editor_outs.nodes_collapsed([]{analytics::remote_log(analytics::AnonymousData("nodes_collapsed"))});
+            eval_ editor_outs.node_entered([]{analytics::remote_log(analytics::AnonymousData("node_entered"))});
+            eval_ editor_outs.node_exited([]{analytics::remote_log(analytics::AnonymousData("node_exited"))});
+            eval_ editor_outs.node_exited([]{analytics::remote_log(analytics::AnonymousData("node_exited"))});
+            eval_ editor_outs.on_edge_endpoints_set([]{analytics::remote_log(analytics::AnonymousData("edge_endpoints_set"))});
+            eval_ editor_outs.visualization_enabled([]{analytics::remote_log(analytics::AnonymousData("visualization_enabled"))});
+            eval_ editor_outs.visualization_disabled([]{analytics::remote_log(analytics::AnonymousData("visualization_disabled"))});
+            eval_ on_connection_removed([]{analytics::remote_log(analytics::AnonymousData("connection_removed"))});
+            eval_ searcher_frp.used_as_suggestion([]{analytics::remote_log(analytics::AnonymousData("searcher_used_as_suggestion"))});
+            eval_ project_frp.editing_committed([]{analytics::remote_log(analytics::AnonymousData("project_editing_committed"))});
+
+        }
+
+
         Self::connect_frp_to_graph_controller_notifications(&model,handle_graph_notification.trigger);
         Self::connect_frp_text_controller_notifications(&model,handle_text_notification.trigger);
         Self {model,network}

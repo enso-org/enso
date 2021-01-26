@@ -6,7 +6,8 @@ let config = {
     },
     dependencies: {
         "enso-studio-common": "2.0.0-alpha.0",
-        "copy-webpack-plugin": "^5.1.1"
+        "copy-webpack-plugin": "^5.1.1",
+        "mixpanel-browser":  "2.40.1"
     },
     devDependencies: {
         "compression-webpack-plugin": "^3.1.0",
