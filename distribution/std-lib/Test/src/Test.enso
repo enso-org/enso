@@ -48,8 +48,17 @@ Any.should verb argument = verb Verbs this argument
 ## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 
-## Expect a function to fail with the provided error.
-expect_fail_with ~action matcher =
+## Expect a function to fail with the provided dataflow error.
+expect_error_with ~action matcher =
+    result = action
+    fail_msg = "Expected an error " + matcher.to_text + "but none occurred."
+    if result.is_error.not then here.fail fail_msg else
+        caught = result.catch x->x
+        if caught.is_a matcher then Nothing else
+            here.fail ("Unexpected error " + caught.to_text + " thrown.")
+
+## Expect a function to fail with the provided panic.
+expect_panic_with ~action matcher =
     res = Panic.recover action
     case res of
         _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")

@@ -7,6 +7,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.data.SingletonMap;
 import org.enso.interpreter.runtime.state.data.SmallMap;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -53,8 +54,10 @@ public abstract class PutStateNode extends Node {
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
     int index = state.indexOf(key);
     if (index == SmallMap.NOT_FOUND) {
-      throw new PanicException(
-          ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
+      return new Stateful(
+          state,
+          DataflowError.withDefaultTrace(
+              ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this));
     } else {
       return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
     }
@@ -67,6 +70,9 @@ public abstract class PutStateNode extends Node {
       Object key,
       Object new_state,
       @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
+    return new Stateful(
+        state,
+        DataflowError.withDefaultTrace(
+            ctx.getBuiltins().error().uninitializedState().newInstance(key), this));
   }
 }

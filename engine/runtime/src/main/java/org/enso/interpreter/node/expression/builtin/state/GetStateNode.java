@@ -7,6 +7,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.state.data.SingletonMap;
 import org.enso.interpreter.runtime.state.data.SmallMap;
@@ -50,7 +51,7 @@ public abstract class GetStateNode extends Node {
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
-      throw new PanicException(
+      return DataflowError.withDefaultTrace(
           ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
     } else {
       return state.getValues()[idx];
@@ -60,12 +61,14 @@ public abstract class GetStateNode extends Node {
   @Specialization
   Object doEmpty(
       EmptyMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
+    return DataflowError.withDefaultTrace(
+        ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 
   @Specialization
   Object doSingletonError(
       SingletonMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    throw new PanicException(ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
+    return DataflowError.withDefaultTrace(
+        ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 }

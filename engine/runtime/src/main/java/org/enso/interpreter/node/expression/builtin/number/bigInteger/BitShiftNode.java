@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -37,14 +38,14 @@ public abstract class BitShiftNode extends Node {
   }
 
   @Specialization(guards = "that >= 0", replaces = "doBigIntShiftLeft")
-  EnsoBigInteger doBigIntShiftLeftExplicit(
+  Object doBigIntShiftLeftExplicit(
       EnsoBigInteger _this,
       long that,
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(_this, that);
     } else {
-      throw new PanicException(
+      return DataflowError.withDefaultTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -72,8 +73,7 @@ public abstract class BitShiftNode extends Node {
       return BigIntegerOps.nonNegative(_this.getValue()) ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
+      return DataflowError.withDefaultTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
