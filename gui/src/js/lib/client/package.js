@@ -73,6 +73,26 @@ config.build = {
     directories: {
         output: paths.dist.client,
     },
+    nsis: {
+        // Disables "block map" generation during electron building. Block maps 
+        // can be used for incremental package update on client-side. However,
+        // their generation can take long time (even 30 mins), so we removed it
+        // for now. Moreover, we may probably never need them, as our updates
+        // are handled by us. More info: 
+        // https://github.com/electron-userland/electron-builder/issues/2851
+        // https://github.com/electron-userland/electron-builder/issues/2900
+        differentialPackage: false
+    },
+    dmg: {
+        // Disables "block map" generation during electron building. Block maps 
+        // can be used for incremental package update on client-side. However,
+        // their generation can take long time (even 30 mins), so we removed it
+        // for now. Moreover, we may probably never need them, as our updates
+        // are handled by us. More info: 
+        // https://github.com/electron-userland/electron-builder/issues/2851
+        // https://github.com/electron-userland/electron-builder/issues/2900
+        writeUpdateInfo: false
+    },
     publish: [],
 }
 
