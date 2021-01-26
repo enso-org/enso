@@ -3,7 +3,7 @@
   <a href="http://enso.org">
       <img
           src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png"
-          alt="Enso Language"
+          alt="Enso Visual Environmment"
           width="136"
       />
   </a>
@@ -21,9 +21,13 @@
   <br/>
 </p>
 
-### Fluidly Combining Worlds
+### Get insights you can act on, fast.
 
 <p>
+  <a href="http://chat.enso.org">
+    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
+         alt="Chat">
+  </a>
   <a href="https://github.com/enso-org/enso/actions">
     <img src="https://github.com/enso-org/enso/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
@@ -36,74 +40,89 @@
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="http://chat.luna-lang.org">
-    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
-         alt="Chat">
-  </a>
 </p>
 
-Enso is an open-source, visual language for data science that lets you design,
-prototype, develop and refactor any application by connecting visual elements
-together. Enso lets you collaborate with your co-workers, interactively
-fine-tune parameters, inspect results and visually profile and debug your
-programs in real-time, creating a moment where the mind is free to let the body
-create.
+Enso is a general-purpose programming language and environment for interactive
+data processing. It is a tool that spans the entire stack, going from high-level
+visualisation and communication to the nitty-gritty of backend services, all in
+a single language.
 
-Enso consists of several sub projects, including the
-[Enso Language Compiler](https://github.com/enso-org/enso) and the
-[Enso Integrated Development Environment (IDE)](https://github.com/enso-org/ide).
-You can also check out the [Enso Website](https://enso.org) for more
-information.
+- 🔗 **Connect to all the tools you're already using**  
+  Enso ships with a robust set of libraries, allowing you to work with local
+  files, databases, HTTP services and other applications in a seamless fashion.
+  <br/><br/>
+- 📊 **Cutting-edge visualization engine**  
+  Enso is equipped with a highly-tailored WebGL visualization engine capable of
+  displaying even millions of data points 60 frames per second in a web
+  browser.<br/><br/>
+- 🌐 **Polyglot**  
+  Enso allows you to use any Java library in your code. Soon, it will also allow
+  you to copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero
+  performance overhead at runtime.<br/><br/>
+- ⚡ **High performance**  
+  Enso graphs and code can run up to 100x faster than the analoguous Python
+  code.<br/><br/>
+- 🛡️ **Results you can trust** Enso incorporates many recent innovations in data
+  processing and programming language design to allow you to work quickly and
+  trust the results that you get. It is a purely functional programming language
+  with higher-order functions, user-defined algebraic datatypes,
+  pattern-matching, and a rich set of primitive types.<br/><br/>
+- 🌎 **Runs everywhere**  
+  Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
+  web-native technologies. In time, you'll be able to run it in the web-browser,
+  giving even your tablet of phone access to your data.<br/><br/>
 
-This repository contains [Enso Engine](./engine/), which consists of the
-compiler, type-checker, runtime and language server. These components implement
-Enso the language in its entirety, and are usable in isolation.
+<a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br>
+
+<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png">
+</a>
+
+<br/>
 
 ### Getting Started
 
-While we currently don't have any official releases of Enso, nightly builds can
-be obtained from the
-[CI artifacts](https://github.com/enso-org/enso/actions?query=workflow%3A%22Engine+CI%22).
-For more information on how to run these, please refer to the documentation on
-[getting Enso](./docs/getting-enso.md).
+- Download Enso from our [GitHub
+  Releases](https://github.com/enso-org/ide/releases).
+- Follow [the Enso 101 tutorial](https://github.com/enso-org/tutorial_101) to
+  take your first steps with Enso.
+- Watch [the Enso YouTube
+  tutorials](https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0)
+  to learn more and improve your skills.
+- [Keep up with the latest updates](https://medium.com/@enso_org) with our
+  developer blog, or subscribe to the [mailing list](http://eepurl.com/bRru9j).
+- Join us in the [Enso Discord](https://discord.gg/enso) to get help, share your
+  use cases, meet the team behind Enso and other Enso users.
 
-If you want to read more about the internals of Enso, please take a look at the
-developer documentation rendered [here](https://dev.enso.org), or in the
-repository [here](./docs).
+<br/>
 
-### Building
+### Project components
 
-The project builds on any platform where [GraalVM](https://graalvm.org) can run.
-You will need the source code, and [`sbt`](https://www.scala-sbt.org/). For more
-information, please read the detailed instructions in
-[CONTRIBUTING.md](./docs/CONTRIBUTING.md).
+Enso consists of several sub projects:
 
-### Enso's Design
+- **Enso Engine:** The Enso Engine is the set of tools that implement the Enso
+  language and its associated services. These include a just-in-time compiler,
+  runtime, and language server. These components can be used on their own.
 
-If you would like to gain a better understanding of the principles on which Enso
-is based, or just delve into the why's and what's of Enso's design, please take
-a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
-component of Enso. You can view this same documentation in a rendered form at
-[the developer docs website](https://dev.enso.org).
+- **Enso IDE**. The [Enso IDE](https://github.com/enso-org/ide) is the desktop
+  application that allows working with the visual form Enso. It consists of an
+  Electron application, a high performance WebGL UI framework, and the Searcher
+  which provides contextual search, hints, and documentation for Enso
+  functionality.
 
-This folder also contains a document on Enso's
-[design philosophy](./docs/enso-philosophy.md), that details the thought process
-that we use when contemplating changes or additions to the language.
-
-This documentation will evolve as Enso does, both to help newcomers to the
-project understand the reasoning behind the code, but also to act as a record of
-the decisions that have been made through Enso's evolution.
+<br/>
 
 ### License
 
-This repository is licensed under the
-[Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
+This repository is licensed under the [Apache
+2.0](https://opensource.org/licenses/apache-2.0), as specified in the
 [LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,
 including Enso Cloud and Enso Enterprise server managers.
+
+<br/>
 
 ### Contributing to Enso
 
@@ -114,11 +133,29 @@ want to redefine the data processing world, join us and help us track down bugs,
 implement new features, improve the documentation or spread the word!
 
 If you'd like to help us make this vision a reality, please feel free to join
-our [chat](http://chat.luna-lang.org/), and take a look at our
-[development and contribution guidelines](./docs/CONTRIBUTING.md). The latter
-describes all the ways in which you can help out with the project, as well as
-provides detailed instructions for building and hacking on Enso.
+our [chat](https://discord.gg/enso), and take a look at our [development and
+contribution guidelines](./docs/CONTRIBUTING.md). The latter describes all the
+ways in which you can help out with the project, as well as provides detailed
+instructions for building and hacking on Enso.
 
 If you believe that you have found a security vulnerability in Enso, or that you
 have a bug report that poses a security risk to Enso's users, please take a look
 at our [security guidelines](./docs/SECURITY.md) for a course of action.
+
+<br/>
+
+### Enso's Design
+
+If you would like to gain a better understanding of the principles on which Enso
+is based, or just delve into the why's and what's of Enso's design, please take
+a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
+component of Enso. You can view this same documentation in a rendered form at
+[the developer docs website](https://dev.enso.org).
+
+This folder also contains a document on Enso's [design
+philosophy](./docs/enso-philosophy.md), that details the thought process that we
+use when contemplating changes or additions to the language.
+
+This documentation will evolve as Enso does, both to help newcomers to the
+project understand the reasoning behind the code, but also to act as a record of
+the decisions that have been made through Enso's evolution.
