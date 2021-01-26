@@ -9,6 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -29,13 +30,13 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, Object message);
+      VirtualFrame frame, @MonadicState Object state, Object _this, @AcceptsError Object message);
 
   @Specialization
   Stateful doPrintText(
       VirtualFrame frame,
       Object state,
-      Object self,
+      Object _this,
       Text message,
       @CachedContext(Language.class) Context ctx,
       @Cached("build()") ToJavaStringNode toJavaStringNode) {
@@ -47,7 +48,7 @@ public abstract class PrintlnNode extends Node {
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
-      Object self,
+      Object _this,
       Object message,
       @CachedContext(Language.class) Context ctx,
       @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol,

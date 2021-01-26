@@ -75,6 +75,7 @@ public class MethodProcessor extends AbstractProcessor {
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
+          "com.oracle.truffle.api.profiles.ConditionProfile",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
@@ -106,6 +107,16 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 
       out.println();
+
+      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+        if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
+          String name = "arg" + arg.getPosition() + "Profile";
+          out.println(
+              "  private final ConditionProfile "
+                  + name
+                  + " = ConditionProfile.createCountingProfile();");
+        }
+      }
 
       out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
       out.println("    super(language);");
@@ -221,6 +232,16 @@ public class MethodProcessor extends AbstractProcessor {
       generateUncheckedArgumentRead(out, arg, argsArray);
     } else {
       generateCheckedArgumentRead(out, arg, methodName, argsArray);
+    }
+
+    if (!arg.acceptsError()) {
+      String varName = "arg" + arg.getPosition();
+      String profileName = "arg" + arg.getPosition() + "Profile";
+      out.println(
+          "    if (" + profileName + ".profile(TypesGen.isDataflowError(" + varName + "))) {\n" +
+          "      return new Stateful(state, " + varName + ");\n" +
+          "    }"
+      );
     }
   }
 

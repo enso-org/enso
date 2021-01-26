@@ -145,7 +145,35 @@ class DataflowErrorsTest extends InterpreterTest {
       eval(code)
       consumeOut shouldEqual List("(Error: My_Error)")
     }
-  }
 
-  // TODO [AA] Builtins need to handle a variety of cases around laziness in arguments.
+    "propagate through builtin methods" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Error
+          |
+          |main =
+          |    result = 1 + (Error.throw My_Error)
+          |    IO.println result
+          |""".stripMargin
+
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    "not propagate when explicitly accepted by type and by annotation" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Error
+          |
+          |main =
+          |    text = Error.throw My_Error . to_text
+          |    IO.println text
+          |""".stripMargin
+
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+  }
 }
