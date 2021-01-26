@@ -22,7 +22,7 @@
 </p>
 
 
-### Overview
+### Get insights you can act on, fast.
 
 <p>
   <a href="http://chat.enso.org">
@@ -42,10 +42,6 @@
          alt="License">
   </a>
 </p>
-
-<br/>
-
-### Get insights you can act on, fast.
 
 Enso is an interactive data processing environment with both a visual and a textual programming language interface.
 
