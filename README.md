@@ -62,11 +62,12 @@ a single language.
 - ⚡ **High performance**  
   Enso graphs and code can run up to 100x faster than the analoguous Python
   code.<br/><br/>
-- 🛡️ **Results you can trust** Enso incorporates many recent innovations in data
-  processing and programming language design to allow you to work quickly and
-  trust the results that you get. It is a purely functional programming language
-  with higher-order functions, user-defined algebraic datatypes,
-  pattern-matching, and a rich set of primitive types.<br/><br/>
+- 🛡️ **Results you can trust**  
+  Enso incorporates many recent innovations in data processing and programming
+  language design to allow you to work quickly and trust the results that you
+  get. It is a purely functional programming language with higher-order
+  functions, user-defined algebraic datatypes, pattern-matching, and a rich set
+  of primitive types.<br/><br/>
 - 🌎 **Runs everywhere**  
   Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
   web-native technologies. In time, you'll be able to run it in the web-browser,
