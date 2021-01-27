@@ -14,6 +14,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -59,6 +60,19 @@ public abstract class CaseNode extends ExpressionNode {
   }
 
   /**
+   * Rethrows a panic sentinel if it encounters one.
+   *
+   * @param frame the stack frame in which to execute
+   * @param sentinel the sentinel being matched against
+   * @return nothing
+   */
+  @Specialization
+  public Object doPanicSentinel(VirtualFrame frame, PanicSentinel sentinel) {
+    CompilerDirectives.transferToInterpreter();
+    throw sentinel;
+  }
+
+  /**
    * Executes the case expression.
    *
    * @param frame the stack frame in which to execute
@@ -66,7 +80,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization(guards = "!isDataflowError(object)")
+  @Specialization(guards = {"!isDataflowError(object)", "!isPanicSentinel(object)"})
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
@@ -90,6 +104,10 @@ public abstract class CaseNode extends ExpressionNode {
 
   boolean isDataflowError(Object error) {
     return TypesGen.isDataflowError(error);
+  }
+
+  boolean isPanicSentinel(Object sentinel) {
+    return TypesGen.isPanicSentinel(sentinel);
   }
 
   /* Note [Branch Selection Control Flow]

@@ -1,9 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
+import com.oracle.truffle.api.TruffleLanguage.ContextReference;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -16,12 +21,19 @@ public abstract class DivNode extends Node {
   }
 
   @Specialization
-  long doLong(long _this, long that) {
-    return _this / that;
+  Object doLong(
+      long _this, long that, @CachedContext(Language.class) ContextReference<Context> ctxRef) {
+    try {
+      return _this / that;
+    } catch (ArithmeticException e) {
+      return DataflowError.withDefaultTrace(
+          ctxRef.get().getBuiltins().error().getDivideByZeroError(), this);
+    }
   }
 
   @Specialization
-  long doBigInteger(long _this, EnsoBigInteger that) {
+  Object doBigInteger(long _this, EnsoBigInteger that) {
+    // No need to trap, as 0 is never represented as an EnsoBigInteger.
     return 0L;
   }
 

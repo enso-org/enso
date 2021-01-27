@@ -22,8 +22,10 @@ public class Error {
   private final AtomConstructor invalidArrayIndexError;
 
   private final Atom arithmeticErrorShiftTooBig;
+  private final Atom arithmeticErrorDivideByZero;
 
   private static final Text shiftTooBigMessage = Text.create("Shift amount too large.");
+  private static final Text divideByZeroMessage = Text.create("Cannot divide by zero.");
 
   /**
    * Creates and registers the relevant constructors.
@@ -69,6 +71,7 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
     arithmeticErrorShiftTooBig = arithmeticError.newInstance(shiftTooBigMessage);
+    arithmeticErrorDivideByZero = arithmeticError.newInstance(divideByZeroMessage);
     invalidArrayIndexError =
         new AtomConstructor("Invalid_Array_Index_Error", scope)
             .initializeFields(
@@ -76,6 +79,7 @@ public class Error {
                 new ArgumentDefinition(1, "index", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     scope.registerConstructor(syntaxError);
+    scope.registerConstructor(typeError);
     scope.registerConstructor(compileError);
     scope.registerConstructor(inexhaustivePatternMatchError);
     scope.registerConstructor(uninitializedState);
@@ -163,6 +167,16 @@ public class Error {
     return arithmeticErrorShiftTooBig;
   }
 
+  /** @return An Arithmetic error representing a division by zero. */
+  public Atom getDivideByZeroError() {
+    return arithmeticErrorDivideByZero;
+  }
+
+  /**
+   * @param array the array
+   * @param index the index
+   * @return An error representing that the {@code index} is not valid in {@code array}
+   */
   public Atom makeInvalidArrayIndexError(Object array, Object index) {
     return invalidArrayIndexError.newInstance(array, index);
   }

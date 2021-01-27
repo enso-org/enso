@@ -1,5 +1,6 @@
 package org.enso.interpreter.dsl.model;
 
+import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.dsl.Suspend;
@@ -186,6 +187,7 @@ public class MethodDefinition {
     private static final String OBJECT = "java.lang.Object";
     private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
     private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
+    private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
@@ -193,6 +195,7 @@ public class MethodDefinition {
     private final boolean isFrame;
     private final boolean isCallerInfo;
     private final boolean isSuspended;
+    private final boolean acceptsError;
     private final int position;
     private final VariableElement element;
 
@@ -211,6 +214,9 @@ public class MethodDefinition {
       name = originalName.equals("_this") ? "this" : originalName;
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
       isSuspended = element.getAnnotation(Suspend.class) != null;
+      acceptsError =
+          (element.getAnnotation(AcceptsError.class) != null)
+              || type.toString().equals(DATAFLOW_ERROR);
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
@@ -287,6 +293,11 @@ public class MethodDefinition {
     /** @return whether this argument is expected to be passed suspended. */
     public boolean isSuspended() {
       return isSuspended;
+    }
+
+    /** @return whether thsi argument accepts a dataflow error. */
+    public boolean acceptsError() {
+      return acceptsError;
     }
   }
 }

@@ -21,7 +21,7 @@
   <br/>
 </p>
 
-### Get insights you can act on, fast.
+### Get insights you can act on, fast
 
 <p>
   <a href="http://chat.enso.org">

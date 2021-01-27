@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -18,13 +19,16 @@ public class InstantiateNode extends ExpressionNode {
   private final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
+  private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
 
   InstantiateNode(AtomConstructor constructor, ExpressionNode[] arguments) {
     this.constructor = constructor;
     this.arguments = arguments;
     this.profiles = new ConditionProfile[arguments.length];
+    this.sentinelProfiles = new BranchProfile[arguments.length];
     for (int i = 0; i < arguments.length; ++i) {
       this.profiles[i] = ConditionProfile.createCountingProfile();
+      this.sentinelProfiles[i] = BranchProfile.create();
     }
   }
 
@@ -51,8 +55,17 @@ public class InstantiateNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     Object[] argumentValues = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
+      ConditionProfile profile = profiles[i];
+      BranchProfile sentinelProfile = sentinelProfiles[i];
       Object argument = arguments[i].executeGeneric(frame);
-      argumentValues[i] = argument;
+      if (profile.profile(TypesGen.isDataflowError(argument))) {
+        return argument;
+      } else if (TypesGen.isPanicSentinel(argument)) {
+        sentinelProfile.enter();
+        throw TypesGen.asPanicSentinel(argument);
+      } else {
+        argumentValues[i] = argument;
+      }
     }
     return constructor.newInstance(argumentValues);
   }
