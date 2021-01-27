@@ -7,7 +7,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Meta",

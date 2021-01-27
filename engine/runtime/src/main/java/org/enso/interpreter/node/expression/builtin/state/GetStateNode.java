@@ -1,7 +1,11 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -11,7 +15,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.state.data.SingletonMap;
 import org.enso.interpreter.runtime.state.data.SmallMap;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "State",

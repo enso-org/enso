@@ -85,9 +85,7 @@ type Boolean
 
        > Example
          Telling the user if a number 27 is divisible by three.
-             if (27 %To join the video meeting, click this link: https://meet.google.com/enz-tecr-jdf
-Otherwise, to join by phone, dial +44 20 3956 9638 and enter this PIN: 686 143 957#
-To view more phone numbers, click this link: https://tel.meet/enz-tecr-jdf?hs=5 3) == 0 then IO.println "Yes" else IO.println "No"
+             if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
     if_then_else : Any -> Any -> Any
     if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
 

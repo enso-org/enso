@@ -4,7 +4,6 @@ import Test
 type My_Type foo
 
 spec =
-    # Test.group "Dataflow Errors" <|
     Test.group "No Method Errors" <|
         Test.specify "should be recoverable" <|
             err_1 = Panic.recover (123 . foobar "baz") . catch e->e

@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -15,7 +14,6 @@ import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNod
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -23,8 +21,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(type = "Big_Integer", name = "bit_shift", description = "Bitwise shift.")
 public abstract class BitShiftNode extends Node {
   private @Child ToEnsoNumberNode toEnsoNumberNode = ToEnsoNumberNode.build();
-  private final ConditionProfile fitsInIntProfileLeftShift = ConditionProfile.createCountingProfile();
-  private final ConditionProfile fitsInIntProfileRightShift = ConditionProfile.createCountingProfile();
+  private final ConditionProfile fitsInIntProfileLeftShift =
+      ConditionProfile.createCountingProfile();
+  private final ConditionProfile fitsInIntProfileRightShift =
+      ConditionProfile.createCountingProfile();
 
   abstract Object execute(Object _this, Object that);
 
