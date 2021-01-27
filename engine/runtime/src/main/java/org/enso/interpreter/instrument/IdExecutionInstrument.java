@@ -10,7 +10,6 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.Arrays;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -23,10 +22,7 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -51,7 +47,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
     this.env = env;
   }
 
-  /** Override the default nanosecond timer with the specified {@code timer}.
+  /**
+   * Override the default nanosecond timer with the specified {@code timer}.
    *
    * @param timer the timer to override with
    */
@@ -270,7 +267,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> onComputedCallback;
     private final Consumer<ExpressionValue> onCachedCallback;
-    private final Consumer<Throwable> onExceptionalCallback;
+    private final Consumer<Exception> onExceptionalCallback;
     private final RuntimeCache cache;
     private final MethodCallsCache callsCache;
     private final UUID nextExecutionItem;
@@ -299,7 +296,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
         Consumer<ExpressionValue> onCachedCallback,
-        Consumer<Throwable> onExceptionalCallback,
+        Consumer<Exception> onExceptionalCallback,
         Timer timer) {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
@@ -322,15 +319,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       if (!isTopFrame(entryCallTarget)) {
         return;
       }
-
-      Node node = context.getInstrumentedNode();
-
-      UUID nodeId = null;
-      if (node instanceof ExpressionNode) {
-        nodeId = ((ExpressionNode) node).getId();
-      } else if (node instanceof FunctionCallInstrumentationNode) {
-        nodeId = ((FunctionCallInstrumentationNode) node).getId();
-      }
+      UUID nodeId = getNodeId(context.getInstrumentedNode());
 
       // Add a flag to say it was cached.
       // An array of `ProfilingInfo` in the value update.
@@ -414,6 +403,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
         } catch (InteropException e) {
           onExceptionalCallback.accept(e);
         }
+      } else if (exception instanceof MySentinelException) {
+        MySentinelException sentinelException = (MySentinelException) exception;
+        UUID nodeId = getNodeId(context.getInstrumentedNode());
+
+        onReturnValue(context, frame, sentinelException.getSentinel().withTrace(nodeId));
+      } else if (exception instanceof Exception) {
+        UUID nodeId = getNodeId(context.getInstrumentedNode());
+
+        onExceptionalCallback.accept((Exception) exception);
+        onReturnValue(context, frame, new MySentinel(nodeId));
       }
     }
 
@@ -446,6 +445,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
                   });
       return result == null;
     }
+
+    private UUID getNodeId(Node node) {
+      if (node instanceof ExpressionNode) {
+        return ((ExpressionNode) node).getId();
+      }
+      if (node instanceof FunctionCallInstrumentationNode) {
+        return ((FunctionCallInstrumentationNode) node).getId();
+      }
+      return null;
+    }
   }
 
   /**
@@ -473,7 +482,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<Throwable> onExceptionalCallback) {
+      Consumer<Exception> onExceptionalCallback) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)

@@ -65,7 +65,7 @@ trait ProgramExecutionSupport {
     onCachedMethodCallCallback: Consumer[ExpressionValue],
     onComputedCallback: Consumer[ExpressionValue],
     onCachedCallback: Consumer[ExpressionValue],
-    onExceptionalCallback: Consumer[Throwable]
+    onExceptionalCallback: Consumer[Exception]
   )(implicit ctx: RuntimeContext): Unit = {
     val methodCallsCache = new MethodCallsCache
     var enterables       = Map[UUID, FunctionCall]()
@@ -196,7 +196,7 @@ trait ProgramExecutionSupport {
       fireVisualisationUpdates(contextId, value)
     }
 
-    val onExceptionalCallback: Consumer[Throwable] = { value =>
+    val onExceptionalCallback: Consumer[Exception] = { value =>
       logger.log(Level.FINEST, s"ON_ERROR $value")
       sendErrorUpdate(contextId, value)
     }
@@ -349,7 +349,7 @@ trait ProgramExecutionSupport {
     }
   }
 
-  private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
+  private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
