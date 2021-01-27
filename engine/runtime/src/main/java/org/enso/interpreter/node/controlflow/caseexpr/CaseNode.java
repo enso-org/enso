@@ -80,7 +80,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization(guards = "!isDataflowError(object)")
+  @Specialization(guards = {"!isDataflowError(object)", "!isPanicSentinel(object)"})
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
@@ -104,6 +104,10 @@ public abstract class CaseNode extends ExpressionNode {
 
   boolean isDataflowError(Object error) {
     return TypesGen.isDataflowError(error);
+  }
+
+  boolean isPanicSentinel(Object sentinel) {
+    return TypesGen.isPanicSentinel(sentinel);
   }
 
   /* Note [Branch Selection Control Flow]
