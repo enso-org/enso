@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
@@ -28,6 +29,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -279,6 +281,20 @@ public abstract class IndirectInvokeMethodNode extends Node {
           argumentsExecutionMode,
           isTail);
     }
+  }
+
+  @Specialization
+  Stateful doPanicSentinel(
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      PanicSentinel _this,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail) {
+    throw _this;
   }
 
   @Specialization

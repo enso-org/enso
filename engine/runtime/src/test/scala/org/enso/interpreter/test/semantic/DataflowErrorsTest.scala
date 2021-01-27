@@ -93,7 +93,87 @@ class DataflowErrorsTest extends InterpreterTest {
       val code = "main = 10.catch (x -> x + 1)"
       eval(code) shouldEqual 10
     }
-  }
 
-  // TODO [AA] Builtins need to handle a variety of cases around laziness in arguments.
+    "propagate through atom construction" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Atom a
+          |type My_Error
+          |
+          |main =
+          |    broken_val = Error.throw My_Error
+          |    atom = My_Atom broken_val
+          |
+          |    IO.println atom
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    "propagate through method resolution" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Atom
+          |type My_Error
+          |
+          |My_Atom.foo = 10
+          |
+          |main =
+          |    broken_val = Error.throw My_Error
+          |    result = broken_val.foo
+          |
+          |    IO.println result
+          |""".stripMargin
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    "propagate through function calls" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Error
+          |
+          |main =
+          |    fn = Error.throw My_Error
+          |    result = fn 1 2
+          |    IO.println result
+          |""".stripMargin
+
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    "propagate through builtin methods" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Error
+          |
+          |main =
+          |    result = 1 + (Error.throw My_Error)
+          |    IO.println result
+          |""".stripMargin
+
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+
+    "not propagate when explicitly accepted by type and by annotation" in {
+      val code =
+        """from Builtins import all
+          |
+          |type My_Error
+          |
+          |main =
+          |    text = Error.throw My_Error . to_text
+          |    IO.println text
+          |""".stripMargin
+
+      eval(code)
+      consumeOut shouldEqual List("(Error: My_Error)")
+    }
+  }
 }

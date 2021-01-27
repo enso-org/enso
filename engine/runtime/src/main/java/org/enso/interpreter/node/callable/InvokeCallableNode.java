@@ -20,6 +20,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -140,6 +141,18 @@ public abstract class InvokeCallableNode extends BaseNode {
   Stateful invokeConstructor(
       AtomConstructor constructor, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
+  }
+
+  @Specialization
+  Stateful invokeDataflowError(
+      DataflowError error, VirtualFrame callerFrame, Object state, Object[] arguments) {
+    return new Stateful(state, error);
+  }
+
+  @Specialization
+  Stateful invokePanicSentinel(
+      PanicSentinel sentinel, VirtualFrame callerFrame, Object state, Object[] arguments) {
+    throw sentinel;
   }
 
   @Specialization

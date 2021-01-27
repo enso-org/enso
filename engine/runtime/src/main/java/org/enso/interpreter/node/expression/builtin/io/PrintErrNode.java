@@ -1,13 +1,14 @@
 package org.enso.interpreter.node.expression.builtin.io;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
+import java.io.PrintStream;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -19,8 +20,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import java.io.PrintStream;
-
 @BuiltinMethod(
     type = "IO",
     name = "print_err",
@@ -31,7 +30,7 @@ public abstract class PrintErrNode extends Node {
   }
 
   abstract Stateful execute(
-      VirtualFrame frame, @MonadicState Object state, Object _this, Object message);
+      VirtualFrame frame, @MonadicState Object state, Object _this, @AcceptsError Object message);
 
   @Specialization
   Stateful doPrintText(

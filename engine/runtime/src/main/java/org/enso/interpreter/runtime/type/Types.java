@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -43,7 +44,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   EnsoBigInteger.class,
   ManagedResource.class,
   ModuleScope.class,
-  Ref.class
+  Ref.class,
+  PanicSentinel.class
 })
 public class Types {
 
