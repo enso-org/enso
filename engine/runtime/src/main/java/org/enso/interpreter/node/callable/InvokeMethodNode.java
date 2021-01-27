@@ -7,6 +7,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
+import com.oracle.truffle.dsl.processor.java.model.CodeAnnotationMirror;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.resolver.ArrayResolverNode;
@@ -28,6 +29,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -179,6 +181,16 @@ public abstract class InvokeMethodNode extends BaseNode {
     } else {
       return invokeFunctionNode.execute(function, frame, state, arguments);
     }
+  }
+
+  @Specialization
+  Stateful doPanicSentinel(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      PanicSentinel _this,
+      Object[] arguments) {
+    throw _this;
   }
 
   @Specialization

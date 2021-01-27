@@ -75,6 +75,7 @@ public class MethodProcessor extends AbstractProcessor {
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
+          "com.oracle.truffle.api.profiles.BranchProfile",
           "com.oracle.truffle.api.profiles.ConditionProfile",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
@@ -110,11 +111,15 @@ public class MethodProcessor extends AbstractProcessor {
 
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
-          String name = "arg" + arg.getPosition() + "Profile";
+          String condName = "arg" + arg.getPosition() + "ConditionProfile";
+          String branchName = "arg" + arg.getPosition() + "BranchProfile";
           out.println(
               "  private final ConditionProfile "
-                  + name
+                  + condName
                   + " = ConditionProfile.createCountingProfile();");
+          out.println(
+              "  private final BranchProfile " + branchName + " = BranchProfile.create();"
+          );
         }
       }
 
@@ -235,13 +240,23 @@ public class MethodProcessor extends AbstractProcessor {
     }
 
     if (!arg.acceptsError()) {
+
       String varName = "arg" + arg.getPosition();
-      String profileName = "arg" + arg.getPosition() + "Profile";
+      String condProfile = "arg" + arg.getPosition() + "ConditionProfile";
       out.println(
-          "    if (" + profileName + ".profile(TypesGen.isDataflowError(" + varName + "))) {\n" +
+          "    if (" + condProfile + ".profile(TypesGen.isDataflowError(" + varName + "))) {\n" +
           "      return new Stateful(state, " + varName + ");\n" +
           "    }"
       );
+      if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
+        String branchProfile = "arg" + arg.getPosition() + "BranchProfile";
+        out.println(
+            "    else if (TypesGen.isPanicSentinel(" + varName + ")) {\n" +
+            "      " + branchProfile + ".enter();\n" +
+            "      throw TypesGen.asPanicSentinel(" + varName + ");\n" +
+            "    }"
+        );
+      }
     }
   }
 

@@ -14,6 +14,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -56,6 +57,19 @@ public abstract class CaseNode extends ExpressionNode {
   @Specialization
   public Object doError(VirtualFrame frame, DataflowError error) {
     return error;
+  }
+
+  /**
+   * Rethrows a panic sentinel if it encounters one.
+   *
+   * @param frame the stack frame in which to execute
+   * @param sentinel the sentinel being matched against
+   * @return nothing
+   */
+  @Specialization
+  public Object doPanicSentinel(VirtualFrame frame, PanicSentinel sentinel) {
+    CompilerDirectives.transferToInterpreter();
+    throw sentinel;
   }
 
   /**
