@@ -60,7 +60,7 @@ and [a high performance WebGL UI framework (EnsoGL)](https://github.com/enso-org
 Enso is distributed both in form of
 [pre-build packages for MacOS, Windows, or Linux](https://github.com/enso-org/ide/releases),
 as well as the [source code](https://github.com/enso-org). See the
-[demo scenes](http://TODO), and read the [documentation](http://TODO) to learn
+[demo scenes](http://TODO), and read the [documentation](docs/product) to learn
 more.
 
 Currently to start IDE you have to run **Enso Project Manager** first. For more
