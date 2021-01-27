@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -14,7 +13,7 @@ import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -48,7 +47,7 @@ public abstract class BitShiftNode extends Node {
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(_this, (int) that));
     } else {
-      throw new PanicException(
+      return DataflowError.withDefaultTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -80,8 +79,7 @@ public abstract class BitShiftNode extends Node {
       return _this >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
+      return DataflowError.withDefaultTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }

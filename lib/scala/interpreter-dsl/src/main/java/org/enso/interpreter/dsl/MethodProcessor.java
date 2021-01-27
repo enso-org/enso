@@ -75,6 +75,8 @@ public class MethodProcessor extends AbstractProcessor {
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
+          "com.oracle.truffle.api.profiles.BranchProfile",
+          "com.oracle.truffle.api.profiles.ConditionProfile",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
@@ -106,6 +108,20 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 
       out.println();
+
+      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+        if (!arg.isState() && !arg.isFrame() && !arg.isCallerInfo()) {
+          String condName = "arg" + arg.getPosition() + "ConditionProfile";
+          String branchName = "arg" + arg.getPosition() + "BranchProfile";
+          out.println(
+              "  private final ConditionProfile "
+                  + condName
+                  + " = ConditionProfile.createCountingProfile();");
+          out.println(
+              "  private final BranchProfile " + branchName + " = BranchProfile.create();"
+          );
+        }
+      }
 
       out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
       out.println("    super(language);");
@@ -221,6 +237,26 @@ public class MethodProcessor extends AbstractProcessor {
       generateUncheckedArgumentRead(out, arg, argsArray);
     } else {
       generateCheckedArgumentRead(out, arg, methodName, argsArray);
+    }
+
+    if (!arg.acceptsError()) {
+
+      String varName = "arg" + arg.getPosition();
+      String condProfile = "arg" + arg.getPosition() + "ConditionProfile";
+      out.println(
+          "    if (" + condProfile + ".profile(TypesGen.isDataflowError(" + varName + "))) {\n" +
+          "      return new Stateful(state, " + varName + ");\n" +
+          "    }"
+      );
+      if (!(arg.getName().equals("this") && arg.getPosition() == 0)) {
+        String branchProfile = "arg" + arg.getPosition() + "BranchProfile";
+        out.println(
+            "    else if (TypesGen.isPanicSentinel(" + varName + ")) {\n" +
+            "      " + branchProfile + ".enter();\n" +
+            "      throw TypesGen.asPanicSentinel(" + varName + ");\n" +
+            "    }"
+        );
+      }
     }
   }
 
