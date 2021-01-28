@@ -385,6 +385,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
         onComputedCallback.accept(
             new ExpressionValue(
                 nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
+        if (result instanceof PanicSentinel) {
+          throw context.createUnwind(result);
+        }
       }
     }
 
@@ -403,16 +406,14 @@ public class IdExecutionInstrument extends TruffleInstrument {
         } catch (InteropException e) {
           onExceptionalCallback.accept(e);
         }
-      } else if (exception instanceof MySentinelException) {
-        MySentinelException sentinelException = (MySentinelException) exception;
-        UUID nodeId = getNodeId(context.getInstrumentedNode());
+      } else if (exception instanceof PanicException) {
+        PanicException panicException = (PanicException) exception;
+        org.enso.interpreter.DebugLogger.log.info("GOT PanicException " + panicException);
 
-        onReturnValue(context, frame, sentinelException.getSentinel().withTrace(nodeId));
-      } else if (exception instanceof Exception) {
-        UUID nodeId = getNodeId(context.getInstrumentedNode());
-
-        onExceptionalCallback.accept((Exception) exception);
-        onReturnValue(context, frame, new MySentinel(nodeId));
+        onReturnValue(
+            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+      } else if (exception instanceof PanicSentinel) {
+        onReturnValue(context, frame, exception);
       }
     }
 
