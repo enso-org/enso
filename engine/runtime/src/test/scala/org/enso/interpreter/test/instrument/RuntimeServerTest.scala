@@ -123,80 +123,6 @@ class RuntimeServerTest
     def executionComplete(contextId: UUID): Api.Response =
       Api.Response(Api.ExecutionComplete(contextId))
 
-    object Message {
-      def update(
-        contextId: UUID,
-        expressionId: UUID
-      ): Api.Response =
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                expressionId,
-                None,
-                None,
-                Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                false,
-                Api.ExpressionUpdate.Payload.Value()
-              )
-            )
-          )
-        )
-
-      def update(
-        contextId: UUID,
-        expressionId: UUID,
-        expressionType: String
-      ): Api.Response =
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                expressionId,
-                Some(expressionType),
-                None,
-                Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                false,
-                Api.ExpressionUpdate.Payload.Value()
-              )
-            )
-          )
-        )
-
-      def update(
-        contextId: UUID,
-        expressionId: UUID,
-        expressionType: String,
-        methodPointer: Api.MethodPointer
-      ): Api.Response =
-        update(contextId, expressionId, expressionType, methodPointer, false)
-
-      def update(
-        contextId: UUID,
-        expressionId: UUID,
-        expressionType: String,
-        methodPointer: Api.MethodPointer,
-        fromCache: Boolean
-      ): Api.Response =
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                expressionId,
-                Some(expressionType),
-                Some(methodPointer),
-                Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                fromCache,
-                Api.ExpressionUpdate.Payload.Value()
-              )
-            )
-          )
-        )
-    }
-
     // === The Tests ==========================================================
 
     object Main {
@@ -544,13 +470,13 @@ class RuntimeServerTest
     )
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainFoo,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1")
@@ -648,33 +574,33 @@ class RuntimeServerTest
     )
     context.receive(9) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainX,
         Constants.INTEGER,
         Api.MethodPointer("Test.Main", "Test.Main.Quux", "foo")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainY,
         Constants.INTEGER,
         Api.MethodPointer("Test.Main", "Test.Main", "bar")
       ),
-      context.Message.update(contextId, idMainM, "Test.A.A"),
-      context.Message.update(
+      TestMessages.update(contextId, idMainM, "Test.A.A"),
+      TestMessages.update(
         contextId,
         idMainP,
         Constants.INTEGER,
         Api.MethodPointer("Test.A", "Test.A.A", "foo")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainQ,
         Constants.INTEGER,
         Api.MethodPointer("Test.A", "Test.A", "bar")
       ),
-      context.Message.update(contextId, idMainF, Constants.INTEGER),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMainF, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("79")
@@ -729,13 +655,13 @@ class RuntimeServerTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainFoo,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -840,13 +766,13 @@ class RuntimeServerTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainFoo,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -951,13 +877,13 @@ class RuntimeServerTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainBar,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "bar")
       ),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1060,13 +986,13 @@ class RuntimeServerTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainBar,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "bar")
       ),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1169,13 +1095,13 @@ class RuntimeServerTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainFoo,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1271,7 +1197,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1491,9 +1417,9 @@ class RuntimeServerTest
     )
     context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(contextId, idResult, Constants.INTEGER),
-      context.Message.update(contextId, idPrintln, Constants.NOTHING),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idResult, Constants.INTEGER),
+      TestMessages.update(contextId, idPrintln, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1559,7 +1485,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(contextId, idResult, Constants.TEXT),
+      TestMessages.update(contextId, idResult, Constants.TEXT),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hi")
@@ -1622,9 +1548,9 @@ class RuntimeServerTest
     )
     context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(contextId, idMainA, Constants.INTEGER),
-      context.Message.update(contextId, idMainP, Constants.NOTHING),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(contextId, idMainA, Constants.INTEGER),
+      TestMessages.update(contextId, idMainP, Constants.NOTHING),
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -1769,7 +1695,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainA,
         Constants.INTEGER,
@@ -1811,7 +1737,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainA,
         Constants.INTEGER,
@@ -1836,7 +1762,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainA,
         Constants.INTEGER,
@@ -1861,7 +1787,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(
+      TestMessages.update(
         contextId,
         idMainA,
         Constants.TEXT,
@@ -1886,7 +1812,7 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      context.Message.update(contextId, idMainA, Constants.TEXT),
+      TestMessages.update(contextId, idMainA, Constants.TEXT),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("Hello!")
@@ -1946,20 +1872,20 @@ class RuntimeServerTest
     )
     context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(contextId, idMain, Constants.NOTHING),
-      context.Message.update(
+      TestMessages.update(contextId, idMain, Constants.NOTHING),
+      TestMessages.update(
         contextId,
         id1,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id2,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id3,
         Constants.INTEGER,
@@ -2083,20 +2009,20 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id1,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
         fromCache = true
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id2,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id3,
         Constants.INTEGER,
@@ -2124,20 +2050,20 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id1,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
         fromCache = true
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id2,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id3,
         Constants.INTEGER,
@@ -2165,20 +2091,20 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id1,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded"),
         fromCache = true
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id2,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.TEXT, "overloaded")
       ),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         id3,
         Constants.INTEGER,
@@ -2333,7 +2259,7 @@ class RuntimeServerTest
     )
     context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -2426,7 +2352,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = mainFile,
@@ -3881,7 +3807,7 @@ class RuntimeServerTest
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      context.Message.update(contextId, idMain, Constants.INTEGER),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file    = visualisationFile,
@@ -4845,7 +4771,7 @@ class RuntimeServerTest
     )
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Message.update(
+      TestMessages.update(
         contextId,
         context.Main.idMainY,
         Constants.INTEGER,

@@ -7,6 +7,7 @@ import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import org.enso.interpreter.instrument.execution.Timer
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -120,7 +121,7 @@ class ExpressionErrorsTest
 
   object Update {
 
-    def error(
+    def panic(
       contextId: UUID,
       expressionId: UUID,
       payload: Api.ExpressionUpdate.Payload
@@ -131,8 +132,30 @@ class ExpressionErrorsTest
           Set(
             Api.ExpressionUpdate(
               expressionId,
-              Some("Builtins.Main.Panic"),
+              Some(Constants.PANIC),
               None,
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              payload
+            )
+          )
+        )
+      )
+
+    def panic(
+      contextId: UUID,
+      expressionId: UUID,
+      methodPointer: Api.MethodPointer,
+      payload: Api.ExpressionUpdate.Payload
+    ): Api.Response =
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              expressionId,
+              Some(Constants.PANIC),
+              Some(methodPointer),
               Vector(Api.ProfilingInfo.ExecutionTime(0)),
               false,
               payload
@@ -151,7 +174,7 @@ class ExpressionErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "return dataflow errors in method body" in {
+  it should "return panic sentinels in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -212,7 +235,7 @@ class ExpressionErrorsTest
           )
         )
       ),
-      Update.error(
+      Update.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.RuntimeError(
@@ -220,7 +243,7 @@ class ExpressionErrorsTest
           Seq(xId)
         )
       ),
-      Update.error(
+      Update.panic(
         contextId,
         fooBodyId,
         Api.ExpressionUpdate.Payload.RuntimeError(
@@ -228,7 +251,7 @@ class ExpressionErrorsTest
           Seq(xId)
         )
       ),
-      Update.error(
+      Update.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.RuntimeError(
@@ -236,7 +259,7 @@ class ExpressionErrorsTest
           Seq(xId)
         )
       ),
-      Update.error(
+      Update.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.RuntimeError(
@@ -246,6 +269,156 @@ class ExpressionErrorsTest
       ),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "return panic sentinels in method calls" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val mainBodyId = metadata.addItem(28, 12)
+
+    val code =
+      """foo a b = a + b + x
+        |
+        |main = here.foo 1 2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Variable `x` is not defined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
+              None
+            )
+          )
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainBodyId,
+        Api.MethodPointer("Test.Main", "Test.Main", "foo"),
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `x` is not defined.",
+          Seq(mainBodyId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return panic sentinels continuing execution" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(41, 9)
+    val yId        = metadata.addItem(59, 2)
+    val mainResId  = metadata.addItem(66, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = undefined
+        |    y = 42
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
+            ),
+            Api.ExecutionResult.Diagnostic.error(
+              "Variable `undefined` is not defined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
+              Some(xId)
+            )
+          )
+        )
+      ),
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `undefined` is not defined.",
+          Seq(xId)
+        )
+      ),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("42")
   }
 
 }
