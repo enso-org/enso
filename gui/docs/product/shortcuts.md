@@ -93,11 +93,11 @@ further investigation.
 #### Visualization
 | Shortcut | Action |
 | -------- | ------ |
-| <kbd>space</kbd>                         | Toggle visualization visibility of the selected node. |
-| <kbd>space</kbd> hold                    | Preview visualization of the selected node (hide on release). |
-| :warning: <kbd>space</kbd> double press  | Toggle visualization fullscreen mode |
-| <kbd>ctrl</kbd> + <kbd>space</kbd>       | Cycle visualizations of the selected node. |
-| :bangbang: <kbd>cmd</kbd> + <kbd>\</kbd> | Toggle documentation view visibility |
+| <kbd>space</kbd>                          | Toggle visualization visibility of the selected node. |
+| <kbd>space</kbd> hold                     | Preview visualization of the selected node (hide on release). |
+| :warning: <kbd>space</kbd> double press   | Toggle visualization fullscreen mode |
+| <kbd>ctrl</kbd> + <kbd>space</kbd>        | Cycle visualizations of the selected node. |
+| :bangbang: <kbd>cmd</kbd> + <kbd>\\</kbd> | Toggle documentation view visibility |
 
 
 #### Visualizations Implementations
