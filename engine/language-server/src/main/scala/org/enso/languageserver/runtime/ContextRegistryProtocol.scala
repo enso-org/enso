@@ -148,13 +148,6 @@ object ContextRegistryProtocol {
         trace: Seq[UUID]
       ) extends Payload
 
-      /** Indicates that the expression was not computed due to a dependency,
-        * that failed with the runtime exception.
-        *
-        * @param trace the list of expressions leading to the root error.
-        */
-      case class Poisoned(trace: Seq[UUID]) extends Payload
-
       private object CodecField {
 
         val Type = "type"
@@ -168,7 +161,6 @@ object ContextRegistryProtocol {
 
         val RuntimeError = "RuntimeError"
 
-        val Poisoned = "Poisoned"
       }
 
       implicit val encoder: Encoder[Payload] =
@@ -189,13 +181,6 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.RuntimeError.asJson)
               )
-
-          case m: Payload.Poisoned =>
-            Encoder[Payload.Poisoned]
-              .apply(m)
-              .deepMerge(
-                Json.obj(CodecField.Type -> PayloadType.Poisoned.asJson)
-              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -209,9 +194,6 @@ object ContextRegistryProtocol {
 
             case PayloadType.RuntimeError =>
               Decoder[Payload.RuntimeError].tryDecode(cursor)
-
-            case PayloadType.Poisoned =>
-              Decoder[Payload.Poisoned].tryDecode(cursor)
           }
         }
     }

@@ -203,9 +203,6 @@ final class ContextEventsListener(
       case Api.ExpressionUpdate.Payload.RuntimeError(message, trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload
           .RuntimeError(message, trace)
-
-      case Api.ExpressionUpdate.Payload.Poisoned(trace) =>
-        ContextRegistryProtocol.ExpressionUpdate.Payload.Poisoned(trace)
     }
 
   /** Convert the runtime profiling info to the context registry protocol

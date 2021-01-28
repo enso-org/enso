@@ -208,46 +208,6 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send poisoning error updates" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
-        listener ! Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              Suggestions.local.externalId.get,
-              None,
-              None,
-              Vector(),
-              false,
-              Api.ExpressionUpdate.Payload.Poisoned(
-                Seq(Suggestions.method.externalId.get)
-              )
-            )
-          )
-        )
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            ContextRegistryProtocol.ExpressionUpdatesNotification(
-              contextId,
-              Vector(
-                ContextRegistryProtocol.ExpressionUpdate(
-                  Suggestions.local.externalId.get,
-                  None,
-                  None,
-                  Vector(),
-                  false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .Poisoned(Seq(Suggestions.method.externalId.get))
-                )
-              ),
-              None
-            )
-          )
-        )
-    }
-
     "send expression updates grouped" taggedAs Retry in withDb(0.seconds) {
       (clientId, contextId, repo, router, listener) =>
         Await.result(

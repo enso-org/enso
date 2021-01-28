@@ -283,10 +283,6 @@ object Runtime {
           new JsonSubTypes.Type(
             value = classOf[Payload.RuntimeError],
             name  = "expressionUpdatePayloadRuntimeError"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Poisoned],
-            name  = "expressionUpdatePayloadPoisoned"
           )
         )
       )
@@ -314,12 +310,6 @@ object Runtime {
           trace: Seq[ExpressionId]
         ) extends Payload
 
-        /** Indicates that the expression was not computed due to a dependency,
-          * that failed with the runtime exception.
-          *
-          * @param trace the list of expressions leading to the root error.
-          */
-        case class Poisoned(trace: Seq[ExpressionId]) extends Payload
       }
     }
 
