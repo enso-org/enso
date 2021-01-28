@@ -216,7 +216,7 @@ trait ProgramExecutionSupport {
               onExceptionalCallback
             )
           )
-          .leftMap(onExecutionError(contextId, stackItem.item, _))
+          .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
     executionResult.fold(Some(_), _ => None)
@@ -224,13 +224,11 @@ trait ProgramExecutionSupport {
 
   /** Execution error handler.
     *
-    * @param contextId an identifier of an execution context
     * @param item the stack item being executed
     * @param error the execution error
     * @return the error message
     */
   private def onExecutionError(
-    contextId: ContextId,
     item: ExecutionItem,
     error: Throwable
   )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
@@ -247,7 +245,6 @@ trait ProgramExecutionSupport {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    sendExpressionUpdates(contextId, ErrorResolver.createUpdates(error))
     executionUpdate.getOrElse(
       Api.ExecutionResult
         .Failure(s"Error in function $itemName.", None)
@@ -263,14 +260,9 @@ trait ProgramExecutionSupport {
   private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    def getLanguage(ex: TruffleException): Option[String] =
-      for {
-        location <- Option(ex.getSourceLocation)
-        source   <- Option(location.getSource)
-      } yield source.getLanguage
     t match {
       case ex: TruffleException
-          if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
+          if ErrorResolver.getLanguage(ex).forall(_ == LanguageInfo.ID) =>
         val section = Option(ex.getSourceLocation)
         Some(
           Api.ExecutionResult.Diagnostic.error(
@@ -319,19 +311,6 @@ trait ProgramExecutionSupport {
         )
       )
     )
-  }
-
-  private def sendExpressionUpdates(
-    contextId: ContextId,
-    updates: Set[Api.ExpressionUpdate]
-  )(implicit ctx: RuntimeContext): Unit = {
-    if (updates.nonEmpty) {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionUpdates(contextId, updates)
-        )
-      )
-    }
   }
 
   private def sendValueUpdate(
