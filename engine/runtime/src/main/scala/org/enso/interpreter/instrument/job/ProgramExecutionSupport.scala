@@ -1,11 +1,12 @@
 package org.enso.interpreter.instrument.job
 
+import java.io.File
+import java.util.function.Consumer
+import java.util.logging.Level
+import java.util.{Objects, UUID}
+
 import cats.implicits._
-import com.oracle.truffle.api.{
-  TruffleException,
-  TruffleStackTrace,
-  TruffleStackTraceElement
-}
+import com.oracle.truffle.api.TruffleException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -36,12 +37,8 @@ import org.enso.interpreter.service.error.{
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.interpreter.runtime.error.PanicSentinel
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.{Objects, UUID}
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -283,7 +280,7 @@ trait ProgramExecutionSupport {
             section
               .flatMap(LocationResolver.getExpressionId(_))
               .map(_.externalId),
-            getStackTrace(ex)
+            ErrorResolver.getStackTrace(ex)
           )
         )
 
@@ -308,44 +305,6 @@ trait ProgramExecutionSupport {
 
       case _ =>
         None
-    }
-  }
-
-  /** Create a stack trace of a guest language from a java exception.
-    *
-    * @param throwable the exception
-    * @param ctx the runtime context
-    * @return a runtime API representation of a stack trace
-    */
-  private def getStackTrace(
-    throwable: Throwable
-  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] =
-    TruffleStackTrace
-      .getStackTrace(throwable)
-      .asScala
-      .map(toStackElement)
-      .toVector
-
-  /** Convert from the truffle stack element to the runtime API representation.
-    *
-    * @param element the trufle stack trace element
-    * @param ctx the runtime context
-    * @return the runtime API representation of the stack trace element
-    */
-  private def toStackElement(
-    element: TruffleStackTraceElement
-  )(implicit ctx: RuntimeContext): Api.StackTraceElement = {
-    val node = element.getLocation
-    node.getEncapsulatingSourceSection match {
-      case null =>
-        Api.StackTraceElement(node.getRootNode.getName, None, None, None)
-      case section =>
-        Api.StackTraceElement(
-          element.getTarget.getRootNode.getName,
-          findFileByModuleName(section.getSource.getName),
-          Some(LocationResolver.sectionToRange(section)),
-          LocationResolver.getExpressionId(section).map(_.externalId)
-        )
     }
   }
 
@@ -386,6 +345,16 @@ trait ProgramExecutionSupport {
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
     ) {
+      val payload = value.getValue match {
+        case sentinel: PanicSentinel =>
+          Api.ExpressionUpdate.Payload
+            .RuntimeError(
+              sentinel.getMessage,
+              ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
+            )
+        case _ =>
+          Api.ExpressionUpdate.Payload.Value()
+      }
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
@@ -399,7 +368,7 @@ trait ProgramExecutionSupport {
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
                 value.wasCached(),
-                Api.ExpressionUpdate.Payload.Value()
+                payload
               )
             )
           )

@@ -1,26 +1,37 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.interpreter.test.Metadata
-import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot._
-import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.io.MessageEndpoint
-import org.scalatest.BeforeAndAfterEach
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
+import org.enso.interpreter.instrument.execution.Timer
+import org.enso.interpreter.test.Metadata
+import org.enso.pkg.{Package, PackageManager}
+import org.enso.polyglot._
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.text.editing.model
+import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.io.MessageEndpoint
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class ExpressionErrorsTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
+
+  // === Test Timer ===========================================================
+
+  class TestTimer extends Timer {
+    override def getTime(): Long = 0
+  }
+
+  // === Test Utilities =======================================================
 
   var context: TestContext = _
 
@@ -65,6 +76,13 @@ class ExpressionErrorsTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
+    val languageContext = executionContext.context
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject[org.enso.interpreter.runtime.Context]
+    languageContext.getLanguage.getIdExecutionInstrument
+      .overrideTimer(new TestTimer)
+
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
@@ -103,33 +121,26 @@ class ExpressionErrorsTest
   object Update {
 
     def error(
+      contextId: UUID,
       expressionId: UUID,
       payload: Api.ExpressionUpdate.Payload
-    ): Api.ExpressionUpdate =
-      Api.ExpressionUpdate(
-        expressionId,
-        None,
-        None,
-        Vector(Api.ProfilingInfo.ExecutionTime(0)),
-        false,
-        payload
+    ): Api.Response =
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              expressionId,
+              Some("Builtins.Main.Panic"),
+              None,
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              payload
+            )
+          )
+        )
       )
 
-    def runtimeError(
-      expressionId: UUID,
-      message: String
-    ): Api.ExpressionUpdate =
-      Api.ExpressionUpdate(
-        expressionId,
-        None,
-        None,
-        Vector(Api.ProfilingInfo.ExecutionTime(0)),
-        false,
-        Api.ExpressionUpdate.Payload.RuntimeError(message, Seq())
-      )
-
-    def poisonedError(expressionId: UUID): Api.ExpressionUpdate =
-      error(expressionId, Api.ExpressionUpdate.Payload.Poisoned(Seq()))
   }
 
   def contentsVersion(content: String): ContentVersion =
@@ -145,11 +156,10 @@ class ExpressionErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    @scala.annotation.unused
-    val fooBodyId = metadata.addItem(21, 5)
-    val xId       = metadata.addItem(35, 9)
-    val yId       = metadata.addItem(53, 8)
-    val mainResId = metadata.addItem(66, 7)
+    val fooBodyId  = metadata.addItem(21, 5)
+    val xId        = metadata.addItem(35, 9)
+    val yId        = metadata.addItem(53, 8)
+    val mainResId  = metadata.addItem(66, 7)
 
     val code =
       """main =
@@ -187,7 +197,7 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -197,46 +207,41 @@ class ExpressionErrorsTest
               "Variable `undefined` is not defined.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
-              Some(xId),
-              Vector()
+              Some(xId)
             )
           )
         )
       ),
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Update.runtimeError(
-              xId,
-              "Compile_Error Variable `undefined` is not defined."
-            ),
-            Update.poisonedError(yId),
-            Update.poisonedError(mainResId)
-          )
+      Update.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `undefined` is not defined.",
+          Seq(xId)
         )
       ),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Compile_Error Variable `undefined` is not defined.",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
-              Some(xId),
-              Vector(
-                Api.StackTraceElement(
-                  "Main.main",
-                  Some(mainFile),
-                  Some(
-                    model.Range(model.Position(2, 8), model.Position(2, 17))
-                  ),
-                  Some(xId)
-                )
-              )
-            )
-          )
+      Update.error(
+        contextId,
+        fooBodyId,
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `undefined` is not defined.",
+          Seq(xId)
+        )
+      ),
+      Update.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `undefined` is not defined.",
+          Seq(xId)
+        )
+      ),
+      Update.error(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.RuntimeError(
+          "Compile_Error Variable `undefined` is not defined.",
+          Seq(xId)
         )
       ),
       context.executionComplete(contextId)

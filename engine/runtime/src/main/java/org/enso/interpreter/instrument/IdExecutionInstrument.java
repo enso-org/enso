@@ -18,6 +18,8 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.control.TailCallException;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
@@ -408,10 +410,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        org.enso.interpreter.DebugLogger.log.info("GOT PanicException " + panicException);
-
-        onReturnValue(
-            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
       }

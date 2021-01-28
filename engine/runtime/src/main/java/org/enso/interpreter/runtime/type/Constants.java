@@ -12,6 +12,7 @@ public class Constants {
   public static final String INTEGER = "Builtins.Main.Integer";
   public static final String DECIMAL = "Builtins.Main.Decimal";
   public static final String NOTHING = "Builtins.Main.Nothing";
+  public static final String PANIC = "Builtins.Main.Panic";
   public static final String REF = "Builtins.Main.Ref";
   public static final String TEXT = "Builtins.Main.Text";
   public static final String THUNK = "Builtins.Main.Thunk";
