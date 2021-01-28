@@ -32,6 +32,10 @@
     <img src="https://github.com/enso-org/enso/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
   </a>
+  <a href="https://github.com/enso-org/ide/actions">
+    <img src="https://github.com/enso-org/ide/workflows/GUI%20CI/badge.svg"
+         alt="Actions Status">
+  </a>
   <a href="https://github.com/enso-org/enso/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
