@@ -19,6 +19,12 @@ Spec.is_fail = this.behaviors.any .is_fail
 Suite.is_fail = this.specs.any .is_fail
 
 ## PRIVATE
+type Finished_With_Error err
+
+## PRIVATE
+type Matched_On_Error err
+
+## PRIVATE
 type Assertion
     type Success
     type Failure message
@@ -49,13 +55,14 @@ Any.should verb argument = verb Verbs this argument
 fail message = Panic.throw (Failure message)
 
 ## Expect a function to fail with the provided dataflow error.
-expect_error_with ~action matcher =
-    result = action
-    fail_msg = "Expected an error " + matcher.to_text + "but none occurred."
-    if result.is_error.not then here.fail fail_msg else
-        caught = result.catch x->x
-        if caught.is_a matcher then Nothing else
-            here.fail ("Unexpected error " + caught.to_text + " thrown.")
+Any.should_fail_with matcher =
+    here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
+
+## Expect a function to fail with the provided dataflow error.
+Error.should_fail_with matcher =
+    caught = this.catch x->x
+    if caught.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + caught.to_text + " returned.")
 
 ## Expect a function to fail with the provided panic.
 expect_panic_with ~action matcher =
@@ -73,6 +80,9 @@ Any.should_equal that = case this == that of
         msg = this.to_text + " did not equal " + that.to_text + "."
         Panic.throw (Failure msg)
 
+## Asserts that `this` value is equal to the expected value.
+Error.should_equal _ = Panic.throw (Matched_On_Error this)
+
 ## Asserts that `this` is within `epsilon` from `that`.
 Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
     True -> Success
@@ -85,10 +95,16 @@ Boolean.should_be_true = case this of
     True -> Success
     False -> Panic.throw (Failure "Expected False to be True.")
 
+## Asserts that the given `Boolean` is `True`.
+Error.should_be_true = Panic.throw (Matched_On_Error this)
+
 ## Asserts that the given `Boolean` is `False`
 Boolean.should_be_false = case this of
     True -> Panic.throw (Failure "Expected True to be False.")
     False -> Success
+
+## Asserts that the given `Boolean` is `False`
+Error.should_be_false = Panic.throw (Matched_On_Error this)
 
 ## PRIVATE
 Spec.print_report =
@@ -137,18 +153,20 @@ specify label ~behavior pending=False =
     new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
     State.put Spec new_spec
 
+## PRIVATE
 run_spec ~behavior =
     recovery = Panic.recover <|
-        behavior
+        behavior.catch err-> Panic.throw (Finished_With_Error err)
         Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->
         case ex of
             Failure _ -> ex
-            _ -> Failure ("Unexpected error has been thrown: " + ex.to_text)
+            Finished_With_Error x -> 
+                Failure ("An unexpected error was returned: " + x.to_text)
+            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text)
     result
-
 
 ## Creates a new test group, desribing properties of the object
    described by `this`.

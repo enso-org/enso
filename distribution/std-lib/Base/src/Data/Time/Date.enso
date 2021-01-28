@@ -96,6 +96,12 @@ type Date
 
 ## Obtains an instance of `Date` from a text, such as "2007-12-03".
 
+   Arguments:
+   - text: The textual content to parse as a date.
+
+   Returns a `Time_Error` if the provided `text` cannot be parsed using the
+   provided `pattern`.
+
    The text must represent a valid date and is parsed using the ISO-8601
    extended local date format. The format consists of:
 
@@ -115,18 +121,25 @@ type Date
 
    > Example
      Recover from the parse error.
-         Date.parse "my birthday" . catch <| case _ of
+         Date.parse "my birthday" . catch e-> case e of
              Time.Error _ -> Date.new 2000 1 1
-parse : Text -> Date
+parse : Text -> Date ! Time.Time_Error
 parse text =
-    Panic.recover (Date (LocalDate.parse text)) . catch <| case _ of
+    Panic.recover (Date (LocalDate.parse text)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
 ## Obtains an instance of `Date` from a text using custom format.
 
+   Arguments:
+   - text: The textual content to parse as a time.
+   - pattern: The pattern describing how to parse the text.
+
    For the list of accepted symbols in pattern refer to
    `Base.Data.Time.Time.format` doc.
+
+   Returns a `Time_Error` if the provided `text` cannot be parsed using the
+   provided `pattern`.
 
    > Example
      Parse "1999-1-1" as Date.
@@ -135,12 +148,12 @@ parse text =
    > Example
      Recover from the parse error.
          date = Date.parse "1999-1-1" "yyyy-MM-dd"
-         date.catch <| case _ of
+         date.catch e-> case e of
              Time.Error msg -> Date.new 2000 1 1
-parse_format : Text -> Text -> Date
+parse_format : Text -> Text -> Date ! Time.Time_Error
 parse_format text pattern =
     format = DateTimeFormatter.ofPattern pattern
-    Panic.recover (Date (LocalDate.parse text format)) . catch <| case _ of
+    Panic.recover (Date (LocalDate.parse text format)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -158,6 +171,8 @@ today = here.now
    - day - the day-of-month to represent, from 1 to 31 and must be valid for the
      year and month
 
+   Returns a `Time_Error` if the provided time is not valid.
+
    > Example
      Create a new local date at Unix epoch.
          Date.new 1970
@@ -165,8 +180,8 @@ today = here.now
    > Example
      Get the local date of 5th August 1986.
          Date.new 1986 8 5
-new : Integer -> Integer -> Integer -> Date
+new : Integer -> Integer -> Integer -> Date ! Time.Time_Error
 new year (month = 1) (day = 1) =
-    Panic.recover (Date (LocalDate.of year month day)) . catch <| case _ of
+    Panic.recover (Date (LocalDate.of year month day)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x

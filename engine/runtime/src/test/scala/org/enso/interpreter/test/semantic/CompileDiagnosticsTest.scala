@@ -14,7 +14,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main =
           |    x = Panic.recover ()
-          |    x.catch err->
+          |    x.catch_primitive err->
           |        case err of
           |            Syntax_Error msg -> "Oopsie, it's a syntax error: " + msg
           |""".stripMargin
@@ -29,7 +29,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main =
           |    x = Panic.recover @
-          |    x.catch .to_text
+          |    x.catch_primitive .to_text
           |""".stripMargin
       eval(code) shouldEqual "(Syntax_Error 'Unrecognized token.')"
     }
@@ -42,7 +42,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = 1
           |    x = 2
           |
-          |main = Panic.recover here.foo . catch .to_text
+          |main = Panic.recover here.foo . catch_primitive .to_text
           |""".stripMargin
       eval(code) shouldEqual "(Compile_Error 'Variable x is being redefined.')"
     }
@@ -55,7 +55,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    my_var = 10
           |    my_vra
           |
-          |main = Panic.recover here.foo . catch .to_text
+          |main = Panic.recover here.foo . catch_primitive .to_text
           |""".stripMargin
       eval(code) shouldEqual "(Compile_Error 'Variable `my_vra` is not defined.')"
     }

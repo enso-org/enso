@@ -120,11 +120,11 @@ type Vector
          In the following example, we'll compute the sum of all elements of a
          vector:
              [0, 1, 2] . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any | Nothing
+    reduce : (Any -> Any -> Any) -> Any ! Nothing
     reduce function =
         case this.not_empty of
             True -> this.tail.fold this.head function
-            False -> Nothing
+            False -> Error.throw Nothing
 
     ## Checks whether a predicate holds for at least one element of this vector.
 
@@ -360,8 +360,8 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].head == Nothing
-    head : Any | Nothing
-    head = if this.length >= 1 then this.at 0 else Nothing
+    head : Any ! Nothing
+    head = if this.length >= 1 then this.at 0 else Error.throw Nothing
 
     ## Get all elements in the vector except the first.
 
@@ -371,8 +371,8 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].tail == Nothing
-    tail : Vector | Nothing
-    tail = if this.length >= 1 then this.drop_start 1 else Nothing
+    tail : Vector ! Nothing
+    tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
 
     ## Get the all elements in the vector except the last.
 
@@ -382,8 +382,8 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].init == Nothing
-    init : Vector | Nothing
-    init = if this.length >= 1 then this.drop_end 1 else Nothing
+    init : Vector ! Nothing
+    init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
 
     ## Get the last element of the vector.
 
@@ -393,8 +393,8 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].last == Nothing
-    last : Vector | Nothing
-    last = if this.length >= 1 then (this.take_end 1).at 0 else Nothing
+    last : Vector ! Nothing
+    last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
 
     ## Get the first element from the vector.
 
@@ -404,7 +404,7 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].first == Nothing
-    first : Vector | Nothing
+    first : Vector ! Nothing
     first = this.head
 
     ## Get all elements in the vector except the first.
@@ -415,7 +415,7 @@ type Vector
        > Example
          Empty vectors return `Nothing`.
              [].rest == Nothing
-    rest : Vector | Nothing
+    rest : Vector ! Nothing
     rest = this.tail
 
     ## Sort the Vector.
