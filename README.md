@@ -22,6 +22,7 @@
 </p>
 
 ### Get insights you can act on, fast
+
 <p>
   <a href="https://discord.gg/PMtNMP46">
     <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
