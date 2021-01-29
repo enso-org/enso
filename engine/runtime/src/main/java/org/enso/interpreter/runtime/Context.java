@@ -74,8 +74,6 @@ public class Context {
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
-    this.getCompiler().initializeBuiltinsIr();
-
     TruffleFileSystem fs = new TruffleFileSystem();
     packages = new ArrayList<>();
 
