@@ -22,10 +22,9 @@
 </p>
 
 ### Get insights you can act on, fast
-
 <p>
-  <a href="http://chat.enso.org">
-    <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
+  <a href="https://discord.gg/PMtNMP46">
+    <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
          alt="Chat">
   </a>
   <a href="https://github.com/enso-org/enso/actions">
