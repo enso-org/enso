@@ -182,7 +182,7 @@ public class Builtins {
    * @param passes the passes manager for the compiler
    */
   @CompilerDirectives.TruffleBoundary
-  public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
     try {
       var builtinsModuleBytes =
           Objects.requireNonNull(
