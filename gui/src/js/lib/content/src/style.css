@@ -20,7 +20,7 @@
 
 .scrollable::-webkit-scrollbar-track { -webkit-box-shadow: none; }
 
-/* TODO: Check if this is correct */
+/* TODO: Check if this is correct https://github.com/enso-org/ide/issues/1122 */
 .scrollable::-webkit-scrollbar:vertical { width: 11px; }
 
 .scrollable::-webkit-scrollbar:horizontal { height: 11px; }
