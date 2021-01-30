@@ -11,14 +11,19 @@ import * as svg        from './svg'
 
 let bg_color     = "#e8e7e6"
 let loader_color = "#303030"
+let top_layer_index = 1000
 
 /// Visual representation of the loader.
 export class ProgressIndicator {
     constructor(cfg) {
         this.dom                = html_utils.new_top_level_div()
         this.dom.id             = 'loader'
-        this.dom.style.position = 'absolute'
-        this.dom.style.zIndex   = 1
+        this.dom.style.position = 'fixed'
+        this.dom.style.top      = 0
+        this.dom.style.left     = 0
+        // In the Cloud UI, all layers are stacked, and the progress
+        // indicator must be placed at the top layer.
+        this.dom.style.zIndex   = top_layer_index
 
         let center = document.createElement('div')
         center.style.width          = '100%'
