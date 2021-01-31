@@ -50,7 +50,7 @@ a single language.
     browser.
 </ul></ul>
 
-<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
 <ul><ul>
     <b>Polyglot</b><br/>
     Enso allows you to use any Java library in your code. Soon, it will also allow
