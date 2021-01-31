@@ -82,21 +82,20 @@ a single language.
 <img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png">
 </a>
 
-<br/>
+<br/><br/>
 
 ### Getting Started
 
-- Download Enso from our [GitHub
+- **Download Enso** from our [GitHub
   Releases](https://github.com/enso-org/ide/releases).
-- Follow [the Enso 101 tutorial](https://github.com/enso-org/tutorial_101) to
-  take your first steps with Enso.
-- Watch [the Enso YouTube
-  tutorials](https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0)
-  to learn more and improve your skills.
-- [Keep up with the latest updates](https://medium.com/@enso_org) with our
-  developer blog, or subscribe to the [mailing list](http://eepurl.com/bRru9j).
-- Join us in the [Enso Discord](https://discord.gg/enso) to get help, share your
-  use cases, meet the team behind Enso and other Enso users.
+- **Learn how to start using Enso** by watching the 
+  [Enso 101 tutorial](https://github.com/enso-org/tutorial_101).
+- **Improve your skills** by watching the [Enso YouTube
+  tutorials](https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0).
+- **Keep up with the latest updates** by reading the [Enso Development Blog](https://medium.com/@enso_org) 
+  and subscribe to the [mailing list](http://eepurl.com/bRru9j).
+- **Join the Enso Community** at the [Enso Discord](https://discord.gg/enso) to get help, 
+  share your use cases, meet the team behind Enso and other Enso users.
 
 <br/>
 
