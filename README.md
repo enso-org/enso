@@ -35,12 +35,12 @@ visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 <div>
-    <img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
-    <ul>
+    <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+    <ul><ul>
     **Connect to all the tools you're already using**  
     Enso ships with a robust set of libraries, allowing you to work with local
     files, databases, HTTP services and other applications in a seamless fashion.
-    </ul>
+    </ul></ul>
 </div>
 
 **Connect to all the tools you're already using**  
