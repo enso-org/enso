@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+@ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorProfile = ConditionProfile.createCountingProfile();
@@ -111,7 +112,11 @@ public abstract class InvokeMethodNode extends BaseNode {
 
   @ExplodeLoop
   @Specialization(
-      guards = {"!methods.hasFunctionalDispatch(_this)", "!methods.hasSpecialDispatch(_this)"})
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "polyglotCallType != NOT_SUPPORTED"
+      })
   Stateful doPolyglot(
       VirtualFrame frame,
       Object state,
@@ -120,23 +125,39 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+          HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached("buildExecutors()") ThunkExecutorNode[] argExecutors,
       @Cached AnyResolverNode anyResolverNode,
-      @Cached HostCallNodes.HostMethodCallNode hostMethodCallNode) {
-    Object callType = HostCallNodes.getPolyglotCallType(_this, symbol.getName(), interop);
-    if (callType == HostCallNodes.TRY_ANY) {
-      Function function = anyResolverNode.execute(symbol, _this);
-      return invokeFunctionNode.execute(function, frame, state, arguments);
-    } else {
-      Object[] args = new Object[argExecutors.length];
-      for (int i = 0; i < argExecutors.length; i++) {
-        Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
-        state = r.getState();
-        args[i] = r.getValue();
-      }
-      return new Stateful(
-          state, hostMethodCallNode.execute(callType, symbol.getName(), _this, args));
+      @Cached HostMethodCallNode hostMethodCallNode) {
+    Object[] args = new Object[argExecutors.length];
+    for (int i = 0; i < argExecutors.length; i++) {
+      Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      state = r.getState();
+      args[i] = r.getValue();
     }
+    return new Stateful(
+        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+  }
+
+  @ExplodeLoop
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == NOT_SUPPORTED"
+      })
+  Stateful doFallback(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached AnyResolverNode anyResolverNode) {
+    Function function = anyResolverNode.execute(symbol, _this);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Override
@@ -151,10 +172,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       result[i] = ThunkExecutorNode.build();
     }
     return result;
-  }
-
-  boolean isHostObject(Context context, Object object) {
-    return context.getEnvironment().isHostObject(object);
   }
 
   /**

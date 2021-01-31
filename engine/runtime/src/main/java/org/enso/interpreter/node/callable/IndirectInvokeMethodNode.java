@@ -37,6 +37,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 
 @GenerateUncached
 @ReportPolymorphism
+@ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class IndirectInvokeMethodNode extends Node {
 
   /** @return a new indirect method invocation node */
@@ -131,9 +132,12 @@ public abstract class IndirectInvokeMethodNode extends Node {
     throw _this;
   }
 
-  @ExplodeLoop
   @Specialization(
-      guards = {"!methods.hasFunctionalDispatch(_this)", "!methods.hasSpecialDispatch(_this)"})
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "polyglotCallType != NOT_SUPPORTED"
+      })
   Stateful doPolyglot(
       MaterializedFrame frame,
       Object state,
@@ -146,32 +150,57 @@ public abstract class IndirectInvokeMethodNode extends Node {
       BaseNode.TailStatus isTail,
       @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+          HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached AnyResolverNode anyResolverNode,
-      @Cached HostCallNodes.HostMethodCallNode hostMethodCallNode,
+      @Cached HostMethodCallNode hostMethodCallNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-    Object callType = HostCallNodes.getPolyglotCallType(_this, symbol.getName(), interop);
-    if (callType == HostCallNodes.TRY_ANY) {
-      Function function = anyResolverNode.execute(symbol, _this);
-      return invokeFunctionNode.execute(
-          function,
-          frame,
-          state,
-          arguments,
-          schema,
-          defaultsExecutionMode,
-          argumentsExecutionMode,
-          isTail);
-    } else {
-      Object[] args = new Object[arguments.length - 1];
-      for (int i = 0; i < arguments.length - 1; i++) {
-        Stateful r =
-            argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
-        state = r.getState();
-        args[i] = r.getValue();
-      }
-      return new Stateful(
-          state, hostMethodCallNode.execute(callType, symbol.getName(), _this, args));
+
+    Object[] args = new Object[arguments.length - 1];
+    for (int i = 0; i < arguments.length - 1; i++) {
+      Stateful r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
+      state = r.getState();
+      args[i] = r.getValue();
     }
+    return new Stateful(
+        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+  }
+
+  @ExplodeLoop
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == NOT_SUPPORTED"
+      })
+  Stateful doFallback(
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+          HostMethodCallNode.PolyglotCallType polyglotCallType,
+      @Cached ThunkExecutorNode argExecutor,
+      @Cached AnyResolverNode anyResolverNode,
+      @Cached HostMethodCallNode hostMethodCallNode,
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+    Function function = anyResolverNode.execute(symbol, _this);
+    return invokeFunctionNode.execute(
+        function,
+        frame,
+        state,
+        arguments,
+        schema,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail);
   }
 }

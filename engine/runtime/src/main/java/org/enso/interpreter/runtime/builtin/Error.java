@@ -198,10 +198,20 @@ public class Error {
     return invalidArrayIndexError.newInstance(array, index);
   }
 
+  /**
+   * @param expected the expected arity
+   * @param actual the actual arity
+   * @return an error informing about the arity being mismatched
+   */
   public Atom makeArityError(long expected, long actual) {
     return arityError.newInstance(expected, actual);
   }
 
+  /**
+   * @param args an array containing objects
+   * @return an error informing about the particular assortment of arguments not being valid for a
+   *     given method callp
+   */
   public Atom makeUnsupportedArgumentsError(Object[] args) {
     return unsupportedArgumentsError.newInstance(new Array(args));
   }
