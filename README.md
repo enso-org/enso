@@ -43,15 +43,15 @@ a single language.
     </ul></ul>
 </div>
 
-<div>
-    <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
-    <ul><ul>
-        <b>Cutting-edge visualization engine</b><br/>
-        Enso is equipped with a highly-tailored WebGL visualization engine capable of
-        displaying even millions of data points 60 frames per second in a web
-        browser.
-    </ul></ul>
-</div>
+
+<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<ul><ul>
+    <b>Cutting-edge visualization engine</b><br/>
+    Enso is equipped with a highly-tailored WebGL visualization engine capable of
+    displaying even millions of data points 60 frames per second in a web
+    browser.
+</ul></ul>
+
 
 
 
