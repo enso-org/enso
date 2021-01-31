@@ -34,12 +34,13 @@ data processing. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
-<img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
-
 <div>
-**Connect to all the tools you're already using**  
-Enso ships with a robust set of libraries, allowing you to work with local
-files, databases, HTTP services and other applications in a seamless fashion.
+    <img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
+    <ul>
+    **Connect to all the tools you're already using**  
+    Enso ships with a robust set of libraries, allowing you to work with local
+    files, databases, HTTP services and other applications in a seamless fashion.
+    </ul>
 </div>
 
 **Connect to all the tools you're already using**  
