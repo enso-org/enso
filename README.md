@@ -37,24 +37,23 @@ a single language.
 <div>
     <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
     <ul><ul>
-    **Connect to all the tools you're already using**  
-    Enso ships with a robust set of libraries, allowing you to work with local
-    files, databases, HTTP services and other applications in a seamless fashion.
+        <b>Connect to all the tools you're already using</b><br/>
+        Enso ships with a robust set of libraries, allowing you to work with local
+        files, databases, HTTP services and other applications in a seamless fashion.
     </ul></ul>
 </div>
 
-**Connect to all the tools you're already using**  
-Enso ships with a robust set of libraries, allowing you to work with local
-files, databases, HTTP services and other applications in a seamless fashion.
-<br/>
+<div>
+    <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+    <ul><ul>
+        <b>Cutting-edge visualization engine</b><br/>
+        Enso is equipped with a highly-tailored WebGL visualization engine capable of
+        displaying even millions of data points 60 frames per second in a web
+        browser.
+    </ul></ul>
+</div>
 
-<img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
 
-**Cutting-edge visualization engine**  
-Enso is equipped with a highly-tailored WebGL visualization engine capable of
-displaying even millions of data points 60 frames per second in a web
-browser.
-<br/>
 
 - 🌐 **Polyglot**  
   Enso allows you to use any Java library in your code. Soon, it will also allow
