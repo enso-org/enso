@@ -34,7 +34,6 @@ import org.graalvm.options.OptionDescriptors;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
-    dependentLanguages = {"epb"},
     fileTypeDetectors = FileDetector.class,
     services = ExecutionService.class)
 @ProvidedTags({
@@ -58,7 +57,6 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
-//    System.out.println("Enso Context Create");
     Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
@@ -73,8 +71,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @param context the language context
    */
   @Override
-  protected void initializeContext(Context context) {
-//    System.out.println("Enso Context Initialize");
+  protected void initializeContext(Context context) throws Exception {
     context.initialize();
   }
 

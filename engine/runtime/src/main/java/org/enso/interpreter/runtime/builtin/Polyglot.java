@@ -69,7 +69,6 @@ public class Polyglot {
     scope.registerMethod(polyglot, "eval", EvalMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
-    scope.registerMethod(polyglot, "to_enso_text", ToEnsoTextMethodGen.makeFunction(language));
   }
 
   /*
