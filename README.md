@@ -35,16 +35,20 @@ visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 <img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
-foo bar baz
 
-- 🔗 **Connect to all the tools you're already using**  
-  Enso ships with a robust set of libraries, allowing you to work with local
-  files, databases, HTTP services and other applications in a seamless fashion.
-  <br/><br/>
-- 📊 **Cutting-edge visualization engine**  
-  Enso is equipped with a highly-tailored WebGL visualization engine capable of
-  displaying even millions of data points 60 frames per second in a web
-  browser.<br/><br/>
+**Connect to all the tools you're already using**  
+Enso ships with a robust set of libraries, allowing you to work with local
+files, databases, HTTP services and other applications in a seamless fashion.
+<br/>
+
+<img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
+
+**Cutting-edge visualization engine**  
+Enso is equipped with a highly-tailored WebGL visualization engine capable of
+displaying even millions of data points 60 frames per second in a web
+browser.
+<br/>
+
 - 🌐 **Polyglot**  
   Enso allows you to use any Java library in your code. Soon, it will also allow
   you to copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero
