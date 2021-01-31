@@ -34,7 +34,7 @@ data processing. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
-<img align="right" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" src="docs/assets/icons/analytics-black-48dp.svg">
 foo bar baz
 
 - 🔗 **Connect to all the tools you're already using**  
