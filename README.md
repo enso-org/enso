@@ -35,7 +35,7 @@ visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 
-<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
     <b>Connect to all the tools you're already using</b><br/>
     Enso ships with a robust set of libraries, allowing you to work with local
