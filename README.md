@@ -58,7 +58,7 @@ a single language.
     performance overhead at runtime.
 </ul></ul>
 
-<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
 <ul><ul>
     <b>High performance</b><br/>
     Enso graphs and code can run up to 100x faster than the analoguous Python
