@@ -21,9 +21,16 @@
   <br/>
 </p>
 
+<div align="center">
+	<br>
+		<img src="/docs/assets/readme/header.svg" width="800" height="400">
+	<br>
+</div>
+
+
 ### Get insights you can act on, fast
 
-<p>
+<p align="center">
   <a href="https://discord.gg/PMtNMP46">
     <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
          alt="Chat">
