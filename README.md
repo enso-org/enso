@@ -34,15 +34,13 @@ data processing. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
-<div>
-    <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
-    <ul><ul>
-        <b>Connect to all the tools you're already using</b><br/>
-        Enso ships with a robust set of libraries, allowing you to work with local
-        files, databases, HTTP services and other applications in a seamless fashion.
-    </ul></ul>
-</div>
 
+<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<ul><ul>
+    <b>Connect to all the tools you're already using</b><br/>
+    Enso ships with a robust set of libraries, allowing you to work with local
+    files, databases, HTTP services and other applications in a seamless fashion.
+</ul></ul>
 
 <img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
 <ul><ul>
@@ -52,26 +50,38 @@ a single language.
     browser.
 </ul></ul>
 
+<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<ul><ul>
+    <b>Polyglot</b><br/>
+    Enso allows you to use any Java library in your code. Soon, it will also allow
+    you to copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero
+    performance overhead at runtime.
+</ul></ul>
 
+<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<ul><ul>
+    <b>High performance</b><br/>
+    Enso graphs and code can run up to 100x faster than the analoguous Python
+    code.
+</ul></ul>
 
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Results you can trust</b><br/>
+    Enso incorporates many recent innovations in data processing and programming
+    language design to allow you to work quickly and trust the results that you
+    get. It is a purely functional programming language with higher-order
+    functions, user-defined algebraic datatypes, pattern-matching, and a rich set
+    of primitive types.
+</ul></ul>
 
-- 🌐 **Polyglot**  
-  Enso allows you to use any Java library in your code. Soon, it will also allow
-  you to copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero
-  performance overhead at runtime.<br/><br/>
-- ⚡ **High performance**  
-  Enso graphs and code can run up to 100x faster than the analoguous Python
-  code.<br/><br/>
-- 🛡️ **Results you can trust**  
-  Enso incorporates many recent innovations in data processing and programming
-  language design to allow you to work quickly and trust the results that you
-  get. It is a purely functional programming language with higher-order
-  functions, user-defined algebraic datatypes, pattern-matching, and a rich set
-  of primitive types.<br/><br/>
-- 🌎 **Runs everywhere**  
-  Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
-  web-native technologies. In time, you'll be able to run it in the web-browser,
-  giving even your tablet of phone access to your data.<br/><br/>
+<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<ul><ul>
+    <b>Runs everywhere</b><br/>
+    Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
+    web-native technologies. In time, you'll be able to run it in the web-browser,
+    giving even your tablet of phone access to your data.
+</ul></ul>
 
 <a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br>
 
