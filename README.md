@@ -42,7 +42,7 @@ a single language.
     files, databases, HTTP services and other applications in a seamless fashion.
 </ul></ul>
 
-<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
 <ul><ul>
     <b>Cutting-edge visualization engine</b><br/>
     Enso is equipped with a highly-tailored WebGL visualization engine capable of
