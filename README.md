@@ -102,7 +102,7 @@ a single language.
 
 Enso consists of several sub projects:
 
-- **Enso Engine:** The Enso Engine is the set of tools that implement the Enso
+- **Enso Engine.** The Enso Engine is the set of tools that implement the Enso
   language and its associated services. These include a just-in-time compiler,
   runtime, and language server. These components can be used on their own.
 
@@ -116,9 +116,8 @@ Enso consists of several sub projects:
 
 ### License
 
-This repository is licensed under the [Apache
-2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file.
+The Enso Engine is licensed under the [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
+[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file. The Enso IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0), as specified in the [LICENSE](https://github.com/enso-org/ide/blob/main/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
