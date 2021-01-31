@@ -25,6 +25,10 @@
   </a>
 </p>
 
+<br/><br/>
+
+### Overview
+
 Enso is a general-purpose programming language and environment for interactive
 data processing. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
