@@ -88,6 +88,8 @@ a single language.
 
 ### Getting Started
 
+<img align="right" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
+
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/get_app/materialiconsround/24px.svg">
 <ul><ul>
     <b>Download Enso</b><br/>
@@ -119,8 +121,6 @@ a single language.
     <b>Join The Community</b><br/>
     <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users.</a>
 </ul></ul>
-
-<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
 
 
 
