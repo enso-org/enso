@@ -85,8 +85,22 @@ a single language.
 
 <br/>
 
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/play_circle_outline/materialiconsround/24px.svg">
 
-### Demo
+### Demo and Tutorials
+
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Tutorials</b><br/>
+    <ul>
+        <li><a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a></li>
+    </ul>
+    Enso incorporates many recent innovations in data processing and programming
+    language design to allow you to work quickly and trust the results that you
+    get. It is a purely functional programming language with higher-order
+    functions, user-defined algebraic datatypes, pattern-matching, and a rich set
+    of primitive types.
+</ul></ul>
 
 #### Tutorials
 - [Enso 101](https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso)
