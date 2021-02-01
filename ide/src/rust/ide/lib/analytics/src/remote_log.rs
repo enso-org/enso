@@ -9,7 +9,13 @@ pub use wasm_bindgen::prelude::*;
 
 
 #[wasm_bindgen(inline_js="
-export function _remote_log(msg, data) { window.enso.remote_log(msg,{data:data}) }
+export function _remote_log(msg, data) {
+    if (window !== undefined && window.enso !== undefined && window.enso.remote_log !== undefined) {
+        window.enso.remote_log(msg,{data:data})
+    } else {
+        console.warn(\"Failed to send log message.\")
+    }
+}
 ")]
 extern "C" {
      #[allow(unsafe_code)]
