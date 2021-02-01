@@ -86,7 +86,14 @@ a single language.
 <br/>
 
 
-### See it live
+### Getting Started
+
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Download Enso</b><br/>
+    <a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a><br/>
+    <a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI)</a>
+</ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
 <ul><ul>
