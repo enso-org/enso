@@ -102,12 +102,14 @@ a single language.
     <b>Watch Tutorials</b><br/>
     <a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a><br/>
     <a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a>
+    <a href="https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">... other tutorials</a>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/cast_for_education/materialiconsround/24px.svg">
 <ul><ul>
     <b>Watch Video Podcasts</b><br/>
     <a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a>
+    <a href="https://www.youtube.com/c/Enso_org/videos?view=2&sort=dd&live_view=503&shelf_id=3">... other video podcasts</a>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/communication/forum/materialiconsround/24px.svg">
