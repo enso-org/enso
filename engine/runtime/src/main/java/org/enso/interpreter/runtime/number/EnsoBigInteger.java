@@ -60,7 +60,7 @@ public class EnsoBigInteger implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnBigInteger(Context context, UnresolvedSymbol symbol) {
+    static Function doResolve(Context context, UnresolvedSymbol symbol) {
       Number number = context.getBuiltins().number();
       return symbol.resolveFor(
           number.getBigInteger(),
@@ -77,7 +77,7 @@ public class EnsoBigInteger implements TruffleObject {
         UnresolvedSymbol symbol,
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnBigInteger(context, cachedSymbol)") Function function) {
+        @Cached("doResolve(context, cachedSymbol)") Function function) {
       return function;
     }
 
@@ -87,7 +87,7 @@ public class EnsoBigInteger implements TruffleObject {
         UnresolvedSymbol symbol,
         @CachedContext(Language.class) Context context)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnBigInteger(context, symbol);
+      Function function = doResolve(context, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }

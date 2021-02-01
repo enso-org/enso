@@ -106,7 +106,7 @@ public class DataflowError extends RuntimeException implements TruffleObject, Tr
   }
 
   @ExportMessage
-  public boolean hasSpecialDispatch() {
+  boolean hasSpecialDispatch() {
     return true;
   }
 }

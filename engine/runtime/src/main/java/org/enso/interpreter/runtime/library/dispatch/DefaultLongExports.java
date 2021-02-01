@@ -22,7 +22,7 @@ public class DefaultLongExports {
   @ExportMessage
   static class GetFunctionalDispatch {
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnLong(Context context, UnresolvedSymbol symbol) {
+    static Function doResolve(Context context, UnresolvedSymbol symbol) {
       Number number = context.getBuiltins().number();
       return symbol.resolveFor(
           number.getSmallInteger(),
@@ -41,7 +41,7 @@ public class DefaultLongExports {
         UnresolvedSymbol symbol,
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnLong(context, cachedSymbol)") Function function) {
+        @Cached("doResolve(context, cachedSymbol)") Function function) {
       return function;
     }
 
@@ -49,7 +49,7 @@ public class DefaultLongExports {
     static Function resolve(
         Long _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnLong(context, symbol);
+      Function function = doResolve(context, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }

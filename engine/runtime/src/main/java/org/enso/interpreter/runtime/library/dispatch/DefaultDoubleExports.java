@@ -22,7 +22,7 @@ public class DefaultDoubleExports {
   @ExportMessage
   static class GetFunctionalDispatch {
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnDouble(Context context, UnresolvedSymbol symbol) {
+    static Function doResolve(Context context, UnresolvedSymbol symbol) {
       Number number = context.getBuiltins().number();
       return symbol.resolveFor(
           number.getDecimal(), number.getNumber(), context.getBuiltins().any());
@@ -38,7 +38,7 @@ public class DefaultDoubleExports {
         UnresolvedSymbol symbol,
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("resolveMethodOnDouble(context, cachedSymbol)") Function function) {
+        @Cached("doResolve(context, cachedSymbol)") Function function) {
       return function;
     }
 
@@ -46,7 +46,7 @@ public class DefaultDoubleExports {
     static Function resolve(
         Double _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnDouble(context, symbol);
+      Function function = doResolve(context, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }

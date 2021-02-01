@@ -231,7 +231,7 @@ public final class AtomConstructor implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function resolveMethodOnAtom(
+    static Function doResolve(
         Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
       return symbol.resolveFor(cons, context.getBuiltins().any());
     }
@@ -250,7 +250,7 @@ public final class AtomConstructor implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("_this") AtomConstructor cachedConstructor,
-        @Cached("resolveMethodOnAtom(context, cachedConstructor, cachedSymbol)")
+        @Cached("doResolve(context, cachedConstructor, cachedSymbol)")
             Function function) {
       return function;
     }
@@ -261,7 +261,7 @@ public final class AtomConstructor implements TruffleObject {
         UnresolvedSymbol symbol,
         @CachedContext(Language.class) Context context)
         throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = resolveMethodOnAtom(context, _this, symbol);
+      Function function = doResolve(context, _this, symbol);
       if (function == null) {
         throw new MethodDispatchLibrary.NoSuchMethodException();
       }

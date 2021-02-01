@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
@@ -57,6 +58,15 @@ public abstract class HostMethodCallNode extends Node {
     }
   }
 
+  /**
+   * Calls a method on an object, using a specified {@link PolyglotCallType}.
+   *
+   * @param callType the call type to perform
+   * @param symbol the method name
+   * @param _this the call receiver
+   * @param args the arguments
+   * @return the result of calling the method on the receiver
+   */
   public abstract Object execute(
       PolyglotCallType callType, String symbol, Object _this, Object[] args);
 
@@ -92,7 +102,12 @@ public abstract class HostMethodCallNode extends Node {
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary members,
       @CachedContext(Language.class) Context context,
-      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+      @Cached HostValueToEnsoNode hostValueToEnsoNode,
+      @Cached BranchProfile errorProfile) {
+    if (args.length != 0) {
+      errorProfile.enter();
+      throw new PanicException(context.getBuiltins().error().makeArityError(0, args.length), this);
+    }
     try {
       return hostValueToEnsoNode.execute(members.readMember(_this, symbol));
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {
@@ -133,8 +148,10 @@ public abstract class HostMethodCallNode extends Node {
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
       @CachedContext(Language.class) Context ctx,
+      @Cached BranchProfile errorProfile,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 0) {
+      errorProfile.enter();
       throw new PanicException(ctx.getBuiltins().error().makeArityError(0, args.length), this);
     }
     try {
@@ -151,12 +168,16 @@ public abstract class HostMethodCallNode extends Node {
       Object _this,
       Object[] args,
       @CachedLibrary(limit = "LIB_LIMIT") InteropLibrary arrays,
+      @Cached BranchProfile arityErrorProfile,
+      @Cached BranchProfile typeErrorProfile,
       @CachedContext(Language.class) Context ctx,
       @Cached HostValueToEnsoNode hostValueToEnsoNode) {
     if (args.length != 1) {
+      arityErrorProfile.enter();
       throw new PanicException(ctx.getBuiltins().error().makeArityError(1, args.length), this);
     }
     if (!(args[0] instanceof Long)) {
+      typeErrorProfile.enter();
       throw new PanicException(
           ctx.getBuiltins().error().makeInvalidArrayIndexError(_this, args[0]), this);
     }
