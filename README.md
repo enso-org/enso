@@ -85,30 +85,21 @@ a single language.
 
 <br/>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/play_circle_outline/materialiconsround/24px.svg">
 
-### Demo and Tutorials
+### See it live
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
 <ul><ul>
     <b>Tutorials</b><br/>
-    <ul>
-        <li><a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a></li>
-    </ul>
-    Enso incorporates many recent innovations in data processing and programming
-    language design to allow you to work quickly and trust the results that you
-    get. It is a purely functional programming language with higher-order
-    functions, user-defined algebraic datatypes, pattern-matching, and a rich set
-    of primitive types.
+    <a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a>
+    <a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a>
 </ul></ul>
 
-#### Tutorials
-- [Enso 101](https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso)
-- [Trams Visualization](https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso)
-<a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br></a>
-
-#### Podcasts
-- [Enso Textual Language Basics](https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso)
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/image/video_camera_front/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Video Podcasts</b><br/>
+    <a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a>
+</ul></ul>
 
 <img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
 
