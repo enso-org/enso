@@ -27,13 +27,13 @@
 
 <br/>
 
+
 ### Overview
 
 Enso is a general-purpose programming language and environment for interactive
 data processing. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
-
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
@@ -83,16 +83,22 @@ a single language.
     giving even your tablet of phone access to your data.
 </ul></ul>
 
-
 <br/>
+
 
 ### Demo
 
-
-
-<img align="left" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
-
+#### Tutorials
+- [Enso 101](https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso)
+- [Trams Visualization](https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso)
 <a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br></a>
+
+#### Podcasts
+- [Enso Textual Language Basics](https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso)
+
+<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
+
+
 
 <br/><br/>
 
