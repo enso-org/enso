@@ -340,6 +340,66 @@ class ExpressionErrorsTest
     )
   }
 
+  it should "return dataflow errors in method body" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val fooBodyId  = metadata.addItem(61, 5)
+    val xId        = metadata.addItem(75, 19)
+    val yId        = metadata.addItem(103, 8)
+    val mainResId  = metadata.addItem(116, 7)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError
+        |
+        |main =
+        |    foo a b = a + b
+        |    x = Error.throw MyError
+        |    y = foo x 42
+        |    foo y 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xId, Constants.ERROR),
+      TestMessages.update(contextId, fooBodyId, Constants.ERROR),
+      TestMessages.update(contextId, yId, Constants.ERROR),
+      TestMessages.update(contextId, mainResId, Constants.ERROR),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "return panic sentinels continuing execution" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -414,6 +474,76 @@ class ExpressionErrorsTest
           Seq(xId)
         )
       ),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("42")
+  }
+
+  it should "return dataflow errors continuing execution" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(55, 19)
+    val yId        = metadata.addItem(83, 2)
+    val mainResId  = metadata.addItem(90, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError
+        |
+        |main =
+        |    x = Error.throw MyError
+        |    y = 42
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable x.",
+              Some(mainFile),
+              Some(model.Range(model.Position(5, 4), model.Position(5, 5)))
+            )
+          )
+        )
+      ),
+      TestMessages.update(contextId, xId, Constants.ERROR),
       TestMessages.update(contextId, yId, Constants.INTEGER),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
       context.executionComplete(contextId)
