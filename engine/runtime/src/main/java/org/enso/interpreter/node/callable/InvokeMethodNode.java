@@ -78,7 +78,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function = dispatch.getFunctionalDispatch(_this, symbol);
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }

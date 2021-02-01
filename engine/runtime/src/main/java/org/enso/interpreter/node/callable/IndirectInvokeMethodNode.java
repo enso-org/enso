@@ -82,7 +82,6 @@ public abstract class IndirectInvokeMethodNode extends Node {
           argumentsExecutionMode,
           isTail);
     } catch (MethodDispatchLibrary.NoSuchMethodException e) {
-      CompilerDirectives.transferToInterpreter();
       throw new PanicException(
           ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
     }
