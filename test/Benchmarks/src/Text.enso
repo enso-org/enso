@@ -10,9 +10,9 @@ build_long n =
     res
 
 build_long_bldr n =
-    bldr = StringBuilder.new [].to_array
-    1.up_to n . each n-> bldr.append [n]
-    res = bldr.toString []
+    bldr = StringBuilder.new
+    1.up_to n . each (bldr.append _)
+    res = bldr.toString
     res
 
 main =

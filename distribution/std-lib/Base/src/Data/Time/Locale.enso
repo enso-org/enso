@@ -8,7 +8,7 @@ polyglot java import java.util.Locale as JavaLocale
 
 ## The default locale.
 default : Locale
-default = here.from_java (Polyglot.get_member JavaLocale "ROOT")
+default = here.from_java JavaLocale.ROOT
 
 ## A locale representing Bangladesh.
 bangladesh : Locale
@@ -101,7 +101,7 @@ new : Text -> Text | Nothing -> Text | Nothing -> Locale
 new language country=Nothing variant=Nothing =
     country_text = if country.is_nothing then "" else country
     variant_text = if variant.is_nothing then "" else variant
-    java_locale = JavaLocale.new [language, country_text, variant_text].to_array
+    java_locale = JavaLocale.new language country_text variant_text
     here.from_java java_locale
 
 ## Returns the locale specified by the provided IETF BCP47 language tag string.
@@ -133,7 +133,7 @@ new language country=Nothing variant=Nothing =
          Locale.from_language_tag "en_US"
 from_language_tag : Text -> Locale | Nothing
 from_language_tag tag =
-    java_locale = JavaLocale.forLanguageTag [tag]
+    java_locale = JavaLocale.forLanguageTag tag
     here.from_java java_locale
 
 ## A type representing a locale.
@@ -148,45 +148,45 @@ type Locale
     ## Gets the language from the locale.
     language : Text | Nothing
     language =
-        lang = this.java_locale.getLanguage []
+        lang = this.java_locale.getLanguage
         if lang.is_empty then Nothing else lang
 
     ## Gets the country from the locale.
     country : Text | Nothing
     country =
-        place = this.java_locale.getCountry []
+        place = this.java_locale.getCountry
         if place.is_empty then Nothing else place
 
     ## Gets the country from the locale.
     variant : Text | Nothing
     variant =
-        var = this.java_locale.getVariant []
+        var = this.java_locale.getVariant
         if var.is_empty then Nothing else var
 
     ## Gets a representation of the language in the locale that can be shown to
        the user.
     display_language : Text | Nothing
     display_language =
-        disp = this.java_locale.getDisplayLanguage []
+        disp = this.java_locale.getDisplayLanguage
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the country in the locale that can be shown to
        the user.
     display_country : Text | Nothing
     display_country =
-        disp = this.java_locale.getDisplayCountry []
+        disp = this.java_locale.getDisplayCountry
         if disp.is_empty then Nothing else disp
 
     ## Gets a representation of the variant in the locale that can be shown to
        the user.
     display_variant : Text | Nothing
     display_variant =
-        disp = this.java_locale.getDisplayVariant []
+        disp = this.java_locale.getDisplayVariant
         if disp.is_empty then Nothing else disp
 
     ## Converts the locale to text.
     to_text : Text | Nothing
-    to_text = this.java_locale.toLanguageTag []
+    to_text = this.java_locale.toLanguageTag
 
     ## A Locale to Json conversion
     to_json : Json.Object
@@ -203,4 +203,4 @@ from_java : JavaLocale -> Locale
 from_java java = Locale java
 
 ## PRIVATE
-javaLocaleBuilder = Polyglot.get_member JavaLocale "Builder"
+javaLocaleBuilder = JavaLocale.Builder

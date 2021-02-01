@@ -19,6 +19,12 @@ panic_on_error ~action =
     action . catch <| case _ of
         Syntax_Error msg -> Panic.throw (Syntax_Error msg)
 
+## PRIVATE
+empty_if_null : Text | Nothing -> Text
+empty_if_null value = case value of
+    Nothing -> ""
+    x -> x
+
 type Uri
 
     ## Represents a Uniform Resource Identifier (URI) reference.
@@ -35,7 +41,7 @@ type Uri
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . scheme
     scheme : Text
-    scheme = Optional.ofNullable [this.internal_uri.getScheme []] . orElse [""]
+    scheme = here.empty_if_null this.internal_uri.getScheme
 
     ## Get user info part of this Uri.
 
@@ -44,7 +50,7 @@ type Uri
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . user_info
     user_info : Text
-    user_info = Optional.ofNullable [this.internal_uri.getUserInfo []] . orElse [""]
+    user_info = here.empty_if_null this.internal_uri.getUserInfo
 
     ## Get host part of this Uri.
 
@@ -53,7 +59,7 @@ type Uri
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . host
     host : Text
-    host = Optional.ofNullable [this.internal_uri.getHost []] . orElse [""]
+    host = here.empty_if_null this.internal_uri.getHost
 
     ## Get authority (user info and host) part of this Uri.
 
@@ -62,7 +68,7 @@ type Uri
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . authority
     authority : Text
-    authority = Optional.ofNullable [this.internal_uri.getAuthority []] . orElse [""]
+    authority = here.empty_if_null this.internal_uri.getAuthority
 
     ## Get port part of this Uri.
 
@@ -77,7 +83,7 @@ type Uri
              Uri.parse addr . port
     port : Text
     port =
-        port_number = this.internal_uri.getPort []
+        port_number = this.internal_uri.getPort
         if port_number == -1 then "" else port_number.to_text
 
     ## Get path part of this Uri.
@@ -87,7 +93,7 @@ type Uri
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . path
     path : Text
-    path = Optional.ofNullable [this.internal_uri.getPath []] . orElse [""]
+    path = here.empty_if_null this.internal_uri.getPath
 
     ## Get query part of this Uri.
 
@@ -96,7 +102,7 @@ type Uri
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . query
     query : Text
-    query = Optional.ofNullable [this.internal_uri.getQuery []] . orElse [""]
+    query = here.empty_if_null this.internal_uri.getQuery
 
     ## Get fragment part of this Uri.
 
@@ -105,31 +111,31 @@ type Uri
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . fragment
     fragment : Text
-    fragment = Optional.ofNullable [this.internal_uri.getFragment []] . orElse [""]
+    fragment = here.empty_if_null this.internal_uri.getFragment
 
     ## Get unescaped user info part of this Uri.
     raw_user_info : Text
-    raw_user_info = Optional.ofNullable [this.internal_uri.getRawUserInfo []] . orElse [""]
+    raw_user_info = here.empty_if_null this.internal_uri.getRawUserInfo
 
     ## Get unescaped authority part of this Uri.
     raw_authority : Text
-    raw_authority = Optional.ofNullable [this.internal_uri.getRawAuthority []] . orElse [""]
+    raw_authority = here.empty_if_null this.internal_uri.getRawAuthority
 
     ## Get unescaped path part of this Uri.
     raw_path : Text
-    raw_path = Optional.ofNullable [this.internal_uri.getRawPath []] . orElse [""]
+    raw_path = here.empty_if_null this.internal_uri.getRawPath
 
     ## Get unescaped query part of this Uri.
     raw_query : Text
-    raw_query = Optional.ofNullable [this.internal_uri.getRawQuery []] . orElse [""]
+    raw_query = here.empty_if_null this.internal_uri.getRawQuery
 
     ## Get unescaped fragment part of this Uri.
     raw_fragment : Text
-    raw_fragment = Optional.ofNullable [this.internal_uri.getRawFragment []] . orElse [""]
+    raw_fragment = here.empty_if_null this.internal_uri.getRawFragment
 
     ## Convert this Uri to text.
     to_text : Text
-    to_text = this.internal_uri.toString []
+    to_text = this.internal_uri.toString
 
     ## An Uri to JSON conversion.
     to_json : Json.String
@@ -137,7 +143,7 @@ type Uri
 
     ## Check Uri equality.
     == : Uri -> Boolean
-    == that = this.internal_uri.equals [that.internal_uri]
+    == that = this.internal_uri.equals that.internal_uri
 
 ## Parse Uri from text.
    Return Syntax_Error when the text cannot be parsed as Uri.
@@ -147,6 +153,6 @@ type Uri
          Uri.parse "http://example.com"
 parse : Text -> Uri
 parse text =
-    Panic.recover (Uri (Java_URI.create [text])) . catch <| case _ of
-        Polyglot_Error ex -> Error.throw (Syntax_Error (ex.getMessage []))
+    Panic.recover (Uri (Java_URI.create text)) . catch <| case _ of
+        Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
         other -> Panic.throw other

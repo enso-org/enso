@@ -3,6 +3,8 @@ package org.enso.interpreter.runtime.builtin;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -179,7 +181,8 @@ public class Builtins {
    * @param freshNameSupply the compiler's fresh name supply
    * @param passes the passes manager for the compiler
    */
-  public void initializedBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
+  @CompilerDirectives.TruffleBoundary
+  public void initializeBuiltinsIr(FreshNameSupply freshNameSupply, Passes passes) {
     try {
       var builtinsModuleBytes =
           Objects.requireNonNull(

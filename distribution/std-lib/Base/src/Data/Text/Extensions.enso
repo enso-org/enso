@@ -18,13 +18,13 @@ polyglot java import org.enso.base.Text_Utils
    text-processing applications.
 Text.length : Integer
 Text.length =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
-    nxt = iterator.next []
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    nxt = iterator.next
 
     count accum iter = if iter == -1 then accum else
         counter = accum + 1
-        next_nxt = iterator.next []
+        next_nxt = iterator.next
         @Tail_Call count counter next_nxt
     count 0 nxt
 
@@ -37,15 +37,15 @@ Text.length =
    text-processing applications.
 Text.each : (Text -> Any) -> Nothing
 Text.each function =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
 
-    fst = iterator.first []
-    nxt = iterator.next []
+    fst = iterator.first
+    nxt = iterator.next
 
     iterate prev nxt = if nxt == -1 then Nothing else
-        function (Text_Utils.substring [this, prev, nxt])
-        next_nxt = iterator.next []
+        function (Text_Utils.substring this prev nxt)
+        next_nxt = iterator.next
         @Tail_Call iterate nxt next_nxt
     iterate fst nxt
     Nothing
@@ -75,10 +75,10 @@ Text.characters =
 Text.split : Split_Kind -> Vector.Vector
 Text.split (separator = Split_Kind.Whitespace) =
     result = case separator of
-        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace [this]
-        Split_Kind.Lines -> Text_Utils.split_on_lines [this]
+        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
+        Split_Kind.Lines -> Text_Utils.split_on_lines this
         Split_Kind.Words -> this.words
-        Text -> Text_Utils.split_by_literal [this, separator]
+        Text -> Text_Utils.split_by_literal this separator
     Vector.from_polyglot_array result
 
 ## Returns a vector containing all words in the given text.
@@ -95,20 +95,20 @@ Text.split (separator = Split_Kind.Whitespace) =
         "I have not one, but two cats.".words
 Text.words : Boolean -> Vector.Vector
 Text.words keep_whitespace=False =
-    iterator = BreakIterator.getWordInstance []
-    iterator.setText [this]
+    iterator = BreakIterator.getWordInstance
+    iterator.setText this
     bldr = Vector.new_builder
-    fst = iterator.first []
-    nxt = iterator.next []
+    fst = iterator.first
+    nxt = iterator.next
 
     build prev nxt = if nxt == -1 then Nothing else
-        word = Text_Utils.substring [this, prev, nxt]
-        word_not_whitespace = (Text_Utils.is_whitespace [word]).not
+        word = Text_Utils.substring this prev nxt
+        word_not_whitespace = (Text_Utils.is_whitespace word).not
         if word_not_whitespace then bldr.append word else
             if keep_whitespace then
                 bldr.append word
 
-        next_nxt = iterator.next []
+        next_nxt = iterator.next
         @Tail_Call build nxt next_nxt
 
     build fst nxt
@@ -129,7 +129,7 @@ Text.words keep_whitespace=False =
          ('é' == 'e\u0301') == True
 Text.== : Any -> Boolean
 Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
-    Text_Utils.equals [this, that]
+    Text_Utils.equals this that
 
 ## Checks whether `this` is equal to `that`, ignoring case considerations.
 
@@ -151,7 +151,7 @@ Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Te
          (('É' . equals_ignore_case 'é') && ('é' == 'e\u0301')) == True
 
 Text.equals_ignore_case : Text -> Boolean
-Text.equals_ignore_case that = Text_Utils.equals_ignore_case [this, that]
+Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
 
 ## Compare two texts to discover their ordering.
 
@@ -160,7 +160,7 @@ Text.equals_ignore_case that = Text_Utils.equals_ignore_case [this, that]
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
 Text.compare_to that = if this == that then Ordering.Equal else
-    if Text_Utils.lt [this, that] then Ordering.Less else Ordering.Greater
+    if Text_Utils.lt this that then Ordering.Less else Ordering.Greater
 
 ## Check if `this` is empty.
 Text.is_empty : Boolean
@@ -176,7 +176,7 @@ Text.not_empty = this.is_empty.not
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.utf_8 : Vector.Vector
-Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
+Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes this)
 
 ## Takes an array of bytes and returns Text resulting from decoding it as
    UTF-8.
@@ -184,7 +184,7 @@ Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes [this])
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_utf_8 : Vector.Vector -> Text
-Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
+Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
 
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
@@ -193,7 +193,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 [bytes.to_array]
    decoding.
 Text.codepoints : Vector.Vector
 Text.codepoints =
-    Vector.from_polyglot_array (Text_Utils.get_codepoints [this])
+    Vector.from_polyglot_array (Text_Utils.get_codepoints this)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
@@ -201,19 +201,19 @@ Text.codepoints =
    This is useful for low-level operations, such as binary data encoding and
    decoding.
 Text.from_codepoints : Vector.Vector -> Text
-Text.from_codepoints codepoints = Text_Utils.from_codepoints [codepoints.to_array]
+Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
 ## Checks whether `this` starts with `prefix`.
 Text.starts_with : Text -> Boolean
-Text.starts_with prefix = Text_Utils.starts_with [this, prefix]
+Text.starts_with prefix = Text_Utils.starts_with this prefix
 
 ## Checks whether `this` ends with `suffix`.
 Text.ends_with : Text -> Boolean
-Text.ends_with suffix = Text_Utils.ends_with [this, suffix]
+Text.ends_with suffix = Text_Utils.ends_with this suffix
 
 ## Checks whether `this` contains `sequence` as its substring.
 Text.contains : Text -> Boolean
-Text.contains sequence = Text_Utils.contains [this, sequence]
+Text.contains sequence = Text_Utils.contains this sequence
 
 ## Text to JSON conversion.
 Text.to_json : Json.String
@@ -230,41 +230,41 @@ Text.repeat count =
    is returned.
 Text.drop_first : Integer -> Text
 Text.drop_first count =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
-    iterator.first []
-    boundary = iterator.next [count]
-    if boundary == -1 then '' else Text_Utils.drop_first [this, boundary]
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.first
+    boundary = iterator.next count
+    if boundary == -1 then '' else Text_Utils.drop_first this boundary
 
 ## Creates a new text by removing the last `count` characters of `this`.
    If `count` is greater than the number of characters in `this`, an empty text
    is returned.
 Text.drop_last : Integer -> Text
 Text.drop_last count =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
-    iterator.last []
-    boundary = iterator.next [-count]
-    if boundary == -1 then '' else Text_Utils.substring [this, 0, boundary]
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.last
+    boundary = iterator.next -count
+    if boundary == -1 then '' else Text_Utils.substring this 0 boundary
 
 ## Creates a new text by selecting the first `count` characters of `this`.
    If `count` is greater than the number of characters in `this`, the whole
    `this` is returned.
 Text.take_first : Integer -> Text
 Text.take_first count =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
-    iterator.first []
-    boundary = iterator.next [count]
-    if boundary == -1 then this else Text_Utils.substring [this, 0, boundary]
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.first
+    boundary = iterator.next count
+    if boundary == -1 then this else Text_Utils.substring this 0 boundary
 
 ## Creates a new text by selecting the last `count` characters of `this`.
    If `count` is greater than the number of characters in `this`, the whole
    `this` is returned.
 Text.take_last : Integer -> Text
 Text.take_last count =
-    iterator = BreakIterator.getCharacterInstance []
-    iterator.setText [this]
-    iterator.last []
-    boundary = iterator.next [-count]
-    if boundary == -1 then this else Text_Utils.drop_first [this, boundary]
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.last
+    boundary = iterator.next -count
+    if boundary == -1 then this else Text_Utils.drop_first this boundary

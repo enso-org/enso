@@ -13,7 +13,7 @@ type Zone
 
     ## Get the unique timezone ID.
     zone_id : Text
-    zone_id = this.internal_zone_id . getId []
+    zone_id = this.internal_zone_id . getId
 
     ## A Zone to Json conversion
     to_json : Json.Object
@@ -37,11 +37,11 @@ type Zone
      Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
          Zone.parse "+03:02:01"
 parse : Text -> Zone
-parse text = Zone (ZoneId.of [text])
+parse text = Zone (ZoneId.of text)
 
 ## The system default timezone.
 system : Zone
-system = Zone (ZoneId.systemDefault [])
+system = Zone ZoneId.systemDefault
 
 ## The system default timezone.
 local : Zone
@@ -64,4 +64,4 @@ utc = here.parse "UTC"
          Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
-    Zone (ZoneOffset.ofHoursMinutesSeconds [hours, minutes, seconds] . normalized [])
+    Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)

@@ -91,7 +91,7 @@ parse : Text -> Json ! Parse_Error
 parse json_text =
     r = Panic.recover (Internal.parse_helper json_text)
     r.catch <| case _ of
-        Polyglot_Error err -> Error.throw (Parse_Error (err.getMessage []))
+        Polyglot_Error err -> Error.throw (Parse_Error err.getMessage)
         p -> Panic.throw p
 
 ## A failure indicating the inability to marshall a `Json` object into the

@@ -44,8 +44,18 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     */
   def initializeBuiltinsIr(): Unit = {
     if (!builtins.isIrInitialized) {
-      builtins.initializedBuiltinsIr(freshNameSupply, passes)
+      builtins.initializeBuiltinsIr(freshNameSupply, passes)
     }
+  }
+
+  /** Runs the import resolver on the given module.
+    *
+    * @param module the entry module for import resolution
+    * @return the list of modules imported by `module`
+    */
+  def runImportsResolution(module: Module): List[Module] = {
+    initializeBuiltinsIr()
+    importResolver.mapImports(module)
   }
 
   /** Processes the provided language sources, registering any bindings in the
@@ -56,6 +66,7 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     *         executable functionality in the module corresponding to `source`.
     */
   def run(module: Module): Unit = {
+    initializeBuiltinsIr()
     parseModule(module)
     val importedModules = importResolver.mapImports(module)
     val requiredModules =

@@ -53,7 +53,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.0.is_an Integer . should_be_false
         1.0.is_a Text . should_be_false
 
-        random_gen = Random.new [].to_array
+        random_gen = Random.new
         Meta.is_a random_gen Polyglot . should_be_true
         Meta.is_an random_gen Integer . should_be_false
 

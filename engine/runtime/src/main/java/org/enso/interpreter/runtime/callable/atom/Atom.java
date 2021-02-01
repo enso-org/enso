@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -12,12 +10,12 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Arrays;
@@ -27,8 +25,9 @@ import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(MethodDispatchLibrary.class)
 public class Atom implements TruffleObject {
-  private final AtomConstructor constructor;
+  final AtomConstructor constructor;
   private final Object[] fields;
 
   /**
@@ -175,5 +174,49 @@ public class Atom implements TruffleObject {
   @ExportMessage
   boolean isNull(@CachedContext(Language.class) Context ctx) {
     return this.getConstructor() == ctx.getBuiltins().nothing();
+  }
+
+  @ExportMessage
+  boolean hasFunctionalDispatch() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetFunctionalDispatch {
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
+      return symbol.resolveFor(cons, context.getBuiltins().any());
+    }
+
+    @Specialization(
+        guards = {
+          "!context.isCachingDisabled()",
+          "cachedSymbol == symbol",
+          "_this.constructor == cachedConstructor",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        Atom _this,
+        UnresolvedSymbol symbol,
+        @CachedContext(Language.class) Context context,
+        @Cached("symbol") UnresolvedSymbol cachedSymbol,
+        @Cached("_this.constructor") AtomConstructor cachedConstructor,
+        @Cached("doResolve(context, cachedConstructor, cachedSymbol)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        Atom _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
+        throws MethodDispatchLibrary.NoSuchMethodException {
+      Function function = doResolve(context, _this.constructor, symbol);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
+    }
   }
 }

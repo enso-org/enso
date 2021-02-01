@@ -32,7 +32,7 @@ sum_tco_eval = sumTo ->
 sum_tco_java = sum_to ->
     summator = acc -> current ->
         if current == 0 then acc else
-            @Tail_Call summator (Long.sum [acc, current]) (current - 1)
+            @Tail_Call summator (Long.sum acc current) (current - 1)
     res = summator 0 sum_to
     res
 

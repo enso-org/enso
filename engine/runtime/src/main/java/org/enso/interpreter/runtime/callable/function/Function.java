@@ -24,8 +24,10 @@ import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.type.Types;
@@ -33,6 +35,7 @@ import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(MethodDispatchLibrary.class)
 public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
@@ -357,6 +360,45 @@ public final class Function implements TruffleObject {
      */
     public static MaterializedFrame getLocalScope(Object[] arguments) {
       return (MaterializedFrame) arguments[0];
+    }
+  }
+
+  @ExportMessage
+  boolean hasFunctionalDispatch() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetFunctionalDispatch {
+
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(Context context, UnresolvedSymbol symbol) {
+      return symbol.resolveFor(context.getBuiltins().function(), context.getBuiltins().any());
+    }
+
+    @Specialization(
+        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        Function _this,
+        UnresolvedSymbol symbol,
+        @CachedContext(Language.class) Context context,
+        @Cached("symbol") UnresolvedSymbol cachedSymbol,
+        @Cached("doResolve(context, cachedSymbol)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        Function _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
+        throws MethodDispatchLibrary.NoSuchMethodException {
+      Function function = doResolve(context, symbol);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
     }
   }
 }
