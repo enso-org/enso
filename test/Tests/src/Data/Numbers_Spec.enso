@@ -152,7 +152,7 @@ spec =
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
         Test.specify "should parse text as integers" <|
            result = [-1, 0, 0, 1, Nothing, Nothing, Nothing]
-           text_literals.map Integer.parse  .  should_equal result
+           text_literals.map Integer.parse . should_equal result
     Test.group "Decimals" <|
         Test.specify "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
@@ -196,7 +196,7 @@ spec =
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
         Test.specify "should parse text as decimals" <|
            result = [-1.0, 0.0, 0.0, 1.0, 2.0, 3.4, Nothing]
-           text_literals.map Decimal.parse  .  should_equal result
+           text_literals.map Decimal.parse . should_equal result
     Test.group "Numbers" <|
         Test.specify "should parse text as numbers" <|
            result = [-1, 0, 0, 1.0, 2.0, 3.4, Nothing]
