@@ -90,7 +90,7 @@ a single language.
 
 <a href="https://www.youtube.com/watch?v=XReCQMZUmuE">See it in action.<br>
 
-<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="800">
+<img alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="500">
 </a>
 
 <br/><br/>
