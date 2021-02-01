@@ -149,14 +149,6 @@ spec =
             negative_big_bits.bit_shift_r -100 . should_equal (negative_big_bits.bit_shift_l 100)
             Test.expect_error_with (negative_big_bits.bit_shift_r negative_big_bits) Arithmetic_Error
             negative_big_bits.bit_shift_r positive_big_bits . should_equal -1
-        Test.specify "should parse text as integers" <|
-            Integer.parse "-1" . to_text . should_equal "-1"
-            Integer.parse "-0" . to_text . should_equal "0"
-            Integer.parse "0" . to_text . should_equal "0"
-            Integer.parse "1" . to_text . should_equal "1"
-            Test.expect_error_with (Integer.parse "2.0") Number_Parse_Error
-            Test.expect_error_with (Integer.parse "3.4") Number_Parse_Error
-            Test.expect_error_with (Integer.parse "five") Number_Parse_Error
     Test.group "Decimals" <|
         Test.specify "should exist and expose basic arithmetic operations" <|
             ((1.5 + 1.5)*1.3 / 2 - 3) . should_equal -1.05 epsilon=eps
@@ -198,20 +190,4 @@ spec =
             1.ceil . should_equal 1
             almost_max_long_times_three_decimal.ceil.to_decimal . should_equal almost_max_long_times_three_plus_1.to_decimal
             almost_max_long_times_three_plus_1.ceil . should_equal almost_max_long_times_three_plus_1
-        Test.specify "should parse text as decimals" <|
-            Decimal.parse "-1" . to_text . should_equal "-1.0"
-            Decimal.parse "-0" . to_text . should_equal "-0.0"
-            Decimal.parse "0" . to_text . should_equal "0.0"
-            Decimal.parse "1" . to_text . should_equal "1.0"
-            Decimal.parse "2.0" . to_text . should_equal "2.0"
-            Decimal.parse "3.4" . to_text . should_equal "3.4"
-            Test.expect_error_with (Decimal.parse "five") Number_Parse_Error
-    Test.group "Numbers" <|
-        Test.specify "should parse text as numbers" <|
-            Number.parse "-1" . to_text . should_equal "-1"
-            Number.parse "-0" . to_text . should_equal "0"
-            Number.parse "0" . to_text . should_equal "0"
-            Number.parse "1" . to_text . should_equal "1"
-            Number.parse "2.0" . to_text . should_equal "2.0"
-            Number.parse "3.4" . to_text . should_equal "3.4"
-            Test.expect_error_with (Number.parse "five") Number_Parse_Error
+

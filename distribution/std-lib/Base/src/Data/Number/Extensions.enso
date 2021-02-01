@@ -1,11 +1,7 @@
 from Base import all
 polyglot java import java.lang.Math
 polyglot java import java.lang.Double
-polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.lang.String
-
-## An error that occurs when the text does not represent a valid number.
-type Number_Parse_Error
 
 ## Computes the inverse of the sine function
 
@@ -102,17 +98,7 @@ Number.to_json = Json.Number this
 
 ## Parses a textual representation of a decimal into a decimal number.
    Returns `Nothing` if the text does not represent a valid decimal.
-Decimal.parse : Text -> Decimal ! Number_Parse_Error
+Decimal.parse : Text -> Decimal | Nothing
 Decimal.parse text =
-    Panic.recover (Double.parseDouble [text]) . catch (_ -> Error.throw Number_Parse_Error)
+    Panic.recover (Double.parseDouble [text]) . catch (_ -> Nothing)
 
-## Parses a textual representation of an integer into an integer number.
-   Returns `Nothing` if the text does not represent a valid integer.
-Integer.parse : Text -> Integer ! Number_Parse_Error
-Integer.parse text =
-    Panic.recover (Java_Integer.parseInt [text]) . catch (_ -> Error.throw Number_Parse_Error)
-
-## Parses a textual representation of a number into an integer or decimal number.
-   Returns `Nothing` if the text does not represent a valid number.
-Number.parse : Text -> Number ! Number_Parse_Error
-Number.parse text = Integer.parse text . catch (_ -> Decimal.parse text)
