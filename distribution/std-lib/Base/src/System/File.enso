@@ -24,7 +24,7 @@ rethrow_java file exception =
             if Java.is_instance exc AccessDeniedException then
                 Panic.throw (Access_Denied_Error file)
             if Java.is_instance exc IOException then
-                Panic.throw (Io_Error (exc.getMessage []))
+                Panic.throw (Io_Error exc.getMessage)
             Panic.throw exception
         _ -> Panic.throw exception
 
@@ -42,7 +42,7 @@ handle_java_exceptions file ~action =
    accidental scope capture with `Managed_Resource` finalizers.
 close_stream : Any -> Nothing
 close_stream stream =
-    stream.close []
+    stream.close
     Nothing
 
 ## An output stream, allowing for interactive writing of contents into an
@@ -54,8 +54,8 @@ type Output_Stream
     write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            java_stream.write [contents.to_array]
-            java_stream.flush []
+            java_stream.write contents.to_array
+            java_stream.flush
         Nothing
 
     ## Closes this stream.
@@ -75,7 +75,7 @@ type Input_Stream
     read_all_bytes : Vector.Vector ! File_Error
     read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            Vector.from_polyglot_array (java_stream.readAllBytes [])
+            Vector.from_polyglot_array java_stream.readAllBytes
 
     ## Reads _up to_ the provided number of bytes from the stream.
 
@@ -87,7 +87,7 @@ type Input_Stream
     read_n_bytes : Integer -> Vector.Vector ! File_Error
     read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            bytes = java_stream.readNBytes [n]
+            bytes = java_stream.readNBytes n
             Vector.from_polyglot_array bytes
 
     ## Reads the next byte from the stream.
@@ -97,7 +97,7 @@ type Input_Stream
     read_byte : Integer ! File_Error
     read_byte = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            java_stream.read []
+            java_stream.read
 
     ## Closes this stream.
 
@@ -128,7 +128,7 @@ type File
     new_input_stream open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = here.handle_java_exceptions this <|
-            (this.prim_file.newInputStream [opts])
+            (this.prim_file.newInputStream opts)
         resource = Managed_Resource.register stream here.close_stream
         Input_Stream this resource
 
@@ -143,7 +143,7 @@ type File
     new_output_stream open_options =
         opts = open_options . map (_.to_java) . to_array
         stream = here.handle_java_exceptions this <|
-            this.prim_file.newOutputStream [opts]
+            this.prim_file.newOutputStream opts
         resource = Managed_Resource.register stream here.close_stream
         Output_Stream this resource
 
@@ -212,8 +212,8 @@ type File
     ## Resolve a child file of the given file.
     / : (Text | File) -> File
     / subpath = case subpath of
-        File prim -> File (this.prim_file.resolve [prim])
-        _ -> File (this.prim_file.resolve [subpath])
+        File prim -> File (this.prim_file.resolve prim)
+        _ -> File (this.prim_file.resolve subpath)
 
     ## A text representation of this file.
     to_text : Text
@@ -225,44 +225,44 @@ type File
 
     ## Checks whether the file exists.
     exists : Boolean
-    exists = this.prim_file.exists []
+    exists = this.prim_file.exists
 
     ## Checks whether the file exists and is a directory.
     is_directory : Boolean
-    is_directory = this.prim_file.isDirectory []
+    is_directory = this.prim_file.isDirectory
 
     ## Checks whether the file exists and is a regular file.
     is_regular_file : Boolean
-    is_regular_file = this.prim_file.isRegularFile []
+    is_regular_file = this.prim_file.isRegularFile
 
     ## Resolves the parent filesystem node of this file.
     parent : File
-    parent = File (this.prim_file.getParent [])
+    parent = File this.prim_file.getParent
 
     ## Returns the path of this file.
     path : Text
-    path = this.prim_file.getPath []
+    path = this.prim_file.getPath
 
     ## Returns the name of this file.
     name : Text
-    name = this.prim_file.getName []
+    name = this.prim_file.getName
 
     ## Converts this file to an equivalent file represented with an absolute
        path.
     absolute : File
-    absolute = File (this.prim_file.getAbsoluteFile [])
+    absolute = File this.prim_file.getAbsoluteFile
 
     ## Checks is this file's path is absolute.
     is_absolute : Boolean
-    is_absolute = this.prim_file.isAbsolute []
+    is_absolute = this.prim_file.isAbsolute
 
     ## Normalizes the filepath.
     normalize : File
-    normalize = File (this.prim_file.normalize [])
+    normalize = File this.prim_file.normalize
 
     ## Checks if this file has the same `path` as `that`.
     == : File -> Boolean
-    == that = this.prim_file.isEqual [that.prim_file]
+    == that = this.prim_file.isEqual that.prim_file
 
     ## Deletes the file.
 
@@ -271,7 +271,7 @@ type File
     delete : Nothing ! File_Error
     delete =
         here.handle_java_exceptions this <|
-            this.prim_file.delete []
+            this.prim_file.delete
         Nothing
 
     ## Deletes the file if it exists on disk.

@@ -18,22 +18,22 @@ make_sorted_ascending_vec n = 0.up_to n+1 . to_vector
 
 make_partially_sorted_vec : Integer -> Base.Vector.Vector
 make_partially_sorted_vec n =
-    random_gen = Random.new [n].to_array
+    random_gen = Random.new n
     direction = Ref.new Sort_Order.Ascending
     last_num = Ref.new 0
     run_length = Ref.new 0
     Base.Vector.fill n <|
         case (Ref.get run_length) == 0 of
             True ->
-                new_direction = if (random_gen.nextDouble []) > 0 then Sort_Order.Ascending else
+                new_direction = if random_gen.nextDouble > 0 then Sort_Order.Ascending else
                     Sort_Order.Descending
                 Ref.put direction new_direction
-                Ref.put run_length (((random_gen.nextLong []) % (n / 10).floor) - 1)
-                num = random_gen.nextInt []
+                Ref.put run_length ((random_gen.nextLong % (n / 10).floor) - 1)
+                num = random_gen.nextInt
                 Ref.put last_num num
                 num
             False ->
-                change = ((random_gen.nextInt []).abs) % n
+                change = random_gen.nextInt.abs % n
                 num = case Ref.get direction of
                     Sort_Order.Ascending ->
                         num = (Ref.get last_num) + change
@@ -48,8 +48,8 @@ make_partially_sorted_vec n =
 
 make_random_vec : Integer -> Base.Vector.Vector
 make_random_vec n =
-    random_gen = Random.new [n].to_array
-    Base.Vector.fill n (random_gen.nextLong [])
+    random_gen = Random.new n
+    Base.Vector.fill n random_gen.nextLong
 
 
 

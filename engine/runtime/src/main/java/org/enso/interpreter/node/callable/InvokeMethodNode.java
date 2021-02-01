@@ -1,40 +1,36 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.node.callable.resolver.ArrayResolverNode;
-import org.enso.interpreter.node.callable.resolver.AtomResolverNode;
-import org.enso.interpreter.node.callable.resolver.BigIntegerResolverNode;
-import org.enso.interpreter.node.callable.resolver.BooleanResolverNode;
-import org.enso.interpreter.node.callable.resolver.ConstructorResolverNode;
-import org.enso.interpreter.node.callable.resolver.DataflowErrorResolverNode;
-import org.enso.interpreter.node.callable.resolver.DoubleResolverNode;
-import org.enso.interpreter.node.callable.resolver.FunctionResolverNode;
-import org.enso.interpreter.node.callable.resolver.LongResolverNode;
-import org.enso.interpreter.node.callable.resolver.OtherResolverNode;
-import org.enso.interpreter.node.callable.resolver.TextResolverNode;
+import org.enso.interpreter.node.callable.resolver.*;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.state.Stateful;
 
+@ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorProfile = ConditionProfile.createCountingProfile();
+  private final int argumentCount;
 
   /**
    * Creates a new node for method invocation.
@@ -57,6 +53,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+    this.argumentCount = schema.length;
   }
 
   @Override
@@ -68,100 +65,22 @@ public abstract class InvokeMethodNode extends BaseNode {
   public abstract Stateful execute(
       VirtualFrame frame, Object state, UnresolvedSymbol symbol, Object _this, Object[] arguments);
 
-  @Specialization
-  Stateful doAtom(
+  @Specialization(guards = "dispatch.hasFunctionalDispatch(_this)")
+  Stateful doFunctionalDispatch(
       VirtualFrame frame,
       Object state,
       UnresolvedSymbol symbol,
-      Atom _this,
+      Object _this,
       Object[] arguments,
-      @Cached AtomResolverNode atomResolverNode) {
-    Function function = atomResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doConstructor(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      AtomConstructor _this,
-      Object[] arguments,
-      @Cached ConstructorResolverNode constructorResolverNode) {
-    Function function = constructorResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doBigInteger(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      EnsoBigInteger _this,
-      Object[] arguments,
-      @Cached BigIntegerResolverNode bigIntegerResolverNode) {
-    Function function = bigIntegerResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doLong(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      long _this,
-      Object[] arguments,
-      @Cached LongResolverNode longResolverNode) {
-    Function function = longResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doDouble(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      double _this,
-      Object[] arguments,
-      @Cached DoubleResolverNode doubleResolverNode) {
-    Function function = doubleResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doBoolean(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      boolean _this,
-      Object[] arguments,
-      @Cached BooleanResolverNode booleanResolverNode) {
-    Function function = booleanResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doText(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      Text _this,
-      Object[] arguments,
-      @Cached TextResolverNode textResolverNode) {
-    Function function = textResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization
-  Stateful doFunction(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      Function _this,
-      Object[] arguments,
-      @Cached FunctionResolverNode functionResolverNode) {
-    Function function = functionResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+      @CachedLibrary(limit = "10") MethodDispatchLibrary dispatch,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      Function function = dispatch.getFunctionalDispatch(_this, symbol);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
   }
 
   @Specialization
@@ -190,47 +109,68 @@ public abstract class InvokeMethodNode extends BaseNode {
     throw _this;
   }
 
-  @Specialization
-  Stateful doArray(
-      VirtualFrame frame,
-      Object state,
-      UnresolvedSymbol symbol,
-      Array _this,
-      Object[] arguments,
-      @Cached ArrayResolverNode arrayResolverNode) {
-    Function function = arrayResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
-  }
-
-  @Specialization(guards = "isFallback(_this)")
-  Stateful doOther(
+  @ExplodeLoop
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "polyglotCallType != NOT_SUPPORTED"
+      })
+  Stateful doPolyglot(
       VirtualFrame frame,
       Object state,
       UnresolvedSymbol symbol,
       Object _this,
       Object[] arguments,
-      @Cached OtherResolverNode otherResolverNode) {
-    Function function = otherResolverNode.execute(symbol, _this);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
+          HostMethodCallNode.PolyglotCallType polyglotCallType,
+      @Cached("buildExecutors()") ThunkExecutorNode[] argExecutors,
+      @Cached AnyResolverNode anyResolverNode,
+      @Cached HostMethodCallNode hostMethodCallNode) {
+    Object[] args = new Object[argExecutors.length];
+    for (int i = 0; i < argExecutors.length; i++) {
+      Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      state = r.getState();
+      args[i] = r.getValue();
+    }
+    return new Stateful(
+        state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
   }
 
-  static boolean isFallback(Object _this) {
-    return !(_this instanceof Atom)
-        && !(_this instanceof AtomConstructor)
-        && !(_this instanceof EnsoBigInteger)
-        && !(_this instanceof Long)
-        && !(_this instanceof Double)
-        && !(_this instanceof Boolean)
-        && !(_this instanceof Text)
-        && !(_this instanceof Function)
-        && !(_this instanceof DataflowError)
-        && !(_this instanceof Array);
+  @ExplodeLoop
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == NOT_SUPPORTED"
+      })
+  Stateful doFallback(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @Cached AnyResolverNode anyResolverNode) {
+    Function function = anyResolverNode.execute(symbol, _this);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  ThunkExecutorNode[] buildExecutors() {
+    ThunkExecutorNode[] result = new ThunkExecutorNode[argumentCount - 1];
+    for (int i = 0; i < argumentCount - 1; i++) {
+      result[i] = ThunkExecutorNode.build();
+    }
+    return result;
   }
 
   /**

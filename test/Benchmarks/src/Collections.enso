@@ -19,8 +19,8 @@ sum_list_meta list =
 sum_recur n = if n == 0 then 0 else 1 + here.sum_recur n-1
 
 build_map size =
-    rand = Random.new [].to_array
-    0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt [10000]) i)
+    rand = Random.new
+    0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
 main =
     mil = 1000000

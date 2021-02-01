@@ -55,13 +55,13 @@ class PanicsTest extends InterpreterTest {
           |polyglot java import java.lang.Long
           |
           |main =
-          |    caught = Panic.recover (Long.parseLong (Array.new_1 "oops"))
+          |    caught = Panic.recover (Long.parseLong "oops")
           |    IO.println caught
           |    cause = caught.catch <| case _ of
           |        Polyglot_Error err -> err
           |        _ -> "fail"
           |    IO.println cause
-          |    message = cause.getMessage (Array.new 0)
+          |    message = cause.getMessage
           |    IO.println message
           |""".stripMargin
       eval(code)

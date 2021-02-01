@@ -19,23 +19,23 @@ type Time_Of_Day
 
     ## Get the hour of day field.
     hour : Integer
-    hour = this . internal_local_time . getHour []
+    hour = this . internal_local_time . getHour
 
     ## Get the minute of hour field.
     minute : Integer
-    minute = this . internal_local_time . getMinute []
+    minute = this . internal_local_time . getMinute
 
     ## Get the second of minute field.
     second : Integer
-    second = this . internal_local_time . getSecond []
+    second = this . internal_local_time . getSecond
 
     ## Get the nanosecond of second field.
     nanosecond : Integer
-    nanosecond = this . internal_local_time . getNano []
+    nanosecond = this . internal_local_time . getNano
 
     ## Extracts the time as the number of seconds, from 0 to 24 * 60 * 60 - 1.
     to_seconds : Integer
-    to_seconds = this . internal_local_time . toSecondOfDay []
+    to_seconds = this . internal_local_time . toSecondOfDay
 
     ## Combine this time of day with a date to create a point in time.
 
@@ -43,7 +43,7 @@ type Time_Of_Day
          Convert local time to 1st January 2020 12:30 at system timezone.
              Time_Of_Day.new 12 30 . to_time (Date.new 2020)
     to_time : Date -> Zone -> Time
-    to_time date (zone = Zone.system) = Time.time (this . internal_local_time . atDate [date.internal_local_date] . atZone [zone.internal_zone_id])
+    to_time date (zone = Zone.system) = Time.time (this . internal_local_time . atDate date.internal_local_date . atZone zone.internal_zone_id)
 
     ## Add specified amount of time to this instant.
 
@@ -51,7 +51,7 @@ type Time_Of_Day
          Add 3 seconds to a local time.
              Time_Of_Day.new + 3.seconds
     + : Duration -> Time_Of_Day
-    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus [amount.internal_duration])
+    + amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . plus amount.internal_duration)
 
     ## Subtract specified amount of time to this instant.
 
@@ -59,11 +59,11 @@ type Time_Of_Day
          Subtract 12 hours from a local time.
              Time_Of_Day.new - 12.hours
     - : Duration -> Time_Of_Day
-    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus [amount.internal_duration])
+    - amount = if amount.is_date then Error.throw (Time.Time_Error "Time_Of_Day does not support date intervals") else Time_Of_Day (this . internal_local_time . minus amount.internal_duration)
 
     ## Format this time of day using the default formatter.
     to_text : Text
-    to_text = Time_Utils.default_time_of_day_formatter [] . format [this.internal_local_time]
+    to_text = Time_Utils.default_time_of_day_formatter . format this.internal_local_time
 
     ## A Time_Of_Day to Json conversion.
     to_json : Json.Object
@@ -97,7 +97,7 @@ type Time_Of_Day
          Format "16:21:10" as "hour:4"
              Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_local_time]
+    format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_time
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -128,8 +128,8 @@ type Time_Of_Day
              Time.Error _ -> Time_Of_Day.new
 parse : Text -> Time_Of_Day
 parse text =
-    Panic.recover (Time_Of_Day (LocalTime.parse [text])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+    Panic.recover (Time_Of_Day (LocalTime.parse text)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
 ## Obtains an instance of Time_Of_Day from a text using custom format.
@@ -146,14 +146,14 @@ parse text =
          Date.parse_format "4:30AM" "h:mma"
 parse_format : Text -> Text -> Locale -> Time_Of_Day
 parse_format text pattern locale=Locale.default =
-    format = (DateTimeFormatter.ofPattern [pattern]).withLocale [locale.java_locale]
-    Panic.recover (Time_Of_Day (LocalTime.parse [text, format])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+    format = (DateTimeFormatter.ofPattern pattern).withLocale locale.java_locale
+    Panic.recover (Time_Of_Day (LocalTime.parse text format)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
 ## Obtains the current time from the system clock in the default time-zone.
 now : Time_Of_Day
-now = Time_Of_Day (LocalTime.now [])
+now = Time_Of_Day LocalTime.now
 
 ## Obtains an instance of `Time_Of_Day` from an hour, minute, second
    and nanosecond.
@@ -172,6 +172,6 @@ now = Time_Of_Day (LocalTime.now [])
          Time_Of_Day.new 9 30
 new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.recover (Time_Of_Day (LocalTime.of [hour, minute, second, nanosecond])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time.Time_Error (err.getMessage []))
+    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x

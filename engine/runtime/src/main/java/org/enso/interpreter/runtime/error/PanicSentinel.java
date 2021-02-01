@@ -1,7 +1,10 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.TruffleException;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 /**
  * A sentinel value used to trace the propagation of panics through the program.
@@ -9,6 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
  * <p>This tracing is enabled by the active intervention of the runtime instrumentation, and does
  * not function in textual mode.
  */
+@ExportLibrary(MethodDispatchLibrary.class)
 public class PanicSentinel extends RuntimeException implements TruffleException {
   private final PanicException panic;
   private final Node location;
@@ -56,5 +60,10 @@ public class PanicSentinel extends RuntimeException implements TruffleException 
   @Override
   public Throwable fillInStackTrace() {
     return this;
+  }
+
+  @ExportMessage
+  boolean hasSpecialDispatch() {
+    return true;
   }
 }
