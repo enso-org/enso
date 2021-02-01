@@ -108,7 +108,7 @@ a single language.
     <a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/cast_for_education/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/communication/forum/materialiconsround/24px.svg">
 <ul><ul>
     <b>Join The Community</b><br/>
     <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users.</a>
