@@ -1,17 +1,27 @@
 package org.enso.interpreter.runtime.data.text;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Number;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(MethodDispatchLibrary.class)
 public class Text implements TruffleObject {
   private volatile Object contents;
   private volatile boolean isFlat;
@@ -123,6 +133,45 @@ public class Text implements TruffleObject {
       return (String) this.contents;
     } else {
       return ToJavaStringNode.inplaceFlatten(this);
+    }
+  }
+
+  @ExportMessage
+  boolean hasFunctionalDispatch() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetFunctionalDispatch {
+
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(Context context, UnresolvedSymbol symbol) {
+      return symbol.resolveFor(context.getBuiltins().text().getText(), context.getBuiltins().any());
+    }
+
+    @Specialization(
+        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        Text _this,
+        UnresolvedSymbol symbol,
+        @CachedContext(Language.class) Context context,
+        @Cached("symbol") UnresolvedSymbol cachedSymbol,
+        @Cached("doResolve(context, cachedSymbol)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        Text _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
+        throws MethodDispatchLibrary.NoSuchMethodException {
+      Function function = doResolve(context, symbol);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
     }
   }
 }

@@ -1,6 +1,10 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleException;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -8,6 +12,12 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+
 import javax.xml.crypto.Data;
 
 /**
@@ -17,13 +27,15 @@ import javax.xml.crypto.Data;
  * they are handled. Another term used to describe these errors is "broken values".
  */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(MethodDispatchLibrary.class)
 public class DataflowError extends RuntimeException implements TruffleObject, TruffleException {
   private final Object payload;
   private final Node location;
 
-  /** Construct a new dataflow error with the default stack trace.
+  /**
+   * Construct a new dataflow error with the default stack trace.
    *
-   * The default stack trace has the throwing location as the top element of the stack trace.
+   * <p>The default stack trace has the throwing location as the top element of the stack trace.
    *
    * @param payload the user-provided value carried by the error
    * @param location the node in which the error was created
@@ -35,10 +47,11 @@ public class DataflowError extends RuntimeException implements TruffleObject, Tr
     return error;
   }
 
-  /** Construct a new dataflow error with the provided stack trace.
+  /**
+   * Construct a new dataflow error with the provided stack trace.
    *
-   * This is useful for when the dataflow error is created from the recovery of a panic, and we want
-   * to point to the original location of the panic.
+   * <p>This is useful for when the dataflow error is created from the recovery of a panic, and we
+   * want to point to the original location of the panic.
    *
    * @param payload the user-provided value carried by the error
    * @param location the node in which the error was located
@@ -90,5 +103,10 @@ public class DataflowError extends RuntimeException implements TruffleObject, Tr
     } catch (UnsupportedMessageException e) {
       return "Error";
     }
+  }
+
+  @ExportMessage
+  boolean hasSpecialDispatch() {
+    return true;
   }
 }

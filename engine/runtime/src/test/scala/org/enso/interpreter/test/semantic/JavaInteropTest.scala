@@ -16,7 +16,7 @@ class JavaInteropTest extends InterpreterTest {
           |polyglot java import org.enso.example.TestClass
           |from Builtins import all
           |
-          |main = TestClass.add (Array.new_2 1 2)
+          |main = TestClass.add 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3
@@ -29,8 +29,8 @@ class JavaInteropTest extends InterpreterTest {
           |from Builtins import all
           |
           |main =
-          |    instance = TestClass.new (Array.new_1 (x -> x * 2))
-          |    instance.callFunctionAndIncrement (Array.new_1 10)
+          |    instance = TestClass.new (x -> x * 2)
+          |    instance.callFunctionAndIncrement 10
           |""".stripMargin
       eval(code) shouldEqual 21
     }

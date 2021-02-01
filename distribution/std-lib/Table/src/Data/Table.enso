@@ -16,16 +16,16 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        cols = Vector.Vector (this.java_table.getColumns [])
-        index =  this.java_table.getIndex []
-        col_names = [index.getName[]] + cols.map (_.getName [])
-        col_vals = cols.map (_.getStorage [])
-        num_rows = this.java_table.nrows []
+        cols = Vector.Vector this.java_table.getColumns
+        index =  this.java_table.getIndex
+        col_names = [index.getName] + cols.map .getName
+        col_vals = cols.map .getStorage
+        num_rows = this.java_table.nrows
         display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
-                if col.isNa [row_num] then "Nothing" else Column.get_item_string col row_num
-            [index.ilocString [row_num]] + cols
+                if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
+            [index.ilocString row_num] + cols
         table = here.print_table col_names rows format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
@@ -49,7 +49,7 @@ type Table
 
     ## Returns the column with the given name.
     at : Text -> Column | Nothing
-    at name = case this.java_table.getColumnByName [name] of
+    at name = case this.java_table.getColumnByName name of
         Nothing -> Nothing
         c -> Column.Column c
 
@@ -62,27 +62,27 @@ type Table
              my_table.where (my_table.at "Status" == "Valid")
     where : Column -> Table
     where indexes =
-        Table (this.java_table.mask [indexes.java_column])
+        Table (this.java_table.mask indexes.java_column)
 
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
     set : Text -> Column -> Table
     set name column =
-        Table (this.java_table.addOrReplaceColumn [column.rename name . java_column])
+        Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## Returns the vector of columns contained in this table.
     columns : Vector
     columns =
-        Vector.Vector (this.java_table.getColumns []) . map Column.Column
+        Vector.Vector this.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
     set_index : Text -> Table
     set_index index =
-        Table (this.java_table.indexFromColumn [index])
+        Table (this.java_table.indexFromColumn index)
 
     ## Selects a subset of columns from this table by name.
     select : Vector -> Table
-    select columns = Table (this.java_table.selectColumns [columns.to_array])
+    select columns = Table (this.java_table.selectColumns columns.to_array)
 
     ## Efficiently joins two tables based on either the index or the specified
        key column.
@@ -107,7 +107,7 @@ type Table
         case other of
             Column.Column _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
             Table t ->
-                Table (this.java_table.join [t, drop_unmatched, on, left_suffix, right_suffix])
+                Table (this.java_table.join t drop_unmatched on left_suffix right_suffix)
 
     ## Returns a new Table without rows that contained missing values in any of
        the columns.
@@ -125,12 +125,12 @@ type Table
     drop_missing_columns : Table
     drop_missing_columns =
         non_missing = this.columns . filter (col -> col.count_missing == 0)
-        index = this.java_table.getIndex []
-        Table (Java_Table.new [non_missing.map .java_column . to_array, index].to_array)
+        index = this.java_table.getIndex
+        Table (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the amount of rows in this table.
     nrows : Integer
-    nrows = this.java_table.nrows []
+    nrows = this.java_table.nrows
 
     ## Returns a Table describing this table's contents.
 
@@ -162,7 +162,7 @@ type Table
             Table.join [records_num, total_quantity, mean_price]
     group : Text | Nothing -> Aggregate_Table
     group by=Nothing =
-        Aggregate_Table (this.java_table.group [by])
+        Aggregate_Table (this.java_table.group by)
 
 ## Represents a table with grouped rows.
 type Aggregate_Table
@@ -170,7 +170,7 @@ type Aggregate_Table
 
     ## Returns a vector of aggregate columns in this table.
     columns : Vector.Vector
-    columns = Vector.Vector (this.java_table.getColumns []) . map Column.Aggregate_Column
+    columns = Vector.Vector this.java_table.getColumns . map Column.Aggregate_Column
 
     ## Returns a table containing columns resulting from calling `values` on
        each column in `this`.
@@ -179,11 +179,11 @@ type Aggregate_Table
 
     ## Returns a column containing the number of elements in each group.
     count : Column
-    count = Column.Column (this.java_table.count [])
+    count = Column.Column this.java_table.count
 
     ## Returns an aggregate column with the given name, contained in this table.
     at : Text -> Column | Nothing
-    at name = case this.java_table.getColumnByName [name] of
+    at name = case this.java_table.getColumnByName name of
         Nothing -> Nothing
         c -> Column.Aggregate_Column c
 
@@ -195,7 +195,7 @@ type Aggregate_Table
     print show_rows=10 = this.values.print show_rows
 
 ## PRIVATE
-from_columns cols = Table (Java_Table.new [cols.to_array].to_array)
+from_columns cols = Table (Java_Table.new cols.to_array)
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 

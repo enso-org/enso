@@ -120,7 +120,7 @@ render_helper builder json = case json of
             separator = Ref.get r
             Ref.put r ","
             val = here.render_helper "" value
-            acc + separator + (Printer.json_escape [key]) + ":" + val
+            acc + separator + (Printer.json_escape key) + ":" + val
         arr = fields.fold_with_key "" render_key_value
         builder + "{" + arr + "}"
     Array items ->
@@ -133,7 +133,7 @@ render_helper builder json = case json of
         arr = items.fold "" render_array_element
         builder + "[" + arr + "]"
     String value ->
-        builder + (Printer.json_escape [value])
+        builder + (Printer.json_escape value)
     Number value ->
         builder + value.to_text
     Boolean value ->
@@ -178,5 +178,5 @@ into_helper fmt json = case fmt of
 parse_helper : Text -> Json ! Polyglot_Error
 parse_helper json_text =
     consumer = here.mk_consumer
-    Parser.parse [json_text, consumer]
+    Parser.parse json_text consumer
     Ref.get consumer.value

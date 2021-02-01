@@ -30,51 +30,51 @@ type Time
 
     ## Get the year field.
     year : Integer
-    year = this . internal_zoned_date_time . getYear []
+    year = this . internal_zoned_date_time . getYear
 
     ## Get the month of year field from 1 to 12.
     month : Integer
-    month = this . internal_zoned_date_time . getMonthValue []
+    month = this . internal_zoned_date_time . getMonthValue
 
     ## Get the day of month field.
     day : Integer
-    day = this . internal_zoned_date_time . getDayOfMonth []
+    day = this . internal_zoned_date_time . getDayOfMonth
 
     ## Get the hour of day field.
     hour : Integer
-    hour = this . internal_zoned_date_time . getHour []
+    hour = this . internal_zoned_date_time . getHour
 
     ## Get the minute of hour field.
     minute : Integer
-    minute = this . internal_zoned_date_time . getMinute []
+    minute = this . internal_zoned_date_time . getMinute
 
     ## Get the second of minute field
     second : Integer
-    second = this . internal_zoned_date_time . getSecond []
+    second = this . internal_zoned_date_time . getSecond
 
     ## Get the nano-of-second field.
     nanosecond : Integer
-    nanosecond = this . internal_zoned_date_time . getNano []
+    nanosecond = this . internal_zoned_date_time . getNano
 
     ## Get the timezone.
     zone : Zone
-    zone = Zone.zone (this . internal_zoned_date_time . getZone [])
+    zone = Zone.zone (this . internal_zoned_date_time . getZone)
 
     ## Return the number of seconds from the Unix epoch.
     to_epoch_seconds : Integer
-    to_epoch_seconds = this . internal_zoned_date_time . toEpochSecond []
+    to_epoch_seconds = this . internal_zoned_date_time . toEpochSecond
 
     ## Return the number of milliseconds from the Unix epoch.
     to_epoch_milliseconds : Integer
-    to_epoch_milliseconds = this . internal_zoned_date_time . toInstant [] . toEpochMilli []
+    to_epoch_milliseconds = this . internal_zoned_date_time . toInstant . toEpochMilli
 
     ## Convert this point in time to time of day.
     time_of_day : Time_Of_Day
-    time_of_day = Time_Of_Day.time_of_day (this . internal_zoned_date_time . toLocalTime [])
+    time_of_day = Time_Of_Day.time_of_day this.internal_zoned_date_time.toLocalTime
 
     ## Convert this point in time to date.
     date : Date
-    date = Date.date (this . internal_zoned_date_time . toLocalDate [])
+    date = Date.date this.internal_zoned_date_time.toLocalDate
 
     ## Convert the time instant to a provided timezone.
 
@@ -82,7 +82,7 @@ type Time
          Convert time instance to -04:00 timezone.
              Time.new 2020 . at_zone (Zone.new -4)
     at_zone : Zone -> Time
-    at_zone zone = Time (this.internal_zoned_date_time . withZoneSameInstant [zone.internal_zone_id])
+    at_zone zone = Time (this.internal_zoned_date_time . withZoneSameInstant zone.internal_zone_id)
 
     ## Add specified amount of time to this instant.
 
@@ -94,7 +94,7 @@ type Time
          Add 15 years and 3 hours to a zoned date time.
              Time.new 2020 + 15.years + 3.hours
     + : Duration -> Time
-    + amount = Time (this . internal_zoned_date_time . plus [amount.internal_period] . plus [amount.internal_duration])
+    + amount = Time (this . internal_zoned_date_time . plus amount.internal_period . plus amount.internal_duration)
 
     ## Subtract specified amount of time to this instant.
 
@@ -106,11 +106,11 @@ type Time
          Subtract 1 year and 9 months from a zoned date time.
              Time.new 2020 - 1.year - 9.months
     - : Duration -> Time
-    - amount = Time (this . internal_zoned_date_time . minus [amount.internal_period] . minus [amount.internal_duration])
+    - amount = Time (this . internal_zoned_date_time . minus amount.internal_period . minus amount.internal_duration)
 
     ## Format this time using the default formatter.
     to_text : Text
-    to_text = Time_Utils.default_time_formatter [] . format [this.internal_zoned_date_time]
+    to_text = Time_Utils.default_time_formatter . format this.internal_zoned_date_time
 
     ## A Time to Json conversion.
     to_json : Json.Object
@@ -175,7 +175,7 @@ type Time
          Format "2020-10-08T16:41:13+03:00[Europe/Moscow]" as "Thu Oct 8 (16:41)"
              Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern [pattern] . format [this.internal_zoned_date_time]
+    format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_zoned_date_time
 
 ## Obtains an instance of `Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
@@ -214,8 +214,8 @@ type Time
              Time.Error _ -> Time.now
 parse : Text -> Time
 parse text =
-    Panic.recover (Time (Time_Utils.parse_time [text])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+    Panic.recover (Time (Time_Utils.parse_time text)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
 
 ## Obtains an instance of Time from a text using custom format.
@@ -231,13 +231,13 @@ parse text =
          Date.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
 parse_format : Text -> Text -> Locale -> Time_Of_Day
 parse_format text pattern locale=Locale.default =
-    Panic.recover (Time (Time_Utils.parse_time_format [text, pattern, locale.java_locale])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+    Panic.recover (Time (Time_Utils.parse_time_format text pattern locale.java_locale)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
 
 ## Obtains the current date-time from the system clock in the system timezone.
 now : Time
-now = Time (ZonedDateTime.now [])
+now = Time ZonedDateTime.now
 
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and timezone.
@@ -260,6 +260,6 @@ now = Time (ZonedDateTime.now [])
          Time.new 1986 8 5
 new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
-    Panic.recover (Time (ZonedDateTime.of [year, month, day, hour, minute, second, nanosecond, zone.internal_zone_id])) . catch <| case _ of
-        Polyglot_Error err -> Error.throw (Time_Error (err.getMessage []))
+    Panic.recover (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch <| case _ of
+        Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
