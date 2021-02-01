@@ -157,7 +157,6 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
-//    scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
 

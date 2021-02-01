@@ -8,6 +8,8 @@ T.== that = this.a == that.a
 T.compare_to that = if this == that then Ordering.Equal else
     if this.a > that.a then Ordering.Greater else Ordering.Less
 
+type My_Error a
+
 spec = Test.group "Vectors" <|
     Test.specify "should allow vector creation with a programmatic constructor" <|
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
@@ -159,3 +161,7 @@ spec = Test.group "Vectors" <|
         small_vec = [T 1 8, T 1 3, T -20 0, T -1 1, T -1 10, T 4 0]
         small_expected = [T 4 0, T 1 3, T 1 8, T -1 10, T -1 1, T -20 0]
         small_vec.sort order=Sort_Order.Descending . should_equal small_expected
+    Test.specify "should be able to map over errors" <|
+        fail a = Error.throw <| My_Error a
+        [fail 1].map (x -> x.catch (x -> x.a)) . should_equal [1]
+        [1].map fail . map .catch . should_equal [My_Error 1]
