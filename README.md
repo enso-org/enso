@@ -35,14 +35,14 @@ visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
     <b>Connect to all the tools you're already using</b><br/>
     Enso ships with a robust set of libraries, allowing you to work with local
     files, databases, HTTP services and other applications in a seamless fashion.
 </ul></ul>
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
 <ul><ul>
     <b>Cutting-edge visualization engine</b><br/>
     Enso is equipped with a highly-tailored WebGL visualization engine capable of
@@ -50,7 +50,7 @@ a single language.
     browser.
 </ul></ul>
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
 <ul><ul>
     <b>Polyglot</b><br/>
     Enso allows you to use any Java library in your code. Soon, it will also allow
@@ -58,14 +58,14 @@ a single language.
     performance overhead at runtime.
 </ul></ul>
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
 <ul><ul>
     <b>High performance</b><br/>
     Enso graphs and code can run up to 100x faster than the analoguous Python
     code.
 </ul></ul>
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
 <ul><ul>
     <b>Results you can trust</b><br/>
     Enso incorporates many recent innovations in data processing and programming
@@ -75,7 +75,7 @@ a single language.
     of primitive types.
 </ul></ul>
 
-<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
 <ul><ul>
     <b>Runs everywhere</b><br/>
     Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
