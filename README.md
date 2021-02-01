@@ -133,7 +133,8 @@ Enso consists of several sub projects:
 
 - **Enso Engine.** The Enso Engine is the set of tools that implement the Enso
   language and its associated services. These include a just-in-time compiler,
-  runtime, and language server. These components can be used on their own.
+  runtime, and language server. These components can be used on their own as
+  command line tools.
 
 - **Enso IDE**. The [Enso IDE](https://github.com/enso-org/ide) is the desktop
   application that allows working with the visual form Enso. It consists of an
