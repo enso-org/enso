@@ -197,3 +197,7 @@ spec =
         Test.specify "should parse text as decimals" <|
            result = [-1.0, 0.0, 0.0, 1.0, 2.0, 3.4, Nothing]
            text_literals.map Decimal.parse  .  should_equal result
+    Test.group "Numbers" <|
+        Test.specify "should parse text as numbers" <|
+           result = [-1, 0, 0, 1.0, 2.0, 3.4, Nothing]
+           text_literals.map Number.parse . should_equal result

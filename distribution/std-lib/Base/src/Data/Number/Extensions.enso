@@ -109,4 +109,10 @@ Integer.parse : Text -> Integer | Nothing
 Integer.parse text =
     Panic.recover (Java_Integer.parseInt [text]) . catch (_ -> Nothing)
 
-
+## Parses a textual representation of a number into an integer or decimal number.
+   Returns `Nothing` if the text does not represent a valid number.
+Number.parse : Text -> Number | Nothing
+Number.parse text =
+    case Integer.parse text of
+        Nothing -> Decimal.parse text
+        value   -> value
