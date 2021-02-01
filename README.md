@@ -46,7 +46,6 @@
 
 <br/>
 
-
 ### All your data and analytics. Unified. Interactive.
 
 Enso is a general-purpose programming language and environment for interactive
@@ -103,7 +102,6 @@ a single language.
 </ul></ul>
 
 <br/>
-
 
 ### Getting Started
 
@@ -165,8 +163,12 @@ Enso consists of several sub projects:
 
 ### License
 
-The Enso Engine is licensed under the [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file. The Enso IDE is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0), as specified in the [LICENSE](https://github.com/enso-org/ide/blob/main/LICENSE) file.
+The Enso Engine is licensed under the
+[Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
+[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file. The Enso IDE
+is licensed under the [AGPL 3.0](https://opensource.org/licenses/AGPL-3.0), as
+specified in the [LICENSE](https://github.com/enso-org/ide/blob/main/LICENSE)
+file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
@@ -184,10 +186,10 @@ want to redefine the data processing world, join us and help us track down bugs,
 implement new features, improve the documentation or spread the word!
 
 If you'd like to help us make this vision a reality, please feel free to join
-our [chat](https://discord.gg/enso), and take a look at our [development and
-contribution guidelines](./docs/CONTRIBUTING.md). The latter describes all the
-ways in which you can help out with the project, as well as provides detailed
-instructions for building and hacking on Enso.
+our [chat](https://discord.gg/enso), and take a look at our
+[development and contribution guidelines](./docs/CONTRIBUTING.md). The latter
+describes all the ways in which you can help out with the project, as well as
+provides detailed instructions for building and hacking on Enso.
 
 If you believe that you have found a security vulnerability in Enso, or that you
 have a bug report that poses a security risk to Enso's users, please take a look
@@ -203,9 +205,9 @@ a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
 component of Enso. You can view this same documentation in a rendered form at
 [the developer docs website](https://dev.enso.org).
 
-This folder also contains a document on Enso's [design
-philosophy](./docs/enso-philosophy.md), that details the thought process that we
-use when contemplating changes or additions to the language.
+This folder also contains a document on Enso's
+[design philosophy](./docs/enso-philosophy.md), that details the thought process
+that we use when contemplating changes or additions to the language.
 
 This documentation will evolve as Enso does, both to help newcomers to the
 project understand the reasoning behind the code, but also to act as a record of
