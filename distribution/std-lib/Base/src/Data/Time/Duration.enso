@@ -20,7 +20,7 @@ type Duration
          Add 12 hours to a duration of a month.
              1.month + 12.hours
     + : Duration -> Duration
-    + other = Duration (this.internal_period . plus [other.internal_period] . normalized []) (this.internal_duration . plus [other.internal_duration])
+    + other = Duration (this.internal_period . plus other.internal_period . normalized) (this.internal_duration . plus other.internal_duration)
 
     ## Subtract specified amount of time from this duration.
        > Example
@@ -31,39 +31,39 @@ type Duration
          Substract 30 minutes from a duration of 7 months.
              7.months - 30.minutes
     - : Duration -> Duration
-    - other = Duration (this.internal_period . minus [other.internal_period] . normalized []) (this.internal_duration . minus [other.internal_duration])
+    - other = Duration (this.internal_period . minus other.internal_period . normalized) (this.internal_duration . minus other.internal_duration)
 
     ## Get the amount of nanoseconds of this duration.
     nanoseconds : Integer
-    nanoseconds = this.internal_duration . toNanosPart []
+    nanoseconds = this.internal_duration . toNanosPart
 
     ## Get the amount of milliseconds of this duration.
     milliseconds : Integer
-    milliseconds = this.internal_duration . toMillisPart []
+    milliseconds = this.internal_duration . toMillisPart
 
     ## Get the amount of minutes of this duration.
     seconds : Integer
-    seconds = this.internal_duration . toSecondsPart []
+    seconds = this.internal_duration . toSecondsPart
 
     ## Get the amount of minutes of this duration.
     minutes : Integer
-    minutes = this.internal_duration . toMinutesPart []
+    minutes = this.internal_duration . toMinutesPart
 
     ## Get the amount of hours of this duration.
     hours : Integer
-    hours = this.internal_duration . toHours []
+    hours = this.internal_duration . toHours
 
     ## Get the amount of days of this duration.
     days : Integer
-    days = this.internal_period . getDays []
+    days = this.internal_period . getDays
 
     ## Get the amount of months of this duration.
     months : Integer
-    months = this.internal_period . getMonths []
+    months = this.internal_period . getMonths
 
     ## Get the amount of days of this duration.
     years : Integer
-    years = this.internal_period . getYears []
+    years = this.internal_period . getYears
 
     ## Convert this duration to a Vector of years, months, days, hours, minutes,
        seconds and nanosecnods.
@@ -110,7 +110,7 @@ type Duration
 
 ## Duration in nanoseconds.
 Integer.nanosecond : Duration
-Integer.nanosecond = Duration (Java_Period.ofDays [0]) (Java_Duration.ofNanos [this])
+Integer.nanosecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos this)
 
 ## Duration in nanoseconds.
 Integer.nanoseconds : Duration
@@ -118,7 +118,7 @@ Integer.nanoseconds = this.nanosecond
 
 ## Duration in milliseconds.
 Integer.millisecond : Duration
-Integer.millisecond = Duration (Java_Period.ofDays [0]) (Java_Duration.ofMillis [this])
+Integer.millisecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis this)
 
 ## Duration in milliseconds.
 Integer.milliseconds : Duration
@@ -126,7 +126,7 @@ Integer.milliseconds = this.millisecond
 
 ## Duration in seconds.
 Integer.second : Duration
-Integer.second = Duration (Java_Period.ofDays [0]) (Java_Duration.ofSeconds [this])
+Integer.second = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds this)
 
 ## Duration in seconds.
 Integer.seconds : Duration
@@ -134,7 +134,7 @@ Integer.seconds = this.second
 
 ## Duration in minutes.
 Integer.minute : Duration
-Integer.minute = Duration (Java_Period.ofDays [0]) (Java_Duration.ofMinutes [this])
+Integer.minute = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes this)
 
 ## Duration in minutes.
 Integer.minutes : Duration
@@ -142,7 +142,7 @@ Integer.minutes = this.minute
 
 ## Duration in hours.
 Integer.hour : Duration
-Integer.hour = Duration (Java_Period.ofDays [0]) (Java_Duration.ofHours [this])
+Integer.hour = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours this)
 
 ## Duration in hours.
 Integer.hours : Duration
@@ -150,7 +150,7 @@ Integer.hours = this.hour
 
 ## Duration in days.
 Integer.day : Duration
-Integer.day = Duration (Java_Period.ofDays [this] . normalized []) (Java_Duration.ofSeconds [0])
+Integer.day = Duration (Java_Period.ofDays this . normalized) (Java_Duration.ofSeconds 0)
 
 ## Duration in days.
 Integer.days : Duration
@@ -158,7 +158,7 @@ Integer.days = this.day
 
 ## Duration in months.
 Integer.month : Duration
-Integer.month = Duration (Java_Period.ofMonths [this] . normalized []) (Java_Duration.ofSeconds [0])
+Integer.month = Duration (Java_Period.ofMonths this . normalized) (Java_Duration.ofSeconds 0)
 
 ## Duration in months.
 Integer.months : Duration
@@ -166,7 +166,7 @@ Integer.months = this.month
 
 ## Duration in years.
 Integer.year : Duration
-Integer.year = Duration (Java_Period.ofYears [this] . normalized []) (Java_Duration.ofSeconds [0])
+Integer.year = Duration (Java_Period.ofYears this . normalized) (Java_Duration.ofSeconds 0)
 
 ## Duration in years.
 Integer.years : Duration
@@ -179,4 +179,4 @@ Integer.years = this.year
          Duration.between Time.now (Time.new 2010 10 20)
 between : Time -> Time -> Duration
 between start_inclusive end_exclusive =
-   Duration (Java_Period.ofDays [0] . normalized []) (Java_Duration.between [start_inclusive.internal_zoned_date_time, end_exclusive.internal_zoned_date_time])
+   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)

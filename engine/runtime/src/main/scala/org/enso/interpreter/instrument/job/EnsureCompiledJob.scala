@@ -15,7 +15,6 @@ import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   GatherDiagnostics
 }
-import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
@@ -75,8 +74,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
     val moduleCompilationStatus = modules.flatMap { module =>
       val importedModules =
-        new ImportResolver(ctx.executionService.getContext.getCompiler)
-          .mapImports(module)
+        ctx.executionService.getContext.getCompiler
+          .runImportsResolution(module)
           .filter(_.getName != module.getName)
       ensureCompiledModule(module) +: ensureCompiledImports(importedModules)
     }

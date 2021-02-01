@@ -36,11 +36,11 @@ type Deterministic_Random
     ## Step the generator to produce the next value.
     step : Number -> Interval -> Number
     step input interval =
-        max_long = Polyglot.get_member Long "MAX_VALUE"
+        max_long = Long.MAX_VALUE
         seed = input.floor % max_long
-        gen = Random.new [seed].to_array
+        gen = Random.new seed
         value_range = (interval.end.n - interval.start.n).abs
         offset = (interval.start.n)
-        gen.nextDouble []
-        val = gen.nextDouble []
+        gen.nextDouble
+        val = gen.nextDouble
         (val * value_range) + offset

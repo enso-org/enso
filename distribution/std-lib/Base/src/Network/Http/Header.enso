@@ -37,7 +37,7 @@ authorization value = Header "Authorization" value
          Header.authorization_basic "user" "pass"
 authorization_basic : Text -> Text -> Header
 authorization_basic user pass =
-    here.authorization (Http_Utils.header_basic_auth [user, pass])
+    here.authorization (Http_Utils.header_basic_auth user pass)
 
 # Content-Type
 

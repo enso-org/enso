@@ -14,16 +14,16 @@ type Response
     ## Get the response headers.
     headers : Vector.Vector
     headers =
-        header_entries = Vector.vector (Http_Utils.get_headers [this.internal_http_response.headers []])
-        header_entries.map e-> Header.new (e.getKey []) (e.getValue [])
+        header_entries = Vector.vector (Http_Utils.get_headers this.internal_http_response.headers)
+        header_entries.map e-> Header.new e.getKey e.getValue
 
     ## Get the response body.
     body : Response_Body
-    body = Response_Body.body (Vector.vector (this.internal_http_response.body []))
+    body = Response_Body.body (Vector.vector this.internal_http_response.body)
 
     ## Get the response status code.
     code : Status_Code
-    code = Status_Code.status_code (this.internal_http_response.statusCode [])
+    code = Status_Code.status_code this.internal_http_response.statusCode
 
     ## A Response to Json conversion.
     to_json : Json.Object

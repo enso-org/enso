@@ -79,10 +79,15 @@ case object ExpressionAnnotations extends IRPass {
               doExpression(arg.value)
                 .updateMetadata(this -->> Annotations(Seq(ann)))
             case realFun :: args =>
-              val recurFun  = doExpression(realFun.value)
+              val recurFun = doExpression(realFun.value)
+              val (finalFun, preArgs) = recurFun match {
+                case IR.Application.Prefix(nextFun, moreArgs, _, _, _, _) =>
+                  (nextFun, moreArgs)
+                case _ => (recurFun, List())
+              }
               val recurArgs = args.map(_.mapExpressions(doExpression))
               app
-                .copy(function = recurFun, arguments = recurArgs)
+                .copy(function = finalFun, arguments = preArgs ++ recurArgs)
                 .updateMetadata(this -->> Annotations(Seq(ann)))
           }
         } else {

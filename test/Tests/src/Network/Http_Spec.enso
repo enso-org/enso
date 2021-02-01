@@ -18,7 +18,7 @@ polyglot java import java.lang.System
 polyglot java import java.util.Objects
 
 spec =
-    is_ci = Objects.equals ["true", System.getenv ["CI"]]
+    is_ci = System.getenv "CI" == "true"
     if is_ci then here.spec_impl else Nothing
 
 spec_impl =
