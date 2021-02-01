@@ -91,11 +91,11 @@ a single language.
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
 <ul><ul>
     <b>Tutorials</b><br/>
-    <a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a>
+    <a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a><br/>
     <a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/image/video_camera_front/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/cast_for_education/materialiconsround/24px.svg">
 <ul><ul>
     <b>Video Podcasts</b><br/>
     <a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a>
