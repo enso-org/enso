@@ -200,9 +200,9 @@ final class ContextEventsListener(
       case Api.ExpressionUpdate.Payload.DataflowError(trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.DataflowError(trace)
 
-      case Api.ExpressionUpdate.Payload.RuntimeError(message, trace) =>
+      case Api.ExpressionUpdate.Payload.Panic(message, trace) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload
-          .RuntimeError(message, trace)
+          .Panic(message, trace)
     }
 
   /** Convert the runtime profiling info to the context registry protocol

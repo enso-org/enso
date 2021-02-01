@@ -181,7 +181,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
-              Api.ExpressionUpdate.Payload.RuntimeError("Method failure", Seq())
+              Api.ExpressionUpdate.Payload.Panic("Method failure", Seq())
             )
           )
         )
@@ -199,7 +199,7 @@ class ContextEventsListenerSpec
                   Vector(),
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .RuntimeError("Method failure", Seq())
+                    .Panic("Method failure", Seq())
                 )
               ),
               None

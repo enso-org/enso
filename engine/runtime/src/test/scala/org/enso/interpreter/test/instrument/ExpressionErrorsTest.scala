@@ -238,7 +238,7 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `undefined` is not defined.",
           Seq(xId)
         )
@@ -246,7 +246,7 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         fooBodyId,
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `undefined` is not defined.",
           Seq(xId)
         )
@@ -254,7 +254,7 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         yId,
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `undefined` is not defined.",
           Seq(xId)
         )
@@ -262,7 +262,7 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         mainResId,
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `undefined` is not defined.",
           Seq(xId)
         )
@@ -331,7 +331,7 @@ class ExpressionErrorsTest
         contextId,
         mainBodyId,
         Api.MethodPointer("Test.Main", "Test.Main", "foo"),
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `x` is not defined.",
           Seq(mainBodyId)
         )
@@ -409,7 +409,7 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.RuntimeError(
+        Api.ExpressionUpdate.Payload.Panic(
           "Compile_Error Variable `undefined` is not defined.",
           Seq(xId)
         )

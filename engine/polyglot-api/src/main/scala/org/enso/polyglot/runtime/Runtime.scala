@@ -281,8 +281,8 @@ object Runtime {
             name  = "expressionUpdatePayloadDataflowError"
           ),
           new JsonSubTypes.Type(
-            value = classOf[Payload.RuntimeError],
-            name  = "expressionUpdatePayloadRuntimeError"
+            value = classOf[Payload.Panic],
+            name  = "expressionUpdatePayloadPanic"
           )
         )
       )
@@ -305,7 +305,7 @@ object Runtime {
           * @param message the error message
           * @param trace the stack trace
           */
-        case class RuntimeError(
+        case class Panic(
           message: String,
           trace: Seq[ExpressionId]
         ) extends Payload

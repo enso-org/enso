@@ -327,7 +327,7 @@ trait ProgramExecutionSupport {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
           Api.ExpressionUpdate.Payload
-            .RuntimeError(
+            .Panic(
               sentinel.getMessage,
               ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
             )

@@ -143,7 +143,7 @@ object ContextRegistryProtocol {
         * @param message the error message
         * @param trace the stack trace
         */
-      case class RuntimeError(
+      case class Panic(
         message: String,
         trace: Seq[UUID]
       ) extends Payload
@@ -159,7 +159,7 @@ object ContextRegistryProtocol {
 
         val DataflowError = "DataflowError"
 
-        val RuntimeError = "RuntimeError"
+        val Panic = "Panic"
 
       }
 
@@ -175,11 +175,11 @@ object ContextRegistryProtocol {
                 Json.obj(CodecField.Type -> PayloadType.DataflowError.asJson)
               )
 
-          case m: Payload.RuntimeError =>
-            Encoder[Payload.RuntimeError]
+          case m: Payload.Panic =>
+            Encoder[Payload.Panic]
               .apply(m)
               .deepMerge(
-                Json.obj(CodecField.Type -> PayloadType.RuntimeError.asJson)
+                Json.obj(CodecField.Type -> PayloadType.Panic.asJson)
               )
         }
 
@@ -192,8 +192,8 @@ object ContextRegistryProtocol {
             case PayloadType.DataflowError =>
               Decoder[Payload.DataflowError].tryDecode(cursor)
 
-            case PayloadType.RuntimeError =>
-              Decoder[Payload.RuntimeError].tryDecode(cursor)
+            case PayloadType.Panic =>
+              Decoder[Payload.Panic].tryDecode(cursor)
           }
         }
     }
