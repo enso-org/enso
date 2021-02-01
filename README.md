@@ -121,26 +121,11 @@ a single language.
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/new_releases/materialiconsround/24px.svg">
 <ul><ul>
     <b>Keep up with the latest updates</b><br/>
-    <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users.</a>
+    <a href="https://medium.com/@enso_org">Enso Development Blog</a><br/>
+    <a href="http://eepurl.com/bRru9j">Enso Mailing List</a><br/>
 </ul></ul>
 
-
-
 <br/><br/>
-
-### Getting Started
-
-- [Download Enso](https://github.com/enso-org/ide/releases).
-- [Learn how to start using Enso](https://github.com/enso-org/tutorial_101) by watching the 
-  Enso 101 tutorial.
-- [Improve your skills](https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0)
-  by watching the Enso YouTube tutorials.
-- [Keep up with the latest updates](https://medium.com/@enso_org) by reading the Enso Development Blog
-  and subscribe to the [mailing list](http://eepurl.com/bRru9j).
-- [Join the Enso Community](https://discord.gg/enso) to get help, 
-  share your use cases, meet the team behind Enso and other Enso users.
-
-<br/>
 
 ### Project components
 
