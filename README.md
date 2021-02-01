@@ -75,7 +75,7 @@ a single language.
     of primitive types.
 </ul></ul>
 
-<img align="left" width="40px" src="docs/assets/icons/analytics-black-48dp.svg">
+<img align="left" width="40px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
 <ul><ul>
     <b>Runs everywhere</b><br/>
     Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
