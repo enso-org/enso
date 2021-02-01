@@ -10,22 +10,20 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
 
 spec = Test.group "Java FFI" <|
     Test.specify "should call methods imported from Java" <|
-        Long.sum [1, 2] . should_equal 3
+        Long.sum 1 2 . should_equal 3
 
-    ## TODO
-       https://github.com/enso-org/enso/issues/1163
-    Test.specify "should call constructors imported from Java" pending=True <|
-        list = ArrayList.new []
+    Test.specify "should call constructors imported from Java" <|
+        list = ArrayList.new
         list.add 432
-        list.get [0] . should_equal 432
+        list.get 0 . should_equal 432
     Test.specify "should auto-convert numeric types across the polyglot boundary" <|
-        (Float.valueOf ["123.3"] + 5).should_equal 128.3 epsilon=0.0001
-        (Integer.sum [1, 2] + 3) . should_equal 6
+        (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
+        (Integer.sum 1 2 + 3) . should_equal 6
     Test.specify "should auto-convert strings across the polyglot boundary" <|
-        (String.format ["%s bar %s", "baz", "quux"] + " foo").should_equal "baz bar quux foo"
+        (String.format "%s bar %s" "baz" "quux" + " foo").should_equal "baz bar quux foo"
     Test.specify "should support Java import renaming" <|
-        builder = Java_String_Builder.new [].to_array
-        builder.append ["foo"]
-        builder.append ["bar"]
-        str = builder.toString []
+        builder = Java_String_Builder.new
+        builder.append "foo"
+        builder.append "bar"
+        str = builder.toString
         str.should_equal "foobar"

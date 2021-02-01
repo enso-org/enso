@@ -1,7 +1,5 @@
 package org.enso.interpreter.runtime.type;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -48,18 +46,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   PanicSentinel.class
 })
 public class Types {
-
-  /**
-   * An implicit conversion between {@code int} and {@code long} for Enso programs.
-   *
-   * @param value the value to convert
-   * @return {@code value} as the appropriate type
-   */
-  @ImplicitCast
-  @CompilerDirectives.TruffleBoundary
-  public static long castLong(int value) {
-    return value;
-  }
 
   /**
    * A simple pair type
@@ -114,9 +100,7 @@ public class Types {
    * @return the string representation of object's type.
    */
   public static String getName(Object value) {
-    if (TypesGen.isLong(value)
-        || TypesGen.isImplicitLong(value)
-        || TypesGen.isEnsoBigInteger(value)) {
+    if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
       return Constants.INTEGER;
     } else if (TypesGen.isDouble(value)) {
       return Constants.DECIMAL;

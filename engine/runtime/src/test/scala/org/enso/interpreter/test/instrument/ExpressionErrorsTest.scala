@@ -84,7 +84,7 @@ class ExpressionErrorsTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(3, TimeUnit.SECONDS))
+      Option(messageQueue.poll(5, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {

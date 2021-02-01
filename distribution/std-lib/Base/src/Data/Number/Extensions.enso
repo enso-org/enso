@@ -7,62 +7,62 @@ polyglot java import java.lang.String
 
    Selects a value in the -pi/2 through pi/2 range.
 Number.asin : Decimal
-Number.asin = Math.asin [this.to_decimal]
+Number.asin = Math.asin this.to_decimal
 
 ## Computes the inverse of the cosine function.
 
    Selects a value in the -pi/2 through pi/2 range.
 Number.acos : Decimal
-Number.acos = Math.acos [this.to_decimal]
+Number.acos = Math.acos this.to_decimal
 
 ## Computes the inverse of the tangent function.
 
    Selects a value in the -pi/2 through pi/2 range.
 Number.atan : Decimal
-Number.atan = Math.atan [this.to_decimal]
+Number.atan = Math.atan this.to_decimal
 
 ## Computes the argument (angle) in the conversion from cartesian
    to polar coordinates.
 
    The returned angle is in the -pi through pi range.
 Number.atan_2 : Number -> Decimal
-Number.atan_2 y = Math.atan2 [this.to_decimal, y.to_decimal]
+Number.atan_2 y = Math.atan2 this.to_decimal y.to_decimal
 
 ## Computes the sine function.
 Number.sin : Decimal
-Number.sin = Math.sin [this.to_decimal]
+Number.sin = Math.sin this.to_decimal
 
 ## Computes the cosine function.
 Number.cos : Decimal
-Number.cos = Math.cos [this.to_decimal]
+Number.cos = Math.cos this.to_decimal
 
 ## Computes the tangent function.
 Number.tan : Decimal
-Number.tan = Math.tan [this.to_decimal]
+Number.tan = Math.tan this.to_decimal
 
 ## Computes the hyperbolic sine function.
 Number.sinh : Decimal
-Number.sinh = Math.sinh [this.to_decimal]
+Number.sinh = Math.sinh this.to_decimal
 
 ## Computes the hyperbolic cosine function.
 Number.cosh : Decimal
-Number.cosh = Math.cosh [this.to_decimal]
+Number.cosh = Math.cosh this.to_decimal
 
 ## Computes the hyperbolic tangent function.
 Number.tanh : Decimal
-Number.tanh = Math.tanh [this.to_decimal]
+Number.tanh = Math.tanh this.to_decimal
 
 ## Computes the exponential function.
 Number.exp : Decimal
-Number.exp = Math.exp [this.to_decimal]
+Number.exp = Math.exp this.to_decimal
 
 ## Computes the natural logarithm function.
 Number.ln : Decimal
-Number.ln = Math.log [this.to_decimal]
+Number.ln = Math.log this.to_decimal
 
 ## Computes the square root of `this`.
 Number.sqrt : Decimal
-Number.sqrt = Math.sqrt [this.to_decimal]
+Number.sqrt = Math.sqrt this.to_decimal
 
 ## Computes the `base`-log of `this`.
 Number.log : Number -> Decimal
@@ -72,7 +72,7 @@ Number.log base = this.ln / base.ln
 ## Converts a decimal value to a string, using the Java string formatting
    syntax.
 Decimal.format : Text -> Text
-Decimal.format fmt = String.format [fmt, this]
+Decimal.format fmt = String.format fmt this
 
 ## Creates a new right-exclusive range of integers from `this` to `n`.
 Integer.up_to : Integer -> Range
@@ -100,5 +100,5 @@ Number.to_json = Json.Number this
    Returns `Nothing` if the text does not represent a valid decimal.
 Decimal.parse : Text -> Decimal | Nothing
 Decimal.parse text =
-    Panic.recover (Double.parseDouble [text]) . catch (_ -> Nothing)
+    Panic.recover (Double.parseDouble text) . catch (_ -> Nothing)
 

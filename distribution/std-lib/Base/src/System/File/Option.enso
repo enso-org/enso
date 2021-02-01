@@ -37,13 +37,13 @@ type Option
 
        Convert this object into a representation understandable by the JVM.
     to_java = case this of
-        Append            -> Polyglot.get_member StandardOpenOption "APPEND"
-        Create            -> Polyglot.get_member StandardOpenOption "CREATE"
-        Create_New        -> Polyglot.get_member StandardOpenOption "CREATE_NEW"
-        Delete_On_Close   -> Polyglot.get_member StandardOpenOption "DELETE_ON_CLOSE"
-        Dsync             -> Polyglot.get_member StandardOpenOption "DSYNC"
-        Read              -> Polyglot.get_member StandardOpenOption "READ"
-        Sparse            -> Polyglot.get_member StandardOpenOption "SPARSE"
-        Sync              -> Polyglot.get_member StandardOpenOption "SYNC"
-        Truncate_Existing -> Polyglot.get_member StandardOpenOption "TRUNCATE_EXISTING"
-        Write             -> Polyglot.get_member StandardOpenOption "WRITE"
+        Append            -> StandardOpenOption.APPEND
+        Create            -> StandardOpenOption.CREATE
+        Create_New        -> StandardOpenOption.CREATE_NEW
+        Delete_On_Close   -> StandardOpenOption.DELETE_ON_CLOSE
+        Dsync             -> StandardOpenOption.DSYNC
+        Read              -> StandardOpenOption.READ
+        Sparse            -> StandardOpenOption.SPARSE
+        Sync              -> StandardOpenOption.SYNC
+        Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
+        Write             -> StandardOpenOption.WRITE

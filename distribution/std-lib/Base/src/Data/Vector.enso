@@ -61,7 +61,7 @@ new_builder = Builder.new
 ## Converts a polyglot value representing an array into a vector. This is
    useful when wrapping polyglot APIs for further use in Enso.
 from_polyglot_array : Any -> Vector.Vector
-from_polyglot_array arr = here.new arr.length arr.at
+from_polyglot_array arr = here.new arr.length (arr.at _)
 
 ## The basic, immutable, vector type.
 
