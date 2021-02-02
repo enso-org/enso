@@ -186,7 +186,7 @@ object DocParserRunner {
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
     val in = comment.lines.mkString("\n")
-    DocParser.runMatched(in)
+    DocParser.runMatched("  " + in)
   }
 
   /** Function for creating documented lines in [[attachDocToSubsequentAST]]
