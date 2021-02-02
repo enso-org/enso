@@ -106,10 +106,6 @@ object Runtime {
         name  = "visualisationModified"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionValuesComputed],
-        name  = "expressionValuesComputed"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionUpdates],
         name  = "expressionUpdates"
       ),
@@ -251,24 +247,6 @@ object Runtime {
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
 
-    /** An update containing information about expression.
-      *
-      * @param expressionId expression id.
-      * @param expressionType the type of expression.
-      * @param methodCall the pointer to a method definition.
-      * @param profilingInfo profiling information about the execution of this
-      *                      expression
-      * @param fromCache whether or not the value for this expression came from
-      *                  the cache
-      */
-    case class ExpressionValueUpdate(
-      expressionId: ExpressionId,
-      expressionType: Option[String],
-      methodCall: Option[MethodPointer],
-      profilingInfo: Vector[ProfilingInfo],
-      fromCache: Boolean
-    )
-
     /** An update about the computed expression.
       *
       * @param expressionId the expression id
@@ -303,12 +281,8 @@ object Runtime {
             name  = "expressionUpdatePayloadDataflowError"
           ),
           new JsonSubTypes.Type(
-            value = classOf[Payload.RuntimeError],
-            name  = "expressionUpdatePayloadRuntimeError"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Poisoned],
-            name  = "expressionUpdatePayloadPoisoned"
+            value = classOf[Payload.Panic],
+            name  = "expressionUpdatePayloadPanic"
           )
         )
       )
@@ -331,17 +305,11 @@ object Runtime {
           * @param message the error message
           * @param trace the stack trace
           */
-        case class RuntimeError(
+        case class Panic(
           message: String,
           trace: Seq[ExpressionId]
         ) extends Payload
 
-        /** Indicates that the expression was not computed due to a dependency,
-          * that failed with the runtime exception.
-          *
-          * @param trace the list of expressions leading to the root error.
-          */
-        case class Poisoned(trace: Seq[ExpressionId]) extends Payload
       }
     }
 
@@ -396,17 +364,6 @@ object Runtime {
       case class Expressions(value: Vector[ExpressionId])
           extends InvalidatedExpressions
     }
-
-    // TODO: [DB] Remove when IDE implements new updates API
-    /** A notification about updated expressions of the context.
-      *
-      * @param contextId the context's id.
-      * @param updates a list of updates.
-      */
-    case class ExpressionValuesComputed(
-      contextId: ContextId,
-      updates: Vector[ExpressionValueUpdate]
-    ) extends ApiNotification
 
     /** A notification about updated expressions of the context.
       *

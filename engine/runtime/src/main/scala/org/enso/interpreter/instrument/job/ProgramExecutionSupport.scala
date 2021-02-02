@@ -1,11 +1,12 @@
 package org.enso.interpreter.instrument.job
 
+import java.io.File
+import java.util.function.Consumer
+import java.util.logging.Level
+import java.util.{Objects, UUID}
+
 import cats.implicits._
-import com.oracle.truffle.api.{
-  TruffleException,
-  TruffleStackTrace,
-  TruffleStackTraceElement
-}
+import com.oracle.truffle.api.TruffleException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -36,12 +37,8 @@ import org.enso.interpreter.service.error.{
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.interpreter.runtime.error.PanicSentinel
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.{Objects, UUID}
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -65,7 +62,7 @@ trait ProgramExecutionSupport {
     onCachedMethodCallCallback: Consumer[ExpressionValue],
     onComputedCallback: Consumer[ExpressionValue],
     onCachedCallback: Consumer[ExpressionValue],
-    onExceptionalCallback: Consumer[Throwable]
+    onExceptionalCallback: Consumer[Exception]
   )(implicit ctx: RuntimeContext): Unit = {
     val methodCallsCache = new MethodCallsCache
     var enterables       = Map[UUID, FunctionCall]()
@@ -196,7 +193,7 @@ trait ProgramExecutionSupport {
       fireVisualisationUpdates(contextId, value)
     }
 
-    val onExceptionalCallback: Consumer[Throwable] = { value =>
+    val onExceptionalCallback: Consumer[Exception] = { value =>
       logger.log(Level.FINEST, s"ON_ERROR $value")
       sendErrorUpdate(contextId, value)
     }
@@ -219,7 +216,7 @@ trait ProgramExecutionSupport {
               onExceptionalCallback
             )
           )
-          .leftMap(onExecutionError(contextId, stackItem.item, _))
+          .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
     logger.log(Level.FINEST, s"Execution finished: $executionResult")
     executionResult.fold(Some(_), _ => None)
@@ -227,13 +224,11 @@ trait ProgramExecutionSupport {
 
   /** Execution error handler.
     *
-    * @param contextId an identifier of an execution context
     * @param item the stack item being executed
     * @param error the execution error
     * @return the error message
     */
   private def onExecutionError(
-    contextId: ContextId,
     item: ExecutionItem,
     error: Throwable
   )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
@@ -250,7 +245,6 @@ trait ProgramExecutionSupport {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Error executing a function $itemName.", error)
     }
-    sendExpressionUpdates(contextId, ErrorResolver.createUpdates(error))
     executionUpdate.getOrElse(
       Api.ExecutionResult
         .Failure(s"Error in function $itemName.", None)
@@ -266,14 +260,9 @@ trait ProgramExecutionSupport {
   private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    def getLanguage(ex: TruffleException): Option[String] =
-      for {
-        location <- Option(ex.getSourceLocation)
-        source   <- Option(location.getSource)
-      } yield source.getLanguage
     t match {
       case ex: TruffleException
-          if getLanguage(ex).forall(_ == LanguageInfo.ID) =>
+          if ErrorResolver.getLanguage(ex).forall(_ == LanguageInfo.ID) =>
         val section = Option(ex.getSourceLocation)
         Some(
           Api.ExecutionResult.Diagnostic.error(
@@ -283,7 +272,7 @@ trait ProgramExecutionSupport {
             section
               .flatMap(LocationResolver.getExpressionId(_))
               .map(_.externalId),
-            getStackTrace(ex)
+            ErrorResolver.getStackTrace(ex)
           )
         )
 
@@ -311,45 +300,7 @@ trait ProgramExecutionSupport {
     }
   }
 
-  /** Create a stack trace of a guest language from a java exception.
-    *
-    * @param throwable the exception
-    * @param ctx the runtime context
-    * @return a runtime API representation of a stack trace
-    */
-  private def getStackTrace(
-    throwable: Throwable
-  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] =
-    TruffleStackTrace
-      .getStackTrace(throwable)
-      .asScala
-      .map(toStackElement)
-      .toVector
-
-  /** Convert from the truffle stack element to the runtime API representation.
-    *
-    * @param element the trufle stack trace element
-    * @param ctx the runtime context
-    * @return the runtime API representation of the stack trace element
-    */
-  private def toStackElement(
-    element: TruffleStackTraceElement
-  )(implicit ctx: RuntimeContext): Api.StackTraceElement = {
-    val node = element.getLocation
-    node.getEncapsulatingSourceSection match {
-      case null =>
-        Api.StackTraceElement(node.getRootNode.getName, None, None, None)
-      case section =>
-        Api.StackTraceElement(
-          element.getTarget.getRootNode.getName,
-          findFileByModuleName(section.getSource.getName),
-          Some(LocationResolver.sectionToRange(section)),
-          LocationResolver.getExpressionId(section).map(_.externalId)
-        )
-    }
-  }
-
-  private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
+  private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
     ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
@@ -360,19 +311,6 @@ trait ProgramExecutionSupport {
         )
       )
     )
-  }
-
-  private def sendExpressionUpdates(
-    contextId: ContextId,
-    updates: Set[Api.ExpressionUpdate]
-  )(implicit ctx: RuntimeContext): Unit = {
-    if (updates.nonEmpty) {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionUpdates(contextId, updates)
-        )
-      )
-    }
   }
 
   private def sendValueUpdate(
@@ -386,25 +324,16 @@ trait ProgramExecutionSupport {
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
     ) {
-      // TODO: [DB] Remove when IDE implements new updates API
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                value.getExpressionId,
-                Option(value.getType),
-                methodPointer,
-                value.getProfilingInfo.map { case e: ExecutionTime =>
-                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
-                }.toVector,
-                value.wasCached()
-              )
+      val payload = value.getValue match {
+        case sentinel: PanicSentinel =>
+          Api.ExpressionUpdate.Payload
+            .Panic(
+              sentinel.getMessage,
+              ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
             )
-          )
-        )
-      )
+        case _ =>
+          Api.ExpressionUpdate.Payload.Value()
+      }
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
@@ -418,7 +347,7 @@ trait ProgramExecutionSupport {
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
                 }.toVector,
                 value.wasCached(),
-                Api.ExpressionUpdate.Payload.Value()
+                payload
               )
             )
           )

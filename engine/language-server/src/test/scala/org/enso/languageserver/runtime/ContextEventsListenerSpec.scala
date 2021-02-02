@@ -181,7 +181,7 @@ class ContextEventsListenerSpec
               None,
               Vector(),
               false,
-              Api.ExpressionUpdate.Payload.RuntimeError("Method failure", Seq())
+              Api.ExpressionUpdate.Payload.Panic("Method failure", Seq())
             )
           )
         )
@@ -199,47 +199,7 @@ class ContextEventsListenerSpec
                   Vector(),
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .RuntimeError("Method failure", Seq())
-                )
-              ),
-              None
-            )
-          )
-        )
-    }
-
-    "send poisoning error updates" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
-        listener ! Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              Suggestions.local.externalId.get,
-              None,
-              None,
-              Vector(),
-              false,
-              Api.ExpressionUpdate.Payload.Poisoned(
-                Seq(Suggestions.method.externalId.get)
-              )
-            )
-          )
-        )
-
-        router.expectMsg(
-          DeliverToJsonController(
-            clientId,
-            ContextRegistryProtocol.ExpressionUpdatesNotification(
-              contextId,
-              Vector(
-                ContextRegistryProtocol.ExpressionUpdate(
-                  Suggestions.local.externalId.get,
-                  None,
-                  None,
-                  Vector(),
-                  false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .Poisoned(Seq(Suggestions.method.externalId.get))
+                    .Panic("Method failure", Seq())
                 )
               ),
               None
