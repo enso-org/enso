@@ -38,9 +38,7 @@ spec_impl =
             http = Http.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid Uri" <|
-            case Panic.recover (Http.new.get "not a uri") of
-                Uri.Syntax_Error _ -> Nothing
-                other -> Test.fail ("Unexpected result: " + other)
+            Test.expect_panic_with (Http.new.get "not a uri") Uri.Syntax_Error
         Test.specify "should send Get request" <|
             expected_response = Json.parse <| '''
                 {

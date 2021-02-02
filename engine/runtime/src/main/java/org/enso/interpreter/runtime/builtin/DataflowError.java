@@ -15,7 +15,7 @@ public class DataflowError {
 
     scope.registerConstructor(error);
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
-    scope.registerMethod(error, "catch", CatchErrorMethodGen.makeFunction(language));
+    scope.registerMethod(error, "catch_primitive", CatchErrorMethodGen.makeFunction(language));
     scope.registerMethod(error, "to_text", ErrorToTextMethodGen.makeFunction(language));
   }
 

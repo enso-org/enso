@@ -3,6 +3,7 @@
 
 # Distribution
 /distribution @iamrecursion @kustosz @radeusgd
+/distribution/std-lib @iamrecursion @kustosz @wdanilo
 
 # Scala Libraries
 /lib/scala/cli @iamrecursion @kustosz @radeusgd

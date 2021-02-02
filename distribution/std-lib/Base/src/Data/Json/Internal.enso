@@ -175,7 +175,7 @@ into_helper fmt json = case fmt of
             _ -> Panic.throw (Type_Mismatch_Error json fmt)
 
 ## Helper used to parse text into a JSON value.
-parse_helper : Text -> Json ! Polyglot_Error
+parse_helper : Text -> Json
 parse_helper json_text =
     consumer = here.mk_consumer
     Parser.parse json_text consumer

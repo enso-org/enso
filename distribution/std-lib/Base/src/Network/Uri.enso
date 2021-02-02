@@ -16,7 +16,7 @@ type Uri_Error
 
 ## PRIVATE
 panic_on_error ~action =
-    action . catch <| case _ of
+    action . catch e-> case e of
         Syntax_Error msg -> Panic.throw (Syntax_Error msg)
 
 ## PRIVATE
@@ -151,8 +151,8 @@ type Uri
    > Example
      Parse Uri text.
          Uri.parse "http://example.com"
-parse : Text -> Uri
+parse : Text -> Uri ! Syntax_Error
 parse text =
-    Panic.recover (Uri (Java_URI.create text)) . catch <| case _ of
+    Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
         Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
         other -> Panic.throw other

@@ -159,7 +159,9 @@ type Any
     @Builtin_Type
     type Any
 
-    ## Executes the provided handler on a dataflow error, or executes as
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
        identity on a non-error value.
 
        Arguments:
@@ -167,9 +169,9 @@ type Any
 
        > Example
          Catching an erroneous value to perform some operation on it.
-           (Time.Time_Error "Message").catch (err -> IO.println err)
-    catch : (Error -> Any) -> Any
-    catch handler = @Builtin_Method "Any.catch"
+           (Time.Time_Error "Message").catch_primitive (err -> IO.println err)
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive handler = @Builtin_Method "Any.catch"
 
     ## Generic conversion of an arbitrary Enso value to a corresponding textual
        representation.
@@ -208,7 +210,9 @@ type Error
     throw : Any -> Error
     throw payload = @Builtin_Method "Error.throw"
 
-    ## Executes the provided handler on a dataflow error, or executes as
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
        identity on a non-error value.
 
        Arguments:
@@ -216,9 +220,9 @@ type Error
 
        > Example
          Catching an erroneous value to perform some operation on it.
-           (Time.Time_Error "Message").catch (err -> IO.println err)
-    catch : (Error -> Any) -> Any
-    catch handler = @Builtin_Method "Any.catch"
+           (Time.Time_Error "Message").catch_primitive (err -> IO.println err)
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive handler = @Builtin_Method "Any.catch"
 
     ## Converts an error to a corresponding textual representation.
     to_text : Text
@@ -365,20 +369,6 @@ type Function
             f.call
     call : Any
     call = @Builtin_Method "Function.call"
-
-    ## Takes a function and an argument and applies the function to the argument
-
-       Arguments:
-       - argument: The argument to apply this to.
-
-       > Example
-         Applying identity to a value produced by a block to get 3.
-             (x -> x) <|
-                 a = 1
-                 b = 2
-                 a + b
-    <| : (Any -> Any) -> Any -> Any
-    <| argument = @Builtin_Method "Function.<|"
 
 ## Generic utilities for interacting with other languages.
 type Polyglot
