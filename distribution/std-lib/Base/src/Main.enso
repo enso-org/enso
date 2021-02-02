@@ -3,6 +3,7 @@ import Base.Data.Interval
 import Base.Data.Json
 import Base.Data.List
 import Base.Data.Map
+import Base.Data.Maybe
 import Base.Data.Noise
 import Base.Data.Number.Extensions
 import Base.Data.Ordering
@@ -23,6 +24,7 @@ from Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, 
 export Base.Data.Interval
 export Base.Data.Json
 export Base.Data.Map
+export Base.Data.Maybe
 export Base.Data.Ordering
 export Base.Data.Ordering.Sort_Order
 export Base.Data.Vector

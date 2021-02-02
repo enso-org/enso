@@ -52,7 +52,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    intError = Error.throw 1
-          |    intError.catch (x -> x + 3)
+          |    intError.catch_primitive (x -> x + 3)
           |""".stripMargin
       eval(code) shouldEqual 4
     }
@@ -65,7 +65,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch MyCons)
+          |    IO.println (unitErr.catch_primitive MyCons)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(MyCons Nothing)")
@@ -83,14 +83,14 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    myErr = Error.throw (MyError 20)
-          |    IO.println(myErr.catch .recover)
+          |    IO.println(myErr.catch_primitive .recover)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(MyRecovered 20)")
     }
 
     "make the catch method an identity for non-error values" in {
-      val code = "main = 10.catch (x -> x + 1)"
+      val code = "main = 10.catch_primitive (x -> x + 1)"
       eval(code) shouldEqual 10
     }
 
