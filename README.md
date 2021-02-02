@@ -110,8 +110,10 @@ a single language.
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/get_app/materialiconsround/24px.svg">
 <ul><ul>
     <b>Download Enso</b><br/>
-    <a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a><br/>
-    <a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI, optional)</a>
+    <ul>
+        <li><a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a></li>
+        <li><a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI, optional)</a></li>
+    </ul>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
