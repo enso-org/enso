@@ -57,7 +57,7 @@ class PanicsTest extends InterpreterTest {
           |main =
           |    caught = Panic.recover (Long.parseLong "oops")
           |    IO.println caught
-          |    cause = caught.catch <| case _ of
+          |    cause = caught.catch_primitive e-> case e of
           |        Polyglot_Error err -> err
           |        _ -> "fail"
           |    IO.println cause

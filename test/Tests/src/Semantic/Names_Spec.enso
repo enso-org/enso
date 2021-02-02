@@ -1,3 +1,5 @@
+from Base import all
+
 from Tests.Semantic.Names.Definitions import My_Type, Another_Constant
 import Test
 

@@ -43,7 +43,7 @@ spec = Test.group "Maps" <|
         m.get "foo" . should_equal 134
         m.get "bar" . should_equal 654
         m.get "baz" . should_equal "spam"
-        m.get "nope" . should_equal Nothing
+        (m.get "nope").should_fail_with Nothing
     Test.specify "should support get_or_else" <|
         m = Map.empty . insert 2 3
         m.get_or_else 2 0 . should_equal 3

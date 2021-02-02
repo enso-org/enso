@@ -180,6 +180,9 @@ type Time
 ## Obtains an instance of `Time` from a text such as
    "2007-12-03T10:15:30+01:00 Europe/Paris".
 
+   Arguments:
+   - text: The text representing the time to be parsed.
+
    The text must represent a valid date-time and is parsed using the ISO-8601
    extended offset date-time format to add the timezone. The section in square
    brackets is not part of the ISO-8601 standard. The format consists of:
@@ -191,6 +194,9 @@ type Time
    - The zone ID. This is not part of the ISO-8601 standard. Parsing is case
      sensitive.
    - A close square bracket ']'.
+
+   This method will return a `Time_Error` if the provided time cannot be parsed
+   using the above format.
 
    > Example
      Parse UTC time.
@@ -210,16 +216,24 @@ type Time
 
    > Example
      Recover from the parse error.
-         Time.parse "2020-10-01" . catch <| case _ of
+         Time.parse "2020-10-01" . catch e-> case e of
              Time.Error _ -> Time.now
-parse : Text -> Time
+parse : Text -> Time ! Time_Error
 parse text =
-    Panic.recover (Time (Time_Utils.parse_time text)) . catch <| case _ of
+    Panic.recover (Time (Time_Utils.parse_time text)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
 
 ## Obtains an instance of Time from a text using custom format.
 
+   Arguments:
+   - text: The text to parse as a time of day, using the specified pattern.
+   - pattern: The pattern to use for parsing the input text.
+   - locale: The locale in which the pattern should be interpreted.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   provided pattern and locale.
+   
    For the list of accepted symbols in pattern refer to `Time.format` doc.
 
    > Example
@@ -229,9 +243,9 @@ parse text =
    > Example
      Parse "06 of May 2020 at 04:30AM" as Time
          Date.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
-parse_format : Text -> Text -> Locale -> Time_Of_Day
+parse_format : Text -> Text -> Locale -> Time ! Time_Error
 parse_format text pattern locale=Locale.default =
-    Panic.recover (Time (Time_Utils.parse_time_format text pattern locale.java_locale)) . catch <| case _ of
+    Panic.recover (Time (Time_Utils.parse_time_format text pattern locale.java_locale)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x
 
@@ -242,14 +256,17 @@ now = Time ZonedDateTime.now
 ## Obtains an instance of `Time` from a year, month, day, hour, minute,
    second, nanosecond and timezone.
 
-   - month - the month-of-year to represent, from 1 (January) to 12 (December)
-   - day - the day-of-month to represent, from 1 to 31 and must be valid for the
+   Arguments:
+   - month: the month-of-year to represent, from 1 (January) to 12 (December)
+   - day: the day-of-month to represent, from 1 to 31 and must be valid for the
      year and month
-   - hour - the hour-of-day to represent, from 0 to 23
-   - minute - the minute-of-hour to represent, from 0 to 59
-   - second - the second-of-minute to represent, from 0 to 59
-   - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
-   - zone - the timezone
+   - hour: the hour-of-day to represent, from 0 to 23
+   - minute: the minute-of-hour to represent, from 0 to 59
+   - second: the second-of-minute to represent, from 0 to 59
+   - nanosecond: the nano-of-second to represent, from 0 to 999,999,999
+   - zone: the timezone
+
+   Returns a `Time_Error` if the provided time cannot be represented.
 
    > Example
      Create a new zoned date time at Unix epoch.
@@ -258,8 +275,8 @@ now = Time ZonedDateTime.now
    > Example
      Get the 5 August 1986 at midnight.
          Time.new 1986 8 5
-new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time
+new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Zone -> Time ! Time_Error
 new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) (zone = Zone.system) =
-    Panic.recover (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch <| case _ of
+    Panic.recover (Time (ZonedDateTime.of year month day hour minute second nanosecond zone.internal_zone_id)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time_Error err.getMessage)
         x -> x

@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
     type = "Error",
-    name = "catch",
+    name = "catch_primitive",
     description =
         "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.")
 public class CatchErrorNode extends Node {
