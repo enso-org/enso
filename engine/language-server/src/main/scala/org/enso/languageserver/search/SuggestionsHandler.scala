@@ -90,7 +90,7 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+      .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
@@ -167,11 +167,11 @@ final class SuggestionsHandler(
             )
         }
 
-    case Api.ExpressionValuesComputed(_, updates) =>
+    case Api.ExpressionUpdates(_, updates) =>
       log.debug(
         s"ExpressionValuesComputed ${updates.map(u => (u.expressionId, u.expressionType))}"
       )
-      val types = updates
+      val types = updates.toSeq
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
       suggestionsRepo
         .updateAll(types)

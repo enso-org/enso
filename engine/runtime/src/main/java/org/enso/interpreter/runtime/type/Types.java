@@ -122,6 +122,8 @@ public class Types {
       return Constants.ARRAY;
     } else if (TypesGen.isRef(value)) {
       return Constants.REF;
+    } else if (TypesGen.isPanicSentinel(value)) {
+      return Constants.PANIC;
     } else {
       return null;
     }

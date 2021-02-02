@@ -319,7 +319,7 @@ interface ExpressionUpdate {
 An information about the computed value.
 
 ```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | RuntimeError | Poisoned;
+type ExpressionUpdatePayload = Value | DatafalowError | Panic;
 
 /**
  * An empty payload. Indicates that the expression was computed to a value.
@@ -339,7 +339,7 @@ interface DataflowError {
 /**
  * Indicates that the expression failed with the runtime exception.
  */
-interface RuntimeError {
+interface Panic {
   /**
    * The error message.
    */
@@ -347,17 +347,6 @@ interface RuntimeError {
 
   /**
    * The stack trace.
-   */
-  trace: ExpressionId[];
-}
-
-/**
- * Indicates that the expression was not computed due to a dependency,
- * that failed with the runtime exception.
- */
-interface Poisoned {
-  /**
-   * The list of expressions leading to the root expression that failed.
    */
   trace: ExpressionId[];
 }
