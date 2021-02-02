@@ -25,13 +25,15 @@ async function init () {
         })
     }
 
-    let initialized = fss.existsSync(paths.dist.init)
+    let initialized = fss.existsSync(paths.dist.buildInit)
     if (!initialized) {
         cmd.section('Initialization')
         console.log('Installing build script dependencies.')
         await cmd.with_cwd('build', async () => {
             await cmd.run('npm',['install'])
         })
+        await fs.mkdir(paths.dist.root, {recursive:true})
+        await fs.open(paths.dist.buildInit,'w')
     }
 }
 

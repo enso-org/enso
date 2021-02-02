@@ -1,30 +1,29 @@
-const cmd      = require('./cmd')
-const fs       = require('fs').promises
-const fss      = require('fs')
-const glob     = require('glob')
-const ncp      = require('ncp').ncp
-const os       = require('os')
-const path     = require('path')
-const paths    = require('./paths')
-const prettier = require("prettier")
-const stream   = require('stream')
-const yargs    = require('yargs')
-const zlib     = require('zlib')
 const child_process = require('child_process')
-
-process.on('unhandledRejection', error => { throw(error) })
-process.chdir(paths.root)
-
-
+const cmd           = require('./cmd')
+const fs            = require('fs').promises
+const fss           = require('fs')
+const glob          = require('glob')
+const ncp           = require('ncp').ncp
+const os            = require('os')
+const path          = require('path')
+const paths         = require('./paths')
+const prettier      = require("prettier")
+const release       = require('./release')
+const stream        = require('stream')
+const workflow      = require('./workflow')
+const yargs         = require('yargs')
+const zlib          = require('zlib')
 const { promisify } = require('util')
 const pipe = promisify(stream.pipeline)
 
-async function gzip(input, output) {
-  const gzip        = zlib.createGzip()
-  const source      = fss.createReadStream(input)
-  const destination = fss.createWriteStream(output)
-  await pipe(source,gzip,destination)
-}
+
+
+// ==============
+// === Errors ===
+// ==============
+
+process.on('unhandledRejection', error => { throw(error) })
+process.chdir(paths.root)
 
 
 
@@ -45,6 +44,13 @@ let targetArgs = undefined
 // =============
 // === Utils ===
 // =============
+
+async function gzip(input, output) {
+  const gzip        = zlib.createGzip()
+  const source      = fss.createReadStream(input)
+  const destination = fss.createWriteStream(output)
+  await pipe(source,gzip,destination)
+}
 
 /// Copy files and directories.
 async function copy(src,tgt) {
@@ -95,6 +101,8 @@ function run_project_manager() {
    })
 }
 
+
+
 // ================
 // === Commands ===
 // ================
@@ -110,7 +118,10 @@ commands.clean.js = async function() {
     await cmd.with_cwd(paths.js.root, async () => {
         await run('npm',['run','clean'])
     })
-    try { await fs.unlink(paths.dist.init) } catch {}
+    try {
+        await fs.unlink(paths.dist.init)
+        await fs.unlink(paths.dist.buildInit)
+    } catch {}
 }
 
 commands.clean.rust = async function() {
@@ -136,6 +147,7 @@ commands.build.options = {
     }
 }
 commands.build.js = async function() {
+    await installJsDeps()
     console.log(`Building JS target.`)
     await run('npm',['run','build'])
 }
@@ -192,6 +204,7 @@ commands.start.rust = async function(argv) {
 }
 
 commands.start.js = async function (argv) {
+    await installJsDeps()
     console.log(`Building JS target.` + argv)
     const args = targetArgs.concat([
         `--backend-path ${paths.get_project_manager_path(paths.dist.bin)}`,
@@ -272,6 +285,7 @@ commands.watch.rust = async function(argv) {
 }
 
 commands.watch.js = async function() {
+    await installJsDeps()
     await cmd.with_cwd(paths.js.root, async () => {
         await run('npm',['run','watch'])
     })
@@ -286,9 +300,39 @@ commands.dist.rust = async function(argv) {
 }
 
 commands.dist.js = async function() {
+    await installJsDeps()
     await cmd.with_cwd(paths.js.root, async () => {
         await run('npm',['run','dist'])
     })
+}
+
+
+// === CI Gen ===
+
+/// The command is used by CI to generate the file `CURRENT_RELEASE_CHANGELOG.json`, which contains
+/// information about the newest release. It is then used by CI to generate version and description
+/// of the product release.
+commands['ci-gen'] = command(`Generate CI build related files`)
+commands['ci-gen'].rust = async function(argv) {
+    let entry      = release.changelog().newestEntry()
+    let body       = entry.body
+    let version    = entry.version.toString()
+    let prerelease = entry.isPrerelease()
+    let obj        = {version,body,prerelease};
+    let json       = JSON.stringify(obj)
+    fss.writeFileSync(path.join(paths.root,'CURRENT_RELEASE_CHANGELOG.json'),json)
+}
+
+/// Asserts whether the current version of the package (newest in CHANGELOG.md) is unstable.
+commands['assert-version-unstable'] = command(`Assert the current version is unstable`)
+commands['assert-version-unstable'].rust = async function(argv) {
+    let entry = release.changelog().newestEntry().assert_is_unstable()
+}
+
+/// Asserts whether the current version of the package (newest in CHANGELOG.md) is stable.
+commands['assert-version-stable'] = command(`Assert the current version is stable`)
+commands['assert-version-stable'].rust = async function(argv) {
+    let entry = release.changelog().newestEntry().assert_is_stable()
 }
 
 
@@ -378,7 +422,7 @@ for (let command of commandList) {
 
 function defaultConfig() {
     return {
-        version: "2.0.0-alpha.0",
+        version: `${release.currentVersion()}`,
         author: {
             name: "Enso Team",
             email: "contact@enso.org"
@@ -419,10 +463,10 @@ async function processPackageConfigs() {
 // ============
 
 async function updateBuildVersion (argv) {
-    const target =  get_target_platform(argv)
-    let config        = {}
-    let configPath    = paths.dist.buildInfo
-    let exists        = fss.existsSync(configPath)
+    const target   = get_target_platform(argv)
+    let config     = {}
+    let configPath = paths.dist.buildInfo
+    let exists     = fss.existsSync(configPath)
     if(exists) {
         let configFile = await fs.readFile(configPath)
         config         = JSON.parse(configFile)
@@ -452,7 +496,8 @@ async function installJsDeps() {
             await cmd.run('npm',['run','install'])
         })
         await fs.mkdir(paths.dist.root, {recursive:true})
-        await fs.open(paths.dist.init,'w')
+        let handle = await fs.open(paths.dist.init,'w')
+        await handle.close()
     }
 }
 
@@ -511,13 +556,8 @@ async function main () {
     let argv = optParser.parse()
     await updateBuildVersion(argv)
     await processPackageConfigs()
+    workflow.generate()
     let command = argv._[0]
-    if(command === 'clean') {
-        try { await fs.unlink(paths.dist.init) } catch {}
-    } else {
-        await installJsDeps()
-    }
-
     await runCommand(command,argv)
 }
 

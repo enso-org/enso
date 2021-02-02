@@ -1,5 +1,6 @@
 let config = {
     name: "enso-studio-icons",
+    version: "1.0.0",
     scripts: {
         "build": "node src/index.js"
     },

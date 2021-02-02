@@ -1,6 +1,6 @@
 let config = {
     name: 'root',
-    version: '2.0.0-alpha.0',
+    version: '1.0.0',
     private: true,
     devDependencies: {
         lerna: '^3.20.2',

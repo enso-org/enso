@@ -4,10 +4,11 @@
   "description": "Build Scripts",
   "repository": "git@github.com:enso-org/ide.git",
   "dependencies": {
-    "binaryen": "^91.0.0",
     "glob": "^7.1.6",
     "ncp": "^2.0.0",
-    "yargs": "^15.3.0"
+    "yargs": "^15.3.0",
+    "js-yaml": "4.0.0",
+    "semver": "7.3.4"
   },
   "license": "MIT",
   "devDependencies": {

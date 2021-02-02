@@ -174,7 +174,8 @@ async function genIcons() {
     }
     toIco(files).then(buf => { fss.writeFileSync(`${distPath}/icon.ico`, buf) })
 
-    await fs.open(donePath,'w')
+    let handle = await fs.open(donePath,'w')
+    await handle.close()
 }
 
 genIcons()

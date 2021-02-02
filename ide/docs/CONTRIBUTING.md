@@ -227,3 +227,53 @@ have prepared several scripts which maximally automate the process:
 - **Linting**
   Please be sure to fix all errors reported by `node ./run lint` before
   creating a pull request to this repository.
+
+
+### Development Branches
+The following branches are used to develop the product:
+
+- **wip/[initials]/[feature]**  
+  Feature branches. These are temporary branches used by the team to develop a particular feature.
+  
+- **develop**  
+  Contains the most recent changes to the product. After successful review, the feature branches are 
+  merged here. Each commit to this branch will result in a nightly build of the product accessible
+  as CI artifacts.
+ 
+- **unstable**  
+  Contains only those commits which can be considered unstable product releases. Each commit to this
+  branch will result in an unstable release of the product and will be published on GitHub as a 
+  pre-release. The build version and build description will be automatically fetched from the newest 
+  `CHANGELOG.md` entry and will fail if the version will not be of the form 
+  `[major].[minor].[patch]-[sfx]`, where `[sfx]` is one of `alpha.[n]`, `beta.[n]`, or `rc.[n]`, 
+  where `[n]` is an unstable build number.
+
+- **stable**
+  Contains only those commits which can be considered stable product releases. Each commit to this
+  branch will result in a stable release of the product and will be published on GitHub as a 
+  release. The build version and build description will be automatically fetched from the newest 
+  `CHANGELOG.md` entry and will fail if the version will not be of the form 
+  `[major].[minor].[patch]`.
+
+
+### Forcing CI builds
+By default, CI would not build artifacts from `wip` and `develop` branches in order to save time and
+resources. If you want the artifacts to be build for your commit, simply add `[ci build]` anywhere 
+in your commit message.
+
+  
+### Publishing Results
+All new changes should be proposed in the form of Pull Requests (PRs) to this repository. Each PR
+should contain changes to documentation and `CHANGELOG.md` if applicable.
+
+
+## Changelog
+Please remember to update the `CHANGELOG.md` on every new bug fix or feature implementation. Please 
+note that `CHANGELOG.md` is used to establish the current product version (the `run` script extracts 
+it from the newest changelog entry). Thus, be sure to always increase the newest version in the 
+changelog after a release, otherwise CI will fail. Please use the `docs/CHANGELOG_TEMPLATE.md` as 
+the template to create new changelog entries. Please note, that there is a special syntax for 
+defining features of the upcoming release. The newest changelog entry can have a title 
+"Next Release". In such a case, the build version will be `0.0.0` and CI would fail when trying to
+publish it as a release.
+  

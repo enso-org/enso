@@ -1,0 +1,423 @@
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# DO NOT CHANGE THIS FILE. IT WAS GENERATED FROM 'build/workflow.js'. READ DOCS THERE TO LEARN MORE.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+name: GUI CI
+'on':
+  - push
+jobs:
+  version_assertions:
+    name: Version Assertions
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Read changelog info
+        id: changelog
+        run: |2-
+
+                  node ./run ci-gen --skip-version-validation
+                  content=`cat CURRENT_RELEASE_CHANGELOG.json`
+                  echo "::set-output name=content::$content"
+              
+        shell: bash
+      - name: Assert Version Unstable
+        run: node ./run assert-version-unstable --skip-version-validation
+        if: github.ref == 'refs/heads/unstable'
+      - name: Assert Version Stable
+        run: node ./run assert-version-stable --skip-version-validation
+        if: github.ref == 'refs/heads/stable'
+      - id: checkCurrentReleaseTag
+        uses: mukunku/tag-exists-action@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: v${{fromJson(steps.changelog.outputs.content).version}}
+      - name: Fail if release already exists
+        run: >-
+          if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
+          then exit 1; fi
+  lint:
+    name: Linter
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install Prettier
+        run: npm install --save-dev --save-exact prettier
+      - name: Install Clippy
+        run: rustup component add clippy
+      - name: Lint JavaScript sources
+        run: npx prettier --check 'src/**/*.js'
+      - name: Lint Rust sources
+        run: node ./run lint --skip-version-validation
+  test:
+    name: Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Run tests (no WASM)
+        run: node ./run test --no-wasm --skip-version-validation
+  wasm-test:
+    name: WASM Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install wasm-pack (macOS)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'macOS-latest'
+      - name: Install wasm-pack (Windows)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'windows-latest'
+      - name: Install wasm-pack (Linux)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'ubuntu-latest'
+      - name: Run tests (WASM)
+        run: node ./run test --no-native --skip-version-validation
+  simple_build:
+    name: Simple Build (WASM size limit check)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install wasm-pack (macOS)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'macOS-latest'
+      - name: Install wasm-pack (Windows)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'windows-latest'
+      - name: Install wasm-pack (Linux)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'ubuntu-latest'
+      - name: Build (macos)
+        run: node ./run dist --skip-version-validation --target macos
+        if: matrix.os == 'macos-latest'
+    if: >-
+      !(contains(github.event.head_commit.message,'[ci build]') || github.ref ==
+      'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref ==
+      'refs/heads/unstable' || github.ref == 'refs/heads/stable')
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - macOS-latest
+          - ubuntu-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Read changelog info
+        id: changelog
+        run: |2-
+
+                  node ./run ci-gen --skip-version-validation
+                  content=`cat CURRENT_RELEASE_CHANGELOG.json`
+                  echo "::set-output name=content::$content"
+              
+        shell: bash
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.15.0
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install wasm-pack (macOS)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-apple-darwin
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'macOS-latest'
+      - name: Install wasm-pack (Windows)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-pc-windows-msvc
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'windows-latest'
+      - name: Install wasm-pack (Linux)
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
+          WASMPACKDIR: wasm-pack-v0.9.1-x86_64-unknown-linux-musl
+        run: |2-
+
+                      curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+                      mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+                      rm -r $WASMPACKDIR
+        shell: bash
+        if: matrix.os == 'ubuntu-latest'
+      - name: Build (macos)
+        run: node ./run dist --skip-version-validation --target macos
+        if: matrix.os == 'macos-latest'
+      - name: Build (win)
+        run: node ./run dist --skip-version-validation --target win
+        if: matrix.os == 'windows-latest'
+      - name: Build (linux)
+        run: node ./run dist --skip-version-validation --target linux
+        if: matrix.os == 'ubuntu-latest'
+      - name: Upload Content Artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: content
+          path: dist/content
+        if: matrix.os == 'macOS-latest'
+      - name: Upload Artifacts (Linux, AppImage)
+        uses: actions/upload-artifact@v1
+        with:
+          name: >-
+            enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
+          path: >-
+            dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
+        if: matrix.os == 'ubuntu-latest'
+      - name: Upload Artifacts (Windows, exe)
+        uses: actions/upload-artifact@v1
+        with:
+          name: enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+          path: >-
+            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+        if: matrix.os == 'windows-latest'
+      - name: Upload Artifacts (macOS, dmg)
+        uses: actions/upload-artifact@v1
+        with:
+          name: enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
+          path: >-
+            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
+        if: matrix.os == 'macos-latest'
+    if: >-
+      contains(github.event.head_commit.message,'[ci build]') || github.ref ==
+      'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref ==
+      'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+  release_to_github:
+    name: GitHub Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Read changelog info
+        id: changelog
+        run: |2-
+
+                  node ./run ci-gen --skip-version-validation
+                  content=`cat CURRENT_RELEASE_CHANGELOG.json`
+                  echo "::set-output name=content::$content"
+              
+        shell: bash
+      - id: checkCurrentReleaseTag
+        uses: mukunku/tag-exists-action@v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag: v${{fromJson(steps.changelog.outputs.content).version}}
+      - name: Fail if release already exists
+        run: >-
+          if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
+          then exit 1; fi
+      - name: Upload GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: artifacts/**/enso-*
+          name: Enso ${{fromJson(steps.changelog.outputs.content).version}}
+          tag_name: v${{fromJson(steps.changelog.outputs.content).version}}
+          body: ${{fromJson(steps.changelog.outputs.content).body}}
+          prerelease: ${{fromJson(steps.changelog.outputs.content).prerelease}}
+    if: github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+    needs:
+      - version_assertions
+      - lint
+      - test
+      - wasm-test
+      - build
+  release_to_cdn:
+    name: CDN Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+      - name: Read changelog info
+        id: changelog
+        run: |2-
+
+                  node ./run ci-gen --skip-version-validation
+                  content=`cat CURRENT_RELEASE_CHANGELOG.json`
+                  echo "::set-output name=content::$content"
+              
+        shell: bash
+      - shell: bash
+        run: |2-
+
+                  aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+                  ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+                  ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+                  us-west-1
+                  text
+                  EOF
+              
+      - name: Upload 'index.js.gz' to CDN
+        shell: bash
+        run: >-
+          aws s3 cp ./artifacts/content/assets/index.js.gz
+          s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/index.js.gz
+          --profile s3-upload --acl public-read --content-encoding gzip
+      - name: Upload 'style.css' to CDN
+        shell: bash
+        run: >-
+          aws s3 cp ./artifacts/content/assets/style.css
+          s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/style.css
+          --profile s3-upload --acl public-read --content-encoding gzip
+      - name: Upload 'ide.wasm' to CDN
+        shell: bash
+        run: >-
+          aws s3 cp ./artifacts/content/assets/ide.wasm
+          s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/ide.wasm
+          --profile s3-upload --acl public-read --content-encoding gzip
+      - name: Upload 'wasm_imports.js.gz' to CDN
+        shell: bash
+        run: >-
+          aws s3 cp ./artifacts/content/assets/wasm_imports.js.gz
+          s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/wasm_imports.js.gz
+          --profile s3-upload --acl public-read --content-encoding gzip
+    if: github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+    needs:
+      - version_assertions
+      - lint
+      - test
+      - wasm-test
+      - build
