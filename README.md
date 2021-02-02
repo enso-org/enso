@@ -132,7 +132,9 @@ a single language.
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/communication/forum/materialiconsround/24px.svg">
 <ul><ul>
     <b>Join The Community</b><br/>
-    <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users.</a>
+    <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users</a><br/>
+    <a href="https://github.com/enso-org/enso/discussions">GitHub Discussion Forum</a>
+  
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/new_releases/materialiconsround/24px.svg">
