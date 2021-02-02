@@ -782,7 +782,7 @@ impl Var {
 // === Sheet ===
 // =============
 
-/// Cascading style sheet. Implemented as a tree of `SheedNode`s. Each style sheet node can be
+/// Cascading style sheet. Implemented as a tree of `SheetNode`s. Each style sheet node can be
 /// assigned with a value of type `Data` or an expression to compute one. It also allows creating
 /// variables which are automatically bound to the most specific style sheet. See `Var`, `Query` ,
 /// and `Sheet` to learn more.

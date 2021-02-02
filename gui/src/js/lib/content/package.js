@@ -1,11 +1,12 @@
 let config = {
     name: "enso-studio-content",
+    version: "1.0.0",
     scripts: {
         "build": "npx webpack",
         "watch": "npx webpack-dev-server"
     },
     dependencies: {
-        "enso-studio-common": "2.0.0-alpha.0",
+        "enso-studio-common": "1.0.0",
         "copy-webpack-plugin": "^5.1.1",
         "mixpanel-browser":  "2.40.1"
     },
