@@ -56,9 +56,13 @@ object QualifiedName {
     * @param qualName the string representation of a qualified name.
     * @return the corresponding [[QualifiedName]] object.
     */
-  def fromString(qualName: String): QualifiedName = {
+  def fromString(qualName: String): Option[QualifiedName] = {
     val segments = qualName.split(separatorRegex).toList
-    QualifiedName(segments.dropRight(1), segments.last)
+    if (segments.nonEmpty) {
+      Some(QualifiedName(segments.dropRight(1), segments.last))
+    } else {
+      None
+    }
   }
 
   /**

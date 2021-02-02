@@ -16,7 +16,7 @@ class CaseTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    x = Cons 0 Nil
+          |    x = Cons a Nil
           |    case x of
           |        Cons2 a b -> a + b
           |        Nil2 -> 0
@@ -31,7 +31,7 @@ class CaseTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    x = Cons 0 Nil
+          |    x = Cons a Nil
           |    case x of
           |        Cons a -> a
           |""".stripMargin

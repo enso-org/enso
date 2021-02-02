@@ -22,8 +22,7 @@ case class InlineContext(
   moduleScope: Option[ModuleScope]             = None,
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
-  passConfiguration: Option[PassConfiguration] = None,
-  noWarnings: Boolean                          = false
+  passConfiguration: Option[PassConfiguration] = None
 )
 object InlineContext {
 

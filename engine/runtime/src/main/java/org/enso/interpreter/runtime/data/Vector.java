@@ -1,47 +1,27 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
-import java.util.Arrays;
-
-/** A primitve boxed array type for use in the runtime. */
+/** An immutable array-like collection. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
-public class Array implements TruffleObject {
-  private final Object[] items;
+public class Vector implements TruffleObject {
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] items;
 
   /**
-   * Creates a new array
+   * Creates a new Vector
    *
    * @param items the element values
    */
-  public Array(Object... items) {
+  public Vector(Object... items) {
     this.items = items;
   }
 
-  /**
-   * Creates an uninitialized array of the given size.
-   *
-   * @param size the size of the created array.
-   */
-  public Array(long size) {
-    this.items = new Object[(int) size];
-  }
-
-  /** @return the elements of this array as a java array. */
+  /** @return the elements of this vector as an array. */
   public Object[] getItems() {
     return items;
   }
@@ -71,18 +51,13 @@ public class Array implements TruffleObject {
     return items[(int) index];
   }
 
-  /** @return the size of this array */
-  public int length() {
-    return this.items.length;
-  }
-
   /**
    * Exposes the size of this collection through the polyglot API.
    *
-   * @return the size of this array
+   * @return
    */
   @ExportMessage
-  long getArraySize() {
+  public long getArraySize() {
     return items.length;
   }
 
@@ -93,67 +68,7 @@ public class Array implements TruffleObject {
    * @return {@code true} if the index is valid, {@code false} otherwise.
    */
   @ExportMessage
-  boolean isArrayElementReadable(long index) {
+  public boolean isArrayElementReadable(long index) {
     return index < getArraySize() && index >= 0;
-  }
-
-  @ExportMessage
-  void writeArrayElement(long index, Object value) {
-    items[(int) index] = value;
-  }
-
-  @ExportMessage
-  boolean isArrayElementModifiable(long index) {
-    return isArrayElementReadable(index);
-  }
-
-  @ExportMessage
-  boolean isArrayElementInsertable(long index) {
-    return false;
-  }
-
-  @Override
-  public String toString() {
-    return Arrays.toString(items);
-  }
-
-  @ExportMessage
-  boolean hasFunctionalDispatch() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetFunctionalDispatch {
-
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(Context context, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(
-          context.getBuiltins().mutable().array(), context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {"!context.isCachingDisabled()", "cachedSymbol == symbol", "function != null"},
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        Array _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("doResolve(context, cachedSymbol)") Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        Array _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
   }
 }

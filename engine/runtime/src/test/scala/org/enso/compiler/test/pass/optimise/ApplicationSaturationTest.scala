@@ -1,17 +1,21 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.FreshNameSupply
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.optimise.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
+import org.enso.compiler.pass.optimise.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec,
+  Metadata
+}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.argument.CallArgument
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.LocalScope
 
 import scala.annotation.unused
 
@@ -31,7 +35,7 @@ class ApplicationSaturationTest extends CompilerTest {
     val name = if (positional) {
       None
     } else {
-      Some(IR.Name.Literal("a", isReferent = false, isMethod = false, None))
+      Some(IR.Name.Literal("a", None))
     }
 
     List.fill(n)(IR.CallArgument.Specified(name, IR.Empty(None), None))
@@ -40,9 +44,7 @@ class ApplicationSaturationTest extends CompilerTest {
   // === Test Setup ===========================================================
 
   // The functions are unused, so left undefined for ease of testing
-  def dummyFn(@unused mod: ModuleScope)(@unused loc: LocalScope)(
-    @unused args: List[CallArgument]
-  ): ExpressionNode = ???
+  def dummyFn(@unused args: List[CallArgument]): ExpressionNode = ???
 
   val knownFunctions: ApplicationSaturation.Configuration =
     ApplicationSaturation.Configuration(
@@ -55,23 +57,23 @@ class ApplicationSaturationTest extends CompilerTest {
 
   val passes: Passes = new Passes
 
-  val precursorPasses = passes.getPrecursors(TailCall).get
+  val precursorPasses = passes.getPrecursors(ApplicationSaturation).get
 
   val knownPassConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> knownFunctions,
     AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
-  val passManagerKnown = new PassManager(List(precursorPasses), knownPassConfig)
+  val passManagerKnown = new PassManager(precursorPasses, knownPassConfig)
 
   val localScope: Option[LocalScope] = Some(LocalScope.root)
 
-  val knownCtx = buildInlineContext(
+  val knownCtx = new InlineContext(
     localScope        = localScope,
     freshNameSupply   = Some(new FreshNameSupply),
     passConfiguration = Some(knownPassConfig)
   )
 
-  val moduleCtx = buildModuleContext(
+  val moduleCtx = new ModuleContext(
     passConfiguration = Some(knownPassConfig),
     freshNameSupply   = Some(new FreshNameSupply)
   )
@@ -81,7 +83,7 @@ class ApplicationSaturationTest extends CompilerTest {
   "Known applications" should {
     val plusFn = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isReferent = false, isMethod = true, None),
+        IR.Name.Literal("+", None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -91,7 +93,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val bazFn = IR.Application
       .Prefix(
-        IR.Name.Literal("baz", isReferent = false, isMethod = false, None),
+        IR.Name.Literal("baz", None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -101,7 +103,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val fooFn = IR.Application
       .Prefix(
-        IR.Name.Literal("foo", isReferent = false, isMethod = false, None),
+        IR.Name.Literal("foo", None),
         genNArgs(5),
         hasDefaultsSuspended = false,
         None
@@ -111,8 +113,8 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val fooFnByName = IR.Application
       .Prefix(
-        IR.Name.Literal("foo", isReferent = false, isMethod = false, None),
-        genNArgs(4, positional            = false),
+        IR.Name.Literal("foo", None),
+        genNArgs(4, positional = false),
         hasDefaultsSuspended = false,
         None
       )
@@ -157,7 +159,7 @@ class ApplicationSaturationTest extends CompilerTest {
   "Unknown applications" should {
     val unknownFn = IR.Application
       .Prefix(
-        IR.Name.Literal("unknown", isReferent = false, isMethod = false, None),
+        IR.Name.Literal("unknown", None),
         genNArgs(10),
         hasDefaultsSuspended = false,
         None
@@ -178,7 +180,7 @@ class ApplicationSaturationTest extends CompilerTest {
     val empty = IR.Empty(None)
     val knownPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isReferent = false, isMethod = true, None),
+        IR.Name.Literal("+", None),
         genNArgs(2),
         hasDefaultsSuspended = false,
         None
@@ -188,7 +190,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val undersaturatedPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isReferent = false, isMethod = true, None),
+        IR.Name.Literal("+", None),
         genNArgs(1),
         hasDefaultsSuspended = false,
         None
@@ -198,7 +200,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     val oversaturatedPlus = IR.Application
       .Prefix(
-        IR.Name.Literal("+", isReferent = false, isMethod = true, None),
+        IR.Name.Literal("+", None),
         genNArgs(3),
         hasDefaultsSuspended = false,
         None
@@ -220,7 +222,7 @@ class ApplicationSaturationTest extends CompilerTest {
     def outerPlus(argExpr: IR.Expression): IR.Application.Prefix = {
       IR.Application
         .Prefix(
-          IR.Name.Literal("+", isReferent = false, isMethod = true, None),
+          IR.Name.Literal("+", None),
           List(
             IR.CallArgument.Specified(None, argExpr, None),
             IR.CallArgument.Specified(None, empty, None)

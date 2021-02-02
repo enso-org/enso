@@ -46,9 +46,8 @@ case object UnusedBindings extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = if (!moduleContext.noWarnings) {
-    ir.mapExpressions(runExpression(_, InlineContext(moduleContext.module)))
-  } else ir
+  ): IR.Module =
+    ir.mapExpressions(runExpression(_, InlineContext()))
 
   /** Lints an arbitrary expression.
     *
@@ -61,13 +60,12 @@ case object UnusedBindings extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = if (!inlineContext.noWarnings) {
+  ): IR.Expression =
     ir.transformExpressions {
       case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
       case function: IR.Function          => lintFunction(function, inlineContext)
       case cse: IR.Case                   => lintCase(cse, inlineContext)
     }
-  } else ir
 
   // === Pass Internals =======================================================
 
@@ -236,7 +234,6 @@ case object UnusedBindings extends IRPass {
         cons.copy(
           fields = fields.map(lintPattern)
         )
-      case err: IR.Error.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

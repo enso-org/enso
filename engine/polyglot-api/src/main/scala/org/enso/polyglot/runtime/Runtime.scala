@@ -3,6 +3,7 @@ package org.enso.polyglot.runtime
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
+
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -11,16 +12,14 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.data.Tree
-import org.enso.text.ContentVersion
-import org.enso.text.editing.model
-import org.enso.text.editing.model.{Range, TextEdit}
+import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
 
 object Runtime {
 
-  /** A common supertype for all Runtime API methods.
+  /**
+    * A common supertype for all Runtime API methods.
     */
   @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
   @JsonSubTypes(
@@ -106,8 +105,8 @@ object Runtime {
         name  = "visualisationModified"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionUpdates],
-        name  = "expressionUpdates"
+        value = classOf[Api.ExpressionValuesComputed],
+        name  = "expressionValuesComputed"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.RenameProject],
@@ -130,16 +129,8 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionUpdate],
-        name  = "executionUpdate"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionFailed],
         name  = "executionFailed"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExecutionComplete],
-        name  = "executionSuccessful"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.VisualisationExpressionFailed],
@@ -170,29 +161,16 @@ object Runtime {
         name  = "runtimeServerShutDown"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.SuggestionsDatabaseModuleUpdateNotification],
-        name  = "suggestionsDatabaseModuleUpdateNotification"
+        value = classOf[Api.SuggestionsDatabaseUpdateNotification],
+        name  = "suggestionsDatabaseUpdateNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexRequest],
-        name  = "invalidateModulesIndexRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.InvalidateModulesIndexResponse],
-        name  = "invalidateModulesIndexResponse"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ImportSuggestionRequest],
-        name  = "importSuggestionRequest"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ImportSuggestionResponse],
-        name  = "importSuggestionResponse"
+        value = classOf[Api.SuggestionsDatabaseReIndexNotification],
+        name  = "suggestionsDatabaseReindexNotification"
       )
     )
   )
   sealed trait Api
-  sealed trait ApiEnvelope     extends Api
   sealed trait ApiRequest      extends Api
   sealed trait ApiResponse     extends Api
   sealed trait ApiNotification extends ApiResponse
@@ -204,19 +182,18 @@ object Runtime {
     type RequestId       = UUID
     type VisualisationId = UUID
 
-    /** Indicates error response.
+    /**
+      * Indicates error response.
       */
     sealed trait Error extends ApiResponse
 
-    /** A representation of a pointer to a method definition.
+    /**
+      * A representation of a pointer to a method definition.
       */
-    case class MethodPointer(
-      module: String,
-      definedOnType: String,
-      name: String
-    )
+    case class MethodPointer(file: File, definedOnType: String, name: String)
 
-    /** A representation of an executable position in code.
+    /**
+      * A representation of an executable position in code.
       */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -232,9 +209,11 @@ object Runtime {
       )
     )
     sealed trait StackItem
+
     object StackItem {
 
-      /** A call performed at the top of the stack, to initialize the context.
+      /**
+        * A call performed at the top of the stack, to initialize the context.
         */
       case class ExplicitCall(
         methodPointer: MethodPointer,
@@ -242,100 +221,29 @@ object Runtime {
         positionalArgumentsExpressions: Vector[String]
       ) extends StackItem
 
-      /** A call corresponding to "entering a function call".
+      /**
+        * A call corresponding to "entering a function call".
         */
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
 
-    /** An update about the computed expression.
+    /**
+      * An update containing information about expression.
       *
-      * @param expressionId the expression id
-      * @param expressionType the type of expression
-      * @param methodCall the pointer to a method definition
-      * @param profilingInfo profiling information about the execution of this
-      * expression
-      * @param fromCache whether or not the value for this expression came
-      * from the cache
-      * @param payload an extra information about the computed value
+      * @param expressionId expression id.
+      * @param expressionType the type of expression.
+      * @param shortValue the value of expression.
+      * @param methodCall the pointer to a method definition.
       */
-    case class ExpressionUpdate(
+    case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      methodCall: Option[MethodPointer],
-      profilingInfo: Vector[ProfilingInfo],
-      fromCache: Boolean,
-      payload: ExpressionUpdate.Payload
+      shortValue: Option[String],
+      methodCall: Option[MethodPointer]
     )
-    object ExpressionUpdate {
 
-      /** Base trait for expression payloads. */
-      @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-      @JsonSubTypes(
-        Array(
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Value],
-            name  = "expressionUpdatePayloadValue"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.DataflowError],
-            name  = "expressionUpdatePayloadDataflowError"
-          ),
-          new JsonSubTypes.Type(
-            value = classOf[Payload.Panic],
-            name  = "expressionUpdatePayloadPanic"
-          )
-        )
-      )
-      sealed trait Payload
-      object Payload {
-
-        /** An empty payload. Indicates that the expression was computed to a
-          * value.
-          */
-        case class Value() extends Payload
-
-        /** Indicates that the expression was computed to an error.
-          *
-          * @param trace the list of expressions leading to the root error.
-          */
-        case class DataflowError(trace: Seq[ExpressionId]) extends Payload
-
-        /** Indicates that the expression failed with the runtime exception.
-          *
-          * @param message the error message
-          * @param trace the stack trace
-          */
-        case class Panic(
-          message: String,
-          trace: Seq[ExpressionId]
-        ) extends Payload
-
-      }
-    }
-
-    /** An object representing profiling information about an executed
-      * expression.
-      */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ProfilingInfo.ExecutionTime],
-          name  = "executionTime"
-        )
-      )
-    )
-    sealed trait ProfilingInfo
-    object ProfilingInfo {
-
-      /** A representation of the time elapsed during execution.
-        *
-        * @param nanoTime the time elapsed during execution in nanoseconds
-        */
-      case class ExecutionTime(nanoTime: Long) extends ProfilingInfo
-    }
-
-    /** An object representing invalidated expressions selector.
+    /**
+      * An object representing invalidated expressions selector.
       */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -351,13 +259,16 @@ object Runtime {
       )
     )
     sealed trait InvalidatedExpressions
+
     object InvalidatedExpressions {
 
-      /** An object representing invalidation of all expressions.
+      /**
+        * An object representing invalidation of all expressions.
         */
       case class All() extends InvalidatedExpressions
 
-      /** An object representing invalidation of a list of expressions.
+      /**
+        * An object representing invalidation of a list of expressions.
         *
         * @param value a list of expressions to invalidate.
         */
@@ -365,17 +276,19 @@ object Runtime {
           extends InvalidatedExpressions
     }
 
-    /** A notification about updated expressions of the context.
+    /**
+      * A notification about updated expressions of the context.
       *
       * @param contextId the context's id.
       * @param updates a list of updates.
       */
-    case class ExpressionUpdates(
+    case class ExpressionValuesComputed(
       contextId: ContextId,
-      updates: Set[ExpressionUpdate]
+      updates: Vector[ExpressionValueUpdate]
     ) extends ApiNotification
 
-    /** Represents a visualisation context.
+    /**
+      * Represents a visualisation context.
       *
       * @param visualisationId a visualisation identifier
       * @param contextId a context identifier
@@ -387,7 +300,8 @@ object Runtime {
       expressionId: ExpressionId
     )
 
-    /** A configuration object for properties of the visualisation.
+    /**
+      * A configuration object for properties of the visualisation.
       *
       * @param executionContextId an execution context of the visualisation
       * @param visualisationModule a qualified name of the module containing
@@ -400,319 +314,39 @@ object Runtime {
       expression: String
     )
 
-    /** An operation applied to the suggestion argument. */
+    /** A change in the suggestions database. */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
       Array(
         new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Add],
-          name  = "suggestionArgumentActionAdd"
+          value = classOf[SuggestionsDatabaseUpdate.Add],
+          name  = "suggestionsDatabaseUpdateAdd"
         ),
         new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Remove],
-          name  = "suggestionArgumentActionRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionArgumentAction.Modify],
-          name  = "suggestionArgumentActionModify"
+          value = classOf[SuggestionsDatabaseUpdate.Remove],
+          name  = "suggestionsDatabaseUpdateRemove"
         )
       )
     )
-    sealed trait SuggestionArgumentAction
-    object SuggestionArgumentAction {
+    sealed trait SuggestionsDatabaseUpdate
+    object SuggestionsDatabaseUpdate {
 
-      /** Add the argument to a list.
+      /** Create or replace the database entry.
         *
-        * @param index the position of the argument
-        * @param argument the argument to add
+        * @param suggestion the new suggestion
         */
-      case class Add(index: Int, argument: Suggestion.Argument)
-          extends SuggestionArgumentAction
+      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
-      /** Remove the argument from a list.
+      /** Remove the database entry.
         *
-        * @param index the position of the arugment
+        * @param suggestion the suggestion to remove
         */
-      case class Remove(index: Int) extends SuggestionArgumentAction
-
-      /** Modify the argument at the specified index.
-        *
-        * @param index the position of the argument
-        * @param name the name to update
-        * @param reprType the argument type to update
-        * @param isSuspended the suspended flag to update
-        * @param hasDefault the default flag to update
-        * @param defaultValue the default value to update
-        */
-      case class Modify(
-        index: Int,
-        name: Option[String]                 = None,
-        reprType: Option[String]             = None,
-        isSuspended: Option[Boolean]         = None,
-        hasDefault: Option[Boolean]          = None,
-        defaultValue: Option[Option[String]] = None
-      ) extends SuggestionArgumentAction
+      case class Remove(suggestion: Suggestion)
+          extends SuggestionsDatabaseUpdate
     }
 
-    /** An operation applied to the update */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Add],
-          name  = "suggestionActionAdd"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Remove],
-          name  = "suggestionActionRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionAction.Modify],
-          name  = "suggestionActionModify"
-        )
-      )
-    )
-    sealed trait SuggestionAction
-    object SuggestionAction {
-
-      /** Add the suggestion. */
-      case class Add() extends SuggestionAction
-
-      /** Remove the suggestion. */
-      case class Remove() extends SuggestionAction
-
-      /** Modify the suggestion.
-        *
-        * @param externalId the external id to update
-        * @param arguments the arguments to update
-        * @param returnType the return type to update
-        * @param documentation the documentation string to update
-        * @param scope the scope to update
-        */
-      case class Modify(
-        externalId: Option[Option[Suggestion.ExternalId]] = None,
-        arguments: Option[Seq[SuggestionArgumentAction]]  = None,
-        returnType: Option[String]                        = None,
-        documentation: Option[Option[String]]             = None,
-        scope: Option[Suggestion.Scope]                   = None
-      ) extends SuggestionAction
-    }
-
-    /** An action to apply to the suggestions database. */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseAction.Clean],
-          name  = "suggestionsDatabaseActionClean"
-        )
-      )
-    )
-    sealed trait SuggestionsDatabaseAction
-    object SuggestionsDatabaseAction {
-
-      /** Remove all module entries from the database.
-        *
-        * @param module the module name
-        */
-      case class Clean(module: String) extends SuggestionsDatabaseAction
-    }
-
-    /** A suggestion update.
-      *
-      * @param suggestion the original suggestion
-      * @param action the operation that is applied to the update
-      */
-    case class SuggestionUpdate(
-      suggestion: Suggestion,
-      action: SuggestionAction
-    )
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Error],
-          name  = "diagnosticTypeError"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[DiagnosticType.Warning],
-          name  = "diagnosticTypeWarning"
-        )
-      )
-    )
-    sealed trait DiagnosticType
-    object DiagnosticType {
-      case class Error()   extends DiagnosticType
-      case class Warning() extends DiagnosticType
-    }
-
-    /** The element in the stack trace.
-      *
-      * @param functionName the function containing the stack call
-      * @param file the location of a file
-      * @param location the location of the element in a file
-      * @param expressionId the id of an expression
-      */
-    case class StackTraceElement(
-      functionName: String,
-      file: Option[File],
-      location: Option[Range],
-      expressionId: Option[ExpressionId]
-    )
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionResult.Diagnostic],
-          name  = "executionOutcomeDiagnostic"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[ExecutionResult.Failure],
-          name  = "executionOutcomeFailure"
-        )
-      )
-    )
-    sealed trait ExecutionResult
-    object ExecutionResult {
-
-      /** A diagnostic object produced as a compilation outcome, like error or
-        * warning.
-        *
-        * @param kind the diagnostic type
-        * @param message the diagnostic message
-        * @param file the location of a file
-        * @param location the location of the diagnostic object in a file
-        * @param expressionId the id of related expression
-        * @param stack the stack trace
-        */
-      case class Diagnostic(
-        kind: DiagnosticType,
-        message: String,
-        file: Option[File],
-        location: Option[model.Range],
-        expressionId: Option[ExpressionId],
-        stack: Vector[StackTraceElement]
-      ) extends ExecutionResult
-
-      case object Diagnostic {
-
-        /** Create an error diagnostic message.
-          *
-          * @param message the diagnostic message
-          * @param file the location of a file
-          * @param location the location of the diagnostic object in a file
-          * @param expressionId the id of related expression
-          * @param stack the stack trace
-          * @return the instance of an error [[Diagnostic]] message
-          */
-        def error(
-          message: String,
-          file: Option[File]                 = None,
-          location: Option[model.Range]      = None,
-          expressionId: Option[ExpressionId] = None,
-          stack: Vector[StackTraceElement]   = Vector()
-        ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Error(),
-            message,
-            file,
-            location,
-            expressionId,
-            stack
-          )
-
-        /** Create a warning diagnostic message.
-          *
-          * @param message the diagnostic message
-          * @param file the location of a file
-          * @param location the location of the diagnostic object in a file
-          * @param expressionId the id of related expression
-          * @param stack the stack trace
-          * @return the instance of a warning [[Diagnostic]] message
-          */
-        def warning(
-          message: String,
-          file: Option[File],
-          location: Option[model.Range]      = None,
-          expressionId: Option[ExpressionId] = None,
-          stack: Vector[StackTraceElement]   = Vector()
-        ): Diagnostic =
-          new Diagnostic(
-            DiagnosticType.Warning(),
-            message,
-            file,
-            location,
-            expressionId,
-            stack
-          )
-      }
-
-      /** A critical failure when attempting to execute a context.
-        *
-        * @param message the error message
-        * @param file the location of a file producing the error
-        */
-      case class Failure(message: String, file: Option[File])
-          extends ExecutionResult
-
-    }
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-    @JsonSubTypes(
-      Array(
-        new JsonSubTypes.Type(
-          value = classOf[Export.Qualified],
-          name  = "exportQualified"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[Export.Unqualified],
-          name  = "exportUnqualified"
-        )
-      )
-    )
-    sealed trait Export {
-      def module: String
-    }
-    object Export {
-
-      /** Qualified module re-export.
-        *
-        * @param module the module name that exports the given module
-        * @param alias new module name if the module was renamed in the export
-        * clause
-        */
-      case class Qualified(module: String, alias: Option[String]) extends Export
-
-      /** Unqualified module export.
-        *
-        * @param module the module name that exports the given module
-        */
-      case class Unqualified(module: String) extends Export
-    }
-
-    /** The notification about the execution status.
-      *
-      * @param contextId the context's id
-      * @param diagnostics the list of diagnostic messages
-      */
-    case class ExecutionUpdate(
-      contextId: ContextId,
-      diagnostics: Seq[ExecutionResult.Diagnostic]
-    ) extends ApiNotification
-
-    /** Signals about the critical failure during the context execution.
-      *
-      * @param contextId the context's id
-      * @param failure the error description
-      */
-    case class ExecutionFailed(
-      contextId: ContextId,
-      failure: ExecutionResult.Failure
-    ) extends ApiNotification
-
-    /** An event signaling a visualisation update.
+    /**
+      * An event signaling a visualisation update.
       *
       * @param visualisationContext a visualisation context
       * @param data a visualisation data
@@ -722,17 +356,18 @@ object Runtime {
       data: Array[Byte]
     ) extends ApiNotification
 
-    /** Envelope for an Api request.
+    /**
+      * Envelope for an Api request.
       *
       * @param requestId the request identifier.
       * @param payload the request payload.
       */
     case class Request(requestId: Option[RequestId], payload: ApiRequest)
-        extends ApiEnvelope
 
     object Request {
 
-      /** A smart constructor for [[Request]].
+      /**
+        * A smart constructor for [[Request]].
         *
         * @param requestId the reqest identifier.
         * @param payload the request payload.
@@ -741,7 +376,8 @@ object Runtime {
       def apply(requestId: RequestId, payload: ApiRequest): Request =
         Request(Some(requestId), payload)
 
-      /** A smart constructor for [[Request]].
+      /**
+        * A smart constructor for [[Request]].
         *
         * @param payload the request payload.
         * @return a request object without request id and specified payload.
@@ -750,17 +386,18 @@ object Runtime {
         Request(None, payload)
     }
 
-    /** Envelope for an Api response.
+    /**
+      * Envelope for an Api response.
       *
       * @param correlationId request that initiated the response
       * @param payload response
       */
     case class Response(correlationId: Option[RequestId], payload: ApiResponse)
-        extends ApiEnvelope
 
     object Response {
 
-      /** A smart constructor for [[Response]].
+      /**
+        * A smart constructor for [[Response]].
         *
         * @param correlationId the request id triggering this response.
         * @param payload the response payload.
@@ -769,7 +406,8 @@ object Runtime {
       def apply(correlationId: RequestId, payload: ApiResponse): Response =
         Response(Some(correlationId), payload)
 
-      /** A smart constructor for [[Response]] that was not triggered by
+      /**
+        * A smart constructor for [[Response]] that was not triggered by
         * any request (i.e. a notification).
         *
         * @param payload the data carried by the response.
@@ -778,34 +416,39 @@ object Runtime {
       def apply(payload: ApiResponse): Response = Response(None, payload)
     }
 
-    /** A Request sent from the client to the runtime server, to create a new
+    /**
+      * A Request sent from the client to the runtime server, to create a new
       * execution context with a given id.
       *
       * @param contextId the newly created context's id.
       */
     case class CreateContextRequest(contextId: ContextId) extends ApiRequest
 
-    /** A response sent from the server upon handling the [[CreateContextRequest]]
+    /**
+      * A response sent from the server upon handling the [[CreateContextRequest]]
       *
       * @param contextId the newly created context's id.
       */
     case class CreateContextResponse(contextId: ContextId) extends ApiResponse
 
-    /** A Request sent from the client to the runtime server, to destroy an
+    /**
+      * A Request sent from the client to the runtime server, to destroy an
       * execution context with a given id.
       *
       * @param contextId the destroyed context's id.
       */
     case class DestroyContextRequest(contextId: ContextId) extends ApiRequest
 
-    /** A success response sent from the server upon handling the
+    /**
+      * A success response sent from the server upon handling the
       * [[DestroyContextRequest]]
       *
       * @param contextId the destroyed context's id
       */
     case class DestroyContextResponse(contextId: ContextId) extends ApiResponse
 
-    /** A Request sent from the client to the runtime server, to move
+    /**
+      * A Request sent from the client to the runtime server, to move
       * the execution context to a new location deeper down the stack.
       *
       * @param contextId the context's id.
@@ -814,26 +457,30 @@ object Runtime {
     case class PushContextRequest(contextId: ContextId, stackItem: StackItem)
         extends ApiRequest
 
-    /** A response sent from the server upon handling the [[PushContextRequest]]
+    /**
+      * A response sent from the server upon handling the [[PushContextRequest]]
       *
       * @param contextId the context's id.
       */
     case class PushContextResponse(contextId: ContextId) extends ApiResponse
 
-    /** A Request sent from the client to the runtime server, to move
+    /**
+      * A Request sent from the client to the runtime server, to move
       * the execution context up the stack.
       *
       * @param contextId the context's id.
       */
     case class PopContextRequest(contextId: ContextId) extends ApiRequest
 
-    /** A response sent from the server upon handling the [[PopContextRequest]]
+    /**
+      * A response sent from the server upon handling the [[PopContextRequest]]
       *
       * @param contextId the context's id.
       */
     case class PopContextResponse(contextId: ContextId) extends ApiResponse
 
-    /** A Request sent from the client to the runtime server, to recompute
+    /**
+      * A Request sent from the client to the runtime server, to recompute
       * the execution context.
       *
       * @param contextId the context's id.
@@ -845,7 +492,8 @@ object Runtime {
       expressions: Option[InvalidatedExpressions]
     ) extends ApiRequest
 
-    /** A response sent from the server upon handling the
+    /**
+      * A response sent from the server upon handling the
       * [[RecomputeContextRequest]]
       *
       * @param contextId the context's id.
@@ -853,32 +501,39 @@ object Runtime {
     case class RecomputeContextResponse(contextId: ContextId)
         extends ApiResponse
 
-    /** An error response signifying a non-existent context.
+    /**
+      * An error response signifying a non-existent context.
       *
       * @param contextId the context's id
       */
     case class ContextNotExistError(contextId: ContextId) extends Error
 
-    /** Signals that a module cannot be found.
+    /**
+      * Signals that a module cannot be found.
       *
       * @param moduleName the module name
       */
     case class ModuleNotFound(moduleName: String) extends Error
 
-    /** Signals that execution of a context completed.
+    /**
+      * Signals that execution of a context failed.
       *
-      * @param contextId the context's id
+      * @param contextId the context's id.
+      * @param message the error message.
       */
-    case class ExecutionComplete(contextId: ContextId) extends ApiNotification
+    case class ExecutionFailed(contextId: ContextId, message: String)
+        extends ApiNotification
 
-    /** Signals that an expression specified in a [[AttachVisualisation]] or
+    /**
+      * Signals that an expression specified in a [[AttachVisualisation]] or
       * a [[ModifyVisualisation]] cannot be evaluated.
       *
       * @param message the reason of the failure
       */
     case class VisualisationExpressionFailed(message: String) extends Error
 
-    /** Signals that an evaluation of a code responsible for generating
+    /**
+      * Signals that an evaluation of a code responsible for generating
       * visualisation data failed.
       *
       * @param contextId the context's id.
@@ -889,23 +544,27 @@ object Runtime {
       message: String
     ) extends ApiNotification
 
-    /** Signals that visualisation cannot be found.
+    /**
+      * Signals that visualisation cannot be found.
       */
     case class VisualisationNotFound() extends Error
 
-    /** An error response signifying that stack is empty.
+    /**
+      * An error response signifying that stack is empty.
       *
       * @param contextId the context's id
       */
     case class EmptyStackError(contextId: ContextId) extends Error
 
-    /** An error response signifying that stack item is invalid.
+    /**
+      * An error response signifying that stack item is invalid.
       *
       * @param contextId the context's id
       */
     case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about switching a file to literal
+    /**
+      * A notification sent to the server about switching a file to literal
       * contents.
       *
       * @param path the file being moved to memory.
@@ -918,7 +577,8 @@ object Runtime {
       isIndexed: Boolean
     ) extends ApiRequest
 
-    /** A notification sent to the server about in-memory file contents being
+    /**
+      * A notification sent to the server about in-memory file contents being
       * edited.
       *
       * @param path the file being edited.
@@ -927,20 +587,23 @@ object Runtime {
     case class EditFileNotification(path: File, edits: Seq[TextEdit])
         extends ApiRequest
 
-    /** A notification sent to the server about dropping the file from memory
+    /**
+      * A notification sent to the server about dropping the file from memory
       * back to on-disk version.
       *
       * @param path the file being closed.
       */
     case class CloseFileNotification(path: File) extends ApiRequest
 
-    /** Notification sent from the server to the client upon successful
+    /**
+      * Notification sent from the server to the client upon successful
       * initialization. Any messages sent to the server before receiving this
       * message will be dropped.
       */
     case class InitializedNotification() extends ApiResponse
 
-    /** A request sent from the client to the runtime server, to create a new
+    /**
+      * A request sent from the client to the runtime server, to create a new
       * visualisation for an expression identified by `expressionId`.
       *
       * @param visualisationId an identifier of a visualisation
@@ -954,11 +617,13 @@ object Runtime {
       visualisationConfig: VisualisationConfiguration
     ) extends ApiRequest
 
-    /** Signals that attaching a visualisation has succeeded.
+    /**
+      * Signals that attaching a visualisation has succeeded.
       */
     case class VisualisationAttached() extends ApiResponse
 
-    /** A request sent from the client to the runtime server, to detach a
+    /**
+      * A request sent from the client to the runtime server, to detach a
       * visualisation from an expression identified by `expressionId`.
       *
       * @param contextId an execution context identifier
@@ -971,11 +636,13 @@ object Runtime {
       expressionId: ExpressionId
     ) extends ApiRequest
 
-    /** Signals that detaching a visualisation has succeeded.
+    /**
+      * Signals that detaching a visualisation has succeeded.
       */
     case class VisualisationDetached() extends ApiResponse
 
-    /** A request sent from the client to the runtime server, to modify a
+    /**
+      * A request sent from the client to the runtime server, to modify a
       * visualisation identified by `visualisationId`.
       *
       * @param visualisationId     an identifier of a visualisation
@@ -987,19 +654,23 @@ object Runtime {
       visualisationConfig: VisualisationConfiguration
     ) extends ApiRequest
 
-    /** Signals that a visualisation modification has succeeded.
+    /**
+      * Signals that a visualisation modification has succeeded.
       */
     case class VisualisationModified() extends ApiResponse
 
-    /** A request to shut down the runtime server.
+    /**
+      * A request to shut down the runtime server.
       */
     case class ShutDownRuntimeServer() extends ApiRequest
 
-    /** Signals that the runtime server has been shut down.
+    /**
+      * Signals that the runtime server has been shut down.
       */
     case class RuntimeServerShutDown() extends ApiResponse
 
-    /** A request for project renaming.
+    /**
+      * A request for project renaming.
       *
       * @param oldName the old project name
       * @param newName the new project name
@@ -1007,50 +678,32 @@ object Runtime {
     case class RenameProject(oldName: String, newName: String)
         extends ApiRequest
 
-    /** Signals that project has been renamed.
+    /**
+      * Signals that project has been renamed.
       *
       * @param newName the new project name
       */
     case class ProjectRenamed(newName: String) extends ApiResponse
 
-    /** A notification about the changes in the suggestions database.
+    /**
+      * A notification about the change in the suggestions database.
       *
-      * @param file the module file path
-      * @param version the version of the module
-      * @param actions the list of actions to apply to the suggestions database
-      * @param updates the list of suggestions extracted from module
+      * @param updates the list of database updates
       */
-    case class SuggestionsDatabaseModuleUpdateNotification(
-      file: File,
-      version: ContentVersion,
-      actions: Vector[SuggestionsDatabaseAction],
-      updates: Tree[SuggestionUpdate]
+    case class SuggestionsDatabaseUpdateNotification(
+      updates: Seq[SuggestionsDatabaseUpdate]
     ) extends ApiNotification
 
-    /** A request to invalidate the indexed flag of the modules. */
-    case class InvalidateModulesIndexRequest() extends ApiRequest
-
-    /** Signals that the module indexes has been invalidated. */
-    case class InvalidateModulesIndexResponse() extends ApiResponse
-
-    /** A request to return info needed to import the suggestion.
+    /**
+      * A notification about the re-indexed module updates.
       *
-      * @param suggestion the suggestion to import
+      * @param moduleName the name of re-indexed module
+      * @param updates the list of database updates
       */
-    case class ImportSuggestionRequest(suggestion: Suggestion)
-        extends ApiRequest
-
-    /** The result of the import request.
-      *
-      * @param module the definition module of the symbol
-      * @param symbol the resolved symbol
-      * @param exports the list of exports of the symbol
-      */
-    case class ImportSuggestionResponse(
-      module: String,
-      symbol: String,
-      exports: Seq[Export]
-    ) extends ApiResponse
+    case class SuggestionsDatabaseReIndexNotification(
+      moduleName: String,
+      updates: Seq[SuggestionsDatabaseUpdate.Add]
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()
@@ -1058,7 +711,8 @@ object Runtime {
       mapper.registerModule(DefaultScalaModule)
     }
 
-    /** Serializes a Request into a byte buffer.
+    /**
+      * Serializes a Request into a byte buffer.
       *
       * @param message the message to serialize.
       * @return the serialized version of the message.
@@ -1066,7 +720,8 @@ object Runtime {
     def serialize(message: Request): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
 
-    /** Serializes a Response into a byte buffer.
+    /**
+      * Serializes a Response into a byte buffer.
       *
       * @param message the message to serialize.
       * @return the serialized version of the message.
@@ -1074,7 +729,8 @@ object Runtime {
     def serialize(message: Response): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
 
-    /** Deserializes a byte buffer into a Request message.
+    /**
+      * Deserializes a byte buffer into a Request message.
       *
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.
@@ -1082,7 +738,8 @@ object Runtime {
     def deserializeRequest(bytes: ByteBuffer): Option[Request] =
       Try(mapper.readValue(bytes.array(), classOf[Request])).toOption
 
-    /** Deserializes a byte buffer into a Response message.
+    /**
+      * Deserializes a byte buffer into a Response message.
       *
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.

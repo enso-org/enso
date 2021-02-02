@@ -183,6 +183,5 @@ public class ModuleScope {
     imports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
-    polyglotSymbols = new HashMap<>();
   }
 }

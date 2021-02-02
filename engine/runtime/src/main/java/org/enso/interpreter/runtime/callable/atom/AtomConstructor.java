@@ -3,35 +3,28 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.pkg.QualifiedName;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(MethodDispatchLibrary.class)
-public final class AtomConstructor implements TruffleObject {
+public class AtomConstructor implements TruffleObject {
 
   private final String name;
   private final ModuleScope definitionScope;
@@ -83,27 +76,14 @@ public final class AtomConstructor implements TruffleObject {
     ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
     RootNode rootNode = InstantiateAtomNode.build(null, name, instantiateNode);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(callTarget, null, new FunctionSchema(args));
+    return new Function(
+        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));
   }
 
   private void generateMethods(ArgumentDefinition[] args) {
-    generateQualifiedAccessor();
     for (ArgumentDefinition arg : args) {
       definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
     }
-  }
-
-  private void generateQualifiedAccessor() {
-    QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
-    Function function =
-        new Function(
-            callTarget,
-            null,
-            new FunctionSchema(
-                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
-    definitionScope.registerMethod(
-        definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
   }
 
   private Function generateGetter(int position) {
@@ -113,6 +93,7 @@ public final class AtomConstructor implements TruffleObject {
         callTarget,
         null,
         new FunctionSchema(
+            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
             new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
@@ -149,7 +130,6 @@ public final class AtomConstructor implements TruffleObject {
    * @param arguments the runtime arguments to the constructor
    * @return a new instance of the atom represented by this constructor
    */
-  // TODO [AA] Check where this can be called from user code.
   public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
     return new Atom(this, arguments);
@@ -200,72 +180,5 @@ public final class AtomConstructor implements TruffleObject {
       return cachedInstance;
     }
     return newInstance(arguments);
-  }
-
-  @ExportMessage
-  String toDisplayString(boolean allowSideEffects) {
-    return "Constructor<" + name + ">";
-  }
-
-  /** @return the fully qualified name of this constructor. */
-  public QualifiedName getQualifiedName() {
-    if (this == this.getDefinitionScope().getAssociatedType()) {
-      return definitionScope.getModule().getName();
-    } else {
-      return definitionScope.getModule().getName().createChild(getName());
-    }
-  }
-
-  /** @return the fields defined by this constructor. */
-  public ArgumentDefinition[] getFields() {
-    return constructorFunction.getSchema().getArgumentInfos();
-  }
-
-  @ExportMessage
-  boolean hasFunctionalDispatch() {
-    return true;
-  }
-
-  @ExportMessage
-  static class GetFunctionalDispatch {
-    static final int CACHE_SIZE = 10;
-
-    @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
-      return symbol.resolveFor(cons, context.getBuiltins().any());
-    }
-
-    @Specialization(
-        guards = {
-          "!context.isCachingDisabled()",
-          "cachedSymbol == symbol",
-          "_this == cachedConstructor",
-          "function != null"
-        },
-        limit = "CACHE_SIZE")
-    static Function resolveCached(
-        AtomConstructor _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context,
-        @Cached("symbol") UnresolvedSymbol cachedSymbol,
-        @Cached("_this") AtomConstructor cachedConstructor,
-        @Cached("doResolve(context, cachedConstructor, cachedSymbol)")
-            Function function) {
-      return function;
-    }
-
-    @Specialization(replaces = "resolveCached")
-    static Function resolve(
-        AtomConstructor _this,
-        UnresolvedSymbol symbol,
-        @CachedContext(Language.class) Context context)
-        throws MethodDispatchLibrary.NoSuchMethodException {
-      Function function = doResolve(context, _this, symbol);
-      if (function == null) {
-        throw new MethodDispatchLibrary.NoSuchMethodException();
-      }
-      return function;
-    }
   }
 }

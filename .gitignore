@@ -18,6 +18,7 @@ target/
 ## Rust ##
 ##########
 
+Cargo.lock
 **/*.rs.bk
 wasm-pack.log
 /lib/rust/lexer/generation/src/lexer-engine.rs

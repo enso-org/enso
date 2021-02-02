@@ -1,22 +1,21 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class JavaInteropTest extends InterpreterTest {
 
   override def subject: String = "Java Interop"
 
-  override def specify(implicit
-    interpreterContext: InterpreterContext
+  override def specify(
+    implicit interpreterContext: InterpreterContext
   ): Unit = {
 
     "allow importing classes and calling methods on them" in {
       val code =
         """
           |polyglot java import org.enso.example.TestClass
-          |from Builtins import all
           |
-          |main = TestClass.add 1 2
+          |main = TestClass.add [1, 2]
           |""".stripMargin
 
       eval(code) shouldEqual 3
@@ -26,11 +25,10 @@ class JavaInteropTest extends InterpreterTest {
       val code =
         """
           |polyglot java import org.enso.example.TestClass
-          |from Builtins import all
           |
           |main =
-          |    instance = TestClass.new (x -> x * 2)
-          |    instance.callFunctionAndIncrement 10
+          |    instance = TestClass.new [x -> x * 2]
+          |    instance.callFunctionAndIncrement [10]
           |""".stripMargin
       eval(code) shouldEqual 21
     }

@@ -13,40 +13,27 @@ class AtomFixtures extends DefaultInterpreterRunner {
         .getModule(Builtins.MODULE_NAME)
     val nil  = builtins.getConstructor("Nil")
     val cons = builtins.getConstructor("Cons")
-    1L.to(length).foldLeft(nil.newInstance()) { case (tail, el) =>
-      cons.newInstance(el.asInstanceOf[Object], tail)
+    1L.to(length).foldLeft(nil.newInstance()) {
+      case (tail, el) => cons.newInstance(el.asInstanceOf[Object], tail)
     }
   }
   val millionElementList = buildInputList(million)
 
   val generateListCode =
-    """from Builtins import all
-      |
+    """
       |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Cons i acc) (i - 1)
+      |    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
       |
       |    res = generator Nil length
       |    res
     """.stripMargin
   val generateList = getMain(generateListCode)
 
-  val generateListQualifiedCode =
-    """from Builtins import all
-      |
-      |main = length ->
-      |    generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (Builtins.cons i acc) (i - 1)
-      |
-      |    res = generator Builtins.nil length
-      |    res
-    """.stripMargin
-  val generateListQualified = getMain(generateListQualifiedCode)
-
   val reverseListCode =
-    """from Builtins import all
-      |
+    """
       |main = list ->
       |    reverser = acc -> list -> case list of
-      |        Cons h t -> @Tail_Call reverser (Cons h acc) t
+      |        Cons h t -> reverser (Cons h acc) t
       |        Nil -> acc
       |
       |    res = reverser Nil list
@@ -55,25 +42,23 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseList = getMain(reverseListCode)
 
   val reverseListMethodsCode =
-    """from Builtins import all
-      |
+    """
       |Cons.reverse = acc -> case this of
-      |    Cons h t -> @Tail_Call t.reverse (Cons h acc)
+      |    Cons h t -> reverse t (Cons h acc)
       |
       |Nil.reverse = acc -> acc
       |
       |main = list ->
-      |    res = list.reverse Nil
+      |    res = reverse list Nil
       |    res
       |""".stripMargin
   val reverseListMethods = getMain(reverseListMethodsCode)
 
   val sumListCode =
-    """from Builtins import all
-      |
+    """
       |main = list ->
       |    summator = acc -> list -> case list of
-      |        Cons h t -> @Tail_Call summator acc+h t
+      |        Cons h t -> summator acc+h t
       |        Nil -> acc
       |
       |    res = summator 0 list
@@ -82,11 +67,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumList = getMain(sumListCode)
 
   val sumListLeftFoldCode =
-    """from Builtins import all
-      |
+    """
       |main = list ->
       |    fold = f -> acc -> list -> case list of
-      |        Cons h t -> @Tail_Call fold f (f acc h) t
+      |        Cons h t -> fold f (f acc h) t
       |        _ -> acc
       |
       |    res = fold (x -> y -> x + y) 0 list
@@ -95,11 +79,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListLeftFold = getMain(sumListLeftFoldCode)
 
   val sumListFallbackCode =
-    """from Builtins import all
-      |
+    """
       |main = list ->
       |    summator = acc -> list -> case list of
-      |        Cons h t -> @Tail_Call summator acc+h t
+      |        Cons h t -> summator acc+h t
       |        _ -> acc
       |
       |    res = summator 0 list
@@ -108,41 +91,38 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListFallback = getMain(sumListFallbackCode)
 
   val sumListMethodsCode =
-    """from Builtins import all
-      |
+    """
       |Nil.sum = acc -> acc
       |Cons.sum = acc -> case this of
-      |    Cons h t -> @Tail_Call t.sum h+acc
+      |    Cons h t -> sum t h+acc
       |
       |main = list ->
-      |    res = list.sum 0
+      |    res = sum list 0
       |    res
       |""".stripMargin
   val sumListMethods = getMain(sumListMethodsCode)
 
   val mapReverseListCode =
-    """from Builtins import all
-      |
+    """
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+      |    Cons h t -> mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
-      |    res = list.mapReverse (x -> x + 1) Nil
+      |    res = mapReverse list (x -> x + 1) Nil
       |    res
       |""".stripMargin
   val mapReverseList = getMain(mapReverseListCode)
 
   val mapReverseListCurryCode =
-    """from Builtins import all
-      |
+    """
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
-      |    Cons h t -> @Tail_Call t.mapReverse f (Cons (f h) acc)
+      |    Cons h t -> mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
       |    adder = x -> y -> x + y
-      |    res = list.mapReverse (adder 1) Nil
+      |    res = mapReverse list (adder 1) Nil
       |    res
       |""".stripMargin
   val mapReverseListCurry = getMain(mapReverseListCurryCode)

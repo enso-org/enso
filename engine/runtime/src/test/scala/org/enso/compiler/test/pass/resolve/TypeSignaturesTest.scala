@@ -3,12 +3,8 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  ModuleAnnotations,
-  TypeSignatures
-}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.resolve.TypeSignatures
 import org.enso.compiler.test.CompilerTest
 
 class TypeSignaturesTest extends CompilerTest {
@@ -17,12 +13,12 @@ class TypeSignaturesTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup = passes.getPrecursors(TypeSignatures).get
+  val precursorPasses: List[IRPass] = passes.getPrecursors(TypeSignatures).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to a module for performing type signature
     * resolution.
@@ -63,7 +59,7 @@ class TypeSignaturesTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   /** Creates a defaulted inline context.
@@ -71,7 +67,7 @@ class TypeSignaturesTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
+    InlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================
@@ -84,17 +80,6 @@ class TypeSignaturesTest extends CompilerTest {
         """
           |MyAtom.bar : Number -> Suspended Number -> Number
           |MyAtom.bar a b = a + b
-          |""".stripMargin.preprocessModule.resolve
-
-      ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
-    }
-
-    "allow dotted paths in type signatures" in {
-      val ir =
-        """
-          |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
-          |File.with_output_stream open_options action = undefined
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
@@ -122,37 +107,12 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings(4) shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
-    "reattach documentation to method definitions" in {
-      val ir =
-        """## My bar
-          |bar : Number -> Number -> Number
-          |bar a b = a + b
-          |""".stripMargin.preprocessModule.resolve
-
-      ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
-      ir.bindings.head.getMetadata(DocumentationComments) shouldBe defined
-    }
-
-    "reattach annotations to method definitions" in {
-      val ir =
-        """@Builtin_Type
-          |bar : Number -> Number -> Number
-          |bar a b = a + b
-          |""".stripMargin.preprocessModule.resolve
-
-      ir.bindings.length shouldEqual 1
-      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
-      ir.bindings.head.getMetadata(ModuleAnnotations) shouldBe defined
-    }
-
     "work inside type definition bodies" in {
       val ir =
         """
           |type MyType
           |    type MyAtom
           |
-          |    ## is atom
           |    is_atom : this -> Boolean
           |    is_atom = true
           |
@@ -163,7 +123,6 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
       ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
-      ir.bindings(1).getMetadata(DocumentationComments) shouldBe defined
       ir.bindings(2) shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
@@ -171,13 +130,8 @@ class TypeSignaturesTest extends CompilerTest {
       val ir =
         """
           |main =
-          |    ## An eff
-          |    f : A -> A
+          |    f : a -> a
           |    f a = a
-          |
-          |    ## Local
-          |    h : A
-          |    h = 1
           |
           |    f 1
           |""".stripMargin.preprocessModule.resolve.bindings.head
@@ -188,12 +142,8 @@ class TypeSignaturesTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      block.expressions.length shouldEqual 2
+      block.expressions.length shouldEqual 1
       block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
-      block.expressions.head.getMetadata(DocumentationComments) shouldBe defined
-
-      block.expressions(1).getMetadata(TypeSignatures) shouldBe defined
-      block.expressions(1).getMetadata(DocumentationComments) shouldBe defined
     }
   }
 
@@ -203,13 +153,11 @@ class TypeSignaturesTest extends CompilerTest {
     val ir =
       """
         |block =
-        |    ## Doc f
         |    f : Int
         |    f = 0
         |
         |    g : Int
         |    g =
-        |        ## Doc inner f
         |        f : Double
         |        f = 0
         |        f 1
@@ -221,10 +169,8 @@ class TypeSignaturesTest extends CompilerTest {
     val block = ir.expression.asInstanceOf[IR.Expression.Block]
 
     "associate signatures with bindings" in {
-      val head = block.expressions.head
-      head shouldBe an[IR.Expression.Binding]
-      head.getMetadata(TypeSignatures) shouldBe defined
-      head.getMetadata(DocumentationComments) shouldBe defined
+      block.expressions.head shouldBe an[IR.Expression.Binding]
+      block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
     "raise an error if a signature is divorced from its definition" in {
@@ -238,10 +184,8 @@ class TypeSignaturesTest extends CompilerTest {
         .expression
         .asInstanceOf[IR.Expression.Block]
 
-      val head = nested.expressions.head
-      head shouldBe an[IR.Expression.Binding]
-      head.getMetadata(TypeSignatures) shouldBe defined
-      head.getMetadata(DocumentationComments) shouldBe defined
+      nested.expressions.head shouldBe an[IR.Expression.Binding]
+      nested.expressions.head.getMetadata(TypeSignatures) shouldBe defined
     }
   }
 

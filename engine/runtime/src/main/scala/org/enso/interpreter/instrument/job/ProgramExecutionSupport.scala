@@ -1,137 +1,94 @@
 package org.enso.interpreter.instrument.job
 
 import java.io.File
+import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
-import java.util.{Objects, UUID}
 
 import cats.implicits._
-import com.oracle.truffle.api.TruffleException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.execution.{
-  ErrorResolver,
-  LocationResolver,
-  RuntimeContext
-}
+import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
   ExecutionFrame,
+  ExecutionItem,
   LocalCallFrame
 }
-import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
-  MethodCallsCache,
   RuntimeCache,
   Visualisation
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
-import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.service.error.{
-  ConstructorNotFoundException,
-  MethodNotFoundException,
-  ServiceException
-}
-import org.enso.polyglot.LanguageInfo
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.interpreter.runtime.error.PanicSentinel
 
-import scala.jdk.OptionConverters._
+import scala.jdk.javaapi.OptionConverters
 
-/** Provides support for executing Enso code. Adds convenient methods to
+/**
+  * Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
   */
 trait ProgramExecutionSupport {
 
-  /** Runs an Enso program.
+  /**
+    * Runs an Enso program.
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
-    * @param onCachedMethodCallCallback a listener of cached method calls
-    * @param onComputedCallback a listener of computed values
-    * @param onCachedCallback a listener of cached values
-    * @param onExceptionalCallback the consumer of the exceptional events.
+    * @param valueCallback a listener of computed values
+    * @param visualisationCallback a listener of fired visualisations
     */
   @scala.annotation.tailrec
-  final private def executeProgram(
+  final private def runProgram(
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame],
-    onCachedMethodCallCallback: Consumer[ExpressionValue],
-    onComputedCallback: Consumer[ExpressionValue],
-    onCachedCallback: Consumer[ExpressionValue],
-    onExceptionalCallback: Consumer[Exception]
+    valueCallback: Consumer[ExpressionValue],
+    visualisationCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
-    val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
-    val computedCallback: Consumer[ExpressionValue] =
-      if (callStack.isEmpty) onComputedCallback else _ => ()
+    var enterables: Map[UUID, FunctionCall] = Map()
+    val valsCallback: Consumer[ExpressionValue] =
+      if (callStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
       }
     executionFrame match {
-      case ExecutionFrame(
-            ExecutionItem.Method(module, cons, function),
-            cache
-          ) =>
+      case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
         ctx.executionService.execute(
-          module.toString,
-          cons.item,
+          file,
+          cons,
           function,
           cache,
-          methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
-          callablesCallback,
-          computedCallback,
-          onCachedCallback,
-          onExceptionalCallback
+          valsCallback,
+          visualisationCallback,
+          callablesCallback
         )
       case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
         ctx.executionService.execute(
           callData,
           cache,
-          methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
-          callablesCallback,
-          computedCallback,
-          onCachedCallback,
-          onExceptionalCallback
+          valsCallback,
+          visualisationCallback,
+          callablesCallback
         )
     }
 
     callStack match {
-      case Nil =>
-        val notExecuted =
-          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
-        notExecuted.forEach { expressionId =>
-          val expressionType = executionFrame.cache.getType(expressionId)
-          val expressionCall = executionFrame.cache.getCall(expressionId)
-          onCachedMethodCallCallback.accept(
-            new ExpressionValue(
-              expressionId,
-              null,
-              expressionType,
-              expressionType,
-              expressionCall,
-              expressionCall,
-              Array(ExecutionTime.empty()),
-              true
-            )
-          )
-        }
+      case Nil => ()
       case item :: tail =>
         enterables.get(item.expressionId) match {
           case Some(call) =>
-            executeProgram(
+            runProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
-              onCachedMethodCallCallback,
-              onComputedCallback,
-              onCachedCallback,
-              onExceptionalCallback
+              valueCallback,
+              visualisationCallback
             )
           case None =>
             ()
@@ -139,27 +96,20 @@ trait ProgramExecutionSupport {
     }
   }
 
-  /** Runs an Enso program.
+  /**
+    * Runs an Enso program.
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
     * @param updatedVisualisations a list of updated visualisations
-    * @param sendMethodCallUpdates a flag to send all the method calls of the
-    * executed frame as a value updates
     * @param ctx a runtime context
-    * @return a diagnostic message
+    * @return either an error message or Unit signaling completion of a program
     */
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
-    updatedVisualisations: Seq[Api.ExpressionId],
-    sendMethodCallUpdates: Boolean
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    val logger = ctx.executionService.getLogger
-    logger.log(
-      Level.FINEST,
-      s"Run program updatedVisualisations=$updatedVisualisations sendMethodCallUpdates=$sendMethodCallUpdates"
-    )
+    updatedVisualisations: Seq[Api.ExpressionId]
+  )(implicit ctx: RuntimeContext): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
@@ -174,186 +124,73 @@ trait ProgramExecutionSupport {
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
       }
-
-    val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
-      logger.log(Level.FINEST, s"ON_CACHED_CALL ${value.getExpressionId}")
-      sendValueUpdate(contextId, value, sendMethodCallUpdates)
-    }
-
-    val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
-      if (updatedVisualisations.contains(value.getExpressionId)) {
-        logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
-        fireVisualisationUpdates(contextId, value)
+    def getName(item: ExecutionItem): String =
+      item match {
+        case ExecutionItem.Method(_, _, function) => function
+        case ExecutionItem.CallData(call)         => call.getFunction.getName
       }
-    }
 
-    val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
-      logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
-      sendValueUpdate(contextId, value, sendMethodCallUpdates)
-      fireVisualisationUpdates(contextId, value)
-    }
-
-    val onExceptionalCallback: Consumer[Exception] = { value =>
-      logger.log(Level.FINEST, s"ON_ERROR $value")
-      sendErrorUpdate(contextId, value)
+    val visualisationUpdateCallback: Consumer[ExpressionValue] = { value =>
+      if (updatedVisualisations.contains(value.getExpressionId))
+        onVisualisationUpdate(contextId, value)
     }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
-    val executionResult = for {
-      stackItem <- Either.fromOption(
-        explicitCallOpt,
-        Api.ExecutionResult.Failure("Execution stack is empty.", None)
-      )
-      _ <-
-        Either
-          .catchNonFatal(
-            executeProgram(
-              stackItem,
-              localCalls,
-              onCachedMethodCallCallback,
-              onComputedValueCallback,
-              onCachedValueCallback,
-              onExceptionalCallback
-            )
+    for {
+      stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
+      _ <- Either
+        .catchNonFatal(
+          runProgram(
+            stackItem,
+            localCalls,
+            onExpressionValueComputed(contextId, _),
+            visualisationUpdateCallback
           )
-          .leftMap(onExecutionError(stackItem.item, _))
+        )
+        .leftMap { ex =>
+          ctx.executionService.getLogger.log(
+            Level.FINE,
+            s"Error executing a function '${getName(stackItem.item)}'",
+            ex
+          )
+          s"error in function: ${getName(stackItem.item)}"
+        }
     } yield ()
-    logger.log(Level.FINEST, s"Execution finished: $executionResult")
-    executionResult.fold(Some(_), _ => None)
   }
 
-  /** Execution error handler.
-    *
-    * @param item the stack item being executed
-    * @param error the execution error
-    * @return the error message
-    */
-  private def onExecutionError(
-    item: ExecutionItem,
-    error: Throwable
-  )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
-    val itemName = item match {
-      case ExecutionItem.Method(_, _, function) => function
-      case ExecutionItem.CallData(call)         => call.getFunction.getName
-    }
-    val executionUpdate = getExecutionOutcome(error)
-    executionUpdate match {
-      case Some(_) =>
-        ctx.executionService.getLogger
-          .log(Level.FINEST, s"Error executing a function $itemName.")
-      case None =>
-        ctx.executionService.getLogger
-          .log(Level.FINEST, s"Error executing a function $itemName.", error)
-    }
-    executionUpdate.getOrElse(
-      Api.ExecutionResult
-        .Failure(s"Error in function $itemName.", None)
-    )
-  }
+  private def onVisualisationUpdate(
+    contextId: Api.ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit =
+    fireVisualisationUpdates(contextId, value)
 
-  /** Convert the runtime exception to the corresponding API error messages.
-    *
-    * @param t the exception
-    * @param ctx the runtime context
-    * @return the API message describing the error
-    */
-  private def getExecutionOutcome(
-    t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    t match {
-      case ex: TruffleException
-          if ErrorResolver.getLanguage(ex).forall(_ == LanguageInfo.ID) =>
-        val section = Option(ex.getSourceLocation)
-        Some(
-          Api.ExecutionResult.Diagnostic.error(
-            ex.getMessage,
-            section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
-            section.map(LocationResolver.sectionToRange),
-            section
-              .flatMap(LocationResolver.getExpressionId(_))
-              .map(_.externalId),
-            ErrorResolver.getStackTrace(ex)
-          )
-        )
-
-      case ex: ConstructorNotFoundException =>
-        Some(
-          Api.ExecutionResult.Failure(
-            ex.getMessage,
-            findFileByModuleName(ex.getModule)
-          )
-        )
-
-      case ex: MethodNotFoundException =>
-        Some(
-          Api.ExecutionResult.Failure(
-            ex.getMessage,
-            findFileByModuleName(ex.getModule)
-          )
-        )
-
-      case ex: ServiceException =>
-        Some(Api.ExecutionResult.Failure(ex.getMessage, None))
-
-      case _ =>
-        None
-    }
-  }
-
-  private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
-    ctx: RuntimeContext
-  ): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(Api.ExecutionResult.Diagnostic.error(error.getMessage))
-        )
-      )
-    )
+  private def onExpressionValueComputed(
+    contextId: Api.ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    sendValueUpdate(contextId, value)
+    fireVisualisationUpdates(contextId, value)
   }
 
   private def sendValueUpdate(
     contextId: ContextId,
-    value: ExpressionValue,
-    sendMethodCallUpdates: Boolean
+    value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    val methodPointer = toMethodPointer(value)
-    if (
-      (sendMethodCallUpdates && methodPointer.isDefined) ||
-      !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
-      !Objects.equals(value.getType, value.getCachedType)
-    ) {
-      val payload = value.getValue match {
-        case sentinel: PanicSentinel =>
-          Api.ExpressionUpdate.Payload
-            .Panic(
-              sentinel.getMessage,
-              ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
-            )
-        case _ =>
-          Api.ExpressionUpdate.Payload.Value()
-      }
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionUpdates(
-            contextId,
-            Set(
-              Api.ExpressionUpdate(
-                value.getExpressionId,
-                Option(value.getType),
-                methodPointer,
-                value.getProfilingInfo.map { case e: ExecutionTime =>
-                  Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
-                }.toVector,
-                value.wasCached(),
-                payload
-              )
+    ctx.endpoint.sendToClient(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              value.getExpressionId,
+              OptionConverters.toScala(value.getType),
+              Some(value.getValue.toString),
+              toMethodPointer(value)
             )
           )
         )
       )
-    }
+    )
   }
 
   private def fireVisualisationUpdates(
@@ -366,49 +203,27 @@ trait ProgramExecutionSupport {
         value.getExpressionId
       )
     visualisations foreach { visualisation =>
-      emitVisualisationUpdate(
-        contextId,
-        visualisation,
-        value.getExpressionId,
-        value.getValue
-      )
+      emitVisualisationUpdate(contextId, value, visualisation)
     }
   }
 
-  /** Compute the visualisation of the expression value and send an update.
-    *
-    * @param contextId an identifier of an execution context
-    * @param visualisation the visualisation data
-    * @param expressionId the id of expression to visualise
-    * @param expressionValue the value of expression to visualise
-    * @param ctx the runtime context
-    */
-  def emitVisualisationUpdate(
+  private def emitVisualisationUpdate(
     contextId: ContextId,
-    visualisation: Visualisation,
-    expressionId: UUID,
-    expressionValue: AnyRef
+    value: ExpressionValue,
+    visualisation: Visualisation
   )(implicit ctx: RuntimeContext): Unit = {
     val errorMsgOrVisualisationData =
       Either
         .catchNonFatal {
-          ctx.executionService.getLogger.log(
-            Level.FINEST,
-            s"Executing visualisation ${visualisation.expressionId}"
-          )
           ctx.executionService.callFunction(
             visualisation.callback,
-            expressionValue
+            value.getValue
           )
         }
         .leftMap(_.getMessage)
         .flatMap {
-          case text: String =>
-            Right(text.getBytes("UTF-8"))
-          case text: Text =>
-            Right(text.toString.getBytes("UTF-8"))
-          case bytes: Array[Byte] =>
-            Right(bytes)
+          case text: String       => Right(text.getBytes("UTF-8"))
+          case bytes: Array[Byte] => Right(bytes)
           case other =>
             Left(s"Cannot encode ${other.getClass} to byte array")
         }
@@ -420,17 +235,13 @@ trait ProgramExecutionSupport {
         )
 
       case Right(data) =>
-        ctx.executionService.getLogger.log(
-          Level.FINEST,
-          s"Sending visualisation ${visualisation.expressionId}"
-        )
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationUpdate(
               Api.VisualisationContext(
                 visualisation.id,
                 contextId,
-                expressionId
+                value.getExpressionId
               ),
               data
             )
@@ -441,31 +252,23 @@ trait ProgramExecutionSupport {
 
   private def toMethodPointer(
     value: ExpressionValue
-  ): Option[Api.MethodPointer] =
+  )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
     for {
-      call       <- Option(value.getCallInfo)
-      moduleName <- Option(call.getModuleName)
-      typeName   <- Option(call.getTypeName)
+      call          <- Option(value.getCallInfo)
+      qualifiedName <- QualifiedName.fromString(call.getCallTargetName)
+      moduleName    <- qualifiedName.getParent
+      functionName  <- QualifiedName.fromString(call.getFunctionName)
+      typeName      <- functionName.getParent
+      module <- OptionConverters.toScala(
+        ctx.executionService.getContext.getTopScope
+          .getModule(moduleName.toString)
+      )
+      modulePath <- Option(module.getPath)
     } yield Api.MethodPointer(
-      moduleName.toString,
+      new File(modulePath),
       typeName.toString,
-      call.getFunctionName
+      functionName.module
     )
-
-  /** Find source file path by the module name.
-    *
-    * @param module the module name
-    * @param ctx the runtime context
-    * @return the source file path
-    */
-  private def findFileByModuleName(
-    module: String
-  )(implicit ctx: RuntimeContext): Option[File] =
-    for {
-      module <- ctx.executionService.getContext.findModule(module).toScala
-      path   <- Option(module.getPath)
-    } yield new File(path)
-
 }
 
 object ProgramExecutionSupport {
@@ -489,4 +292,39 @@ object ProgramExecutionSupport {
     expressionId: UUID,
     cache: RuntimeCache
   )
+
+  /** An execution item. */
+  sealed private trait ExecutionItem
+  private object ExecutionItem {
+
+    /** The explicit method call.
+      *
+      * @param file the file containing the method
+      * @param constructor the type on which the method is defined
+      * @param function the method name
+      */
+    case class Method(file: File, constructor: String, function: String)
+        extends ExecutionItem
+
+    object Method {
+
+      /** Construct the method call from the [[Api.StackItem.ExplicitCall]].
+        *
+        * @param call the Api call
+        * @return the method call
+        */
+      def apply(call: Api.StackItem.ExplicitCall): Method =
+        Method(
+          call.methodPointer.file,
+          call.methodPointer.definedOnType,
+          call.methodPointer.name
+        )
+    }
+
+    /** The call data captured during the program execution.
+      *
+      * @param callData the fucntion call data
+      */
+    case class CallData(callData: FunctionCall) extends ExecutionItem
+  }
 }

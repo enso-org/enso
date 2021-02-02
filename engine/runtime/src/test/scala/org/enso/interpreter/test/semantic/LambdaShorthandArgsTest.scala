@@ -156,11 +156,8 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used with dot notation" in {
       val code =
         """
-          |import Builtins
-          |
-          |Builtins.Number.f = this + 10
-          |
           |main =
+          |    f = (+ 10)
           |    fun = _.f
           |    fun 10
           |""".stripMargin

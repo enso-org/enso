@@ -1,5 +1,13 @@
 package org.enso.interpreter.test
 
+import java.io.{
+  ByteArrayOutputStream,
+  PipedInputStream,
+  PipedOutputStream,
+  PrintStream
+}
+import java.util.UUID
+
 import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
@@ -19,14 +27,6 @@ import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import java.io.{
-  ByteArrayOutputStream,
-  PipedInputStream,
-  PipedOutputStream,
-  PrintStream
-}
-import java.util.UUID
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
 
@@ -212,7 +212,7 @@ trait InterpreterBehavior {
 
   def specify(implicit interpreterContext: InterpreterContext): Unit
 
-  def contextModifiers: Option[Context#Builder => Context#Builder] = None
+  def contextModifiers: Context#Builder => Context#Builder = bldr => bldr
 }
 
 trait InterpreterTest
@@ -224,35 +224,18 @@ trait InterpreterTest
 
   subject when {
     "Context is Cached" should {
-      behave like specify(contextModifiers match {
-        case Some(mods) => new InterpreterContext(mods)
-        case None       => GlobalContexts.cachedContext
-      })
+      behave like specify(new InterpreterContext(contextModifiers))
     }
   }
 
   subject when {
     "Context is Uncached" should {
       behave like specify(
-        contextModifiers match {
-          case Some(mods) =>
-            new InterpreterContext(
-              mods.andThen(
-                _.option(RuntimeOptions.DISABLE_INLINE_CACHES, "true")
-              )
-            )
-          case None => GlobalContexts.uncachedContext
-        }
+        new InterpreterContext(
+          contextModifiers
+            .andThen(_.option(RuntimeOptions.DISABLE_INLINE_CACHES, "true"))
+        )
       )
     }
   }
-}
-
-object GlobalContexts {
-  val defaultMods: Context#Builder => Context#Builder = bldr => bldr
-  val cachedContext =
-    new InterpreterContext(defaultMods)
-  val uncachedContext = new InterpreterContext(
-    _.option(RuntimeOptions.DISABLE_INLINE_CACHES, "true")
-  )
 }

@@ -126,11 +126,6 @@ case object DataflowAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "dataflow analysis."
         )
-      case _: IR.Name.Annotation =>
-        throw new CompilerError(
-          "Annotations should already be associated by the point of " +
-            "dataflow analysis."
-        )
       case err: IR.Error => err
     }
   }

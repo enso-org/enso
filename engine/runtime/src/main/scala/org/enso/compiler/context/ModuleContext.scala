@@ -15,6 +15,5 @@ case class ModuleContext(
   ensoContext: Option[Context]                 = None,
   moduleScope: Option[ModuleScope]             = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
-  passConfiguration: Option[PassConfiguration] = None,
-  noWarnings: Boolean                          = false
+  passConfiguration: Option[PassConfiguration] = None
 )

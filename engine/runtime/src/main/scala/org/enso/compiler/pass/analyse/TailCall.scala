@@ -7,7 +7,6 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.resolve.ExpressionAnnotations
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -114,11 +113,6 @@ case object TailCall extends IRPass {
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
         )
-      case _: IR.Name.Annotation =>
-        throw new CompilerError(
-          "Annotations should already be associated by the point of " +
-          "tail call analysis."
-        )
       case err: IR.Error => err
     }
   }
@@ -134,19 +128,14 @@ case object TailCall extends IRPass {
     expression: IR.Expression,
     isInTailPosition: Boolean
   ): IR.Expression = {
-    val expressionWithWarning =
-      if (isTailAnnotated(expression) && !isInTailPosition)
-        expression.addDiagnostic(IR.Warning.WrongTco(expression.location))
-      else expression
-    expressionWithWarning match {
+    expression match {
       case empty: IR.Empty =>
         empty.updateMetadata(this -->> TailPosition.NotTail)
-      case function: IR.Function =>
-        analyseFunction(function, isInTailPosition)
-      case caseExpr: IR.Case   => analyseCase(caseExpr, isInTailPosition)
-      case typ: IR.Type        => analyseType(typ, isInTailPosition)
-      case app: IR.Application => analyseApplication(app, isInTailPosition)
-      case name: IR.Name       => analyseName(name, isInTailPosition)
+      case function: IR.Function => analyseFunction(function, isInTailPosition)
+      case caseExpr: IR.Case     => analyseCase(caseExpr, isInTailPosition)
+      case typ: IR.Type          => analyseType(typ, isInTailPosition)
+      case app: IR.Application   => analyseApplication(app, isInTailPosition)
+      case name: IR.Name         => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: IR.Literal => analyseLiteral(literal, isInTailPosition)
@@ -154,32 +143,22 @@ case object TailCall extends IRPass {
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
-      case block @ IR.Expression.Block(
-            expressions,
-            returnValue,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
         block
           .copy(
-            expressions = expressions.map(
-              analyseExpression(_, isInTailPosition = false)
-            ),
+            expressions =
+              expressions.map(analyseExpression(_, isInTailPosition = false)),
             returnValue = analyseExpression(returnValue, isInTailPosition)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding
           .copy(
-            expression = analyseExpression(expression, isInTailPosition = false)
+            expression = analyseExpression(expression, isInTailPosition)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case err: IR.Diagnostic =>
-        err.updateMetadata(
-          this -->> TailPosition.fromBool(isInTailPosition)
-        )
+        err.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
     }
   }
 
@@ -379,8 +358,6 @@ case object TailCall extends IRPass {
             fields      = fields.map(analysePattern)
           )
           .updateMetadata(this -->> TailPosition.NotTail)
-      case err: IR.Error.Pattern =>
-        err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
@@ -481,22 +458,5 @@ case object TailCall extends IRPass {
     implicit def toBool(tailPosition: TailPosition): Boolean = {
       tailPosition.isTail
     }
-  }
-
-  /** Checks if the provided `expression` is annotated with a tail call
-    * annotation.
-    *
-    * @param expression the expression to check
-    * @return `true` if `expression` is annotated with `@Tail_Call`, otherwise
-    *         `false`
-    */
-  def isTailAnnotated(expression: IR.Expression): Boolean = {
-    expression
-      .getMetadata(ExpressionAnnotations)
-      .exists(anns =>
-        anns.annotations.exists(a =>
-          a.name == ExpressionAnnotations.tailCallName
-        )
-      )
   }
 }

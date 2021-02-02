@@ -5,8 +5,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.commons.cli.CommandLine
-import org.enso.loggingservice.{ColorMode, LogLevel}
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -14,24 +12,27 @@ import org.enso.projectmanager.boot.Globals.{
   SuccessExitCode
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
-import pureconfig.generic.auto._
 import zio.ZIO.effectTotal
 import zio._
 import zio.console._
 import zio.interop.catz.core._
+import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
+import org.enso.version.VersionDescription
+import pureconfig.generic.auto._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
-/** Project manager runner containing the main method.
+/**
+  * Project manager runner containing the main method.
   */
 object ProjectManager extends App with LazyLogging {
 
-  /** A configuration of the project manager.
+  /**
+    * A configuration of the project manager.
     */
-  lazy val config: ProjectManagerConfig =
+  val config: ProjectManagerConfig =
     ConfigSource
       .resources(ConfigFilename)
       .withFallback(ConfigSource.systemProperties)
@@ -48,12 +49,14 @@ object ProjectManager extends App with LazyLogging {
       th => logger.error("An expected error occurred", th)
     )
 
-  /** ZIO runtime.
+  /**
+    * ZIO runtime.
     */
   implicit val runtime =
     Runtime(Globals.zioEnvironment, new ZioPlatform(computeExecutionContext))
 
-  /** Main process starting up the server.
+  /**
+    * Main process starting up the server.
     */
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] = {
     val mainModule =
@@ -95,67 +98,26 @@ object ProjectManager extends App with LazyLogging {
         success = ZIO.succeed(_)
       )
 
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
-    Cli.parse(args.toArray) match {
-      case Right(opts) =>
-        runOpts(opts)
-      case Left(error) =>
-        putStrLn(error) *>
-        effectTotal(Cli.printHelp()) *>
-        ZIO.succeed(FailureExitCode)
-    }
-  }
-
-  /** The main function of the application, which will be passed the command-line
+  /**
+    * The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, ExitCode] = {
-    if (options.hasOption(Cli.HELP_OPTION)) {
-      ZIO.effectTotal(Cli.printHelp()) *>
-      ZIO.succeed(SuccessExitCode)
-    } else if (options.hasOption(Cli.VERSION_OPTION)) {
-      displayVersion(options.hasOption(Cli.JSON_OPTION))
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+    if (args.contains("--version")) {
+      displayVersion(args.contains("--json"))
     } else {
-      val verbosity = options.getOptions.count(_ == Cli.option.verbose)
       logger.info("Starting Project Manager...")
-      setupLogging(verbosity) *>
       mainProcess.fold(
-        th => {
-          logger.error("Main process execution failed.", th)
-          FailureExitCode
-        },
+        th => { th.printStackTrace(); FailureExitCode },
         _ => SuccessExitCode
       )
     }
   }
 
-  private def setupLogging(verbosityLevel: Int): ZIO[Console, Nothing, Unit] = {
-    val level = verbosityLevel match {
-      case 0 => LogLevel.Info
-      case 1 => LogLevel.Debug
-      case _ => LogLevel.Trace
-    }
-
-    // TODO [RW] at some point we may want to allow customization of color
-    //  output in CLI flags
-    val colorMode = ColorMode.Auto
-
-    ZIO
-      .effect {
-        Logging.setup(Some(level), None, colorMode)
-      }
-      .catchAll { exception =>
-        putStrLnErr(s"Failed to setup the logger: $exception")
-      }
-  }
-
-  private def displayVersion(
-    useJson: Boolean
-  ): ZIO[Console, Nothing, ExitCode] = {
+  private def displayVersion(useJson: Boolean): ZIO[Console, Nothing, Int] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true
+      includeRuntimeJVMInfo = true
     )
     putStrLn(versionDescription.asString(useJson)) *>
     ZIO.succeed(SuccessExitCode)
@@ -164,8 +126,7 @@ object ProjectManager extends App with LazyLogging {
   private def logServerStartup(): UIO[Unit] =
     effectTotal {
       logger.info(
-        s"Started server at ${config.server.host}:${config.server.port}, " +
-        s"press enter to kill server"
+        s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
       )
     }
 

@@ -24,20 +24,11 @@ transport formats, please look [here](./protocol-architecture).
   - [`StackItem`](#stackitem)
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
-  - [`ExpressionUpdate`](#expressionupdate)
-  - [`ExpressionUpdatePayload`](#expressionupdatepayload)
-  - [`ProfilingInfo`](#profilinginfo)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
-  - [`SuggestionId`](#suggestionid)
-  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
-  - [`FieldAction`](#fieldaction)
-  - [`FieldUpdate`](#fieldupdate)
-  - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
-  - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
   - [`FileAttributes`](#fileattributes)
@@ -46,9 +37,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`Position`](#position)
   - [`Range`](#range)
   - [`TextEdit`](#textedit)
-  - [`DiagnosticType`](#diagnostictype)
-  - [`StackTraceElement`](#stacktraceelement)
-  - [`Diagnostic`](#diagnostic)
   - [`SHA3-224`](#sha3-224)
   - [`FileEdit`](#fileedit)
   - [`FileContents`](#filecontents)
@@ -68,8 +56,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
-  - [Enables](#enables)
-  - [Disables](#disables)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -99,9 +85,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
-  - [`heartbeat/init`](#heartbeatinit)
-- [Refactoring](#refactoring)
-  - [`refactoring/renameProject`](#refactoringrenameproject)
 - [Execution Management Operations](#execution-management-operations)
   - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
@@ -114,27 +97,23 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
-  - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
-  - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
-  - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+  - [`executionContext/executionFailed`](#executioncontextexecutionFailed)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
 - [Search Operations](#search-operations)
-  - [Suggestions Database Example](#suggestions-database-example)
+  - [Suggestions Database Example](#suggestionsdatabaseexample)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
-  - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
-  - [`search/import`](#searchimport)
-- [Input/Output Operations](#inputoutput-operations)
-  - [`io/redirectStandardOutput`](#ioredirectstandardoutput)
-  - [`io/suppressStandardOutput`](#iosuppressstandardoutput)
+- [Input/Output Operations](#input-output-operations)
+  - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
+  - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
   - [`io/standardOutputAppended`](#iostandardoutputappended)
-  - [`io/redirectStandardError`](#ioredirectstandarderror)
-  - [`io/suppressStandardError`](#iosuppressstandarderror)
+  - [`io/redirectStandardError`](#ioredirectstdarderror)
+  - [`io/suppressStandardError`](#iosuppressstdarderror)
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
@@ -154,6 +133,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`VisualisationEvaluationError`](#visualisationevaluationerror)
+  - [`ExecutionFailedError`](#executionfailederror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -162,9 +142,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
   - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
-  - [`ProjectNotFoundError`](#projectnotfounderror)
-  - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
-  - [`SuggestionNotFoundError`](#suggestionnotfounderror)
 
 <!-- /MarkdownTOC -->
 
@@ -187,6 +164,10 @@ An identifier used for execution contexts.
 
 ```typescript
 type ContextId = UUID;
+```
+
+```typescript
+type SuggestionEntryId = number;
 ```
 
 ### `StackItem`
@@ -221,134 +202,20 @@ Points to a method definition.
 
 ```typescript
 interface MethodPointer {
-  /** The fully qualified module name. */
-  module: String;
-
-  /** The type on which the method is defined. */
+  file: Path;
   definedOnType: String;
-
-  /** The method name. */
   name: String;
 }
 ```
 
 ### `ExpressionValueUpdate`
 
-Metadata on an updated expression.
-
 ```typescript
 interface ExpressionValueUpdate {
-  /** The id of updated expression */
-  expressionId: ExpressionId;
-
-  /** The updated type of the expression */
+  id: ExpressionId;
   type?: String;
-
-  /** The updated pointer to the method call */
-  methodPointer?: SuggestionId;
-
-  /** Profiling information for the expression */
-  profilingInfo: ProfilingInfo[];
-
-  /** Whether the expression value came from the cache or not */
-  fromCache: bool;
-}
-```
-
-Currently, the `profilingInfo` array is guaranteed to contain at least the
-`ExecutionTime` information.
-
-### `ProfilingInfo`
-
-Profiling information on an executed expression. It is implemented as a union as
-additional types of information will be added in the future.
-
-```typescript
-type ProfilingInfo = ExecutionTime;
-```
-
-Where:
-
-```typescript
-interface ExecutionTime {
-  /** The time elapsed during the expression's evaluation, in nanoseconds */
-  nanoTime: Number;
-}
-```
-
-### `ExpressionUpdate`
-
-An update about the computed expression.
-
-```typescript
-interface ExpressionUpdate {
-  /**
-   * The id of updated expression.
-   */
-  expressionId: ExpressionId;
-
-  /**
-   * The updated type of the expression.
-   */
-  type?: String;
-
-  /**
-   * The updated pointer to the method call.
-   */
-  methodPointer?: SuggestionId;
-
-  /**
-   * Profiling information about the expression.
-   */
-  profilingInfo: ProfilingInfo[];
-
-  /**
-   * Wether or not the expression's value came from the cache.
-   */
-  fromCache: bool;
-
-  /**
-   * An extra information about the computed value.
-   */
-  payload: ExpressionUpdatePayload;
-}
-```
-
-### `ExpressionUpdatePayload`
-
-An information about the computed value.
-
-```typescript
-type ExpressionUpdatePayload = Value | DatafalowError | Panic;
-
-/**
- * An empty payload. Indicates that the expression was computed to a value.
- */
-interface Value {}
-
-/**
- * Indicates that the expression was computed to an error.
- */
-interface DataflowError {
-  /**
-   * The list of expressions leading to the root error.
-   */
-  trace: ExpressionId[];
-}
-
-/**
- * Indicates that the expression failed with the runtime exception.
- */
-interface Panic {
-  /**
-   * The error message.
-   */
-  message: String;
-
-  /**
-   * The stack trace.
-   */
-  trace: ExpressionId[];
+  shortValue?: String;
+  methodCall?: MethodPointer;
 }
 ```
 
@@ -405,6 +272,7 @@ The language construct that can be returned as a suggestion.
 ```typescript
 // The definition scope
 interface SuggestionEntryScope {
+
   // The start position of the definition scope
   start: Position;
   // The end position of the definition scope
@@ -412,46 +280,43 @@ interface SuggestionEntryScope {
 }
 
 // A type of suggestion entries.
-type SuggestionEntry =
+type SuggestionEntry
   // A value constructor
-  | SuggestionEntryAtom
+  = SuggestionEntryAtom
   // A method defined on a type
   | SuggestionEntryMethod
   // A function
   | SuggestionEntryFunction
   // A local value
   | SuggestionEntryLocal;
+}
 
 interface SuggestionEntryAtom {
-  externalId?: UUID;
   name: string;
   module: string;
-  arguments: SuggestionEntryArgument[];
+  arguments: [SuggestionEntryArgument];
   returnType: string;
   documentation?: string;
 }
 
 interface SuggestionEntryMethod {
-  externalId?: UUID;
   name: string;
   module: string;
-  arguments: SuggestionEntryArgument[];
+  arguments: [SuggestionEntryArgument];
   selfType: string;
   returnType: string;
   documentation?: string;
 }
 
 interface SuggestionEntryFunction {
-  externalId?: UUID;
   name: string;
   module: string;
-  arguments: SuggestionEntryArgument[];
+  arguments: [SuggestionEntryArgument];
   returnType: string;
   scope: SuggestionEntryScope;
 }
 
 interface SuggestionEntryLocal {
-  externalId?: UUID;
   name: string;
   module: string;
   returnType: string;
@@ -470,16 +335,6 @@ The suggestion entry type that is used as a filter in search requests.
 type SuggestionEntryType = Atom | Method | Function | Local;
 ```
 
-### `SuggestionId`
-
-The suggestion entry id of the suggestions database.
-
-#### Format
-
-```typescript
-type SuggestionId = number;
-```
-
 ### `SuggestionsDatabaseEntry`
 
 #### Format
@@ -488,106 +343,10 @@ The entry in the suggestions database.
 
 ```typescript
 interface SuggestionsDatabaseEntry {
-  /**
-   * The suggestion entry id.
-   */
-  id: SuggestionId;
-
-  /**
-   * The suggestion entry.
-   */
+  // suggestion entry id
+  id: number;
+  // suggestion entry
   suggestion: SuggestionEntry;
-}
-```
-
-### `FieldAction`
-
-The modifying action on a record field.
-
-#### Format
-
-```typescript
-type FieldAction = Remove | Set;
-```
-
-### `FieldUpdate`
-
-An object representing a modification of a field in a record.
-
-#### Format
-
-```typescript
-interface FieldUpdate<T> {
-  /**
-   * The modifying action.
-   */
-  tag: FieldAction;
-
-  /**
-   * The updated value.
-   */
-  value?: T;
-}
-```
-
-### `SuggestionArgumentUpdate`
-
-An operation applied to the suggestion argument.
-
-#### Format
-
-```typescript
-type SuggestionArgumentUpdate = Add | Remove | Modify;
-
-interface Add {
-  /**
-   * The position of the argument.
-   */
-  index: int;
-
-  /**
-   * The argument to add.
-   */
-  argument: SuggestionEntryArgument;
-}
-
-interface Remove {
-  /**
-   * The position of the argument.
-   */
-  index: int;
-}
-
-interface Modify {
-  /**
-   * The position of the argument.
-   */
-  index: int;
-
-  /**
-   * The name to update.
-   */
-  name?: FieldUpdate<String>;
-
-  /**
-   * The argument type to update.
-   */
-  reprType?: FieldUpdate<String>;
-
-  /**
-   * The isSuspended flag to update.
-   */
-  isSuspended?: FieldUpdate<Boolean>;
-
-  /**
-   * The hasDefault flag to update.
-   */
-  hasDefault?: FieldUpdate<Boolean>;
-
-  /**
-   * The default value to update.
-   */
-  defaultValue?: FieldUpdate<String>;
 }
 ```
 
@@ -598,91 +357,26 @@ The update of the suggestions database.
 #### Format
 
 ```typescript
-/**
- * The kind of the suggestions database update.
- */
+// The kind of the suggestions database update.
 type SuggestionsDatabaseUpdate = Add | Remove | Modify;
 
 interface Add {
-  /**
-   * Suggestion entry id.
-   */
-  id: SuggestionId;
-
-  /**
-   * Suggestion entry.
-   */
+  // suggestion entry id
+  id: number;
+  // suggestion entry
   suggestion: SuggestionEntry;
 }
 
 interface Remove {
-  /**
-   * Suggestion entry id.
-   */
-  id: SuggestionId;
+  // suggestion entry id
+  id: number;
 }
 
 interface Modify {
-  /**
-   * Suggestion entry id.
-   */
-  id: SuggestionId;
-
-  /**
-   * The external id to update.
-   */
-  externalId?: FieldUpdate<UUID>;
-
-  /**
-   * The list of argument updates.
-   */
-  arguments?: SuggestionArgumentUpdate[];
-
-  /**
-   * The return type to update.
-   */
-  returnType?: FieldUpdate<String>;
-
-  /**
-   * The documentation string to update.
-   */
-  documentation?: FieldUpdate<String>;
-
-  /**
-   * The scope to update.
-   */
-  scope?: FieldUpdate<SuggestionEntryScope>;
-}
-```
-
-### `Export`
-
-The info about module re-export.
-
-#### Format
-
-```typescript
-type Export = Qualified | Unqualified;
-
-interface Qualified {
-  /**
-   * The module that re-exports the given module.
-   */
-  module: String;
-
-  /**
-   * The new name of the given module if it was renamed in the export clause.
-   *
-   * I.e. `X` in `export A.B as X`.
-   */
-  alias?: String;
-}
-
-interface Unqualified {
-  /**
-   * The module name that re-exports the given module.
-   */
-  module: String;
+  // suggestion entry id
+  id: number;
+  // new return type
+  returnType: String;
 }
 ```
 
@@ -832,91 +526,6 @@ A representation of a change to a text file at a given position.
 interface TextEdit {
   range: Range;
   text: String;
-}
-```
-
-### `DiagnosticType`
-
-The type of diagnostic message.
-
-#### Format
-
-```typescript
-type DiagnosticType = Error | Warning;
-```
-
-### `StackTraceElement`
-
-The frame of the stack trace. If the error refer to a builtin node, the `path`
-and `location` fields will be empty.
-
-#### Format
-
-```typescript
-interface StackTraceElement {
-  /**
-   * The function name containing the stack trace element.
-   */
-  functionName: String;
-
-  /**
-   * The location of the file.
-   */
-  path?: Path;
-
-  /**
-   * The location of the element in a file.
-   */
-  location?: Range;
-}
-```
-
-### `Diagnostic`
-
-A diagnostic object is produced as a result of an execution attempt, like
-pushing the method pointer to a call stack, or editing the file. It can
-represent a compiler warning, a compilation error, or a runtime error. The
-message has optional `path`, `location` and `stack` fields containing
-information about the location in the source code.
-
-In case of the runtime errors, the `path` and `location` fields may be empty if
-the error happens in a builtin node. Then, to locate the error in the code, you
-can use the `stack` field with a stack trace to find the first element with
-non-empty location (as the head of the stack will point to the builtin element).
-
-#### Format
-
-```typescript
-interface Diagnostic {
-  /**
-   * The type of diagnostic message.
-   */
-  kind: DiagnosticType;
-
-  /**
-   * The diagnostic message.
-   */
-  message: String;
-
-  /**
-   * The location of a file containing the diagnostic.
-   */
-  path?: Path;
-
-  /**
-   * The location of the diagnostic object in a file.
-   */
-  location?: Range;
-
-  /**
-   * The id of related expression.
-   */
-  expressionId?: ExpressionId;
-
-  /**
-   * The stack trace.
-   */
-  stack: StackTraceElement[];
 }
 ```
 
@@ -1315,9 +924,6 @@ given execution context.
 #### Enables
 
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
-- [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
-- [`executionContext/executionFailed`](#executioncontextexecutionfailed)
-- [`executionContext/executionStatus`](#executioncontextexecutionstatus)
 
 #### Disables
 
@@ -2207,33 +1813,6 @@ null;
 
 None
 
-### `heartbeat/init`
-
-This request is sent from the bootloader to check if the started language server
-instance has finished initialization. A reply should only be sent when the main
-module has been fully initialized.
-
-- **Type:** Request
-- **Direction:** Supervisor -> Server
-- **Connection:** Protocol
-- **Visibility:** Private
-
-#### Parameters
-
-```typescript
-null;
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-None
-
 ## Refactoring
 
 The language server also provides refactoring operations to restructure an
@@ -2693,42 +2272,10 @@ expressions becoming available.
 
 None
 
-### `executionContext/expressionUpdates`
-
-Sent from the server to the client to inform about new information for certain
-expressions becoming available. Supersedes the
-`executionContext/expressionValuesComputed` notification, that will be removed
-in future versions.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  contextId: ContextId;
-  updates: [ExpressionUpdate];
-}
-```
-
-#### Errors
-
-None
-
 ### `executionContext/executionFailed`
 
-Sent from the server to the client to inform about a critical failure when
-attempting to execute a context.
-
-When the [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-notifies about potential problems in the code found by compiler, or the errors
-during runtime, this message signals about the errors in the logic or the
-implementation. It can be a compiler crash, an attempt to execute an empty
-stack, an error location a method or a module when issuing a
-[`executionContext/push`](#executioncontextpush) command.
+Sent from the server to the client to inform about a failure during execution of
+an execution context.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -2739,49 +2286,8 @@ stack, an error location a method or a module when issuing a
 
 ```typescript
 {
-  /**
-   * The identifier of the execution context.
-   */
   contextId: ContextId;
-
-  /**
-   * The error message.
-   */
   message: String;
-
-  /**
-   * The location of a file producing the error.
-   */
-  path?: Path;
-}
-```
-
-#### Errors
-
-None
-
-### `executionContext/executionStatus`
-
-Sent from the server to the client to inform about a status of execution.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The identifier of the execution context.
-   */
-  contextId: ContextId;
-
-  /**
-   * The list of encountered problems.
-   */
-  diagnostics: Diagnostic[];
 }
 ```
 
@@ -3092,7 +2598,7 @@ Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
@@ -3119,33 +2625,6 @@ null;
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
-### `search/invalidateSuggestionsDatabase`
-
-Sent from client to the server to clean the suggestions database resetting the
-version.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-null;
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
-  suggestions database
-
 ### `search/getSuggestionsDatabaseVersion`
 
 Sent from client to the server to receive the current version of the suggestions
@@ -3153,7 +2632,7 @@ database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
@@ -3185,7 +2664,7 @@ database.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
@@ -3207,7 +2686,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
@@ -3231,7 +2710,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 ```typescript
 {
-  results: [SuggestionId];
+  results: [SuggestionEntryId];
   currentVersion: number;
 }
 ```
@@ -3244,56 +2723,6 @@ Sent from client to the server to receive the autocomplete suggestion.
   root directory
 - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
   cannot be extracted from the provided file path parameter
-
-### `search/import`
-
-Sent from client to the server to receive the information required for module
-import.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  /**
-   * The id of suggestion to import.
-   */
-  id: SuggestionId;
-}
-```
-
-#### Result
-
-```typescript
-{
-  /**
-   * The definition module of the suggestion.
-   */
-  module: String;
-
-  /**
-   * The name of the resolved suggestion.
-   */
-  symbol: String;
-
-  /**
-   * The list of modules that re-export the suggestion. Modules are ordered
-   * from the least to most nested.
-   */
-  exports: Export[];
-}
-```
-
-#### Errors
-
-- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
-  suggestions database
-- [`SuggestionNotFoundError`](#suggestionnotfounderror) the requested suggestion
-  was not found in the suggestions database
 
 ## Input/Output Operations
 
@@ -3768,16 +3197,5 @@ Signals that the module name can not be resolved for the given file.
 "error" : {
   "code" : 7003,
   "message" : "Module name can't be resolved for the given file"
-}
-```
-
-### `SuggestionNotFoundError`
-
-Signals that the requested suggestion was not found.
-
-```typescript
-"error" : {
-  "code" : 7004,
-  "message" : "Requested suggestion was not found"
 }
 ```

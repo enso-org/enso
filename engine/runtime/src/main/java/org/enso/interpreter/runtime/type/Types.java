@@ -1,21 +1,18 @@
 package org.enso.interpreter.runtime.type;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.ManagedResource;
-import org.enso.interpreter.runtime.data.Ref;
-import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.number.EnsoBigInteger;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.error.RuntimeError;
+
+import java.util.Optional;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -30,22 +27,27 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 @TypeSystem({
   long.class,
   boolean.class,
-  double.class,
-  Text.class,
+  String.class,
   Function.class,
   Atom.class,
   AtomConstructor.class,
   Thunk.class,
-  DataflowError.class,
-  UnresolvedSymbol.class,
-  Array.class,
-  EnsoBigInteger.class,
-  ManagedResource.class,
-  ModuleScope.class,
-  Ref.class,
-  PanicSentinel.class
+  RuntimeError.class,
+  Vector.class
 })
 public class Types {
+
+  /**
+   * An implicit conversion between {@code int} and {@code long} for Enso programs.
+   *
+   * @param value the value to convert
+   * @return {@code value} as the appropriate type
+   */
+  @ImplicitCast
+  @CompilerDirectives.TruffleBoundary
+  public static long castLong(int value) {
+    return value;
+  }
 
   /**
    * A simple pair type
@@ -99,33 +101,23 @@ public class Types {
    * @param value an object of interest.
    * @return the string representation of object's type.
    */
-  public static String getName(Object value) {
-    if (TypesGen.isLong(value) || TypesGen.isEnsoBigInteger(value)) {
-      return Constants.INTEGER;
-    } else if (TypesGen.isDouble(value)) {
-      return Constants.DECIMAL;
-    } else if (TypesGen.isBoolean(value)) {
-      return Constants.BOOLEAN;
-    } else if (TypesGen.isText(value)) {
-      return Constants.TEXT;
+  public static Optional<String> getName(Object value) {
+    if (TypesGen.isLong(value)) {
+      return Optional.of("Number");
+    } else if (TypesGen.isString(value)) {
+      return Optional.of("Text");
     } else if (TypesGen.isFunction(value)) {
-      return Constants.FUNCTION;
+      return Optional.of("Function");
     } else if (TypesGen.isAtom(value)) {
-      return TypesGen.asAtom(value).getConstructor().getQualifiedName().toString();
+      return Optional.of(TypesGen.asAtom(value).getConstructor().getName());
     } else if (TypesGen.isAtomConstructor(value)) {
-      return TypesGen.asAtomConstructor(value).getQualifiedName().toString();
+      return Optional.of(TypesGen.asAtomConstructor(value).getName());
     } else if (TypesGen.isThunk(value)) {
-      return Constants.THUNK;
-    } else if (TypesGen.isDataflowError(value)) {
-      return Constants.ERROR;
-    } else if (TypesGen.isArray(value)) {
-      return Constants.ARRAY;
-    } else if (TypesGen.isRef(value)) {
-      return Constants.REF;
-    } else if (TypesGen.isPanicSentinel(value)) {
-      return Constants.PANIC;
+      return Optional.of("Thunk");
+    } else if (TypesGen.isRuntimeError(value)) {
+      return Optional.of("Error " + TypesGen.asRuntimeError(value).getPayload().toString());
     } else {
-      return null;
+      return Optional.empty();
     }
   }
 

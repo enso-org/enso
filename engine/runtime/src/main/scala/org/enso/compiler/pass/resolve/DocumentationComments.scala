@@ -4,7 +4,6 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Case.Branch
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
@@ -141,11 +140,6 @@ case object DocumentationComments extends IRPass {
       case doc: IR.Comment.Documentation      => doc
       case tySig: IR.Type.Ascription          => tySig
       case err: IR.Error                      => err
-      case _: IR.Name.Annotation =>
-        throw new CompilerError(
-          "Annotations should already be associated by the point of " +
-            "documentation comment resolution."
-        )
     }
 
   /** Resolves documentation comments in a module.

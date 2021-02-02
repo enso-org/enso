@@ -320,12 +320,7 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Application.Prefix]
 
       val fn = ir.asInstanceOf[IR.Application.Prefix]
-      fn.function shouldEqual IR.Name.Literal(
-        "negate",
-        isReferent = false,
-        isMethod   = true,
-        None
-      )
+      fn.function shouldEqual IR.Name.Literal("negate", None)
 
       val fooArg = fn.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       fooArg.value shouldBe an[IR.Name.Literal]
@@ -359,28 +354,6 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
-    }
-
-    "work for method definitions with operator names" in {
-      val bindings = """
-                       |My.== : My -> Boolean
-                       |My.== that = this.a == that.a
-                       |""".stripMargin.toIrModule.bindings
-
-      val tpIr = bindings(0)
-      tpIr shouldBe a[IR.Type.Ascription]
-      val tp = tpIr.asInstanceOf[IR.Type.Ascription]
-      tp.typed shouldBe a[IR.Name.MethodReference]
-      val methodRef = tp.typed.asInstanceOf[IR.Name.MethodReference]
-      methodRef.typePointer.name shouldEqual "My"
-      methodRef.methodName.name shouldEqual "=="
-
-      val methodIr = bindings(1)
-      methodIr shouldBe a[IR.Module.Scope.Definition.Method.Binding]
-      val method =
-        methodIr.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
-      method.methodReference.methodName.name shouldEqual "=="
-      method.methodReference.typePointer.name shouldEqual "My"
     }
 
     "not recognise pattern match bindings" in {
@@ -537,24 +510,6 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Error.Syntax]
       ir.asInstanceOf[IR.Error.Syntax]
         .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
-    }
-
-    "allow defining methods with operator names" in {
-      val body =
-        """
-          |type My
-          |    type My a
-          |
-          |    + : My -> My
-          |    + that = My this.a+that.a
-          |""".stripMargin.toIrModule.bindings.head
-          .asInstanceOf[IR.Module.Scope.Definition.Type]
-          .body
-
-      body(1) shouldBe an[IR.Type.Ascription]
-      body(2) shouldBe an[IR.Function.Binding]
-      val fun = body(2).asInstanceOf[IR.Function.Binding]
-      fun.name.name shouldEqual "+"
     }
   }
 
@@ -736,18 +691,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .reason shouldBe an[Syntax.InvalidStandaloneSignature.type]
     }
 
-    "properly support dotted operators in ascriptions" in {
-      val ir =
-        """with_output_stream : Vector.Vector -> Any ! File_Error
-          |""".stripMargin.toIrExpression.get
-          .asInstanceOf[IR.Application.Operator.Binary]
-
-      ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
-    }
-
     "work inside type bodies" in {
       val ir =
         """
@@ -809,20 +752,6 @@ class AstToIrTest extends CompilerTest with Inside {
         .value shouldBe an[IR.Application.Operator.Binary]
     }
 
-    // TODO [AA] Syntax error with `f a ->`
-
-    "properly support dotted operators in ascriptions" in {
-      val ir =
-        """with_output_stream : Vector.Vector -> Any ! File_Error
-          |""".stripMargin.toIrExpression.get
-          .asInstanceOf[IR.Application.Operator.Binary]
-
-      ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Name.Qualified]
-    }
-
     "properly support the `in` context ascription operator" in {
       val ir =
         """
@@ -853,72 +782,6 @@ class AstToIrTest extends CompilerTest with Inside {
     }
   }
 
-  "AST translation of top-level annotations" should {
-    "support annotations at the top level" in {
-      val ir =
-        """@My_Annotation
-          |type Foo a b
-          |""".stripMargin.toIrModule
-
-      ir.bindings.head shouldBe an[IR.Name.Annotation]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
-    }
-
-    "support annotations inside complex type bodies" in {
-      val ir =
-        """type My_Type
-          |  @My_Annotation
-          |  type Foo
-          |
-          |  @My_Annotation
-          |  add a = this + a
-          |""".stripMargin.toIrModule
-
-      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Type]
-      val complexType =
-        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Type]
-
-      complexType.body.head shouldBe an[IR.Name.Annotation]
-      complexType.body(2) shouldBe an[IR.Name.Annotation]
-    }
-  }
-
-  "AST translation for imports and exports" should {
-    "properly support different kinds of imports" in {
-      val imports = List(
-        "import Foo.Bar as Baz",
-        "import Foo.Bar",
-        "from Foo.Bar import Baz",
-        "from Foo.Bar import Baz, Spam",
-        "from Foo.Bar import all",
-        "from Foo.Bar as Eggs import all hiding Spam",
-        "from Foo.Bar import all hiding Spam, Eggs"
-      )
-      imports
-        .mkString("\n")
-        .toIrModule
-        .imports
-        .map(_.showCode()) shouldEqual imports
-    }
-
-    "properly support different kinds of exports" in {
-      val exports = List(
-        "export Foo.Bar as Baz",
-        "export Foo.Bar",
-        "from Foo.Bar export Baz",
-        "from Foo.Bar export baz, Spam",
-        "from Foo.Bar export all",
-        "from Foo.Bar as Eggs export all hiding Spam",
-        "from Foo.Bar export all hiding Spam, eggs"
-      )
-      exports
-        .mkString("\n")
-        .toIrModule
-        .exports
-        .map(_.showCode()) shouldEqual exports
-    }
-  }
-
   "AST translation of erroneous constructs" should {
     "result in a syntax error when encountering " +
     "unbalanced parentheses in application" in {
@@ -934,17 +797,19 @@ class AstToIrTest extends CompilerTest with Inside {
 
       inside(ir.bindings(1)) {
         case binding: IR.Module.Scope.Definition.Method.Binding =>
-          inside(binding.body) { case block: IR.Expression.Block =>
-            inside(block.returnValue) {
-              case application: IR.Application.Prefix =>
-                inside(application.arguments.head) {
-                  case argument: IR.CallArgument.Specified =>
-                    inside(argument.value) { case error: IR.Error.Syntax =>
-                      error.reason shouldBe
-                      IR.Error.Syntax.AmbiguousExpression
-                    }
-                }
-            }
+          inside(binding.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case application: IR.Application.Prefix =>
+                  inside(application.arguments.head) {
+                    case argument: IR.CallArgument.Specified =>
+                      inside(argument.value) {
+                        case error: IR.Error.Syntax =>
+                          error.reason shouldBe
+                          IR.Error.Syntax.AmbiguousExpression
+                      }
+                  }
+              }
           }
       }
     }
@@ -959,8 +824,9 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
       inside(ir.bindings.head) {
         case definition: IR.Module.Scope.Definition.Type =>
-          inside(definition.body(2)) { case error: IR.Error.Syntax =>
-            error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
+          inside(definition.body(2)) {
+            case error: IR.Error.Syntax =>
+              error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
           }
       }
     }
@@ -977,21 +843,25 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
       inside(ir.bindings(1)) {
         case main: IR.Module.Scope.Definition.Method.Binding =>
-          inside(main.body) { case block: IR.Expression.Block =>
-            inside(block.returnValue) { case f: IR.Expression.Binding =>
-              inside(f.expression) { case app: IR.Application.Prefix =>
-                inside(app.arguments(1)) {
-                  case arg: IR.CallArgument.Specified =>
-                    inside(arg.value) { case argBlock: IR.Expression.Block =>
-                      inside(argBlock.expressions.head) {
-                        case error: IR.Error.Syntax =>
-                          error.reason shouldBe
-                          IR.Error.Syntax.AmbiguousExpression
+          inside(main.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case f: IR.Expression.Binding =>
+                  inside(f.expression) {
+                    case app: IR.Application.Prefix =>
+                      inside(app.arguments(1)) {
+                        case arg: IR.CallArgument.Specified =>
+                          inside(arg.value) {
+                            case argBlock: IR.Expression.Block =>
+                              inside(argBlock.expressions.head) {
+                                case error: IR.Error.Syntax =>
+                                  error.reason shouldBe
+                                  IR.Error.Syntax.AmbiguousExpression
+                              }
+                          }
                       }
-                    }
-                }
+                  }
               }
-            }
           }
       }
     }

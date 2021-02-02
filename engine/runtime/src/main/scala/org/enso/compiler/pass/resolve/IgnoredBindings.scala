@@ -61,10 +61,7 @@ case object IgnoredBindings extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        InlineContext(
-          moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
-        )
+        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
     )
 
@@ -156,8 +153,8 @@ case object IgnoredBindings extends IRPass {
     function match {
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
         val argIsIgnore = args.map(isIgnoreArg)
-        val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
-          genNewArg(arg, isIgnore, supply)
+        val newArgs = args.zip(argIsIgnore).map {
+          case (arg, isIgnore) => genNewArg(arg, isIgnore, supply)
         }
 
         lam.copy(
@@ -249,9 +246,9 @@ case object IgnoredBindings extends IRPass {
     */
   def isIgnore(ir: IR.Name): Boolean = {
     ir match {
-      case _: IR.Name.Blank                     => true
-      case IR.Name.Literal(name, _, _, _, _, _) => name == "_"
-      case _                                    => false
+      case _: IR.Name.Blank               => true
+      case IR.Name.Literal(name, _, _, _) => name == "_"
+      case _                              => false
     }
   }
 
@@ -325,7 +322,6 @@ case object IgnoredBindings extends IRPass {
         cons.copy(
           fields = fields.map(resolvePattern(_, supply))
         )
-      case err: IR.Error.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
