@@ -7,18 +7,18 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
-    type = "Any",
-    name = "catch",
+    type = "Error",
+    name = "catch_primitive",
     description =
         "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.",
     alwaysDirect = false)
 public class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
-  private final ConditionProfile executionProfile = ConditionProfile.createCountingProfile();
 
   CatchErrorNode() {
     this.invokeCallableNode =
@@ -29,12 +29,9 @@ public class CatchErrorNode extends Node {
     this.invokeCallableNode.markTail();
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
-    if (executionProfile.profile(TypesGen.isRuntimeError(_this))) {
-      return invokeCallableNode.execute(
-          handler, frame, state, new Object[] {TypesGen.asRuntimeError(_this).getPayload()});
-    } else {
-      return new Stateful(state, _this);
-    }
+  Stateful execute(
+      VirtualFrame frame, @MonadicState Object state, DataflowError _this, Object handler) {
+    return invokeCallableNode.execute(
+        handler, frame, state, new Object[] {TypesGen.asDataflowError(_this).getPayload()});
   }
 }

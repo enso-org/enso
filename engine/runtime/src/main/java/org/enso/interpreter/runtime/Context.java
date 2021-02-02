@@ -1,13 +1,18 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
@@ -15,7 +20,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
@@ -35,11 +39,15 @@ public class Context {
   private final Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
-  private final BufferedReader in;
-  private final List<Package<TruffleFile>> packages;
-  private final TopLevelScope topScope;
+  private final InputStream in;
+  private final BufferedReader inReader;
+  private List<Package<TruffleFile>> packages;
+  private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
+  private final ResourceManager resourceManager;
   private final boolean isCachingDisabled;
+  private final Builtins builtins;
+  private final String home;
 
   /**
    * Creates a new Enso context.
@@ -52,11 +60,21 @@ public class Context {
     this.environment = environment;
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
-    this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    this.in = environment.in();
+    this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
+    this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
-    TruffleFileSystem fs = new TruffleFileSystem();
+    this.home = home;
 
+    builtins = new Builtins(this);
+
+    this.compiler = new Compiler(this, builtins);
+  }
+
+  /** Perform expensive initialization logic for the context. */
+  public void initialize() {
+    TruffleFileSystem fs = new TruffleFileSystem();
     packages = new ArrayList<>();
 
     if (home != null) {
@@ -90,9 +108,8 @@ public class Context {
                 Collectors.toMap(
                     srcFile -> srcFile.qualifiedName().toString(),
                     srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
-    topScope = new TopLevelScope(new Builtins(this), knownFiles);
 
-    this.compiler = new Compiler(this);
+    topScope = new TopLevelScope(builtins, knownFiles);
   }
 
   public TruffleFile getTruffleFile(File file) {
@@ -153,44 +170,15 @@ public class Context {
   /**
    * Returns the standard input stream for this context.
    *
-   * @return the standard input stream for this context
+   * @return the standard input stream of bytes.
    */
-  public BufferedReader getIn() {
+  public InputStream getIn() {
     return in;
   }
 
-  /**
-   * Creates a new module scope that automatically imports all the builtin types and methods.
-   *
-   * @param module the module related to the newly created scope.
-   * @return a new module scope with automatic builtins dependency.
-   */
-  public ModuleScope createScope(Module module) {
-    ModuleScope moduleScope = new ModuleScope(module);
-    initializeScope(moduleScope);
-    return moduleScope;
-  }
-
-  /**
-   * Creates a new module with scope that automatically imports all the builtin types and methods.
-   *
-   * @param name the qualified name of the newly created module.
-   * @return a new module containing scope with automatic builtins dependency.
-   */
-  public Module createModule(QualifiedName name) {
-    Module module = Module.empty(name);
-    initializeScope(module.parseScope(this));
-    return module;
-  }
-
-  /**
-   * Removes all contents from a given scope.
-   *
-   * @param scope the scope to reset.
-   */
-  public void resetScope(ModuleScope scope) {
-    scope.reset();
-    initializeScope(scope);
+  /** @return the standard input stream of characters. */
+  public BufferedReader getInReader() {
+    return inReader;
   }
 
   /**
@@ -219,21 +207,16 @@ public class Context {
     topScope.renameProjectInModules(oldName, newName);
   }
 
-
   private void renamePackages(String oldName, String newName) {
     List<Package<TruffleFile>> toChange =
-      packages
-        .stream()
-        .filter(p -> p.config().name().equals(oldName))
-        .collect(Collectors.toList());
+        packages.stream()
+            .filter(p -> p.config().name().equals(oldName))
+            .collect(Collectors.toList());
 
     packages.removeAll(toChange);
 
     List<Package<TruffleFile>> renamed =
-     toChange
-       .stream()
-       .map(p -> p.setPackageName(newName))
-       .collect(Collectors.toList());
+        toChange.stream().map(p -> p.setPackageName(newName)).collect(Collectors.toList());
 
     packages.addAll(renamed);
   }
@@ -259,6 +242,23 @@ public class Context {
   }
 
   /**
+   * Finds the package the provided module belongs to.
+   *
+   * @param module the module to find the package of
+   * @return {@code module}'s package, if exists
+   */
+  public Optional<Package<TruffleFile>> getPackageOf(Module module) {
+    if (module.getSourceFile() == null) {
+      return Optional.empty();
+    }
+    return packages.stream()
+        .filter(
+            pkg ->
+                module.getSourceFile().getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
+        .findFirst();
+  }
+
+  /**
    * Registers a new module corresponding to a given file.
    *
    * @param path the file to register.
@@ -267,10 +267,6 @@ public class Context {
   public Optional<Module> createModuleForFile(File path) {
     return getModuleNameForFile(path)
         .map(name -> getTopScope().createModule(name, getTruffleFile(path)));
-  }
-
-  private void initializeScope(ModuleScope scope) {
-    scope.addImport(getBuiltins().getScope());
   }
 
   /**
@@ -298,7 +294,7 @@ public class Context {
    * @return the builtin {@code Unit} atom constructor
    */
   public AtomConstructor getUnit() {
-    return getBuiltins().unit();
+    return getBuiltins().nothing();
   }
 
   /**
@@ -320,8 +316,15 @@ public class Context {
     return threadManager;
   }
 
+  /** @return the resource manager for this context */
+  public ResourceManager getResourceManager() {
+    return resourceManager;
+  }
+
   /** @return whether inline caches should be disabled for this context. */
   public boolean isCachingDisabled() {
     return isCachingDisabled;
   }
+
+
 }

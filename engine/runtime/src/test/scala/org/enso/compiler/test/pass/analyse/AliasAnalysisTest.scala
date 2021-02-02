@@ -233,9 +233,9 @@ class AliasAnalysisTest extends CompilerTest {
     childScope.add(aUse2)
     childScope.add(cUse)
 
-    val use1Link = graph.resolveUsage(aUse1)
-    val use2Link = graph.resolveUsage(aUse2)
-    val cUseLink = graph.resolveUsage(cUse)
+    val use1Link = graph.resolveLocalUsage(aUse1)
+    val use2Link = graph.resolveLocalUsage(aUse2)
+    val cUseLink = graph.resolveLocalUsage(cUse)
 
     "allow itself to be deep copied" in {
       val graphCopy = graph.copy

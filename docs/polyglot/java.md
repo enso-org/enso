@@ -75,9 +75,12 @@ the following:
   sure that they are available.
 - Create java-compatible object entities that dynamically look up and dispatch
   both static methods on classes (by name), and methods on objects (by name).
-  This includes the constructor.
+  This includes the constructor and field reads.
 - This invocation syntax is integrated into Enso as variadic methods, allowing
   us to deal with the inter-language impedance mismatch.
+- Due to different semantics of Java calls, currying and over-applying functions
+  are necessarily disabled for such calls, instead expecting the exact arguments
+  list to be passed.
 
 An example can be found below:
 
@@ -85,9 +88,9 @@ An example can be found below:
 polyglot java import com.example.MyClass as MyClassJava
 
 main =
-    x = MyClassJava.foo [1, 2, 3]
-    inst = MyClassJava.new [a, b, c]
-    bar = inst.methodName [x, y]
+    x = MyClassJava.foo 1 2 3
+    inst = MyClassJava.new a b c
+    bar = inst.methodName x y
 ```
 
 > The actionables for this section are:

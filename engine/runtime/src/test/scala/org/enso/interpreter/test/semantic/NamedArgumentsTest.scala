@@ -1,25 +1,26 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 
 class NamedArgumentsTest extends InterpreterTest {
   override def subject: String = "Named and Default Arguments"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "be used in function bodies" in {
       val code =
-        """
-          |Unit.a = 10
-          |Unit.addTen = b -> a Unit + b
+        """from Builtins import all
           |
-          |main = addTen Unit (b = 10)
+          |Nothing.a = 10
+          |Nothing.add_ten = b -> Nothing.a + b
+          |
+          |main = Nothing.add_ten (b = 10)
       """.stripMargin
 
       eval(code) shouldEqual 20
@@ -27,10 +28,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be passed when given out of order" in {
       val code =
-        """
-          |Unit.subtract = a -> b -> a - b
+        """from Builtins import all
           |
-          |main = subtract Unit (b = 10) (a = 5)
+          |Nothing.subtract = a -> b -> a - b
+          |
+          |main = Nothing.subtract (b = 10) (a = 5)
     """.stripMargin
 
       eval(code) shouldEqual -5
@@ -51,10 +53,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be definable" in {
       val code =
-        """
-          |Unit.addNum = a -> (num = 10) -> a + num
+        """from Builtins import all
           |
-          |main = addNum Unit 5
+          |Nothing.add_num = a -> (num = 10) -> a + num
+          |
+          |main = Nothing.add_num 5
     """.stripMargin
 
       eval(code) shouldEqual 15
@@ -62,11 +65,12 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to default to complex expressions" in {
       val code =
-        """
-          |Unit.add = a -> b -> a + b
-          |Unit.doThing = a -> (b = add Unit 1 2) -> a + b
+        """from Builtins import all
           |
-          |main = doThing Unit 10
+          |Nothing.add = a -> b -> a + b
+          |Nothing.do_thing = a -> (b = Nothing.add 1 2) -> a + b
+          |
+          |main = Nothing.do_thing 10
           |""".stripMargin
 
       eval(code) shouldEqual 13
@@ -87,10 +91,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in functions when no arguments are supplied" in {
       val code =
-        """
-          |Unit.addTogether = (a = 5) -> (b = 6) -> a + b
+        """from Builtins import all
           |
-          |main = addTogether Unit
+          |Nothing.add_together = (a = 5) -> (b = 6) -> a + b
+          |
+          |main = Nothing.add_together
     """.stripMargin
 
       eval(code) shouldEqual 11
@@ -98,10 +103,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be overridable by name" in {
       val code =
-        """
-          |Unit.addNum = a -> (num = 10) -> a + num
+        """from Builtins import all
           |
-          |main = addNum Unit 1 (num = 1)
+          |Nothing.add_num = a -> (num = 10) -> a + num
+          |
+          |main = Nothing.add_num 1 (num = 1)
     """.stripMargin
 
       eval(code) shouldEqual 2
@@ -109,10 +115,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "overridable by position" in {
       val code =
-        """
-          |Unit.addNum = a -> (num = 10) -> a + num
+        """from Builtins import all
           |
-          |main = addNum Unit 1 2
+          |Nothing.add_num = a -> (num = 10) -> a + num
+          |
+          |main = Nothing.add_num 1 2
           |""".stripMargin
 
       eval(code) shouldEqual 3
@@ -120,14 +127,15 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work in a recursive context" in {
       val code =
-        """
-          |Unit.summer = sumTo ->
+        """from Builtins import all
+          |
+          |Nothing.summer = sumTo ->
           |  summator = (acc = 0) -> current ->
           |      if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
           |  res = summator (current = sumTo)
           |  res
           |
-          |main = summer Unit 100
+          |main = Nothing.summer 100
     """.stripMargin
 
       eval(code) shouldEqual 5050
@@ -150,9 +158,10 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be applied in a sequence compatible with Eta-expansions" in {
       val code =
-        """
-          |Unit.foo = a -> b -> c -> a -> a
-          |main = foo Unit 20 (a = 10) 0 0
+        """from Builtins import all
+          |
+          |Nothing.foo = a -> b -> c -> a -> a
+          |main = Nothing.foo 20 (a = 10) 0 0
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -160,10 +169,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to depend on prior arguments" in {
       val code =
-        """
-          |Unit.doubleOrAdd = a -> (b = a) -> a + b
+        """from Builtins import all
           |
-          |main = doubleOrAdd Unit 5
+          |Nothing.double_or_add = a -> (b = a) -> a + b
+          |
+          |main = Nothing.double_or_add 5
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -171,10 +181,11 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "not be able to depend on later arguments" in {
       val code =
-        """
-          |Unit.badArgFn = a -> (b = c) -> (c = a) -> a + b + c
+        """from Builtins import all
           |
-          |main = badArgFn Unit 3
+          |Nothing.bad_arg_fn = a -> (b = c) -> (c = a) -> a + b + c
+          |
+          |main = Nothing.bad_arg_fn 3
           |""".stripMargin
 
       an[InterpreterException] should be thrownBy eval(code)
@@ -187,13 +198,13 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Nil2
           |
           |main =
-          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + t.sum
+          |        Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
-          |    10.genList.sum
+          |    sum (gen_list 10)
         """.stripMargin
 
       eval(code) shouldEqual 55
@@ -206,13 +217,13 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Cons2 head (rest = Nil2)
           |
           |main =
-          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
+          |    gen_list = i -> if i == 0 then Nil2 else Cons2 (rest = gen_list i-1) head=i
           |
           |    sum = list -> case list of
-          |        Cons2 h t -> h + t.sum
+          |        Cons2 h t -> h + sum t
           |        Nil2 -> 0
           |
-          |    5.genList.sum
+          |    sum (gen_list 5)
         """.stripMargin
 
       eval(code) shouldEqual 15
@@ -227,33 +238,24 @@ class NamedArgumentsTest extends InterpreterTest {
           |main = Cons2 5
           |""".stripMargin
 
-      eval(code).toString shouldEqual "Cons2 5 Nil2"
+      eval(code).toString shouldEqual "(Cons2 5 Nil2)"
     }
 
     "work with constructors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Cons2 head (rest = Nil2)
           |type Nil2
           |
-          |Unit.sumList = list -> case list of
-          |  Cons2 h t -> h + Unit.sumList t
+          |Nothing.sum_list = list -> case list of
+          |  Cons2 h t -> h + Nothing.sum_list t
           |  Nil2 -> 0
           |
-          |main = Unit.sumList (Cons2 10)
+          |main = Nothing.sum_list (Cons2 10)
         """.stripMargin
 
       eval(code) shouldEqual 10
-    }
-
-    "be assignable from Vectors" in {
-      val code =
-        """
-          |main =
-          |    lam = (x=[1,3]) -> y -> y + Polyglot.get_array_element x 0 + Polyglot.get_array_element x 1
-          |    lam y=10
-          |""".stripMargin
-      eval(code) shouldEqual 14
     }
   }
 }

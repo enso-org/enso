@@ -1,38 +1,104 @@
 import java.io.File
 
-import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
-  licenseReportNotes,
-  licenseReportStyleRules
-}
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
-import sbt.Keys.scalacOptions
+import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.{DepModuleInfo, LicenseInfo}
 
 // ============================================================================
 // === Global Configuration ===================================================
 // ============================================================================
 
 val scalacVersion = "2.13.3"
-val graalVersion  = "20.1.0"
+val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
+val graalVersion  = "20.2.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.0.1"
+val ensoVersion   = "0.2.2-SNAPSHOT" // Note [Engine And Launcher Version]
+
+/* Note [Engine And Launcher Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently both Engine and Launcher versions are tied to each other - each new
+ * releases contains the Engine and the Launcher and thus the version number is
+ * shared. If the version numbers ever diverge, make sure to update the build
+ * scripts at .github/workflows accordingly.
+ */
+
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
-val licenseSettings = Seq(
-  licenseConfigurations := Set("compile"),
-  licenseReportStyleRules := Some(
-      "table, th, td {border: 1px solid black;}"
-    ),
-  licenseReportNotes := {
-    case DepModuleInfo(group, _, _) if group == "org.enso" =>
-      "Internal library"
-  }
+
+lazy val gatherLicenses =
+  taskKey[Unit]("Gathers licensing information for relevant dependencies")
+gatherLicenses := {
+  GatherLicenses.run.value
+}
+lazy val verifyLicensePackages =
+  taskKey[Unit](
+    "Verifies if the license package has been generated, " +
+    "has no warnings and is up-to-date with dependencies."
+  )
+verifyLicensePackages := GatherLicenses.verifyReports.value
+lazy val verifyGeneratedPackage =
+  inputKey[Unit](
+    "Verifies if the license package in a generated distribution is " +
+    "up-to-date with the one from the report."
+  )
+verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
+
+GatherLicenses.distributions := Seq(
+  Distribution(
+    "launcher",
+    file("distribution/launcher/THIRD-PARTY"),
+    Distribution.sbtProjects(launcher)
+  ),
+  Distribution(
+    "engine",
+    file("distribution/engine/THIRD-PARTY"),
+    Distribution.sbtProjects(
+      runtime,
+      `engine-runner`,
+      `language-server`
+    )
+  ),
+  Distribution(
+    "project-manager",
+    file("distribution/project-manager/THIRD-PARTY"),
+    Distribution.sbtProjects(`project-manager`)
+  ),
+  Distribution(
+    "std-lib-Base",
+    file("distribution/std-lib/Base/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-bits`)
+  ),
+  Distribution(
+    "std-lib-Table",
+    file("distribution/std-lib/Table/THIRD-PARTY"),
+    Distribution.sbtProjects(`table`)
+  )
 )
-val coursierCache = file("~/.cache/coursier/v1")
+GatherLicenses.licenseConfigurations := Set("compile")
+GatherLicenses.configurationRoot := file("tools/legal-review")
+
+lazy val openLegalReviewReport =
+  taskKey[Unit](
+    "Gathers licensing information for relevant dependencies and opens the " +
+    "report in review mode in the browser."
+  )
+openLegalReviewReport := {
+  val _ = gatherLicenses.value
+  GatherLicenses.runReportServer()
+}
+
+lazy val analyzeDependency = inputKey[Unit]("...")
+analyzeDependency := GatherLicenses.analyzeDependency.evaluated
+
+val packageBuilder = new DistributionPackage.Builder(
+  ensoVersion      = ensoVersion,
+  graalVersion     = graalVersion,
+  graalJavaVersion = javaVersion,
+  artifactRoot     = file("built-distribution")
+)
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
@@ -41,49 +107,49 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // ============================================================================
 
 javacOptions in ThisBuild ++= Seq(
-    "-encoding",   // Provide explicit encoding (the next line)
-    "UTF-8",       // Specify character encoding used by Java source files.
-    "-deprecation" // Shows a description of each use or override of a deprecated member or class.
-  )
+  "-encoding",   // Provide explicit encoding (the next line)
+  "UTF-8",       // Specify character encoding used by Java source files.
+  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
+)
 
 scalacOptions in ThisBuild ++= Seq(
-    "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
-    "-encoding",                          // Provide explicit encoding (the next line)
-    "utf-8",                              // Specify character encoding used by Scala source files.
-    "-explaintypes",                      // Explain type errors in more detail.
-    "-feature",                           // Emit warning and location for usages of features that should be imported explicitly.
-    "-language:existentials",             // Existential types (besides wildcard types) can be written and inferred
-    "-language:experimental.macros",      // Allow macro definition (besides implementation and application)
-    "-language:higherKinds",              // Allow higher-kinded types
-    "-language:implicitConversions",      // Allow definition of implicit functions called views
-    "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
-    "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
-    "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
-    "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
-    "-Xlint:delayedinit-select",          // Selecting member of DelayedInit.
-    "-Xlint:doc-detached",                // A Scaladoc comment appears to be detached from its element.
-    "-Xlint:inaccessible",                // Warn about inaccessible types in method signatures.
-    "-Xlint:infer-any",                   // Warn when a type argument is inferred to be `Any`.
-    "-Xlint:missing-interpolator",        // A string literal appears to be missing an interpolator id.
-    "-Xlint:nullary-unit",                // Warn when nullary methods return Unit.
-    "-Xlint:option-implicit",             // Option.apply used implicit view.
-    "-Xlint:package-object-classes",      // Class or object defined in package object.
-    "-Xlint:poly-implicit-overload",      // Parameterized overloaded implicit methods are not visible as view bounds.
-    "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
-    "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
-    "-Xlint:type-parameter-shadow",       // A local type parameter shadows a type already in scope.
-    "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
-    "-Ywarn-dead-code",                   // Warn when dead code is identified.
-    "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
-    "-Ywarn-numeric-widen",               // Warn when numerics are widened.
-    "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
-    "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
-    "-Ywarn-unused:locals",               // Warn if a local definition is unused.
-    "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
-    "-Ywarn-unused:privates",             // Warn if a private member is unused.
-    "-Ywarn-unused:params",               // Warn if a value parameter is unused.
-    "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
-  )
+  "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
+  "-encoding",                          // Provide explicit encoding (the next line)
+  "utf-8",                              // Specify character encoding used by Scala source files.
+  "-explaintypes",                      // Explain type errors in more detail.
+  "-feature",                           // Emit warning and location for usages of features that should be imported explicitly.
+  "-language:existentials",             // Existential types (besides wildcard types) can be written and inferred
+  "-language:experimental.macros",      // Allow macro definition (besides implementation and application)
+  "-language:higherKinds",              // Allow higher-kinded types
+  "-language:implicitConversions",      // Allow definition of implicit functions called views
+  "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
+  "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
+  "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
+  "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
+  "-Xlint:delayedinit-select",          // Selecting member of DelayedInit.
+  "-Xlint:doc-detached",                // A Scaladoc comment appears to be detached from its element.
+  "-Xlint:inaccessible",                // Warn about inaccessible types in method signatures.
+  "-Xlint:infer-any",                   // Warn when a type argument is inferred to be `Any`.
+  "-Xlint:missing-interpolator",        // A string literal appears to be missing an interpolator id.
+  "-Xlint:nullary-unit",                // Warn when nullary methods return Unit.
+  "-Xlint:option-implicit",             // Option.apply used implicit view.
+  "-Xlint:package-object-classes",      // Class or object defined in package object.
+  "-Xlint:poly-implicit-overload",      // Parameterized overloaded implicit methods are not visible as view bounds.
+  "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
+  "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
+  "-Xlint:type-parameter-shadow",       // A local type parameter shadows a type already in scope.
+  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
+  "-Ywarn-dead-code",                   // Warn when dead code is identified.
+  "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
+  "-Ywarn-numeric-widen",               // Warn when numerics are widened.
+  "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
+  "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
+  "-Ywarn-unused:locals",               // Warn if a local definition is unused.
+  "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
+  "-Ywarn-unused:privates",             // Warn if a private member is unused.
+  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
+  "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
+)
 
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
@@ -98,8 +164,9 @@ scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
 lazy val Benchmark = config("bench") extend sbt.Test
 
 // Native Image Generation
+lazy val rebuildNativeImage = taskKey[Unit]("Force to rebuild native image")
 lazy val buildNativeImage =
-  taskKey[Unit]("Build native image for the Enso executable")
+  taskKey[Unit]("Ensure that the Native Image is built.")
 
 // Bootstrap task
 lazy val bootstrap =
@@ -127,15 +194,23 @@ lazy val enso = (project in file("."))
     graph,
     logger.jvm,
     pkg,
+    cli,
+    `logging-service`,
+    `akka-native`,
     `version-output`,
-    runner,
+    `engine-runner`,
     runtime,
     searcher,
     launcher,
+    `runtime-version-manager`,
+    `runtime-version-manager-test`,
     syntax.jvm,
     testkit
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
+  .settings(
+    commands ++= Seq(packageBuilder.makePackages, packageBuilder.makeBundles)
+  )
 
 // ============================================================================
 // === Dependency Versions ====================================================
@@ -187,7 +262,7 @@ val akka =
     akkaHttp,
     akkaSpray,
     akkaTyped
-  ) ++ akkaTest
+  )
 
 // === Cats ===================================================================
 
@@ -283,10 +358,14 @@ val splainOptions = Seq(
   "-P:splain:tree:true"
 )
 
+// === std-lib ================================================================
+
+val icuVersion = "67.1"
+
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.0-RC18-2"
-val zioInteropCatsVersion = "2.0.0.0-RC13"
+val zioVersion            = "1.0.1"
+val zioInteropCatsVersion = "2.1.4.0"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -294,30 +373,31 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version          = "1.65"
-val declineVersion              = "1.2.0"
-val directoryWatcherVersion     = "0.9.10"
-val flatbuffersVersion          = "1.12.0"
-val guavaVersion                = "29.0-jre"
-val jlineVersion                = "3.15.0"
-val jupyterJvmBasekernelVersion = "2.3.0"
-val kindProjectorVersion        = "0.11.0"
-val mockitoScalaVersion         = "1.14.8"
-val newtypeVersion              = "0.4.4"
-val pprintVersion               = "0.5.9"
-val pureconfigVersion           = "0.13.0"
-val refinedVersion              = "0.9.14"
-val scalacheckVersion           = "1.14.3"
-val scalacticVersion            = "3.3.0-SNAP2"
-val scalaLoggingVersion         = "3.9.2"
-val scalameterVersion           = "0.19"
-val scalatagsVersion            = "0.9.1"
-val scalatestVersion            = "3.3.0-SNAP2"
-val shapelessVersion            = "2.4.0-M1"
-val slickVersion                = "3.3.2"
-val sqliteVersion               = "3.31.1"
-val tikaVersion                 = "1.24.1"
-val typesafeConfigVersion       = "1.4.0"
+val bcpkixJdk15Version      = "1.65"
+val bumpVersion             = "0.1.3"
+val declineVersion          = "1.2.0"
+val directoryWatcherVersion = "0.9.10"
+val flatbuffersVersion      = "1.12.0"
+val guavaVersion            = "29.0-jre"
+val jlineVersion            = "3.15.0"
+val kindProjectorVersion    = "0.11.2"
+val mockitoScalaVersion     = "1.14.8"
+val newtypeVersion          = "0.4.4"
+val pprintVersion           = "0.5.9"
+val pureconfigVersion       = "0.13.0"
+val refinedVersion          = "0.9.14"
+val scalacheckVersion       = "1.14.3"
+val scalacticVersion        = "3.3.0-SNAP2"
+val scalaLoggingVersion     = "3.9.2"
+val scalameterVersion       = "0.19"
+val scalatagsVersion        = "0.9.1"
+val scalatestVersion        = "3.3.0-SNAP2"
+val shapelessVersion        = "2.4.0-M1"
+val slf4jVersion            = "1.7.30"
+val slickVersion            = "3.3.2"
+val sqliteVersion           = "3.31.1"
+val tikaVersion             = "1.24.1"
+val typesafeConfigVersion   = "1.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -332,7 +412,6 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= scalaCompiler
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -343,13 +422,12 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scalaCompiler ++ Seq(
-        "com.google.guava" % "guava"     % guavaVersion,
-        "org.typelevel"  %%% "cats-core" % catsVersion,
-        "org.typelevel"  %%% "kittens"   % kittensVersion
-      )
+      "com.google.guava" % "guava"     % guavaVersion exclude ("com.google.code.findbugs", "jsr305"),
+      "org.typelevel"  %%% "cats-core" % catsVersion,
+      "org.typelevel"  %%% "kittens"   % kittensVersion
+    )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -359,16 +437,15 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .settings(
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
-        "org.typelevel" %%% "cats-core"     % catsVersion,
-        "org.typelevel" %%% "kittens"       % kittensVersion,
-        "com.lihaoyi"   %%% "scalatags"     % scalatagsVersion,
-        "io.circe"      %%% "circe-core"    % circeVersion,
-        "io.circe"      %%% "circe-generic" % circeVersion,
-        "io.circe"      %%% "circe-parser"  % circeVersion
-      )
+      "org.typelevel" %%% "cats-core"     % catsVersion,
+      "org.typelevel" %%% "kittens"       % kittensVersion,
+      "com.lihaoyi"   %%% "scalatags"     % scalatagsVersion,
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
+    )
   )
   .jsSettings(jsSettings)
-  .settings(licenseSettings)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -378,27 +455,29 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .configs(Test)
   .configs(Benchmark)
   .settings(
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
     testFrameworks := Nil,
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-        "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
-        "com.lihaoyi"   %%% "pprint"        % pprintVersion,
-        "io.circe"      %%% "circe-core"    % circeVersion,
-        "io.circe"      %%% "circe-generic" % circeVersion,
-        "io.circe"      %%% "circe-parser"  % circeVersion
-      ),
+      "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
+      "com.lihaoyi"   %%% "pprint"        % pprintVersion,
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
+    ),
     (Compile / compile) := (Compile / compile)
-        .dependsOn(RecompileParser.run(`syntax-definition`))
-        .value,
+      .dependsOn(RecompileParser.run(`syntax-definition`))
+      .value,
     (Test / compile) := (Test / compile)
-        .dependsOn(RecompileParser.run(`syntax-definition`))
-        .value,
+      .dependsOn(RecompileParser.run(`syntax-definition`))
+      .value,
     (Benchmark / compile) := (Benchmark / compile)
-        .dependsOn(RecompileParser.run(`syntax-definition`))
-        .value
+      .dependsOn(RecompileParser.run(`syntax-definition`))
+      .value
   )
   .jvmSettings(
     inConfig(Benchmark)(Defaults.testSettings),
@@ -407,9 +486,9 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies +=
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks := List(
-        new TestFramework("org.scalatest.tools.Framework"),
-        new TestFramework("org.scalameter.ScalaMeterFramework")
-      ),
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
     bench := (test in Benchmark).tag(Exclusive).value
   )
   .jsSettings(
@@ -418,27 +497,64 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
-  .settings(licenseSettings)
+
+lazy val `lexer-bench` =
+  (project in file("lib/scala/syntax/specialization/lexer-bench"))
+    .settings(
+      commands += WithDebugCommand.withDebug,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      parallelExecution in Test := false,
+      logBuffered in Test := false,
+      Test / fork := true,
+      libraryDependencies ++= jmh
+    )
+    .configs(Test)
+    .configs(Benchmark)
+    .dependsOn(syntax.jvm)
+    .dependsOn(flexer.jvm)
+    .settings(
+      javaOptions ++= Seq(
+        "-Xms4096m",
+        "-Xmx4096m",
+        "-XX:+FlightRecorder"
+      ),
+      mainClass in Benchmark := Some("org.openjdk.jmh.Main"),
+      bench := Def.task {
+        (run in Benchmark).toTask("").value
+      },
+      benchOnly := Def.inputTaskDyn {
+        import complete.Parsers.spaceDelimited
+        val name = spaceDelimited("<name>").parsed match {
+          case List(name) => name
+          case _ =>
+            throw new IllegalArgumentException("Expected one argument.")
+        }
+        Def.task {
+          (testOnly in Benchmark).toTask(" -- -z " + name).value
+        }
+      }.evaluated,
+      parallelExecution in Benchmark := false
+    )
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ akkaTest,
     mainClass := Some("org.enso.ParserServiceMain")
   )
-  .settings(licenseSettings)
 
 lazy val `text-buffer` = project
   .in(file("lib/scala/text-buffer"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-        "org.typelevel"  %% "cats-core"  % catsVersion,
-        "org.scalatest"  %% "scalatest"  % scalatestVersion  % Test,
-        "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
-      )
+      "org.typelevel"   %% "cats-core"      % catsVersion,
+      "org.bouncycastle" % "bcpkix-jdk15on" % bcpkixJdk15Version,
+      "org.scalatest"   %% "scalatest"      % scalatestVersion  % Test,
+      "org.scalacheck"  %% "scalacheck"     % scalacheckVersion % Test
+    )
   )
-  .settings(licenseSettings)
 
 lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
@@ -446,18 +562,18 @@ lazy val graph = (project in file("lib/scala/graph/"))
   .settings(
     version := "0.1",
     resolvers ++= Seq(
-        Resolver.sonatypeRepo("releases"),
-        Resolver.sonatypeRepo("snapshots")
-      ),
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= scalaCompiler ++ Seq(
-        "com.chuusai"                %% "shapeless"     % shapelessVersion,
-        "io.estatico"                %% "newtype"       % newtypeVersion,
-        "org.scalatest"              %% "scalatest"     % scalatestVersion  % Test,
-        "org.scalacheck"             %% "scalacheck"    % scalacheckVersion % Test,
-        "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-        "org.apache.commons"          % "commons-lang3" % commonsLangVersion
-      ),
+      "com.chuusai"                %% "shapeless"     % shapelessVersion,
+      "io.estatico"                %% "newtype"       % newtypeVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion  % Test,
+      "org.scalacheck"             %% "scalacheck"    % scalacheckVersion % Test,
+      "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
+      "org.apache.commons"          % "commons-lang3" % commonsLangVersion
+    ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
@@ -466,18 +582,66 @@ lazy val graph = (project in file("lib/scala/graph/"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-        "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
-        "commons-io" % "commons-io" % commonsIoVersion
-      )
+      "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
+      "nl.gn0s1s"     %% "bump"       % bumpVersion,
+      "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
+      "commons-io"     % "commons-io" % commonsIoVersion
+    )
   )
-  .settings(licenseSettings)
+
+lazy val `akka-native` = project
+  .in(file("lib/scala/akka-native"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      akkaActor
+    ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
+  )
+
+lazy val `logging-service` = project
+  .in(file("lib/scala/logging-service"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      akkaStream,
+      akkaHttp,
+      "io.circe"              %%% "circe-core"   % circeVersion,
+      "io.circe"              %%% "circe-parser" % circeVersion,
+      "org.scalatest"          %% "scalatest"    % scalatestVersion % Test,
+      "org.graalvm.nativeimage" % "svm"          % graalVersion     % "provided"
+    )
+  )
+  .settings(
+    if (Platform.isWindows)
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-windows"
+    else
+      (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
+  )
+  .dependsOn(`akka-native`)
+
+lazy val cli = project
+  .in(file("lib/scala/cli"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.typelevel" %% "cats-core" % catsVersion
+    ),
+    parallelExecution in Test := false
+  )
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
@@ -485,18 +649,17 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   )
   .settings(
     Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-        BuildInfo
-          .writeBuildInfoFile(
-            file,
-            state.value.log,
-            ensoVersion,
-            scalacVersion,
-            graalVersion
-          )
-      }.taskValue
+      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      BuildInfo
+        .writeBuildInfoFile(
+          file,
+          state.value.log,
+          ensoVersion,
+          scalacVersion,
+          graalVersion
+        )
+    }.taskValue
   )
-  .settings(licenseSettings)
 
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
@@ -506,29 +669,21 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
-    javaOptions ++= {
-      // Note [Classpath Separation]
-      val runtimeClasspath =
-        (runtime / Compile / fullClasspath).value
-          .map(_.data)
-          .mkString(File.pathSeparator)
-      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
-    },
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ Seq(akkaTestkit % Test),
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-        "com.typesafe"                % "config"              % typesafeConfigVersion,
-        "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
-        "ch.qos.logback"              % "logback-classic"     % logbackClassicVersion,
-        "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
-        "dev.zio"                    %% "zio"                 % zioVersion,
-        "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
-        "commons-io"                  % "commons-io"          % commonsIoVersion,
-        "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
-        "com.typesafe.slick"         %% "slick-hikaricp"      % slickVersion             % Runtime,
-        "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
-        "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
-      ),
+      "com.typesafe"                % "config"              % typesafeConfigVersion,
+      "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
+      "dev.zio"                    %% "zio"                 % zioVersion,
+      "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
+      "commons-cli"                 % "commons-cli"         % commonsCliVersion,
+      "commons-io"                  % "commons-io"          % commonsIoVersion,
+      "org.apache.commons"          % "commons-lang3"       % commonsLangVersion,
+      "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
+      "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
+      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
+    ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
@@ -549,25 +704,42 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case _                  => MergeStrategy.first
     },
     assemblyOption in assembly := (assemblyOption in assembly).value
-        .copy(
-          prependShellScript = Some(
-            defaultUniversalScript(
-              shebang  = false,
-              javaOpts = Seq("-Dtruffle.class.path.append=runtime.jar")
-            )
+      .copy(
+        prependShellScript = Some(
+          defaultUniversalScript(
+            shebang  = false,
+            javaOpts = Seq("-Dtruffle.class.path.append=runtime.jar")
           )
-        ),
-    assembly := assembly
-        .dependsOn(runtime / assembly)
-        .value
+        )
+      ),
+    (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "project-manager",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "--enable-all-security-services" // Note [HTTPS in the Native Images]
+        )
+      )
+      .dependsOn(VerifyReflectionSetup.run)
+      .dependsOn(assembly)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "project-manager"
+      )
+      .value
   )
-  .settings(licenseSettings)
+  .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
-  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
+  .dependsOn(`runtime-version-manager-test` % Test)
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -594,15 +766,14 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .settings(
-    libraryDependencies ++= akka,
+    libraryDependencies ++= akka ++ akkaTest,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-        "io.circe"      %% "circe-literal" % circeVersion,
-        akkaTestkit      % Test,
-        "org.scalatest" %% "scalatest"     % scalatestVersion % Test
-      )
+      "io.circe"      %% "circe-literal" % circeVersion,
+      akkaTestkit      % Test,
+      "org.scalatest" %% "scalatest"     % scalatestVersion % Test
+    )
   )
-  .settings(licenseSettings)
 
 lazy val `json-rpc-server-test` = project
   .in(file("lib/scala/json-rpc-server-test"))
@@ -610,20 +781,20 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-        "io.circe" %% "circe-literal" % circeVersion,
-        akkaTestkit,
-        "org.scalatest" %% "scalatest" % scalatestVersion
-      )
+      "io.circe" %% "circe-literal" % circeVersion,
+      akkaTestkit,
+      "org.scalatest" %% "scalatest" % scalatestVersion
+    )
   )
-  .settings(licenseSettings)
   .dependsOn(`json-rpc-server`)
 
 lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion
-      )
+      "org.apache.commons" % "commons-lang3" % commonsLangVersion,
+      "org.scalatest"     %% "scalatest"     % scalatestVersion
+    )
   )
 
 lazy val `core-definition` = (project in file("lib/scala/core-definition"))
@@ -636,13 +807,13 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
-        "com.chuusai"                %% "shapeless"    % shapelessVersion,
-        "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
-        "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
-        "org.scalatest"              %% "scalatest"    % scalatestVersion  % Test,
-        "org.typelevel"              %% "cats-core"    % catsVersion,
-        "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
-      ),
+      "com.chuusai"                %% "shapeless"    % shapelessVersion,
+      "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
+      "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
+      "org.scalatest"              %% "scalatest"    % scalatestVersion  % Test,
+      "org.typelevel"              %% "cats-core"    % catsVersion,
+      "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
+    ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
@@ -651,7 +822,6 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     ),
     scalacOptions ++= splainOptions
   )
-  .settings(licenseSettings)
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
@@ -660,12 +830,11 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= jmh ++ Seq(
-        "com.typesafe.slick" %% "slick"           % slickVersion,
-        "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
-        "com.typesafe.slick" %% "slick-hikaricp"  % slickVersion          % Runtime,
-        "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
-        "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
-      )
+      "com.typesafe.slick" %% "slick"           % slickVersion,
+      "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
+      "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
+      "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
+    )
   )
   .configs(Benchmark)
   .settings(
@@ -673,15 +842,13 @@ lazy val searcher = project
     fork in Benchmark := true
   )
   .dependsOn(testkit % Test)
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
     version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
+    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7" exclude ("com.google.code.findbugs", "jsr305")
   )
-  .settings(licenseSettings)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -710,11 +877,11 @@ lazy val `polyglot-api` = project
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
-        "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
-        "org.scalatest"         %% "scalatest"        % scalatestVersion  % Test,
-        "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
-      ),
+      "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
+      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+      "org.scalatest"         %% "scalatest"        % scalatestVersion  % Test,
+      "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
+    ),
     libraryDependencies ++= jackson,
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
@@ -726,31 +893,28 @@ lazy val `polyglot-api` = project
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-        "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
-        "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
-        "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
-        "io.circe"                   %% "circe-literal"        % circeVersion,
-        "org.bouncycastle"            % "bcpkix-jdk15on"       % bcpkixJdk15Version,
-        "dev.zio"                    %% "zio"                  % zioVersion,
-        "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
-        "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
-        "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
-        "commons-io"                  % "commons-io"           % commonsIoVersion,
-        akkaTestkit                   % Test,
-        "com.typesafe.slick"         %% "slick-hikaricp"       % slickVersion      % Runtime,
-        "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
-        "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-        "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
-      ),
+      "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
+      "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
+      "io.circe"                   %% "circe-literal"        % circeVersion,
+      "dev.zio"                    %% "zio"                  % zioVersion,
+      "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
+      "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
+      "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
+      "commons-io"                  % "commons-io"           % commonsIoVersion,
+      akkaTestkit                   % Test,
+      "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
+      "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
+      "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
+    ),
     testOptions in Test += Tests
-        .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
+      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
@@ -760,16 +924,45 @@ lazy val `language-server` = (project in file("engine/language-server"))
     bench := (test in Benchmark).value,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
-        new TestFramework("org.scalameter.ScalaMeterFramework")
-      )
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    )
   )
-  .settings(licenseSettings)
   .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service`)
+
+lazy val ast = (project in file("lib/scala/ast"))
+  .settings(
+    version := ensoVersion,
+    Cargo.rustVersion := rustVersion,
+    Compile / sourceGenerators += GenerateAST.task
+  )
+
+lazy val parser = (project in file("lib/scala/parser"))
+  .settings(
+    fork := true,
+    Cargo.rustVersion := rustVersion,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(Cargo("build --project parser"))
+      .value,
+    javaOptions += {
+      val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
+      s"-Djava.library.path=$root/target/rust/debug"
+    },
+    libraryDependencies ++= Seq(
+      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+      "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
+    ),
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    )
+  )
+  .dependsOn(ast)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -782,49 +975,49 @@ lazy val runtime = (project in file("engine/runtime"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= circe ++ jmh ++ jaxb ++ Seq(
-        "com.chuusai"        %% "shapeless"             % shapelessVersion,
-        "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
-        "org.apache.tika"     % "tika-core"             % tikaVersion,
-        "org.graalvm.sdk"     % "graal-sdk"             % graalVersion      % "provided",
-        "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion      % "provided",
-        "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
-        "org.graalvm.truffle" % "truffle-tck"           % graalVersion      % "provided",
-        "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion      % "provided",
-        "org.scalacheck"     %% "scalacheck"            % scalacheckVersion % Test,
-        "org.scalactic"      %% "scalactic"             % scalacticVersion  % Test,
-        "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
-        "org.typelevel"      %% "cats-core"             % catsVersion,
-        "eu.timepit"         %% "refined"               % refinedVersion
-      ),
+    libraryDependencies ++= jmh ++ jaxb ++ Seq(
+      "com.chuusai"        %% "shapeless"             % shapelessVersion,
+      "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
+      "org.apache.tika"     % "tika-core"             % tikaVersion,
+      "org.graalvm.sdk"     % "graal-sdk"             % graalVersion      % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-tck"           % graalVersion      % "provided",
+      "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion      % "provided",
+      "org.scalacheck"     %% "scalacheck"            % scalacheckVersion % Test,
+      "org.scalactic"      %% "scalactic"             % scalacticVersion  % Test,
+      "org.scalatest"      %% "scalatest"             % scalatestVersion  % Test,
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
+      "org.typelevel"      %% "cats-core"             % catsVersion,
+      "eu.timepit"         %% "refined"               % refinedVersion
+    ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-        .dependsOn(CopyTruffleJAR.preCompileTask)
-        .value,
+      .dependsOn(CopyTruffleJAR.preCompileTask)
+      .value,
     Compile / compile := FixInstrumentsGeneration.patchedCompile
-        .dependsOn(FixInstrumentsGeneration.preCompileTask)
-        .dependsOn(`core-definition` / Compile / packageBin)
-        .value,
+      .dependsOn(FixInstrumentsGeneration.preCompileTask)
+      .dependsOn(`core-definition` / Compile / packageBin)
+      .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-      ),
+      "-Dgraalvm.locatorDisabled=true",
+      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+    ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        graalVersion,
-        javaVersion
-      )((Global / onLoad).value)
+      graalVersion,
+      javaVersion
+    )((Global / onLoad).value)
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
-        "-s",
-        (Compile / sourceManaged).value.getAbsolutePath
-      ),
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath
+    ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
@@ -835,22 +1028,27 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     (Compile / compile) := (Compile / compile)
-        .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-        .value
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
   )
   .settings(
-    logBuffered := false,
+    (Runtime / compile) := (Runtime / compile)
+      .dependsOn(`std-bits` / Compile / packageBin)
+      .dependsOn(table / Compile / packageBin)
+      .value
+  )
+  .settings(
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
-        import complete.Parsers.spaceDelimited
-        val name = spaceDelimited("<name>").parsed match {
-          case List(name) => name
-          case _          => throw new IllegalArgumentException("Expected one argument.")
-        }
-        Def.task {
-          (testOnly in Benchmark).toTask(" -- -z " + name).value
-        }
-      }.evaluated,
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _          => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (testOnly in Benchmark).toTask(" -- -z " + name).value
+      }
+    }.evaluated,
     parallelExecution in Benchmark := false
   )
   .settings(
@@ -867,14 +1065,14 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`searcher`)
+  .dependsOn(searcher)
+  .dependsOn(testkit % Test)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -890,7 +1088,7 @@ lazy val runtime = (project in file("engine/runtime"))
  * recompilation but still convince the IDE that it is a .jar dependency.
  */
 
-lazy val runner = project
+lazy val `engine-runner` = project
   .in(file("engine/runner"))
   .settings(
     javaOptions ++= {
@@ -921,58 +1119,275 @@ lazy val runner = project
         MergeStrategy.first
     },
     assemblyOption in assembly := (assemblyOption in assembly).value
-        .copy(
-          prependShellScript = Some(
-            defaultUniversalScript(
-              shebang = false,
-              javaOpts = truffleRunOptions ++
-                Seq("-Dtruffle.class.path.append=runtime.jar")
-            )
+      .copy(
+        prependShellScript = Some(
+          defaultUniversalScript(
+            shebang = false,
+            javaOpts = truffleRunOptions ++
+              Seq("-Dtruffle.class.path.append=runtime.jar")
           )
-        ),
+        )
+      ),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
-        "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
-        "commons-cli"           % "commons-cli"            % commonsCliVersion,
-        "com.monovore"         %% "decline"                % declineVersion,
-        "io.github.spencerpark" % "jupyter-jvm-basekernel" % jupyterJvmBasekernelVersion,
-        "org.jline"             % "jline"                  % jlineVersion,
-        "org.typelevel"        %% "cats-core"              % catsVersion,
-        "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime
-      ),
+      "org.graalvm.sdk"     % "polyglot-tck" % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"  % graalVersion % "provided",
+      "commons-cli"         % "commons-cli"  % commonsCliVersion,
+      "com.monovore"       %% "decline"      % declineVersion,
+      "org.jline"           % "jline"        % jlineVersion,
+      "org.typelevel"      %% "cats-core"    % catsVersion
+    ),
     connectInput in run := true
   )
   .settings(
-    buildNativeImage := NativeImage
-        .buildNativeImage(staticOnLinux = false)
-        .value
-  )
-  .settings(
     assembly := assembly
-        .dependsOn(runtime / assembly)
-        .value
+      .dependsOn(runtime / assembly)
+      .value
   )
-  .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "com.monovore"  %% "decline"   % declineVersion,
-        "org.typelevel" %% "cats-core" % catsVersion
-      )
+      "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+      "org.typelevel"              %% "cats-core"        % catsVersion,
+      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      akkaSLF4J
+    )
   )
   .settings(
-    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
+    rebuildNativeImage := NativeImage
+      .buildNativeImage(
+        "enso",
+        staticOnLinux = true,
+        additionalOptions = Seq(
+          "--enable-all-security-services", // Note [HTTPS in the Native Images]
+          "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+          "-H:IncludeResources=.*Main.enso$"
+        ),
+        initializeAtRuntime = Seq(
+          // Note [WSLoggerManager Shutdown Hook]
+          "org.enso.loggingservice.WSLoggerManager$"
+        )
+      )
+      .dependsOn(assembly)
+      .dependsOn(VerifyReflectionSetup.run)
+      .value,
+    buildNativeImage := NativeImage
+      .incrementalNativeImageBuild(
+        rebuildNativeImage,
+        "enso"
+      )
+      .value,
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("launcher.jar")
   )
-  .settings(licenseSettings)
+  .settings(
+    (Test / test) := (Test / test)
+      .dependsOn(buildNativeImage)
+      .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
+      .value,
+    parallelExecution in Test := false
+  )
+  .dependsOn(cli)
+  .dependsOn(`runtime-version-manager`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+  .dependsOn(`runtime-version-manager-test` % Test)
+
+lazy val `runtime-version-manager` = project
+  .in(file("lib/scala/runtime-version-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+      "org.typelevel"              %% "cats-core"        % catsVersion,
+      "nl.gn0s1s"                  %% "bump"             % bumpVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      akkaHttp
+    )
+  )
+  .dependsOn(pkg)
+  .dependsOn(`logging-service`)
+  .dependsOn(cli)
+  .dependsOn(`version-output`)
+
+lazy val `runtime-version-manager-test` = project
+  .in(file("lib/scala/runtime-version-manager-test"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion
+    )
+  )
+  .settings(parallelExecution in Test := false)
+  .settings(
+    (Test / test) := (Test / test)
+      .dependsOn(`locking-test-helper` / assembly)
+      .value
+  )
+  .dependsOn(`runtime-version-manager`)
+  .dependsOn(`logging-service`)
+  .dependsOn(testkit)
+
+lazy val `locking-test-helper` = project
+  .in(file("lib/scala/locking-test-helper"))
+  .settings(
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("locking-test-helper.jar")
+  )
+
+val `std-lib-root`          = file("distribution/std-lib/")
+val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
+val `table-polyglot-root`   = `std-lib-root` / "Table" / "polyglot" / "java"
+
+lazy val `std-bits` = project
+  .in(file("std-bits"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `std-lib-polyglot-root` / "std-bits.jar",
+    libraryDependencies ++= Seq(
+      "com.ibm.icu" % "icu4j" % icuVersion
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `std-lib-polyglot-root`,
+          "std-bits.jar",
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val `table` = project
+  .in(file("table"))
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `table-polyglot-root` / "table.jar",
+    libraryDependencies ++= Seq(
+      "com.univocity" % "univocity-parsers" % "2.9.0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      StdBits
+        .copyDependencies(
+          `table-polyglot-root`,
+          "table.jar",
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+/* Note [HTTPS in the Native Images]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The launcher and project-manager use Akka Http for making web requests. They
+ * do not use Java's stdlib implementation, because there is a bug (not fixed in
+ * JDK 11) (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS
+ * handling that causes long running requests to freeze forever. However, Akka
+ * Http still needs the stdlib's SSL implementation which is not included in the
+ * Native Images by default (because of its size). The
+ * `--enable-all-security-services` flag is used to ensure it is available in
+ * the built executable.
+ */
+
+/* Note [Native Image Workaround for GraalVM 20.2]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * In GraalVM 20.2 the Native Image build of even simple Scala programs has
+ * started to fail on a call to `Statics.releaseFence`. It has been reported as
+ * a bug in the GraalVM repository: https://github.com/oracle/graal/issues/2770
+ *
+ * A proposed workaround for this bug is to substitute the original function
+ * with a different implementation that does not use the problematic
+ * MethodHandle. This is implemented in class
+ * `org.enso.launcher.workarounds.ReplacementStatics` using
+ * `org.enso.launcher.workarounds.Unsafe` which gives access to
+ * `sun.misc.Unsafe` which contains a low-level function corresponding to the
+ * required "release fence".
+ *
+ * To allow for that substitution, the launcher code requires annotations from
+ * the `svm` module and that is why this additional dependency is needed as long
+ * as that workaround is in-place. The dependency is marked as "provided"
+ * because it is included within the native-image build.
+ */
+
+/* Note [WSLoggerManager Shutdown Hook]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the WSLoggerManager registers a shutdown hook when its initialized to
+ * ensure that logs are not lost in case of logging service initialization
+ * failure, it has to be initialized at runtime, as otherwise if the
+ * initialization was done at build time, the shutdown hook would actually also
+ * run at build time and have no effect at runtime.
+ */
+
+lazy val engineDistributionRoot =
+  settingKey[File]("Root of built engine distribution")
+lazy val launcherDistributionRoot =
+  settingKey[File]("Root of built launcher distribution")
+lazy val projectManagerDistributionRoot =
+  settingKey[File]("Root of built project manager distribution")
+
+engineDistributionRoot :=
+  packageBuilder.localArtifact("engine") / s"enso-$ensoVersion"
+launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
+projectManagerDistributionRoot :=
+  packageBuilder.localArtifact("project-manager") / "enso"
+
+lazy val buildEngineDistribution =
+  taskKey[Unit]("Builds the engine distribution")
+buildEngineDistribution := {
+  val _            = (`engine-runner` / assembly).value
+  val root         = engineDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createEnginePackage(
+    distributionRoot = root,
+    cacheFactory     = cacheFactory,
+    graalVersion     = graalVersion,
+    javaVersion      = javaVersion
+  )
+  log.info(s"Engine package created at $root")
+}
+
+lazy val buildLauncherDistribution =
+  taskKey[Unit]("Builds the launcher distribution")
+buildLauncherDistribution := {
+  val _            = (launcher / buildNativeImage).value
+  val root         = launcherDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createLauncherPackage(root, cacheFactory)
+  log.info(s"Launcher package created at $root")
+}
+
+lazy val buildProjectManagerDistribution =
+  taskKey[Unit]("Builds the project manager distribution")
+buildProjectManagerDistribution := {
+  val _            = (`project-manager` / buildNativeImage).value
+  val root         = projectManagerDistributionRoot.value
+  val log          = streams.value.log
+  val cacheFactory = streams.value.cacheStoreFactory
+  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
+  log.info(s"Project Manager package created at $root")
+}

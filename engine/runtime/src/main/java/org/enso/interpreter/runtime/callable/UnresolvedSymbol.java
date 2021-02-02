@@ -4,14 +4,14 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.node.callable.MethodResolverNode;
+import org.enso.interpreter.node.callable.InteropMethodCallNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
@@ -33,13 +33,15 @@ public class UnresolvedSymbol implements TruffleObject {
   /**
    * Gets the symbol name.
    *
-   * <p>All names for dynamic symbols are interned, making it safe to compare symbol names using the
-   * standard {@code ==} equality operator.
-   *
    * @return the name of this symbol
    */
   public String getName() {
     return name;
+  }
+
+  /** @return the scope this symbol was used in. */
+  public ModuleScope getScope() {
+    return scope;
   }
 
   /**
@@ -65,6 +67,11 @@ public class UnresolvedSymbol implements TruffleObject {
   @Override
   public String toString() {
     return "UnresolvedSymbol<" + this.name + ">";
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    return this.toString();
   }
 
   /**
@@ -96,12 +103,9 @@ public class UnresolvedSymbol implements TruffleObject {
     static Object doDispatch(
         UnresolvedSymbol symbol,
         Object[] arguments,
-        @Cached MethodResolverNode methodResolverNode,
-        @CachedLibrary(limit = "BUILTIN_INTEROP_DISPATCH") InteropLibrary library)
+        @Cached InteropMethodCallNode interopMethodCallNode)
         throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
-      if (arguments.length == 0) throw ArityException.create(1, 0);
-      Function function = methodResolverNode.execute(symbol, arguments[0]);
-      return library.execute(function, arguments);
+      return interopMethodCallNode.execute(symbol, EmptyMap.create(), arguments);
     }
   }
 }

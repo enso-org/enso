@@ -11,6 +11,7 @@ import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -21,22 +22,26 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.runtime.{ContextRegistry, SuggestionsHandler}
+import org.enso.languageserver.runtime.ContextRegistry
+import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.text.Sha3_224VersionCalculator
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
-  val timeout: FiniteDuration = 3.seconds
+  val timeout: FiniteDuration = 10.seconds
 
   val testContentRoot       = Files.createTempDirectory(null).toRealPath()
   val testContentRootId     = UUID.randomUUID()
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
+  val versionCalculator     = Sha3_224VersionCalculator
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
@@ -46,7 +51,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig(testContentRoot.toFile)
+      DirectoriesConfig.initialize(testContentRoot.toFile)
     )
 
   override def protocol: Protocol = JsonRpc.protocol
@@ -76,14 +81,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec         = ZioExec(zio.Runtime.default)
-    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
-    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-    Await.ready(suggestionsRepo.init, timeout)
-    Await.ready(versionsRepo.init, timeout)
+  val zioExec = ZioExec(zio.Runtime.default)
+  val sqlDatabase =
+    SqlDatabase(config.directories.suggestionsDatabaseFile.toString)
+  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
 
+  override def clientControllerFactory: ClientControllerFactory = {
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
@@ -103,12 +107,23 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
     val contextRegistry =
       system.actorOf(
-        ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
+        ContextRegistry.props(
+          suggestionsRepo,
+          config,
+          runtimeConnectorProbe.ref,
+          sessionRouter
+        )
       )
 
     val suggestionsHandler =
       system.actorOf(
-        SuggestionsHandler.props(config, suggestionsRepo, sessionRouter)
+        SuggestionsHandler.props(
+          config,
+          suggestionsRepo,
+          versionsRepo,
+          sessionRouter,
+          runtimeConnectorProbe.ref
+        )
       )
 
     val capabilityRouter =
@@ -119,6 +134,27 @@ class BaseServerTest extends JsonRpcServerTestKit {
           suggestionsHandler
         )
       )
+
+    // initialize
+    val suggestionsRepoInit = suggestionsRepo.init
+    suggestionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }(system.dispatcher)
+
+    val versionsRepoInit = versionsRepo.init
+    versionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }(system.dispatcher)
+
+    Await.ready(suggestionsRepoInit, timeout)
+    Await.ready(versionsRepoInit, timeout)
+    system.eventStream.publish(InitializedEvent.InitializationFinished)
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

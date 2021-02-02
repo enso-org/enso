@@ -91,6 +91,7 @@ object Builtin {
               }
             case _ => internalError
           }
+        case _ => internalError
       }
     }
 
@@ -185,6 +186,7 @@ object Builtin {
               AST.App.Infix(l.wrapped, Opr("->"), r.wrapped)
             case _ => internalError
           }
+        case _ => internalError
       }
     }
 

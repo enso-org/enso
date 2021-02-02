@@ -139,6 +139,11 @@ case object SuspendedArguments extends IRPass {
         throw new CompilerError("Type ascriptions should not be present.")
       case _: IR.Comment =>
         throw new CompilerError("Comments should not be present.")
+      case _: IR.Name.Annotation =>
+        throw new CompilerError(
+          "Annotations should already be associated by the point of " +
+          "suspended arguments analysis."
+        )
     }
   }
 
@@ -189,7 +194,7 @@ case object SuspendedArguments extends IRPass {
     signature match {
       case IR.Application.Operator.Binary(
             l,
-            IR.Name.Literal("->", _, _, _),
+            IR.Name.Literal("->", _, _, _, _, _),
             r,
             _,
             _,
@@ -210,8 +215,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: IR.Expression): Boolean = {
     value match {
-      case IR.Name.Literal("Suspended", _, _, _) => true
-      case _                                     => false
+      case IR.Name.Literal("Suspended", _, _, _, _, _) => true
+      case _                                           => false
     }
   }
 
@@ -228,7 +233,7 @@ case object SuspendedArguments extends IRPass {
       case (arg, typ) =>
         arg match {
           case spec: IR.DefinitionArgument.Specified =>
-            if (representsSuspended(typ)) {
+            if (representsSuspended(typ) || spec.suspended) {
               spec.copy(suspended = true)
             } else spec.copy(suspended = false)
         }
@@ -251,8 +256,8 @@ case object SuspendedArguments extends IRPass {
         args.zip(signatureSegments)
       } else if (args.length > signatureSegments.length) {
         val additionalSegments = signatureSegments ::: List.fill(
-            signatureSegments.length - args.length
-          )(IR.Empty(None))
+          args.length - signatureSegments.length
+        )(IR.Empty(None))
 
         args.zip(additionalSegments)
       } else {

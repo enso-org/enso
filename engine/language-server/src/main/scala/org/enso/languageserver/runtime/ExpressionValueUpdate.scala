@@ -1,18 +1,19 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
+import org.enso.languageserver.runtime.ExecutionApi.ExpressionId
 
-/**
-  * An update containing information about expression.
+/** An update containing information about expression.
   *
-  * @param id expression id
-  * @param type optional type of expression
-  * @param shortValue optional value of expression
-  * @param methodCall optional pointer to a method definition
+  * @param expressionId the id of updated expression
+  * @param `type` the updated type of expression
+  * @param methodPointer the suggestion id of the updated method pointer
+  * @param profilingInfo profiling information about the expression
+  * @param fromCache whether or not the expression's value came from the cache
   */
 case class ExpressionValueUpdate(
-  id: UUID,
+  expressionId: ExpressionId,
   `type`: Option[String],
-  shortValue: Option[String],
-  methodCall: Option[MethodPointer]
+  methodPointer: Option[Long],
+  profilingInfo: Vector[ProfilingInfo],
+  fromCache: Boolean
 )

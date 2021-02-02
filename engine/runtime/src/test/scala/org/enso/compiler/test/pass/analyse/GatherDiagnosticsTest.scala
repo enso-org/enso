@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.PassManager
@@ -16,7 +16,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       AST.Invalid.Unrecognized("@@"),
       IR.Error.Syntax.UnrecognizedToken
     )
-    val plusOp = IR.Name.Literal("+", None)
+    val plusOp = IR.Name.Literal("+", isReferent = false, isMethod = true, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
@@ -29,7 +29,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       List(
         IR.DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", None),
+            IR.Name.Literal("bar", isReferent = false, isMethod = false, None),
             None,
             suspended = false,
             None
@@ -40,7 +40,7 @@ class GatherDiagnosticsTest extends CompilerTest {
     )
 
     "work with expression flow" in {
-      val result = GatherDiagnostics.runExpression(lam, new InlineContext())
+      val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
       val errors = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
@@ -56,20 +56,33 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val error3 = IR.Error.Syntax(
         AST.Invalid.Unexpected("whoa, that was also not expected", List()),
-        IR.Error.Syntax.UnexpectedExpression
+        IR.Error.Syntax.AmbiguousExpression
       )
 
-      val typeName    = IR.Name.Literal("Foo", None)
-      val method1Name = IR.Name.Literal("bar", None)
-      val method2Name = IR.Name.Literal("baz", None)
-      val fooName     = IR.Name.Literal("foo", None)
+      val typeName =
+        IR.Name.Literal("Foo", isReferent = false, isMethod = false, None)
+      val method1Name =
+        IR.Name.Literal("bar", isReferent = false, isMethod = false, None)
+      val method2Name =
+        IR.Name.Literal("baz", isReferent = false, isMethod = false, None)
+      val fooName =
+        IR.Name.Literal("foo", isReferent = false, isMethod = false, None)
 
       val method1Ref =
-        IR.Name.MethodReference(List(typeName), method1Name, None)
+        IR.Name.MethodReference(
+          IR.Name.Qualified(List(typeName), None),
+          method1Name,
+          None
+        )
       val method2Ref =
-        IR.Name.MethodReference(List(typeName), method2Name, None)
+        IR.Name.MethodReference(
+          IR.Name.Qualified(List(typeName), None),
+          method2Name,
+          None
+        )
 
       val module = IR.Module(
+        List(),
         List(),
         List(
           IR.Module.Scope.Definition.Atom(
@@ -88,7 +101,7 @@ class GatherDiagnosticsTest extends CompilerTest {
         None
       )
 
-      val result = GatherDiagnostics.runModule(module, ModuleContext())
+      val result = GatherDiagnostics.runModule(module, buildModuleContext())
       val errors = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
@@ -101,7 +114,7 @@ class GatherDiagnosticsTest extends CompilerTest {
         new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val ir =
         """

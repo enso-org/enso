@@ -11,7 +11,9 @@ import org.enso.compiler.context.{
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.Tree
 
 class SuggestionBuilderTest extends CompilerTest {
 
@@ -22,20 +24,25 @@ class SuggestionBuilderTest extends CompilerTest {
     "build method without explicit arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
-      val code   = """foo = 42""".stripMargin
+      val code   = """foo = 42"""
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -48,22 +55,56 @@ class SuggestionBuilderTest extends CompilerTest {
           |foo = 42""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = Some(" The foo")
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = Some(" The foo")
+            ),
+            Vector()
+          )
         )
       )
     }
 
-    "build method with arguments" in {
+    "build method with type and documentation" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """## The foo
+          |foo : Number
+          |foo = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              documentation = Some(" The foo")
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with complex body" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -74,33 +115,47 @@ class SuggestionBuilderTest extends CompilerTest {
           |    x * y""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None),
-            Suggestion.Argument("a", "Any", false, false, None),
-            Suggestion.Argument("b", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Local(
-          externalId = None,
-          "Test",
-          "x",
-          "Number",
-          Suggestion.Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
-        ),
-        Suggestion.Local(
-          externalId = None,
-          "Test",
-          "y",
-          "Any",
-          Suggestion.Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  "Unnamed.Test",
+                  "x",
+                  "Number",
+                  Suggestion
+                    .Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  "Unnamed.Test",
+                  "y",
+                  SuggestionBuilder.Any,
+                  Suggestion
+                    .Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+                ),
+                Vector()
+              )
+            )
+          )
         )
       )
     }
@@ -108,49 +163,170 @@ class SuggestionBuilderTest extends CompilerTest {
     "build method with default arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
-      val code =
-        """foo (a = 0) = a + 1""".stripMargin
+      val code   = """foo (a = 0) = a + 1"""
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None),
-            Suggestion.Argument("a", "Any", false, true, Some("0"))
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
+    }
+
+    "build method with explicit self type" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type MyType
+          |
+          |MyType.bar a b = a + b
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyType",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.MyType",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "bar",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None),
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "not build method with undefined self type" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """MyAtom.bar a b = a + b"""
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(Vector())
     }
 
     "build method with associated type signature" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """
+        """type MyAtom
+          |
+          |## My bar
           |MyAtom.bar : Number -> Number -> Number
           |MyAtom.bar a b = a + b
           |""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "bar",
-          arguments = Seq(
-            Suggestion.Argument("this", "MyAtom", false, false, None),
-            Suggestion.Argument("a", "Number", false, false, None),
-            Suggestion.Argument("b", "Number", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyAtom",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.MyAtom",
+              documentation = None
+            ),
+            Vector()
           ),
-          selfType      = "MyAtom",
-          returnType    = "Number",
-          documentation = None
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "bar",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                Suggestion.Argument("a", "Number", false, false, None),
+                Suggestion.Argument("b", "Number", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyAtom",
+              returnType    = "Number",
+              documentation = Some(" My bar")
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with function type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type MyAtom
+          |
+          |MyAtom.apply : (Number -> Number) -> Number
+          |MyAtom.apply f = f this
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "MyAtom",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.MyAtom",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "apply",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
+                Suggestion.Argument("f", "Number -> Number", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyAtom",
+              returnType    = "Number",
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -159,26 +335,73 @@ class SuggestionBuilderTest extends CompilerTest {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """foo ~a = a + 1""".stripMargin
+        """foo ~a = a + 1"""
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None),
-            Suggestion.Argument("a", "Any", true, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", SuggestionBuilder.Any, true, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
 
-    "build function" in {
+    "build method with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |foo : A -> A
+          |foo a = a + 1""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", "Unnamed.Test.A", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build function simple" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -187,29 +410,100 @@ class SuggestionBuilderTest extends CompilerTest {
           |    foo 42""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Function(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None)
-          ),
-          returnType = "Any",
-          scope = Suggestion.Scope(
-            Suggestion.Position(0, 6),
-            Suggestion.Position(2, 10)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
+                  ),
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(2, 10)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build function with complex body" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo a =
+          |        b = a + 1
+          |        b
+          |    foo 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
+                  ),
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(4, 10)
+                  )
+                ),
+                Vector(
+                  Tree.Node(
+                    Suggestion.Local(
+                      externalId = None,
+                      module     = "Unnamed.Test",
+                      name       = "b",
+                      returnType = SuggestionBuilder.Any,
+                      scope = Suggestion.Scope(
+                        Suggestion.Position(1, 11),
+                        Suggestion.Position(3, 9)
+                      )
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
           )
         )
       )
@@ -225,29 +519,302 @@ class SuggestionBuilderTest extends CompilerTest {
           |    foo 42""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion.Argument("a", "Number", false, false, None)
+                  ),
+                  returnType = "Number",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(3, 10)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build function with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |main =
+          |    foo : A -> A
+          |    foo a = a + 1
+          |    foo 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
           ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Function(
-          externalId = None,
-          module     = "Test",
-          name       = "foo",
-          arguments = Seq(
-            Suggestion.Argument("a", "Number", false, false, None)
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion
+                      .Argument("a", "Unnamed.Test.A", false, false, None)
+                  ),
+                  returnType = "Unnamed.Test.A",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(2, 6),
+                    Suggestion.Position(5, 10)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local simple" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo = 42
+          |    foo""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(2, 7)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local with complex body" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo =
+          |        b = 42
+          |        b
+          |    foo""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(4, 7)
+                  )
+                ),
+                Vector(
+                  Tree.Node(
+                    Suggestion.Local(
+                      externalId = None,
+                      module     = "Unnamed.Test",
+                      name       = "b",
+                      returnType = SuggestionBuilder.Any,
+                      scope = Suggestion.Scope(
+                        Suggestion.Position(1, 9),
+                        Suggestion.Position(3, 9)
+                      )
+                    ),
+                    Vector()
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local with associated type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo : Number
+          |    foo = 42
+          |    foo""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = "Number",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(3, 7)
+                  )
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local with resolved type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """type A
+          |
+          |main =
+          |    foo : A
+          |    foo = A
+          |    foo""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "A",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
           ),
-          returnType = "Number",
-          scope = Suggestion.Scope(
-            Suggestion.Position(0, 6),
-            Suggestion.Position(3, 10)
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = "Unnamed.Test.A",
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(2, 6),
+                    Suggestion.Position(5, 7)
+                  )
+                ),
+                Vector()
+              )
+            )
           )
         )
       )
@@ -259,17 +826,52 @@ class SuggestionBuilderTest extends CompilerTest {
       val code   = """type MyType a b"""
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "MyType",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None),
-            Suggestion.Argument("b", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "MyType",
+              arguments = Seq(
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyType",
+              documentation = None
+            ),
+            Vector()
           ),
-          returnType    = "MyType",
-          documentation = None
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "b",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -282,17 +884,52 @@ class SuggestionBuilderTest extends CompilerTest {
           |type MyType a b""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "MyType",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None),
-            Suggestion.Argument("b", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "MyType",
+              arguments = Seq(
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyType",
+              documentation = Some(" My sweet type")
+            ),
+            Vector()
           ),
-          returnType    = "MyType",
-          documentation = Some(" My sweet type")
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "b",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -306,24 +943,46 @@ class SuggestionBuilderTest extends CompilerTest {
           |    type Just a""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId    = None,
-          module        = "Test",
-          name          = "Nothing",
-          arguments     = Seq(),
-          returnType    = "Nothing",
-          documentation = None
-        ),
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "Just",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Nothing",
+              documentation = None
+            ),
+            Vector()
           ),
-          returnType    = "Just",
-          documentation = None
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Just",
+              arguments =
+                Seq(Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)),
+              returnType    = "Unnamed.Test.Just",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Just",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -340,29 +999,125 @@ class SuggestionBuilderTest extends CompilerTest {
           |    type Just a""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId    = None,
-          module        = "Test",
-          name          = "Nothing",
-          arguments     = Seq(),
-          returnType    = "Nothing",
-          documentation = Some(" Nothing here")
-        ),
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "Just",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Nothing",
+              documentation = Some(" Nothing here")
+            ),
+            Vector()
           ),
-          returnType    = "Just",
-          documentation = Some(" Something there")
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Just",
+              arguments = Seq(
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.Just",
+              documentation = Some(" Something there")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Just",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
 
-    "build type with methods" in {
+    "build type with methods, type signatures and docs" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type List
+          |    ## And more
+          |    type Cons
+          |    ## End
+          |    type Nil
+          |
+          |    ## a method
+          |    empty : List
+          |    empty = Nil
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Cons",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Cons",
+              documentation = Some(" And more")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nil",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Nil",
+              documentation = Some(" End")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "empty",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Cons", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Cons",
+              returnType    = "List",
+              documentation = Some(" a method")
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "empty",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Nil", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Nil",
+              returnType    = "List",
+              documentation = Some(" a method")
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build type with methods, without type signatures" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type Maybe
@@ -374,115 +1129,230 @@ class SuggestionBuilderTest extends CompilerTest {
           |        Nothing -> Nothing""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId    = None,
-          module        = "Test",
-          name          = "Nothing",
-          arguments     = Seq(),
-          returnType    = "Nothing",
-          documentation = None
-        ),
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "Just",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "Nothing",
+              arguments     = Seq(),
+              returnType    = "Unnamed.Test.Nothing",
+              documentation = None
+            ),
+            Vector()
           ),
-          returnType    = "Just",
-          documentation = None
-        ),
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "map",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None),
-            Suggestion.Argument("f", "Any", false, false, None)
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Just",
+              arguments = Seq(
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.Just",
+              documentation = None
+            ),
+            Vector()
           ),
-          selfType      = "Just",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "map",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None),
-            Suggestion.Argument("f", "Any", false, false, None)
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Just", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Just",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
           ),
-          selfType      = "Nothing",
-          returnType    = "Any",
-          documentation = None
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "map",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Nothing", false, false, None),
+                Suggestion.Argument("f", SuggestionBuilder.Any, false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Nothing",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "map",
+              arguments = Seq(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Just", false, false, None),
+                Suggestion.Argument("f", SuggestionBuilder.Any, false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Just",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
 
-    "build type with methods with type signature" in {
-      implicit val moduleContext: ModuleContext = freshModuleContext
-      val code =
-        """type MyType
-          |    type MyAtom
-          |
-          |    is_atom : this -> Boolean
-          |    is_atom = true""".stripMargin
-      val module = code.preprocessModule
-
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId    = None,
-          module        = "Test",
-          name          = "MyAtom",
-          arguments     = Seq(),
-          returnType    = "MyAtom",
-          documentation = None
-        ),
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "is_atom",
-          arguments = Seq(
-            Suggestion.Argument("this", "MyAtom", false, false, None)
-          ),
-          selfType      = "MyAtom",
-          returnType    = "Boolean",
-          documentation = None
-        )
-      )
-    }
-
-    "build module" in {
+    "build module with atom" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyType a b
           |
-          |main = IO.println("Hello!")""".stripMargin
+          |main = IO.println "Hello!"""".stripMargin
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Atom(
-          externalId = None,
-          module     = "Test",
-          name       = "MyType",
-          arguments = Seq(
-            Suggestion.Argument("a", "Any", false, false, None),
-            Suggestion.Argument("b", "Any", false, false, None)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "MyType",
+              arguments = Seq(
+                Suggestion.Argument("a", SuggestionBuilder.Any, false, false, None),
+                Suggestion.Argument("b", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.MyType",
+              documentation = None
+            ),
+            Vector()
           ),
-          returnType    = "MyType",
-          documentation = None
-        ),
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
           ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "b",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.MyType", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build module with overloaded functions" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type A
+          |    type A
+          |    quux : A -> A
+          |    quux x = x
+          |
+          |quux : A -> A
+          |quux x = x
+          |
+          |main =
+          |    here.quux A
+          |    A.quux A""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion
+              .Atom(
+                externalId    = None,
+                module        = "Unnamed.Test",
+                name          = "A",
+                arguments     = List(),
+                returnType    = "Unnamed.Test.A",
+                documentation = None
+              ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "quux",
+              arguments = Vector(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.A", false, false, None),
+                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.A",
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "quux",
+              arguments = Vector(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Unnamed.Test.A",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = List(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -499,18 +1369,23 @@ class SuggestionBuilderTest extends CompilerTest {
           |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId =
-            Some(UUID.fromString("4083ce56-a5e5-4ecd-bf45-37ddf0b58456")),
-          module = "Test",
-          name   = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId =
+                Some(UUID.fromString("4083ce56-a5e5-4ecd-bf45-37ddf0b58456")),
+              module = "Unnamed.Test",
+              name   = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
         )
       )
     }
@@ -529,30 +1404,40 @@ class SuggestionBuilderTest extends CompilerTest {
           |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Function(
-          externalId =
-            Some(UUID.fromString("f533d910-63f8-44cd-9204-a1e2d46bb7c3")),
-          module = "Test",
-          name   = "id",
-          arguments = Seq(
-            Suggestion.Argument("x", "Any", false, false, None)
-          ),
-          returnType = "Any",
-          scope = Suggestion.Scope(
-            Suggestion.Position(0, 6),
-            Suggestion.Position(2, 28)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = Some(
+                    UUID.fromString("f533d910-63f8-44cd-9204-a1e2d46bb7c3")
+                  ),
+                  module = "Unnamed.Test",
+                  name   = "id",
+                  arguments = Seq(
+                    Suggestion.Argument("x", SuggestionBuilder.Any, false, false, None)
+                  ),
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(2, 28)
+                  )
+                ),
+                Vector()
+              )
+            )
           )
         )
       )
@@ -572,27 +1457,37 @@ class SuggestionBuilderTest extends CompilerTest {
           |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
-      build(code, module) should contain theSameElementsAs Seq(
-        Suggestion.Method(
-          externalId = None,
-          module     = "Test",
-          name       = "main",
-          arguments = Seq(
-            Suggestion.Argument("this", "Any", false, false, None)
-          ),
-          selfType      = "here",
-          returnType    = "Any",
-          documentation = None
-        ),
-        Suggestion.Local(
-          externalId =
-            Some(UUID.fromString("0270bcdf-26b8-4b99-8745-85b3600c7359")),
-          module     = "Test",
-          name       = "foo",
-          returnType = "Any",
-          scope = Suggestion.Scope(
-            Suggestion.Position(0, 6),
-            Suggestion.Position(2, 18)
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = Some(
+                    UUID.fromString("0270bcdf-26b8-4b99-8745-85b3600c7359")
+                  ),
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(2, 18)
+                  )
+                ),
+                Vector()
+              )
+            )
           )
         )
       )
@@ -600,11 +1495,14 @@ class SuggestionBuilderTest extends CompilerTest {
 
   }
 
-  private val Module = "Test"
+  private val Module = QualifiedName(List("Unnamed"), "Test")
 
-  private def build(source: String, ir: IR.Module): Vector[Suggestion] =
+  private def build(source: String, ir: IR.Module): Tree.Root[Suggestion] =
     SuggestionBuilder(source).build(Module, ir)
 
   private def freshModuleContext: ModuleContext =
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(
+      moduleName      = Module,
+      freshNameSupply = Some(new FreshNameSupply)
+    )
 }

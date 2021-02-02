@@ -1,1 +1,5 @@
-main = IO.println "Hello, World!"
+from Base import all
+
+main = 
+    operator1 = 0.up_to 100 . to_vector . map .noise
+    operator1.sort

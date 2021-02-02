@@ -1,19 +1,33 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
+import org.enso.interpreter.runtime.type.TypesGen;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(MethodDispatchLibrary.class)
 public class Atom implements TruffleObject {
-  private final AtomConstructor constructor;
+  final AtomConstructor constructor;
   private final Object[] fields;
 
   /**
@@ -84,14 +98,125 @@ public class Atom implements TruffleObject {
     return toString(false);
   }
 
-  /**
-   * Displays a human-readable string representation of this atom.
-   *
-   * @param allowSideEffects whether or not to allow side effects in displaying the string
-   * @return a string representation of this atom
-   */
   @ExportMessage
-  public Object toDisplayString(boolean allowSideEffects) {
-    return this.toString();
+  public boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  public Array getMembers(boolean includeInternal) {
+    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    if (members == null) {
+      return new Array(0);
+    }
+    Object[] mems = members.keySet().toArray();
+    return new Array(mems);
+  }
+
+  @ExportMessage
+  @CompilerDirectives.TruffleBoundary
+  public boolean isMemberInvocable(String member) {
+    Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
+    return members != null && members.containsKey(member);
+  }
+
+  @ExportMessage
+  static class InvokeMember {
+
+    static UnresolvedSymbol buildSym(AtomConstructor cons, String name) {
+      return UnresolvedSymbol.build(name, cons.getDefinitionScope());
+    }
+
+    @Specialization(
+        guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"})
+    static Object doCached(
+        Atom receiver,
+        String member,
+        Object[] arguments,
+        @Cached(value = "receiver.getConstructor()") AtomConstructor cachedConstructor,
+        @Cached(value = "member") String cachedMember,
+        @Cached(value = "buildSym(cachedConstructor, cachedMember)") UnresolvedSymbol cachedSym,
+        @CachedLibrary("cachedSym") InteropLibrary symbols)
+        throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+      Object[] args = new Object[arguments.length + 1];
+      args[0] = receiver;
+      System.arraycopy(arguments, 0, args, 1, arguments.length);
+      return symbols.execute(cachedSym, args);
+    }
+
+    @Specialization(replaces = "doCached")
+    static Object doUncached(
+        Atom receiver,
+        String member,
+        Object[] arguments,
+        @CachedLibrary(limit = "1") InteropLibrary symbols)
+        throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+      UnresolvedSymbol symbol = buildSym(receiver.getConstructor(), member);
+      return doCached(
+          receiver, member, arguments, receiver.getConstructor(), member, symbol, symbols);
+    }
+  }
+
+  @ExportMessage
+  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+    try {
+      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException
+        | UnexpectedResultException e) {
+      return Text.create(this.toString());
+    }
+  }
+
+  @ExportMessage
+  boolean isNull(@CachedContext(Language.class) Context ctx) {
+    return this.getConstructor() == ctx.getBuiltins().nothing();
+  }
+
+  @ExportMessage
+  boolean hasFunctionalDispatch() {
+    return true;
+  }
+
+  @ExportMessage
+  static class GetFunctionalDispatch {
+    static final int CACHE_SIZE = 10;
+
+    @CompilerDirectives.TruffleBoundary
+    static Function doResolve(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
+      return symbol.resolveFor(cons, context.getBuiltins().any());
+    }
+
+    @Specialization(
+        guards = {
+          "!context.isCachingDisabled()",
+          "cachedSymbol == symbol",
+          "_this.constructor == cachedConstructor",
+          "function != null"
+        },
+        limit = "CACHE_SIZE")
+    static Function resolveCached(
+        Atom _this,
+        UnresolvedSymbol symbol,
+        @CachedContext(Language.class) Context context,
+        @Cached("symbol") UnresolvedSymbol cachedSymbol,
+        @Cached("_this.constructor") AtomConstructor cachedConstructor,
+        @Cached("doResolve(context, cachedConstructor, cachedSymbol)") Function function) {
+      return function;
+    }
+
+    @Specialization(replaces = "resolveCached")
+    static Function resolve(
+        Atom _this, UnresolvedSymbol symbol, @CachedContext(Language.class) Context context)
+        throws MethodDispatchLibrary.NoSuchMethodException {
+      Function function = doResolve(context, _this.constructor, symbol);
+      if (function == null) {
+        throw new MethodDispatchLibrary.NoSuchMethodException();
+      }
+      return function;
+    }
   }
 }

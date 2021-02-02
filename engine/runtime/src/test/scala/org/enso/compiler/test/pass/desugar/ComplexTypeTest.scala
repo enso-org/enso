@@ -5,7 +5,8 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.resolve.ModuleAnnotations
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class ComplexTypeTest extends CompilerTest {
@@ -14,12 +15,12 @@ class ComplexTypeTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(ComplexType).get
+  val precursorPasses: PassGroup = passes.getPrecursors(ComplexType).get
 
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run complex type desugaring on an
     * [[IR.Module]].
@@ -44,7 +45,7 @@ class ComplexTypeTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   // === The Tests ============================================================
@@ -79,9 +80,26 @@ class ComplexTypeTest extends CompilerTest {
           |    type Bar
           |""".stripMargin.preprocessModule.desugar
 
-      exactly(2, ir.bindings) shouldBe an[Definition.Atom]
+      exactly(2, ir.bindings) shouldBe a[Definition.Atom]
       ir.bindings.head.asInstanceOf[Definition.Atom].name.name shouldEqual "Foo"
       ir.bindings(1).asInstanceOf[Definition.Atom].name.name shouldEqual "Bar"
+    }
+
+    "have annotations on the type desugared to annotations on the defined" in {
+      val ir =
+        """@Builtin_Type
+          |type My_Type
+          |    Foo
+          |    type Bar
+          |""".stripMargin.preprocessModule.desugar
+
+      exactly(1, ir.bindings) shouldBe a[Definition.Atom]
+      ir.bindings.head
+        .asInstanceOf[Definition.Atom]
+        .unsafeGetMetadata(ModuleAnnotations, "")
+        .annotations
+        .head
+        .name shouldEqual "@Builtin_Type"
     }
 
     "have their methods desugared to methods on included atoms" in {
