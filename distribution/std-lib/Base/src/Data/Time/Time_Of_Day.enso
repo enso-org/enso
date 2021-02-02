@@ -101,6 +101,12 @@ type Time_Of_Day
 
 ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
+   Arguments:
+   - text: The text to parse as a time of day.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   default format.
+
    The text must represent a valid time and is parsed using the ISO-8601
    extended local time format. The format consists of:
 
@@ -124,15 +130,23 @@ type Time_Of_Day
 
    > Example
      Recover from the parse error.
-         Time_Of_Day.parse "half past twelve" . catch <| case
+         Time_Of_Day.parse "half past twelve" . catch e-> case e of
              Time.Error _ -> Time_Of_Day.new
-parse : Text -> Time_Of_Day
+parse : Text -> Time_Of_Day ! Time.Time_Error
 parse text =
-    Panic.recover (Time_Of_Day (LocalTime.parse text)) . catch <| case _ of
+    Panic.recover (Time_Of_Day (LocalTime.parse text)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
 ## Obtains an instance of Time_Of_Day from a text using custom format.
+
+   Arguments:
+   - text: The text to parse as a time of day, using the specified pattern.
+   - pattern: The pattern to use for parsing the input text.
+   - locale: The locale in which the pattern should be interpreted.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   provided pattern and locale.
 
    For the list of accepted symbols in pattern refer to
    `Base.Data.Time.Time.format` doc.
@@ -144,10 +158,10 @@ parse text =
    > Example
      Parse "4:30AM" as Time_Of_Day
          Date.parse_format "4:30AM" "h:mma"
-parse_format : Text -> Text -> Locale -> Time_Of_Day
+parse_format : Text -> Text -> Locale -> Time_Of_Day ! Time.Time_Error
 parse_format text pattern locale=Locale.default =
     format = (DateTimeFormatter.ofPattern pattern).withLocale locale.java_locale
-    Panic.recover (Time_Of_Day (LocalTime.parse text format)) . catch <| case _ of
+    Panic.recover (Time_Of_Day (LocalTime.parse text format)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
@@ -163,6 +177,8 @@ now = Time_Of_Day LocalTime.now
    - second - the second-of-minute to represent, from 0 to 59
    - nanosecond - the nano-of-second to represent, from 0 to 999,999,999
 
+   Returns a `Time_Error` if the provided time is not a valid time.
+
    > Example
      Create a new local time at Unix epoch.
          Time_Of_Day.new
@@ -170,8 +186,8 @@ now = Time_Of_Day LocalTime.now
    > Example
      Get the local time at 9:30.
          Time_Of_Day.new 9 30
-new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day
+new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
 new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch <| case _ of
+    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x

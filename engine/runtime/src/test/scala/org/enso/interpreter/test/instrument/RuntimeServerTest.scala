@@ -3590,7 +3590,7 @@ class RuntimeServerTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("(Syntax_Error 'Unrecognized token.')")
+    context.consumeOut shouldEqual List("(Error: (Syntax_Error 'Unrecognized token.'))")
   }
 
   it should "return compiler error syntax error" in {

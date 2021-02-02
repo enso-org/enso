@@ -11,7 +11,7 @@ build_long n =
 
 build_long_bldr n =
     bldr = StringBuilder.new
-    1.up_to n . each (bldr.append _)
+    1.up_to n . each n-> bldr.append n
     res = bldr.toString
     res
 

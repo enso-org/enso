@@ -1,0 +1,24 @@
+from Base import all
+
+import Test
+
+type My_Type a
+
+spec = Test.group "Callables" <|
+    Test.specify "should be able to be applied in a pipeline using |>" <|
+        (1 |> *2) . should_equal 2
+        (2 |> My_Type) . should_equal (My_Type 2)
+        (2.3 |> .floor) . should_equal 2
+    Test.specify "should be able to be applied to an argument using <|" <|
+        (*2 <| 1) . should_equal 2
+        (My_Type <| 2) . should_equal (My_Type 2)
+        (.floor <| 2.3) . should_equal 2
+    Test.specify "should be able to be composed backward using <<" <|
+        (+1 << *2) 2 . should_equal 5
+        (My_Type << *2) 2 . should_equal <| My_Type 4
+        (.floor << *2.25) 2 . should_equal 4
+    Test.specify "should be able to be composed forward using >>" <|
+        (+1 >> *2) 2 . should_equal 6
+        (*2 >> My_Type) 2 . should_equal <| My_Type 4
+        (*2 >> .floor) 2.75 . should_equal 5
+
