@@ -27,88 +27,88 @@ env:
 
 jobs:
   # This job is responsible for testing the codebase
-  test:
-    name: Test Engine
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: |
-          conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: conda activate enso
-      - name: Install FlatBuffers Compiler
-        run: conda install --freeze-installed flatbuffers=1.12.0
-      - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
-        with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
-          native-image: true
-      - name: Set Up SBT
-        run: |
-          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-
-      # Build
-      - name: Bootstrap Enso project
-        run: sbt --no-colors bootstrap
-      - name: Build Enso
-        run: sbt --no-colors compile
-
-      # Tests
-      - name: Setup Tests on Windows
-        if: runner.os == 'Windows'
-        run: |
-          echo '::set-env name=CI_TEST_TIMEFACTOR::2'
-          echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
-      - name: Test Enso
-        run: sbt --no-colors test
-      - name: Check Runtime Benchmark Compilation
-        run: sbt -no-colors runtime/Benchmark/compile
-      - name: Check Language Server Benchmark Compilation
-        run: sbt -no-colors language-server/Benchmark/compile
-      - name: Check Searcher Benchmark Compilation
-        run: sbt -no-colors searcher/Benchmark/compile
-      - name: Build the Uberjar
-        run: sbt -no-colors runner/assembly
-      - name: Test the Uberjar
-        run: ./runner.jar --run tools/ci/Test.enso
-      - name: Test the Repl in the Uberjar
-        shell: bash
-        run:
-          cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl |
-          diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test
-          successful"
+#  test:
+#    name: Test Engine
+#    runs-on: ${{ matrix.os }}
+#    timeout-minutes: 30
+#    strategy:
+#      matrix:
+#        os: [macOS-latest, ubuntu-latest, windows-latest]
+#      fail-fast: false
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Setup conda
+#        uses: s-weigand/setup-conda@v1
+#        with:
+#          update-conda: false
+#          conda-channels: anaconda, conda-forge
+#      - name: Setup Conda Environment on Windows
+#        if: runner.os == 'Windows'
+#        run: |
+#          conda create --name enso
+#          conda init powershell
+#      - name: Activate Conda Environment on Windows
+#        if: runner.os == 'Windows'
+#        run: conda activate enso
+#      - name: Install FlatBuffers Compiler
+#        run: conda install --freeze-installed flatbuffers=1.12.0
+#      - name: Setup GraalVM Environment
+#        uses: ayltai/setup-graalvm@v1
+#        with:
+#          graalvm-version: ${{ env.graalVersion }}
+#          java-version: ${{ env.javaVersion }}
+#          native-image: true
+#      - name: Set Up SBT
+#        run: |
+#          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+#          tar -xzf sbt.tgz
+#          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+#
+#      # Caches
+#      - name: Cache SBT
+#        uses: actions/cache@v2
+#        with:
+#          path: |
+#            ~/.sbt
+#            ~/.ivy2/cache
+#            ~/.cache
+#          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+#          restore-keys: ${{ runner.os }}-sbt-
+#
+#      # Build
+#      - name: Bootstrap Enso project
+#        run: sbt --no-colors bootstrap
+#      - name: Build Enso
+#        run: sbt --no-colors compile
+#
+#      # Tests
+#      - name: Setup Tests on Windows
+#        if: runner.os == 'Windows'
+#        run: |
+#          echo '::set-env name=CI_TEST_TIMEFACTOR::2'
+#          echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
+#      - name: Test Enso
+#        run: sbt --no-colors test
+#      - name: Check Runtime Benchmark Compilation
+#        run: sbt -no-colors runtime/Benchmark/compile
+#      - name: Check Language Server Benchmark Compilation
+#        run: sbt -no-colors language-server/Benchmark/compile
+#      - name: Check Searcher Benchmark Compilation
+#        run: sbt -no-colors searcher/Benchmark/compile
+#      - name: Build the Uberjar
+#        run: sbt -no-colors runner/assembly
+#      - name: Test the Uberjar
+#        run: ./runner.jar --run tools/ci/Test.enso
+#      - name: Test the Repl in the Uberjar
+#        shell: bash
+#        run:
+#          cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl |
+#          diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test
+#          successful"
 
   # This job is responsible for building the artifacts
   build:
-    name: Build Engine
+    name: Build scala parser and upload to AWS
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -240,110 +240,110 @@ jobs:
           text
           EOF
 
-  build-launcher:
-    name: Build Launcher
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
-      fail-fast: false
-    steps:
-      - name: Checkout (PR)
-        uses: actions/checkout@v2
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Checkout (Branch)
-        uses: actions/checkout@v2
-        if: github.event_name != 'pull_request'
-      - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
-      - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
-        with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up Native Image (Windows)
-        if: runner.os == 'Windows'
-        run: gu.cmd -N install -n native-image
-      - name: Set Up Native Image (non-Windows)
-        if: runner.os != 'Windows'
-        run: gu -N install -n native-image
-      - name: Set Up SBT
-        run: |
-          curl -fSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-
-      # Build Artifacts
-      #- name: Bootstrap the project # As long as launcher doesn't depend on
-      #                              # runtime, bootstrap is not mandatory.
-      #  run: sbt --no-colors bootstrap
-      - name: Build Launcher Native Image
-        run: sbt --no-colors launcher/buildNativeImage
-
-      # Publish
-      - name: Prepare distribution directory name (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          chmod +x enso
-          DIST_VERSION=$(./enso version --json | jq -r '.version')
-          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
-          DIST_DIR=$DIST_ROOT/enso
-          echo ::set-env name=DIST_VERSION::$DIST_VERSION
-          echo ::set-env name=DIST_DIR::$DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
-      - name: Prepare distribution directory name (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
-          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
-          DIST_DIR=$DIST_ROOT/enso
-          echo ::set-env name=DIST_VERSION::$DIST_VERSION
-          echo ::set-env name=DIST_DIR::$DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
-
-      - name: Prepare Launcher distribution (common)
-        shell: bash
-        run: |
-          mkdir -p ${{ env.DIST_DIR }}
-          mkdir ${{ env.DIST_DIR }}/bin
-          mkdir ${{ env.DIST_DIR }}/dist
-          mkdir ${{ env.DIST_DIR }}/runtime
-          cp distribution/launcher/README.md ${{ env.DIST_DIR }}
-          cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
-          cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}
-
-      - name: Prepare Launcher distribution (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          cp enso ${{ env.DIST_DIR }}/bin/
-
-      - name: Prepare Launcher distribution (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cp enso.exe ${{ env.DIST_DIR }}/bin/
-
-      # The way artifacts are uploaded currently does not preserve the
-      # executable bits for Unix. However putting artifacts into a ZIP would
-      # create a twice nested ZIP file. For now, users downloading artifacts
-      # from the CI builds have to set the bit themselves.
-      - name: Publish the Launcher Binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.DIST_ROOT }}
-          path: ${{ env.DIST_ROOT }}
+#  build-launcher:
+#    name: Build Launcher
+#    runs-on: ${{ matrix.os }}
+#    timeout-minutes: 30
+#    strategy:
+#      matrix:
+#        os: [macOS-latest, ubuntu-latest, windows-latest]
+#      fail-fast: false
+#    steps:
+#      - name: Checkout (PR)
+#        uses: actions/checkout@v2
+#        if: github.event_name == 'pull_request'
+#        with:
+#          ref: ${{ github.event.pull_request.head.sha }}
+#      - name: Checkout (Branch)
+#        uses: actions/checkout@v2
+#        if: github.event_name != 'pull_request'
+#      - name: Enable Developer Command Prompt (Windows)
+#        uses: ilammy/msvc-dev-cmd@v1.3.0
+#      - name: Setup GraalVM Environment
+#        uses: DeLaGuardo/setup-graalvm@2.0
+#        with:
+#          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#      - name: Set Up Native Image (Windows)
+#        if: runner.os == 'Windows'
+#        run: gu.cmd -N install -n native-image
+#      - name: Set Up Native Image (non-Windows)
+#        if: runner.os != 'Windows'
+#        run: gu -N install -n native-image
+#      - name: Set Up SBT
+#        run: |
+#          curl -fSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+#          tar -xzf sbt.tgz
+#          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+#
+#      # Caches
+#      - name: Cache SBT
+#        uses: actions/cache@v2
+#        with:
+#          path: |
+#            ~/.sbt
+#            ~/.ivy2/cache
+#            ~/.cache
+#          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+#          restore-keys: ${{ runner.os }}-sbt-
+#
+#      # Build Artifacts
+#      #- name: Bootstrap the project # As long as launcher doesn't depend on
+#      #                              # runtime, bootstrap is not mandatory.
+#      #  run: sbt --no-colors bootstrap
+#      - name: Build Launcher Native Image
+#        run: sbt --no-colors launcher/buildNativeImage
+#
+#      # Publish
+#      - name: Prepare distribution directory name (Unix)
+#        if: runner.os != 'Windows'
+#        shell: bash
+#        run: |
+#          chmod +x enso
+#          DIST_VERSION=$(./enso version --json | jq -r '.version')
+#          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+#          DIST_DIR=$DIST_ROOT/enso
+#          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+#          echo ::set-env name=DIST_DIR::$DIST_DIR
+#          echo ::set-env name=DIST_ROOT::$DIST_ROOT
+#      - name: Prepare distribution directory name (Windows)
+#        if: runner.os == 'Windows'
+#        shell: bash
+#        run: |
+#          DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
+#          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+#          DIST_DIR=$DIST_ROOT/enso
+#          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+#          echo ::set-env name=DIST_DIR::$DIST_DIR
+#          echo ::set-env name=DIST_ROOT::$DIST_ROOT
+#
+#      - name: Prepare Launcher distribution (common)
+#        shell: bash
+#        run: |
+#          mkdir -p ${{ env.DIST_DIR }}
+#          mkdir ${{ env.DIST_DIR }}/bin
+#          mkdir ${{ env.DIST_DIR }}/dist
+#          mkdir ${{ env.DIST_DIR }}/runtime
+#          cp distribution/launcher/README.md ${{ env.DIST_DIR }}
+#          cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
+#          cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}
+#
+#      - name: Prepare Launcher distribution (Unix)
+#        if: runner.os != 'Windows'
+#        run: |
+#          cp enso ${{ env.DIST_DIR }}/bin/
+#
+#      - name: Prepare Launcher distribution (Windows)
+#        if: runner.os == 'Windows'
+#        shell: bash
+#        run: |
+#          cp enso.exe ${{ env.DIST_DIR }}/bin/
+#
+#      # The way artifacts are uploaded currently does not preserve the
+#      # executable bits for Unix. However putting artifacts into a ZIP would
+#      # create a twice nested ZIP file. For now, users downloading artifacts
+#      # from the CI builds have to set the bit themselves.
+#      - name: Publish the Launcher Binary
+#        uses: actions/upload-artifact@v2
+#        with:
+#          name: ${{ env.DIST_ROOT }}
+#          path: ${{ env.DIST_ROOT }}
