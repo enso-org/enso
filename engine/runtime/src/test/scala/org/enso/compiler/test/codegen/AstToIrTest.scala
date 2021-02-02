@@ -883,6 +883,17 @@ class AstToIrTest extends CompilerTest with Inside {
     }
   }
 
+  "AST translation for polyglot definitions" should {
+    "work" in {
+      val ir =
+        s"""
+          |foreign js foo bar = ${"\"\"\""}
+          |    console.log(foo + bar)
+          |""".stripMargin.toIrModule
+      println(ir)
+    }
+  }
+
   "AST translation for imports and exports" should {
     "properly support different kinds of imports" in {
       val imports = List(
