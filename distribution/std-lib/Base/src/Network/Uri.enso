@@ -151,7 +151,7 @@ type Uri
    > Example
      Parse Uri text.
          Uri.parse "http://example.com"
-parse : Text -> Uri
+parse : Text -> Uri ! Syntax_Error
 parse text =
     Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
         Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)

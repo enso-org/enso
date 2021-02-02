@@ -7,7 +7,7 @@ type Maybe
     Nothing
 
     ## A value.
-    type Just value
+    type Some value
 
     ## Applies the provided function to the contained value if it exists,
        otherwise returning the provided default value.
@@ -24,7 +24,7 @@ type Maybe
     maybe : Any -> (Any -> Any) -> Any
     maybe ~default function = case this of
         Nothing -> default
-        Just val -> function val
+        Some val -> function val
 
     ## Check if the maybe value is `Just`.
 
@@ -34,7 +34,7 @@ type Maybe
     is_just : Boolean
     is_just = case this of
         Nothing -> False
-        Just _ -> True
+        Some _ -> True
 
     ## Check if the maybe value is `Nothing`.
 
