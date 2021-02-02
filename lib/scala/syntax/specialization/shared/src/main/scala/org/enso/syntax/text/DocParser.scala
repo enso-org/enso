@@ -54,7 +54,7 @@ object DocParser {
 
   /** Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched("  " + input)
   def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
@@ -186,7 +186,7 @@ object DocParserRunner {
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
     val in = comment.lines.mkString("\n")
-    DocParser.runMatched("  " + in)
+    DocParser.runMatched(in)
   }
 
   /** Function for creating documented lines in [[attachDocToSubsequentAST]]
