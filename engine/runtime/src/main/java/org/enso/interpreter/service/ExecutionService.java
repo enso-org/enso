@@ -102,7 +102,7 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<Throwable> onExceptionalCallback)
+      Consumer<Exception> onExceptionalCallback)
       throws ArityException, SourceNotFoundException, UnsupportedMessageException,
           UnsupportedTypeException {
     SourceSection src = call.getFunction().getSourceSection();
@@ -153,7 +153,7 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<Throwable> onExceptionalCallback)
+      Consumer<Exception> onExceptionalCallback)
       throws ArityException, ConstructorNotFoundException, MethodNotFoundException,
           ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
     Module module =
