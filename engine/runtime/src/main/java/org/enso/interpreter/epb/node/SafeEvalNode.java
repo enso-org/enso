@@ -33,14 +33,11 @@ public abstract class SafeEvalNode extends RootNode {
   }
 
   @Specialization
-  Stateful doExecute(
+  Object doExecute(
       VirtualFrame frame,
       @CachedContext(EpbLanguage.class) ContextReference<EpbContext> contextRef) {
     ensureParsed(contextRef);
-    Object result =
-        foreign.execute(Function.ArgumentsHelper.getPositionalArguments(frame.getArguments()));
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    return new Stateful(state, result);
+    return foreign.execute(frame.getArguments());
   }
 
   private void ensureParsed(ContextReference<EpbContext> ctxRef) {
