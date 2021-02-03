@@ -1,0 +1,11 @@
+from Base import all
+import Test
+import Image.Io
+
+spec =
+    Test.group "Io" <|
+        Test.specify "should read PNG image" <|
+            lena = Enso_Project.data / "lena.png"
+            mat = Io.read lena
+            mat.rows.should_equal 256
+            mat.cols.should_equal 256

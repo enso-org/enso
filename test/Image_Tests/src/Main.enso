@@ -1,0 +1,6 @@
+import Test
+
+import Image_Tests.Io_Spec
+
+main = Test.Suite.runMain <|
+    Io_Spec.spec

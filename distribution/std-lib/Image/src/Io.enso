@@ -1,0 +1,11 @@
+from Base import all
+import Image.Data.Matrix
+
+polyglot java import org.enso.image.Io as Java_Io
+
+read : (Text | File) -> Matrix
+read location =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    Matrix.Matrix (Java_Io.read path)

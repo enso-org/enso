@@ -1,0 +1,11 @@
+from Base import all
+
+type Matrix
+
+    type Matrix opencv_mat
+
+    cols : Integer
+    cols = this.opencv_mat.cols
+
+    rows : Integer
+    rows = this.opencv_mat.rows
