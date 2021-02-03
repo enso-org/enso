@@ -308,8 +308,33 @@ object AstToIr {
     inputAst match {
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include)         => translateIdent(include)
-      case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
+      case AST.Ident.Cons.any(include) => translateIdent(include)
+      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
+      case AstView.FunctionSugar(
+            AST.Ident.Var("foreign"),
+            AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args,
+            body
+          ) =>
+        body.shape match {
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val code = lines
+              .map(t =>
+                t.text.collect {
+                  case AST.Literal.Text.Segment.Plain(str)   => str
+                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
+                }.mkString
+              )
+              .mkString("\n")
+            val foreign =
+              IR.Foreign.Definition(lang, code, getIdentifiedLocation(body))
+            IR.Function.Binding(
+              buildName(name),
+              args.map(translateArgumentDefinition(_)),
+              foreign,
+              getIdentifiedLocation(inputAst)
+            )
+          case _ => throw new CompilerError("I don't care")
+        }
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>

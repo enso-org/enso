@@ -1,22 +1,27 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.TruffleLanguage;
+import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 
 public class EpbContext {
   private final boolean isInner;
   private final TruffleLanguage.Env env;
-  private @CompilerDirectives.CompilationFinal TruffleContext innerContext;
+  private @CompilerDirectives.CompilationFinal
+  GuardedTruffleContext innerContext;
+  private final GuardedTruffleContext currentContext;
 
   public EpbContext(TruffleLanguage.Env env) {
     this.env = env;
     isInner = env.getConfig().get("isEpbInner") != null;
+    currentContext = new GuardedTruffleContext(env.getContext(), isInner);
   }
 
   public void initialize() {
     if (!isInner) {
-      innerContext = env.newContextBuilder().config("isEpbInner", "yes").build();
+      innerContext =
+          new GuardedTruffleContext(
+              env.newContextBuilder().config("isEpbInner", "yes").build(), true);
     }
   }
 
@@ -24,8 +29,12 @@ public class EpbContext {
     return isInner;
   }
 
-  public TruffleContext getInnerContext() {
+  public GuardedTruffleContext getInnerContext() {
     return innerContext;
+  }
+
+  public GuardedTruffleContext getCurrentContext() {
+    return currentContext;
   }
 
   public TruffleLanguage.Env getEnv() {

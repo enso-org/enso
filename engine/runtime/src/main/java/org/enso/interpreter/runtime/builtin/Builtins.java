@@ -29,6 +29,7 @@ import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
+import org.enso.interpreter.node.expression.builtin.unsafe.CreateThreadMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -168,6 +169,7 @@ public class Builtins {
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
+    scope.registerMethod(unsafe, "create_thread", CreateThreadMethodGen.makeFunction(language));
   }
 
   /** @return {@code true} if the IR has been initialized, otherwise {@code false} */

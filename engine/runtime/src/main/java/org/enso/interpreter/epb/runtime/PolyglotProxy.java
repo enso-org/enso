@@ -1,6 +1,5 @@
 package org.enso.interpreter.epb.runtime;
 
-import com.oracle.truffle.api.TruffleContext;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -11,10 +10,11 @@ import org.enso.interpreter.epb.node.ContextFlipNode;
 @ExportLibrary(InteropLibrary.class)
 public class PolyglotProxy implements TruffleObject {
   final Object delegate;
-  private final TruffleContext origin;
-  private final TruffleContext target;
+  private final GuardedTruffleContext origin;
+  private final GuardedTruffleContext target;
 
-  public PolyglotProxy(Object delegate, TruffleContext origin, TruffleContext target) {
+  public PolyglotProxy(
+      Object delegate, GuardedTruffleContext origin, GuardedTruffleContext target) {
     this.delegate = delegate;
     this.origin = origin;
     this.target = target;
@@ -24,11 +24,11 @@ public class PolyglotProxy implements TruffleObject {
     return delegate;
   }
 
-  public TruffleContext getOrigin() {
+  public GuardedTruffleContext getOrigin() {
     return origin;
   }
 
-  public TruffleContext getTarget() {
+  public GuardedTruffleContext getTarget() {
     return target;
   }
 
@@ -85,9 +85,12 @@ public class PolyglotProxy implements TruffleObject {
           UnsupportedTypeException {
     Object p = origin.enter();
     try {
-      // TODO Arguments
+      Object[] newArgs = new Object[arguments.length];
+      for (int i = 0; i < arguments.length; i++) {
+        newArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
+      }
       return contextFlipNode.execute(
-          members.invokeMember(this.delegate, member, arguments), origin, target);
+          members.invokeMember(this.delegate, member, newArgs), origin, target);
     } finally {
       origin.leave(p);
     }
@@ -204,6 +207,18 @@ public class PolyglotProxy implements TruffleObject {
     Object p = origin.enter();
     try {
       return strings.asString(this.delegate);
+    } finally {
+      origin.leave(p);
+    }
+  }
+
+  @ExportMessage
+  public Object toDisplayString(
+      boolean allowSideEffects, @CachedLibrary("this.delegate") InteropLibrary displays) {
+    Object p = origin.enter();
+    try {
+      System.out.println(this.delegate.getClass());
+      return displays.toDisplayString(this.delegate, allowSideEffects);
     } finally {
       origin.leave(p);
     }

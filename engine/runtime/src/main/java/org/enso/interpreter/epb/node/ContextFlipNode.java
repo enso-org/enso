@@ -1,10 +1,11 @@
 package org.enso.interpreter.epb.node;
 
-import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 
 @GenerateUncached
@@ -20,40 +21,45 @@ public abstract class ContextFlipNode extends Node {
    * @param target
    * @return
    */
-  public abstract Object execute(Object value, TruffleContext origin, TruffleContext target);
+  public abstract Object execute(
+      Object value, GuardedTruffleContext origin, GuardedTruffleContext target);
 
   @Specialization
-  double doDouble(double d, TruffleContext origin, TruffleContext target) {
+  double doDouble(
+      double d, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return d;
   }
 
   @Specialization
-  double doFloat(float d, TruffleContext origin, TruffleContext target) {
+  double doFloat(float d, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return d;
   }
 
   @Specialization
-  long doLong(long i, TruffleContext origin, TruffleContext target) {
+  long doLong(long i, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return i;
   }
 
   @Specialization
-  long doInt(int i, TruffleContext origin, TruffleContext target) {
+  long doInt(int i, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return i;
   }
 
   @Specialization(guards = "proxy.getOrigin() == target")
-  Object doUnwrapProxy(PolyglotProxy proxy, TruffleContext origin, TruffleContext target) {
+  Object doUnwrapProxy(
+      PolyglotProxy proxy, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return proxy.getDelegate();
   }
 
   @Specialization(guards = "proxy.getTarget() == target")
-  Object doAlreadyProxied(PolyglotProxy proxy, TruffleContext origin, TruffleContext target) {
+  Object doAlreadyProxied(
+      PolyglotProxy proxy, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return proxy;
   }
 
-  @Specialization
-  Object doWrapProxy(Object o, TruffleContext origin, TruffleContext target) {
+  @Fallback
+  Object doWrapProxy(
+      Object o, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return new PolyglotProxy(o, origin, target);
   }
 }
