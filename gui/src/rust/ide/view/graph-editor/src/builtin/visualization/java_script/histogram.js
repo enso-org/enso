@@ -6,6 +6,7 @@ loadStyle('https://fontlibrary.org/face/dejavu-sans-mono')
 let shortcuts = {
     zoomIn: (e) => (e.ctrlKey || e.metaKey) && e.key === 'z',
     showAll: (e) => (e.ctrlKey || e.metaKey) && e.key === 'a',
+    debugPreprocessor: (e) => (e.ctrlKey || e.metaKey) && e.key === 'd',
 }
 
 const LABEL_STYLE = 'font-family: DejaVuSansMonoBook; font-size: 10px;'
@@ -52,6 +53,7 @@ class Histogram extends Visualization {
             this.initCanvas()
             this.initLabels()
             this.initHistogram()
+            this.initDebugShortcut()
         }
 
         this.updateLabels()
@@ -220,6 +222,15 @@ class Histogram extends Visualization {
         this.createButtonFitAll(zoom)
         const selectedZoomBtn = this.createButtonScaleToPoints()
         this.initBrushing(selectedZoomBtn, zoom)
+    }
+
+    initDebugShortcut() {
+        document.addEventListener('keydown', (e) => {
+            if (shortcuts.debugPreprocessor(e)) {
+                this.setPreprocessor('x -> "[1,2,3,4]"')
+                e.preventDefault()
+            }
+        })
     }
 
     /**

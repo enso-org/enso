@@ -116,26 +116,33 @@ impl Handle {
         Handle {logger,graph,execution_ctx,project,notifier}
     }
 
-    /// See `attach_visualization` in `ExecutionContext`.
+    /// See [`model::ExecutionContext::attach_visualization`].
     pub async fn attach_visualization
     (&self, visualization:Visualization)
     -> FallibleResult<impl Stream<Item=VisualizationUpdateData>> {
         self.execution_ctx.attach_visualization(visualization).await
     }
 
-    /// See `detach_visualization` in `ExecutionContext`.
+    /// See [`model::ExecutionContext::detach_visualization`].
     pub async fn detach_visualization(&self, id:VisualizationId) -> FallibleResult<Visualization> {
         self.execution_ctx.detach_visualization(id).await
     }
 
-    /// See `detach_all_visualizations` in `ExecutionContext`.
+    /// See [`model::ExecutionContext::detach_all_visualizations`].
     pub async fn detach_all_visualizations(&self) -> Vec<FallibleResult<Visualization>> {
         self.execution_ctx.detach_all_visualizations().await
     }
 
-    /// See `expression_info_registry` in `ExecutionContext`.
+    /// See [`model::ExecutionContext::expression_info_registry`].
     pub fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
         self.execution_ctx.computed_value_info_registry()
+    }
+
+    /// Modify preprocessor code in visualization. See also
+    /// [`model::ExecutionContext::modify_visualization`].
+    pub async fn set_visualization_preprocessor
+    (&self, id:VisualizationId, code:String) -> FallibleResult {
+        self.execution_ctx.modify_visualization(id,Some(code),None).await
     }
 
     /// Subscribe to updates about changes in this executed graph.

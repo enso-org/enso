@@ -43,10 +43,12 @@ use utils::channel::process_stream_with_handle;
 enum MissingMappingFor {
     #[fail(display="Displayed node {:?} is not bound to any controller node.",_0)]
     DisplayedNode(graph_editor::NodeId),
-    #[fail(display="Controller node {:?} is not bound to any displayed node",_0)]
+    #[fail(display="Controller node {:?} is not bound to any displayed node.",_0)]
     ControllerNode(ast::Id),
-    #[fail(display="Displayed connection {:?} is not bound to any controller connection", _0)]
+    #[fail(display="Displayed connection {:?} is not bound to any controller connection.", _0)]
     DisplayedConnection(graph_editor::EdgeId),
+    #[fail(display="Displayed visualization {:?} is not bound to any attached by controller.",_0)]
+    DisplayedVisualization(graph_editor::NodeId)
 }
 
 /// Error raised when reached some fatal inconsistency in data provided by GraphEditor.
@@ -226,6 +228,18 @@ impl Integration {
         frp::extend! {network
             eval breadcrumbs.output.project_name((name) {
                 model.rename_project(name);
+            });
+        }
+
+
+        // === Setting Visualization Preprocessor ===
+
+        frp::extend! { network
+            eval editor_outs.visualization_preprocessor_changed ([model]((node_id,code)) {
+                if let Err(err) = model.visualization_preprocessor_changed(*node_id,code) {
+                    error!(model.logger, "Error when handling request for setting new \
+                        visualization's preprocessor code: {err}");
+                }
             });
         }
 
@@ -1132,6 +1146,24 @@ impl Model {
                 error!(logger, "Error while saving file: {err:?}");
             }
         });
+    }
+
+    fn visualization_preprocessor_changed(&self, node_id:graph_editor::NodeId, code:&graph_editor::data::enso::Code)
+    -> FallibleResult {
+        if let Some(visualization) = self.visualizations.get_copied(&node_id) {
+            let logger      = self.logger.clone_ref();
+            let controller  = self.graph.clone_ref();
+            let code_string = AsRef::<String>::as_ref(code).to_string();
+            executor::global::spawn(async move {
+                let result = controller.set_visualization_preprocessor(visualization,code_string);
+                if let Err(err) = result.await {
+                    error!(logger, "Error when setting visualization preprocessor: {err}");
+                }
+            });
+            Ok(())
+        } else {
+            Err(MissingMappingFor::DisplayedVisualization(node_id).into())
+        }
     }
 }
 

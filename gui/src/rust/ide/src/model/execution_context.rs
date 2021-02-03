@@ -236,7 +236,7 @@ impl Visualization {
 }
 
 /// An identifier of ExecutionContext.
-pub type Id  = language_server::ContextId;
+pub type Id = language_server::ContextId;
 
 
 
@@ -295,6 +295,12 @@ pub trait API : Debug {
     /// Detach the visualization from this execution context.
     fn detach_visualization
     (&self, id:VisualizationId) -> BoxFuture<FallibleResult<Visualization>>;
+
+    /// Modify visualization properties. See fields in [`Visualization`] structure. Passing `None`
+    /// retains the old value.
+    fn modify_visualization
+    (&self, id:VisualizationId, expression:Option<String>, module:Option<ModuleQualifiedName>)
+    -> BoxFuture<FallibleResult>;
 
     /// Dispatches the visualization update data (typically received from as LS binary notification)
     /// to the respective's visualization update channel.

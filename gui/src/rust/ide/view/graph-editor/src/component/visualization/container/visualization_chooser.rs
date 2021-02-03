@@ -9,7 +9,7 @@
 use crate::prelude::*;
 
 use crate::component::visualization;
-use crate::data::EnsoType;
+use crate::data::enso;
 
 use enso_frp as frp;
 use enso_frp;
@@ -64,7 +64,7 @@ impl Model {
     pub fn entries(&self) -> Vec <visualization::Path> {
         // TODO[ao]: The returned visualizations should take the current type on node into account.
         //           See https://github.com/enso-org/ide/issues/837
-        let definitions_iter = self.registry.valid_sources(&EnsoType::any()).into_iter();
+        let definitions_iter = self.registry.valid_sources(&enso::Type::any()).into_iter();
         definitions_iter.map(|d| d.signature.path).collect_vec()
     }
 }

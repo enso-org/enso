@@ -1,30 +1,32 @@
-use crate::prelude::*;
-
-
 
 // ==================
 // === Data Types ===
 // ==================
 
-im_string_newtype!{
-    /// Name of the Enso library.
-    LibraryName,
+/// The DataTypes specific for the Enso language.
+pub mod enso {
+    use crate::prelude::*;
 
-    /// The source code of Enso program.
-    EnsoCode,
+    im_string_newtype!{
+        /// Name of the Enso library.
+        LibraryName,
 
-    /// The Enso type representation. Can be a complex type, like `String|Int`.
-    EnsoType,
-}
+        /// The source code of Enso program.
+        Code,
 
-impl EnsoType {
-    /// The `Any` Enso type. It is the type which matches all other types.
-    pub fn any() -> Self {
-        "Any".into()
+        /// The Enso type representation. Can be a complex type, like `String|Int`.
+        Type,
     }
-}
 
-/// Builtin library name. For internal usage only.
-pub fn builtin_library() -> LibraryName {
-    "builtin".into()
+    impl Type {
+        /// The `Any` Enso type. It is the type which matches all other types.
+        pub fn any() -> Self {
+            "Any".into()
+        }
+    }
+
+    /// Builtin library name. For internal usage only.
+    pub fn builtin_library() -> LibraryName {
+        "builtin".into()
+    }
 }
