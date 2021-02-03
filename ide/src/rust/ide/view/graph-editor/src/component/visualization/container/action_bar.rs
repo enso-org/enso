@@ -11,8 +11,10 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::shape::*;
+use ensogl::display::shape::primitive::system::Shape;
 use ensogl::display::traits::*;
 use ensogl::display;
+use ensogl::gui::component::ShapeView;
 use ensogl::gui::component;
 use ensogl_theme as theme;
 
@@ -22,9 +24,10 @@ use ensogl_theme as theme;
 // === Constants ===
 // =================
 
-const HOVER_COLOR : color::Rgba = color::Rgba::new(1.0,0.0,0.0,0.000_001);
+const HOVER_COLOR      : color::Rgba = color::Rgba::new(1.0,0.0,0.0,0.000_001);
 /// Gap between action bar and selection menu
-const MENU_GAP    : f32 = 5.0;
+const MENU_GAP         : f32 = 5.0;
+const ACTION_ICON_SIZE : f32 = 20.0;
 
 
 
@@ -70,6 +73,154 @@ mod background {
 
 
 
+// ========================
+// === Action Bar Icons ===
+// ========================
+
+/// Icon that appears as four arrows pointing in each direction: up, down, left and right.
+mod four_arrow_icon {
+    use super::*;
+
+    use std::f32::consts::PI;
+    const ARROW_LINE_WIDTH: f32 = 1.0;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let width      = Var::<Pixels>::from("input_size.x");
+            let height     = Var::<Pixels>::from("input_size.y");
+            let background = Rect((&width,&height)).fill(HOVER_COLOR);
+
+            let horizontal_bar_height = &height / 2.0;
+            let horizontal_bar        = Rect((&horizontal_bar_height,ARROW_LINE_WIDTH.px()));
+            let vertical_bar          = horizontal_bar.rotate((PI/2.0).radians());
+            let cross                 = horizontal_bar + vertical_bar;
+
+            let arrow_head_size   = (ARROW_LINE_WIDTH * 3.0).floor();
+            let arrow_head_offset = &horizontal_bar_height / 2.0;
+            let arrow_head        = Rect((arrow_head_size.px(),&arrow_head_size.px())).rotate((PI/4.0).radians());
+            let split_plane       = HalfPlane();
+            let arrow_head        = arrow_head.difference(split_plane);
+            let arrow_head        = arrow_head.translate_y(arrow_head_offset);
+
+            let arrow_heads = &arrow_head;
+            let arrow_heads = arrow_heads + arrow_head.rotate(2.0 * (PI/4.0).radians());
+            let arrow_heads = arrow_heads + arrow_head.rotate(4.0 * (PI/4.0).radians());
+            let arrow_heads = arrow_heads + arrow_head.rotate(6.0 * (PI/4.0).radians());
+
+            let color_path = theme::graph_editor::visualization::action_bar::icon;
+            let fill_color = style.get_color(color_path);
+            let icon       = (arrow_heads + cross).fill(color::Rgba::from(fill_color));
+
+            (background + icon).into()
+        }
+    }
+}
+
+/// Icon that appears as a pin with a head and a point, slanted so the pin points towards
+/// the bottom left.
+mod pin_icon {
+    use super::*;
+
+    use std::f32::consts::PI;
+    const PIN_THORN_WIDTH: f32 = 1.0;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let width      = Var::<Pixels>::from("input_size.x");
+            let height     = Var::<Pixels>::from("input_size.y");
+            let background = Rect((&width,&height)).fill(HOVER_COLOR);
+
+            let pin_head_size = &height / 3.0;
+            let pin_head_base = Rect((&pin_head_size,&pin_head_size));
+            let pin_head_top  = Triangle(&pin_head_size * 1.5,&pin_head_size / 2.0) ;
+            let pin_head_top  = pin_head_top.translate_y(-&pin_head_size/2.0);
+            let pin_head      = (pin_head_base + pin_head_top).translate_y(&pin_head_size/2.0);
+
+            let pin_thorn_size  = &height / 3.0;
+            let pin_thorn_width = PIN_THORN_WIDTH.px();
+            let pin_thorn       = Triangle(pin_thorn_width,pin_thorn_size);
+            let pin_thorn       = pin_thorn.rotate((PI).radians());
+            let pin_thorn       = pin_thorn.translate_y(-&pin_head_size/2.0);
+
+            let color_path = theme::graph_editor::visualization::action_bar::icon;
+            let fill_color = style.get_color(color_path);
+            let icon       = (pin_thorn + pin_head).fill(color::Rgba::from(fill_color));
+            let icon       = icon.rotate((PI/4.0).radians());
+            let icon       = icon.fill(color::Rgba::from(fill_color));
+
+            (background + icon).into()
+        }
+    }
+}
+
+#[derive(Clone,CloneRef,Debug)]
+struct Icons {
+    display_object      : display::object::Instance,
+    icon_root           : display::object::Instance,
+    reset_position_icon : ShapeView<pin_icon::Shape>,
+    drag_icon           : ShapeView<four_arrow_icon::Shape>,
+    size                : Rc<Cell<Vector2>>,
+}
+
+impl Icons {
+    fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let scene               = app.display.scene();
+        let logger              = Logger::sub(logger,"Icons");
+        let display_object      = display::object::Instance::new(&logger);
+        let icon_root           = display::object::Instance::new(&logger);
+        let reset_position_icon = component::ShapeView::new(&logger,scene);
+        let drag_icon           = component::ShapeView::new(&logger,scene);
+        let size                = default();
+
+        display_object.add_child(&icon_root);
+        icon_root.add_child(&reset_position_icon);
+        icon_root.add_child(&drag_icon);
+        Self {display_object,reset_position_icon,drag_icon,size,icon_root}.init_layout()
+    }
+
+    fn place_shape_in_slot<T:Shape>(&self, view:&ShapeView<T>, index:usize) {
+        let icon_size = self.icon_size();
+        let index     = index as f32;
+        view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
+        view.shape.sprites().iter().for_each(move |sprite| sprite.size.set(icon_size))
+    }
+
+    fn icon_size(&self) -> Vector2 {
+        Vector2::new(ACTION_ICON_SIZE, ACTION_ICON_SIZE)
+    }
+
+    fn init_layout(self) -> Self {
+        self.place_shape_in_slot(&self.drag_icon,0);
+        self.place_shape_in_slot(&self.reset_position_icon,1);
+        self.set_reset_icon_visibility(false);
+        self
+    }
+
+    fn set_size(&self, size:Vector2) {
+        self.size.set(size);
+        self.icon_root.set_position_x(-size.x/2.0);
+        self.place_shape_in_slot(&self.drag_icon, 0);
+        self.place_shape_in_slot(&self.reset_position_icon,1);
+    }
+
+    fn set_reset_icon_visibility(&self, visibility:bool) {
+        if visibility {
+            self.icon_root.add_child(&self.reset_position_icon)
+        } else {
+            self.reset_position_icon.unset_parent()
+        }
+    }
+
+}
+
+impl display::Object for Icons {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
+    }
+}
+
+
+
 // ===========
 // === Frp ===
 // ===========
@@ -83,9 +234,12 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        visualisation_selection (Option<visualization::Path>),
-        mouse_over              (),
-        mouse_out               (),
+        visualisation_selection     (Option<visualization::Path>),
+        mouse_over                  (),
+        mouse_out                   (),
+        on_container_reset_position (),
+        /// Indicates whether the container should follow the mouse cursor.
+        container_drag_state        (bool),
     }
 }
 
@@ -97,11 +251,13 @@ ensogl::define_endpoints! {
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
-    hover_area            : component::ShapeView<hover_area::Shape>,
+    hover_area            : ShapeView<hover_area::Shape>,
     visualization_chooser : VisualizationChooser,
-    background            : component::ShapeView<background::Shape>,
+    background            : ShapeView<background::Shape>,
     display_object        : display::object::Instance,
     size                  : Rc<Cell<Vector2>>,
+    icons                 : Icons,
+    shapes                : compound::events::MouseEvents,
 }
 
 impl Model {
@@ -113,12 +269,21 @@ impl Model {
         let visualization_chooser = VisualizationChooser::new(&app,vis_registry);
         let display_object        = display::object::Instance::new(&logger);
         let size                  = default();
-        Model{hover_area,visualization_chooser,display_object,size,background}.init()
+        let icons                 = Icons::new(logger,app);
+        let shapes                = compound::events::MouseEvents::default();
+
+        shapes.add_sub_shape(&hover_area);
+        shapes.add_sub_shape(&background);
+        shapes.add_sub_shape(&icons.reset_position_icon);
+        shapes.add_sub_shape(&icons.drag_icon);
+
+        Model{hover_area,visualization_chooser,display_object,size,background,icons,shapes}.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.hover_area);
         self.add_child(&self.visualization_chooser);
+        self.add_child(&self.icons);
 
         // Remove default parent, then hide icons.
         self.show();
@@ -128,6 +293,7 @@ impl Model {
 
     fn set_size(&self, size:Vector2) {
         self.size.set(size);
+        self.icons.set_size(size);
         self.hover_area.shape.size.set(size);
         self.background.shape.size.set(size);
 
@@ -143,11 +309,13 @@ impl Model {
     fn show(&self) {
         self.add_child(&self.visualization_chooser);
         self.add_child(&self.background);
+        self.add_child(&self.icons);
     }
 
     fn hide(&self) {
         self.visualization_chooser.unset_parent();
         self.background.unset_parent();
+        self.icons.unset_parent();
         self.visualization_chooser.frp.hide_selection_menu.emit(());
     }
 }
@@ -187,15 +355,14 @@ impl ActionBar {
     pub fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
         let frp   = Frp::new();
         let model = Rc::new(Model::new(app,vis_registry));
-        ActionBar {frp,model}.init_frp()
+        ActionBar {frp,model}.init_frp(app)
     }
 
-    fn init_frp(self) -> Self {
-        let network = &self.frp.network;
-        let frp     = &self.frp;
-        let model   = &self.model;
-
-        let hover_area            = &model.hover_area.events;
+    fn init_frp(self, app:&Application) -> Self {
+        let network               = &self.frp.network;
+        let frp                   = &self.frp;
+        let model                 = &self.model;
+        let mouse                 = &app.display.scene().mouse.frp;
         let visualization_chooser = &model.visualization_chooser.frp;
 
         frp::extend! { network
@@ -213,8 +380,8 @@ impl ActionBar {
 
             // === Mouse Interactions ===
 
-            any_component_over <- any(&hover_area.mouse_over,&visualization_chooser.mouse_over);
-            any_component_out  <- any(&hover_area.mouse_out,&visualization_chooser.mouse_out);
+            any_component_over <- any(&model.shapes.mouse_over,&visualization_chooser.mouse_over);
+            any_component_out  <- any(&model.shapes.mouse_out,&visualization_chooser.mouse_out);
 
             is_over_true  <- any_component_over.constant(true);
             is_over_false <- any_component_out.constant(false);
@@ -228,6 +395,18 @@ impl ActionBar {
             eval_ hide (model.hide());
 
             frp.source.visualisation_selection <+ visualization_chooser.chosen_entry;
+
+            let reset_position_icon = &model.icons.reset_position_icon.events;
+            frp.source.on_container_reset_position <+ reset_position_icon.mouse_down;
+
+            let drag_icon      = &model.icons.drag_icon.events;
+            let start_dragging = drag_icon.mouse_down.clone_ref();
+            end_dragging       <- mouse.up.gate(&frp.source.container_drag_state);
+            should_drag        <- bool(&end_dragging,&start_dragging);
+            frp.source.container_drag_state <+ should_drag;
+
+            show_reset_icon <- bool(&reset_position_icon.mouse_down,&start_dragging);
+            eval show_reset_icon((visibility) model.icons.set_reset_icon_visibility(*visibility));
         }
         self
     }
