@@ -252,7 +252,7 @@ impl Instance {
 
     fn inti_preprocessor_change_callback(self) -> Self {
         // FIXME Does it leak memory? To be checked.
-        let change   = &self.frp.change;
+        let change   = &self.frp.preprocessor_change;
         let callback = f!((s:String) change.emit(&s.into()));
         let callback = Box::new(callback);
         self.model.preprocessor_change.borrow_mut().replace(callback);

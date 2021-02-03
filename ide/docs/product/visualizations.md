@@ -193,9 +193,10 @@ In particular:
   The class returned by the definition function should extend the predefined
   `Visualization` class. Classes which do not extend it, will not be registered
   as visualizations. The superclass defines a default constructor and a set of
-  utils:
-  - The `setPreprocessor(code)` method allowing setting an Enso code which will
-    be evaluated on server-side before sending data to visualization.
+  utilities:
+  - The `setPreprocessor(code)` a method allowing setting an Enso code 
+    which will be evaluated on the server-side before sending data to 
+    visualization. See also [Lazy visualizations](#lazy-visualizations) section.
   - The `dom` field, which will be initialized in the constructor to the DOM
     symbol used to host the visualization content. You are free to modify the
     DOM element, including adding other elements as its children.
@@ -251,19 +252,27 @@ In particular:
 Very important information is how visualization architecture works to make them
 interactive and fast. Whenever new data is computed by the compiler and
 visualization is attached to it, it is sent to GUI to be displayed. However,
-sending really big chunks of data will kill the performance. When defining a
+sending huge chunks of data will kill the performance. When defining a
 visualization user is capable of defining a chunk of Enso code (as a string).
 This code is part of the visualization definition and is stored server-side.
-Visualizations are allowed to change the code at runtime. This code defines an
+Visualizations are allowed to change the code at runtime (in JavaScript
+visualization you may use the `setPreprocessor` method). This code defines an
 Enso function, which will be run by the compiler on data the visualization is
-attached to. Only the results of this code will be sent to the GUI. For example,
-imagine you want to display a heatmap of 10 million points on a map. And these
-points change rapidly. Sending such amount of information via WebSocket could be
-too much, and you (as the visualization author) might decide that the
-visualization image should be generated on the server, and your visualization
-is meant only to display the resulting image. In such a scenario, you can define
-in your visualization an Enso function which will compute the image on the
-server!
+attached to. Only the results of this code will be sent to the GUI. In the case 
+of the JSON input format, the result of the call should be a valid JSON string. 
+The code will be evaluated in the context of the `Main` module in the 
+project where visualization is defined - you may use any symbol defined or 
+imported in that module.
+
+For example, imagine you want to display a heatmap of 10 million points on 
+a map, and these points change rapidly. Sending such an amount of information 
+via WebSocket could be too much, and you (as the visualization author) might 
+decide that the visualization image should be generated on the server, and your
+visualization is meant only to display the resulting image. In such a scenario,
+you can define in your visualization an Enso function which will compute the
+the image on the server!
+
+
 
 #### Binary and Text (JSON) Formats
 Each visualization can choose whether it supports either binary or JSON input.

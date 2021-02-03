@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::data;
+use crate::data::enso;
 
 
 
@@ -27,13 +27,13 @@ im_string_newtype!{
 #[derive(Clone,CloneRef,Debug,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
 pub struct Path {
-    pub library : data::LibraryName,
+    pub library : enso::LibraryName,
     pub name    : Name,
 }
 
 impl Path {
     /// Constructor.
-    pub fn new(library:impl Into<data::LibraryName>, name:impl Into<Name>) -> Self {
+    pub fn new(library:impl Into<enso::LibraryName>, name:impl Into<Name>) -> Self {
         let library = library.into();
         let name    = name.into();
         Self {library,name}
@@ -41,7 +41,7 @@ impl Path {
 
     /// Constructor for builtin visualizations.
     pub fn builtin(name:impl Into<Name>) -> Self {
-        let library = data::builtin_library();
+        let library = enso::builtin_library();
         Self::new(library,name)
     }
 }

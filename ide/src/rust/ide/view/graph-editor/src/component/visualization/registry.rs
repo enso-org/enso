@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 use crate::builtin;
 use crate::component::visualization;
-use crate::data::EnsoType;
+use crate::data::enso;
 
 use enso_prelude::CloneRef;
 
@@ -21,7 +21,7 @@ use enso_prelude::CloneRef;
 #[allow(missing_docs)]
 pub struct Registry {
     path_map : Rc<RefCell<HashMap<visualization::Path,visualization::Definition>>>,
-    type_map : Rc<RefCell<HashMap<EnsoType,Vec<visualization::Definition>>>>,
+    type_map : Rc<RefCell<HashMap<enso::Type,Vec<visualization::Definition>>>>,
     logger   : Logger,
 }
 
@@ -67,7 +67,7 @@ impl Registry {
     }
 
     /// Return all `visualization::Class`es that can create a visualization for the given datatype.
-    pub fn valid_sources(&self, tp:&EnsoType) -> Vec<visualization::Definition>{
+    pub fn valid_sources(&self, tp:&enso::Type) -> Vec<visualization::Definition>{
         let type_map = self.type_map.borrow();
         type_map.get(tp).cloned().unwrap_or_default()
     }

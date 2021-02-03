@@ -13,7 +13,7 @@ mod visualization_chooser;
 
 use crate::prelude::*;
 
-use crate::data::EnsoCode;
+use crate::data::enso;
 use crate::visualization;
 
 use action_bar::ActionBar;
@@ -167,7 +167,7 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        preprocessor  (EnsoCode),
+        preprocessor  (enso::Code),
         visualisation (Option<visualization::Definition>),
         size          (Vector2),
         is_selected   (bool),
@@ -317,19 +317,23 @@ impl display::Object for FullscreenView {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ContainerModel {
-    logger          : Logger,
-    display_object  : display::object::Instance,
+    logger             : Logger,
+    display_object     : display::object::Instance,
     /// Internal root for all sub-objects. Will be moved when the visualisation
     /// container position is changed by dragging.
     drag_root       : display::object::Instance,
-    visualization   : RefCell<Option<visualization::Instance>>,
-    scene           : Scene,
-    view            : View,
-    fullscreen_view : FullscreenView,
-    is_fullscreen   : Rc<Cell<bool>>,
-    registry        : visualization::Registry,
-    size            : Rc<Cell<Vector2>>,
-    action_bar      : ActionBar,
+    visualization      : RefCell<Option<visualization::Instance>>,
+    /// A network containing connection between currently set `visualization` FRP endpoints and
+    /// container FRP. We keep a separate network for that, so we can manage life of such
+    /// connections reliably.
+    vis_frp_connection : RefCell<Option<frp::Network>>,
+    scene              : Scene,
+    view               : View,
+    fullscreen_view    : FullscreenView,
+    is_fullscreen      : Rc<Cell<bool>>,
+    registry           : visualization::Registry,
+    size               : Rc<Cell<Vector2>>,
+    action_bar         : ActionBar,
 }
 
 
@@ -339,21 +343,22 @@ impl ContainerModel {
     pub fn new
     (logger:&Logger, app:&Application, registry:visualization::Registry)
     -> Self {
-        let scene           = app.display.scene();
-        let logger          = Logger::sub(logger,"visualization_container");
-        let display_object  = display::object::Instance::new(&logger);
-        let drag_root       = display::object::Instance::new(&logger);
-        let visualization   = default();
-        let view            = View::new(&logger,scene);
-        let fullscreen_view = FullscreenView::new(&logger,scene);
-        let scene           = scene.clone_ref();
-        let is_fullscreen   = default();
-        let size            = default();
-        let action_bar      = ActionBar::new(&app,registry.clone_ref());
+        let scene              = app.display.scene();
+        let logger             = Logger::sub(logger,"visualization_container");
+        let display_object     = display::object::Instance::new(&logger);
+        let drag_root          = display::object::Instance::new(&logger);
+        let visualization      = default();
+        let vis_frp_connection = default();
+        let view               = View::new(&logger,scene);
+        let fullscreen_view    = FullscreenView::new(&logger,scene);
+        let scene              = scene.clone_ref();
+        let is_fullscreen      = default();
+        let size               = default();
+        let action_bar         = ActionBar::new(&app,registry.clone_ref());
         view.add_child(&action_bar);
 
-        Self {logger,visualization,display_object,view,fullscreen_view,scene,is_fullscreen,
-              action_bar,registry,size,drag_root}.init()
+        Self {logger,visualization,vis_frp_connection,display_object,drag_root,view,fullscreen_view
+            ,scene,is_fullscreen,action_bar,registry,size}.init()
     }
 
     fn init(self) -> Self {
@@ -401,13 +406,21 @@ impl ContainerModel {
         self.set_visibility(!self.is_active())
     }
 
-    fn set_visualization(&self, visualization:Option<visualization::Instance>) {
-        if let Some(visualization) = visualization {
-            let size = self.size.get();
-            visualization.set_size.emit(size);
-            self.view.add_child(&visualization);
-            self.visualization.replace(Some(visualization));
+    fn set_visualization
+    (&self, visualization:visualization::Instance, preprocessor:&frp::Any<enso::Code>) {
+        let size = self.size.get();
+        visualization.set_size.emit(size);
+        frp::new_network! { vis_frp_connection
+            // We need an additional "copy" node here. We create a new network to manage lifetime of
+            // connection between `visualization.on_preprocessor_change` and `preprocessor`.
+            // However, doing simple `preprocessor <+ visualization.on_preprocessor_change` will not
+            // create any node in this network, so in fact ot won't manage the connection.
+            vis_preprocessor_change <- visualization.on_preprocessor_change.map(|x| x.clone());
+            preprocessor            <+ vis_preprocessor_change;
         }
+        self.view.add_child(&visualization);
+        self.visualization.replace(Some(visualization));
+        self.vis_frp_connection.replace(Some(vis_frp_connection));
     }
 
     fn set_visualization_data(&self, data:&visualization::Data) {
@@ -527,13 +540,14 @@ impl Container {
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
+            let preprocessor = &frp.source.preprocessor;
             frp.source.visualisation <+ frp.set_visualization.map(f!(
-                [model,action_bar,scene,logger](vis_definition) {
+                [model,action_bar,scene,logger,preprocessor](vis_definition) {
 
                 if let Some(definition) = vis_definition {
                     match definition.new_instance(&scene) {
                         Ok(vis)  => {
-                            model.set_visualization(Some(vis));
+                            model.set_visualization(vis,&preprocessor);
                             let path = Some(definition.signature.path.clone());
                             action_bar.set_selected_visualization.emit(path);
                         },
@@ -600,10 +614,10 @@ impl Container {
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().map(|path| registry.definition_from_path(path) ).flatten()
             ));
-            eval selected_definition([scene,model,logger](definition)  {
+            eval selected_definition([scene,model,logger,preprocessor](definition)  {
                 let vis = definition.as_ref().map(|d| d.new_instance(&scene));
                 match vis {
-                    Some(Ok(vis))  => model.set_visualization(Some(vis)),
+                    Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
                     Some(Err(err)) => {
                         warning!(logger,"Failed to instantiate visualisation: {err:?}");
                     },

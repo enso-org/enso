@@ -103,7 +103,7 @@ use crate::prelude::*;
 use crate::component::visualization::InstantiationError;
 use crate::component::visualization::InstantiationResult;
 use crate::component::visualization;
-use crate::data::*;
+use crate::data::enso;
 use super::binding;
 use super::instance::Instance;
 
@@ -150,7 +150,7 @@ pub struct Definition {
 impl Definition {
 
     /// Create a visualization source from piece of JS source code. Signature needs to be inferred.
-    pub fn new (library:impl Into<LibraryName>, source:impl AsRef<str>) -> Result<Self,Error> {
+    pub fn new (library:impl Into<enso::LibraryName>, source:impl AsRef<str>) -> Result<Self,Error> {
         let source       = source.as_ref();
         let source       = source;
         let context      = JsValue::NULL;

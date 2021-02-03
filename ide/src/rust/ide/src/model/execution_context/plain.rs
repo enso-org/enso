@@ -8,8 +8,10 @@ use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
+use crate::model::module;
 
 use enso_protocol::language_server::MethodPointer;
+use enso_protocol::language_server::VisualisationConfiguration;
 use futures::future::LocalBoxFuture;
 
 
@@ -66,6 +68,16 @@ impl ExecutionContext {
         Self {logger,entry_point,stack,visualizations, computed_value_info_registry }
     }
 
+    /// Creates a `VisualisationConfiguration` for the visualization with given id. It may be used
+    /// in communication with language server.
+    pub fn visualization_config
+    (&self, id:VisualizationId, execution_context_id:Uuid)
+    -> FallibleResult<VisualisationConfiguration> {
+        let err = || InvalidVisualizationId(id);
+        let visualizations = self.visualizations.borrow();
+        Ok(visualizations.get(&id).ok_or_else(err)?.visualization.config(execution_context_id))
+    }
+
     /// Push a new stack item to execution context.
     ///
     /// This function shadows the asynchronous version from API trait.
@@ -94,6 +106,21 @@ impl ExecutionContext {
         info!(self.logger,"Inserting to the registry: {id}.");
         self.visualizations.borrow_mut().insert(id,visualization);
         receiver
+    }
+
+    /// Modify visualization properties. See fields in [`Visualization`] structure. Passing `None`
+    /// retains the old value.
+    ///
+    /// This function shadows the asynchronous version from API trait.
+    pub fn modify_visualization
+    (&self, id:VisualizationId, expression:Option<String>, module:Option<module::QualifiedName>)
+    -> FallibleResult {
+        let err                = || InvalidVisualizationId(id);
+        let mut visualizations = self.visualizations.borrow_mut();
+        let visualization      = &mut visualizations.get_mut(&id).ok_or_else(err)?.visualization;
+        if let Some(expression) = expression { visualization.expression           = expression; }
+        if let Some(module)     = module     { visualization.visualisation_module = module;     }
+        Ok(())
     }
 
     /// Detach the visualization from this execution context.
@@ -157,6 +184,12 @@ impl model::execution_context::API for ExecutionContext {
     fn detach_visualization
     (&self, id:VisualizationId) -> LocalBoxFuture<'_, FallibleResult<Visualization>> {
         futures::future::ready(self.detach_visualization(id)).boxed_local()
+    }
+
+    fn modify_visualization
+    (&self, id:VisualizationId, expression:Option<String>, module:Option<module::QualifiedName>)
+     -> BoxFuture<FallibleResult> {
+        futures::future::ready(self.modify_visualization(id,expression,module)).boxed_local()
     }
 
     fn dispatch_visualization_update

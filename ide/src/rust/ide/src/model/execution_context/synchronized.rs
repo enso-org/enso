@@ -7,6 +7,7 @@ use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::execution_context::VisualizationId;
+use crate::model::module;
 
 use enso_protocol::language_server;
 use enso_protocol::language_server::ExpressionValuesComputed;
@@ -172,6 +173,18 @@ impl model::execution_context::API for ExecutionContext {
         async move {
             let vis = self.model.visualization_info(vis_id)?;
             self.detach_visualization_inner(vis).await
+        }.boxed_local()
+    }
+
+    fn modify_visualization
+    (&self, id:VisualizationId, expression:Option<String>, module:Option<module::QualifiedName>)
+    -> BoxFuture<FallibleResult> {
+        let result     = self.model.modify_visualization(id,expression,module);
+        let new_config = self.model.visualization_config(id,self.id);
+        async move {
+            result?;
+            self.language_server.modify_visualisation(&id,&new_config?).await?;
+            Ok(())
         }.boxed_local()
     }
 
@@ -406,6 +419,40 @@ pub mod test {
             let _ = context.attach_visualization(vis2.clone()).await.unwrap();
 
             context.detach_all_visualizations().await;
+        });
+    }
+
+    #[test]
+    fn modifying_visualizations() {
+        let vis = Visualization {
+            id                   : model::execution_context::VisualizationId::new_v4(),
+            ast_id               : model::execution_context::ExpressionId::new_v4(),
+            expression           : "x -> x.to_json.to_string".to_string(),
+            visualisation_module : MockData::new().module_qualified_name(),
+        };
+        let vis_id         = vis.id;
+        let new_expression = "x -> x";
+        let new_module     = "Test.Test_Module";
+        let Fixture{mut test,context,..} = Fixture::new_customized(|ls,data| {
+            let exe_id = data.context_id;
+            let ast_id = vis.ast_id;
+            let config = vis.config(exe_id);
+
+            let expected_config = language_server::types::VisualisationConfiguration {
+                execution_context_id : data.context_id,
+                visualisation_module : new_module.to_owned(),
+                expression           : new_expression.to_owned(),
+            };
+
+            expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
+            expect_call!(ls.modify_visualisation(vis_id,expected_config) => Ok(()));
+        });
+
+        test.run_task(async move {
+            context.attach_visualization(vis.clone()).await.unwrap();
+            let expression = Some(new_expression.to_owned());
+            let module     = Some(QualifiedName::from_text(new_module).unwrap());
+            context.modify_visualization(vis_id,expression,module).await.unwrap();
         });
     }
 }

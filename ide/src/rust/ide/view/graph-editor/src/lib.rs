@@ -498,10 +498,10 @@ ensogl::define_endpoints! {
         nodes_labels_visible      (bool),
 
 
-        visualization_enabled           (NodeId),
-        visualization_disabled          (NodeId),
-        visualization_enable_fullscreen (NodeId),
-        visualization_set_preprocessor  ((NodeId,data::EnsoCode)),
+        visualization_enabled              (NodeId),
+        visualization_disabled             (NodeId),
+        visualization_enable_fullscreen    (NodeId),
+        visualization_preprocessor_changed ((NodeId,data::enso::Code)),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -1071,6 +1071,8 @@ impl GraphEditorModelWithNetwork {
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
+            output.source.visualization_preprocessor_changed <+
+                node.model.visualization.frp.preprocessor.map(move |code| (node_id,code.clone()));
             output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 

@@ -21,13 +21,13 @@ use visualization::java_script;
 pub struct Signature {
     #[shrinkwrap(main_field)]
     pub path         : visualization::Path,
-    pub input_type   : EnsoType,
+    pub input_type   : enso::Type,
     pub input_format : Rc<visualization::data::Format>,
 }
 
 impl Signature {
     /// Constructor.
-    pub fn new(path:impl Into<visualization::Path>, input_type:impl Into<EnsoType>,
+    pub fn new(path:impl Into<visualization::Path>, input_type:impl Into<enso::Type>,
                input_format:impl Into<visualization::data::Format>) -> Self {
         let path         = path.into();
         let input_type   = input_type.into();
@@ -41,7 +41,7 @@ impl Signature {
     pub fn new_for_any_type(
         path:impl Into<visualization::Path>,
         input_format:impl Into<visualization::data::Format>) -> Self {
-        let input_type = EnsoType::any();
+        let input_type = enso::Type::any();
         Self::new(path,input_type,input_format)
     }
 }

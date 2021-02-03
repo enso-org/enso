@@ -3,7 +3,7 @@
 use crate::graph_editor::component::visualization::Data;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::component::visualization::Registry;
-use crate::graph_editor::data;
+use crate::graph_editor::data::enso;
 
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
@@ -41,6 +41,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
                         console.log("pressed",e);
                     })
                 }
+                this.setPreprocessor(`x ->\n IO.println "Preprocessor set after receiving ${data}`)
 
                 let first = data.shift();
                 if (first) {
@@ -72,7 +73,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
 
         return Graph
     "#;
-    visualization::java_script::Definition::new(data::builtin_library(),source).unwrap()
+    visualization::java_script::Definition::new(enso::builtin_library(),source).unwrap()
 }
 
 #[wasm_bindgen]
@@ -103,6 +104,12 @@ fn init(app:&Application) {
     }).expect("Couldn't find Graph class.");
     let visualization = vis_class.new_instance(&scene).expect("Couldn't create visualiser.");
     visualization.activate.emit(());
+
+    let network = enso_frp::Network::new("VisualizationExample");
+    enso_frp::extend! { network
+        trace visualization.on_preprocessor_change;
+    };
+    std::mem::forget(network);
 
     let mut was_rendered  = false;
     let mut loader_hidden = false;
