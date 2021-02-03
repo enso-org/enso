@@ -251,8 +251,11 @@ crate::define_endpoints! {
     }
 
     Output {
-        position        (Vector3),
-        screen_position (Vector3),
+        position              (Vector3),
+        screen_position       (Vector3),
+        scene_position        (Vector3),
+         /// Change between the current and the previous scene position.
+        scene_position_delta  (Vector3),
     }
 }
 
@@ -480,6 +483,9 @@ impl Cursor {
                 Vector3(x,y,0.0)
             }));
 
+            scene_position       <- screen_position.map(f!((p) scene.screen_to_scene_coordinates(*p)));
+            scene_position_prev  <- scene_position.previous();
+            scene_position_delta <- scene_position.map2(&scene_position_prev, |p1,p2| p2 - p1);
 
             // === Fade-out when not active ===
 
@@ -507,8 +513,10 @@ impl Cursor {
 
             // === Outputs ===
 
-            frp.source.position        <+ position;
-            frp.source.screen_position <+ screen_position;
+            frp.source.position             <+ position;
+            frp.source.screen_position      <+ screen_position;
+            frp.source.scene_position       <+ scene_position;
+            frp.source.scene_position_delta <+ scene_position_delta;
         }
 
         // Hide on init.
