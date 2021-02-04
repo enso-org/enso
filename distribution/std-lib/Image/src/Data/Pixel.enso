@@ -1,0 +1,12 @@
+from Base import all
+import Image.Data.Color
+
+type Pixel
+
+    type Pixel row col color
+
+    column : Integer
+    column = this.col
+
+    copy row=this.row column=this.col color=this.color =
+        Pixel row column color

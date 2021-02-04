@@ -1,0 +1,91 @@
+from Base import all
+
+type Channel_Not_Exist channel
+
+type Unsupported_Channels_Number n
+
+type Color
+
+    type Channels_1 channel_1
+    type Channels_2 channel_1 channel_2
+    type Channels_3 channel_1 channel_2 channel_3
+    type Channels_4 channel_1 channel_2 channel_3 channel_4
+
+    to_vector : Vector
+    to_vector = case this of
+        Channels_1 c1 -> [c1]
+        Channels_2 c1 c2 -> [c1, c2]
+        Channels_3 c1 c2 c3 -> [c1, c2, c3]
+        Channels_4 c1 c2 c3 c4 -> [c1, c2, c3, c4]
+
+    channels_number : Integer
+    channels_number = case this of
+        Channels_1 _ -> 1
+        Channels_2 _ _ -> 2
+        Channels_3 _ _ _ -> 3
+        Channels_4 _ _ _ _ -> 4
+
+    blue : Number ! Channel_Not_Exist
+    blue = case this of
+        Channels_3 b _ _ -> b
+        Channels_4 b _ _ _ -> b
+        _ -> Error.throw (Channel_Not_Exist 'blue')
+
+    green : Number ! Channel_Not_Exist
+    green = case this of
+        Channels_3 _ g _ -> g
+        Channels_4 _ g _ _ -> g
+        _ -> Error.throw (Channel_Not_Exist 'green')
+
+    red : Number ! Channel_Not_Exist
+    red = case this of
+        Channels_3 _ _ r -> r
+        Channels_4 _ _ r _ -> r
+        _ -> Error.throw (Channel_Not_Exist 'red')
+
+    alpha : Number ! Channel_Not_Exist
+    alpha = case this of
+        Channels_4 _ _ _ a -> a
+        _ -> Error.throw (Channel_Not_Exist 'alpha')
+
+    + : Number -> Color
+    + x = case this of
+        Channels_1 c1 -> Channels_1 c1+x
+        Channels_2 c1 c2 -> Channels_2 c1+x c2+x
+        Channels_3 c1 c2 c3 -> Channels_3 c1+x c2+x c3+x
+        Channels_4 c1 c2 c3 c4 -> Channels_4 c1+x c2+x c3+x c4+x
+
+    - : Number -> Color
+    - x = case this of
+        Channels_1 c1 -> Channels_1 c1-x
+        Channels_2 c1 c2 -> Channels_2 c1-x c2-x
+        Channels_3 c1 c2 c3 -> Channels_3 c1-x c2-x c3-x
+        Channels_4 c1 c2 c3 c4 -> Channels_4 c1-x c2-x c3-x c4-x
+
+    * : Number -> Color
+    * x = case this of
+        Channels_1 c1 -> Channels_1 c1*x
+        Channels_2 c1 c2 -> Channels_2 c1*x c2*x
+        Channels_3 c1 c2 c3 -> Channels_3 c1*x c2*x c3*x
+        Channels_4 c1 c2 c3 c4 -> Channels_4 c1*x c2*x c3*x c4*x
+
+    / : Number -> Color
+    / x = case this of
+        Channels_1 c1 -> Channels_1 c1/x
+        Channels_2 c1 c2 -> Channels_2 c1/x c2/x
+        Channels_3 c1 c2 c3 -> Channels_3 c1/x c2/x c3/x
+        Channels_4 c1 c2 c3 c4 -> Channels_4 c1/x c2/x c3/x c4/x
+
+    map : (Vector -> Vector) -> Color ! Unsupported_Channels_Number
+    map f = here.from_vector (f this.to_vector)
+
+from_vector : Vector -> Color ! Unsupported_Channels_Number
+from_vector vec = here.from_array vec.to_array
+
+from_array : Array -> Color ! Unsupported_Channels_Number
+from_array arr =
+    if arr.length == 1 then Channels_1 (arr.at 0) else
+        if arr.length == 2 then Channels_2 (arr.at 0) (arr.at 1) else
+            if arr.length == 3 then Channels_3 (arr.at 0) (arr.at 1) (arr.at 2) else
+                if arr.length == 4 then Channels_4 (arr.at 0) (arr.at 1) (arr.at 2) (arr.at 3) else
+                    Error.throw (Unsupported_Channels_Number arr.length)

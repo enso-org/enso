@@ -13,6 +13,10 @@ public class Io {
   }
 
   public static Mat read(String path) {
-    return Imgcodecs.imread(path);
+    return Imgcodecs.imread(path, Imgcodecs.IMREAD_UNCHANGED);
+  }
+
+  public static void write(String path, Mat image) {
+    Imgcodecs.imwrite(path, image);
   }
 }

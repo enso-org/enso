@@ -1,11 +1,43 @@
 from Base import all
+import Image.Data.Color
+import Image.Data.Pixel
+
+polyglot java import org.enso.image.data.Matrix as Java_Matrix
 
 type Matrix
 
     type Matrix opencv_mat
 
+    columns : Integer
+    columns = this.opencv_mat.cols
+
     cols : Integer
-    cols = this.opencv_mat.cols
+    cols = this.columns
 
     rows : Integer
     rows = this.opencv_mat.rows
+
+    copy : Matrix
+    copy =
+        mat_type = Polyglot.invoke this.opencv_mat "type" (Array.new 0)
+        new_mat = Java_Matrix.zeros this.opencv_mat.rows this.opencv_mat.cols mat_type
+        this.opencv_mat.copyTo new_mat
+        Matrix new_mat
+
+    map : (Pixel -> Pixel) -> Matrix
+    map f =
+        new_mat = this.copy
+        new_mat.each f
+        new_mat
+
+    each : (Pixel -> Pixel) -> Nothing
+    each f =
+        0.up_to this.opencv_mat.rows . each row->
+            0.up_to this.opencv_mat.cols . each col->
+                colors_array = this.opencv_mat.get row col
+                pixel = f (Pixel.Pixel row col (Color.from_array colors_array))
+                case pixel.color of
+                    Color.Channels_1 c1 -> this.opencv_mat.put pixel.row pixel.col c1
+                    Color.Channels_2 c1 c2 -> this.opencv_mat.put pixel.row pixel.col c1 c2
+                    Color.Channels_3 c1 c2 c3 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3
+                    Color.Channels_4 c1 c2 c3 c4 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3 c4

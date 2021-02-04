@@ -9,3 +9,10 @@ read location =
         File.File _ -> location.path
         _ -> location
     Matrix.Matrix (Java_Io.read path)
+
+write : (Text | File) -> Matrix -> Nothing
+write location image =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    Java_Io.write path image.opencv_mat
