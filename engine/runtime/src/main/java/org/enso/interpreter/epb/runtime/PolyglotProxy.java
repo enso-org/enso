@@ -7,12 +7,23 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.epb.node.ContextFlipNode;
 
+/**
+ * Wraps a polyglot value that is to be shared between Truffle contexts. See {@link
+ * org.enso.interpreter.epb.EpbLanguage} for the explanation of this system.
+ */
 @ExportLibrary(InteropLibrary.class)
 public class PolyglotProxy implements TruffleObject {
   final Object delegate;
   private final GuardedTruffleContext origin;
   private final GuardedTruffleContext target;
 
+  /**
+   * Wraps a value for inter-context use.
+   *
+   * @param delegate the wrapped value
+   * @param origin the context in which {@code delegate} is a valid value
+   * @param target the context in which {@code delegate} will be accessed through this wrapper
+   */
   public PolyglotProxy(
       Object delegate, GuardedTruffleContext origin, GuardedTruffleContext target) {
     this.delegate = delegate;
@@ -20,14 +31,17 @@ public class PolyglotProxy implements TruffleObject {
     this.target = target;
   }
 
+  /** @return the wrapped value */
   public Object getDelegate() {
     return delegate;
   }
 
+  /** @return the context in which the wrapped value originates */
   public GuardedTruffleContext getOrigin() {
     return origin;
   }
 
+  /** @return the context in which this wrapper is supposed to be used */
   public GuardedTruffleContext getTarget() {
     return target;
   }
@@ -54,11 +68,14 @@ public class PolyglotProxy implements TruffleObject {
 
   @ExportMessage
   public Object getMembers(
-      boolean includeInternal, @CachedLibrary("this.delegate") InteropLibrary members)
+      boolean includeInternal,
+      @CachedLibrary("this.delegate") InteropLibrary members,
+      @Cached ContextFlipNode contextFlipNode)
       throws UnsupportedMessageException {
     Object p = origin.enter();
     try {
-      return members.getMembers(this.delegate, includeInternal);
+      return contextFlipNode.execute(
+          members.getMembers(this.delegate, includeInternal), origin, target);
     } finally {
       origin.leave(p);
     }
@@ -83,14 +100,14 @@ public class PolyglotProxy implements TruffleObject {
       @Cached ContextFlipNode contextFlipNode)
       throws ArityException, UnknownIdentifierException, UnsupportedMessageException,
           UnsupportedTypeException {
+    Object[] wrappedArgs = new Object[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      wrappedArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
+    }
     Object p = origin.enter();
     try {
-      Object[] newArgs = new Object[arguments.length];
-      for (int i = 0; i < arguments.length; i++) {
-        newArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
-      }
       return contextFlipNode.execute(
-          members.invokeMember(this.delegate, member, newArgs), origin, target);
+          members.invokeMember(this.delegate, member, wrappedArgs), origin, target);
     } finally {
       origin.leave(p);
     }
@@ -137,9 +154,13 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this.delegate") InteropLibrary functions,
       @Cached ContextFlipNode contextFlipNode)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+    Object[] wrappedArgs = new Object[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      wrappedArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
+    }
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(functions.execute(this.delegate, arguments), origin, target);
+      return contextFlipNode.execute(functions.execute(this.delegate, wrappedArgs), origin, target);
     } finally {
       origin.leave(p);
     }

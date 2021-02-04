@@ -1,26 +1,31 @@
 package org.enso.interpreter.epb.node;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.TruffleContext;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.DirectCallNode;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import org.enso.interpreter.epb.EpbContext;
-import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.runtime.data.Array;
 
+/** A node responsible for performing foreign JS calls. */
 public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
   final Object jsFun;
-  final int argsCount;
+  private final int argsCount;
 
   JsForeignNode(int argsCount, Object jsFun) {
     this.argsCount = argsCount;
     this.jsFun = jsFun;
+  }
+
+  /**
+   * Creates a new instance of this node.
+   *
+   * @param argumentsCount the number of arguments the function expects (including {@code this})
+   * @param jsFunction the parsed JS object (required to be {@link
+   *     InteropLibrary#isExecutable(Object)})
+   * @return a node able to call the JS function with given arguments
+   */
+  public static JsForeignNode build(int argumentsCount, Object jsFunction) {
+    return JsForeignNodeGen.create(argumentsCount, jsFunction);
   }
 
   @Specialization
@@ -30,11 +35,10 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
     try {
       return interopLibrary.invokeMember(jsFun, "apply", arguments[0], new Array(positionalArgs));
     } catch (UnsupportedMessageException
-        | UnsupportedTypeException
         | UnknownIdentifierException
-        | ArityException e) {
-      e.printStackTrace();
-      throw new RuntimeException("oopsie");
+        | ArityException
+        | UnsupportedTypeException e) {
+      throw new IllegalStateException("Invalid JS function resulted from parsing.");
     }
   }
 }

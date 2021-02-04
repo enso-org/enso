@@ -34,7 +34,8 @@ class ContextFactory {
     strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
-      .newBuilder(LanguageInfo.ID, "js", "R", "epb", "ruby", "python")
+      // TODO: Remove EPB from this list when https://github.com/oracle/graal/pull/3139 is merged
+      .newBuilder(LanguageInfo.ID, "js", "epb")
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)

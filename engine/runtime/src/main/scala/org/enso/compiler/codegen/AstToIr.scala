@@ -9,6 +9,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Shape.{
   SegmentEscape,
@@ -224,7 +225,7 @@ object AstToIr {
             Module.Scope.Definition.Method.Binding(
               methodRef,
               args.map(translateArgumentDefinition(_)),
-              IR.Foreign.Definition(lang, code, None),
+              IR.Foreign.Definition(EpbParser.getLanguage(lang), code, None),
               None
             )
           case _ => throw new CompilerError("I don't care")
@@ -326,7 +327,11 @@ object AstToIr {
               )
               .mkString("\n")
             val foreign =
-              IR.Foreign.Definition(lang, code, getIdentifiedLocation(body))
+              IR.Foreign.Definition(
+                EpbParser.getLanguage(lang),
+                code,
+                getIdentifiedLocation(body)
+              )
             IR.Function.Binding(
               buildName(name),
               args.map(translateArgumentDefinition(_)),

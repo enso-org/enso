@@ -24,6 +24,7 @@ import org.enso.compiler.pass.resolve.{
   Patterns,
   UppercaseNames
 }
+import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -1074,14 +1075,12 @@ class IrToTruffle(
     }
 
     private def buildForeignBody(
-      language: String,
+      language: EpbParser.ForeignLanguage,
       code: String,
       argumentNames: List[String],
       argumentSlots: List[FrameSlot]
     ): RuntimeExpression = {
-      val src = Source
-        .newBuilder("epb", language + "#" + code, scopeName)
-        .build()
+      val src = EpbParser.buildSource(language, code, scopeName)
       val foreignCt = context.getEnvironment
         .parseInternal(src, argumentNames: _*)
       val argumentReaders = argumentSlots

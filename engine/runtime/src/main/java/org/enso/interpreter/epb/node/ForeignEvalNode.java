@@ -10,6 +10,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
+import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -18,18 +19,29 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public abstract class SafeEvalNode extends RootNode {
-  private final String source;
+public abstract class ForeignEvalNode extends RootNode {
+  private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
   private @Child ContextFlipNode flipNode = ContextFlipNodeGen.create();
   private final String[] argNames;
-  private final String lang;
 
-  public SafeEvalNode(EpbLanguage language, String lang, String source, List<String> arguments) {
+  ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
     super(language, new FrameDescriptor());
-    this.source = source;
+    this.code = code;
     argNames = arguments.toArray(new String[0]);
-    this.lang = lang.equals("r") ? "R" : lang;
+  }
+
+  /**
+   * Creates a new instance of this node
+   *
+   * @param language the current language instance
+   * @param code the result of parsing EPB code
+   * @param arguments argument names allowed in the function body
+   * @return an instance of this node
+   */
+  public static ForeignEvalNode build(
+      EpbLanguage language, EpbParser.Result code, List<String> arguments) {
+    return ForeignEvalNodeGen.create(language, code, arguments);
   }
 
   @Specialization
@@ -46,19 +58,10 @@ public abstract class SafeEvalNode extends RootNode {
       try {
         if (foreign == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
-          if (lang.equals("js")) {
+          if (code.getLanguage() == EpbParser.ForeignLanguage.JS) {
             parseJs(ctxRef);
           } else {
-            EpbContext context = ctxRef.get();
-            GuardedTruffleContext inner = context.getInnerContext();
-            Object p = inner.enter();
-            try {
-              Source source = Source.newBuilder(lang, this.source, "").build();
-              CallTarget ct = ctxRef.get().getEnv().parseInternal(source, argNames);
-              foreign = insert(DefaultForeignNodeGen.create(argNames.length, ct));
-            } finally {
-              inner.leave(p);
-            }
+            throw new IllegalStateException("Unsupported language resulted from EPB parsing");
           }
         }
       } finally {
@@ -75,8 +78,13 @@ public abstract class SafeEvalNode extends RootNode {
     try {
       String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
       String wrappedSrc =
-          "var poly_enso_eval=function(" + args + "){" + source + "};poly_enso_eval";
-      Source source = Source.newBuilder(lang, wrappedSrc, "").build();
+          "var poly_enso_eval=function("
+              + args
+              + "){\n"
+              + code.getForeignSource()
+              + "\n};poly_enso_eval";
+      Source source =
+          Source.newBuilder(code.getLanguage().toTruffleLanguage(), wrappedSrc, "").build();
       CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
       Object fn = flipNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNodeGen.create(argNames.length, fn));

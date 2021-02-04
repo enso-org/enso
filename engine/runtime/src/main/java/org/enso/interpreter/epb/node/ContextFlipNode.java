@@ -16,10 +16,10 @@ public abstract class ContextFlipNode extends Node {
    * is allowed to use interop library on {@code value} and therefore must be called with {@code
    * origin} entered.
    *
-   * @param value
-   * @param origin
-   * @param target
-   * @return
+   * @param value the value to wrap
+   * @param origin the context the value originates in (and is currently entered)
+   * @param target the context in which the value will be accessed in the future
+   * @return a context-switch-safe wrapper for the value
    */
   public abstract Object execute(
       Object value, GuardedTruffleContext origin, GuardedTruffleContext target);
