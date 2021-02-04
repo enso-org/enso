@@ -1,6 +1,7 @@
 import Test
-
 import Image_Tests.Io_Spec
+import Image_Tests.Data.Color_Spec
 
 main = Test.Suite.runMain <|
     Io_Spec.spec
+    Color_Spec.spec

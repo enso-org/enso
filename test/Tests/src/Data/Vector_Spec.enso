@@ -175,4 +175,20 @@ spec = Test.group "Vectors" <|
         json = Json.parse text
         as_vec = json.into (Vector.Vector Number)
         as_vec.should_equal <| Vector.fill 100 0
-
+    Test.specify "should pad elements" <|
+        [].pad 3 0 . should_equal [0, 0, 0]
+        [1, 2, 3].pad 0 0 . should_equal [1, 2, 3]
+        [1, 2, 3].pad 3 0 . should_equal [1, 2, 3]
+        [1].pad 3 0 . should_equal [1, 0, 0]
+    Test.specify "should zip elements" <|
+        [1, 2, 3].zip [] (+) . should_equal []
+        [1, 2, 3].zip [4] (+) . should_equal [5]
+        [1, 2, 3].zip [4, 5, 6] (+) . should_equal [5, 7, 9]
+        [1, 2, 3].zip [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
+        [].zip [4, 5, 6] (+) . should_equal []
+    Test.specify "should zip_1 elements" <|
+        [1, 2, 3].zip_1 [] (+) . should_equal [1, 2, 3]
+        [1, 2, 3].zip_1 [4] (+) . should_equal [5, 2, 3]
+        [1, 2, 3].zip_1 [4, 5, 6] (+) . should_equal [5, 7, 9]
+        [1, 2, 3].zip_1 [4, 5, 6, 7] (+) . should_equal [5, 7, 9]
+        [].zip_1 [4, 5, 6] (+) . should_equal []

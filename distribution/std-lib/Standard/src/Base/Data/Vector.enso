@@ -373,14 +373,51 @@ type Vector
 
        > Example
          To pairwise-sum two vectors:
-             zip [1, 2, 3] [4, 5, 6] (+) == [5, 7, 9]
+             [1, 2, 3].zip [4, 5, 6] (+) == [5, 7, 9]
          When the `function` is not provided, it defaults to creating a pair
          of both elements:
-             zip [1, 2, 3] [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
+             [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector -> (Any -> Any -> Any) -> Vector
     zip that function=[_,_] =
         len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
+
+    ## Performs a pair-wise operation passed in `function` on consecutive
+       elements of `this` and `that`. The `function` is applied only when the
+       corresponding element exists in `that` vector.
+       The result of this function is a vector of `this` length.
+       > Example
+         To pairwise-sum two vectors:
+             [1, 2, 3].zip_1 [4, 5, 6] (+) == [5, 7, 9]
+       > Example
+         To pairwise-sum two vectors, when `this` is longer:
+             [1, 2, 3, 4].zip_1 [4, 5, 6] (+) == [5, 7, 9, 4]
+       > Example
+         To pairwise-sum two vectors, when `that` is longer:
+             [1, 2, 3].zip_1 [4, 5, 6, 7] (+) == [5, 7, 9]
+       > Example
+         To pairwise-sum two vectors, when `that` is empty:
+             [1, 2, 3].zip_1 [] (+) == [1, 2, 3]
+    zip_1 : Vector -> (Any -> Any -> Any) -> Vector
+    zip_1 that function=[_, _] =
+        that_len = that.length
+        here.new this.length i->
+           if that_len <= i then this.at i else function (this.at i) (that.at i)
+
+    ## Extend `this` vector to the length of `n` appending elements `elem` to
+       the end. If the new length `n` is less than existing length, `this`
+       vector is returned.
+
+       > Example
+         Extending vector to the length of 5 returns `[1, 2, 3, 0, 0]`
+         [1, 2, 3].pad 5 0
+       > Example
+         Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
+         [1, 2, 3, 4, 5].pad 5 0
+    pad : Integer -> Any -> Vector
+    pad n elem =
+        if this.length >= n then this else
+            this + (here.fill n-this.length elem)
 
     ## Vector to JSON conversion.
     to_json : Json.Array

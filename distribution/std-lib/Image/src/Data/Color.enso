@@ -1,4 +1,5 @@
 from Base import all
+import Image.Data.Color.Internal
 
 type Channel_Not_Exist channel
 
@@ -48,36 +49,49 @@ type Color
         Channels_4 _ _ _ a -> a
         _ -> Error.throw (Channel_Not_Exist 'alpha')
 
-    + : Number -> Color
-    + x = case this of
-        Channels_1 c1 -> Channels_1 c1+x
-        Channels_2 c1 c2 -> Channels_2 c1+x c2+x
-        Channels_3 c1 c2 c3 -> Channels_3 c1+x c2+x c3+x
-        Channels_4 c1 c2 c3 c4 -> Channels_4 c1+x c2+x c3+x c4+x
+    zip : Vector -> (Any -> Any -> Any) -> Color
+    zip mask f = here.from_vector (this.to_vector.zip_1 mask f)
 
-    - : Number -> Color
-    - x = case this of
-        Channels_1 c1 -> Channels_1 c1-x
-        Channels_2 c1 c2 -> Channels_2 c1-x c2-x
-        Channels_3 c1 c2 c3 -> Channels_3 c1-x c2-x c3-x
-        Channels_4 c1 c2 c3 c4 -> Channels_4 c1-x c2-x c3-x c4-x
+    copy : Number -> Number -> Number -> Number -> Channel
+    copy channel_1=Nothing channel_2=Nothing channel_3=Nothing channel_4=Nothing =
+        case this of
+            Channels_1 _ ->
+                if channel_1 == Nothing then this else Channels_1 channel_1
+            Channels_2 c1 c2 ->
+                new_c1 = if channel_1 == Nothing then c1 else channel_1
+                new_c2 = if channel_2 == Nothing then c2 else channel_2
+                Channels_2 new_c1 new_c2
+            Channels_3 c1 c2 c3 ->
+                new_c1 = if channel_1 == Nothing then c1 else channel_1
+                new_c2 = if channel_2 == Nothing then c2 else channel_2
+                new_c3 = if channel_3 == Nothing then c3 else channel_3
+                Channels_3 new_c1 new_c2 new_c3
+            Channels_4 c1 c2 c3 c4 ->
+                new_c1 = if channel_1 == Nothing then c1 else channel_1
+                new_c2 = if channel_2 == Nothing then c2 else channel_2
+                new_c3 = if channel_3 == Nothing then c3 else channel_3
+                new_c4 = if channel_4 == Nothing then c4 else channel_4
+                Channels_4 new_c1 new_c2 new_c3 new_c4
 
-    * : Number -> Color
-    * x = case this of
-        Channels_1 c1 -> Channels_1 c1*x
-        Channels_2 c1 c2 -> Channels_2 c1*x c2*x
-        Channels_3 c1 c2 c3 -> Channels_3 c1*x c2*x c3*x
-        Channels_4 c1 c2 c3 c4 -> Channels_4 c1*x c2*x c3*x c4*x
+    + : (Number | Vector) -> Color
+    + value = case value of
+        Vector.Vector _ -> this.zip value (+)
+        _ -> Internal.add this value
 
-    / : Number -> Color
-    / x = case this of
-        Channels_1 c1 -> Channels_1 c1/x
-        Channels_2 c1 c2 -> Channels_2 c1/x c2/x
-        Channels_3 c1 c2 c3 -> Channels_3 c1/x c2/x c3/x
-        Channels_4 c1 c2 c3 c4 -> Channels_4 c1/x c2/x c3/x c4/x
+    - : (Number | Vector) -> Color
+    - value = case value of
+        Vector.Vector _ -> this.zip value (-)
+        _ -> Internal.subtract this value
 
-    map : (Vector -> Vector) -> Color ! Unsupported_Channels_Number
-    map f = here.from_vector (f this.to_vector)
+    * : (Number | Vector) -> Color
+    * value = case value of
+        Vector.Vector _ -> this.zip value (*)
+        _ -> Internal.multiply this value
+
+    / : (Number | Vector) -> Color
+    / value = case value of
+        Vector.Vector _ -> this.zip value (/)
+        _ -> Internal.divide this value
 
 from_vector : Vector -> Color ! Unsupported_Channels_Number
 from_vector vec = here.from_array vec.to_array

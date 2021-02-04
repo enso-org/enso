@@ -1,0 +1,119 @@
+from Base import all
+import Image.Data.Color
+import Test
+
+spec =
+    Test.group "Color" <|
+        c1 = Color.Channels_1 1
+        c2 = Color.Channels_2 1 2
+        c3 = Color.Channels_3 1 2 3
+        c4 = Color.Channels_4 1 2 3 4
+        Test.specify "should create Color from vector" <|
+            Color.from_vector [1] . should_equal (Color.Channels_1 1)
+            Color.from_vector [1, 2] . should_equal (Color.Channels_2 1 2)
+            Color.from_vector [1, 2, 3] . should_equal (Color.Channels_3 1 2 3)
+            Color.from_vector [1, 2, 3, 4] . should_equal (Color.Channels_4 1 2 3 4)
+            Test.expect_error_with (Color.from_vector []) (Color.Unsupported_Channels_Number 0)
+            Test.expect_error_with (Color.from_vector [1, 2, 3, 4, 5]) (Color.Unsupported_Channels_Number 5)
+        Test.specify "should convert to vector" <|
+            Color.Channels_1 1 . to_vector . should_equal [1]
+            Color.Channels_2 1 2 . to_vector . should_equal [1, 2]
+            Color.Channels_3 1 2 3 . to_vector . should_equal [1, 2, 3]
+            Color.Channels_4 1 2 3 4 . to_vector . should_equal [1, 2, 3, 4]
+        Test.specify "should copy" <|
+            Color.Channels_1 1 . copy 10 20 30 40 . should_equal (Color.Channels_1 10)
+            Color.Channels_2 1 2 . copy 10 20 30 40 . should_equal (Color.Channels_2 10 20)
+            Color.Channels_3 1 2 3 . copy 10 20 30 40 . should_equal (Color.Channels_3 10 20 30)
+            Color.Channels_4 1 2 3 4 . copy 10 20 30 40 . should_equal (Color.Channels_4 10 20 30 40)
+            Color.Channels_3 1 2 3 . copy 10 . should_equal (Color.Channels_3 10 2 3)
+            Color.Channels_3 1 2 3 . copy . should_equal (Color.Channels_3 1 2 3)
+        Test.specify "should zip with vector" <|
+            c1.zip [] (+) . should_equal c1
+            c1.zip [1] (+) . should_equal (Color.from_vector [2])
+            c1.zip [1, 2] (+) . should_equal (Color.from_vector [2])
+
+            c2.zip [] (+) . should_equal c2
+            c2.zip [1] (+) . should_equal (Color.from_vector [2, 2])
+            c2.zip [1, 2] (+) . should_equal (Color.from_vector [2, 4])
+            c2.zip [1, 2, 3] (+) . should_equal (Color.from_vector [2, 4])
+
+            c3.zip [] (+) . should_equal c3
+            c3.zip [1] (+) . should_equal (Color.from_vector [2, 2, 3])
+            c3.zip [1, 2] (+) . should_equal (Color.from_vector [2, 4, 3])
+            c3.zip [1, 2, 3] (+) . should_equal (Color.from_vector [2, 4, 6])
+            c3.zip [1, 2, 3, 4] (+) . should_equal (Color.from_vector [2, 4, 6])
+
+            c4.zip [] (+) . should_equal c4
+            c4.zip [1] (+) . should_equal (Color.from_vector [2, 2, 3, 4])
+            c4.zip [1, 2] (+) . should_equal (Color.from_vector [2, 4, 3, 4])
+            c4.zip [1, 2, 3] (+) . should_equal (Color.from_vector [2, 4, 6, 4])
+            c4.zip [1, 2, 3, 4] (+) . should_equal (Color.from_vector [2, 4, 6, 8])
+            c4.zip [1, 2, 3, 4, 5] (+) . should_equal (Color.from_vector [2, 4, 6, 8])
+        Test.specify "should perform scalar operations" <|
+            c1+1 . should_equal (Color.from_vector [2])
+            c2+1 . should_equal (Color.from_vector [2, 3])
+            c3+1 . should_equal (Color.from_vector [2, 3, 4])
+            c4+1 . should_equal (Color.from_vector [2, 3, 4, 5])
+
+            c1-1 . should_equal (Color.from_vector [0])
+            c2-1 . should_equal (Color.from_vector [0, 1])
+            c3-1 . should_equal (Color.from_vector [0, 1, 2])
+            c4-1 . should_equal (Color.from_vector [0, 1, 2, 3])
+
+            c1*3 . should_equal (Color.from_vector [3])
+            c2*3 . should_equal (Color.from_vector [3, 6])
+            c3*3 . should_equal (Color.from_vector [3, 6, 9])
+            c4*3 . should_equal (Color.from_vector [3, 6, 9, 12])
+
+            c1/2 . should_equal (Color.from_vector [0.5])
+            c2/2 . should_equal (Color.from_vector [0.5, 1.0])
+            c3/2 . should_equal (Color.from_vector [0.5, 1.0, 1.5])
+            c4/2 . should_equal (Color.from_vector [0.5, 1.0, 1.5, 2.0])
+        Test.specify "should perform vector operations" <|
+            c1+[1] . should_equal (Color.from_vector [2])
+            c1+[1, 2] . should_equal (Color.from_vector [2])
+            c2+[1] . should_equal (Color.from_vector [2, 2])
+            c2+[1, 2] . should_equal (Color.from_vector [2, 4])
+            c2+[1, 2, 3] . should_equal (Color.from_vector [2, 4])
+            c3+[1] . should_equal (Color.from_vector [2, 2, 3])
+            c3+[1, 2, 3] . should_equal (Color.from_vector [2, 4, 6])
+            c3+[1, 2, 3, 4] . should_equal (Color.from_vector [2, 4, 6])
+            c4+[1, 2] . should_equal (Color.from_vector [2, 4, 3, 4])
+            c4+[1, 2, 3, 4] . should_equal (Color.from_vector [2, 4, 6, 8])
+            c4+[1, 2, 3, 4, 5] . should_equal (Color.from_vector [2, 4, 6, 8])
+
+            c1-[1] . should_equal (Color.from_vector [0])
+            c1-[1, 2] . should_equal (Color.from_vector [0])
+            c2-[1] . should_equal (Color.from_vector [0, 2])
+            c2-[1, 2] . should_equal (Color.from_vector [0, 0])
+            c2-[1, 2, 3] . should_equal (Color.from_vector [0, 0])
+            c3-[1] . should_equal (Color.from_vector [0, 2, 3])
+            c3-[1, 2, 3] . should_equal (Color.from_vector [0, 0, 0])
+            c3-[1, 2, 3, 4] . should_equal (Color.from_vector [0, 0, 0])
+            c4-[1, 2] . should_equal (Color.from_vector [0, 0, 3, 4])
+            c4-[1, 2, 3, 4] . should_equal (Color.from_vector [0, 0, 0, 0])
+            c4-[1, 2, 3, 4, 5] . should_equal (Color.from_vector [0, 0, 0, 0])
+
+            c1*[2] . should_equal (Color.from_vector [2])
+            c1*[2, 2] . should_equal (Color.from_vector [2])
+            c2*[2] . should_equal (Color.from_vector [2, 2])
+            c2*[2, 2] . should_equal (Color.from_vector [2, 4])
+            c2*[1, 2, 3] . should_equal (Color.from_vector [1, 4])
+            c3*[2] . should_equal (Color.from_vector [2, 2, 3])
+            c3*[1, 2, 3] . should_equal (Color.from_vector [1, 4, 9])
+            c3*[1, 2, 3, 4] . should_equal (Color.from_vector [1, 4, 9])
+            c4*[1, 3] . should_equal (Color.from_vector [1, 6, 3, 4])
+            c4*[1, 2, 3, 4] . should_equal (Color.from_vector [1, 4, 9, 16])
+            c4*[1, 2, 3, 4, 5] . should_equal (Color.from_vector [1, 4, 9, 16])
+
+            c1/[2] . should_equal (Color.from_vector [0.5])
+            c1/[2, 2] . should_equal (Color.from_vector [0.5])
+            c2/[2] . should_equal (Color.from_vector [0.5, 2])
+            c2/[2, 2] . should_equal (Color.from_vector [0.5, 1.0])
+            c2/[1, 2, 3] . should_equal (Color.from_vector [1.0, 1.0])
+            c3/[2] . should_equal (Color.from_vector [0.5, 2, 3])
+            c3/[1, 2, 3] . should_equal (Color.from_vector [1, 1, 1])
+            c3/[1, 2, 3, 4] . should_equal (Color.from_vector [1, 1, 1])
+            c4/[1, 2] . should_equal (Color.from_vector [1, 1, 3, 4])
+            c4/[1, 2, 3, 4] . should_equal (Color.from_vector [1, 1, 1, 1])
+            c4/[1, 2, 3, 4, 5] . should_equal (Color.from_vector [1, 1, 1, 1])
