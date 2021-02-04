@@ -6,18 +6,24 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.node.ExpressionNode;
 
-import java.util.Arrays;
-
+/** Performs a call into a given foreign call target. */
 public class ForeignMethodCallNode extends ExpressionNode {
   private @Children ExpressionNode[] arguments;
   private @Child DirectCallNode callNode;
 
-  public ForeignMethodCallNode(ExpressionNode[] arguments, CallTarget foreignCt) {
+  ForeignMethodCallNode(ExpressionNode[] arguments, CallTarget foreignCt) {
     this.arguments = arguments;
     this.callNode = DirectCallNode.create(foreignCt);
   }
 
-  public static ForeignMethodCallNode create(ExpressionNode[] arguments, CallTarget foreignCt) {
+  /**
+   * Creates a new instance of this node
+   *
+   * @param arguments expressions resulting in the computation of function arguments
+   * @param foreignCt the foreign call target to call
+   * @return the result of calling the foreign call target with the executed arguments
+   */
+  public static ForeignMethodCallNode build(ExpressionNode[] arguments, CallTarget foreignCt) {
     return new ForeignMethodCallNode(arguments, foreignCt);
   }
 

@@ -265,13 +265,12 @@ class IrToTruffle(
               cons,
               methodDef.methodName.name
             )
-            val ct = Truffle.getRuntime.createCallTarget(rootNode)
+            val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
             new RuntimeFunction(
-              ct,
+              callTarget,
               null,
               new FunctionSchema(arguments: _*)
             )
-
           case _ =>
             throw new CompilerError(
               "Method bodies must be functions at the point of codegen."
@@ -1086,7 +1085,7 @@ class IrToTruffle(
       val argumentReaders = argumentSlots
         .map(slot => ReadLocalVariableNode.build(new FramePointer(0, slot)))
         .toArray[RuntimeExpression]
-      ForeignMethodCallNode.create(argumentReaders, foreignCt)
+      ForeignMethodCallNode.build(argumentReaders, foreignCt)
     }
 
     /** Generates code for an Enso function body.

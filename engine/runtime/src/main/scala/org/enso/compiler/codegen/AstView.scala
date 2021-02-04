@@ -207,25 +207,6 @@ object AstView {
       }
   }
 
-  object PolyglotDef {
-    def unapply(
-      ast: AST
-    ): Option[(String, AST.Ident.Var, List[AST], AST.Literal.Text)] =
-      ast match {
-        case AST.App.Infix(
-              SpacedList(
-                AST.Ident.Var("foreign") :: AST.Ident.Var
-                  .any(lang) :: AST.Ident.Var
-                  .any(funName) :: args
-              ),
-              AST.Opr("="),
-              AST.Literal.Text.any(code)
-            ) =>
-          Some((lang.name, funName, args, code))
-        case _ => None
-      }
-  }
-
   object FunctionParam {
 
     /** Matches a definition-site function parameter.

@@ -8,7 +8,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Shape.{
@@ -205,30 +205,22 @@ object AstToIr {
         )
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
-            AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args,
+            header,
             body
           ) =>
-        body.shape match {
-          case AST.Literal.Text.Block.Raw(lines, _, _) =>
-            val code = lines
-              .map(t =>
-                t.text.collect {
-                  case AST.Literal.Text.Segment.Plain(str)   => str
-                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-                }.mkString
-              )
-              .mkString("\n")
-            val typeName   = Name.Here(None)
-            val methodName = buildName(name)
+        translateForeignDefinition(header, body) match {
+          case Some((name, arguments, body)) =>
+            val typeName = Name.Here(None)
             val methodRef =
-              Name.MethodReference(typeName, methodName, methodName.location)
+              Name.MethodReference(typeName, name, name.location)
             Module.Scope.Definition.Method.Binding(
               methodRef,
-              args.map(translateArgumentDefinition(_)),
-              IR.Foreign.Definition(EpbParser.getLanguage(lang), code, None),
-              None
+              arguments,
+              body,
+              getIdentifiedLocation(inputAst)
             )
-          case _ => throw new CompilerError("I don't care")
+          case None =>
+            IR.Error.Syntax(inputAst, IR.Error.Syntax.InvalidForeignDefinition)
         }
       case AstView.FunctionSugar(name, args, body) =>
         val typeName   = Name.Here(None)
@@ -313,32 +305,19 @@ object AstToIr {
       case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
-            AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args,
+            header,
             body
           ) =>
-        body.shape match {
-          case AST.Literal.Text.Block.Raw(lines, _, _) =>
-            val code = lines
-              .map(t =>
-                t.text.collect {
-                  case AST.Literal.Text.Segment.Plain(str)   => str
-                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-                }.mkString
-              )
-              .mkString("\n")
-            val foreign =
-              IR.Foreign.Definition(
-                EpbParser.getLanguage(lang),
-                code,
-                getIdentifiedLocation(body)
-              )
+        translateForeignDefinition(header, body) match {
+          case Some((name, arguments, body)) =>
             IR.Function.Binding(
-              buildName(name),
-              args.map(translateArgumentDefinition(_)),
-              foreign,
+              name,
+              arguments,
+              body,
               getIdentifiedLocation(inputAst)
             )
-          case _ => throw new CompilerError("I don't care")
+          case None =>
+            IR.Error.Syntax(inputAst, IR.Error.Syntax.InvalidForeignDefinition)
         }
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
@@ -359,6 +338,39 @@ object AstToIr {
         translateExpression(assignment)
       case _ =>
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
+    }
+  }
+
+  private def translateForeignDefinition(header: List[AST], body: AST): Option[
+    (IR.Name, List[IR.DefinitionArgument], IR.Foreign.Definition)
+  ] = {
+    header match {
+      case AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args =>
+        body.shape match {
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val code = lines
+              .map(t =>
+                t.text.collect {
+                  case AST.Literal.Text.Segment.Plain(str)   => str
+                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
+                }.mkString
+              )
+              .mkString("\n")
+            val methodName = buildName(name)
+            val arguments  = args.map(translateArgumentDefinition(_))
+            val language   = EpbParser.getLanguage(lang)
+            if (language == null) { None }
+            else {
+              val foreign = IR.Foreign.Definition(
+                language,
+                code,
+                getIdentifiedLocation(body)
+              )
+              Some((methodName, arguments, foreign))
+            }
+          case _ => None
+        }
+      case _ => None
     }
   }
 

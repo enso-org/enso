@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,15 +8,12 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.function.CurriedMethod;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
@@ -128,20 +123,25 @@ public class Atom implements TruffleObject {
   }
 
   @ExportMessage
+  @ExplodeLoop
   public boolean isMemberReadable(String member) {
-    return isMemberInvocable(member);
+    for (int i = 0; i < constructor.getArity(); i++) {
+      if (member.equals(constructor.getFields()[i].getName())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @ExportMessage
-  public Object readMember(String member) {
+  @ExplodeLoop
+  public Object readMember(String member) throws UnknownIdentifierException {
     for (int i = 0; i < constructor.getArity(); i++) {
       if (member.equals(constructor.getFields()[i].getName())) {
         return fields[i];
       }
     }
-    Map<String, Function> members = constructor.getDefinitionScope().getMethods().get(constructor);
-    Function fun = members.get(member);
-    return new CurriedMethod(fun, this);
+    throw UnknownIdentifierException.create(member);
   }
 
   @ExportMessage
