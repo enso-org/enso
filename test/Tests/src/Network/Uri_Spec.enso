@@ -28,7 +28,7 @@ spec =
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal ""
         Test.specify "should return Syntax_Error when parsing invalid Uri" <|
-            Uri.parse "a b c" . catch <| case _ of
+            Uri.parse "a b c" . catch e-> case e of
                 Uri.Syntax_Error msg ->
                     msg.should_equal "Illegal character in path at index 1: a b c"
                 other ->

@@ -131,7 +131,7 @@ new language country=Nothing variant=Nothing =
    > Example
      Creating the locale en_US.
          Locale.from_language_tag "en_US"
-from_language_tag : Text -> Locale | Nothing
+from_language_tag : Text -> Locale
 from_language_tag tag =
     java_locale = JavaLocale.forLanguageTag tag
     here.from_java java_locale

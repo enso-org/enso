@@ -54,3 +54,67 @@ Any.is_nothing : Boolean
 Any.is_nothing = case this of
     Nothing -> True
     _ -> False
+
+## Executes the provided handler on a dataflow error, or executes as identity on
+   a non-error value.
+
+   Arguments:
+   - handler: The function to call on this if it is an error value. By default
+     this is identity.
+
+   > Example
+     Catching an erroneous value to perform some operation on it.
+       (Time.Time_Error "Message").catch (err -> IO.println err)
+Any.catch : (Error -> Any) -> Any
+Any.catch (handler = x->x) = this.catch_primitive handler
+
+## Applies the function `this` to the provided argument.
+
+   Arguments:
+   - argument: The argument to apply `this` to.
+
+   > Example
+     Applying a function to a block.
+         (x -> x + 1) <|
+            y = 1 ^ 3
+            3 + y
+Any.<| : Any -> Any
+Any.<| ~argument = this argument
+
+## Applies the function on the right hand side to the argument on the left.
+
+   Arguments
+   - function: The function to apply to `this`.
+
+   > Example
+     Applying a function in a pipeline.
+         1 |> (* 2)
+Any.|> : (Any -> Any) -> Any
+Any.|> function = function this
+
+## Composes two functions together.
+
+   For `f << g`, this creates the function composition `f ∘ g`.
+
+   Arguments:
+   - that: The function to compose with `this`.
+
+   > Example
+     Compose the functions +1 and *2 and apply it to 2
+         (+1 << *2) 2
+Any.<< : (Any -> Any) -> (Any -> Any) -> Any -> Any
+Any.<< that = x -> this (that x)
+
+## Composes two functions together in the forward direction.
+
+   For `f >> g`, this creates the function composition `g ∘ f`.
+
+   Arguments:
+   - that: The function to compose with `this`.
+
+   > Example
+     Add one and then multiply by two as a function applied to 2.
+         (+1 >> *2) 2
+Any.>> : (Any -> Any) -> (Any -> Any) -> Any -> Any
+Any.>> that = x -> that (this x)
+

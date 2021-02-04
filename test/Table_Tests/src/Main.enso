@@ -1,3 +1,5 @@
+from Base import all
+
 import Test
 
 import Table_Tests.Table_Spec

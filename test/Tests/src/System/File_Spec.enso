@@ -1,4 +1,5 @@
 from Base import all
+
 import Test
 
 spec =
@@ -13,7 +14,7 @@ spec =
             contents.take_start 6 . should_equal [67, 117, 112, 99, 97, 107]
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            successfully_failed = Panic.recover file.read . catch <| case _ of
+            successfully_failed = Panic.recover file.read . catch e-> case e of
                 File.No_Such_File_Error _ -> True
                 _ -> False
             successfully_failed . should_be_true
