@@ -513,40 +513,50 @@ object Main extends scala.App {
       |    ## The pow function calculates power of integers.
       |    pow x y = x ** y
       |""".stripMargin
+//  val inC =
+  """
+    |## DEPRECATED
+    |  REMOVED - replaced by Foo Bar
+    |  ADDED
+    |  MODIFIED
+    |  UPCOMING
+    |  ALAMAKOTA a kot ma Ale
+    |  Optional values.
+    |
+    |   Type `Option` represents an optional value: every `Option` is either `Some`
+    |   and contains a value, or `None`, and does not. Option types are very common
+    |   in Enso code, as they have a number of uses:
+    |      - Initial values.
+    |      - Return values for functions that are not defined over their entire input range (partial functions).
+    |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
+    |      - Optional struct fields.
+    |      - Optional function arguments.
+    |   `Option`s are commonly paired with pattern matching to query the presence of
+    |   a value and take action, always accounting for the None case.
+    |
+    |type Option a
+    |    ## The `Some` type indicates a presence of a value.
+    |    type Some a
+    |
+    |    ## The `None` type indicates a lack of a value.
+    |
+    |     It is a very common type and is used by such types as `Maybe` or `List`.
+    |     Also, `None` is the return value of functions which do not return an
+    |     explicit value.
+    |    type None
+    |
+    |    ## The pow function calculates power of integers.
+    |    pow x y = x ** y
+    |""".stripMargin
+
   val inC =
     """
-      |## DEPRECATED
-      |  REMOVED - replaced by Foo Bar
-      |  ADDED
-      |  MODIFIED
-      |  UPCOMING
-      |  ALAMAKOTA a kot ma Ale
-      |  Optional values.
+      |  ## The `json` object could not be converted into `format`, due to a field
+      |    missing in the `json` structure.
       |
-      |   Type `Option` represents an optional value: every `Option` is either `Some`
-      |   and contains a value, or `None`, and does not. Option types are very common
-      |   in Enso code, as they have a number of uses:
-      |      - Initial values.
-      |      - Return values for functions that are not defined over their entire input range (partial functions).
-      |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
-      |      - Optional struct fields.
-      |      - Optional function arguments.
-      |   `Option`s are commonly paired with pattern matching to query the presence of
-      |   a value and take action, always accounting for the None case.
-      |
-      |type Option a
-      |    ## The `Some` type indicates a presence of a value.
-      |    type Some a
-      |
-      |    ## The `None` type indicates a lack of a value.
-      |
-      |     It is a very common type and is used by such types as `Maybe` or `List`.
-      |     Also, `None` is the return value of functions which do not return an
-      |     explicit value.
-      |    type None
-      |
-      |    ## The pow function calculates power of integers.
-      |    pow x y = x ** y
+      |    This can occure when trying to reinterpret a JSON object into an atom,
+      |  when the JSON does not contain all the fields required by the atom.
+      |  type Missing_Field_Error json field format
       |""".stripMargin
 
   println("--- PARSING ---")
