@@ -25,8 +25,7 @@ public abstract class ContextFlipNode extends Node {
       Object value, GuardedTruffleContext origin, GuardedTruffleContext target);
 
   @Specialization
-  double doDouble(
-      double d, GuardedTruffleContext origin, GuardedTruffleContext target) {
+  double doDouble(double d, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return d;
   }
 
@@ -45,6 +44,11 @@ public abstract class ContextFlipNode extends Node {
     return i;
   }
 
+  @Specialization
+  boolean doBoolean(boolean b, GuardedTruffleContext origin, GuardedTruffleContext target) {
+    return b;
+  }
+
   @Specialization(guards = "proxy.getOrigin() == target")
   Object doUnwrapProxy(
       PolyglotProxy proxy, GuardedTruffleContext origin, GuardedTruffleContext target) {
@@ -58,8 +62,7 @@ public abstract class ContextFlipNode extends Node {
   }
 
   @Fallback
-  Object doWrapProxy(
-      Object o, GuardedTruffleContext origin, GuardedTruffleContext target) {
+  Object doWrapProxy(Object o, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return new PolyglotProxy(o, origin, target);
   }
 }

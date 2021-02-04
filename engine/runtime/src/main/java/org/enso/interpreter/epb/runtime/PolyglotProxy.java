@@ -217,7 +217,6 @@ public class PolyglotProxy implements TruffleObject {
       boolean allowSideEffects, @CachedLibrary("this.delegate") InteropLibrary displays) {
     Object p = origin.enter();
     try {
-      System.out.println(this.delegate.getClass());
       return displays.toDisplayString(this.delegate, allowSideEffects);
     } finally {
       origin.leave(p);
