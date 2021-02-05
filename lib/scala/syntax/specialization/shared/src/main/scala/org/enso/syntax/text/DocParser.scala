@@ -54,7 +54,7 @@ object DocParser {
 
   /** Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched("  " + input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
   def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
