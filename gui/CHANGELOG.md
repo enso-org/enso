@@ -25,8 +25,16 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - Display objects handle visibility correctly now. Display objects are not visible by default and 
   need to be attached to a visible parent to be shown on the screen.
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+- [Added the ability to reposition visualisations.][1096] There is now an icon in the visualization 
+  action bar that allows dragging the visualization. Once the visualization has been moved, there 
+  appears another icon that will reset the position to the original position.
+
+[1096]: https://github.com/enso-org/ide/pull/1172
 <br/>
-  
+
 
 
 # Enso 2.0.0-alpha.1 (2020-01-26)
