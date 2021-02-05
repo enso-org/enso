@@ -261,6 +261,12 @@ By default, CI would not build artifacts from `wip` and `develop` branches in or
 resources. If you want the artifacts to be build for your commit, simply add `[ci build]` anywhere 
 in your commit message.
 
+
+### Skipping CHANGELOG.md change assertions
+By default, CI would fail if the `CHANGELOG.md` file does not need to be updated. However, sometimes 
+there are PRs that does not change anything significant in the final product. You can then simply 
+add `[ci no changelog needed]` anywhere in your commit message to skip this assertion.
+
   
 ### Publishing Results
 All new changes should be proposed in the form of Pull Requests (PRs) to this repository. Each PR

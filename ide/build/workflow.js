@@ -13,9 +13,11 @@ const yaml  = require('js-yaml')
 // === Constants ===
 // =================
 
-const NODE_VERSION      = '14.15.0'
-const RUST_VERSION      = 'nightly-2019-11-04'
-const WASM_PACK_VERSION = '0.9.1'
+const NODE_VERSION             = '14.15.0'
+const RUST_VERSION             = 'nightly-2019-11-04'
+const WASM_PACK_VERSION        = '0.9.1'
+const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
+const FLAG_FORCE_CI_BUILD      = '[ci build]'
 
 
 
@@ -34,7 +36,10 @@ function job(platforms,name,steps,cfg) {
             },
             "fail-fast": false
         },
-        steps : list({uses:"actions/checkout@v2"}, ...steps),
+        // WARNING!
+        // Do not update to `checkout@v2` because it is broken:
+        // https://github.com/actions/checkout/issues/438
+        steps : list({uses:"actions/checkout@v1"}, ...steps),
         ...cfg
     }
 }
@@ -186,9 +191,16 @@ function uploadBinArtifactsFor(name,sys,ext,os) {
     }
 }
 
-uploadBinArtifactsForMacOS   = uploadBinArtifactsFor('Linux','ubuntu','AppImage','linux')
-uploadBinArtifactsForWindows = uploadBinArtifactsFor('Windows','windows','exe','win')
-uploadBinArtifactsForLinux   = uploadBinArtifactsFor('macOS','macos','dmg','mac')
+function uploadBinArtifactsWithChecksumsFor(name,sys,ext,os) {
+    return [
+        uploadBinArtifactsFor(name,sys,ext,os),
+        uploadBinArtifactsFor(name,sys,ext+'.sha256',os)
+    ]
+}
+
+uploadBinArtifactsForMacOS   = uploadBinArtifactsWithChecksumsFor('macOS','macos','dmg','mac')
+uploadBinArtifactsForLinux   = uploadBinArtifactsWithChecksumsFor('Linux','ubuntu','AppImage','linux')
+uploadBinArtifactsForWindows = uploadBinArtifactsWithChecksumsFor('Windows','windows','exe','win')
 
 let downloadArtifacts = {
     name: "Download artifacts",
@@ -200,9 +212,27 @@ let downloadArtifacts = {
 
 
 
-// ======================
-// === GitHub Release ===
-// ======================
+// ===========
+// === Git ===
+// ===========
+
+/// Gets a space-separated list of changed files between this commit and the `develop` branch.
+let getListOfChangedFiles = {
+    name: 'Get list of changed files',
+    id: 'changed_files',
+    run: `
+        list=\`git diff --name-only origin/develop HEAD | tr '\\n' ' '\`
+        echo $list
+        echo "::set-output name=list::'$list'"
+    `,
+    shell: 'bash'
+}
+
+
+
+// =================
+// === Changelog ===
+// =================
 
 let getCurrentReleaseChangelogInfo = {
     name: 'Read changelog info',
@@ -214,6 +244,21 @@ let getCurrentReleaseChangelogInfo = {
     `,
     shell: 'bash'
 }
+
+let assertChangelogWasUpdated = [
+    getListOfChangedFiles,
+    {
+        name: 'Assert if CHANGELOG.md was updated',
+        run: `if [[ \${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'${FLAG_NO_CHANGELOG_NEEDED}') }} == false ]]; then exit 1; fi`,
+        if: `github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/stable' && github.ref != 'refs/heads/unstable'`
+    }
+]
+
+
+
+// ======================
+// === GitHub Release ===
+// ======================
 
 let uploadGitHubRelease = {
     name: `Upload GitHub Release`,
@@ -301,7 +346,8 @@ let assertReleaseDoNotExists = [
 let assertions = list(
     assertVersionUnstable,
     assertVersionStable,
-    assertReleaseDoNotExists
+    assertReleaseDoNotExists,
+    assertChangelogWasUpdated
 )
 
 
@@ -311,13 +357,13 @@ let assertions = list(
 // ================
 
 let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'`
-let buildCondition   = `contains(github.event.head_commit.message,'[ci build]') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || ${releaseCondition}`
+let buildCondition   = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || ${releaseCondition}`
 
 let workflow = {
     name : "GUI CI",
     on: ['push'],
     jobs: {
-        version_assertions: job_on_macos("Version Assertions", [
+        version_assertions: job_on_macos("Assertions", [
             getCurrentReleaseChangelogInfo,
             assertions
         ]),

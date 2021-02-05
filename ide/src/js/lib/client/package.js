@@ -30,7 +30,8 @@ let config = {
         "copy-webpack-plugin": "^5.1.1",
         "devtron": "^1.4.0",
         "electron": "11.1.1",
-        "electron-builder": "^22.9.1"
+        "electron-builder": "^22.9.1",
+        "crypto-js": "4.0.0"
     },
 
     scripts: {
@@ -46,15 +47,21 @@ config.build = {
     copyright: 'Copyright © 2021 ${author}.',
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
+        // We do not use compression as the build time is huge and file size saving is almost zero.
+        target: ['dmg'],
         icon: `${paths.dist.root}/icons/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
         type: 'distribution',
     },
     win: {
+        // We do not use compression as the build time is huge and file size saving is almost zero.
+        target: ['nsis'],
         icon: `${paths.dist.root}/icons/icon.ico`,
     },
     linux: {
+        // We do not use compression as the build time is huge and file size saving is almost zero.
+        target: ['AppImage'],
         icon: `${paths.dist.root}/icons/png`,
         category: 'Development',
     },
@@ -95,6 +102,7 @@ config.build = {
         writeUpdateInfo: false
     },
     publish: [],
+    afterAllArtifactBuild: 'tasks/computeHashes.js'
 }
 
 module.exports = {config}
