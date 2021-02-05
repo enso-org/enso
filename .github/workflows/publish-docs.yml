@@ -15,7 +15,7 @@ jobs:
         with:
           repository: "enso-org/enso-org.github.io"
           ref: "sources"
-          token: ${{ secrets.ENSO_PAT }}
+          token: ${{ secrets.ENSO_DOCS_CI_TOKEN }}
       - name: set identity email
         run: git config --global user.email "actions@github.com"
       - name: set identity name
