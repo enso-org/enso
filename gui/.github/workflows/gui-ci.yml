@@ -8,7 +8,7 @@ name: GUI CI
   - push
 jobs:
   version_assertions:
-    name: Version Assertions
+    name: Assertions
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -16,7 +16,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Read changelog info
         id: changelog
         run: |2-
@@ -42,6 +42,23 @@ jobs:
         run: >-
           if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
           then exit 1; fi
+      - name: Get list of changed files
+        id: changed_files
+        run: |2-
+
+                  list=`git diff --name-only origin/develop HEAD | tr '\n' ' '`
+                  echo $list
+                  echo "::set-output name=list::'$list'"
+              
+        shell: bash
+      - name: Assert if CHANGELOG.md was updated
+        run: >-
+          if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') ||
+          contains(github.event.head_commit.message,'[ci no changelog needed]')
+          }} == false ]]; then exit 1; fi
+        if: >-
+          github.ref != 'refs/heads/develop' && github.ref !=
+          'refs/heads/stable' && github.ref != 'refs/heads/unstable'
   lint:
     name: Linter
     runs-on: ${{ matrix.os }}
@@ -51,7 +68,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Install Node
         uses: actions/setup-node@v1
         with:
@@ -78,7 +95,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Install Node
         uses: actions/setup-node@v1
         with:
@@ -99,7 +116,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Install Node
         uses: actions/setup-node@v1
         with:
@@ -153,7 +170,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Install Node
         uses: actions/setup-node@v1
         with:
@@ -214,7 +231,7 @@ jobs:
           - ubuntu-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Read changelog info
         id: changelog
         run: |2-
@@ -281,6 +298,36 @@ jobs:
           name: content
           path: dist/content
         if: matrix.os == 'macOS-latest'
+      - name: Upload Artifacts (macOS, dmg)
+        uses: actions/upload-artifact@v1
+        with:
+          name: enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
+          path: >-
+            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
+        if: matrix.os == 'macos-latest'
+      - name: Upload Artifacts (macOS, dmg.sha256)
+        uses: actions/upload-artifact@v1
+        with:
+          name: >-
+            enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
+          path: >-
+            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
+        if: matrix.os == 'macos-latest'
+      - name: Upload Artifacts (Windows, exe)
+        uses: actions/upload-artifact@v1
+        with:
+          name: enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+          path: >-
+            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+        if: matrix.os == 'windows-latest'
+      - name: Upload Artifacts (Windows, exe.sha256)
+        uses: actions/upload-artifact@v1
+        with:
+          name: >-
+            enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
+          path: >-
+            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
+        if: matrix.os == 'windows-latest'
       - name: Upload Artifacts (Linux, AppImage)
         uses: actions/upload-artifact@v1
         with:
@@ -289,20 +336,14 @@ jobs:
           path: >-
             dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
         if: matrix.os == 'ubuntu-latest'
-      - name: Upload Artifacts (Windows, exe)
+      - name: Upload Artifacts (Linux, AppImage.sha256)
         uses: actions/upload-artifact@v1
         with:
-          name: enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
+          name: >-
+            enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
           path: >-
-            dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
-        if: matrix.os == 'windows-latest'
-      - name: Upload Artifacts (macOS, dmg)
-        uses: actions/upload-artifact@v1
-        with:
-          name: enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
-          path: >-
-            dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
-        if: matrix.os == 'macos-latest'
+            dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
+        if: matrix.os == 'ubuntu-latest'
     if: >-
       contains(github.event.head_commit.message,'[ci build]') || github.ref ==
       'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref ==
@@ -316,7 +357,7 @@ jobs:
           - macOS-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Download artifacts
         uses: actions/download-artifact@v2
         with:
@@ -366,7 +407,7 @@ jobs:
           - ubuntu-latest
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
       - name: Download artifacts
         uses: actions/download-artifact@v2
         with:
