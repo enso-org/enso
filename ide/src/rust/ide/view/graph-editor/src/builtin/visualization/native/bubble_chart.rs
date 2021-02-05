@@ -9,7 +9,6 @@ use enso_frp as frp;
 use ensogl::data::color::Rgba;
 use ensogl::display::scene::Scene;
 use ensogl::display;
-use ensogl::gui::component;
 
 
 
@@ -45,7 +44,7 @@ pub struct BubbleChartModel {
     pub display_object : display::object::Instance,
     pub scene          : Scene,
     signature          : Signature,
-    views              : Rc<RefCell<Vec<component::ShapeView<shape::Shape>>>>,
+    views              : Rc<RefCell<Vec<shape::View>>>,
     logger             : Logger,
     size               : Rc<Cell<Vector2>>,
 }
@@ -65,17 +64,17 @@ impl BubbleChartModel {
 
         // Avoid re-creating views, if we have already created some before.
         let mut views = self.views.borrow_mut();
-        views.resize_with(data_inner.len(),|| component::ShapeView::new(&self.logger,&self.scene));
+        views.resize_with(data_inner.len(),|| shape::View::new(&self.logger));
 
         // TODO[mm] this is somewhat inefficient, as the canvas for each bubble is too large.
         // But this ensures that we can get a cropped view area and avoids an issue with the data
         // and position not matching up.
         views.iter().zip(data_inner.iter()).for_each(|(view,item)| {
             let size = self.size.get();
-            view.display_object.set_parent(&self.display_object);
-            view.shape.sprite.size.set(size);
-            view.shape.radius.set(item.z);
-            view.shape.position.set(Vector2(item.x,item.y) - size / 2.0);
+            self.display_object.add_child(&view);
+            view.size.set(size);
+            view.radius.set(item.z);
+            view.position.set(Vector2(item.x,item.y) - size / 2.0);
         });
         Ok(())
     }

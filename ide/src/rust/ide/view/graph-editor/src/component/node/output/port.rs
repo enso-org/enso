@@ -8,7 +8,6 @@ use crate::component::type_coloring;
 use enso_frp as frp;
 use ensogl::Animation;
 use ensogl::data::color;
-use ensogl::display::scene::Scene;
 use ensogl::display::shape::AnyShape;
 use ensogl::display::shape::BottomHalfPlane;
 use ensogl::display::shape::Circle;
@@ -108,15 +107,15 @@ impl AllPortsShape {
 
 
 
-// =======================
-// === SinglePortShape ===
-// =======================
+// ======================
+// === SinglePortView ===
+// ======================
 
-pub use single_port_area::Shape as SinglePortShape;
+pub use single_port::View as SinglePortView;
 
-/// A single port shape implementation. In contrast to `MultiPortShape`, this produces a much faster
+/// A single port shape implementation. In contrast to `MultiPortView`, this produces a much faster
 /// shader code.
-mod single_port_area {
+pub mod single_port {
     use super::*;
     use ensogl::display::shape::*;
 
@@ -135,14 +134,14 @@ mod single_port_area {
 
 
 
-// ========================
-// === Multi Port Shape ===
-// ========================
+// =====================
+// === MultiPortView ===
+// =====================
 
-pub use multi_port_area::Shape as MultiPortShape;
+pub use multi_port::View as MultiPortView;
 
 /// Implements the shape for a segment of the OutputPort with multiple output ports.
-mod multi_port_area {
+pub mod multi_port {
     use super::*;
     use ensogl::display::shape::*;
     use std::f32::consts::PI;
@@ -285,11 +284,11 @@ mod multi_port_area {
 // === Shape View ===
 // ==================
 
-/// Abstraction over `ShapeView<SinglePortShape>` and `ShapeView<MultiPortShape>`.
+/// Abstraction over [`SinglePortView`] and [`MultiPortView`].
 #[derive(Clone,CloneRef,Debug)]
 pub enum PortShapeView {
-    Single (component::ShapeView<SinglePortShape>),
-    Multi  (component::ShapeView<MultiPortShape>),
+    Single (SinglePortView),
+    Multi  (MultiPortView),
 }
 
 macro_rules! fn_helper {
@@ -318,23 +317,23 @@ macro_rules! fn_multi_only {
 }
 
 impl PortShapeView {
-    fn new(number_of_ports: usize, logger: &Logger, scene: &Scene) -> Self {
-        if number_of_ports <= 1 { Self::Single (component::ShapeView::new(&logger,&scene)) }
-        else                    { Self::Multi  (component::ShapeView::new(&logger,&scene)) }
+    fn new(number_of_ports:usize, logger:&Logger) -> Self {
+        if number_of_ports <= 1 { Self::Single (SinglePortView::new(&logger)) }
+        else                    { Self::Multi  (MultiPortView::new(&logger)) }
     }
 
     fn_both! {
-        set_size            (this,t:Vector2)     {this.shape.sprite.size.set(t)}
-        set_size_multiplier (this,t:f32)         {this.shape.size_multiplier.set(t)}
-        set_color           (this,t:color::Rgba) {this.shape.color_rgb.set(t.opaque.into())}
-        set_opacity         (this,t:f32)         {this.shape.opacity.set(t)}
+        set_size            (this,t:Vector2)     {this.size.set(t)}
+        set_size_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
+        set_color           (this,t:color::Rgba) {this.color_rgb.set(t.opaque.into())}
+        set_opacity         (this,t:f32)         {this.opacity.set(t)}
     }
 
     fn_multi_only! {
-        set_index         (this,t:usize) { this.shape.index.set(t as f32) }
-        set_port_count    (this,t:usize) { this.shape.port_count.set(t as f32) }
-        set_padding_left  (this,t:f32)   { this.shape.padding_left.set(t) }
-        set_padding_right (this,t:f32)   { this.shape.padding_right.set(t) }
+        set_index         (this,t:usize) { this.index.set(t as f32) }
+        set_port_count    (this,t:usize) { this.port_count.set(t as f32) }
+        set_padding_left  (this,t:f32)   { this.padding_left.set(t) }
+        set_padding_right (this,t:f32)   { this.padding_right.set(t) }
     }
 
     fn events(&self) -> &component::ShapeViewEvents {
@@ -386,14 +385,13 @@ impl Model {
     pub fn init_shape
     ( &mut self
     , logger     : impl AnyLogger
-    , scene      : &Scene
     , styles     : &StyleWatch
     , port_index : usize
     , port_count : usize
     ) -> (PortShapeView,Frp) {
         let logger_name = format!("port({},{})",self.index,self.length);
         let logger      = Logger::sub(logger,logger_name);
-        let shape       = PortShapeView::new(port_count,&logger,scene);
+        let shape       = PortShapeView::new(port_count,&logger);
 
         let is_first      = port_index == 0;
         let is_last       = port_index == port_count.saturating_sub(1);

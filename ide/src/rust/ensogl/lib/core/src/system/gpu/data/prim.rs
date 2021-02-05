@@ -40,7 +40,7 @@ pub use unsupported_types::*;
 macro_rules! with_all_prim_types {
     ([[$f:path] $args:tt]) => {
         $f! { $args
-            [[Identity i32]  [Identity f32]  [Identity bool]
+            [[Identity u32] [Identity i32]  [Identity f32]  [Identity bool]
              [Vector2  f32]  [Vector3  f32]  [Vector4  f32]
              [Vector2  i32]  [Vector3  i32]  [Vector4  i32]
              [Vector2  u32]  [Vector3  u32]  [Vector4  u32]

@@ -27,7 +27,6 @@ use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::DEPRECATED_Animation;
 use ensogl::application::Application;
-use ensogl::gui::component;
 use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
 use ensogl_theme as theme;
@@ -186,8 +185,11 @@ ensogl::define_endpoints! {
 pub struct View {
     logger         : Logger,
     display_object : display::object::Instance,
-    // background     : component::ShapeView<background::Shape>,
-    overlay        : component::ShapeView<overlay::Shape>,
+    // TODO : We do not use backgrounds because otherwise they would overlap JS
+    //        visualizations. Instead we added a HTML background to the `View`.
+    //        This should be further investigated while fixing rust visualization displaying. (#526)
+    // background     : background::View,
+    overlay        : overlay::View,
     background_dom : DomSymbol
 }
 
@@ -196,18 +198,8 @@ impl View {
     pub fn new(logger:&Logger, scene:&Scene) -> Self {
         let logger         = Logger::sub(logger,"view");
         let display_object = display::object::Instance::new(&logger);
-        // let background     = component::ShapeView::<background::Shape>::new(&logger,scene);
-        let overlay        = component::ShapeView::<overlay::Shape>::new(&logger,scene);
+        let overlay        = overlay::View::new(&logger);
         display_object.add_child(&overlay);
-        // display_object.add_child(&background);
-
-        // let shape_system = scene.shapes.shape_system(PhantomData::<background::Shape>);
-        // scene.views.main.remove(&shape_system.shape_system.symbol);
-        // scene.views.viz.add(&shape_system.shape_system.symbol);
-
-        let shape_system = scene.shapes.shape_system(PhantomData::<overlay::Shape>);
-        scene.views.main.remove(&shape_system.shape_system.symbol);
-        scene.views.viz.add(&shape_system.shape_system.symbol);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
@@ -236,7 +228,12 @@ impl View {
 
         scene.dom.layers.back.manage(&background_dom);
 
-        Self {logger,display_object,overlay,background_dom}
+        Self {logger,display_object,overlay,background_dom} . init(scene)
+    }
+
+    fn init(self, scene:&Scene) -> Self {
+        scene.layers.viz.add_exclusive(&self);
+        self
     }
 }
 
@@ -259,7 +256,7 @@ impl display::Object for View {
 pub struct FullscreenView {
     logger         : Logger,
     display_object : display::object::Instance,
-    // background     : component::ShapeView<fullscreen_background::Shape>,
+    // background     : fullscreen_background::View,
     background_dom : DomSymbol
 }
 
@@ -268,12 +265,9 @@ impl FullscreenView {
     pub fn new(logger:&Logger, scene:&Scene) -> Self {
         let logger         = Logger::sub(logger,"fullscreen_view");
         let display_object = display::object::Instance::new(&logger);
-        // let background     = component::ShapeView::<fullscreen_background::Shape>::new(&logger,scene);
-        // display_object.add_child(&background);
-
-        let shape_system = scene.shapes.shape_system(PhantomData::<fullscreen_background::Shape>);
-        scene.views.main.remove(&shape_system.shape_system.symbol);
-        scene.views.viz_fullscreen.add(&shape_system.shape_system.symbol);
+        let shape_system   = scene.shapes.shape_system(PhantomData::<fullscreen_background::Shape>);
+        scene.layers.main.remove_symbol(&shape_system.shape_system.symbol);
+        scene.layers.viz_fullscreen.add_symbol_exclusive(&shape_system.shape_system.symbol);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
@@ -294,7 +288,6 @@ impl FullscreenView {
         background_dom.dom().set_style_or_warn("background"   ,bg_hex,&logger);
         background_dom.dom().set_style_or_warn("border-radius","0"   ,&logger);
         display_object.add_child(&background_dom);
-
         scene.dom.layers.back.manage(&background_dom);
 
         Self {logger,display_object,background_dom}
@@ -335,8 +328,6 @@ pub struct ContainerModel {
     size               : Rc<Cell<Vector2>>,
     action_bar         : ActionBar,
 }
-
-
 
 impl ContainerModel {
     /// Constructor.
@@ -441,7 +432,7 @@ impl ContainerModel {
             // self.fullscreen_view.background.shape.radius.set(CORNER_RADIUS);
             // self.fullscreen_view.background.shape.sprite.size.set(size);
             // self.view.background.shape.sprite.size.set(zero());
-            self.view.overlay.shape.sprite.size.set(zero());
+            self.view.overlay.size.set(zero());
             dom.set_style_or_warn("width" ,"0",&self.logger);
             dom.set_style_or_warn("height","0",&self.logger);
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]), &self.logger);
@@ -449,9 +440,9 @@ impl ContainerModel {
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
-            self.view.overlay.shape.radius.set(CORNER_RADIUS);
+            self.view.overlay.radius.set(CORNER_RADIUS);
             // self.view.background.shape.sprite.size.set(size);
-            self.view.overlay.shape.sprite.size.set(size);
+            self.view.overlay.size.set(size);
             dom.set_style_or_warn("width" ,format!("{}px",size[0]),&self.logger);
             dom.set_style_or_warn("height",format!("{}px",size[1]),&self.logger);
             bg_dom.set_style_or_warn("width", "0", &self.logger);
@@ -474,7 +465,7 @@ impl ContainerModel {
     }
 
     fn set_corner_roundness(&self, value:f32) {
-        self.view.overlay.shape.roundness.set(value);
+        self.view.overlay.roundness.set(value);
         // self.view.background.shape.roundness.set(value);
         // self.fullscreen_view.background.shape.roundness.set(value);
     }
@@ -487,8 +478,7 @@ impl ContainerModel {
 
     /// Check if given mouse-event-target means this visualization.
     fn is_this_target(&self, target:scene::PointerTarget) -> bool {
-        use ensogl::display::shape::primitive::system::ShapeOps;
-        self.view.overlay.shape.is_this_target(target)
+        self.view.overlay.is_this_target(target)
     }
 }
 
@@ -595,8 +585,8 @@ impl Container {
                     model.set_corner_roundness(weight_inv);
                     model.set_size(current_size);
 
-                    let m1  = model.scene.views.viz_fullscreen.camera.inversed_view_matrix();
-                    let m2  = model.scene.views.viz.camera.view_matrix();
+                    let m1  = model.scene.layers.viz_fullscreen.camera().inversed_view_matrix();
+                    let m2  = model.scene.layers.viz.camera().view_matrix();
                     let pos = model.global_position();
                     let pos = Vector4::new(pos.x,pos.y,pos.z,1.0);
                     let pos = m2 * (m1 * pos);

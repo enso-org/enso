@@ -7,7 +7,6 @@ use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::*;
 use ensogl_core::data::color;
-use ensogl_core::gui;
 use ensogl_text_msdf_sys::run_once_initialized;
 use ensogl_gui_components::list_view;
 use logger::TraceLogger as Logger;
@@ -78,9 +77,9 @@ impl list_view::entry::ModelProvider for MockEntries {
             None
         } else {
             use list_view::entry::ICON_SIZE;
-            let icon = gui::component::ShapeView::<icon::Shape>::new(&self.logger,&self.scene);
-            icon.shape.sprite.size.set(Vector2(ICON_SIZE,ICON_SIZE));
-            icon.shape.id.set(id as f32);
+            let icon = icon::View::new(&self.logger);
+            icon.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+            icon.id.set(id as f32);
             let model = list_view::entry::Model::new(iformat!("Entry {id}")).with_icon(icon);
             if id == 10 { Some(model.highlight(std::iter::once((Bytes(1)..Bytes(3)).into()))) }
             else        { Some(model)                                                         }
@@ -99,20 +98,22 @@ fn init(app:&Application) {
     theme::builtin::light::register(&app);
     theme::builtin::light::enable(&app);
 
-    let select   = app.new_view::<list_view::ListView>();
-    let provider = list_view::entry::AnyModelProvider::from(MockEntries::new(app,1000));
-    select.frp.resize(Vector2(100.0,160.0));
-    select.frp.set_entries(provider);
-    app.display.add_child(&select);
+    let list_view = app.new_view::<list_view::ListView>();
+    let provider  = list_view::entry::AnyModelProvider::from(MockEntries::new(app,1000));
+    list_view.frp.resize(Vector2(100.0,160.0));
+    list_view.frp.set_entries(provider);
+    app.display.add_child(&list_view);
+    // FIXME[WD]: This should not be needed after text gets proper depth-handling.
+    app.display.scene().layers.below_main.add_exclusive(&list_view);
 
     let logger : Logger = Logger::new("SelectDebugScene");
     let network = enso_frp::Network::new("test");
     enso_frp::extend! {network
-        eval select.chosen_entry([logger](entry) {
+        eval list_view.chosen_entry([logger](entry) {
             info!(logger, "Chosen entry {entry:?}")
         });
     }
 
-    std::mem::forget(select);
+    std::mem::forget(list_view);
     std::mem::forget(network);
 }

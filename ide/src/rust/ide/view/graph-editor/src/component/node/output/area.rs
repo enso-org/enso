@@ -9,10 +9,8 @@ use ensogl::Animation;
 use ensogl::Easing;
 use ensogl::application::Application;
 use ensogl::data::color;
-use ensogl::display::scene::Scene;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display;
-use ensogl::gui::component;
 use ensogl_text as text;
 use ensogl_theme as theme;
 use span_tree;
@@ -31,20 +29,6 @@ use crate::component::node::input;
 const DEBUG                  : bool = false;
 const HIDE_DELAY_DURATION_MS : f32 = 150.0;
 const SHOW_DELAY_DURATION_MS : f32 = 150.0;
-
-
-
-// =============
-// === Utils ===
-// =============
-
-// TODO: Implement proper sorting and remove.
-/// Hack function used to register the elements for the sorting purposes. To be removed.
-pub(crate) fn depth_sort_hack(scene:&Scene) {
-    let logger = Logger::new("output shape order hack");
-    component::ShapeView::<port::MultiPortShape>::new(&logger,scene);
-    component::ShapeView::<port::SinglePortShape>::new(&logger,scene);
-}
 
 
 
@@ -191,8 +175,8 @@ impl Model {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
         let scene = self.app.display.scene();
-        self.label.remove_from_view(&scene.views.main);
-        self.label.add_to_view(&scene.views.label);
+        self.label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        self.label.add_to_scene_layer_DEPRECATED(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.single_line(true);
@@ -205,10 +189,6 @@ impl Model {
         self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
 
         self
-    }
-
-    fn scene(&self) -> &Scene {
-        self.app.display.scene()
     }
 
     fn set_label(&self, content:impl Into<String>) {
@@ -314,9 +294,8 @@ impl Model {
                 let port   = &mut node;
                 let crumbs = port.crumbs.clone_ref();
                 let logger = &self.logger;
-                let scene  = self.scene();
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,scene,&self.styles,port_index,port_count);
+                    .init_shape(logger,&self.styles,port_index,port_count);
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network

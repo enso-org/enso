@@ -16,7 +16,6 @@ use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
 use ensogl::display;
 use ensogl::DEPRECATED_Animation;
-use ensogl::gui::component;
 use ensogl::gui::cursor;
 use ensogl_text as text;
 use ensogl_text::style::Size as TextSize;
@@ -124,7 +123,7 @@ struct ProjectNameModel {
     app            : Application,
     logger         : Logger,
     display_object : display::object::Instance,
-    view           : component::ShapeView<background::Shape>,
+    view           : background::View,
     style          : StyleWatch,
     text_field     : text::Area,
     project_name   : Rc<RefCell<String>>,
@@ -147,17 +146,16 @@ impl ProjectNameModel {
         text_field.set_default_text_size(text_size);
         text_field.single_line(true);
 
-        text_field.remove_from_view(&scene.views.main);
-        text_field.add_to_view(&scene.views.breadcrumbs);
+        text_field.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        text_field.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
         text_field.hover();
 
         let view_logger = Logger::sub(&logger,"view_logger");
-        let view        = component::ShapeView::<background::Shape>::new(&view_logger,scene);
+        let view        = background::View::new(&view_logger);
 
-        scene.views.main.remove_shape_view(&view);
-        scene.views.breadcrumbs.add_shape_view(&view);
+        scene.layers.breadcrumbs.add_exclusive(&view);
 
-        let project_name          = default();
+        let project_name = default();
         Self{app,logger,view,style,display_object,text_field,project_name}.init()
     }
 
@@ -175,7 +173,7 @@ impl ProjectNameModel {
         let x_position  = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
         let y_position  = -VERTICAL_MARGIN - breadcrumb::TOP_MARGIN - breadcrumb::PADDING;
         self.text_field.set_position(Vector3(x_position,y_position,0.0));
-        self.view.shape.sprite.size.set(Vector2(width,height));
+        self.view.size.set(Vector2(width,height));
         self.view.set_position(Vector3(width,-height,0.0)/2.0);
     }
 

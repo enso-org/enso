@@ -5,8 +5,27 @@ disable the collection of errors data (keeping the collection of other events), 
 collection of all data, respectively. To learn more what data is collected in Enso alpha releases, 
 read the notes of the `Enso 2.0.0-alpha.1` release.
 
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
+#### Visual Environment
+- Pressing and holding up and down arrow keys make the list view selection to move multiple times.
+- Cursors in text editors behave correctly now (they are not affected by scene pan and zoom). This
+  was possible because of a new multi-camera management system implemented in EnsoGL.
+- Fixes to some visual glitches, like small "pixel-like" things appearing sometimes on the screen.
+  
+#### EnsoGL
+- New multi-camera management system, allowing the same shape systems be rendered on different 
+  layers from different cameras. The implementation automatically caches the same shape system
+  definitions per scene layer in order to minimize the amount of WebGL draw calls.
+- New symbols and shapes depth ordering mechanism. It is now possible to define depth order 
+  dependencies between symbols, shapes, and shape systems.
+- Various performance improvements, especially for the text rendering engine.
+- Display objects handle visibility correctly now. Display objects are not visible by default and 
+  need to be attached to a visible parent to be shown on the screen.
+  <br/>
+  
 
+  
 # Enso 2.0.0-alpha.1 (2020-01-26)
 This is the first release of Enso, a general-purpose programming language and environment for 
 interactive data processing. It is a tool that spans the entire stack, going from high-level 

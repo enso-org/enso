@@ -58,6 +58,7 @@ struct Model {
 impl Model {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let selection_menu = drop_down_menu::DropDownMenu::new(&app);
+        app.display.scene().layers.below_main.add_exclusive(&selection_menu);
         Self{selection_menu,registry}
     }
 
@@ -81,7 +82,7 @@ impl display::Object for Model {
 // === VisualisationChooser ===
 // ============================
 
-/// UI entity that shows a button that opens a list of visualisations that can be sel:ected from.
+/// UI entity that shows a button that opens a list of visualisations that can be selected from.
 #[derive(Clone,CloneRef,Debug)]
 pub struct VisualizationChooser {
     pub frp : Frp,

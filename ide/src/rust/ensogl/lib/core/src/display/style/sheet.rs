@@ -296,7 +296,7 @@ impl SheetData {
         let queries       = default();
         let mut nodes     = NodeVec::new();
         let query_map     = default();
-        let root_sheet_id = nodes.insert_with_ix(|ix| SheetNode::new(Path::empty(),ix));
+        let root_sheet_id = nodes.insert_with_ix_(|ix| SheetNode::new(Path::empty(),ix));
         let node_map      = NodeMap::from_value(root_sheet_id);
         Self {queries,nodes,query_map,node_map}
     }
@@ -316,12 +316,12 @@ impl SheetData {
         let query_map_node    = self.query_map.get_or_create_node(&path.rev_segments);
         let mut query_matches = Vec::new();
         self.node_map.get_or_create_node_traversing_path_with(&path.rev_segments,|p| {
-            nodes.insert_with_ix(|ix| SheetNode::new(Path::from_rev_segments(p),ix))
+            nodes.insert_with_ix_(|ix| SheetNode::new(Path::from_rev_segments(p),ix))
         }, |t| query_matches.push(t.value));
         query_matches.reverse();
 
         let query_index = *query_map_node.value_or_set_with(|| {
-            queries.insert_with_ix(move |ix| Query::new(path,ix))
+            queries.insert_with_ix_(move |ix| Query::new(path,ix))
         });
 
         for sheet_node_index in &query_matches {
@@ -338,7 +338,7 @@ impl SheetData {
         let path  = path.into();
         let nodes = &mut self.nodes;
         let node  = self.node_map.get_or_create_node_path_with(&path.rev_segments,|p| {
-            nodes.insert_with_ix(|ix| SheetNode::new(Path::from_rev_segments(p),ix))
+            nodes.insert_with_ix_(|ix| SheetNode::new(Path::from_rev_segments(p),ix))
         });
         node.value
     }

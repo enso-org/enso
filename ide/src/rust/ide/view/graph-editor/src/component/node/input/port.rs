@@ -3,7 +3,6 @@ use crate::prelude::*;
 use ensogl::data::color;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
-use ensogl::gui::component;
 use ensogl::display;
 
 use crate::Type;
@@ -45,12 +44,6 @@ pub mod hover {
     }
 }
 
-/// Function used to hack depth sorting. To be removed when it will be implemented in core engine.
-pub fn depth_sort_hack(scene:&Scene) {
-    let logger = Logger::new("hack");
-    component::ShapeView::<hover::Shape>::new(&logger,scene);
-}
-
 
 
 // =============
@@ -61,6 +54,7 @@ pub fn depth_sort_hack(scene:&Scene) {
 pub mod viz {
     use super::*;
     ensogl::define_shape_system! {
+        above = [hover];
         (style:Style, color:Vector4) {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -91,26 +85,27 @@ pub mod viz {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Shape {
     pub root  : display::object::Instance,
-    pub hover : component::ShapeView<hover::Shape>,
-    pub viz   : component::ShapeView<viz::Shape>,
+    pub hover : hover::View,
+    pub viz   : viz::View,
 }
 
 impl Shape {
     pub fn new(logger:&Logger, scene:&Scene, size:Vector2, hover_height:f32) -> Self {
         let root  = display::object::Instance::new(logger);
-        let hover = component::ShapeView::<hover::Shape>::new(logger,scene);
-        let viz   = component::ShapeView::<viz::Shape>::new(logger,scene);
+        let hover = hover::View::new(logger);
+        let viz   = viz::View::new(logger);
 
         let width_padded = size.x + 2.0 * PADDING_X;
-        hover.shape.sprite.size.set(Vector2::new(width_padded,hover_height));
-        viz.shape.sprite.size.set(Vector2::new(width_padded,size.y));
-        hover.shape.mod_position(|t| t.x = size.x/2.0);
-        viz.shape.mod_position(|t| t.x = size.x/2.0);
-        viz.shape.color.set(color::Rgba::transparent().into());
+        hover.size.set(Vector2::new(width_padded,hover_height));
+        viz.size.set(Vector2::new(width_padded,size.y));
+        hover.mod_position(|t| t.x = size.x/2.0);
+        viz.mod_position(|t| t.x = size.x/2.0);
+        viz.color.set(color::Rgba::transparent().into());
 
         root.add_child(&hover);
         root.add_child(&viz);
-        let viz_shape_system = scene.shapes.shape_system(PhantomData::<viz::Shape>);
+        let viz_shape_system = scene.layers.main.shape_system_registry.shape_system
+            (scene,PhantomData::<viz::DynamicShape>);
         viz_shape_system.shape_system.set_pointer_events(false);
 
         Self {root,hover,viz}

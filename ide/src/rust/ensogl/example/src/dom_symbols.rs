@@ -26,7 +26,7 @@ pub fn entry_point_dom_symbols() {
     let scene         = world.scene();
     let camera        = scene.camera();
     let screen        = camera.screen();
-    let navigator     = Navigator::new(scene,camera);
+    let navigator     = Navigator::new(scene,&camera);
     let sprite_system = SpriteSystem::new(&world);
     world.add_child(&sprite_system);
 

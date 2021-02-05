@@ -24,7 +24,6 @@ use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::gui::component::ShapeView;
 use ensogl::gui::text;
 use ensogl_text::Text;
 use ensogl_text::style::Size as TextSize;
@@ -161,6 +160,8 @@ pub mod drag_area {
         }
     }
 }
+
+
 
 // =======================
 // === Error Indicator ===
@@ -338,9 +339,9 @@ pub struct NodeModel {
     pub app             : Application,
     pub display_object  : display::object::Instance,
     pub logger          : Logger,
-    pub main_area       : ShapeView<shape::Shape>,
-    pub drag_area       : ShapeView<drag_area::Shape>,
-    pub error_indicator : ShapeView<error_shape::Shape>,
+    pub main_area       : shape::View,
+    pub drag_area       : drag_area::View,
+    pub error_indicator : error_shape::View,
     // TODO: This extra text field should not be required after #1026 has been finished.
     // Instead we should get the error content as normal node output that is visible in the
     // visualisation. Alternatively it might be extended to use a preview of the new information.
@@ -354,22 +355,32 @@ pub struct NodeModel {
 impl NodeModel {
     /// Constructor.
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
+        ensogl::shapes_order_dependencies! {
+            app.display.scene() => {
+                edge::back::corner        -> shape;
+                edge::back::line          -> shape;
+                output::port::single_port -> shape;
+                output::port::multi_port  -> shape;
+                shape                     -> drag_area;
+                drag_area                 -> edge::front::corner;
+                drag_area                 -> edge::front::line;
+                edge::front::corner       -> input::port::hover;
+                edge::front::line         -> input::port::hover;
+                input::port::hover        -> input::port::viz;
+            }
+        }
+
         let scene  = app.display.scene();
         let logger = Logger::new("node");
-        edge::depth_sort_hack_1(scene);
 
-        output::area::depth_sort_hack(&scene);
         let main_logger             = Logger::sub(&logger,"main_area");
         let drag_logger             = Logger::sub(&logger,"drag_area");
         let error_indicator_logger  = Logger::sub(&logger,"error_indicator");
 
-        let error_indicator = ShapeView::<error_shape::Shape>::new(&error_indicator_logger,scene);
-        let main_area       = ShapeView::<shape::Shape>::new(&main_logger,scene);
-        let drag_area       = ShapeView::<drag_area::Shape>::new(&drag_logger,scene);
+        let error_indicator = error_shape::View::new(&error_indicator_logger);
+        let main_area       = shape::View::new(&main_logger);
+        let drag_area       = drag_area::View::new(&drag_logger);
         let error_text      = app.new_view::<text::Area>();
-        edge::depth_sort_hack_2(scene);
-
-        input::area::depth_sort_hack(scene); // FIXME hack for sorting
 
         let display_object  = display::object::Instance::new(&logger);
         display_object.add_child(&drag_area);
@@ -382,7 +393,8 @@ impl NodeModel {
 
 
         // Disable shadows to allow interaction with the output port.
-        let shape_system = scene.shapes.shape_system(PhantomData::<shape::Shape>);
+        let shape_system = scene.layers.main.shape_system_registry.shape_system
+            (&scene,PhantomData::<shape::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
         let input = input::Area::new(&logger,app);
@@ -437,9 +449,9 @@ impl NodeModel {
         let height      = self.height();
         let size        = Vector2(width,height);
         let padded_size = size + Vector2(PADDING,PADDING) * 2.0;
-        self.main_area.shape.sprite.size.set(padded_size);
-        self.drag_area.shape.sprite.size.set(padded_size);
-        self.error_indicator.shape.sprite.size.set(padded_size);
+        self.main_area.size.set(padded_size);
+        self.drag_area.size.set(padded_size);
+        self.error_indicator.size.set(padded_size);
         self.main_area.mod_position(|t| t.x = width/2.0);
         self.drag_area.mod_position(|t| t.x = width/2.0);
 
@@ -510,7 +522,7 @@ impl Node {
             deselect_target  <- frp.deselect.constant(0.0);
             select_target    <- frp.select.constant(1.0);
             selection.target <+ any(&deselect_target,&select_target);
-            eval selection.value ((t) model.main_area.shape.selection.set(*t));
+            eval selection.value ((t) model.main_area.selection.set(*t));
 
 
             // === Expression ===
@@ -556,7 +568,7 @@ impl Node {
             }));
 
             eval error_color_anim.value((value)
-                model.error_indicator.shape.color_rgba.set(color::Rgba::from(value).into());
+                model.error_indicator.color_rgba.set(color::Rgba::from(value).into());
             );
 
 
@@ -570,7 +582,7 @@ impl Node {
             }));
             bg_color_anim.target <+ bg_color;
             eval bg_color_anim.value ((c)
-                model.main_area.shape.bg_color.set(color::Rgba::from(c).into())
+                model.main_area.bg_color.set(color::Rgba::from(c).into())
             );
         }
 

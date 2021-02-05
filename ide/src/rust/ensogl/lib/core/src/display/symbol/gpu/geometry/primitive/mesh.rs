@@ -104,37 +104,35 @@ shared! { Mesh
 /// Each scope can contain named attributes which can be accessed from within materials. If the same
 /// name was defined in various scopes, it gets resolved to the var defined in the most specific
 /// scope. For example, if var 'color' was defined in both 'instance' and 'point' scope, the 'point'
-/// definition overlapps the other one.
+/// definition overlaps the other one.
 #[derive(Debug)]
 pub struct MeshData {
     scopes       : Scopes,
     scopes_dirty : ScopesDirty,
     logger       : Logger,
-    context      : Context,
     stats        : Stats,
 }
 
 impl {
     /// Creates new mesh with attached dirty callback.
     pub fn new<OnMut:CallbackFn>
-    (logger:Logger, stats:&Stats, context:&Context,on_mut:OnMut) -> Self {
+    (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
         let scopes_logger = Logger::sub(&logger,"scopes_dirty");
         let scopes_dirty  = ScopesDirty::new(scopes_logger,Box::new(on_mut));
-        let context       = context.clone();
         let scopes        = debug!(logger, "Initializing.", || {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
                 let sub_logger = Logger::sub(&logger,stringify!($name));
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
                 let callback   = move || {scs_dirty.set(status_mod)};
-                let $name      = AttributeScope::new(sub_logger,&stats,&context,callback);
+                let $name      = AttributeScope::new(sub_logger,&stats,callback);
             )*}}
             new_scope! ({point,vertex,primitive,instance}{Point,Vertex,Primitive,Instance});
             Scopes {point,vertex,primitive,instance}
         });
-        Self {context,scopes,scopes_dirty,logger,stats}
+        Self {scopes,scopes_dirty,logger,stats}
     }
 
     /// Point scope accessor.
@@ -188,6 +186,14 @@ impl {
             ScopeType::Primitive => &self.scopes.primitive,
             ScopeType::Instance  => &self.scopes.instance,
         }.clone_ref()
+    }
+
+    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    pub(crate) fn set_context(&self, context:Option<&Context>) {
+        macro_rules! set_scope_context { ($($name:ident),*) => {
+            $( self.scopes.$name.set_context(context); )*
+        }}
+        set_scope_context!(point,vertex,primitive,instance);
     }
 }}
 

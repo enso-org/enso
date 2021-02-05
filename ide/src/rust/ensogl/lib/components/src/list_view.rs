@@ -14,7 +14,6 @@ use ensogl_core::application::shortcut;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
-use ensogl_core::gui::component;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_theme as theme;
 
@@ -63,6 +62,7 @@ mod background {
     pub const CORNER_RADIUS_PX:f32 = selection::CORNER_RADIUS_PX;
 
     ensogl_core::define_shape_system! {
+        below = [selection];
         (style:Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
@@ -106,14 +106,13 @@ struct View {
     size       : Vector2<f32>,
 }
 
-
 /// The Model of Select Component.
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
     app            : Application,
     entries        : entry::List,
-    selection      : component::ShapeView<selection::Shape>,
-    background     : component::ShapeView<background::Shape>,
+    selection      : selection::View,
+    background     : background::View,
     scrolled_area  : display::object::Instance,
     display_object : display::object::Instance,
 }
@@ -121,13 +120,12 @@ struct Model {
 impl Model {
     fn new(app:&Application) -> Self {
         let app            = app.clone_ref();
-        let scene          = app.display.scene().clone_ref();
         let logger         = Logger::new("SelectionContainer");
         let display_object = display::object::Instance::new(&logger);
         let scrolled_area  = display::object::Instance::new(&logger);
         let entries        = entry::List::new(&logger,&app);
-        let background     = component::ShapeView::<background::Shape>::new(&logger,&scene);
-        let selection      = component::ShapeView::<selection::Shape>::new(&logger,&scene);
+        let background     = background::View::new(&logger);
+        let selection      = selection::View::new(&logger);
         display_object.add_child(&background);
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
@@ -142,7 +140,7 @@ impl Model {
         let padding         = Vector2(2.0 * PADDING_PX, 2.0 * PADDING_PX);
         let shadow          = Vector2(2.0 * SHADOW_PX,  2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
-        self.background.shape.sprite.size.set(view.size + padding + shadow);
+        self.background.size.set(view.size + padding + shadow);
         self.scrolled_area.set_position_y(view.size.y / 2.0 - view.position_y);
         self.entries.update_entries(visible_entries);
     }
@@ -361,7 +359,7 @@ impl ListView {
                 let width = size.x + 2.0 * PADDING_PX;
                 Vector2(width,*height)
             });
-            eval selection_size  ((size) model.selection.shape.sprite.size.set(*size));
+            eval selection_size ((size) model.selection.size.set(*size));
 
 
             // === Scrolling ===
@@ -429,20 +427,17 @@ impl application::command::FrpNetworkProvider for ListView {
 
 impl application::View for ListView {
     fn label() -> &'static str { "ListView" }
-
     fn new(app:&Application) -> Self { ListView::new(app) }
-
     fn app(&self) -> &Application { &self.model.app }
-
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press, "up"        , "move_selection_up")
-          , (Press, "down"      , "move_selection_down")
-          , (Press, "page-up"   , "move_selection_page_up")
-          , (Press, "page-down" , "move_selection_page_down")
-          , (Press, "home"      , "move_selection_to_first")
-          , (Press, "end"       , "move_selection_to_last")
-          , (Press, "enter"     , "chose_selected_entry")
+        (&[ (PressAndRepeat , "up"        , "move_selection_up")
+          , (PressAndRepeat , "down"      , "move_selection_down")
+          , (Press          , "page-up"   , "move_selection_page_up")
+          , (Press          , "page-down" , "move_selection_page_down")
+          , (Press          , "home"      , "move_selection_to_first")
+          , (Press          , "end"       , "move_selection_to_last")
+          , (Press          , "enter"     , "chose_selected_entry")
           ]).iter().map(|(a,b,c)|Self::self_shortcut(*a,*b,*c)).collect()
     }
 }

@@ -303,7 +303,11 @@ function setupCrashDetection() {
 
     window.addEventListener('error', function (event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
-        handleCrash(event.error.stack || event.message)
+        if (ok(event.error) && ok(event.error.stack)) {
+            handleCrash(event.error.stack)
+        } else {
+            handleCrash(event.message)
+        }
     })
     window.addEventListener('unhandledrejection', function (event) {
         // As above, we prefer stack traces.
@@ -430,7 +434,7 @@ API.main = async function (inputConfig) {
     let config    = Object.assign(defaultConfig,inputConfig,urlConfig)
     API[globalConfig.windowAppScopeConfigName] = config
 
-    initCrashHandling()
+    //initCrashHandling()
     style_root()
     printScamWarning()
     hideLogs()

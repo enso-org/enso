@@ -19,7 +19,6 @@ use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
 use ensogl::display;
-use ensogl::gui::component;
 use ensogl::gui::cursor;
 use logger::Logger;
 use std::cmp::Ordering;
@@ -75,17 +74,17 @@ mod background {
 ensogl::define_endpoints! {
     Input {
         /// Pushes a new breadcrumb after the selected breadcrumb. If the pushed breadcrumb already
-        /// exists as the next one of the stack, it's just selected. If the next breadcrumb isn't the
-        /// breadcrumb being pushed, any existing breadcrumb following the currently selected breadcrumb
-        /// is removed from the panel.
+        /// exists as the next one of the stack, it's just selected. If the next breadcrumb isn't
+        /// the breadcrumb being pushed, any existing breadcrumb following the currently selected
+        /// breadcrumb is removed from the panel.
         push_breadcrumb             (Option<LocalCall>),
         /// Pops the selected breadcrumb.
         pop_breadcrumb              (),
-        /// Signalizes a mouse press happened outside the breadcrumb panel. It's used to finish project
-        /// renaming, committing the name in text field.
+        /// Signalizes a mouse press happened outside the breadcrumb panel. It's used to finish
+        /// project renaming, committing the name in text field.
         outside_press               (),
-        /// Signalizes we want to cancel project name renaming, bringing back the project name before
-        /// editing.
+        /// Signalizes we want to cancel project name renaming, bringing back the project name
+        /// before editing.
         cancel_project_name_editing (),
         /// Signalizes we want to start editing the project name. Adds a cursor to the text edit
         /// field at the mouse position.
@@ -111,9 +110,9 @@ ensogl::define_endpoints! {
         breadcrumb_pop    (),
         /// Signalizes when project name is changed.
         project_name      (String),
-        /// Signalizes when a breadcrumb is selected, returning a tuple with the amount of breadcrumbs
-        /// to be popped, in case the selection happens on the left of the currently selected
-        /// breadcrumb, or else a vector of existing breadcrumbs to be pushed.
+        /// Signalizes when a breadcrumb is selected, returning a tuple with the amount of
+        /// breadcrumbs to be popped, in case the selection happens on the left of the currently
+        /// selected breadcrumb, or else a vector of existing breadcrumbs to be pushed.
         breadcrumb_select ((usize,Vec<Option<LocalCall>>)),
         /// Indicates the pointer style that should be shown based on the interactions with the
         /// breadcrumb.
@@ -137,7 +136,7 @@ pub struct BreadcrumbsModel {
     logger                : Logger,
     /// The breadcrumbs panel display object.
     display_object        : display::object::Instance,
-    background            : component::ShapeView<background::Shape>,
+    background            : background::View,
     project_name          : ProjectName,
     root                   : display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
@@ -164,7 +163,7 @@ impl BreadcrumbsModel {
         let frp_inputs            = frp.input.clone_ref();
         let current_index         = default();
         let camera                = scene.camera().clone_ref();
-        let background            = component::ShapeView::<background::Shape>::new(&logger,&scene);
+        let background            = background::View::new(&logger);
 
         Self{logger,display_object,root,app,breadcrumbs,project_name,breadcrumbs_container,
             frp_inputs,current_index,camera,background}.init()
@@ -270,15 +269,15 @@ impl BreadcrumbsModel {
     }
 
     /// Selects the breadcrumb, without signalizing the controller, identified by its `index` and
-    /// returns `(popped_count,local_calls)`, where `popped_count` is the number of breadcrumbs in
-    /// the right side of `index` that needs to be popped or a list of `LocalCall`s identifying the
+    /// returns `(popped_count,local_calls)`, where `popped_count` is the number of breadcrumbs on
+    /// the right side of `index` that needs to be popped, or a list of `LocalCall`s identifying the
     /// breadcrumbs we need to push.
     fn debug_select_breadcrumb(&self,index:usize) -> (usize,Vec<Option<LocalCall>>) {
         self.select_breadcrumb(index)
     }
 
     /// Pushes a breadcrumb, without signalizing the controller, and returns the index of the
-    /// previously selected breadcrumb and the index of the newly selected one in the form of
+    /// previously selected breadcrumb, and the index of the newly selected one in the form of
     /// `(old,new)`.
     fn debug_push_breadcrumb(&self, local_call:&Option<LocalCall>) -> Option<(usize,usize)> {
         let is_new_breadcrumb = local_call.is_none();
@@ -310,13 +309,13 @@ impl BreadcrumbsModel {
     }
 
     /// Pops a breadcrumb, without signalizing the controller, and returns the index of the
-    /// previously selected breadcrumb and the index of the newly selected one in the form of
+    /// previously selected breadcrumb, and the index of the newly selected one in the form of
     /// `(old,new)`.
     fn debug_pop_breadcrumb(&self) -> Option<(usize,usize)> {
         self.pop_breadcrumb()
     }
 
-    /// Pops a breadcrumb and returns the index of the previously selected breadcrumb and the
+    /// Pops a breadcrumb and returns the index of the previously selected breadcrumb, and the
     /// index of the newly selected one in the form of (old,new).
     fn pop_breadcrumb(&self) -> Option<(usize,usize)> {
         debug!(self.logger, "Popping {self.current_index.get()}");
@@ -385,7 +384,8 @@ impl Breadcrumbs {
             debug_push_indices <= frp.input.debug_push_breadcrumb.map(f!((local_call)
                 model.debug_push_breadcrumb(local_call)
             ));
-            debug_pop_indices <= frp.input.debug_pop_breadcrumb.map(f_!(model.debug_pop_breadcrumb()));
+            debug_pop_indices <= frp.input.debug_pop_breadcrumb.map
+                (f_!(model.debug_pop_breadcrumb()));
 
             indices <- any4(&push_indices,&pop_indices,&debug_push_indices,&debug_pop_indices);
             old_breadcrumb <- indices.map(f!([model] (indices) {
