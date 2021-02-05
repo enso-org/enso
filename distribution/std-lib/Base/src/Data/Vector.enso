@@ -337,6 +337,7 @@ type Vector
        elements of `this` and `that`.
        The result of this function is a vector of length being the shorter of
        `this` and `that`, containing results of calling `function`.
+
        > Example
          To pairwise-sum two vectors:
              zip [1, 2, 3] [4, 5, 6] (+) == [5, 7, 9]
@@ -368,6 +369,7 @@ type Vector
        > Example
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].tail
+
        > Example
          Empty vectors return `Nothing`.
              [].tail == Nothing
@@ -379,6 +381,7 @@ type Vector
        > Example
          The following code returns [1, 2, 3].
              [1, 2, 3, 4].init
+
        > Example
          Empty vectors return `Nothing`.
              [].init == Nothing
@@ -390,6 +393,7 @@ type Vector
        > Example
          The following code returns 4.
              [1, 2, 3, 4].last
+
        > Example
          Empty vectors return `Nothing`.
              [].last == Nothing
@@ -401,6 +405,7 @@ type Vector
        > Example
          The following code returns 1.
              [1, 2, 3, 4].first
+
        > Example
          Empty vectors return `Nothing`.
              [].first == Nothing
@@ -412,6 +417,7 @@ type Vector
        > Example
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].rest
+
        > Example
          Empty vectors return `Nothing`.
              [].rest == Nothing

@@ -23,6 +23,7 @@ type Duration
     + other = Duration (this.internal_period . plus other.internal_period . normalized) (this.internal_duration . plus other.internal_duration)
 
     ## Subtract specified amount of time from this duration.
+
        > Example
          Subtract 11 months from a duration of 3 years
              3.years - 11.months

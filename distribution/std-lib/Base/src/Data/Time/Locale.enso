@@ -94,6 +94,7 @@ us = here.from_language_tag "en-US"
 
    In addition to the basic constructors, it can take a vector containing locale
    properties.
+
    > Example
      A locale representing en-GB.UTF-8.
          Locale.new "en" "GB" "UTF-8"
