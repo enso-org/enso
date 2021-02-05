@@ -12,6 +12,8 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - Cursors in text editors behave correctly now (they are not affected by scene pan and zoom). This
   was possible because of a new multi-camera management system implemented in EnsoGL.
 - Fixes to some visual glitches, like small "pixel-like" things appearing sometimes on the screen.
+- The shortcuts to close the application and to toggle the developer tools at runtime are working
+  now on all supported platforms.
   
 #### EnsoGL
 - New multi-camera management system, allowing the same shape systems be rendered on different 
@@ -22,10 +24,11 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - Various performance improvements, especially for the text rendering engine.
 - Display objects handle visibility correctly now. Display objects are not visible by default and 
   need to be attached to a visible parent to be shown on the screen.
-  <br/>
+
+<br/>
   
 
-  
+
 # Enso 2.0.0-alpha.1 (2020-01-26)
 This is the first release of Enso, a general-purpose programming language and environment for 
 interactive data processing. It is a tool that spans the entire stack, going from high-level 
