@@ -61,7 +61,7 @@ case class DocParserDef() extends Parser[Doc] {
 
   val char: Pattern = lowerChar | upperChar
   val specialChars: Pattern =
-    "," | "." | ":" | ";" | "/" | "\\" | "’" | "=" | "'" | "|" | "+" | "-" | "#" | "\""
+    "," | "." | ":" | ";" | "/" | "\\" | "’" | "=" | "'" | "|" | "+" | "-" | "#" | "\"" | "(" | ")"
   val possibleChars: Pattern = char | digit | whitespace | specialChars
 
   val normalText: Pattern = possibleChars.many1
