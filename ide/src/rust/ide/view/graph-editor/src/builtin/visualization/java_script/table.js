@@ -3,6 +3,13 @@ class TableVisualization extends Visualization {
     static label = 'Table'
 
     onDataReceived(data) {
+        if (!this.isInit) {
+            this.setPreprocessor(
+                'x -> (Json.from_pairs [["header", x.columns.map .name], ["data", x.columns.map .to_vector . map (x -> x.take_start 2000) ]]).to_text '
+            )
+            this.isInit = true
+        }
+
         function tableOf(content, level) {
             let open = '<table class="level' + level + '">'
             return open + content + '</table>'
@@ -92,7 +99,7 @@ class TableVisualization extends Visualization {
                 })
             }
             result += '</tr>'
-            table = []
+            const table = []
 
             data.forEach((d, i) => {
                 d.forEach((elem, idx) => {
@@ -261,7 +268,7 @@ class TableVisualization extends Visualization {
         if (document.getElementById('root').classList.contains('dark-theme')) {
             style = style_dark
         }
-        let table = genTable(
+        const table = genTable(
             parsedData.data || parsedData,
             0,
             parsedData.header
