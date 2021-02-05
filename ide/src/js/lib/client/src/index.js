@@ -534,18 +534,21 @@ if (process.platform === 'darwin') {
 
 Electron.app.on('web-contents-created', (webContentsCreatedEvent, webContents) => {
     webContents.on('before-input-event', (beforeInputEvent, input) => {
-        const {code,alt,ctrl,shift,meta} = input
-        if (ctrl && alt && shift && !meta && code === 'KeyI') {
-            Electron.BrowserWindow.getFocusedWindow().webContents.toggleDevTools({mode:'detach'})
+        const {code,alt,control,shift,meta,type} = input
+        if (type !== 'keyDown') {
+            return
         }
-        if (ctrl && alt && shift && !meta && code === 'KeyR') {
+        if (control && alt && shift && !meta && code === 'KeyI') {
+            Electron.BrowserWindow.getFocusedWindow().webContents.toggleDevTools()
+        }
+        if (control && alt && shift && !meta && code === 'KeyR') {
             Electron.BrowserWindow.getFocusedWindow().reload()
         }
 
-        let cmd_q       =  meta && !ctrl && !alt && !shift && code === 'KeyQ'
-        let ctrl_q      = !meta &&  ctrl && !alt && !shift && code === 'KeyQ'
-        let alt_f4      = !meta && !ctrl &&  alt && !shift && code === 'F4'
-        let ctrl_w      = !meta &&  ctrl && !alt && !shift && code === 'KeyW'
+        let cmd_q       =  meta && !control && !alt && !shift && code === 'KeyQ'
+        let ctrl_q      = !meta &&  control && !alt && !shift && code === 'KeyQ'
+        let alt_f4      = !meta && !control &&  alt && !shift && code === 'F4'
+        let ctrl_w      = !meta &&  control && !alt && !shift && code === 'KeyW'
         let quit_on_mac = process.platform == 'darwin' && (cmd_q || alt_f4)
         let quit_on_win = process.platform == 'win32'  && (alt_f4 || ctrl_w)
         let quit_on_lin = process.platform == 'linux'  && (alt_f4 || ctrl_q || ctrl_w)
