@@ -16,7 +16,7 @@ class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   /** The passes that need to be run before the alias analysis pass. */
   val precursorPasses: PassGroup = passes.getPrecursors(AliasAnalysis).get

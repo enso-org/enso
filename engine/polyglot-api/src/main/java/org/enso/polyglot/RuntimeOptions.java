@@ -1,11 +1,10 @@
 package org.enso.polyglot;
 
+import java.util.Arrays;
+import java.util.logging.Level;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
-
-import java.util.Arrays;
-import java.util.logging.Level;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -23,6 +22,11 @@ public class RuntimeOptions {
   public static final OptionKey<Boolean> DISABLE_INLINE_CACHES_KEY = new OptionKey<>(false);
   private static final OptionDescriptor DISABLE_INLINE_CACHES_DESCRIPTOR =
       OptionDescriptor.newBuilder(DISABLE_INLINE_CACHES_KEY, DISABLE_INLINE_CACHES).build();
+
+  public static final String ENABLE_AUTO_PARALLELISM = optionName("enableAutoParallelism");
+  public static final OptionKey<Boolean> ENABLE_AUTO_PARALLELISM_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor ENABLE_AUTO_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_AUTO_PARALLELISM_KEY, ENABLE_AUTO_PARALLELISM).build();
 
   public static final String LOG_LEVEL = "log.level";
   public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
@@ -56,9 +60,10 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
-              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
-              ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR));
+              ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

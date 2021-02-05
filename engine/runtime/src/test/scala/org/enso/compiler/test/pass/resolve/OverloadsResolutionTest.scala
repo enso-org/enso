@@ -11,7 +11,7 @@ class OverloadsResolutionTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(OverloadsResolution).get

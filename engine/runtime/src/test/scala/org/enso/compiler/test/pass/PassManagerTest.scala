@@ -46,7 +46,7 @@ class PassManagerTest extends CompilerTest {
     UnusedBindings
   )
 
-  val validOrdering: List[PassGroup] = (new Passes).passOrdering
+  val validOrdering: List[PassGroup] = (new Passes(defaultConfig)).passOrdering
 
   val passConfiguration: PassConfiguration = new PassConfiguration()
 

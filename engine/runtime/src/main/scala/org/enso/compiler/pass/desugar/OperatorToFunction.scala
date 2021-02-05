@@ -47,7 +47,13 @@ case object OperatorToFunction extends IRPass {
       case asc: IR.Type.Ascription => asc
       case a =>
         a.mapExpressions(
-          runExpression(_, new InlineContext(moduleContext.module))
+          runExpression(
+            _,
+            new InlineContext(
+              moduleContext.module,
+              compilerConfig = moduleContext.compilerConfig
+            )
+          )
         )
     }
     ir.copy(bindings = new_bindings)

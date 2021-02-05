@@ -1,15 +1,10 @@
 package org.enso.compiler.test.context
 
 import java.util.UUID
-
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{
-  ChangesetBuilder,
-  FreshNameSupply,
-  InlineContext,
-  ModuleContext
-}
+import org.enso.compiler.context.{ChangesetBuilder, FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -18,7 +13,7 @@ import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 class ChangesetBuilderTest extends CompilerTest {
 
-  implicit val passManager: PassManager = new Passes().passManager
+  implicit val passManager: PassManager = new Passes(CompilerConfig()).passManager
 
   "DiffChangeset" should {
 

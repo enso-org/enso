@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Name
 import org.enso.compiler.pass.resolve.ExpressionAnnotations
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -21,7 +22,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
       freshNameSupply = Some(new FreshNameSupply)
     )
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(ExpressionAnnotations).get
@@ -64,6 +65,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
         |    @Tail_Call
         |    @Unknown_Annotation foo bar baz
         |    @Builtin_Method "myBuiltin"
+        |    @Auto_Parallel a.f bar baz
         |    foo @Tail_Call
         |    foo (@Tail_Call bar baz)
         |""".stripMargin.preprocessModule.analyse
@@ -94,13 +96,24 @@ class ExpressionAnnotationsTest extends CompilerTest {
     }
 
     "associate the annotation with the annotated definition" in {
-      val correctDef = items.expressions(2).asInstanceOf[IR.Literal.Text]
-      correctDef.text shouldEqual "myBuiltin"
-      correctDef
+      val builtinDef = items.expressions(2).asInstanceOf[IR.Literal.Text]
+      builtinDef.text shouldEqual "myBuiltin"
+      builtinDef
         .unsafeGetMetadata(ExpressionAnnotations, "")
         .annotations
         .head
-        .name shouldEqual "@Builtin_Method"
+        .name shouldEqual ExpressionAnnotations.builtinMethodName
+
+      val parallelDef = items.expressions(3).asInstanceOf[IR.Application.Prefix]
+      parallelDef.function shouldBe a[Name.Literal]
+      val fn = parallelDef.function.asInstanceOf[Name.Literal]
+      fn.name shouldEqual "f"
+      fn.isMethod shouldBe true
+      parallelDef
+        .unsafeGetMetadata(ExpressionAnnotations, "")
+        .annotations
+        .head
+        .name shouldEqual ExpressionAnnotations.autoParallelName
 
       val correct = items.returnValue
         .asInstanceOf[IR.Application.Prefix]
@@ -119,7 +132,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
     "create an error on a misplaced annotation" in {
       val misplaced = items
-        .expressions(3)
+        .expressions(4)
         .asInstanceOf[IR.Application.Prefix]
         .arguments(0)
         .value
