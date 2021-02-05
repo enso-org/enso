@@ -545,7 +545,7 @@ object Doc {
         case object Upcoming   extends Type
         case object Private    extends Type
         case object Advanced   extends Type
-        case object Text_only  extends Type
+        case object TextOnly   extends Type
         case object Unstable   extends Type
         val codes = ADT.constructors[Type]
       }

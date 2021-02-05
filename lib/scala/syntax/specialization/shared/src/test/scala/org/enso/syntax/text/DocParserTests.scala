@@ -643,9 +643,9 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     ),
     Synopsis(Section.Raw("Foo"))
   )
-  """   ALAMAKOTA a kot ma ale
+  """   ALAMAKOTA
     | foo bar""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
-    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
+    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA")),
     Synopsis(Section.Raw(1, "foo bar"))
   )
 
