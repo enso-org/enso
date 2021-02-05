@@ -3,11 +3,14 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use ensogl_core::application::Application;
 use ensogl_core::data::color;
-use ensogl_core::display::shape::primitive::system;
 use ensogl_core::display;
 use ensogl_core::gui::component::ShapeView;
+
+// The 'internals' import is used to allow manual creation of [`ShapeView`]. Normally, this is
+// automatically used by the [`define_shape_system!`] macro, and it's not exposed to the developer.
+use ensogl_core::display::shape::system::DynamicShapeInternals;
+
 
 
 
@@ -16,8 +19,7 @@ use ensogl_core::gui::component::ShapeView;
 // =================
 
 /// A shape that can have a single color.
-// TODO implement a derive like macro for this trait that can be used for shape creation.
-pub trait ColorableShape : system::Shape {
+pub trait ColorableShape : DynamicShapeInternals {
     /// Set the color of the shape.
     fn set_color(&self, color:color::Rgba);
 }
@@ -48,14 +50,14 @@ ensogl_core::define_endpoints! {
 // =============
 
 #[derive(Clone,Debug)]
-struct Model<Shape:system::Shape> {
+struct Model<Shape> {
     icon : ShapeView<Shape>,
 }
 
 impl<Shape:ColorableShape+'static> Model<Shape> {
-    fn new(app:&Application) -> Self {
-        let logger = Logger::new("ToggleButton");
-        let icon   = ShapeView::new(&logger, app.display.scene());
+    fn new(logger:impl AnyLogger) -> Self {
+        let logger = Logger::sub(logger,"ToggleButton");
+        let icon   = ShapeView::new(&logger);
         Self{icon}
     }
 }
@@ -169,12 +171,12 @@ impl ColorScheme {
 /// that acts as button and changes color depending on the toggle state.
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
-pub struct ToggleButton<Shape:system::Shape> {
+pub struct ToggleButton<Shape> {
     pub frp : Frp,
     model   : Rc<Model<Shape>>,
 }
 
-impl<Shape:system::Shape> Deref for ToggleButton<Shape> {
+impl<Shape> Deref for ToggleButton<Shape> {
     type Target = Frp;
     fn deref(&self) -> &Self::Target {
         &self.frp
@@ -183,9 +185,9 @@ impl<Shape:system::Shape> Deref for ToggleButton<Shape> {
 
 impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
     /// Constructor.
-    pub fn new(app:&Application) -> Self {
+    pub fn new(logger:impl AnyLogger) -> Self {
         let frp   = Frp::new();
-        let model = Rc::new(Model::<Shape>::new(app));
+        let model = Rc::new(Model::<Shape>::new(logger));
         Self {frp,model}.init_frp()
     }
 
@@ -200,9 +202,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) {
-                model.icon.shape.sprites().iter().for_each(|sprite| sprite.size.set(*size))
-            });
+            eval frp.set_size ((size) model.icon.size().set(*size));
 
 
             // === Mouse Interactions ===
@@ -228,7 +228,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
                 |colors,state| colors.query(*state));
 
             color.target <+ color_target;
-            eval color.value ((color) model.icon.shape.set_color(color.into()));
+            eval color.value ((color) model.icon.set_color(color.into()));
         }
 
         color.target_alpha.emit(0.0);
@@ -242,7 +242,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
     }
 }
 
-impl<T:ColorableShape> display::Object for ToggleButton<T> {
+impl<T:display::Object> display::Object for ToggleButton<T> {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.icon.display_object()
     }

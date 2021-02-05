@@ -35,6 +35,7 @@ pub mod glyph_system;
 pub mod list_view;
 pub mod shape_system;
 pub mod sprite_system;
+pub mod sprite_system_benchmark;
 pub mod text_area;
 
 /// Common types that should be visible across the whole crate.

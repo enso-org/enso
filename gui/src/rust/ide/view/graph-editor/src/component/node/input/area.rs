@@ -22,8 +22,6 @@ use crate::component::type_coloring;
 use crate::node::input::port;
 use crate::node;
 
-pub use port::depth_sort_hack;
-
 
 
 // =================
@@ -247,8 +245,8 @@ impl Model {
         // FIXME[WD]: Depth sorting of labels to in front of the mouse pointer. Temporary solution.
         // It needs to be more flexible once we have proper depth management.
         let scene = self.app.display.scene();
-        self.label.remove_from_view(&scene.views.main);
-        self.label.add_to_view(&scene.views.label);
+        self.label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        self.label.add_to_scene_layer_DEPRECATED(&scene.layers.label);
 
         let text_color = self.styles.get_color(theme::graph_editor::node::text);
         self.label.single_line(true);
@@ -592,7 +590,7 @@ impl Area {
 
                     // === Pointer Style ===
 
-                    let port_shape_hover = port_shape.hover.shape.clone_ref();
+                    let port_shape_hover = port_shape.hover.clone_ref();
                     pointer_style_out   <- mouse_out.map(|_| default());
                     pointer_style_over  <- map3(&mouse_over,&frp.set_ports_active,&port.tp,
                         move |_,(_,edge_tp),port_tp| {
@@ -714,7 +712,7 @@ impl Area {
                     ));
                     viz_color.target <+ new_viz_color;
                     eval viz_color.value ((t)
-                        port_shape.viz.shape.color.set(color::Rgba::from(t).into())
+                        port_shape.viz.color.set(color::Rgba::from(t).into())
                     );
                 }
             }

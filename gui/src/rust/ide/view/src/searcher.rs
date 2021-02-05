@@ -94,13 +94,14 @@ struct Model {
 
 impl Model {
     fn new(app:&Application) -> Self {
+        let scene          = app.display.scene();
         let app            = app.clone_ref();
         let logger         = Logger::new("SearcherView");
-        let scene          = app.display.scene();
         let display_object = display::object::Instance::new(&logger);
         let list           = app.new_view::<ListView>();
         let documentation  = documentation::View::new(&scene);
         let doc_provider   = default();
+        scene.layers.below_main.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
         list.set_position_x(ACTION_LIST_X);

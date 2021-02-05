@@ -33,7 +33,7 @@ fn init(app:&Application) {
     area.set_cursor_at_end();
 
     let scene     = app.display.scene();
-    let navigator = Navigator::new(scene,scene.camera());
+    let navigator = Navigator::new(scene,&scene.camera());
 
     app.display.scene().add_child(&area);
     let keep = Some(area);

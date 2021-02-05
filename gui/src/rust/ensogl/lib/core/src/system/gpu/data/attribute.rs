@@ -12,6 +12,7 @@ use crate::data::dirty::traits::*;
 use crate::system::gpu::types::*;
 
 use std::collections::BTreeSet;
+use enso_shapely::newtype_prim;
 
 
 
@@ -19,11 +20,11 @@ use std::collections::BTreeSet;
 // === Types ===
 // =============
 
-newtype_copy! {
-    /// Index of the attribute instance.
-    AttributeInstanceIndex(usize);
+newtype_prim! {
+    /// Index of an attribute instance.
+    InstanceIndex(usize);
 
-    /// Index of the attribute instance.
+    /// Index of a buffer.
     BufferIndex(usize);
 }
 
@@ -40,10 +41,16 @@ pub type ShapeDirty = dirty::SharedBool<Box<dyn Fn()>>;
 // ======================
 
 shared! { AttributeScope
-/// Scope defines a view for geometry structure. For example, there is point scope or instance
-/// scope. Scope contains buffer of data for each item it describes.
+/// [`AttributeScope`] is a set of named [`Buffer`]s of the same length. The buffers con contain any
+/// WebGL specific information, like geometry information. The buffers are named for easy access.
+/// For example, the current geometry implementation uses [`AttributeScope`] to define logical
+/// attribute scopes named "point" and "instance". They contain information attached to points and
+/// geometry instances respectively. Also, the "point" [`AttributeScope`] can contain such buffers
+/// as "color", while "instance" [`AttributeScope`] can be created with a "position" buffer to allow
+/// controlling placement of each instance separately.
 ///
-/// # Memory management and ID re-use.
+///
+/// # Internal Design (Memory management and ID re-use)
 /// TODO: The proper memory management should be implemented. Currently, after creating a lot of
 ///       instances and dropping them, the memory is not freed. This section explains why and
 ///       describes possible solutions.
@@ -87,16 +94,16 @@ pub struct AttributeScopeData {
     shape_dirty     : ShapeDirty,
     buffer_name_map : HashMap<String,BufferIndex>,
     logger          : Logger,
-    free_ids        : BTreeSet<AttributeInstanceIndex>,
+    free_ids        : BTreeSet<InstanceIndex>,
     size            : usize,
-    context         : Context,
+    context         : Option<Context>,
     stats           : Stats,
 }
 
 impl {
     /// Create a new scope with the provided dirty callback.
     pub fn new<OnMut:CallbackFn+Clone>
-    (lgr:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
+    (lgr:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         info!(lgr,"Initializing.",|| {
             let logger          = lgr.clone();
             let stats           = stats.clone_ref();
@@ -108,7 +115,7 @@ impl {
             let buffer_name_map = default();
             let free_ids        = default();
             let size            = default();
-            let context         = context.clone();
+            let context         = default();
             Self {context,buffers,buffer_dirty,shape_dirty,buffer_name_map,logger,free_ids,size
                  ,stats}
         })
@@ -125,7 +132,8 @@ impl {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });
             let logger     = Logger::sub(&self.logger,&name);
-            let buffer     = Buffer::new(logger,&self.stats,&self.context,on_set,on_resize);
+            let buffer     = Buffer::new(logger,&self.stats,on_set,on_resize);
+            buffer.set_context(self.context.as_ref());
             let buffer_ref = buffer.clone();
             self.buffers.set(ix,AnyBuffer::from(buffer));
             self.buffer_name_map.insert(name,ix.into());
@@ -145,7 +153,7 @@ impl {
     }
 
     /// Add a new instance to every buffer in the scope.
-    pub fn add_instance(&mut self) -> AttributeInstanceIndex {
+    pub fn add_instance(&mut self) -> InstanceIndex {
         let instance_count = 1;
         debug!(self.logger, "Adding {instance_count} instance(s).", || {
             match self.free_ids.iter().next().copied() {
@@ -165,12 +173,12 @@ impl {
 
     /// Dispose instance for reuse in the future. All data in all buffers at the provided `id` will
     /// be set to default.
-    pub fn dispose(&mut self, id:AttributeInstanceIndex) {
-        debug!(self.logger, "Disposing instance {id}.", || {
+    pub fn dispose(&mut self, ix:InstanceIndex) {
+        debug!(self.logger, "Disposing instance {ix}.", || {
             for buffer in &self.buffers {
-                buffer.set_to_default(id.into())
+                buffer.set_to_default(ix.into())
             }
-            self.free_ids.insert(id);
+            self.free_ids.insert(ix);
         })
     }
 
@@ -197,6 +205,14 @@ impl {
     pub fn size(&self) -> usize {
         self.size
     }
+
+    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    pub(crate) fn set_context(&mut self, context:Option<&Context>) {
+        self.context = context.cloned();
+        for buffer in &self.buffers {
+            buffer.set_context(context);
+        }
+    }
 }}
 
 
@@ -205,37 +221,34 @@ impl {
 // === Attribute ===
 // =================
 
-/// View for a particular buffer. Allows reading and writing buffer data
-/// via the internal mutability pattern. It is implemented as a view on
-/// a selected `Buffer` element under the hood.
+/// Interface for a particular [`Buffer`] element. It allows reading and writing the buffer value.
+/// Attributes are used to bind geometric specific, like sprite positions, to specific [`Buffer`]
+/// indexes.
 #[derive(Clone,CloneRef,Debug,Derivative)]
 pub struct Attribute<T> {
-    index  : AttributeInstanceIndex,
+    index  : InstanceIndex,
     buffer : Buffer<T>
 }
 
 impl<T> Attribute<T> {
     /// Create a new variable as an indexed view over provided buffer.
-    pub fn new(index:AttributeInstanceIndex, buffer:Buffer<T>) -> Self {
+    pub fn new(index:InstanceIndex, buffer:Buffer<T>) -> Self {
         Self {index,buffer}
     }
 }
 
-impl<T:Storable> Attribute<T> {
-    /// Get a copy of the data this attribute points to.
-    pub fn get(&self) -> T {
+impl<T> HasItem for Attribute<T> {
+    type Item = T;
+}
+
+impl<T:Storable> CellGetter for Attribute<T> {
+    fn get(&self) -> Self::Item {
         self.buffer.get(self.index.into())
     }
+}
 
-    /// Set the data this attribute points to.
-    pub fn set(&self, value:T) {
+impl<T:Storable> CellSetter for Attribute<T> {
+    fn set(&self, value:Self::Item) {
         self.buffer.set(self.index.into(),value);
-    }
-
-    /// Modify the data this attribute points to.
-    pub fn modify<F:FnOnce(&mut T)>(&self, f:F) {
-        let mut value = self.get();
-        f(&mut value);
-        self.set(value);
     }
 }

@@ -16,7 +16,6 @@ use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
 use ensogl::display;
 use ensogl::DEPRECATED_Animation;
-use ensogl::gui::component;
 use ensogl_text as text;
 use ensogl_theme as theme;
 use logger::DefaultTraceLogger as Logger;
@@ -75,16 +74,16 @@ mod icon {
 
     ensogl::define_shape_system! {
         (red:f32,green:f32,blue:f32,alpha:f32) {
-                let outer_circle  = Circle((ICON_RADIUS).px());
-                let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
-                let ring          = outer_circle - inner_circle;
-                let size          = ICON_ARROW_SIZE;
-                let arrow         = Triangle(size.px(),size.px()).rotate((PI/2.0).radians());
-                let arrow         = arrow.translate_x(0.5.px());
-                let shape         = ring + arrow;
-                let color         = format!("vec4({},{},{},{})",red,green,blue,alpha);
-                let color : Var<color::Rgba> = color.into();
-                shape.fill(color).into()
+            let outer_circle  = Circle((ICON_RADIUS).px());
+            let inner_circle  = Circle((ICON_RADIUS - ICON_RING_WIDTH).px());
+            let ring          = outer_circle - inner_circle;
+            let size          = ICON_ARROW_SIZE;
+            let arrow         = Triangle(size.px(),size.px()).rotate((PI/2.0).radians());
+            let arrow         = arrow.translate_x(0.5.px());
+            let shape         = ring + arrow;
+            let color         = format!("vec4({},{},{},{})",red,green,blue,alpha);
+            let color : Var<color::Rgba> = color.into();
+            shape.fill(color).into()
         }
     }
 }
@@ -260,9 +259,9 @@ pub struct BreadcrumbInfo {
 pub struct BreadcrumbModel {
     logger         : Logger,
     display_object : display::object::Instance,
-    view           : component::ShapeView<background::Shape>,
-    separator      : component::ShapeView<separator::Shape>,
-    icon           : component::ShapeView<icon::Shape>,
+    view           : background::View,
+    separator      : separator::View,
+    icon           : icon::View,
     label          : text::Area,
     animations     : Animations,
     style          : StyleWatch,
@@ -280,9 +279,9 @@ impl BreadcrumbModel {
         let logger            = Logger::new("Breadcrumbs");
         let display_object    = display::object::Instance::new(&logger);
         let view_logger       = Logger::sub(&logger,"view_logger");
-        let view              = component::ShapeView::<background::Shape>::new(&view_logger, scene);
-        let icon              = component::ShapeView::<icon::Shape>::new(&view_logger, scene);
-        let separator         = component::ShapeView::<separator::Shape>::new(&view_logger, scene);
+        let view              = background::View::new(&view_logger);
+        let icon              = icon::View::new(&view_logger);
+        let separator         = separator::View::new(&view_logger);
         let label             = app.new_view::<text::Area>();
         let expression_id     = *expression_id;
         let method_pointer    = method_pointer.clone();
@@ -291,24 +290,26 @@ impl BreadcrumbModel {
         let relative_position = default();
         let outputs           = frp.outputs.clone_ref();
 
-        let shape_system = scene.shapes.shape_system(PhantomData::<background::Shape>);
-        scene.views.main.remove(&shape_system.shape_system.symbol);
-        scene.views.breadcrumbs.add(&shape_system.shape_system.symbol);
+        scene.layers.breadcrumbs.add_exclusive(&view);
+        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+            (scene,PhantomData::<background::DynamicShape>);
+        scene.layers.breadcrumbs.add_symbol_exclusive(&shape_system.shape_system.symbol);
 
-        let shape_system = scene.shapes.shape_system(PhantomData::<icon::Shape>);
+        scene.layers.breadcrumbs.add_exclusive(&icon);
+        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+            (scene,PhantomData::<icon::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
-        scene.views.main.remove(&shape_system.shape_system.symbol);
-        scene.views.breadcrumbs.add(&shape_system.shape_system.symbol);
 
-        let shape_system = scene.shapes.shape_system(PhantomData::<separator::Shape>);
+        scene.layers.breadcrumbs.add_exclusive(&separator);
+        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+            (scene,PhantomData::<separator::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
-        scene.views.main.remove(&shape_system.shape_system.symbol);
-        scene.views.breadcrumbs.add(&shape_system.shape_system.symbol);
 
-        label.remove_from_view(&scene.views.main);
-        label.add_to_view(&scene.views.breadcrumbs);
+        label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
 
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        //         system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
         Self{logger,view,icon,separator,display_object,label,info,animations,style
             ,relative_position,outputs}.init()
@@ -339,13 +340,13 @@ impl BreadcrumbModel {
         let height = self.height();
         let offset = SEPARATOR_MARGIN+SEPARATOR_SIZE/2.0;
 
-        self.view.shape.sprite.size.set(Vector2::new(width,height));
+        self.view.size.set(Vector2::new(width,height));
         self.fade_in(0.0);
         let separator_size = (SEPARATOR_SIZE+PADDING*2.0).max(0.0);
         let icon_size      = (ICON_SIZE+PADDING*2.0).max(0.0);
-        self.separator.shape.sprite.size.set(Vector2::new(separator_size,separator_size));
+        self.separator.size.set(Vector2::new(separator_size,separator_size));
         self.separator.set_position_x((offset-width/2.0).round());
-        self.icon.shape.sprite.size.set(Vector2::new(icon_size,icon_size));
+        self.icon.size.set(Vector2::new(icon_size,icon_size));
         let x_position = offset+PADDING+ICON_SIZE/2.0+LEFT_MARGIN+ICON_LEFT_MARGIN;
         self.icon.set_position_x(x_position.round());
 
@@ -382,18 +383,18 @@ impl BreadcrumbModel {
     fn set_color(&self, value:Vector4<f32>) {
         let color = color::Rgba::from(value);
         self.label.set_color_all(color);
-        self.icon.shape.red.set(color.red);
-        self.icon.shape.green.set(color.green);
-        self.icon.shape.blue.set(color.blue);
-        self.icon.shape.alpha.set(color.alpha);
+        self.icon.red.set(color.red);
+        self.icon.green.set(color.green);
+        self.icon.blue.set(color.blue);
+        self.icon.alpha.set(color.alpha);
     }
 
     fn set_separator_color(&self, value:Vector4<f32>) {
         let color = color::Rgba::from(value);
-        self.separator.shape.red.set(color.red);
-        self.separator.shape.green.set(color.green);
-        self.separator.shape.blue.set(color.blue);
-        self.separator.shape.alpha.set(color.alpha);
+        self.separator.red.set(color.red);
+        self.separator.green.set(color.green);
+        self.separator.blue.set(color.blue);
+        self.separator.alpha.set(color.alpha);
     }
 
     fn select(&self) {
@@ -466,7 +467,8 @@ impl Breadcrumb {
         let network = &frp.network;
         let scene   = app.display.scene();
 
-        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        //         system (#795)
         let styles      = StyleWatch::new(&scene.style_sheet);
         let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
         let hover_color = color::Rgba::from(hover_color);

@@ -17,15 +17,15 @@ use crate::display::scene;
 #[derive(Clone,Debug)]
 pub struct SymbolsRenderPass {
     target : SymbolRegistry,
-    views  : scene::Views,
+    layers : scene::HardcodedLayers,
 }
 
 impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(target:&SymbolRegistry, views:&scene::Views) -> Self {
+    pub fn new(target:&SymbolRegistry, layers:&scene::HardcodedLayers) -> Self {
         let target = target.clone_ref();
-        let views  = views.clone_ref();
-        Self {target,views}
+        let layers = layers.clone_ref();
+        Self {target,layers}
     }
 }
 
@@ -47,11 +47,10 @@ impl RenderPass for SymbolsRenderPass {
         context.clear_bufferfv_with_f32_array(Context::COLOR,0,&arr);
         context.clear_bufferfv_with_f32_array(Context::COLOR,1,&arr);
 
-        for view in self.views.all().iter() {
-            if let Some(view) = view.upgrade() {
-                self.target.set_camera(&view.camera);
-                self.target.render_by_ids(&view.symbols());
-            }
+        for layer in self.layers.all().iter() {
+            self.target.set_camera(&layer.camera());
+            let symbols = layer.symbols();
+            self.target.render_by_ids(&symbols);
         }
     }
 }

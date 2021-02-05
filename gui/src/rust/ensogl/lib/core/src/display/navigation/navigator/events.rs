@@ -205,8 +205,8 @@ impl NavigatorEvents {
         let mouse_down    = default();
         let wheel_zoom    = default();
         let mouse_leave   = default();
-        let data          = NavigatorEventsData::new(pan_callback,zoom_callback,zoom_speed,
-                                                     pan_speed,disable_events);
+        let data          = NavigatorEventsData::new
+            (pan_callback,zoom_callback,zoom_speed,pan_speed,disable_events);
         let mut event_handler = Self {
             data,
             mouse_manager,

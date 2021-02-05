@@ -12,7 +12,6 @@ use ensogl_core::data::color;
 use ensogl_core::display::shape::*;
 use ensogl_core::display::shape::primitive::StyleWatch;
 use ensogl_core::display;
-use ensogl_core::gui::component;
 use ensogl_text as text;
 use ensogl_theme as theme;
 
@@ -37,6 +36,7 @@ pub mod arrow {
     use super::*;
 
     ensogl_core::define_shape_system! {
+        below = [chooser_hover_area];
         (style:Style) {
             let width            = Var::<Pixels>::from("input_size.x");
             let height           = Var::<Pixels>::from("input_size.y");
@@ -102,8 +102,8 @@ struct Model {
     app             : Application,
     display_object  : display::object::Instance,
 
-    icon            : component::ShapeView<arrow::Shape>,
-    icon_overlay    : component::ShapeView<chooser_hover_area::Shape>,
+    icon            : arrow::View,
+    icon_overlay    : chooser_hover_area::View,
 
     label           : text::Area,
     selection_menu  : list_view::ListView,
@@ -114,18 +114,16 @@ struct Model {
 
 impl Model {
     fn new(app:&Application) -> Self {
-        let logger         = Logger::new("visualization_chooser::Model");
-        let scene          = app.display.scene();
+        let logger         = Logger::new("drop_down_menu");
         let app            = app.clone_ref();
         let display_object = display::object::Instance::new(&logger);
-        let icon           = component::ShapeView::new(&logger,scene);
-        let icon_overlay   = component::ShapeView::new(&logger,scene);
+        let icon           = arrow::View::new(&logger);
+        let icon_overlay   = chooser_hover_area::View::new(&logger);
         let selection_menu = list_view::ListView::new(&app);
         let label          = app.new_view::<text::Area>();
         let content        = default();
 
-        Self{logger,app,display_object,icon,
-            icon_overlay,selection_menu,label,content}.init()
+        Self{logger,app,display_object,icon,icon_overlay,selection_menu,label,content}.init()
     }
 
     fn init(self) -> Self {
@@ -163,9 +161,9 @@ impl Model {
     ///
     /// Example:
     /// Widget state: Selected [B], menu content [A, C]
-    /// Item list                [A, B,  C]
-    /// Unmasked index           [0, 1,  2]
-    /// Masked indices           [0, na, 1]
+    /// Item list      [A, B,  C]
+    /// Unmasked index [0, 1,  2]
+    /// Masked indices [0, na, 1]
     fn get_unmasked_index(&self, ix:Option<usize>) -> Option<usize> {
         Some(self.content.borrow().as_ref()?.unmasked_index(ix?))
     }
@@ -187,8 +185,8 @@ impl display::Object for Model {
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct DropDownMenu {
-        model : Rc<Model>,
-    pub frp   : Frp,
+    model   : Rc<Model>,
+    pub frp : Frp,
 }
 
 impl Deref for DropDownMenu {
@@ -214,7 +212,6 @@ impl DropDownMenu {
 
         frp::extend! { network
 
-
             // === Input Processing ===
 
             eval frp.input.set_entries ([model](entries) {
@@ -238,7 +235,7 @@ impl DropDownMenu {
 
             icon_size <- all(frp.input.set_icon_size,frp.input.set_icon_padding);
             eval icon_size (((size,padding)) {
-                model.icon.shape.sprite.size.set(size-2.0*padding);
+                model.icon.size.set(size-2.0*padding);
             });
 
             resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,frp.input.set_menu_offset_y);
@@ -260,7 +257,7 @@ impl DropDownMenu {
             overlay_size <- all(model.label.frp.width,frp.input.set_icon_size);
             eval overlay_size ([model]((text_width,icon_size)) {
                 let size = Vector2::new(text_width + icon_size.x,icon_size.y);
-                model.icon_overlay.shape.sprite.size.set(size);
+                model.icon_overlay.size.set(size);
                 model.icon_overlay.set_position_x(-text_width/2.0);
             });
 

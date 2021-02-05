@@ -133,12 +133,14 @@ fn init(app:&Application) {
     // === Types (Port Coloring) ===
 
     let mut dummy_type_generator = DummyTypeGenerator::default();
+
     expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
             graph_editor.frp.set_expression_usage_type.emit((node1_id,expr_id,dummy_type));
         }
     });
+
     expression_1.output_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
@@ -152,6 +154,7 @@ fn init(app:&Application) {
             graph_editor.frp.set_expression_usage_type.emit((node2_id,expr_id,dummy_type));
         }
     });
+
     expression_2.output_span_tree.root_ref().leaf_iter().for_each(|node|{
         if let Some(expr_id) = node.ast_id {
             let dummy_type = Some(dummy_type_generator.get_dummy_type());
@@ -218,7 +221,6 @@ use ast::crumbs::PatternMatchCrumb::*;
 use enso_protocol::prelude::Uuid;
 use ensogl_text_msdf_sys::run_once_initialized;
 use span_tree::traits::*;
-
 
 
 pub fn expression_mock() -> Expression {
@@ -308,111 +310,4 @@ pub fn expression_mock3() -> Expression {
     let output_span_tree = span_tree::SpanTree::new(&ast,&ctx).unwrap();//span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     Expression {pattern,code,input_span_tree,output_span_tree}
-}
-
-
-
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
-// Extract and make use in scene depth sorting.
-
-#[allow(clippy::implicit_hasher)]
-pub fn depth_sort(ids:&[usize], elem_above_elems:&HashMap<usize,Vec<usize>>) -> Vec<usize> {
-
-    // === Remove from `elem_above_elems` all ids which are not present in `ids` ===
-
-    let mut elem_above_elems : HashMap<usize,Vec<usize>> = elem_above_elems.clone();
-    let mut missing = vec![];
-    for (elem,above_elems) in &mut elem_above_elems {
-        above_elems.retain(|id| ids.contains(id));
-        if above_elems.is_empty() {
-            missing.push(*elem);
-        }
-    }
-    for id in &missing {
-        elem_above_elems.remove(id);
-    }
-
-
-    // === Generate `elem_below_elems` map ===
-
-    let mut elem_below_elems : HashMap<usize,Vec<usize>> = HashMap::new();
-    for (above_id,below_ids) in &elem_above_elems {
-        for below_id in below_ids {
-            elem_below_elems.entry(*below_id).or_default().push(*above_id);
-        }
-    }
-
-
-    // === Sort ids ===
-
-    let mut queue        = HashSet::<usize>::new();
-    let mut sorted       = vec![];
-    let mut newly_sorted = vec![];
-
-    for id in ids {
-        if elem_above_elems.get(id).is_some() {
-            queue.insert(*id);
-        } else {
-            newly_sorted.push(*id);
-            while !newly_sorted.is_empty() {
-                let id = newly_sorted.pop().unwrap();
-                sorted.push(id);
-                elem_below_elems.remove(&id).for_each(|above_ids| {
-                    for above_id in above_ids {
-                        if let Some(lst) = elem_above_elems.get_mut(&above_id) {
-                            lst.remove_item(&id);
-                            if lst.is_empty() && queue.contains(&above_id) {
-                                queue.remove(&above_id);
-                                newly_sorted.push(above_id);
-                            }
-                            if lst.is_empty() {
-                                elem_above_elems.remove(&above_id);
-                            }
-                        }
-                    }
-                })
-            }
-        }
-    }
-    sorted
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn identity_with_no_rules() {
-        assert_eq!( depth_sort(&vec![]      , &default()) , Vec::<usize>::new() );
-        assert_eq!( depth_sort(&vec![1]     , &default()) , vec![1] );
-        assert_eq!( depth_sort(&vec![1,3]   , &default()) , vec![1,3] );
-        assert_eq!( depth_sort(&vec![1,2,3] , &default()) , vec![1,2,3] );
-    }
-
-
-    #[test]
-    fn chained_rules() {
-        let mut rules = HashMap::<usize,Vec<usize>>::new();
-        rules.insert(1,vec![2]);
-        rules.insert(2,vec![3]);
-        assert_eq!( depth_sort(&vec![]      , &rules) , Vec::<usize>::new() );
-        assert_eq!( depth_sort(&vec![1]     , &rules) , vec![1] );
-        assert_eq!( depth_sort(&vec![1,2]   , &rules) , vec![2,1] );
-        assert_eq!( depth_sort(&vec![1,2,3] , &rules) , vec![3,2,1] );
-    }
-
-    #[test]
-    fn order_preserving() {
-        let mut rules = HashMap::<usize,Vec<usize>>::new();
-        rules.insert(1,vec![2]);
-        rules.insert(2,vec![3]);
-        assert_eq!( depth_sort(&vec![10,11,12]          , &rules) , vec![10,11,12] );
-        assert_eq!( depth_sort(&vec![10,1,11,12]        , &rules) , vec![10,1,11,12] );
-        assert_eq!( depth_sort(&vec![10,1,11,2,12]      , &rules) , vec![10,11,2,1,12] );
-        assert_eq!( depth_sort(&vec![10,1,11,2,12,3,13] , &rules) , vec![10,11,12,3,2,1,13] );
-    }
 }

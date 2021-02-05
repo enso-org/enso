@@ -48,6 +48,8 @@ impl NavigatorModel {
         let camera_ref = camera.clone_ref();
         let on_step    = Box::new(move |p:Vector3| camera_ref.set_position(p));
         let simulator  = physics::inertia::DynSimulator::new(on_step,(),());
+        // FIXME[WD]: This one is emitting camera position in next frame, which is not intended.
+        //            Should be fixed when reworking navigator to use FRP events.
         simulator.set_value(camera.position());
         simulator.set_target_value(camera.position());
         simulator
@@ -69,7 +71,6 @@ impl NavigatorModel {
             let distance_to_show_full_ui    = scene.shape().value().height / 2.0 / fovy_slope;
             let pan_speed                   = pan_speed.get().into_on().unwrap_or(0.0);
             let movement_scale_for_distance = distance / distance_to_show_full_ui;
-
             let diff = pan_speed * Vector3::new(pan.movement.x,pan.movement.y,0.0)*movement_scale_for_distance;
             simulator.update_target_value(|p| p - diff);
         });

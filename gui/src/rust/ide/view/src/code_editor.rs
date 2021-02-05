@@ -71,8 +71,8 @@ impl View {
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
         model.set_position_x(PADDING_LEFT);
-        model.remove_from_view(&scene.views.main);
-        model.add_to_view(&scene.views.breadcrumbs);
+        model.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        model.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
         //  should be changed in the second part of focus management
         //  (https://github.com/enso-org/ide/issues/823)

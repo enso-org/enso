@@ -13,9 +13,9 @@ ast = { version = "0.1.0", path = "../../lib/ast/impl" }
 enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
 enso-logger = { version = "0.2.2" }
-enso-prelude = { version = "0.1.9" }
+enso-prelude = { version = "0.1.10" }
 enso-protocol = { version = "0.1.0", path = "../../lib/enso-protocol" }
-enso-shapely = { version = "0.1.3" }
+enso-shapely = { version = "0.1.4" }
 ensogl = { version = "0.1.0", path = "../../../ensogl" }
 ensogl-gui-components = { version = "0.1.0", path = "../../../ensogl/lib/components" }
 ensogl-text = { version = "0.1.0", path = "../../../ensogl/lib/text" }

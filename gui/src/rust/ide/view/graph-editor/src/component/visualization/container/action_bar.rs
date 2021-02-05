@@ -11,12 +11,12 @@ use enso_frp;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::shape::*;
-use ensogl::display::shape::primitive::system::Shape;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::ShapeView;
-use ensogl::gui::component;
+use ensogl::display::shape::system::DynamicShape;
 use ensogl_theme as theme;
+use ensogl_gui_components::drop_down_menu;
 
 
 
@@ -40,6 +40,7 @@ mod hover_area {
     use super::*;
 
     ensogl::define_shape_system! {
+        below = [drop_down_menu::arrow];
         () {
             let width  : Var<Pixels> = "input_size.x".into();
             let height : Var<Pixels> = "input_size.y".into();
@@ -56,6 +57,7 @@ mod background {
     use super::*;
 
     ensogl::define_shape_system! {
+        below = [hover_area];
         (style:Style) {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
@@ -157,19 +159,18 @@ mod pin_icon {
 struct Icons {
     display_object      : display::object::Instance,
     icon_root           : display::object::Instance,
-    reset_position_icon : ShapeView<pin_icon::Shape>,
-    drag_icon           : ShapeView<four_arrow_icon::Shape>,
+    reset_position_icon : pin_icon::View,
+    drag_icon           : four_arrow_icon::View,
     size                : Rc<Cell<Vector2>>,
 }
 
 impl Icons {
-    fn new(logger:impl AnyLogger, app:&Application) -> Self {
-        let scene               = app.display.scene();
+    fn new(logger:impl AnyLogger) -> Self {
         let logger              = Logger::sub(logger,"Icons");
         let display_object      = display::object::Instance::new(&logger);
         let icon_root           = display::object::Instance::new(&logger);
-        let reset_position_icon = component::ShapeView::new(&logger,scene);
-        let drag_icon           = component::ShapeView::new(&logger,scene);
+        let reset_position_icon = pin_icon::View::new(&logger);
+        let drag_icon           = four_arrow_icon::View::new(&logger);
         let size                = default();
 
         display_object.add_child(&icon_root);
@@ -178,11 +179,11 @@ impl Icons {
         Self {display_object,reset_position_icon,drag_icon,size,icon_root}.init_layout()
     }
 
-    fn place_shape_in_slot<T:Shape>(&self, view:&ShapeView<T>, index:usize) {
+    fn place_shape_in_slot<T:DynamicShape>(&self, view:&ShapeView<T>, index:usize) {
         let icon_size = self.icon_size();
         let index     = index as f32;
         view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
-        view.shape.sprites().iter().for_each(move |sprite| sprite.size.set(icon_size))
+        view.size().set(icon_size)
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -251,9 +252,9 @@ ensogl::define_endpoints! {
 
 #[derive(Clone,CloneRef,Debug)]
 struct Model {
-    hover_area            : ShapeView<hover_area::Shape>,
+    hover_area            : hover_area::View,
     visualization_chooser : VisualizationChooser,
-    background            : ShapeView<background::Shape>,
+    background            : background::View,
     display_object        : display::object::Instance,
     size                  : Rc<Cell<Vector2>>,
     icons                 : Icons,
@@ -262,40 +263,36 @@ struct Model {
 
 impl Model {
     fn new(app:&Application, vis_registry:visualization::Registry) -> Self {
-        let scene                 = app.display.scene();
         let logger                = Logger::new("ActionBarModel");
-        let background            = component::ShapeView::new(&logger,scene);
-        let hover_area            = component::ShapeView::new(&logger,scene);
+        let background            = background::View::new(&logger);
+        let hover_area            = hover_area::View::new(&logger);
         let visualization_chooser = VisualizationChooser::new(&app,vis_registry);
         let display_object        = display::object::Instance::new(&logger);
         let size                  = default();
-        let icons                 = Icons::new(logger,app);
+        let icons                 = Icons::new(logger);
         let shapes                = compound::events::MouseEvents::default();
+
+        app.display.scene().layers.below_main.add_exclusive(&hover_area);
+        app.display.scene().layers.below_main.add_exclusive(&background);
 
         shapes.add_sub_shape(&hover_area);
         shapes.add_sub_shape(&background);
         shapes.add_sub_shape(&icons.reset_position_icon);
         shapes.add_sub_shape(&icons.drag_icon);
 
-        Model{hover_area,visualization_chooser,display_object,size,background,icons,shapes}.init()
+        Model {hover_area,visualization_chooser,display_object,size,background,icons,shapes}.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.hover_area);
-        self.add_child(&self.visualization_chooser);
-        self.add_child(&self.icons);
-
-        // Remove default parent, then hide icons.
-        self.show();
-        self.hide();
         self
     }
 
     fn set_size(&self, size:Vector2) {
         self.size.set(size);
+        self.hover_area.size.set(size);
+        self.background.size.set(size);
         self.icons.set_size(size);
-        self.hover_area.shape.size.set(size);
-        self.background.shape.size.set(size);
 
         let height        = size.y;
         let width         = size.x;
@@ -307,8 +304,8 @@ impl Model {
     }
 
     fn show(&self) {
-        self.add_child(&self.visualization_chooser);
         self.add_child(&self.background);
+        self.add_child(&self.visualization_chooser);
         self.add_child(&self.icons);
     }
 

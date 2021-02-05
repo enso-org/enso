@@ -28,7 +28,6 @@ pub use uniform::*;
 pub mod types {
     use super::*;
     pub use attribute::Attribute;
-    pub use attribute::AttributeInstanceIndex;
     pub use attribute::AttributeScope;
     pub use buffer::AnyBuffer;
     pub use buffer::Buffer;

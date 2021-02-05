@@ -143,10 +143,9 @@ impl World {
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
         let pipeline = RenderPipeline::new()
-            .add(SymbolsRenderPass::new(&self.scene.symbols(),&self.scene.views))
+            .add(SymbolsRenderPass::new(&self.scene.symbols(),&self.scene.layers))
             .add(ScreenRenderPass::new(self))
             .add(pixel_read_pass);
-            // FIXME ugly way of rendering top layers:
         self.scene.renderer.set_pipeline(pipeline);
     }
 
@@ -163,7 +162,7 @@ impl World {
 
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one
     /// instance of the world forever.
-    pub fn  keep_alive_forever(&self) {
+    pub fn keep_alive_forever(&self) {
         mem::forget(self.clone_ref())
     }
 }

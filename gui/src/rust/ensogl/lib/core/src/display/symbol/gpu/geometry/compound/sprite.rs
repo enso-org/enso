@@ -12,8 +12,17 @@ use crate::display::layout::Alignment;
 use crate::display;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
+use crate::display::symbol::SymbolId;
 use crate::display::scene::Scene;
 use crate::system::gpu::types::*;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_SPRITE_SIZE : (f32,f32) = (10.0,10.0);
 
 
 
@@ -53,7 +62,7 @@ impl Drop for SpriteStats {
 /// the sprite dimensions to zero and marking it index as a free for future reuse.
 #[derive(Debug)]
 pub struct SpriteGuard {
-    instance_id    : AttributeInstanceIndex,
+    instance_id    : attribute::InstanceIndex,
     symbol         : Symbol,
     size           : Attribute<Vector2<f32>>,
     display_object : display::object::Instance,
@@ -61,7 +70,7 @@ pub struct SpriteGuard {
 
 impl SpriteGuard {
     fn new
-    ( instance_id    : AttributeInstanceIndex
+    ( instance_id    : attribute::InstanceIndex
     , symbol         : &Symbol
     , size           : &Attribute<Vector2<f32>>
     , display_object : &display::object::Instance
@@ -99,41 +108,27 @@ pub struct Size {
 
 // === Setters ===
 
-#[allow(missing_docs)]
-impl Size {
-    pub fn set(&self, value:Vector2<f32>) {
-        if self.hidden.get() { self.value.set(value) }
-        else                 { self.attr.set(value) }
+impl HasItem    for Size { type Item = Vector2; }
+impl CellGetter for Size { fn get(&self) -> Vector2 { self.value.get() } }
+impl CellSetter for Size { fn set(&self, v:Vector2) {
+    self.value.set(v);
+    if !self.hidden.get() {
+        self.attr.set(v)
     }
-}
-
-
-// === Getters ===
-
-#[allow(missing_docs)]
-impl Size {
-    #[deprecated(note = "This will be removed without replacement soon.\
-    Internally this will be changed to use `Var` values, which means it will be impossible to \
-    return concrete values.")]
-    pub fn get(&self) -> Vector2<f32>{
-        if self.hidden.get() { self.value.get() }
-        else                 { self.attr.get()  }
-    }
-}
+}}
 
 
 // === Private API ===
 
 impl Size {
     fn new(attr:Attribute<Vector2<f32>>) -> Self {
-        let hidden = default();
+        let hidden = Rc::new(Cell::new(true));
         let value  = Rc::new(Cell::new(zero()));
         Self {hidden,value,attr}
     }
 
     fn hide(&self) {
         self.hidden.set(true);
-        self.value.set(self.attr.get());
         self.attr.set(zero());
     }
 
@@ -157,7 +152,7 @@ impl Size {
 #[allow(missing_docs)]
 pub struct Sprite {
     pub symbol      : Symbol,
-    pub instance_id : AttributeInstanceIndex,
+    pub instance_id : attribute::InstanceIndex,
     pub size        : Size,
     display_object  : display::object::Instance,
     transform       : Attribute<Matrix4<f32>>,
@@ -169,7 +164,7 @@ impl Sprite {
     /// Constructor.
     pub fn new
     ( symbol      : &Symbol
-    , instance_id : AttributeInstanceIndex
+    , instance_id : attribute::InstanceIndex
     , transform   : Attribute<Matrix4<f32>>
     , size        : Attribute<Vector2<f32>>
     , stats       : &Stats
@@ -180,6 +175,8 @@ impl Sprite {
         let stats          = Rc::new(SpriteStats::new(stats));
         let guard          = Rc::new(SpriteGuard::new(instance_id,&symbol,&size,&display_object));
         let size           = Size::new(size);
+        let default_size   = Vector2(DEFAULT_SPRITE_SIZE.0,DEFAULT_SPRITE_SIZE.1);
+        size.set(default_size);
         Self {symbol,instance_id,display_object,transform,size,stats,guard}.init()
     }
 
@@ -190,21 +187,21 @@ impl Sprite {
         let transform = &self.transform;
         self.display_object.set_on_updated(f!((t) transform.set(t.matrix())));
         self.display_object.set_on_hide(f_!(size.hide()));
-        self.display_object.set_on_show(f_!(size.show()));
+        self.display_object.set_on_show(f__!(size.show()));
         self
     }
 
     /// Get the symbol id.
-    pub fn symbol_id(&self) -> i32 {
+    pub fn symbol_id(&self) -> SymbolId {
         self.symbol.id
     }
 
-    /// Check if given mouse-event-target means this visualization.
+    /// Check if given pointer-event-target means this object.
     pub fn is_this_target(&self, target:display::scene::PointerTarget) -> bool {
         match target {
             display::scene::PointerTarget::Background                      => false,
             display::scene::PointerTarget::Symbol {symbol_id, instance_id} =>
-                self.symbol_id() == symbol_id as i32 && *self.instance_id == instance_id as usize,
+                self.symbol_id() == symbol_id && self.instance_id == instance_id,
         }
     }
 }
@@ -263,9 +260,7 @@ impl SpriteSystem {
         let instance_id  = self.symbol.surface().instance_scope().add_instance();
         let transform    = self.transform.at(instance_id);
         let size         = self.size.at(instance_id);
-        let default_size = Vector2::new(1.0,1.0);
-        size.set(default_size);
-        let sprite = Sprite::new(&self.symbol,instance_id,transform,size,&self.stats);
+        let sprite       = Sprite::new(&self.symbol,instance_id,transform,size,&self.stats);
         self.add_child(&sprite);
         sprite
     }

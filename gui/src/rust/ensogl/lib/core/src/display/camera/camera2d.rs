@@ -18,7 +18,7 @@ use nalgebra::Perspective3;
 // ==============
 
 /// Camera's frustum screen dimensions.
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Default)]
 #[allow(missing_docs)]
 pub struct Screen {
     pub width  : f32,
@@ -27,13 +27,18 @@ pub struct Screen {
 
 impl Screen {
     /// Constructor.
-    pub fn new(width:f32, height:f32) -> Self {
-        Self{width,height}
+    pub fn new() -> Self {
+        default()
     }
 
     /// Get Screen's aspect ratio.
     pub fn aspect(self) -> f32 {
         self.width / self.height
+    }
+
+    /// Check whether the screen size is zero or negative.
+    pub fn is_degenerated(self) -> bool {
+        self.width < std::f32::EPSILON || self.height < std::f32::EPSILON
     }
 }
 
@@ -171,9 +176,8 @@ type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty  = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    fn new
-    (logger:Logger, display_object:&display::object::Instance, width:f32, height:f32) -> Self {
-        let screen                 = Screen::new(width,height);
+    fn new(logger:Logger, display_object:&display::object::Instance) -> Self {
+        let screen                 = Screen::new();
         let projection             = default();
         let clipping               = default();
         let zoom                   = 1.0;
@@ -272,6 +276,9 @@ impl Camera2dData {
     }
 
     fn set_screen(&mut self, width:f32, height:f32) {
+        if self.screen.is_degenerated() {
+            self.zoom = 1.0;
+        }
         self.screen.width  = width;
         self.screen.height = height;
         self.dirty.projection.set();
@@ -294,6 +301,11 @@ impl Camera2dData {
         self.zoom = 1.0;
         self.set_screen(self.screen.width,self.screen.height);
     }
+
+    /// Check whether the screen size is zero or negative.
+    fn is_degenerated(&self) -> bool {
+        self.screen.is_degenerated()
+    }
 }
 
 
@@ -302,7 +314,8 @@ impl Camera2dData {
 impl Camera2dData {
     fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
         self.mod_position_keep_zoom(f);
-        self.zoom = self.z_zoom_1 / self.display_object.position().z;
+        let z     = self.display_object.position().z.abs();
+        self.zoom = if z < std::f32::EPSILON { std::f32::INFINITY } else { self.z_zoom_1 / z };
     }
 
     fn set_position(&mut self, value:Vector3<f32>) {
@@ -346,11 +359,12 @@ pub struct Camera2d {
 }
 
 impl Camera2d {
-    /// Creates new Camera instance.
-    pub fn new(logger:impl AnyLogger, width:f32, height:f32) -> Self {
+    /// Creates new [`Camera2d`] instance. Please note that the camera will be of zero-size and in
+    /// order for it to work properly, you have to initialize it by using the `set_screen` method.
+    pub fn new(logger:impl AnyLogger) -> Self {
         let logger         = Logger::sub(logger,"camera");
         let display_object = display::object::Instance::new(&logger);
-        let data           = Camera2dData::new(logger,&display_object,width,height);
+        let data           = Camera2dData::new(logger,&display_object);
         let data           = Rc::new(RefCell::new(data));
         Self {display_object,data}
     }

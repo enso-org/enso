@@ -3,16 +3,17 @@
 use crate::prelude::*;
 
 use crate::data::dirty::traits::*;
+
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
 use crate::display::symbol::Symbol;
+use crate::display::symbol::SymbolId;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
 
 use data::opt_vec::OptVec;
-use nalgebra::Matrix4;
 
 
 
@@ -20,7 +21,6 @@ use nalgebra::Matrix4;
 // === Types ===
 // =============
 
-pub type SymbolId    = usize;
 pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
 
 
@@ -41,14 +41,14 @@ pub struct SymbolRegistry {
     view_projection : Uniform<Matrix4<f32>>,
     z_zoom_1        : Uniform<f32>,
     variables       : UniformScope,
-    context         : Context,
+    context         : Rc<RefCell<Option<Context>>>,
     stats           : Stats,
 }
 
 impl SymbolRegistry {
     /// Constructor.
     pub fn mk<OnMut:Fn()+'static,Log:AnyLogger>
-    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Log, on_mut:OnMut)
+    (variables:&UniformScope, stats:&Stats, logger:&Log, on_mut:OnMut)
     -> Self {
         let logger = Logger::sub(logger,"symbol_registry");
         debug!(logger,"Initializing.");
@@ -58,7 +58,7 @@ impl SymbolRegistry {
         let variables       = variables.clone();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1        = variables.add_or_panic("z_zoom_1"       , 1.0);
-        let context         = context.clone();
+        let context         = default();
         let stats           = stats.clone_ref();
         Self {symbols,symbol_dirty,logger,view_projection,z_zoom_1,variables,context,stats}
     }
@@ -68,14 +68,24 @@ impl SymbolRegistry {
         let symbol_dirty = self.symbol_dirty.clone();
         let variables    = &self.variables;
         let logger       = &self.logger;
-        let context      = &self.context;
         let stats        = &self.stats;
-        self.symbols.borrow_mut().insert_with_ix(|ix| {
-            let on_mut = move || {symbol_dirty.set(ix)};
-            let logger = Logger::sub(logger,format!("symbol{}",ix));
-            let id     = ix as i32;
-            Symbol::new(logger,context,stats,id,variables,on_mut)
-        })
+        let index        = self.symbols.borrow_mut().insert_with_ix_(|ix| {
+            let id     = SymbolId::new(ix as u32);
+            let on_mut = move || {symbol_dirty.set(id)};
+            let logger = Logger::sub(logger,format!("symbol_{}",ix));
+            let symbol = Symbol::new(logger,stats,id,variables,on_mut);
+            symbol.set_context(self.context.borrow().as_ref());
+            symbol
+        });
+        SymbolId::new(index as u32)
+    }
+
+    /// Set the WebGL context. See the main architecture docs of this library to learn more.
+    pub fn set_context(&self, context:Option<&Context>) {
+        *self.context.borrow_mut() = context.cloned();
+        for symbol in &*self.symbols.borrow() {
+            symbol.set_context(context)
+        }
     }
 
     /// Creates a new `Symbol` instance.
@@ -85,16 +95,16 @@ impl SymbolRegistry {
         self.index(ix)
     }
 
-    /// Get symbol by its index.
-    pub fn index(&self, ix:usize) -> Symbol {
-        self.symbols.borrow()[ix].clone_ref()
+    /// Get symbol by its ID.
+    pub fn index(&self, id:SymbolId) -> Symbol {
+        self.symbols.borrow()[(*id) as usize].clone_ref()
     }
 
     /// Check dirty flags and update the state accordingly.
     pub fn update(&self) {
         debug!(self.logger, "Updating.", || {
             for id in self.symbol_dirty.take().iter() {
-                self.symbols.borrow()[*id].update()
+                self.symbols.borrow()[(**id) as usize].update()
             }
             self.symbol_dirty.unset_all();
         })
@@ -117,7 +127,7 @@ impl SymbolRegistry {
     pub fn render_by_ids(&self,ids:&[SymbolId]) {
         let symbols = self.symbols.borrow();
         for id in ids {
-            symbols[*id].render();
+            symbols[(**id) as usize].render();
         }
     }
 }
