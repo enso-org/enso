@@ -153,7 +153,9 @@ case class DocParserDef() extends Parser[Doc] {
                 pushTag(section.currentIndentRaw, tagType, tagDet)
               }
             }
-            if (!containsTag && !elem.contains(newline)) {
+            if (
+              !containsTag && !elem.contains(newline) && inArray.tail.isEmpty
+            ) {
               pushTag(section.currentIndentRaw, Tags.Tag.Unrecognized, in)
               containsTag = true
             }
