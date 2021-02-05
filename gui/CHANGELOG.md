@@ -14,6 +14,8 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - Fixes to some visual glitches, like small "pixel-like" things appearing sometimes on the screen.
 - The shortcuts to close the application and to toggle the developer tools at runtime are working
   now on all supported platforms.
+- [You can now see data frames in the table visualisation][1181]. Big tables get truncated to 2000 
+  entries.
   
 #### EnsoGL
 - New multi-camera management system, allowing the same shape systems be rendered on different 
@@ -33,6 +35,7 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
   appears another icon that will reset the position to the original position.
 
 [1096]: https://github.com/enso-org/ide/pull/1172
+[1181]: https://github.com/enso-org/ide/pull/1181
 <br/>
 
 
