@@ -1,28 +1,33 @@
 from Base import all
 import Image.Data.Color
+import Image.Data.Matrix.Internal
 import Image.Data.Pixel
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
+polyglot java import org.opencv.core.Core
+polyglot java import org.opencv.core.Scalar
+
+type Index_Out_Of_Bounds_Error index
 
 type Matrix
 
     type Matrix opencv_mat
 
-    columns : Integer
-    columns = this.opencv_mat.cols
-
-    cols : Integer
-    cols = this.columns
-
     rows : Integer
     rows = this.opencv_mat.rows
 
+    columns : Integer
+    columns = this.opencv_mat.cols
+
     copy : Matrix
-    copy =
-        mat_type = Polyglot.invoke this.opencv_mat "type" (Array.new 0)
-        new_mat = Java_Matrix.zeros this.opencv_mat.rows this.opencv_mat.cols mat_type
-        this.opencv_mat.copyTo new_mat
-        Matrix new_mat
+    copy = Matrix this.opencv_mat.clone
+
+    get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
+    get row column =
+        if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error row) else
+            if (column < 0) || (column >= this.columns) then Error.throw (Index_Out_Of_Bounds_Error column) else
+                arr = this.opencv_mat.get row column
+                Vector.Vector arr
 
     map : (Pixel -> Pixel) -> Matrix
     map f =
@@ -41,3 +46,33 @@ type Matrix
                     Color.Channels_2 c1 c2 -> this.opencv_mat.put pixel.row pixel.col c1 c2
                     Color.Channels_3 c1 c2 c3 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3
                     Color.Channels_4 c1 c2 c3 c4 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3 c4
+
+    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+    + : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
+    + value =
+        Panic.recover (Internal.core_op this.opencv_mat value (Core.add _ _ _)) . catch Internal.core_op_handler
+
+    ## Calculates the per-element difference between two matrices or matrix and
+       a scalar.
+    - : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Core.subtract _ _ _)) . catch Internal.core_op_handler
+
+    ## Calculates the per-element scaled product of two matrices or a matrix and
+       a scalar.
+    * : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Core.multiply _ _ _)) . catch Internal.core_op_handler
+
+    ## Performs per-element division of two matrices or a matrix and a scalar.
+    / : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Core.divide _ _ _)) . catch Internal.core_op_handler
+
+    ## Calculates the sum of the elements.
+    sum : Color
+    sum =
+        scalar = Core.sumElems this.opencv_mat
+        Color.from_array scalar.val
+
+    to_vector : Vector
+    to_vector =
+        arr = Java_Matrix.to_vector this.opencv_mat
+        Vector.Vector arr

@@ -8,4 +8,4 @@ spec =
             lena = Enso_Project.data / "lena.png"
             mat = Io.read lena
             mat.rows.should_equal 256
-            mat.cols.should_equal 256
+            mat.columns.should_equal 256

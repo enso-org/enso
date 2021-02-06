@@ -1,6 +1,8 @@
 from Base import all
 import Image.Data.Color
 
+polyglot java import org.opencv.core.Scalar
+
 ## PRIVATE
 add color x = case color of
     Color.Channels_1 c1 -> Color.Channels_1 c1+x
@@ -28,3 +30,10 @@ divide color x = case color of
     Color.Channels_2 c1 c2 -> Color.Channels_2 c1/x c2/x
     Color.Channels_3 c1 c2 c3 -> Color.Channels_3 c1/x c2/x c3/x
     Color.Channels_4 c1 c2 c3 c4 -> Color.Channels_4 c1/x c2/x c3/x c4/x
+
+## PRIVATE
+to_scalar color = case color of
+    Color.Channels_1 c1 -> Scalar.new c1
+    Color.Channels_2 c1 c2 -> Scalar.new c1 c2
+    Color.Channels_3 c1 c2 c3 -> Scalar.new c1 c2 c3
+    Color.Channels_4 c1 c2 c3 c4 -> Scalar.new c1 c2 c3 c4

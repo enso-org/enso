@@ -1,0 +1,40 @@
+from Base import all
+import Image.Data.Color
+import Image.Data.Color.Internal as Color_Internal
+import Image.Data.Matrix
+
+polyglot java import org.enso.image.data.Matrix as Java_Matrix
+polyglot java import org.opencv.core.Mat
+polyglot java import org.opencv.core.Scalar
+
+## PRIVATE
+create rows cols mat_type values =
+    opencv_scalar = Scalar.new values.to_array
+    opencv_mat = Mat.new rows cols mat_type opencv_scalar
+    Matrix.Matrix opencv_mat
+
+## PRIVATE
+core_op mat value op =
+    new_mat = Java_Matrix.zeros mat
+    scalar = case value of
+        Vector.Vector arr ->
+            Color_Internal.to_scalar (Color.from_array arr) . catch (Panic.throw _)
+        Color.Channels_1 c1 ->
+            Scalar.new c1
+        Color.Channels_2 c1 c2 ->
+            Scalar.new c1 c2
+        Color.Channels_3 c1 c2 c3 ->
+            Scalar.new c1 c2 c3
+        Color.Channels_4 c1 c2 c3 c4 ->
+            Scalar.new c1 c2 c3 c4
+        Matrix.Matrix m ->
+            m
+        _ ->
+            Scalar.new value
+    op mat scalar new_mat
+    Matrix.Matrix new_mat
+
+## PRIVATE
+core_op_handler error = case error of
+    Color.Unsupported_Channels_Number _ -> Error.throw error
+    _ -> Panic.throw error

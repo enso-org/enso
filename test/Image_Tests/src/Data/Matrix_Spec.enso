@@ -1,0 +1,103 @@
+from Base import all
+import Image.Data.Matrix
+import Image.Data.Color
+import Test
+
+polyglot java import org.enso.image.data.Matrix as Java_Matrix
+
+spec =
+    Test.group "Matrix channels 1" <|
+        zeros = Matrix.Matrix (Java_Matrix.zeros 3 3 0)
+        ones = Matrix.Matrix (Java_Matrix.ones 3 3 0)
+        eye = Matrix.Matrix (Java_Matrix.eye 3 3 0)
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 0)
+            ones.to_vector . should_equal (Vector.fill 9 1)
+            eye.to_vector . should_equal [1, 0, 0, 0, 1, 0, 0, 0, 1]
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1]
+            eye.get 1 0 . should_equal [0]
+            eye.get 1 1 . should_equal [1]
+            Test.expect_error_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_error_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should add scalar" <|
+            (zeros + 1).to_vector . should_equal (Vector.fill 9 1)
+            (ones + 1).to_vector . should_equal (Vector.fill 9 2)
+        Test.specify "should add vector" <|
+            (zeros + [1]).to_vector . should_equal (Vector.fill 9 1)
+            (ones + [1, 1]).to_vector . should_equal (Vector.fill 9 2)
+            Test.expect_error_with (eye + []) Color.Unsupported_Channels_Number
+        Test.specify "should add color" <|
+            c1 = Color.from_vector [1]
+            (zeros + c1).to_vector . should_equal (Vector.fill 9 1)
+        Test.specify "should add matrix" <|
+            (zeros + ones).to_vector . should_equal (Vector.fill 9 1)
+            (eye + eye).to_vector . should_equal [2, 0, 0, 0, 2, 0, 0, 0, 2]
+            (ones + eye).to_vector . should_equal [2, 1, 1, 1, 2, 1, 1, 1, 2]
+
+        Test.specify "should subtract scalar" <|
+            (ones - 1).to_vector . should_equal (Vector.fill 9 0)
+            (zeros - 1).to_vector . should_equal (Vector.fill 9 0)
+        Test.specify "should subtract vector" <|
+            (zeros - [1]).to_vector . should_equal (Vector.fill 9 0)
+            (ones - [1, 1]).to_vector . should_equal (Vector.fill 9 0)
+            Test.expect_error_with (eye - []) Color.Unsupported_Channels_Number
+        Test.specify "should subtract color" <|
+            c1 = Color.from_vector [1]
+            (ones - c1).to_vector . should_equal (Vector.fill 9 0)
+        Test.specify "should subtract matrix" <|
+            (ones - zeros).to_vector . should_equal (Vector.fill 9 1)
+            (ones - eye).to_vector . should_equal [0, 1, 1, 1, 0, 1, 1, 1, 0]
+
+        Test.specify "should multiply scalar" <|
+            (ones * 3).to_vector . should_equal (Vector.fill 9 3)
+            (zeros * 4).to_vector . should_equal (Vector.fill 9 0)
+            (eye * 5).to_vector . should_equal [5, 0, 0, 0, 5, 0, 0, 0, 5]
+        Test.specify "should multiply vector" <|
+            (zeros * [2]).to_vector . should_equal (Vector.fill 9 0)
+            (ones + [2, 2]).to_vector . should_equal (Vector.fill 9 3)
+            Test.expect_error_with (eye * []) Color.Unsupported_Channels_Number
+        Test.specify "should multiply color" <|
+            c1 = Color.from_vector [2]
+            (ones * c1).to_vector . should_equal (Vector.fill 9 2)
+        Test.specify "should multiply matrix" <|
+            (ones * zeros).to_vector . should_equal (Vector.fill 9 0)
+            (ones * ones).to_vector . should_equal (Vector.fill 9 1)
+            (ones * eye).to_vector . should_equal [1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+        Test.specify "should divide scalar" <|
+            (zeros / 2).to_vector . should_equal (Vector.fill 9 0)
+            (ones / 2).to_vector . should_equal (Vector.fill 9 0)
+        Test.specify "should divide vector" <|
+            (zeros / [2]).to_vector . should_equal (Vector.fill 9 0)
+            (ones / [2, 2]).to_vector . should_equal (Vector.fill 9 0)
+            Test.expect_error_with (eye / []) Color.Unsupported_Channels_Number
+        Test.specify "should divide color" <|
+            c1 = Color.from_vector [1]
+            (ones / c1).to_vector . should_equal (Vector.fill 9 1)
+        Test.specify "should divide matrix" <|
+            (zeros / ones).to_vector . should_equal (Vector.fill 9 0)
+            (ones / ones).to_vector . should_equal (Vector.fill 9 1)
+
+        Test.specify "should sum" <|
+            zeros.sum . should_equal (Color.from_vector [0, 0, 0, 0])
+            ones.sum . should_equal (Color.from_vector [9, 0, 0, 0])
+
+    Test.group "Matrix channels 3" <|
+        zeros = Matrix.Matrix (Java_Matrix.zeros 3 3 (Java_Matrix.CV_8UC 3))
+        ones = Matrix.Matrix (Java_Matrix.ones 3 3 (Java_Matrix.CV_8UC 3))
+        eye = Matrix.Matrix (Java_Matrix.eye 3 3 (Java_Matrix.CV_8UC 3))
+        zeros_idx = Vector.fill 9 0
+        #ones_idx = Vector.fill 1 0
+        eye_idx = [1, 0, 0, 0, 1, 0, 0, 0, 1]
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 3*3*3 0)
+            ones.to_vector . should_equal (zeros_idx.flat_map (_ -> [1, 0, 0]))
+            eye.to_vector . should_equal (eye_idx.flat_map (i -> if i == 1 then [1, 0, 0] else [0, 0, 0]))
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1, 0, 0]
+            eye.get 1 0 . should_equal [0, 0, 0]
+            eye.get 1 1 . should_equal [1, 0, 0]
+            Test.expect_error_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_error_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error

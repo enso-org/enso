@@ -13,8 +13,14 @@ spec =
             Color.from_vector [1, 2] . should_equal (Color.Channels_2 1 2)
             Color.from_vector [1, 2, 3] . should_equal (Color.Channels_3 1 2 3)
             Color.from_vector [1, 2, 3, 4] . should_equal (Color.Channels_4 1 2 3 4)
-            Test.expect_error_with (Color.from_vector []) (Color.Unsupported_Channels_Number 0)
-            Test.expect_error_with (Color.from_vector [1, 2, 3, 4, 5]) (Color.Unsupported_Channels_Number 5)
+            Test.expect_error_with (Color.from_vector []) Color.Unsupported_Channels_Number
+            Test.expect_error_with (Color.from_vector [1, 2, 3, 4, 5]) Color.Unsupported_Channels_Number
+        Test.specify "should convert vector to a color" <|
+            [1].to_color . should_equal (Color.Channels_1 1)
+            [1, 2].to_color . should_equal (Color.Channels_2 1 2)
+            [1, 2, 3].to_color . should_equal (Color.Channels_3 1 2 3)
+            [1, 2, 3, 4].to_color . should_equal (Color.Channels_4 1 2 3 4)
+            Test.expect_error_with ([].to_color) Color.Unsupported_Channels_Number
         Test.specify "should convert to vector" <|
             Color.Channels_1 1 . to_vector . should_equal [1]
             Color.Channels_2 1 2 . to_vector . should_equal [1, 2]

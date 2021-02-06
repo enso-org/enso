@@ -8,5 +8,6 @@ type Pixel
     column : Integer
     column = this.col
 
+    copy : Integer -> Integer -> Color -> Pixel
     copy row=this.row column=this.col color=this.color =
         Pixel row column color

@@ -103,3 +103,5 @@ from_array arr =
             if arr.length == 3 then Channels_3 (arr.at 0) (arr.at 1) (arr.at 2) else
                 if arr.length == 4 then Channels_4 (arr.at 0) (arr.at 1) (arr.at 2) (arr.at 3) else
                     Error.throw (Unsupported_Channels_Number arr.length)
+
+Vector.Vector.to_color = here.from_vector this
