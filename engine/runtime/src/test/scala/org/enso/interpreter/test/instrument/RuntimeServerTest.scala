@@ -3145,7 +3145,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unexpected type provided for argument `that` in Text.+",
+              "Type_Error Text 2",
               None,
               None,
               None,
