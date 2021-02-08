@@ -197,7 +197,8 @@ interface ProjectOpenRequest {
 ```typescript
 interface ProjectOpenResult {
   /**
-   * The semver version string identifying an Enso engine version.
+   * The version of the started language server represented by a semver version
+   * string.
    */
   engineVersion: String;
 
