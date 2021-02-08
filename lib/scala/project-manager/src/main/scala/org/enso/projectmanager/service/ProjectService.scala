@@ -6,7 +6,11 @@ import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.PackageManager
-import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.{
+  Applicative,
+  CovariantFlatMap,
+  Traverse
+}
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -53,7 +57,9 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
+class ProjectService[
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
+](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   projectCreationService: ProjectCreationServiceApi[F],
@@ -288,14 +294,30 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
       )
-      .map(_.map(toProjectMetadata))
       .mapError(toServiceFailure)
+      .flatMap(xs => Traverse[List].traverse(xs)(resolveProjectMetadata))
 
-  private def toProjectMetadata(project: Project): ProjectMetadata =
+  private def resolveProjectMetadata(
+    project: Project
+  ): F[ProjectServiceFailure, ProjectMetadata] =
+    configurationService
+      .resolveEnsoVersion(project.engineVersion)
+      .mapError { case ConfigurationFileAccessFailure(message) =>
+        GlobalConfigurationAccessFailure(
+          s"Could not deduce the default version to use for the project: " +
+          s"$message"
+        )
+      }
+      .map(toProjectMetadata(_, project))
+
+  private def toProjectMetadata(
+    engineVersion: SemVer,
+    project: Project
+  ): ProjectMetadata =
     ProjectMetadata(
       name          = project.name,
       id            = project.id,
-      engineVersion = project.engineVersion,
+      engineVersion = engineVersion,
       lastOpened    = project.lastOpened
     )
 

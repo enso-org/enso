@@ -3,7 +3,7 @@ package org.enso.projectmanager.data
 import java.time.OffsetDateTime
 import java.util.UUID
 
-import org.enso.pkg.EnsoVersion
+import nl.gn0s1s.bump.SemVer
 
 /** Contains project metadata.
   *
@@ -15,6 +15,6 @@ import org.enso.pkg.EnsoVersion
 case class ProjectMetadata(
   name: String,
   id: UUID,
-  engineVersion: EnsoVersion,
+  engineVersion: SemVer,
   lastOpened: Option[OffsetDateTime]
 )

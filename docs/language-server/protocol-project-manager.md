@@ -94,11 +94,8 @@ interface ProjectMetadata {
   id: UUID;
 
   /**
-   * Enso Engine version to use for the project.
-   *
-   * Possible values are:
-   * - a semver version string identifying an Enso engine version,
-   * - `default` to use the current default.
+   * Enso Engine version to use for the project, represented by a semver version
+   * string.
    */
   engineVersion: String;
 
@@ -302,6 +299,8 @@ interface ProjectListResponse {
 
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
+- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
+  that the global configuration file could not be accessed or parsed.
 
 ### `project/create`
 
