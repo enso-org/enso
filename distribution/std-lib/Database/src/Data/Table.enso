@@ -62,16 +62,16 @@ type Table
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
     set : Text -> Column -> Table
-    set name column =
-        Helpers.ensure_name_is_sane name
-        new_col = Pair name column.expression
-        replace = this.internal_columns.exists (c -> c.first == name)
-        case replace of
-            True ->
-                new_cols = this.internal_columns.map (c -> if c.first == name then new_col else c)
-                this.updated_columns new_cols
-            False ->
-                this.updated_columns (this.internal_columns + [new_col])
+    set name column = case Helpers.ensure_name_is_sane name of
+        True ->
+            new_col = Pair name column.expression
+            replace = this.internal_columns.exists (c -> c.first == name)
+            case replace of
+                True ->
+                    new_cols = this.internal_columns.map (c -> if c.first == name then new_col else c)
+                    this.updated_columns new_cols
+                False ->
+                    this.updated_columns (this.internal_columns + [new_col])
 
     ## Returns the vector of columns contained in this table.
     columns : Vector Column
@@ -169,7 +169,7 @@ type Table
             name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
             price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
             quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
-            t = Table.new [name, price, quantity]
+            t = Table.new [name, price, quantity] # TODO [RW] DB example
 
             agg = t.group by='name'
 

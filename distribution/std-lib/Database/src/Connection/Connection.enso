@@ -1,13 +1,16 @@
 from Base import all
 import Database.Data.Table
-polyglot java import org.enso.database.connection.FakeTestConnection
+import Database.Connection.Internal.FakeTestConnection
 
 type Connection
-    type Connection java_connection dialect
+    type Connection internal_connection
+
+    dialect : String
+    dialect = this.internal_connection.dialect
 
     access_table : Text -> Table
     access_table name =
-        cols = this.java_connection.fetchColumnNamesForTable [name]
+        cols = this.internal_connection.fetch_column_names name
         column_names = Vector.Vector cols
         Table.make_table this name column_names
 
@@ -15,5 +18,5 @@ type Connection
     explain_query_plan statement = Error.throw "TODO"
 
 ## PRIVATE
-make_fake_connection dialect =
-    Connection (FakeTestConnection . new [].to_array) dialect
+make_fake_connection dialect tables =
+    Connection (FakeTestConnection.new tables dialect)

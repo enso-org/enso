@@ -8,9 +8,10 @@ import Database.Data.Dialect
 
 main =
     IO.println "Hello"
-    conn = Connection.make_fake_connection Dialect.sqlite
+    table1 = ["T1", ["A", "B", "C"]]
+    tables = Map.from_vector [table1]
+    conn = Connection.make_fake_connection Dialect.sqlite tables
     IO.println conn.dialect
-    conn.java_connection.addTable ["T1", ["A", "B", "C"].to_array]
 
     t1 = conn.access_table "T1"
     IO.println t1
