@@ -12,8 +12,6 @@ import org.enso.interpreter.epb.EpbContext;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
 
 import java.util.Arrays;
 import java.util.List;
@@ -22,7 +20,8 @@ import java.util.stream.Collectors;
 public abstract class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
-  private @Child ContextFlipNode flipNode = ContextFlipNodeGen.create();
+  private @Child
+  ContextRewrapNode flipNode = ContextRewrapNodeGen.create();
   private final String[] argNames;
 
   ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
@@ -84,7 +83,7 @@ public abstract class ForeignEvalNode extends RootNode {
               + code.getForeignSource()
               + "\n};poly_enso_eval";
       Source source =
-          Source.newBuilder(code.getLanguage().toTruffleLanguage(), wrappedSrc, "").build();
+          Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
       CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
       Object fn = flipNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNodeGen.create(argNames.length, fn));

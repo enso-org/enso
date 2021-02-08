@@ -2,17 +2,40 @@ package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.source.Source;
 
+import java.util.Arrays;
+
 /** A class containing helpers for creating and parsing EPB code */
 public class EpbParser {
   private static final String separator = "#";
 
   /** Lists all the languages supported in polyglot eval. */
   public enum ForeignLanguage {
-    JS;
+    JS("js", "js");
+
+    private final String truffleId;
+    private final String syntacticTag;
+
+    ForeignLanguage(String truffleId, String syntacticTag) {
+      this.truffleId = truffleId;
+      this.syntacticTag = syntacticTag;
+    }
 
     /** @return a Truffle language ID associated with this language */
-    public String toTruffleLanguage() {
-      return "js";
+    public String getTruffleId() {
+      return truffleId;
+    }
+
+    /**
+     * Transforms an Enso-side syntactic language tag into a recognized language object.
+     *
+     * @param tag the tag to parse
+     * @return a corresponding language value, or null if the language is not recognized
+     */
+    public static ForeignLanguage getBySyntacticTag(String tag) {
+      return Arrays.stream(values())
+          .filter(l -> l.syntacticTag.equals(tag))
+          .findFirst()
+          .orElse(null);
     }
   }
 
@@ -45,7 +68,7 @@ public class EpbParser {
    */
   public static Result parse(Source source) {
     String src = source.getCharacters().toString();
-    String[] langAndCode = src.split("#", 2);
+    String[] langAndCode = src.split(separator, 2);
     return new Result(ForeignLanguage.valueOf(langAndCode[0]), langAndCode[1]);
   }
 
@@ -59,18 +82,5 @@ public class EpbParser {
    */
   public static Source buildSource(ForeignLanguage language, String foreignSource, String name) {
     return Source.newBuilder(EpbLanguage.ID, language + separator + foreignSource, name).build();
-  }
-
-  /**
-   * Transforms an Enso-side syntactic language tag into a recognized language object.
-   *
-   * @param tag the tag to parse
-   * @return a corresponding language value, or null if the language is not recognized
-   */
-  public static ForeignLanguage getLanguage(String tag) {
-    if (tag.equals("js")) {
-      return ForeignLanguage.JS;
-    }
-    return null;
   }
 }

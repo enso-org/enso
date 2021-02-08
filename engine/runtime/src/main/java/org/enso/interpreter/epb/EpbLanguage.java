@@ -3,6 +3,7 @@ package org.enso.interpreter.epb;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import org.enso.interpreter.epb.node.ContextRewrapNode;
 import org.enso.interpreter.epb.node.ForeignEvalNode;
 
 /**
@@ -13,7 +14,7 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
  * {@link com.oracle.truffle.api.TruffleContext}s, one (often referred to as "outer") is allowed to
  * run Enso, Host Java, and possibly other thread-ready languages. Languages that cannot safely run
  * in a multithreaded environment are relegated to the other context (referred to as "inner"). The
- * inner context provides a GIL capacity, ensuring that access to the single-threaded languages is
+ * inner context provides a GIL capability, ensuring that access to the single-threaded languages is
  * serialized.
  *
  * <p>This imposes certain limitations on data interchange between the contexts. In particular, it
@@ -21,11 +22,10 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
  * outer context values need to be specially wrapped before being passed (e.g. as arguments) to the
  * inner context, and inner context values need rewrapping for use in the outer context. See {@link
  * org.enso.interpreter.epb.runtime.PolyglotProxy} and {@link
- * org.enso.interpreter.epb.node.ContextFlipNode} for details of how and when this wrapping is being
- * done.
+ * ContextRewrapNode} for details of how and when this wrapping is done.
  *
  * <p>With the structure outlined above, EPB is the only language that is initialized in both inner
- * and outer contexts and thus it is very minimal. It's only role is to manage both contexts and
+ * and outer contexts and thus it is very minimal. Its only role is to manage both contexts and
  * provide context-switching facilities.
  */
 @TruffleLanguage.Registration(

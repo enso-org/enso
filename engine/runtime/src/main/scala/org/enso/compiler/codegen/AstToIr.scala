@@ -209,7 +209,7 @@ object AstToIr {
             body
           ) =>
         translateForeignDefinition(header, body) match {
-          case Some((name, arguments, body)) =>
+          case Right((name, arguments, body)) =>
             val typeName = Name.Here(None)
             val methodRef =
               Name.MethodReference(typeName, name, name.location)
@@ -219,8 +219,11 @@ object AstToIr {
               body,
               getIdentifiedLocation(inputAst)
             )
-          case None =>
-            IR.Error.Syntax(inputAst, IR.Error.Syntax.InvalidForeignDefinition)
+          case Left(reason) =>
+            IR.Error.Syntax(
+              inputAst,
+              IR.Error.Syntax.InvalidForeignDefinition(reason)
+            )
         }
       case AstView.FunctionSugar(name, args, body) =>
         val typeName   = Name.Here(None)
@@ -309,15 +312,18 @@ object AstToIr {
             body
           ) =>
         translateForeignDefinition(header, body) match {
-          case Some((name, arguments, body)) =>
+          case Right((name, arguments, body)) =>
             IR.Function.Binding(
               name,
               arguments,
               body,
               getIdentifiedLocation(inputAst)
             )
-          case None =>
-            IR.Error.Syntax(inputAst, IR.Error.Syntax.InvalidForeignDefinition)
+          case Left(reason) =>
+            IR.Error.Syntax(
+              inputAst,
+              IR.Error.Syntax.InvalidForeignDefinition(reason)
+            )
         }
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
@@ -341,7 +347,8 @@ object AstToIr {
     }
   }
 
-  private def translateForeignDefinition(header: List[AST], body: AST): Option[
+  private def translateForeignDefinition(header: List[AST], body: AST): Either[
+    String,
     (IR.Name, List[IR.DefinitionArgument], IR.Foreign.Definition)
   ] = {
     header match {
@@ -358,19 +365,23 @@ object AstToIr {
               .mkString("\n")
             val methodName = buildName(name)
             val arguments  = args.map(translateArgumentDefinition(_))
-            val language   = EpbParser.getLanguage(lang)
-            if (language == null) { None }
-            else {
+            val language   = EpbParser.ForeignLanguage.getBySyntacticTag(lang)
+            if (language == null) {
+              Left(s"Language $lang is not a supported polyglot language.")
+            } else {
               val foreign = IR.Foreign.Definition(
                 language,
                 code,
                 getIdentifiedLocation(body)
               )
-              Some((methodName, arguments, foreign))
+              Right((methodName, arguments, foreign))
             }
-          case _ => None
+          case _ =>
+            Left(
+              "The body of a foreign block must be an uninterpolated string block literal."
+            )
         }
-      case _ => None
+      case _ => Left("The method name is not specified.")
     }
   }
 

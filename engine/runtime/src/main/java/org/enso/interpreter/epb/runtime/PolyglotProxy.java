@@ -5,7 +5,7 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.epb.node.ContextFlipNode;
+import org.enso.interpreter.epb.node.ContextRewrapNode;
 
 /**
  * Wraps a polyglot value that is to be shared between Truffle contexts. See {@link
@@ -70,11 +70,11 @@ public class PolyglotProxy implements TruffleObject {
   public Object getMembers(
       boolean includeInternal,
       @CachedLibrary("this.delegate") InteropLibrary members,
-      @Cached ContextFlipNode contextFlipNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnsupportedMessageException {
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(
+      return contextRewrapNode.execute(
           members.getMembers(this.delegate, includeInternal), origin, target);
     } finally {
       origin.leave(p);
@@ -97,16 +97,16 @@ public class PolyglotProxy implements TruffleObject {
       String member,
       Object[] arguments,
       @CachedLibrary("this.delegate") InteropLibrary members,
-      @Cached ContextFlipNode contextFlipNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws ArityException, UnknownIdentifierException, UnsupportedMessageException,
           UnsupportedTypeException {
     Object[] wrappedArgs = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
-      wrappedArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
+      wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(
+      return contextRewrapNode.execute(
           members.invokeMember(this.delegate, member, wrappedArgs), origin, target);
     } finally {
       origin.leave(p);
@@ -128,11 +128,11 @@ public class PolyglotProxy implements TruffleObject {
   public Object readMember(
       String member,
       @CachedLibrary("this.delegate") InteropLibrary members,
-      @Cached ContextFlipNode contextFlipNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnknownIdentifierException, UnsupportedMessageException {
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(members.readMember(this.delegate, member), origin, target);
+      return contextRewrapNode.execute(members.readMember(this.delegate, member), origin, target);
     } finally {
       origin.leave(p);
     }
@@ -152,15 +152,16 @@ public class PolyglotProxy implements TruffleObject {
   public Object execute(
       Object[] arguments,
       @CachedLibrary("this.delegate") InteropLibrary functions,
-      @Cached ContextFlipNode contextFlipNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Object[] wrappedArgs = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
-      wrappedArgs[i] = contextFlipNode.execute(arguments[i], target, origin);
+      wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(functions.execute(this.delegate, wrappedArgs), origin, target);
+      return contextRewrapNode.execute(
+          functions.execute(this.delegate, wrappedArgs), origin, target);
     } finally {
       origin.leave(p);
     }
@@ -202,11 +203,12 @@ public class PolyglotProxy implements TruffleObject {
   public Object readArrayElement(
       long index,
       @CachedLibrary("this.delegate") InteropLibrary arrays,
-      @Cached ContextFlipNode contextFlipNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     Object p = origin.enter();
     try {
-      return contextFlipNode.execute(arrays.readArrayElement(this.delegate, index), origin, target);
+      return contextRewrapNode.execute(
+          arrays.readArrayElement(this.delegate, index), origin, target);
     } finally {
       origin.leave(p);
     }

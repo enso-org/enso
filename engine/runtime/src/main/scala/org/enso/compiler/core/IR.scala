@@ -5810,8 +5810,9 @@ object IR {
         override def explanation: String = "Invalid operator name."
       }
 
-      case object InvalidForeignDefinition extends Reason {
-        override def explanation: String = "Invalid foreign definition."
+      case class InvalidForeignDefinition(details: String) extends Reason {
+        override def explanation: String =
+          s"Invalid foreign definition. $details"
       }
     }
 
