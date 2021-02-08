@@ -135,7 +135,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       guards = {
         "!methods.hasFunctionalDispatch(_this)",
         "!methods.hasSpecialDispatch(_this)",
-        "polyglotCallType != NOT_SUPPORTED"
+        "polyglotCallType != NOT_SUPPORTED",
+        "polyglotCallType != CONVERT_TO_TEXT"
       })
   Stateful doPolyglot(
       MaterializedFrame frame,
@@ -164,6 +165,49 @@ public abstract class IndirectInvokeMethodNode extends Node {
     }
     return new Stateful(
         state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_TEXT"
+      })
+  Stateful doConvertText(
+      MaterializedFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
+      BaseNode.TailStatus isTail,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
+    try {
+      String str = interop.asString(_this);
+      Text txt = Text.create(str);
+      Function function = textDispatch.getFunctionalDispatch(txt, symbol);
+      arguments[0] = txt;
+      return invokeFunctionNode.execute(
+          function,
+          frame,
+          state,
+          arguments,
+          schema,
+          defaultsExecutionMode,
+          argumentsExecutionMode,
+          isTail);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
   }
 
   @ExplodeLoop

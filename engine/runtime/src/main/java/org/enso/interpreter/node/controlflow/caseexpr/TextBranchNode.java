@@ -1,14 +1,16 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Text type.")
 public abstract class TextBranchNode extends BranchNode {
@@ -38,8 +40,12 @@ public abstract class TextBranchNode extends BranchNode {
     }
   }
 
-  @Specialization
-  void doLiteral(VirtualFrame frame, Object state, Text target) {
+  @Specialization(guards = "strings.isString(target)")
+  void doLiteral(
+      VirtualFrame frame,
+      Object state,
+      Object target,
+      @CachedLibrary(limit = "10") InteropLibrary strings) {
     accept(frame, state, new Object[0]);
   }
 

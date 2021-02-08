@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
@@ -119,6 +120,28 @@ public class Atom implements TruffleObject {
   public boolean isMemberInvocable(String member) {
     Map<String, ?> members = constructor.getDefinitionScope().getMethods().get(constructor);
     return members != null && members.containsKey(member);
+  }
+
+  @ExportMessage
+  @ExplodeLoop
+  public boolean isMemberReadable(String member) {
+    for (int i = 0; i < constructor.getArity(); i++) {
+      if (member.equals(constructor.getFields()[i].getName())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  @ExplodeLoop
+  public Object readMember(String member) throws UnknownIdentifierException {
+    for (int i = 0; i < constructor.getArity(); i++) {
+      if (member.equals(constructor.getFields()[i].getName())) {
+        return fields[i];
+      }
+    }
+    throw UnknownIdentifierException.create(member);
   }
 
   @ExportMessage

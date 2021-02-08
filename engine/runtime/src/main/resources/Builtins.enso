@@ -380,17 +380,12 @@ type Polyglot
     @Builtin_Type
     type Polyglot
 
-    ## PRIVATE
-
-       Evaluates the provided code in the provided language to produce a
-       value.
+    ## Reads the number of elements in a given polyglot array object.
 
        Arguments:
-       - language: The polyglot language in which to evaluate the code. The
-         available languages depend on what is installed on your platform.
-       - code: The code in language to evaluate.
-    eval : Text -> Text -> Any
-    eval language code = @Builtin_Method "Polyglot.eval"
+       - array: a polyglot array object, originating in any supported language.
+    get_array_size : Any -> Integer
+    get_array_size array = @Builtin_Method "Polyglot.get_array_size"
 
     ## Executes a polyglot function object (e.g. a lambda).
 
