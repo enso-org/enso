@@ -98,10 +98,16 @@ object FixInstrumentsGeneration {
   ): FragileFiles = {
     val fragileSources =
       (file(s"$root/src/main/java/") ** "*Instrument.java").get ++
-      Seq(file(s"$root/src/main/java/org/enso/interpreter/Language.java"))
+      Seq(
+        file(s"$root/src/main/java/org/enso/interpreter/Language.java"),
+        file(s"$root/src/main/java/org/enso/interpreter/epb/EpbLanguage.java")
+      )
     val fragileClassFiles =
       (classFilesDirectory ** "*Instrument.class").get ++
-      Seq(file(s"$classFilesDirectory/org/enso/interpreter/Language.class"))
+      Seq(
+        file(s"$classFilesDirectory/org/enso/interpreter/Language.class"),
+        file(s"$classFilesDirectory/org/enso/interpreter/epb/EpbLanguage.class")
+      )
     FragileFiles(fragileSources, fragileClassFiles)
   }
 }

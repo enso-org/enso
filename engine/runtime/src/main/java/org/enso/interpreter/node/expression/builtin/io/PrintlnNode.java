@@ -5,6 +5,9 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.PrintStream;
 import org.enso.interpreter.Language;
@@ -12,6 +15,7 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -31,31 +35,35 @@ public abstract class PrintlnNode extends Node {
   abstract Stateful execute(
       VirtualFrame frame, @MonadicState Object state, Object _this, @AcceptsError Object message);
 
-  @Specialization
+  @Specialization(guards = "strings.isString(message)")
   Stateful doPrintText(
       VirtualFrame frame,
       Object state,
-      Object _this,
-      Text message,
+      Object self,
+      Object message,
       @CachedContext(Language.class) Context ctx,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
-    print(ctx.getOut(), toJavaStringNode.execute(message));
+      @CachedLibrary(limit = "10") InteropLibrary strings) {
+    try {
+      print(ctx.getOut(), strings.asString(message));
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible. self is guaranteed to be a string");
+    }
     return new Stateful(state, ctx.getUnit().newInstance());
   }
 
-  @Specialization(guards = "!isText(message)")
+  @Specialization(guards = "!strings.isString(message)")
   Stateful doPrint(
       VirtualFrame frame,
       Object state,
-      Object _this,
+      Object self,
       Object message,
       @CachedContext(Language.class) Context ctx,
+      @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol(ctx)") UnresolvedSymbol symbol,
-      @Cached("build()") ToJavaStringNode toJavaStringNode,
-      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
+      @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
+      @Cached ExpectStringNode expectStringNode) {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    String strr = toJavaStringNode.execute((Text) str.getValue());
-    print(ctx.getOut(), strr);
+    print(ctx.getOut(), expectStringNode.execute(str.getValue()));
     return new Stateful(str.getState(), ctx.getUnit().newInstance());
   }
 
