@@ -7,7 +7,7 @@ import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.SemVerEnsoVersion
+import org.enso.pkg.{EnsoVersion, SemVerEnsoVersion}
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
@@ -18,10 +18,10 @@ class ProjectOpenMissingComponentsSpec
     with RetrySpec
     with ProjectManagementOps
     with MissingComponentBehavior {
-  val ordinaryVersion: SemVer                  = SemVer(0, 0, 1)
-  override val engineToInstall: Option[SemVer] = Some(ordinaryVersion)
-  var ordinaryProject: UUID                    = _
-  var brokenProject: UUID                      = _
+  val ordinaryVersion: SemVer               = SemVer(0, 0, 1)
+  override val engineToInstall: EnsoVersion = SemVerEnsoVersion(ordinaryVersion)
+  var ordinaryProject: UUID                 = _
+  var brokenProject: UUID                   = _
 
   override val deleteProjectsRootAfterEachTest = false
   override def beforeAll(): Unit = {
