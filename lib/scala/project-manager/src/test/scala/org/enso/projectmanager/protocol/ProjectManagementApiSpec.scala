@@ -7,7 +7,7 @@ import java.util.UUID
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.pkg.{EnsoVersion, SemVerEnsoVersion}
+import org.enso.pkg.SemVerJson._
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
@@ -25,7 +25,7 @@ class ProjectManagementApiSpec
     gen.reset()
   }
 
-  override val engineToInstall: EnsoVersion = SemVerEnsoVersion(SemVer(0, 0, 1))
+  override val engineToInstall = Some(SemVer(0, 0, 1))
 
   "project/create" must {
 

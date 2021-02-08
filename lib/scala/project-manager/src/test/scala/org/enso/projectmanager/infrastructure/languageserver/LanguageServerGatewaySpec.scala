@@ -2,7 +2,6 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.testkit.TestDuration
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.{EnsoVersion, SemVerEnsoVersion}
 import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
@@ -16,7 +15,7 @@ class LanguageServerGatewaySpec
     with ProjectManagementOps
     with RetrySpec {
 
-  override val engineToInstall: EnsoVersion = SemVerEnsoVersion(SemVer(0, 0, 1))
+  override val engineToInstall = Some(SemVer(0, 0, 1))
 
   "A language server service" must {
 

@@ -15,7 +15,6 @@ import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.loggingservice.printers.StderrPrinterWithColors
 import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
-import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion, SemVerEnsoVersion}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
@@ -204,7 +203,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   /** Tests can override this value to request a specific engine version to be
     * preinstalled when running the suite.
     */
-  val engineToInstall: EnsoVersion = DefaultEnsoVersion
+  val engineToInstall: Option[SemVer] = None
 
   /** Tests can override this to set up a logging service that will print debug
     * logs.
@@ -226,10 +225,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       )
     }
 
-    engineToInstall match {
-      case DefaultEnsoVersion         =>
-      case SemVerEnsoVersion(version) => preInstallEngine(version)
-    }
+    engineToInstall.foreach(preInstallEngine)
   }
 
   /** This is a temporary solution to ensure that a valid engine distribution is
@@ -325,4 +321,5 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
         timeout
       ) shouldEqual json
   }
+
 }
