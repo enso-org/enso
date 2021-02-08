@@ -644,8 +644,14 @@ class DocParserTests extends AnyFlatSpec with Matchers {
     Synopsis(Section.Raw("Foo"))
   )
   """   ALAMAKOTA
+    | DEPRECATED
+    | PRIVATE
     | foo bar""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
-    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA")),
+    Tags(
+      Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA"),
+      Tags.Tag(1, Tags.Tag.Type.Deprecated),
+      Tags.Tag(1, Tags.Tag.Type.Private)
+    ),
     Synopsis(Section.Raw(1, "foo bar"))
   )
 

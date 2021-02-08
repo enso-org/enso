@@ -538,15 +538,15 @@ object Doc {
 
       sealed trait Type
       object Type {
-        case object Deprecated extends Type
         case object Added      extends Type
-        case object Removed    extends Type
-        case object Modified   extends Type
-        case object Upcoming   extends Type
-        case object Private    extends Type
         case object Advanced   extends Type
+        case object Deprecated extends Type
+        case object Modified   extends Type
+        case object Private    extends Type
+        case object Removed    extends Type
         case object TextOnly   extends Type
         case object Unstable   extends Type
+        case object Upcoming   extends Type
         val codes = ADT.constructors[Type]
       }
       case object Unrecognized extends Type
