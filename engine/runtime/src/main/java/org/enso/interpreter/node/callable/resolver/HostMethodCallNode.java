@@ -23,6 +23,7 @@ public abstract class HostMethodCallNode extends Node {
     INSTANTIATE,
     GET_ARRAY_LENGTH,
     READ_ARRAY_ELEMENT,
+    CONVERT_TO_TEXT,
     NOT_SUPPORTED
   }
 
@@ -53,6 +54,8 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.GET_ARRAY_LENGTH;
     } else if (library.hasArrayElements(_this) && methodName.equals(ARRAY_READ_NAME)) {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
+    } else if (library.isString(_this)) {
+      return PolyglotCallType.CONVERT_TO_TEXT;
     } else {
       return PolyglotCallType.NOT_SUPPORTED;
     }

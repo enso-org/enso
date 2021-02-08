@@ -6,9 +6,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.text.Text;
 
 import java.io.File;
 
@@ -25,14 +24,14 @@ public abstract class AddToClassPathNode extends Node {
   @Specialization
   Object doExecute(
       Object _this,
-      Text path,
+      Object path,
       @CachedContext(Language.class) Context context,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      @Cached ExpectStringNode expectStringNode) {
     context
         .getEnvironment()
-        .addToHostClassPath(context.getTruffleFile(new File(toJavaStringNode.execute(path))));
+        .addToHostClassPath(context.getTruffleFile(new File(expectStringNode.execute(path))));
     return context.getBuiltins().nothing();
   }
 
-  abstract Object execute(Object _this, Text path);
+  abstract Object execute(Object _this, Object path);
 }

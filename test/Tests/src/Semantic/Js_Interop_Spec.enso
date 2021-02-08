@@ -28,6 +28,9 @@ foreign js make_object = """
 foreign js make_array = """
     return [{ x: 10}, {x: 20}, {x: 30}];
 
+foreign js make_str str = """
+    return "foo " + str + " bar"
+
 spec = Test.group "Polyglot JS" <|
     Test.specify "should allow declaring module-level methods in JS" <|
         here.my_method 1 2 . should_equal 3
@@ -45,4 +48,15 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "should expose array interfaces for JS arrays" <|
         vec = Vector.Vector here.make_array
         vec.map .x . should_equal [10, 20, 30]
+
+    Test.specify "should correctly marshall strings" <|
+        str = here.make_str "x" + " baz"
+        str.should_equal "foo x bar baz"
+
+    Test.specify "should make JS strings type pattern-matchable" <|
+        str = here.make_str "x"
+        t = case str of
+            Text -> True
+            _ -> False
+        t.should_be_true
 
