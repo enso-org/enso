@@ -85,7 +85,7 @@ type Vector
          Checking the length of a vector.
              [1, 2, 3, 4].length == 4
     length : Number
-    length = this.to_array.length
+    length = Polyglot.get_array_size this.to_array
 
     ## Gets an element from the vector at a specified index (0-based).
 
@@ -208,10 +208,7 @@ type Vector
              [2, 3, 4]
     map : (Any -> Any) -> Vector
     map function =
-        arr = this.to_array
-        new_arr = Array.new arr.length
-        0.up_to arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
-        Vector new_arr
+        here.new this.length i-> function (this.at i)
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -247,12 +244,11 @@ type Vector
              [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
     to_text =
-        arr = this.to_array
-        if arr.length == 0 then "[]" else
-            if arr.length == 1 then "[" + (arr.at 0 . to_text) + "]" else
-                folder = str -> ix -> str + ", " + (arr.at ix).to_text
-                tail_elems = 1.up_to arr.length . fold "" folder
-                "[" + (arr.at 0 . to_text) + tail_elems + "]"
+        if this.length == 0 then "[]" else
+            if this.length == 1 then "[" + (this.at 0 . to_text) + "]" else
+                folder = str -> ix -> str + ", " + (this.at ix).to_text
+                tail_elems = 1.up_to this.length . fold "" folder
+                "[" + (this.at 0 . to_text) + tail_elems + "]"
 
     ## Checks whether this vector is equal to `that`. Two vectors are considered
        equal, when they have the same length and their items are pairwise equal.
@@ -262,10 +258,8 @@ type Vector
              [1, 2, 3] == [2, 3, 4
     == : Vector -> Boolean
     == that =
-        arr1 = this.to_array
-        arr2 = that.to_array
-        eq_at i = arr1.at i == arr2.at i
-        if arr1.length == arr2.length then 0.up_to arr1.length . all eq_at else False
+        eq_at i = this.at i == that.at i
+        if this.length == that.length then 0.up_to this.length . all eq_at else False
 
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `this`, followed by all the elements of `that`.

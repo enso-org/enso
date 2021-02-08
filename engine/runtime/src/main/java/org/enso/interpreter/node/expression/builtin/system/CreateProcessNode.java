@@ -8,6 +8,7 @@ import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.Array;
@@ -28,9 +29,9 @@ public abstract class CreateProcessNode extends Node {
 
   abstract Object execute(
       Object _this,
-      Text command,
+      Object command,
       Array arguments,
-      Text input,
+      Object input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr);
@@ -39,25 +40,25 @@ public abstract class CreateProcessNode extends Node {
   @CompilerDirectives.TruffleBoundary
   Object doCreate(
       Object _this,
-      Text command,
+      Object command,
       Array arguments,
-      Text input,
+      Object input,
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
       @CachedContext(Language.class) Context ctx,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      @Cached ExpectStringNode expectStringNode) {
     String[] cmd = new String[arguments.getItems().length + 1];
-    cmd[0] = toJavaStringNode.execute(command);
+    cmd[0] = expectStringNode.execute(command);
     for (int i = 1; i <= arguments.getItems().length; i++) {
-      cmd[i] = toJavaStringNode.execute((Text) arguments.getItems()[i - 1]);
+      cmd[i] = expectStringNode.execute(arguments.getItems()[i - 1]);
     }
     TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 
     try {
       Process p = pb.start();
       ByteArrayInputStream in =
-          new ByteArrayInputStream(toJavaStringNode.execute(input).getBytes());
+          new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       ByteArrayOutputStream err = new ByteArrayOutputStream();
 

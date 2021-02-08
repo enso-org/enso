@@ -9,6 +9,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
+import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Shape.{
   SegmentEscape,
@@ -144,9 +145,9 @@ object AstToIr {
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
-          case _: IR.Module.Scope.Definition.Atom   => true
-          case _: IR.Name.Literal                   => true
-          case _                                    => false
+          case _: IR.Module.Scope.Definition.Atom => true
+          case _: IR.Name.Literal                 => true
+          case _                                  => false
         }
         val hasArgs = args.nonEmpty
 
@@ -202,6 +203,28 @@ object AstToIr {
           translateExpression(definition),
           getIdentifiedLocation(inputAst)
         )
+      case AstView.FunctionSugar(
+            AST.Ident.Var("foreign"),
+            header,
+            body
+          ) =>
+        translateForeignDefinition(header, body) match {
+          case Right((name, arguments, body)) =>
+            val typeName = Name.Here(None)
+            val methodRef =
+              Name.MethodReference(typeName, name, name.location)
+            Module.Scope.Definition.Method.Binding(
+              methodRef,
+              arguments,
+              body,
+              getIdentifiedLocation(inputAst)
+            )
+          case Left(reason) =>
+            IR.Error.Syntax(
+              inputAst,
+              IR.Error.Syntax.InvalidForeignDefinition(reason)
+            )
+        }
       case AstView.FunctionSugar(name, args, body) =>
         val typeName   = Name.Here(None)
         val methodName = buildName(name)
@@ -281,8 +304,27 @@ object AstToIr {
     inputAst match {
       case AST.Ident.Annotation.any(ann) =>
         IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
-      case AST.Ident.Cons.any(include)         => translateIdent(include)
-      case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
+      case AST.Ident.Cons.any(include) => translateIdent(include)
+      case atom @ AstView.Atom(_, _)   => translateModuleSymbol(atom)
+      case AstView.FunctionSugar(
+            AST.Ident.Var("foreign"),
+            header,
+            body
+          ) =>
+        translateForeignDefinition(header, body) match {
+          case Right((name, arguments, body)) =>
+            IR.Function.Binding(
+              name,
+              arguments,
+              body,
+              getIdentifiedLocation(inputAst)
+            )
+          case Left(reason) =>
+            IR.Error.Syntax(
+              inputAst,
+              IR.Error.Syntax.InvalidForeignDefinition(reason)
+            )
+        }
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
       case AstView.Binding(AST.App.Section.Right(opr, arg), body) =>
@@ -302,6 +344,44 @@ object AstToIr {
         translateExpression(assignment)
       case _ =>
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
+    }
+  }
+
+  private def translateForeignDefinition(header: List[AST], body: AST): Either[
+    String,
+    (IR.Name, List[IR.DefinitionArgument], IR.Foreign.Definition)
+  ] = {
+    header match {
+      case AST.Ident.Var(lang) :: AST.Ident.Var.any(name) :: args =>
+        body.shape match {
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val code = lines
+              .map(t =>
+                t.text.collect {
+                  case AST.Literal.Text.Segment.Plain(str)   => str
+                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
+                }.mkString
+              )
+              .mkString("\n")
+            val methodName = buildName(name)
+            val arguments  = args.map(translateArgumentDefinition(_))
+            val language   = EpbParser.ForeignLanguage.getBySyntacticTag(lang)
+            if (language == null) {
+              Left(s"Language $lang is not a supported polyglot language.")
+            } else {
+              val foreign = IR.Foreign.Definition(
+                language,
+                code,
+                getIdentifiedLocation(body)
+              )
+              Right((methodName, arguments, foreign))
+            }
+          case _ =>
+            Left(
+              "The body of a foreign block must be an uninterpolated string block literal."
+            )
+        }
+      case _ => Left("The method name is not specified.")
     }
   }
 

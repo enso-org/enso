@@ -1,0 +1,62 @@
+from Base import all
+import Test
+
+foreign js my_method a b = """
+    return a + b;
+
+type My_Type
+    type My_Type a b
+
+    foreign js my_method = """
+        return this.a + this.b;
+
+    my_method_2 x = this.my_method * x
+
+    foreign js my_method_3 y = """
+        var r = this.my_method_2(y)
+        return r + 1;
+
+foreign js make_object = """
+    return {
+        x: 10,
+        y: false,
+        compare: function (guess) {
+            return this.x < guess;
+        }
+    };
+
+foreign js make_array = """
+    return [{ x: 10}, {x: 20}, {x: 30}];
+
+foreign js make_str str = """
+    return "foo " + str + " bar"
+
+spec = Test.group "Polyglot JS" <|
+    Test.specify "should allow declaring module-level methods in JS" <|
+        here.my_method 1 2 . should_equal 3
+
+    Test.specify "should allow mutual calling of instance-level methods" <|
+        My_Type 3 4 . my_method_3 5 . should_equal 36
+
+    Test.specify "should expose methods and fields of JS objects" <|
+        obj = here.make_object
+        obj.x . should_equal 10
+        obj.y . should_be_false
+        obj.compare 5 . should_be_false
+        obj.compare 11 . should_be_true
+
+    Test.specify "should expose array interfaces for JS arrays" <|
+        vec = Vector.Vector here.make_array
+        vec.map .x . should_equal [10, 20, 30]
+
+    Test.specify "should correctly marshall strings" <|
+        str = here.make_str "x" + " baz"
+        str.should_equal "foo x bar baz"
+
+    Test.specify "should make JS strings type pattern-matchable" <|
+        str = here.make_str "x"
+        t = case str of
+            Text -> True
+            _ -> False
+        t.should_be_true
+

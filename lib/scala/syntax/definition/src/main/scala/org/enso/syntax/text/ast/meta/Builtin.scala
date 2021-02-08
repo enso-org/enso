@@ -200,25 +200,6 @@ object Builtin {
       }
     }
 
-    val foreign = Definition(
-      Var("foreign") -> (Pattern.Cons() :: Pattern.Block())
-    ) { ctx =>
-      ctx.body match {
-        case List(s1) =>
-          s1.body.toStream match {
-            case List(langAST, Shifted(_, AST.Block.any(bodyAST))) =>
-              val indent     = bodyAST.indent
-              val lang       = langAST.wrapped.show()
-              val body       = bodyAST.show()
-              val bodyLines  = body.split("\\r?\\n").toList.drop(1)
-              val bodyLines2 = bodyLines.map(_.drop(indent))
-              AST.Foreign(indent, lang, bodyLines2)
-            case _ => internalError
-          }
-        case _ => internalError
-      }
-    }
-
     val skip = Definition(
       Var("skip") -> Pattern.Expr()
     ) { ctx =>
@@ -459,7 +440,6 @@ object Builtin {
       qualifiedExport,
       defn,
       arrow,
-      foreign,
       docComment,
       disableComment,
       skip,
