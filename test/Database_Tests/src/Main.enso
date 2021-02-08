@@ -27,7 +27,4 @@ main =
 
     t3 = t2.join (t2.set_index "A") on="B"
     IO.println t3
-    IO.println t3.to_sql
-
-    err = (t1.at "A" . rename "';-- DROP TABLE").catch (err -> IO.println err)
-    IO.println err
+    IO.println t3.to_sql.unsafe_to_raw_sql

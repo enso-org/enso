@@ -15,9 +15,24 @@ type Statement
     fragments : VectorBuilder SqlFragment
     fragments = this.internal_fragments
 
-    ## TODO [RW] documentation clearly stating that this function is unsafe and must be used with care
-    unsafe_to_sql : Text
-    unsafe_to_sql = Error.throw "TODO"
+    ## UNSAFE
+       This function returns a raw SQL string for the query, manually handling
+       the interpolation that is normally handled by the database engine itself.
+
+       It should be used EXTREMELY carefully - the returned SQL code should
+       always be read by a human to ensure that it does what is expected before
+       executing it in any REPLs or other database interfaces.
+
+       It should NEVER be used in production code.
+    unsafe_to_raw_sql : Text
+    unsafe_to_raw_sql =
+        strings = this.internal_fragments . map <| case _ of
+            SqlCodePart code -> code
+            # TODO at some point we may try more sophisticated serialization based on data type
+            SqlInterpolation obj -> case obj of
+                Number -> obj.to_text
+                _ -> "'" + obj.to_text.replace "'" "''" + "'"
+        strings.join ""
 
     ## Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.

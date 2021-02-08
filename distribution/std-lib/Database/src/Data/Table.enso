@@ -134,7 +134,8 @@ type Table
         case my_index.length == other_index.length of
             False -> Error.throw "Cannot join with multi-indexes of different lengths."
             True ->
-                # TODO [RW] we can easily avoid creating subqueries if there are no groups, orders or wheres, so it may be worth optimizing that here
+                ## TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
+                   so it may be worth optimizing that here
 
                 new_table_name = this.name + "_" + other.name
                 aliases = case this.name == other.name of

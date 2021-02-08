@@ -10,8 +10,7 @@ type Connection
 
     access_table : Text -> Table
     access_table name =
-        cols = this.internal_connection.fetch_column_names name
-        column_names = Vector.Vector cols
+        column_names = this.internal_connection.fetch_column_names name
         Table.make_table this name column_names
 
     explain_query_plan : SQL.Statement -> Text
