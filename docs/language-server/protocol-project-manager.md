@@ -83,9 +83,29 @@ This type represents information about a project.
 
 ```typescript
 interface ProjectMetadata {
+  /**
+   * The name of the project.
+   */
   name: String;
+
+  /**
+   * The project id.
+   */
   id: UUID;
-  lastOpened: UTCDateTime;
+
+  /**
+   * Enso Engine version to use for the project.
+   *
+   * Possible values are:
+   * - a semver version string identifying an Enso engine version,
+   * - `default` to use the current default.
+   */
+  engineVersion: String;
+
+  /**
+   * The last opened datetime.
+   */
+  lastOpened?: UTCDateTime;
 }
 ```
 

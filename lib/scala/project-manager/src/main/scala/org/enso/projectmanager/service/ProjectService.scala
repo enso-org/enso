@@ -293,9 +293,10 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   private def toProjectMetadata(project: Project): ProjectMetadata =
     ProjectMetadata(
-      name       = project.name,
-      id         = project.id,
-      lastOpened = project.lastOpened
+      name          = project.name,
+      id            = project.id,
+      engineVersion = project.engineVersion,
+      lastOpened    = project.lastOpened
     )
 
   private def getUserProject(
