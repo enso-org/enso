@@ -20,8 +20,7 @@ import java.util.stream.Collectors;
 public abstract class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
-  private @Child
-  ContextRewrapNode flipNode = ContextRewrapNodeGen.create();
+  private @Child ContextRewrapNode rewrapNode = ContextRewrapNodeGen.create();
   private final String[] argNames;
 
   ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
@@ -82,10 +81,9 @@ public abstract class ForeignEvalNode extends RootNode {
               + "){\n"
               + code.getForeignSource()
               + "\n};poly_enso_eval";
-      Source source =
-          Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+      Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
       CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
-      Object fn = flipNode.execute(ct.call(), inner, outer);
+      Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNodeGen.create(argNames.length, fn));
     } finally {
       inner.leave(p);

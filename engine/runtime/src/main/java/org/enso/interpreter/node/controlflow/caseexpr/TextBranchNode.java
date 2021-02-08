@@ -9,10 +9,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.node.expression.builtin.text.util.IsTextNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.data.text.Text;
 
 @NodeInfo(shortName = "TextMatch", description = "Allows matching on the Text type.")
 public abstract class TextBranchNode extends BranchNode {
@@ -47,7 +45,7 @@ public abstract class TextBranchNode extends BranchNode {
       VirtualFrame frame,
       Object state,
       Object target,
-      @CachedLibrary(limit="10") InteropLibrary strings) {
+      @CachedLibrary(limit = "10") InteropLibrary strings) {
     accept(frame, state, new Object[0]);
   }
 
