@@ -103,7 +103,7 @@ object ProjectServiceFailure {
   case class ComponentRepositoryAccessFailure(msg: String)
       extends ProjectServiceFailure
 
-  /** Signals about a failure in the configuration service. */
+  /** Signals a failure in the configuration service. */
   case class GlobalConfigurationAccessFailure(msg: String)
       extends ProjectServiceFailure
 
