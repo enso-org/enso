@@ -8,6 +8,7 @@ import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import Tests.Semantic.Error_Spec
 import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import Tests.Semantic.Java_Interop_Spec
+import Tests.Semantic.Js_Interop_Spec
 import Tests.Semantic.Meta_Spec
 import Tests.Semantic.Names_Spec
 
@@ -45,6 +46,7 @@ main = Test.Suite.runMain <|
     Import_Loop_Spec.spec
     Interval_Spec.spec
     Java_Interop_Spec.spec
+    Js_Interop_Spec.spec
     Json_Spec.spec
     List_Spec.spec
     Map_Spec.spec

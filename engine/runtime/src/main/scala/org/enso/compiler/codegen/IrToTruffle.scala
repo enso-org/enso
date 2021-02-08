@@ -1,6 +1,9 @@
 package org.enso.compiler.codegen
 
+import java.math.BigInteger
+
 import com.oracle.truffle.api.Truffle
+import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
@@ -21,6 +24,7 @@ import org.enso.compiler.pass.resolve.{
   Patterns,
   UppercaseNames
 }
+import org.enso.interpreter.epb.EpbParser
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -35,6 +39,7 @@ import org.enso.interpreter.node.callable.{
 import org.enso.interpreter.node.controlflow.caseexpr._
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant._
+import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.{
   BigIntegerLiteralNode,
   DecimalLiteralNode,
@@ -61,10 +66,13 @@ import org.enso.interpreter.runtime.callable.function.{
 }
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.scope.{
+  FramePointer,
+  LocalScope,
+  ModuleScope
+}
 import org.enso.interpreter.{Constants, Language}
 
-import java.math.BigInteger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -1023,35 +1031,61 @@ class IrToTruffle(
       val seenArgNames   = mutable.Set[String]()
 
       // Note [Rewriting Arguments]
-      for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
-        val arg = argFactory.run(unprocessedArg, idx)
-        argDefinitions(idx) = arg
+      val argSlots =
+        arguments.zipWithIndex.map { case (unprocessedArg, idx) =>
+          val arg = argFactory.run(unprocessedArg, idx)
+          argDefinitions(idx) = arg
 
-        val occInfo = unprocessedArg
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "No occurrence on an argument definition."
+          val occInfo = unprocessedArg
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "No occurrence on an argument definition."
+            )
+            .unsafeAs[AliasAnalysis.Info.Occurrence]
+
+          val slot = scope.createVarSlot(occInfo.id)
+          val readArg =
+            ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+          val assignArg = AssignmentNode.build(readArg, slot)
+
+          argExpressions.append(assignArg)
+
+          val argName = arg.getName
+
+          if (seenArgNames contains argName) {
+            throw new DuplicateArgumentNameException(argName)
+          } else seenArgNames.add(argName)
+          slot
+        }
+
+      val bodyExpr = body match {
+        case IR.Foreign.Definition(lang, code, _, _, _) =>
+          buildForeignBody(
+            lang,
+            code,
+            arguments.map(_.name.name),
+            argSlots
           )
-          .unsafeAs[AliasAnalysis.Info.Occurrence]
-
-        val slot = scope.createVarSlot(occInfo.id)
-        val readArg =
-          ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-        val assignArg = AssignmentNode.build(readArg, slot)
-
-        argExpressions.append(assignArg)
-
-        val argName = arg.getName
-
-        if (seenArgNames contains argName) {
-          throw new DuplicateArgumentNameException(argName)
-        } else seenArgNames.add(argName)
+        case _ => this.run(body)
       }
-
-      val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
       (fnBodyNode, argDefinitions)
+    }
+
+    private def buildForeignBody(
+      language: EpbParser.ForeignLanguage,
+      code: String,
+      argumentNames: List[String],
+      argumentSlots: List[FrameSlot]
+    ): RuntimeExpression = {
+      val src = EpbParser.buildSource(language, code, scopeName)
+      val foreignCt = context.getEnvironment
+        .parseInternal(src, argumentNames: _*)
+      val argumentReaders = argumentSlots
+        .map(slot => ReadLocalVariableNode.build(new FramePointer(0, slot)))
+        .toArray[RuntimeExpression]
+      ForeignMethodCallNode.build(argumentReaders, foreignCt)
     }
 
     /** Generates code for an Enso function body.
