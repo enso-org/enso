@@ -196,7 +196,19 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
+  /**
+   * The semver version string identifying an Enso engine version.
+   */
+  engineVersion: String;
+
+  /**
+   * The endpoint used for JSON-RPC protocol.
+   */
   languageServerJsonAddress: IPWithSocket;
+
+  /**
+   * The endpoint used for binary protocol.
+   */
   languageServerBinaryAddress: IPWithSocket;
 }
 ```

@@ -11,9 +11,9 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
-  LanguageServerSockets,
   MissingComponentAction,
-  ProjectMetadata
+  ProjectMetadata,
+  RunningLanguageServerInfo
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerGateway
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -197,7 +197,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, LanguageServerSockets] = {
+  ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     // format: off
     for {
       _        <- log.debug(s"Opening project $projectId")
@@ -233,7 +233,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     clientId: UUID,
     project: Project,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, LanguageServerSockets] = for {
+  ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     version <- configurationService
       .resolveEnsoVersion(project.engineVersion)
       .mapError { case ConfigurationFileAccessFailure(message) =>
@@ -260,7 +260,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
             s"Language server boot failed: ${th.getMessage}"
           )
       }
-  } yield sockets
+  } yield RunningLanguageServerInfo(version, sockets)
 
   /** @inheritdoc */
   override def closeProject(
