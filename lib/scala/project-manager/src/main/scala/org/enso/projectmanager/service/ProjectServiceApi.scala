@@ -5,9 +5,9 @@ import java.util.UUID
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{
-  LanguageServerSockets,
   MissingComponentAction,
-  ProjectMetadata
+  ProjectMetadata,
+  RunningLanguageServerInfo
 }
 
 /** A contract for the Project Service.
@@ -62,7 +62,7 @@ trait ProjectServiceApi[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, LanguageServerSockets]
+  ): F[ProjectServiceFailure, RunningLanguageServerInfo]
 
   /** Closes a project. Tries to shut down the Language Server.
     *
