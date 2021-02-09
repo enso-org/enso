@@ -144,20 +144,31 @@ type Table
                 left_alias = aliases.first
                 right_alias = aliases.second
 
-                new_index = [] # TODO [RW] should join preserve left index?
-                # TODO [RW] renaming expressions!!!
                 left_query = IR.SubQuery this.internal_columns this.context left_alias
                 right_query = IR.SubQuery other.internal_columns other.context right_alias
 
-                # TODO [RW] the join expression should be properly renamed with new subquery aliases
-                on_exprs = my_index.zip other_index (l -> r -> IR.Operation "=" [l, r])
+                left_renamed_index = my_index.map (IR.substitute_origin this.name left_alias)
+                right_renamed_index = other_index.map (IR.substitute_origin other.name right_alias)
+                on_exprs = left_renamed_index.zip right_renamed_index (l -> r -> IR.Operation "=" [l, r])
+
+                new_index = left_renamed_index
                 new_from = IR.Join kind left_query right_query on_exprs
                 new_ctx = IR.Context new_from [] [] [] new_index
 
-                # TODO [RW] renaming conflicting columns
-                new_left_columns = this.internal_columns.map (p -> Pair p.first (IR.Column left_alias p.first))
-                new_right_columns = other.internal_columns.map (p -> Pair p.first (IR.Column right_alias p.first))
+                left_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
+                right_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
+                rename suffix other_names this_name =
+                    if other_names.get_or_else this_name False then this_name+suffix else this_name
+                rename_left = rename "_left" right_names
+                rename_right = rename "_right"  left_names
+
+                new_left_columns = this.internal_columns.map p->
+                    Pair (rename_left p.first) (IR.Column left_alias p.first)
+                new_right_columns = other.internal_columns.map p->
+                    Pair (rename_right p.first) (IR.Column right_alias p.first)
+
                 new_columns = new_left_columns + new_right_columns
+
                 Table new_table_name this.connection new_columns new_ctx
 
     ## Returns an aggregate table resulting from grouping the elements by the

@@ -1,12 +1,12 @@
 type FakeTestConnection
-    # type FakeTestConnection (tables : Map String (Vector String))
-    #                         (dialect : String)
+    # type FakeTestConnection (tables : Map Text (Vector Text))
+    #                         (dialect : Text)
     type FakeTestConnection tables dialect
 
-    fetch_column_names : String -> Vector String
+    fetch_column_names : Text -> Vector Text
     fetch_column_names name =
         this.tables.get name
 
 ## PRIVATE
-new : Map String (Vector String) -> String -> FakeTestConnection
+new : Map Text (Vector Text) -> Text -> FakeTestConnection
 new tables dialect = FakeTestConnection tables dialect
