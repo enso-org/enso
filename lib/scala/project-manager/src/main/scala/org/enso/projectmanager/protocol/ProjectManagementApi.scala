@@ -74,6 +74,7 @@ object ProjectManagementApi {
     )
 
     case class Result(
+      engineVersion: SemVer,
       languageServerJsonAddress: Socket,
       languageServerBinaryAddress: Socket
     )

@@ -36,6 +36,8 @@ object ProjectServiceFailureMapper {
       ComponentRepositoryUnavailable(msg)
     case ComponentUninstallationFailure(msg) =>
       ComponentUninstallationError(msg)
+    case GlobalConfigurationAccessFailure(msg) =>
+      GlobalConfigurationAccessError(msg)
   }
 
   /** [[FailureMapper]] instance for [[ProjectServiceFailure]]. */

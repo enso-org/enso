@@ -1,6 +1,6 @@
 package org.enso.projectmanager.control.core
 
-object syntax {
+object syntax extends LowPriorityApplicativeImplicits {
 
   /** Implicit conversion to [[CovariantFlatMapOps]]
     *
@@ -10,6 +10,10 @@ object syntax {
   implicit def toCovariantFlatMapOps[F[+_, +_]: CovariantFlatMap, E, A](
     fa: F[E, A]
   ): CovariantFlatMapOps[F, E, A] = new CovariantFlatMapOps[F, E, A](fa)
+
+}
+
+trait LowPriorityApplicativeImplicits {
 
   /** Implicit conversion to [[ApplicativeOps]].
     */
@@ -24,4 +28,5 @@ object syntax {
     ff: F[E, A => B]
   ): ApplicativeFunctionOps[F, E, A, B] =
     new ApplicativeFunctionOps[F, E, A, B](ff)
+
 }

@@ -45,15 +45,16 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
       params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
 
     for {
-      sockets <- projectService.openProject(
+      server <- projectService.openProject(
         progressTracker        = self,
         clientId               = clientId,
         projectId              = params.projectId,
         missingComponentAction = missingComponentAction
       )
     } yield ProjectOpen.Result(
-      languageServerJsonAddress   = sockets.jsonSocket,
-      languageServerBinaryAddress = sockets.binarySocket
+      engineVersion               = server.engineVersion,
+      languageServerJsonAddress   = server.sockets.jsonSocket,
+      languageServerBinaryAddress = server.sockets.binarySocket
     )
   }
 

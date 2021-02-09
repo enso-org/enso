@@ -321,4 +321,5 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
         timeout
       ) shouldEqual json
   }
+
 }
