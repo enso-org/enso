@@ -11,7 +11,7 @@ polyglot java import org.enso.base.Time_Utils
 
 type Date
 
-    ## `Date` represents a date, often viewed as year-month-day. For example,
+    ## This type represents a date, often viewed as year-month-day. For example,
        the value "2nd October 2007" can be stored in a `Date`.
 
        This class does not store or represent a time or timezone. Instead, it

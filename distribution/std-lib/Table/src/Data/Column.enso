@@ -224,6 +224,7 @@ type Column
     ## Selects only the rows of this column that correspond to `True` values in
        `indexes`.
        This is useful for filtering the rows by given predicate.
+
        > Example
          Select only the rows of `my_column` where the `status_column` column
          has the value `"Valid"`
