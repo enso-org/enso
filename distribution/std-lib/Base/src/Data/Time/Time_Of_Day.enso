@@ -12,7 +12,7 @@ polyglot java import org.enso.base.Time_Utils
 
 type Time_Of_Day
 
-    ## `Time_Of_Day` is a date-time object that represents a time, often viewed
+    ## This type is a date-time object that represents a time, often viewed
        as hour-minute-second. Time is represented to nanosecond precision. For
        example, the value "13:45.30.123456789" can be stored in a `Time_Of_Day`.
     type Time_Of_Day internal_local_time

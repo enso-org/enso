@@ -193,9 +193,10 @@ object Doc {
     }
     object CodeBlock {
       def apply(elem: CodeBlock.Line): CodeBlock = CodeBlock(List1(elem))
-      def apply(elems: CodeBlock.Line*): CodeBlock = CodeBlock(
-        List1(elems.head, elems.tail.toList)
-      )
+      def apply(elems: CodeBlock.Line*): CodeBlock =
+        CodeBlock(
+          List1(elems.head, elems.tail.toList)
+        )
 
       /** Inline - line of code which is in line with other elements
         * Line - elem which is a part of Code Block
@@ -510,8 +511,7 @@ object Doc {
     /** Tag - one single tag for Tags
       *
       * @param indent - indent of tag
-      * @param typ - type of tag, which can be
-      * Deprecated, Added, Removed, Modified, Upcoming or Unrecognized
+      * @param typ - type of tag, which can be one of listed in object `Type`
       * @param details - optional information for tag
       */
     final case class Tag(indent: Int, typ: Tag.Type, details: Option[String])
@@ -538,10 +538,14 @@ object Doc {
 
       sealed trait Type
       object Type {
-        case object Deprecated extends Type
         case object Added      extends Type
-        case object Removed    extends Type
+        case object Advanced   extends Type
+        case object Deprecated extends Type
         case object Modified   extends Type
+        case object Private    extends Type
+        case object Removed    extends Type
+        case object TextOnly   extends Type
+        case object Unstable   extends Type
         case object Upcoming   extends Type
         val codes = ADT.constructors[Type]
       }

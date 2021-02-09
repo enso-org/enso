@@ -61,7 +61,7 @@ case class DocParserDef() extends Parser[Doc] {
 
   val char: Pattern = lowerChar | upperChar
   val specialChars: Pattern =
-    "," | "." | ":" | ";" | "/" | "\\" | "’" | "=" | "'" | "|" | "+" | "-" | "#" | "\""
+    "," | "." | ":" | ";" | "/" | "\\" | "’" | "=" | "'" | "|" | "+" | "-" | "#" | "\"" | "(" | ")"
   val possibleChars: Pattern = char | digit | whitespace | specialChars
 
   val normalText: Pattern = possibleChars.many1
@@ -153,7 +153,9 @@ case class DocParserDef() extends Parser[Doc] {
                 pushTag(section.currentIndentRaw, tagType, tagDet)
               }
             }
-            if (!containsTag && !elem.contains(newline)) {
+            if (
+              !containsTag && !elem.contains(newline) && inArray.tail.isEmpty
+            ) {
               pushTag(section.currentIndentRaw, Tags.Tag.Unrecognized, in)
               containsTag = true
             }
