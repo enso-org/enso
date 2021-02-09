@@ -102,19 +102,19 @@ The documentation syntax is broken down into the following elements.
 Tags allow users to annotate their construct with information about its usage
 state. The documentation syntax supports the following tags:
 
+- `ADDED`: Used to describe when a given construct was added to the library.
+- `ADVANCED`: Items that are _not_ private, but are for power users.
 - `DEPRECATED`: Used for constructs that should no longer be used and that may
   be removed in the future.
 - `MODIFIED`: Used for constructs that have had their behaviour change after a
   certain version of the library.
-- `ADDED`: Used to describe when a given construct was added to the library.
-- `UPCOMING`: Used to describe constructs that will be added in future versions
-  of the library.
+- `PRIVATE`: Used to describe constructs that are private in the language.
 - `REMOVED`: Used to describe constructs that have been removed and are no
   longer functional.
-- `PRIVATE`: Used to describe constructs that are private in the language.
-- `ADVANCED`: Items that are _not_ private, but are for power users.
 - `TEXT_ONLY`: Items that do not apply to the graphical mode.
 - `UNSTABLE`: Used for items that are not yet considered stable.
+- `UPCOMING`: Used to describe constructs that will be added in future versions
+  of the library.
 
 Tags are added at the _top_ of the documentation block, and may also be
 accompanied by a description. This description directly follows the tag
