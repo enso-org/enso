@@ -7,6 +7,7 @@ import java.util.UUID
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
+import org.enso.pkg.SemVerJson._
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
@@ -484,9 +485,24 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "Baz", "id": $bazId, "lastOpened": null},
-                {"name": "Bar", "id": $barId, "lastOpened": null},
-                {"name": "Foo", "id": $fooId, "lastOpened": null}
+                {
+                  "name": "Baz",
+                  "id": $bazId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                },
+                {
+                  "name": "Bar",
+                  "id": $barId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                },
+                {
+                  "name": "Foo",
+                  "id": $fooId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                }
               ]
             }
           }
@@ -526,9 +542,24 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "Bar", "id": $barId, "lastOpened": $barOpenTime},
-                {"name": "Foo", "id": $fooId, "lastOpened": $fooOpenTime},
-                {"name": "Baz", "id": $bazId, "lastOpened": null}
+                {
+                  "name": "Bar",
+                  "id": $barId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": $barOpenTime
+                },
+                {
+                  "name": "Foo",
+                  "id": $fooId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": $fooOpenTime
+                },
+                {
+                  "name": "Baz",
+                  "id": $bazId,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                }
               ]
             }
           }

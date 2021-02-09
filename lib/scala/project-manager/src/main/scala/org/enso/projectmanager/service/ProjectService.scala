@@ -6,14 +6,18 @@ import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
 import org.enso.pkg.PackageManager
-import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.{
+  Applicative,
+  CovariantFlatMap,
+  Traverse
+}
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
-  LanguageServerSockets,
   MissingComponentAction,
-  ProjectMetadata
+  ProjectMetadata,
+  RunningLanguageServerInfo
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerGateway
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -53,7 +57,9 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
+class ProjectService[
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
+](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   projectCreationService: ProjectCreationServiceApi[F],
@@ -197,7 +203,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     clientId: UUID,
     projectId: UUID,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, LanguageServerSockets] = {
+  ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     // format: off
     for {
       _        <- log.debug(s"Opening project $projectId")
@@ -233,7 +239,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     clientId: UUID,
     project: Project,
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, LanguageServerSockets] = for {
+  ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     version <- configurationService
       .resolveEnsoVersion(project.engineVersion)
       .mapError { case ConfigurationFileAccessFailure(message) =>
@@ -260,7 +266,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
             s"Language server boot failed: ${th.getMessage}"
           )
       }
-  } yield sockets
+  } yield RunningLanguageServerInfo(version, sockets)
 
   /** @inheritdoc */
   override def closeProject(
@@ -288,14 +294,31 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
       )
-      .map(_.map(toProjectMetadata))
       .mapError(toServiceFailure)
+      .flatMap(xs => Traverse[List].traverse(xs)(resolveProjectMetadata))
 
-  private def toProjectMetadata(project: Project): ProjectMetadata =
+  private def resolveProjectMetadata(
+    project: Project
+  ): F[ProjectServiceFailure, ProjectMetadata] =
+    configurationService
+      .resolveEnsoVersion(project.engineVersion)
+      .mapError { case ConfigurationFileAccessFailure(message) =>
+        GlobalConfigurationAccessFailure(
+          s"Could not deduce the default version to use for the project: " +
+          s"$message"
+        )
+      }
+      .map(toProjectMetadata(_, project))
+
+  private def toProjectMetadata(
+    engineVersion: SemVer,
+    project: Project
+  ): ProjectMetadata =
     ProjectMetadata(
-      name       = project.name,
-      id         = project.id,
-      lastOpened = project.lastOpened
+      name          = project.name,
+      id            = project.id,
+      engineVersion = engineVersion,
+      lastOpened    = project.lastOpened
     )
 
   private def getUserProject(
