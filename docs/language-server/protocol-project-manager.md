@@ -83,9 +83,26 @@ This type represents information about a project.
 
 ```typescript
 interface ProjectMetadata {
+  /**
+   * The name of the project.
+   */
   name: String;
+
+  /**
+   * The project id.
+   */
   id: UUID;
-  lastOpened: UTCDateTime;
+
+  /**
+   * Enso Engine version to use for the project, represented by a semver version
+   * string.
+   */
+  engineVersion: String;
+
+  /**
+   * The last opened datetime.
+   */
+  lastOpened?: UTCDateTime;
 }
 ```
 
@@ -176,7 +193,20 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
+  /**
+   * The version of the started language server represented by a semver version
+   * string.
+   */
+  engineVersion: String;
+
+  /**
+   * The endpoint used for JSON-RPC protocol.
+   */
   languageServerJsonAddress: IPWithSocket;
+
+  /**
+   * The endpoint used for binary protocol.
+   */
   languageServerBinaryAddress: IPWithSocket;
 }
 ```
@@ -269,6 +299,8 @@ interface ProjectListResponse {
 
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
+- [`GlobalConfigurationAccessError`](#globalconfigurationaccesserror) to signal
+  that the global configuration file could not be accessed or parsed.
 
 ### `project/create`
 
