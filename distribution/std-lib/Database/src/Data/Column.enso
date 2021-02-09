@@ -16,11 +16,15 @@ type Column
     to_table : Table.Table
     to_table =
         cols = [Pair this.name this.expression]
-        Table.Table this.connection cols this.context
+        Table.Table this.name this.connection cols this.context
 
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector
     to_vector = Error.throw "TODO"
+
+    ## Returns an SQL statement that will be used for materializing this column.
+    to_sql : SQL.Statement
+    to_sql = this.to_table.to_sql
 
     make_binary_op : Text -> Text -> (Column | Any) -> Column
     make_binary_op op_kind op_name operand =

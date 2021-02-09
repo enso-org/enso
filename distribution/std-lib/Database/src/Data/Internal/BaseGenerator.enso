@@ -83,7 +83,7 @@ generate_order dialect pair =
     suffix = case pair.second of
         IR.Ascending -> SQL.code " ASC"
         IR.Descending -> SQL.code " DESC"
-    (here.generate_expression (pair.first)) ++ suffix
+    (here.generate_expression dialect (pair.first)) ++ suffix
 
 generate_query : InternalDialect -> Query -> SQL.Builder
 generate_query dialect query = case query of

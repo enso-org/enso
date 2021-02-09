@@ -14,6 +14,28 @@ unify_vector_singleton x = case x of
     Vector.Vector _ -> x
     _ -> [x]
 
+resolve_index : Text -> Table -> Nothing | Text | Vector Text | Column | Vector Column -> Vector Column
+resolve_index operation table by = case by of
+    Nothing ->
+        if table.context.meta_index.is_empty then Error.throw "Trying to "+operation+" an empty index." else
+            table.context.meta_index
+    _ ->
+        resolve column = case column of
+            Text ->
+                name = column
+                col = table.at name
+                case col of
+                    Nothing ->
+                        Error.throw "Unknown column "+name
+                    _ -> col
+            _ -> column
+        cols = here.unify_vector_singleton by . map resolve
+        case cols.all (here.check_integrity table) of
+            True ->
+                cols.map .expression
+            False ->
+                Error.throw "The provided columns come from a different context."
+
 ## PRIVATE
    This is used to check if the new name is safe for use in SQL queries.
    In a future version we will decouple the internal SQL-safe names from the

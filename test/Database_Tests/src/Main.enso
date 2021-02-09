@@ -13,18 +13,25 @@ main =
     conn = Connection.make_fake_connection Dialect.sqlite tables
     IO.println conn.dialect
 
+    print t =
+        IO.println t
+        IO.println t.to_sql.unsafe_to_raw_sql
+        IO.println ""
+
     t1 = conn.access_table "T1"
-    IO.println t1
-    t1.to_sql.fragments.each IO.println
-    IO.println t1.to_sql
+    print t1
 
     mask = (t1.at "A" < t1.at "B") && (t1.at "C" == 42)
-    IO.println mask
+    print mask
 
     t2 = t1.where mask
-    IO.println t2
-    IO.println t2.to_sql
+    print t2
 
     t3 = t2.join (t2.set_index "A") on="B"
-    IO.println t3
-    IO.println t3.to_sql.unsafe_to_raw_sql
+    print t3
+
+    t4 = t1.order by="A"
+    print t4
+
+    t5 = t1.group by="A" . at "B" . max
+    print t5

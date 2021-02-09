@@ -24,6 +24,14 @@ type Context
     set_where_filters new_filters =
         Context this.from_spec new_filters this.orders this.groups this.meta_index
 
+    set_orders : Vector (Pair Expression OrderType) -> Context
+    set_orders new_orders =
+        Context this.from_spec this.where_filters new_orders this.groups this.meta_index
+
+    set_groups : Vector Expression -> Context
+    set_groups new_groups =
+        Context this.from_spec this.where_filters this.orders new_groups this.meta_index
+
 type FromSpec
     # type FromTable (table_name : Text) (alias : Text)
     type FromTable table_name alias

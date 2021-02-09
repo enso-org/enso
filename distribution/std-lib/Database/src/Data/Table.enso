@@ -80,24 +80,17 @@ type Table
     ## Sets the index of this table, using the column with the provided name.
     set_index : Text | Vector Text -> Table
     set_index index =
+        # TODO [RW, MK] do we want to allow to set index by an expression? (Column)
         new_index = (Helpers.unify_vector_singleton index).map (name -> this.internal_at name . second)
         new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
 
-    order : Nothing | Column | Vector Column -> Table
-    order by=Nothing = case by of
-        Nothing ->
-            if this.context.meta_index.is_empty then Error.throw "Trying to order by an empty index." else
-                new_ctx = this.context.set_orders this.context.meta_index
-                this.updated_context new_ctx
-        _ ->
-            cols = Helpers.unify_vector_singleton by
-            case cols.forall (Helpers.check_integrity this) of
-                True ->
-                    new_ctx = this.context.set_orders (cols.map .expression)
-                    this.updated_context new_ctx
-                False ->
-                    Error.throw "The columns to be ordered by come from a different context."
+    # TODO [RW] how to handle multiple orders asc desc?
+    order : Nothing | Text | Vector Text | Column | Vector Column -> Table
+    order by=Nothing =
+        exprs = Helpers.resolve_index "order by" this by . map (e -> Pair e IR.Ascending)
+        new_ctx = this.context.set_orders exprs
+        this.updated_context new_ctx
 
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
@@ -192,7 +185,10 @@ type Table
             Table.join [records_num, total_quantity, mean_price]
     group : Vector Text | Text | Nothing -> Aggregate_Table
     group by=Nothing =
-        Error.throw "TODO"
+        exprs = Helpers.resolve_index "group by" this by
+        new_ctx = this.context.set_orders exprs
+        this.updated_context new_ctx
+        Error.throw "TODO: aggregates"
 
     ## Returns a new Table without rows that contained missing values in any of
        the columns.
@@ -205,7 +201,6 @@ type Table
     ## Returns a new Table without columns that contained any missing values.
     drop_missing_columns : Table
     drop_missing_columns =
-
         Error.throw "TODO"
 
     ## Returns the amount of rows in this table.
@@ -216,6 +211,7 @@ type Table
     to_dataframe limit=Nothing =
         Error.throw "TODO"
 
+    ## Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL.Statement
     to_sql =
         cols = this.internal_columns
