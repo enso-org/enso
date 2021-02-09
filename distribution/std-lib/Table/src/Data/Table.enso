@@ -56,6 +56,7 @@ type Table
     ## Selects only the rows of this table that correspond to `True` values in
        `indexes`.
        This is useful for filtering the rows by given predicate.
+
        > Example
          Select only the rows of `my_table` where the `"Status"` column has the
          value `"Valid"`
