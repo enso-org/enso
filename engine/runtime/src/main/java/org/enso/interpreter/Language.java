@@ -7,6 +7,7 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Collections;
 
+import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
@@ -34,6 +35,7 @@ import org.graalvm.options.OptionDescriptors;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
+    dependentLanguages = {EpbLanguage.ID},
     fileTypeDetectors = FileDetector.class,
     services = ExecutionService.class)
 @ProvidedTags({
@@ -71,7 +73,7 @@ public final class Language extends TruffleLanguage<Context> {
    * @param context the language context
    */
   @Override
-  protected void initializeContext(Context context) throws Exception {
+  protected void initializeContext(Context context) {
     context.initialize();
   }
 

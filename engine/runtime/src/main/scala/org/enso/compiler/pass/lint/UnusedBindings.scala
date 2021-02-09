@@ -118,6 +118,8 @@ case object UnusedBindings extends IRPass {
     @unused context: InlineContext
   ): IR.Function = {
     function match {
+      case IR.Function.Lambda(_, _: IR.Foreign.Definition, _, _, _, _) =>
+        function
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
         lam.copy(
           arguments = args.map(lintFunctionArgument(_, context)),
