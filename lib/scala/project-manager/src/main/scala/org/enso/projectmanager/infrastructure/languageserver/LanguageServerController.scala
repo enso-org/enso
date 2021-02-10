@@ -71,8 +71,6 @@ class LanguageServerController(
 
   import context.{dispatcher, system}
 
-  private var isShutdownHookRegistered: Boolean = false
-
   private val descriptor =
     LanguageServerDescriptor(
       name                           = s"language-server-${project.id}",
@@ -158,7 +156,8 @@ class LanguageServerController(
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,
-    clients: Set[UUID] = Set.empty
+    clients: Set[UUID]                = Set.empty,
+    isShutdownHookRegistered: Boolean = false
   ): Receive = {
     case StartServer(clientId, _, requestedEngineVersion, _) =>
       if (requestedEngineVersion != engineVersion) {
@@ -190,11 +189,12 @@ class LanguageServerController(
         serverProcessManager,
         clients,
         clientId,
-        Some(sender())
+        Some(sender()),
+        isShutdownHookRegistered
       )
 
     case ShutDownServer =>
-      shutDownServer(None)
+      shutDownServer(None, isShutdownHookRegistered)
 
     case ClientDisconnected(clientId) =>
       removeClient(
@@ -202,7 +202,8 @@ class LanguageServerController(
         serverProcessManager,
         clients,
         clientId,
-        None
+        None,
+        isShutdownHookRegistered
       )
 
     case RenameProject(_, oldName, newName) =>
@@ -226,7 +227,15 @@ class LanguageServerController(
       context.stop(self)
 
     case RegisterShutdownHook(_, _) =>
-      isShutdownHookRegistered = true
+      context.become(
+        supervising(
+          connectionInfo,
+          serverProcessManager,
+          clients,
+          isShutdownHookRegistered = true
+        )
+      )
+
   }
 
   private def removeClient(
@@ -234,11 +243,12 @@ class LanguageServerController(
     serverProcessManager: ActorRef,
     clients: Set[UUID],
     clientId: UUID,
-    maybeRequester: Option[ActorRef]
+    maybeRequester: Option[ActorRef],
+    isShutdownHookRegistered: Boolean
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      shutDownServer(maybeRequester)
+      shutDownServer(maybeRequester, isShutdownHookRegistered)
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(
@@ -247,7 +257,10 @@ class LanguageServerController(
     }
   }
 
-  private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
+  private def shutDownServer(
+    maybeRequester: Option[ActorRef],
+    isShutdownHookRegistered: Boolean
+  ): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
     if (!isShutdownHookRegistered) {
