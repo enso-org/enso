@@ -1,3 +1,54 @@
+# Enso 0.2.2 (2021-02-10)
+
+## Language
+
+- Significantly improved the way that dataflow errors and panics are handled in
+  the interpreter. They now flow through the program in a far more seamless
+  fashion, and panics are supported properly in the IDE without the whole
+  program dying ([#1433](https://github.com/enso-org/enso/pull/1433)).
+- Significantly improved the syntax and semantics for FFI with JVM languages,
+  making it far more of a first-class citizen in Enso
+  ([#1443](https://github.com/enso-org/enso/pull/1443)).
+- Added support for polyglot JavaScript definitions to Enso
+  ([#1451](https://github.com/enso-org/enso/pull/1451)). These allow users to
+  write JavaScript inside Enso, and seamlessly call between Enso and JS code.
+
+## Interpreter/Runtime
+
+- Fixed an issue where executing a host value could result in a
+  `NullPointerException` due to a missing null check
+  ([#1413](https://github.com/enso-org/enso/pull/1413)).
+- Fixed an issue where dataflow analysis was incorrectly tracking usages of
+  undefined variables. This resulted in problems for the runtime server
+  ([#1421](https://github.com/enso-org/enso/pull/1421)).
+
+## Tooling
+
+- Added support for collection of profiling information about the running
+  program to the language server protocol
+  ([#1407](https://github.com/enso-org/enso/pull/1407)). Initial support is for
+  collection of execution-time information.
+- Updated the default `main` in a new Enso project to be more IDE friendly
+  ([#1419](https://github.com/enso-org/enso/pull/1419)).
+- Added support for panic sentinels in the runtime instrument, allowing the
+  language server to trace the expressions affected by a panic while still
+  executing others ([#1436](https://github.com/enso-org/enso/pull/1436)).
+- Added support for checking the Enso version for a particular project in the
+  project manager, allowing the IDE to improve compatibility with multiple
+  versions ([#1454](https://github.com/enso-org/enso/pull/1454)).
+
+## Libraries
+
+- Updated the way that we use dataflow errors in the standard libraries, making
+  our `Base` functionality much more amenable to working in the IDE
+  ([#1446](https://github.com/enso-org/enso/pull/1446)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-02-10)
+  for issues opened before the release date.
+
 # Enso 0.2.1 (2021-01-15)
 
 ## Language
