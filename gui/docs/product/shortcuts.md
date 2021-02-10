@@ -117,3 +117,4 @@ further investigation.
 | <kbd>ctrl</kbd> + <kbd>d</kbd>                                     | Send test data to the selected node. |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd>              | Push a hardcoded breadcrumb without navigating. |
 | <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd>           | Pop a breadcrumb without navigating. |
+| <kbd>cmd</kbd>  + <kbd>shift</kbd> + <kbd>alt</kbd> + <kbd>r</kbd> | Reload visualizations. To see the effect in the currently shown visualizations, you need to switch to another and switch back. |

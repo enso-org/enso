@@ -244,6 +244,16 @@ impl Integration {
         }
 
 
+        // === Visualization Reload ===
+
+        frp::extend! { network
+            eval editor_outs.visualization_registry_reload_requested ([model](()) {
+                model.view.graph().reset_visualization_registry();
+                model.load_visualizations();
+            });
+        }
+
+
         // === UI Actions ===
 
         let inv                    = &invalidate.trigger;
@@ -398,7 +408,7 @@ impl Model {
             ,visualization,visualizations,project,node_view_by_expression};
 
         this.init_project_name();
-        this.init_visualizations();
+        this.load_visualizations();
         if let Err(err) = this.refresh_graph_view() {
             error!(this.logger,"Error while initializing graph editor: {err}.");
         }
@@ -408,7 +418,7 @@ impl Model {
         this
     }
 
-    fn init_visualizations(&self) {
+    fn load_visualizations(&self) {
         let logger       = self.logger.clone_ref();
         let controller   = self.visualization.clone_ref();
         let graph_editor = self.view.graph().clone_ref();

@@ -435,6 +435,11 @@ ensogl::define_endpoints! {
         register_visualization       (Option<visualization::Definition>),
         set_visualization_data       ((NodeId,visualization::Data)),
         enable_visualization         (NodeId),
+
+        /// Remove from visualization registry all non-default visualizations.
+        reset_visualization_registry (),
+        /// Reload visualization registry
+        reload_visualization_registry(),
     }
 
     Output {
@@ -498,10 +503,11 @@ ensogl::define_endpoints! {
         nodes_labels_visible      (bool),
 
 
-        visualization_enabled              (NodeId),
-        visualization_disabled             (NodeId),
-        visualization_enable_fullscreen    (NodeId),
-        visualization_preprocessor_changed ((NodeId,data::enso::Code)),
+        visualization_enabled                   (NodeId),
+        visualization_disabled                  (NodeId),
+        visualization_enable_fullscreen         (NodeId),
+        visualization_preprocessor_changed      ((NodeId,data::enso::Code)),
+        visualization_registry_reload_requested (),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -1833,6 +1839,7 @@ impl application::View for GraphEditor {
           , (Press       , "!node_editing" , "space" , "press_visualization_visibility")
           // , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
           , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
+          , (Press       , "", "cmd shift alt r"     , "reload_visualization_registry")
 
           // === Selection ===
           , (Press   , "" , "shift"                   , "enable_node_multi_select")
@@ -2764,11 +2771,16 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Register Visualization ===
 
-    def _register_visualization = inputs.register_visualization.map(f!([vis_registry](handle) {
+    eval inputs.register_visualization ([vis_registry](handle) {
         if let Some(handle) = handle {
             vis_registry.add(handle);
         }
-    }));
+    });
+    eval inputs.reset_visualization_registry ([vis_registry](()) {
+        vis_registry.remove_all_visualizations();
+        vis_registry.add_default_visualizations();
+    });
+    out.source.visualization_registry_reload_requested <+ inputs.reload_visualization_registry;
 
 
     // === Entering and Exiting Nodes ===
