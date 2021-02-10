@@ -99,9 +99,9 @@ Cutting a release for Enso proceeds as follows:
 
 ### Tag Naming
 
-Tags for releases are named as follows `enso-version`, where `version` is the
-semver string (see [versioning](#versioning)) representing the version being
-released.
+Tags for releases are named as follows `vversion`, where `version` is the semver
+string (see [versioning](#versioning)) representing the version being released.
+For example, a valid version string is `v0.2.2`.
 
 ### Manifest Files
 
