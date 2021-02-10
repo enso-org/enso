@@ -10,7 +10,7 @@ type Column
 
     ## Converts this column to JSON.
     to_json : Json
-    to_json = Error.throw "TODO"
+    to_json = Error.throw "TODO materialization"
 
     ## Converts this column into a single-column table.
     to_table : Table.Table
@@ -20,7 +20,7 @@ type Column
 
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector
-    to_vector = Error.throw "TODO"
+    to_vector = this.to_table.to_dataframe.at this.name . to_vector
 
     ## Returns an SQL statement that will be used for materializing this column.
     to_sql : SQL.Statement

@@ -1,5 +1,6 @@
 from Base import all
 from Database.Data.Column as Column_Module import all
+import Table.Data.Order_Rule
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 
@@ -36,10 +37,22 @@ type Table
         Json.Object fields
 
     ## Returns the column with the given name.
-    at : Text -> Column | Nothing
-    at name = case this.internal_columns.find (p -> p.first == name) of
-        Nothing -> Nothing
-        p -> this.make_column p
+    at : Text -> Column ! UnknownColumnError
+    at name =
+        internal = this.internal_columns.find (p -> p.first == name) |>
+            _.map_error (_ -> UnknownColumnError name)
+        Column internal.first this.connection internal.second this.context
+
+    ## PRIVATE
+       Resolves the column name to a column within this table. If instead of a
+       name, a column is provided, it is returned as-is as long as it comes from
+       the same context.
+    resolve : Text | Column -> Column ! Error
+    resolve column = case column of
+        Text -> this.at column
+        _ ->
+            if Helpers.check_integrity this column then column else
+                Error.throw (IntegrityError "Column "+column.name)
 
     ## Selects only the rows of this table that correspond to `True` values in
        `filter`.
@@ -52,8 +65,7 @@ type Table
     where filter =
         case Helpers.check_integrity this filter of
             False ->
-                # TODO [RW] more descriptive errors
-                Error.throw "Filtering over a column with differing context."
+                Error.throw (IntegrityError "Column "+filter.name)
             True ->
                 new_filters = this.context.where_filters + [filter.expression]
                 new_ctx = this.context.set_where_filters new_filters
@@ -78,19 +90,53 @@ type Table
     columns = this.internal_columns . map this.make_column
 
     ## Sets the index of this table, using the column with the provided name.
-    set_index : Text | Vector Text -> Table
+    set_index : Text | Column | Vector (Text | Column) -> Table
     set_index index =
-        # TODO [RW, MK] do we want to allow to set index by an expression? (Column)
-        new_index = (Helpers.unify_vector_singleton index).map (name -> this.internal_at name . second)
+        new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .expression)
         new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
 
-    # TODO [RW] how to handle multiple orders asc desc?
-    order : Nothing | Text | Vector Text | Column | Vector Column -> Table
-    order by=Nothing =
-        exprs = Helpers.resolve_index "order by" this by . map (e -> Pair e IR.Ascending)
-        new_ctx = this.context.set_orders exprs
-        this.updated_context new_ctx
+    ## Orders the rows.
+
+       Arguments:
+         - by: specifies how to order the rows, it can be one of the following:
+           - Nothing - ordering the rows by the current index
+           - Text - ordering the rows by a column with the provided name
+           - Column - ordering the rows by some computed expression
+           - a Vector of Text or Columns that orders the rows first by the first
+             element of the vector, than by the second and so on
+           - a Vector of Order_Rules which works similarly as above, but they
+             override the latter arguments, allowing to control the ordering
+             with more granularity
+         - ascending: specifies if the ordering should be ascending, True by
+           default. This argument is only applicable if the first argument was
+           not a list of pairs (because the pairs specify the orders with more
+           granularity).
+    order : Nothing | Text | Column | Vector (Text | Column | Order_Rule) -> Boolean -> Table
+    order by=Nothing ascending=True =
+        go : Vector [IR.Expression, IR.OrderType] -> Table
+        go exprs =
+            new_ctx = this.context.set_orders exprs
+            this.updated_context new_ctx
+        sort_order = if ascending then Sort_Order.Ascending else Sort_Order.Descending
+        case by of
+            Nothing -> case this.context.meta_index.is_empty of
+                True -> Error.throw "Trying to order by an empty index."
+                False ->
+                    go (this.context.meta_index.map (e -> [e, sort_order]))
+            Vector.Vector _ ->
+                exprs = by.map arg-> case _ of
+                    Order_Rule column Nothing ascending nulls_last ->
+                        # TODO [RW] nulls_last
+                        order_type = if ascending then IR.Ascending else IR.Descending
+                        expr = this.resolve column . expression
+                        [expr, order_type]
+                    Order_Rule _ _ _ _ ->
+                        Error.throw "Custom comparators are not supported in Database"
+                    _ -> [this.resolve arg . expression, sort_order]
+                go exprs
+            _ ->
+                go [[by, sort_order]]
 
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
@@ -107,22 +153,23 @@ type Table
 
        Arguments:
          - other: the table being the right operand of this join operation.
-         - on: the column(s) of `this` that should be used as the join key. If
-               this argument is not provided, the index of `this` will be used.
+         - on: the column(s) or expression(s) of `this` that should be used as
+           the join key. If this argument is not provided, the index of `this`
+           will be used.
          - drop_unmatched: whether the rows of `this` without corresponding
                            matches in `other` should be dropped from the result.
          - left_suffix: a suffix that should be added to the columns of `this`
                         when there's a name conflict with a column of `other`.
          - right_suffix: a suffix that should be added to the columns of `other`
                          when there's a name conflict with a column of `this`.
-    join : Table -> Vector Text | Text | Nothing -> Boolean -> Text -> Text -> Table
+    join : Table -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         kind = if drop_unmatched then IR.InnerJoin else IR.LeftJoin
         my_index : Vector Expression
-        my_index = case on == Nothing of
-            True -> this.context.meta_index
-            False ->
-                (Helpers.unify_vector_singleton on).map (name -> this.internal_at name . second)
+        my_index = case on of
+            Nothing -> this.context.meta_index
+            _ ->
+                (Helpers.unify_vector_singleton on).map (this.resolve >> .expression)
         other_index = other.context.meta_index
         case my_index.length == other_index.length of
             False -> Error.throw "Cannot join with multi-indexes of different lengths."
@@ -205,11 +252,11 @@ type Table
 
     ## Returns the amount of rows in this table.
     nrows : Integer
-    nrows = Error.throw "TODO"
+    nrows = Error.throw "TODO materialization"
 
     to_dataframe : (Integer | Nothing) -> Table.Table
     to_dataframe limit=Nothing =
-        Error.throw "TODO"
+        Error.throw "TODO materialization"
 
     ## Returns an SQL statement that will be used for materializing this table.
     to_sql : SQL.Statement
@@ -237,14 +284,6 @@ type Table
         Column pair.first this.connection pair.second this.context
 
     ## PRIVATE
-    internal_at : Text -> InternalColumn
-    internal_at name =
-        res = this.internal_columns.find (c -> c.first == name)
-        case res of
-            Nothing -> Error.throw "Column "+name+" not found."
-            _ -> res
-
-    ## PRIVATE
     updated_columns columns = Table this.name this.connection columns this.context
 
     ## PRIVATE
@@ -253,6 +292,18 @@ type Table
 
 type InternalColumn
     type InternalColumn external_name internal_name expression
+
+type UnknownColumnError
+    type UnknownColumnError name
+
+    to_text : Text
+    to_text = "Unknown column: " + this.name
+
+type IntegrityError
+    type IntegrityError object_description
+
+    to_text : Text
+    to_text = this.object_description + " comes from a different context."
 
 ## PRIVATE
 make_table : Connection -> Text -> Vector Text -> Table
