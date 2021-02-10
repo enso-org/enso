@@ -31,6 +31,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.RegisterShutdownHook
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
@@ -69,6 +70,8 @@ class LanguageServerController(
     with UnhandledLogging {
 
   import context.{dispatcher, system}
+
+  private var isShutdownHookRegistered: Boolean = false
 
   private val descriptor =
     LanguageServerDescriptor(
@@ -221,6 +224,9 @@ class LanguageServerController(
     case ServerDied =>
       log.error(s"Language server died [$connectionInfo]")
       context.stop(self)
+
+    case RegisterShutdownHook(_, _) =>
+      isShutdownHookRegistered = true
   }
 
   private def removeClient(
@@ -244,6 +250,9 @@ class LanguageServerController(
   private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
+    if (!isShutdownHookRegistered) {
+      context.parent ! ServerShutDown(project.id)
+    }
     val cancellable =
       context.system.scheduler
         .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
@@ -278,8 +287,9 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! ServerShutdownTimedOut)
       stop()
 
-    case StartServer(_, _, _, _) =>
-      sender() ! PreviousInstanceNotShutDown
+    case m: StartServer =>
+      // This instance has not yet been shut down. Retry
+      context.parent.forward(m)
   }
 
   private def waitingForChildren(): Receive = { case Terminated(_) =>
@@ -349,16 +359,13 @@ object LanguageServerController {
 
   case object ShutDownServer
 
-  /** Signals boot timeout.
-    */
+  /** Signals boot timeout. */
   case object BootTimeout
 
-  /** Boot command.
-    */
+  /** Boot command. */
   case object Boot
 
-  /** Signals shutdown timeout.
-    */
+  /** Signals shutdown timeout. */
   case object ShutdownTimeout
 
   case object ServerDied

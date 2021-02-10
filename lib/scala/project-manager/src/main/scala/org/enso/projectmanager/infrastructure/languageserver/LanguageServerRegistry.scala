@@ -19,6 +19,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
   StopServer
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.RegisterShutdownHook
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
@@ -71,7 +72,7 @@ class LanguageServerRegistry(
               loggingServiceDescriptor,
               executor
             ),
-          s"language-server-controller-${project.id}"
+          s"language-server-controller-${project.id}-${UUID.randomUUID()}"
         )
         context.watch(controller)
         controller.forward(msg)
@@ -112,6 +113,8 @@ class LanguageServerRegistry(
     case CheckIfServerIsRunning(projectId) =>
       sender() ! serverControllers.contains(projectId)
 
+    case m @ RegisterShutdownHook(projectId, _) =>
+      serverControllers.get(projectId).foreach(_ ! m)
   }
 
 }

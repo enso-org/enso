@@ -131,6 +131,7 @@ class LanguageServerGatewayImpl[
     Sync[F]
       .effect {
         shutdownHookActivator ! RegisterShutdownHook(projectId, hook)
+        registry ! RegisterShutdownHook(projectId, hook)
       }
   }
 
