@@ -37,11 +37,7 @@ impl Registry {
     /// Return a `Registry` pre-populated with default visualizations.
     pub fn with_default_visualizations() -> Self {
         let registry = Self::new();
-        registry.add(builtin::visualization::native::RawText::definition());
-        registry.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
-        registry.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
-        registry.try_add_java_script(builtin::visualization::java_script::table_visualization());
-        registry.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
+        registry.add_default_visualizations();
         registry
     }
 
@@ -76,6 +72,21 @@ impl Registry {
     pub fn definition_from_path(&self, path:&visualization::Path)
                                 -> Option<visualization::Definition> {
         self.path_map.borrow().get(path).cloned()
+    }
+
+    /// Remove all visualizations from registry
+    pub fn remove_all_visualizations(&self) {
+        self.path_map.borrow_mut().clear();
+        self.type_map.borrow_mut().clear();
+    }
+
+    /// Add default visualizations to the registry.
+    pub fn add_default_visualizations(&self) {
+        self.add(builtin::visualization::native::RawText::definition());
+        self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
+        self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
+        self.try_add_java_script(builtin::visualization::java_script::table_visualization());
+        self.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
     }
 
     /// Return a default visualisation definition.

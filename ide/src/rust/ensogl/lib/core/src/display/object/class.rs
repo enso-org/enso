@@ -1225,7 +1225,6 @@ mod tests {
     fn visibility_test2() {
         let node1 = Instance::<()>::new(Logger::new("node1"));
         let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
         assert_eq!(node1.is_visible(),false);
         node1.update(&());
         assert_eq!(node1.is_visible(),false);
