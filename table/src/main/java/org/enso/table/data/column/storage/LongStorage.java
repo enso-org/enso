@@ -1,21 +1,17 @@
 package org.enso.table.data.column.storage;
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.OptionalDouble;
-import java.util.OptionalLong;
-import java.util.stream.DoubleStream;
+import java.util.*;
 import java.util.stream.LongStream;
 
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.numeric.LongToLongAggregator;
-import org.enso.table.data.column.operation.aggregate.numeric.NumericAggregator;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.LongBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.LongNumericOp;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 
 /** A column storing 64-bit integers. */
 public class LongStorage extends NumericStorage {
@@ -196,7 +192,8 @@ public class LongStorage extends NumericStorage {
   }
 
   @Override
-  public Storage orderMask(int[] positions) {
+  public Storage applyMask(OrderMask mask) {
+    int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < positions.length; i++) {
@@ -225,6 +222,12 @@ public class LongStorage extends NumericStorage {
       }
     }
     return new LongStorage(newData, total, newMissing);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Comparator getDefaultComparator() {
+    return Comparator.<Long>naturalOrder();
   }
 
   public BitSet getIsMissing() {

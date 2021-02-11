@@ -3,10 +3,12 @@ from Base import all
 import Table.Io.Csv
 import Table.Data.Table
 import Table.Data.Column
+import Table.Data.Order_Rule
 
 from Table.Io.Csv export all hiding Parser
 export Table.Data.Column
-from Table.Data.Table export new, join
+from Table.Data.Table export new, join, No_Such_Column_Error
+from Table.Data.Order_Rule export Order_Rule
 
 ## Converts a JSON array into a dataframe, by looking up the requested keys
    from each item.

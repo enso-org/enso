@@ -1,12 +1,15 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Comparator;
+
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.column.operation.map.numeric.DoubleBooleanOp;
 import org.enso.table.data.column.operation.map.numeric.DoubleNumericOp;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 
 /** A column containing floating point numbers. */
 public class DoubleStorage extends NumericStorage {
@@ -126,7 +129,8 @@ public class DoubleStorage extends NumericStorage {
   }
 
   @Override
-  public Storage orderMask(int[] positions) {
+  public Storage applyMask(OrderMask mask) {
+    int[] positions = mask.getPositions();
     long[] newData = new long[positions.length];
     BitSet newMissing = new BitSet();
     for (int i = 0; i < positions.length; i++) {
@@ -155,6 +159,11 @@ public class DoubleStorage extends NumericStorage {
       }
     }
     return new DoubleStorage(newData, total, newMissing);
+  }
+
+  @Override
+  public Comparator getDefaultComparator() {
+    return Comparator.<Double>naturalOrder();
   }
 
   public BitSet getIsMissing() {

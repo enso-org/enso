@@ -11,6 +11,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.aggregate.AggregateTable;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -213,19 +214,20 @@ public class Table {
       }
       outSize += countMask[i];
     }
-    int[] orderMask = new int[outSize];
+    int[] orderMaskArr = new int[outSize];
     int orderMaskPosition = 0;
     for (int i = 0; i < s; i++) {
       if (matches[i] == null) {
         if (!dropUnmatched) {
-          orderMask[orderMaskPosition++] = Index.NOT_FOUND;
+          orderMaskArr[orderMaskPosition++] = Index.NOT_FOUND;
         }
       } else {
         for (Integer x : matches[i]) {
-          orderMask[orderMaskPosition++] = x;
+          orderMaskArr[orderMaskPosition++] = x;
         }
       }
     }
+    OrderMask orderMask = new OrderMask(orderMaskArr);
     Column[] newColumns = new Column[this.columns.length + other.columns.length];
     Index newIndex = index.countMask(countMask, outSize);
     Set<String> lnames =
@@ -246,8 +248,27 @@ public class Table {
           new Column(
               suffixIfNecessary(lnames, original.getName(), rsuffix),
               newIndex,
-              original.getStorage().orderMask(orderMask));
+              original.getStorage().applyMask(orderMask));
     }
+    return new Table(newColumns, newIndex);
+  }
+
+  /**
+   * Applies an order mask to all columns and indexes of this array.
+   *
+   * @param orderMask the mask to apply
+   * @return a new table, with all columns and indexes reordered accordingly
+   */
+  public Table applyMask(OrderMask orderMask) {
+    final Index newIndex = index.applyMask(orderMask);
+    Column[] newColumns =
+        Arrays.stream(columns)
+            .map(
+                column -> {
+                  Storage newStorage = column.getStorage().applyMask(orderMask);
+                  return new Column(column.getName(), newIndex, newStorage);
+                })
+            .toArray(Column[]::new);
     return new Table(newColumns, newIndex);
   }
 
