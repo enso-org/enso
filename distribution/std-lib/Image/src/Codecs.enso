@@ -1,0 +1,86 @@
+from Base import all
+import Base.System.File
+import Image.Data.Matrix
+import Image.Codecs.Internal
+
+polyglot java import org.enso.image.Image as Java_Image
+
+type Read_Flag
+
+    ## Read image with alpha channel, otherwise it gets cropped.
+    type Read_Alpha_Channel
+
+    ## Always convert image to the single channel grayscale image.
+    type Read_Grayscale
+
+    ## Always convert image to the 3 channel BGR color image.
+    type Read_Color
+
+    ## Return 16-bit/32-bit image when the input has the corresponding depth,
+       otherwise convert it to 8-bit.
+    type Read_Anydepth
+
+    ## The image is read in any possible color format.
+    type Read_Anycolor
+
+    ## Use the gdal driver for loading the image.
+    type Read_Gdal
+
+type Write_Flag
+
+    ## For JPEG, it can be a quality from 0 to 100 (the higher is the better).
+       Default value is 95.
+    type Write_Jpeg_Quality value
+
+    ## Enable JPEG features. Disabled by default.
+    type Write_Jpeg_Progressive
+
+    ## Enable JPEG features. Disabled by default.
+    type Write_Jpeg_Optimize
+
+    ## JPEG restart interval, 0 - 65535, default is 0 - no restart.
+    type Write_Jpeg_Restart_Interval value
+
+    ## Separate luma quality level, 0 - 100, default is 0 - don't use.
+    type Write_Jpeg_Luma_Quality value
+
+    ## Separate chroma quality level, 0 - 100, default is 0 - don't use.
+    type Write_Jpeg_Chroma_Quality value
+
+    ## For PNG, it can be the compression level from 0 to 9. A higher value
+       means a smaller size and longer compression time. Default value is 3.
+    type Write_Png_Compression value
+
+    ## For WEBP, it can be a quality from 1 to 100 (the higher is the better).
+       By default (without any parameter) and for quality above 100 the lossless
+       compression is used.
+    type Write_Webp_Quality value
+
+read : (Text | File) -> (Read_Flag | Vector) -> Matrix ! File.Io_Error
+read location flags=[] =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    read_flags = case flags of
+        Vector.Vector _ ->
+            if flags.is_empty then Java_Image.READ_FLAG_EMPTY else
+                flags.map Internal.read_flag_to_integer . reduce (_.bit_or _)
+        _ -> Internal.read_flag_to_integer flags
+    Panic.recover (Matrix.Matrix (Java_Image.read path read_flags)) . catch e->
+        case e of
+            Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read ' + path))
+            err -> Error.throw err
+
+write : (Text | File) -> Matrix -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
+write location image flags=[] =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    write_flags = case flags of
+        Vector.Vector _ -> flags
+        _ -> [flags]
+    int_flags = Internal.write_flags_to_mat write_flags
+    Panic.recover (Java_Image.write path image.opencv_mat int_flags) . catch e->
+        case e of
+            Polyglot_Error _ -> Panic.throw (File.Io_Error ('Faled to write ' + path))
+            err -> Panic.throw err

@@ -338,6 +338,22 @@ type Vector
             arr.set_at i (that.at i-this_len)
         Vector arr
 
+    ## Add element to the beginning of this vector.
+
+       > Example
+         Add one element in front:
+         [2, 3].prepend 1 == [1, 2, 3]
+    prepend : Any -> Vector
+    prepend x = [x] + this
+
+    ## Add element to the end of this vector.
+
+       > Example
+         Add one element to the end:
+         [1, 2].append 3 == [1, 2, 3]
+    append : Any -> Vector
+    append x = this + [x]
+
     ## When `this` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
