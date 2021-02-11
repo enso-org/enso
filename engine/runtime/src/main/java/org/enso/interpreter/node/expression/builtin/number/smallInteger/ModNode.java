@@ -8,8 +8,10 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "%", description = "Modulo division of numbers.")
@@ -26,7 +28,7 @@ public abstract class ModNode extends Node {
     try {
       return _this % that;
     } catch (ArithmeticException e) {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getDivideByZeroError(), this);
     }
   }
@@ -39,6 +41,8 @@ public abstract class ModNode extends Node {
 
   @Fallback
   Object doOther(long _this, Object that) {
-    throw new TypeError("Unexpected type provided for argument `that` in Integer.%", this);
+    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Atom integer = builtins.number().getInteger().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

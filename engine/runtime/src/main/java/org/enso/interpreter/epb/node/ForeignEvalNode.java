@@ -72,7 +72,7 @@ public abstract class ForeignEvalNode extends RootNode {
     EpbContext context = ctxRef.get();
     GuardedTruffleContext outer = context.getCurrentContext();
     GuardedTruffleContext inner = context.getInnerContext();
-    Object p = inner.enter();
+    Object p = inner.enter(this);
     try {
       String args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
       String wrappedSrc =
@@ -86,7 +86,7 @@ public abstract class ForeignEvalNode extends RootNode {
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNodeGen.create(argNames.length, fn));
     } finally {
-      inner.leave(p);
+      inner.leave(this, p);
     }
   }
 }

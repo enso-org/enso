@@ -60,12 +60,12 @@ public class RuntimeServerInstrument extends TruffleInstrument {
     @Override
     public void onLanguageContextInitialized(TruffleContext context, LanguageInfo language) {
       if (language.getId().equals(org.enso.polyglot.LanguageInfo.ID)) {
-        Object token = context.enter();
+        Object token = context.enter(null);
         ExecutionService service;
         try {
           service = instrument.env.lookup(language, ExecutionService.class);
         } finally {
-          context.leave(token);
+          context.leave(null, token);
         }
         instrument.initializeExecutionService(service, context);
       }

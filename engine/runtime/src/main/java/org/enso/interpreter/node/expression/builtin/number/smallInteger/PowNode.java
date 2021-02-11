@@ -3,12 +3,14 @@ package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import java.math.BigInteger;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
-
-import java.math.BigInteger;
 
 @BuiltinMethod(type = "Small_Integer", name = "^", description = "Exponentation of numbers.")
 public abstract class PowNode extends Node {
@@ -71,6 +73,8 @@ public abstract class PowNode extends Node {
 
   @Fallback
   Object doOther(long _this, Object that) {
-    throw new TypeError("Unexpected type provided for argument `that` in Integer.^", this);
+    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Atom number = builtins.number().getNumber().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(number, that, "that"), this);
   }
 }

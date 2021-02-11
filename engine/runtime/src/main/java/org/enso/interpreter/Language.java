@@ -4,6 +4,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Collections;
 
@@ -108,14 +109,14 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the top scope of the requested context.
+   * Returns the top scope of the requested contenxt.
    *
-   * @param context the context holding the top scope.
-   * @return a singleton collection containing the context's top scope.
+   * @param context the context holding the top scope
+   * @return the language's top scope
    */
   @Override
-  protected Iterable<Scope> findTopScopes(Context context) {
-    return Collections.singleton(context.getTopScope().getScope());
+  protected Object getScope(Context context) {
+    return context.getTopScope();
   }
 
   /** @return a reference to the execution instrument */

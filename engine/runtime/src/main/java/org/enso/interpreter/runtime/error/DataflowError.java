@@ -1,24 +1,14 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
-
-import javax.xml.crypto.Data;
 
 /**
  * A runtime object representing an arbitrary, user-created dataflow error.
@@ -28,9 +18,8 @@ import javax.xml.crypto.Data;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
-public class DataflowError extends RuntimeException implements TruffleObject, TruffleException {
+public class DataflowError extends AbstractTruffleException {
   private final Object payload;
-  private final Node location;
 
   /**
    * Construct a new dataflow error with the default stack trace.
@@ -41,10 +30,8 @@ public class DataflowError extends RuntimeException implements TruffleObject, Tr
    * @param location the node in which the error was created
    * @return a new dataflow error
    */
-  public static DataflowError withDefaultTrace(Object payload, Node location) {
-    var error = new DataflowError(payload, location);
-    error.fillInStackTrace();
-    return error;
+  public static DataflowError withoutTrace(Object payload, Node location) {
+    return new DataflowError(payload, location);
   }
 
   /**
@@ -65,13 +52,8 @@ public class DataflowError extends RuntimeException implements TruffleObject, Tr
   }
 
   DataflowError(Object payload, Node location) {
+    super(location);
     this.payload = payload;
-    this.location = location;
-  }
-
-  @Override
-  public Node getLocation() {
-    return location;
   }
 
   /**
