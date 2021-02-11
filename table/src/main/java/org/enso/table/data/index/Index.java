@@ -1,5 +1,8 @@
 package org.enso.table.data.index;
 
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.mask.OrderMask;
+
 import java.util.BitSet;
 import java.util.List;
 
@@ -62,6 +65,14 @@ public abstract class Index {
    * @return the index masked according to the specified rules
    */
   public abstract Index countMask(int[] counts, int total);
+
+  /**
+   * Returns a new index, ordered according to the rules specified in a mask.
+   *
+   * @param mask an order mask specifying the reordering
+   * @return an index resulting from applying the reordering rules
+   */
+  public abstract Index applyMask(OrderMask mask);
 
   /** @return the number of elements in this index. */
   public abstract int size();

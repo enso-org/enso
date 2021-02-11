@@ -1,5 +1,7 @@
 package org.enso.table.data.index;
 
+import org.enso.table.data.mask.OrderMask;
+
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
@@ -59,5 +61,10 @@ public class DefaultIndex extends Index {
   @Override
   public int size() {
     return size;
+  }
+
+  @Override
+  public Index applyMask(OrderMask mask) {
+    return this;
   }
 }

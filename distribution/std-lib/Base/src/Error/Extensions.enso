@@ -26,3 +26,7 @@ unimplemented message="" = Panic.throw (Unimplemented_Error message)
 Error.catch : (Error -> Any) -> Any
 Error.catch (handler = x->x) = this.catch_primitive handler
 
+## Takes any value, and if it is a dataflow error, throws it as a Panic.
+   Otherwise, returns the original value unchanged.
+Panic.rethrow : (Any ! Any) -> Any
+Panic.rethrow value = value.catch Panic.throw

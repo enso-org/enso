@@ -2,8 +2,13 @@ from Base import all
 import Table.Io.Csv
 import Table.Data.Column
 import Base.System.Platform
+from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.operations.OrderBuilder
+
+## An error returned when a non-existent column is being looked up.
+type No_Such_Column_Error column_name
 
 ## Represents a column-oriented table data structure.
 type Table
@@ -48,9 +53,9 @@ type Table
         Json.Object fields
 
     ## Returns the column with the given name.
-    at : Text -> Column | Nothing
+    at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnByName name of
-        Nothing -> Nothing
+        Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
     ## Selects only the rows of this table that correspond to `True` values in
@@ -164,6 +169,109 @@ type Table
     group : Text | Nothing -> Aggregate_Table
     group by=Nothing =
         Aggregate_Table (this.java_table.group by)
+
+    ## UNSTABLE
+
+       Sorts the table according to the specified rules.
+
+       Arguments:
+         - by: specifies the columns used for reordering the table. This
+           argument may be one of:
+             - a text: the text is treated as a column name.
+             - a column: any column, that may or may not belong to this table.
+               Sorting by a column will result in reordering the rows of this
+               table in a way that would result in sorting the given column.
+             - an order rule: specifies both the sorting column and additional
+               settings, that will take precedence over the global parameters of
+               this sort operation. The `column` field of the rule may be a text
+               or a column, with the semantics described above.
+             - a vector of any of the above: this will result in a hierarchical
+               sorting, such that the first rule is applied first, the second is
+               used for breaking ties, etc.
+         - order: specifies the default sort order for this operation. All the
+           rules specified in the `by` argument will default to this setting,
+           unless specified in the rule.
+         - missing_last: specifies the default placement of missing values when
+           compared to non-missing ones. This setting may be overriden by the
+           particular rules of the `by` argument.  Note thet this argument is
+           independent from `order`, i.e. missing values will always be sorted
+           according to this rule, ignoring the ascending / descending setting.
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`
+             table.sort by='Quantity'
+
+       > Example
+         Sorting `table` in descending order by the value in column `'Quantity'`,
+         placing missing values at the top of the table.
+             table.sort by='Quantity' order=Sort_Order.Descending missing_last=False
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` for breaking ties.
+             table.sort by=['Quantity', 'Rating']
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` in descending order for breaking
+         ties.
+             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Order.Descending)]
+
+       > Example
+         Sorting `table` in ascending order by the value in an externally
+         computed column, using the value in column `'Rating'` for breaking
+         ties.
+             quality_ratio = table.at 'Rating' / table.at 'Price'
+             table.sort by=[quality_ratio, 'Rating']
+
+       > Sorting `table` in ascending order, by the value in column
+         `'position'`, using a custom comparator function.
+             manhattan_comparator a b = (a.x.abs + a.y.abs) . compare_to (b.x.abs + b.y.abs)
+             table.sort by=(Order_Rule 'position' comparator=manhattan_comparator)
+    sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> Table
+    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
+        rules = this.build_java_order_rules by order missing_last
+        fallback_cmp = here.comparator_to_java .compare_to
+        mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp
+        new_table = this.java_table.applyMask mask
+        Table new_table
+
+    ## PRIVATE
+    build_java_order_rules rules order missing_last = case rules of
+        Text -> [this.build_java_order_rule rules order missing_last]
+        Column.Column _ -> [this.build_java_order_rule rules order missing_last]
+        Order_Rule _ _ _ _ -> [this.build_java_order_rule rules order missing_last]
+        Vector.Vector _ -> rules.map (this.build_java_order_rule _ order missing_last)
+
+    ## PRIVATE
+    build_java_order_rule rule order missing_last =
+        order_bool = case order of
+            Sort_Order.Ascending -> True
+            Sort_Order.Descending -> False
+        case rule of
+            Text ->
+                column = Panic.rethrow (this.at rule)
+                OrderBuilder.OrderRule.new column.java_column Nothing order_bool missing_last
+            Column.Column c ->
+                OrderBuilder.OrderRule.new c Nothing order_bool missing_last
+            Order_Rule col_ref cmp rule_order rule_nulls_last ->
+                c = case col_ref of
+                    Text -> this.at col_ref . java_column
+                    Column.Column c -> c
+                o = case rule_order of
+                    Nothing -> order_bool
+                    Sort_Order.Ascending -> True
+                    Sort_Order.Descending -> False
+                nulls = case rule_nulls_last of
+                    Nothing -> missing_last
+                    _ -> rule_nulls_last
+                java_cmp = case cmp of
+                    Nothing -> Nothing
+                    c -> here.comparator_to_java c
+                OrderBuilder.OrderRule.new c java_cmp o nulls
+
+## PRIVATE
+comparator_to_java cmp x y = cmp x y . to_sign
 
 ## Represents a table with grouped rows.
 type Aggregate_Table

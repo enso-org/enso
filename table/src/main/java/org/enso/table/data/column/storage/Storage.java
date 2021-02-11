@@ -7,12 +7,13 @@ import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.enso.table.data.column.builder.object.Builder;
-import org.enso.table.data.column.builder.object.InferredBuilder;
+
 import org.enso.table.data.column.builder.object.ObjectBuilder;
+import org.enso.table.data.mask.OrderMask;
 
 /** An abstract representation of a data column. */
 public abstract class Storage {
@@ -228,16 +229,11 @@ public abstract class Storage {
   public abstract Storage mask(BitSet mask, int cardinality);
 
   /**
-   * Returns a new storage, ordered according to the rules specified in a mask. The resulting
-   * storage should contain the {@code positions[i]}-th element of the original storage at the i-th
-   * position. {@code positions[i]} may be equal to {@link
-   * org.enso.table.data.index.Index.NOT_FOUND}, in which case a missing value should be inserted at
-   * this position.
+   * Returns a new storage, ordered according to the rules specified in a mask.
    *
-   * @param positions an array specifying the ordering as described
-   * @return a storage resulting from applying the reordering rules
+   * @param mask@return a storage resulting from applying the reordering rules
    */
-  public abstract Storage orderMask(int[] positions);
+  public abstract Storage applyMask(OrderMask mask);
 
   /**
    * Returns a new storage, resulting from applying the rules specified in a mask. The resulting
@@ -251,4 +247,10 @@ public abstract class Storage {
    * @return the storage masked according to the specified rules
    */
   public abstract Storage countMask(int[] counts, int total);
+
+  /**
+   * @return a comparator comparing objects in this storage in a natural order. May be {@code null}
+   *     to specify no natural ordering.
+   */
+  public abstract Comparator<Object> getDefaultComparator();
 }
