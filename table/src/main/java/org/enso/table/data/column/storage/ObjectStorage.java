@@ -1,10 +1,12 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Comparator;
 
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 
 /** A column storing arbitrary objects. */
 public class ObjectStorage extends Storage {
@@ -92,7 +94,8 @@ public class ObjectStorage extends Storage {
   }
 
   @Override
-  public ObjectStorage orderMask(int[] positions) {
+  public ObjectStorage applyMask(OrderMask mask) {
+    int[] positions = mask.getPositions();
     Object[] newData = new Object[positions.length];
     for (int i = 0; i < positions.length; i++) {
       if (positions[i] == Index.NOT_FOUND) {
@@ -118,6 +121,11 @@ public class ObjectStorage extends Storage {
 
   public Object[] getData() {
     return data;
+  }
+
+  @Override
+  public Comparator<Object> getDefaultComparator() {
+    return null;
   }
 
   private static MapOpStorage<ObjectStorage> buildOps() {
