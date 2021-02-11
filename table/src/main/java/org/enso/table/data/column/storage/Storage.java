@@ -248,5 +248,9 @@ public abstract class Storage {
    */
   public abstract Storage countMask(int[] counts, int total);
 
+  /**
+   * @return a comparator comparing objects in this storage in a natural order. May be {@code null}
+   *     to specify no natural ordering.
+   */
   public abstract Comparator<Object> getDefaultComparator();
 }

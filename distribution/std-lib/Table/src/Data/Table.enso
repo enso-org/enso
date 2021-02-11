@@ -265,6 +265,7 @@ type Table
                     c -> here.comparator_to_java c
                 OrderBuilder.OrderRule.new c java_cmp o nulls
 
+## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign
 
 ## Represents a table with grouped rows.
