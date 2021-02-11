@@ -1,5 +1,3 @@
-import java.io.File
-
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
@@ -7,13 +5,15 @@ import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
+import java.io.File
+
 // ============================================================================
 // === Global Configuration ===================================================
 // ============================================================================
 
 val scalacVersion = "2.13.3"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val graalVersion  = "20.2.0"
+val graalVersion  = "21.0.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.2.4-SNAPSHOT" // Note [Engine And Launcher Version]
 
@@ -148,7 +148,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
   "-Ywarn-unused:params",               // Warn if a value parameter is unused.
-  "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
+//  "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
 )
 
 val jsSettings = Seq(
