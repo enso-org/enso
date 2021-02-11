@@ -11,7 +11,10 @@ import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.locking.{FileLockManager, ResourceManager}
+import org.enso.runtimeversionmanager.locking.{
+  ResourceManager,
+  ThreadSafeFileLockManager
+}
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
@@ -38,7 +41,9 @@ object DefaultDistributionConfiguration
   lazy val distributionManager = new DistributionManager(environment)
 
   /** @inheritdoc */
-  lazy val lockManager = new FileLockManager(distributionManager.paths.locks)
+  lazy val lockManager = new ThreadSafeFileLockManager(
+    distributionManager.paths.locks
+  )
 
   /** @inheritdoc */
   lazy val resourceManager = new ResourceManager(lockManager)
