@@ -9,6 +9,7 @@ import org.enso.projectmanager.boot.configuration.{
   SupervisionConfig,
   TimeoutConfig
 }
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.Retry
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckIfServerIsRunning,
   KillThemAll,
@@ -23,6 +24,8 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+
+import scala.concurrent.duration._
 
 /** An actor that routes request regarding lang. server lifecycle to the
   * right controller that manages the server.
@@ -72,7 +75,7 @@ class LanguageServerRegistry(
               loggingServiceDescriptor,
               executor
             ),
-          s"language-server-controller-${project.id}-${UUID.randomUUID()}"
+          s"language-server-controller-${project.id}"
         )
         context.watch(controller)
         controller.forward(msg)
@@ -115,6 +118,12 @@ class LanguageServerRegistry(
 
     case m @ RegisterShutdownHook(projectId, _) =>
       serverControllers.get(projectId).foreach(_ ! m)
+
+    case Retry(message) =>
+      context.system.scheduler.scheduleOnce(200.millis, self, message)(
+        context.dispatcher,
+        context.sender()
+      )
   }
 
 }

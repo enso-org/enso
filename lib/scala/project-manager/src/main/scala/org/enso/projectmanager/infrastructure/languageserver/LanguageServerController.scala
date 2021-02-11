@@ -31,7 +31,6 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
-import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.RegisterShutdownHook
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.service.LoggingServiceDescriptor
 import org.enso.projectmanager.util.UnhandledLogging
@@ -156,8 +155,7 @@ class LanguageServerController(
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,
-    clients: Set[UUID]                = Set.empty,
-    isShutdownHookRegistered: Boolean = false
+    clients: Set[UUID] = Set.empty
   ): Receive = {
     case StartServer(clientId, _, requestedEngineVersion, _) =>
       if (requestedEngineVersion != engineVersion) {
@@ -189,12 +187,11 @@ class LanguageServerController(
         serverProcessManager,
         clients,
         clientId,
-        Some(sender()),
-        isShutdownHookRegistered
+        Some(sender())
       )
 
     case ShutDownServer =>
-      shutDownServer(None, isShutdownHookRegistered)
+      shutDownServer(None)
 
     case ClientDisconnected(clientId) =>
       removeClient(
@@ -202,8 +199,7 @@ class LanguageServerController(
         serverProcessManager,
         clients,
         clientId,
-        None,
-        isShutdownHookRegistered
+        None
       )
 
     case RenameProject(_, oldName, newName) =>
@@ -226,16 +222,6 @@ class LanguageServerController(
       log.error(s"Language server died [$connectionInfo]")
       context.stop(self)
 
-    case RegisterShutdownHook(_, _) =>
-      context.become(
-        supervising(
-          connectionInfo,
-          serverProcessManager,
-          clients,
-          isShutdownHookRegistered = true
-        )
-      )
-
   }
 
   private def removeClient(
@@ -243,12 +229,11 @@ class LanguageServerController(
     serverProcessManager: ActorRef,
     clients: Set[UUID],
     clientId: UUID,
-    maybeRequester: Option[ActorRef],
-    isShutdownHookRegistered: Boolean
+    maybeRequester: Option[ActorRef]
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      shutDownServer(maybeRequester, isShutdownHookRegistered)
+      shutDownServer(maybeRequester)
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(
@@ -258,14 +243,10 @@ class LanguageServerController(
   }
 
   private def shutDownServer(
-    maybeRequester: Option[ActorRef],
-    isShutdownHookRegistered: Boolean
+    maybeRequester: Option[ActorRef]
   ): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
-    if (!isShutdownHookRegistered) {
-      context.parent ! ServerShutDown(project.id)
-    }
     val cancellable =
       context.system.scheduler
         .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
@@ -302,7 +283,7 @@ class LanguageServerController(
 
     case m: StartServer =>
       // This instance has not yet been shut down. Retry
-      context.parent.forward(m)
+      context.parent.forward(Retry(m))
   }
 
   private def waitingForChildren(): Receive = { case Terminated(_) =>
@@ -382,5 +363,7 @@ object LanguageServerController {
   case object ShutdownTimeout
 
   case object ServerDied
+
+  case class Retry(message: Any)
 
 }
