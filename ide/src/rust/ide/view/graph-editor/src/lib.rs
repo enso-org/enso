@@ -1839,7 +1839,7 @@ impl application::View for GraphEditor {
           , (Press       , "!node_editing" , "space" , "press_visualization_visibility")
           // , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
           , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
-          , (Press       , "", "cmd shift alt r"     , "reload_visualization_registry")
+          , (Press       , ""              , "cmd i" , "reload_visualization_registry")
 
           // === Selection ===
           , (Press   , "" , "shift"                   , "enable_node_multi_select")
