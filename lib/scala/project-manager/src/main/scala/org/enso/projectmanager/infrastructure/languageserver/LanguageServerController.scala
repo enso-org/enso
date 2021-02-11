@@ -221,6 +221,7 @@ class LanguageServerController(
     case ServerDied =>
       log.error(s"Language server died [$connectionInfo]")
       context.stop(self)
+
   }
 
   private def removeClient(
@@ -278,8 +279,9 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! ServerShutdownTimedOut)
       stop()
 
-    case StartServer(_, _, _, _) =>
-      sender() ! PreviousInstanceNotShutDown
+    case m: StartServer =>
+      // This instance has not yet been shut down. Retry
+      context.parent.forward(Retry(m))
   }
 
   private def waitingForChildren(): Receive = { case Terminated(_) =>
@@ -349,18 +351,17 @@ object LanguageServerController {
 
   case object ShutDownServer
 
-  /** Signals boot timeout.
-    */
+  /** Signals boot timeout. */
   case object BootTimeout
 
-  /** Boot command.
-    */
+  /** Boot command. */
   case object Boot
 
-  /** Signals shutdown timeout.
-    */
+  /** Signals shutdown timeout. */
   case object ShutdownTimeout
 
   case object ServerDied
+
+  case class Retry(message: Any)
 
 }
