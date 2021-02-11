@@ -242,9 +242,7 @@ class LanguageServerController(
     }
   }
 
-  private def shutDownServer(
-    maybeRequester: Option[ActorRef]
-  ): Unit = {
+  private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
     log.debug(s"Shutting down a language server for project ${project.id}")
     context.children.foreach(_ ! GracefulStop)
     val cancellable =
