@@ -338,5 +338,5 @@ vec2 cartesian2polar (vec2 position) {
 }
 
 vec2 repeat (vec2 position, vec2 tile_size) {
-    return mod(position-tile_size/2.0, tile_size);
+    return mod(position+tile_size/2.0, tile_size) - tile_size/2.0;
 }
