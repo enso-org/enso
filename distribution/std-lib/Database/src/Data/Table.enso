@@ -1,13 +1,13 @@
 from Base import all
 from Database.Data.Column as Column_Module import all
-import Table.Data.Order_Rule
+from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
     # type Table (name : Text) (connection : Connection)
-    #            (internal_columns : Vector (Pair Text IR.Expression))
+    #            (internal_columns : Vector [Text, IR.Expression])
     #            (context : IR.Context)
     type Table name connection internal_columns context
 
@@ -76,7 +76,7 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            new_col = Pair name column.expression
+            new_col = [name, column.expression]
             replace = this.internal_columns.exists (c -> c.first == name)
             case replace of
                 True ->
@@ -96,47 +96,51 @@ type Table
         new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
 
-    ## Orders the rows.
+    ## Sorts the table according to the specified rules.
 
        Arguments:
-         - by: specifies how to order the rows, it can be one of the following:
-           - Nothing - ordering the rows by the current index
-           - Text - ordering the rows by a column with the provided name
-           - Column - ordering the rows by some computed expression
-           - a Vector of Text or Columns that orders the rows first by the first
-             element of the vector, than by the second and so on
-           - a Vector of Order_Rules which works similarly as above, but they
-             override the latter arguments, allowing to control the ordering
-             with more granularity
-         - ascending: specifies if the ordering should be ascending, True by
-           default. This argument is only applicable if the first argument was
-           not a list of pairs (because the pairs specify the orders with more
-           granularity).
-    order : Nothing | Text | Column | Vector (Text | Column | Order_Rule) -> Boolean -> Table
-    order by=Nothing ascending=True =
-        go : Vector [IR.Expression, IR.OrderType] -> Table
-        go exprs =
-            new_ctx = this.context.set_orders exprs
-            this.updated_context new_ctx
-        sort_order = if ascending then Sort_Order.Ascending else Sort_Order.Descending
-        case by of
-            Nothing -> case this.context.meta_index.is_empty of
-                True -> Error.throw "Trying to order by an empty index."
-                False ->
-                    go (this.context.meta_index.map (e -> [e, sort_order]))
-            Vector.Vector _ ->
-                exprs = by.map arg-> case _ of
-                    Order_Rule column Nothing ascending nulls_last ->
-                        # TODO [RW] nulls_last
-                        order_type = if ascending then IR.Ascending else IR.Descending
-                        expr = this.resolve column . expression
-                        [expr, order_type]
-                    Order_Rule _ _ _ _ ->
-                        Error.throw "Custom comparators are not supported in Database"
-                    _ -> [this.resolve arg . expression, sort_order]
-                go exprs
-            _ ->
-                go [[by, sort_order]]
+         - by: specifies the columns used for reordering the table. This
+           argument may be one of:
+             - a text: the text is treated as a column name.
+             - a column: any column, which is an expression computed from this
+               table.
+             - an order rule: specifies both the sorting column and additional
+               settings, that will take precedence over the global parameters of
+               this sort operation. The `column` field of the rule may be a text
+               or a column, with the semantics described above.
+             - a vector of any of the above: this will result in a hierarchical
+               sorting, such that the first rule is applied first, the second is
+               used for breaking ties, etc.
+         - order: specifies the default sort order for this operation. All the
+           rules specified in the `by` argument will default to this setting,
+           unless specified in the rule.
+         - missing_last: specifies the default placement of missing values when
+           compared to non-missing ones. This setting may be overriden by the
+           particular rules of the `by` argument.  Note thet this argument is
+           independent from `order`, i.e. missing values will always be sorted
+           according to this rule, ignoring the ascending / descending setting.
+    sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Order -> Boolean -> Table
+    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
+        order_to_ir = case _ of
+            Sort_Order.Ascending -> IR.Ascending
+            Sort_Order.Descending -> IR.Descending
+        missing_to_ir last = case last of
+            True -> IR.NullsLast
+            False -> IR.NullsFirst
+        wrap_elem elem =
+            [this.resolve elem . expression, order_to_ir order, missing_to_ir missing_last]
+        to_ir elem = case elem of
+            Text -> wrap_elem elem
+            Column _ _ _ _ -> wrap_elem elem
+            Order_Rule elem Nothing my_order my_nulls ->
+                chosen_order = if my_order.is_nothing then order else my_order
+                chosen_nulls = if my_nulls.is_nothing then missing_last else my_nulls
+                [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
+            Order_Rule _ _ _ _ ->
+                Error.throw "Custom comparators are not supported in Database"
+        elems = Helpers.unify_vector_singleton by . map to_ir
+        new_ctx = this.context.set_orders elems
+        this.updated_context new_ctx
 
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
@@ -179,8 +183,8 @@ type Table
 
                 new_table_name = this.name + "_" + other.name
                 aliases = case this.name == other.name of
-                    True -> Pair this.name+"_left" other.name+"_right"
-                    False -> Pair this.name other.name
+                    True -> [this.name+"_left", other.name+"_right"]
+                    False -> [this.name, other.name]
                 left_alias = aliases.first
                 right_alias = aliases.second
 
@@ -203,9 +207,9 @@ type Table
                 rename_right = rename "_right"  left_names
 
                 new_left_columns = this.internal_columns.map p->
-                    Pair (rename_left p.first) (IR.Column left_alias p.first)
+                    [rename_left p.first, IR.Column left_alias p.first]
                 new_right_columns = other.internal_columns.map p->
-                    Pair (rename_right p.first) (IR.Column right_alias p.first)
+                    [rename_right p.first, IR.Column right_alias p.first]
 
                 new_columns = new_left_columns + new_right_columns
 
@@ -248,7 +252,7 @@ type Table
     ## Returns a new Table without columns that contained any missing values.
     drop_missing_columns : Table
     drop_missing_columns =
-        Error.throw "TODO"
+        Error.throw "TODO needs materialization"
 
     ## Returns the amount of rows in this table.
     nrows : Integer
@@ -279,7 +283,7 @@ type Table
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
 
     ## PRIVATE
-    make_column : Pair Text IR.Expression -> Column
+       # make_column : [Text, IR.Expression] -> Column
     make_column pair =
         Column pair.first this.connection pair.second this.context
 
@@ -309,5 +313,5 @@ type IntegrityError
 make_table : Connection -> Text -> Vector Text -> Table
 make_table connection table_name column_names =
     ctx = IR.make_ctx_from table_name
-    cols = column_names.map (name -> Pair name (IR.Column table_name name))
+    cols = column_names.map (name -> [name, IR.Column table_name name])
     Table table_name connection cols ctx

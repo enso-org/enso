@@ -15,7 +15,7 @@ type Column
     ## Converts this column into a single-column table.
     to_table : Table.Table
     to_table =
-        cols = [Pair this.name this.expression]
+        cols = [[this.name, this.expression]]
         Table.Table this.name this.connection cols this.context
 
     ## Returns a vector containing all the elements in this column.

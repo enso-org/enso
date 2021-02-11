@@ -78,12 +78,15 @@ generate_from_part dialect from_spec = case from_spec of
         sub = here.generate_query dialect (IR.Select columns context)
         sub.paren.alias as_name
 
-generate_order : InternalDialect -> Pair Expression IR.OrderType -> SQL.Builder
-generate_order dialect pair =
-    suffix = case pair.second of
+# generate_order : InternalDialect -> [Expression, IR.OrderType, IR.NullsOrder] -> SQL.Builder
+generate_order dialect order_description =
+    order_suffix = case order_description.second of
         IR.Ascending -> SQL.code " ASC"
         IR.Descending -> SQL.code " DESC"
-    (here.generate_expression dialect (pair.first)) ++ suffix
+    nulls_suffix = case order_description.at 2 of
+        IR.NullsFirst -> SQL.code " NULLS FIRST"
+        IR.NullsLast -> SQL.code " NULLS LAST"
+    (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
 
 generate_query : InternalDialect -> Query -> SQL.Builder
 generate_query dialect query = case query of

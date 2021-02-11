@@ -36,7 +36,7 @@ type Statement
 
     ## Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
-    to_prepared_sql_with_substitutions : Pair Text (Vector Any)
+       # to_prepared_sql_with_substitutions : [Text, Vector Any]
     to_prepared_sql_with_substitutions =
         to_code fragment = case fragment of
             SqlCodePart code -> code
@@ -46,7 +46,7 @@ type Statement
             SqlInterpolation obj -> [obj]
         sql = this.fragments.map to_code . join ""
         substitutions = this.fragments.flat_map to_subst
-        Pair sql substitutions
+        [sql, substitutions]
 
 type Builder
     # type Builder (fragments : VectorBuilder.VectorBuilder SqlFragment)
