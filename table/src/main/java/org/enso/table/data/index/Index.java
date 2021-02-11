@@ -67,10 +67,10 @@ public abstract class Index {
   public abstract Index countMask(int[] counts, int total);
 
   /**
-   * Returns a new storage, ordered according to the rules specified in a mask.
+   * Returns a new index, ordered according to the rules specified in a mask.
    *
    * @param mask an order mask specifying the reordering
-   * @return a storage resulting from applying the reordering rules
+   * @return an index resulting from applying the reordering rules
    */
   public abstract Index applyMask(OrderMask mask);
 

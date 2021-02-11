@@ -371,3 +371,7 @@ spec =
             cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
             r = df.sort by=(Order_Rule 'val' comparator=cmp)
             r.at 'id' . to_vector . should_equal [1,3,6,2,4,5]
+
+        Test.specify 'should return dataflow error when passed a non-existent column' <|
+            r = df.sort by='foobar'
+            r.should_fail_with No_Such_Column_Error

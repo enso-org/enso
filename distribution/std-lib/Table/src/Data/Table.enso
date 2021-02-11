@@ -7,6 +7,9 @@ from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 
+## An error returned when a non-existent column is being looked up.
+type No_Such_Column_Error column_name
+
 ## Represents a column-oriented table data structure.
 type Table
     type Table java_table
@@ -50,9 +53,9 @@ type Table
         Json.Object fields
 
     ## Returns the column with the given name.
-    at : Text -> Column | Nothing
+    at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnByName name of
-        Nothing -> Nothing
+        Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
     ## Selects only the rows of this table that correspond to `True` values in
@@ -167,30 +170,32 @@ type Table
     group by=Nothing =
         Aggregate_Table (this.java_table.group by)
 
-    ## Sorts the table according to the specified rules.
+    ## UNSTABLE
+
+       Sorts the table according to the specified rules.
 
        Arguments:
          - by: specifies the columns used for reordering the table. This
-               argument may be one of:
-                 - a text: the text is treated as a column name
-                 - a column: any column, that may or may not belong to this
-                   table. Sorting by a column will result in reordering the
-                   rows of this table in a way that would result in sorting
-                   the given column.
-                 - an order rule: specifies both the sorting column and
-                   additional settings, that will take precedence over the
-                   global parameters of this sort operation. The `column` field
-                   of the rule may be a text or a column, with the semantics
-                   described above.
-                 - a vector of any of the above: this will result in
-                   a hierarchical sorting, such that the first rule is applied
-                   first, the second is used for breaking ties, etc.
+           argument may be one of:
+             - a text: the text is treated as a column name.
+             - a column: any column, that may or may not belong to this table.
+               Sorting by a column will result in reordering the rows of this
+               table in a way that would result in sorting the given column.
+             - an order rule: specifies both the sorting column and additional
+               settings, that will take precedence over the global parameters of
+               this sort operation. The `column` field of the rule may be a text
+               or a column, with the semantics described above.
+             - a vector of any of the above: this will result in a hierarchical
+               sorting, such that the first rule is applied first, the second is
+               used for breaking ties, etc.
          - order: specifies the default sort order for this operation. All the
-                  rules specified in the `by` argument will default to this
-                  setting, unless specified in the rule.
+           rules specified in the `by` argument will default to this setting,
+           unless specified in the rule.
          - missing_last: specifies the default placement of missing values when
-                         compared to non-missing ones. This setting may be
-                         overriden by the particular rules of the `by` argument.
+           compared to non-missing ones. This setting may be overriden by the
+           particular rules of the `by` argument.  Note thet this argument is
+           independent from `order`, i.e. missing values will always be sorted
+           according to this rule, ignoring the ascending / descending setting.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`
@@ -224,7 +229,7 @@ type Table
              manhattan_comparator a b = (a.x.abs + a.y.abs) . compare_to (b.x.abs + b.y.abs)
              table.sort by=(Order_Rule 'position' comparator=manhattan_comparator)
     sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> Table
-    sort by order=Sort_Order.Ascending missing_last=True =
+    sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
         rules = this.build_java_order_rules by order missing_last
         fallback_cmp = here.comparator_to_java .compare_to
         mask = OrderBuilder.buildOrderMask rules.to_array fallback_cmp
@@ -242,10 +247,10 @@ type Table
     build_java_order_rule rule order missing_last =
         order_bool = case order of
             Sort_Order.Ascending -> True
-            _ -> False
+            Sort_Order.Descending -> False
         case rule of
             Text ->
-                column = this.at rule
+                column = Panic.rethrow (this.at rule)
                 OrderBuilder.OrderRule.new column.java_column Nothing order_bool missing_last
             Column.Column c ->
                 OrderBuilder.OrderRule.new c Nothing order_bool missing_last
@@ -256,7 +261,7 @@ type Table
                 o = case rule_order of
                     Nothing -> order_bool
                     Sort_Order.Ascending -> True
-                    _ -> False
+                    Sort_Order.Descending -> False
                 nulls = case rule_nulls_last of
                     Nothing -> missing_last
                     _ -> rule_nulls_last
