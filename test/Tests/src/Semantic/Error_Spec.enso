@@ -18,3 +18,7 @@ spec =
 
             err_3.target.to_text.should_equal "(My_Type False)"
             err_3.method_name.should_equal "nope"
+    Test.group "Dataflow Errors" <|
+        Test.specify "should be able to be displayed" <|
+            json = (Error.throw <| My_Type "aaa").to_display
+            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type"]]).to_text

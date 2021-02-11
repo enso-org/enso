@@ -1,10 +1,9 @@
 package org.enso.interpreter.runtime.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-
-import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.exception.CompilerError;
@@ -12,16 +11,18 @@ import org.enso.compiler.phase.BuiltinsIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.CatchErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.CatchAnyMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.RecoverPanicMethodGen;
-import org.enso.interpreter.node.expression.builtin.error.ThrowErrorMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.ThrowPanicMethodGen;
-import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.AddToClassPathMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.LookupClassMethodGen;
-import org.enso.interpreter.node.expression.builtin.io.*;
+import org.enso.interpreter.node.expression.builtin.io.GetCwdMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.GetFileMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.GetUserHomeMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.PrintErrMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
+import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
@@ -33,8 +34,10 @@ import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.type.Constants;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -54,6 +57,7 @@ public class Builtins {
   private final AtomConstructor projectDescription;
   private final AtomConstructor function;
   private final AtomConstructor nothing;
+  private final AtomConstructor panic;
 
   private final Bool bool;
   private final DataflowError dataflowError;
@@ -95,6 +99,7 @@ public class Builtins {
     nothing = new AtomConstructor("Nothing", scope).initializeFields();
     number = new Number(language, scope);
     ordering = new Ordering(language, scope);
+    panic = new AtomConstructor("Panic", scope).initializeFields();
     polyglot = new Polyglot(language, scope);
     resource = new Resource(language, scope);
     system = new System(language, scope);
@@ -109,7 +114,6 @@ public class Builtins {
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor primIo = new AtomConstructor("Prim_Io", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
-    AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
     AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
@@ -300,5 +304,45 @@ public class Builtins {
 
   public Module getModule() {
     return module;
+  }
+
+  /**
+   * Convert from type-system type names to atoms.
+   *
+   * @param typeName the fully qualified type name as defined in {@link Constants}.
+   * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
+   *     and {@code null} otherwise
+   */
+  public Atom fromTypeSystem(String typeName) {
+    switch (typeName) {
+      case Constants.ANY:
+        return any.newInstance();
+      case Constants.ARRAY:
+        return mutable.array().newInstance();
+      case Constants.BOOLEAN:
+        return bool.getBool().newInstance();
+      case Constants.DECIMAL:
+        return number.getDecimal().newInstance();
+      case Constants.ERROR:
+        return dataflowError.constructor().newInstance();
+      case Constants.FUNCTION:
+        return function.newInstance();
+      case Constants.INTEGER:
+        return number.getInteger().newInstance();
+      case Constants.MANAGED_RESOURCE:
+        return resource.getManagedResource().newInstance();
+      case Constants.NOTHING:
+        return nothing.newInstance();
+      case Constants.NUMBER:
+        return number.getNumber().newInstance();
+      case Constants.PANIC:
+        return panic.newInstance();
+      case Constants.REF:
+        return mutable.ref().newInstance();
+      case Constants.TEXT:
+        return text.getText().newInstance();
+      default:
+        return null;
+    }
   }
 }

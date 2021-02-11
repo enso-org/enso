@@ -61,7 +61,7 @@ public abstract class CompareToNode extends Node {
       @CachedContext(Language.class) ContextReference<Context> ctxRef) {
     CompilerDirectives.transferToInterpreter();
     var number = ctxRef.get().getBuiltins().number().getNumber().newInstance();
-    var typeError = ctxRef.get().getBuiltins().error().makeTypeError(that, number);
+    var typeError = ctxRef.get().getBuiltins().error().makeTypeError(that, number, "that");
     throw new PanicException(typeError, this);
   }
 

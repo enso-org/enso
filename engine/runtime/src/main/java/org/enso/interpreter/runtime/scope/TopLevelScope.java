@@ -1,13 +1,23 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.Scope;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.io.File;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -18,16 +28,11 @@ import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
-import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
-
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final Map<String, Module> modules;
-  private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
   /**
    * Creates a new instance of top scope.
@@ -38,15 +43,6 @@ public class TopLevelScope implements TruffleObject {
   public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
     this.modules = modules;
-  }
-
-  /**
-   * Returns a polyglot representation of this scope.
-   *
-   * @return a polyglot Scope object.
-   */
-  public Scope getScope() {
-    return scope;
   }
 
   /** @return the list of modules in the scope. */
@@ -223,5 +219,67 @@ public class TopLevelScope implements TruffleObject {
         || member.equals(MethodNames.TopScope.CREATE_MODULE)
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE);
+  }
+
+  /**
+   * Checks if the receiver is a scope object.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  boolean isScope() {
+    return true;
+  }
+
+  /**
+   * Returns true if this scope has an enclosing parent scope, else false.
+   *
+   * @return {@code false}
+   */
+  @ExportMessage
+  boolean hasScopeParent() {
+    return false;
+  }
+
+  /**
+   * Returns the parent scope of this scope, if one exists.
+   *
+   * @return {@code null}
+   * @throws UnsupportedMessageException always, as this scope can never have a parent
+   */
+  @ExportMessage
+  Object getScopeParent() throws UnsupportedMessageException {
+    return UnsupportedMessageException.create();
+  }
+
+  /**
+   * Checks if this value is associated with a language.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  final boolean hasLanguage() {
+    return true;
+  }
+
+  /**
+   * Returns the language associated with this scope value.
+   *
+   * @return the language with which this value is associated
+   */
+  @ExportMessage
+  final Class<Language> getLanguage() {
+    return Language.class;
+  }
+
+  /**
+   * Converts this scope to a human readable string.
+   *
+   * @param allowSideEffects whether or not side effects are allowed
+   * @return a string representation of this scope
+   */
+  @ExportMessage
+  final Object toDisplayString(boolean allowSideEffects) {
+    return "Enso.Top_Scope";
   }
 }

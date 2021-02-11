@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.data.ManagedResource;
 import org.enso.interpreter.runtime.data.Ref;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -43,6 +44,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   ManagedResource.class,
   ModuleScope.class,
   Ref.class,
+  PanicException.class,
   PanicSentinel.class
 })
 public class Types {
@@ -118,10 +120,18 @@ public class Types {
       return Constants.THUNK;
     } else if (TypesGen.isDataflowError(value)) {
       return Constants.ERROR;
+    } else if (TypesGen.isUnresolvedSymbol(value)) {
+      return Constants.UNRESOLVED_SYMBOL;
+    } else if (TypesGen.isManagedResource(value)) {
+      return Constants.MANAGED_RESOURCE;
     } else if (TypesGen.isArray(value)) {
       return Constants.ARRAY;
+    } else if (TypesGen.isModuleScope(value)) {
+      return Constants.MODULE_SCOPE;
     } else if (TypesGen.isRef(value)) {
       return Constants.REF;
+    } else if (TypesGen.isPanicException(value)) {
+      return Constants.PANIC;
     } else if (TypesGen.isPanicSentinel(value)) {
       return Constants.PANIC;
     } else {

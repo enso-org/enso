@@ -60,7 +60,7 @@ public abstract class ComparatorNode extends Node {
       CompilerDirectives.transferToInterpreter();
       var ordering = ctxRef.get().getBuiltins().ordering().ordering();
       throw new PanicException(
-          ctxRef.get().getBuiltins().error().makeTypeError(ordering, result.getValue()), this);
+          ctxRef.get().getBuiltins().error().makeTypeError(ordering, atom, "comparator"), this);
     }
   }
 }

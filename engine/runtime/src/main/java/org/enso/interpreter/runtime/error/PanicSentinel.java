@@ -1,9 +1,13 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.TruffleException;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.ExceptionType;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 
 /**
@@ -13,9 +17,8 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
  * not function in textual mode.
  */
 @ExportLibrary(MethodDispatchLibrary.class)
-public class PanicSentinel extends RuntimeException implements TruffleException {
-  private final PanicException panic;
-  private final Node location;
+public class PanicSentinel extends AbstractTruffleException {
+  final PanicException panic;
 
   /**
    * Create an instance of the panic sentinel, wrapping the provided panic.
@@ -24,42 +27,22 @@ public class PanicSentinel extends RuntimeException implements TruffleException 
    * @param location the location from where the sentinel was thrown
    */
   public PanicSentinel(PanicException panic, Node location) {
-    super(panic.getExceptionObject().toString());
+    super(location);
     this.panic = panic;
-    this.location = location;
   }
 
   /**
-   * Returns the location where this exception was thrown.
+   * Get the underlying panic.
    *
-   * @return the original throw location
+   * @return the underlying panic object
    */
-  @Override
-  public Node getLocation() {
-    return location;
-  }
-
-  /**
-   * Returns the payload carried by this exception.
-   *
-   * @return the payload object
-   */
-  @Override
-  public Object getExceptionObject() {
+  public PanicException getPanic() {
     return panic;
   }
 
-  /**
-   * Override recommended by the Truffle documentation for better performance.
-   *
-   * @see <a
-   *     href="https://www.graalvm.org/truffle/javadoc/com/oracle/truffle/api/TruffleException.html">Relevant
-   *     documentation</a>
-   * @return this exception
-   */
   @Override
-  public Throwable fillInStackTrace() {
-    return this;
+  public String getMessage() {
+    return panic.getMessage();
   }
 
   @ExportMessage
