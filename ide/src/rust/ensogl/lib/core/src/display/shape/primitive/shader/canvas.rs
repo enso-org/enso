@@ -304,7 +304,7 @@ impl Canvas {
     (&mut self, num:usize, s:Shape, tile_size:T) -> Shape {
         self.if_not_defined(num, |this| {
             let value:Glsl = tile_size.into().glsl();
-            let repeat     = iformat!("position = mod(position,{value});");
+            let repeat     = iformat!("position = repeat(position,{value});");
             let expr       = iformat!("return withInfiniteBounds({s.getter()});");
             this.add_current_function_code_line(repeat);
             let mut shape  = this.new_shape_from_expr(num,&expr);
