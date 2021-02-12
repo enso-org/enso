@@ -221,23 +221,16 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           $ENGINE_DIST_DIR/bin/enso --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --run test/Geo_Tests
 
       - name: Test Engine Distribution (Windows)
         shell: bash
         if: runner.os == 'Windows'
         run: |
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
-
-      - name: Test Tables Library (Unix)
-        shell: bash
-        if: runner.os != 'Windows'
-        run: |
-          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
-      - name: Test Tables Library (Windows)
-        shell: bash
-        if: runner.os == 'Windows'
-        run: |
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Geo_Tests
 
       # Publish
       - name: Publish the Engine Distribution Artifact
