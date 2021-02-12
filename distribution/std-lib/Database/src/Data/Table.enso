@@ -74,6 +74,7 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
+            IO.println this.internal_columns
             new_col = [name, column.expression]
             replace = this.internal_columns.exists (c -> c.first == name)
             case replace of
@@ -143,8 +144,8 @@ type Table
     ## Selects a subset of columns from this table by name.
     select : Vector Text -> Table
     select columns =
-        find_col = (name -> this.internal_columns.find (p -> p.name == name))
-        selected_cols = columns.map find_col . filter (!= Nothing)
+        find_col = (name -> this.internal_columns.find (p -> p.first == name))
+        selected_cols = columns.map (find_col >> .catch) . filter (c -> c.is_nothing.not)
         this.updated_columns selected_cols
 
     ## Efficiently joins two tables based on either the index or a key column.
@@ -165,7 +166,8 @@ type Table
          - right_suffix: a suffix that should be added to the columns of `other`
                          when there's a name conflict with a column of `this`.
     join : Table -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
-    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = Panic.recover <|
+        Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
         kind = if drop_unmatched then IR.InnerJoin else IR.LeftJoin
         my_index : Vector Expression
         my_index = case on of
@@ -174,14 +176,14 @@ type Table
                 (Helpers.unify_vector_singleton on).map (this.resolve >> .expression)
         other_index = other.context.meta_index
         case my_index.length == other_index.length of
-            False -> Error.throw "Cannot join with multi-indexes of different lengths."
+            False -> Panic.throw "Cannot join with multi-indexes of different lengths."
             True ->
                 ## TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
                    so it may be worth optimizing that here
 
                 new_table_name = this.name + "_" + other.name
                 aliases = case this.name == other.name of
-                    True -> [this.name+"_left", other.name+"_right"]
+                    True -> [this.name+left_suffix, other.name+right_suffix]
                     False -> [this.name, other.name]
                 left_alias = aliases.first
                 right_alias = aliases.second
@@ -201,8 +203,8 @@ type Table
                 right_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
                 rename suffix other_names this_name =
                     if other_names.get_or_else this_name False then this_name+suffix else this_name
-                rename_left = rename "_left" right_names
-                rename_right = rename "_right"  left_names
+                rename_left = rename left_suffix right_names
+                rename_right = rename right_suffix left_names
 
                 new_left_columns = this.internal_columns.map p->
                     [rename_left p.first, IR.Column left_alias p.first]
@@ -247,6 +249,7 @@ type Table
 
     to_dataframe : (Integer | Nothing) -> Table.Table
     to_dataframe limit=Nothing =
+        _ = limit
         Error.throw "TODO materialization"
 
     ## Returns an SQL statement that will be used for materializing this table.

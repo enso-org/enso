@@ -14,7 +14,9 @@ type Connection
         Table.make_table this name column_names
 
     explain_query_plan : SQL.Statement -> Text
-    explain_query_plan statement = Error.throw "TODO"
+    explain_query_plan statement =
+        _ = statement
+        Error.throw "TODO"
 
 ## PRIVATE
 make_fake_connection dialect tables =

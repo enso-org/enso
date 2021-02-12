@@ -238,6 +238,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     values : Text -> Column
     values name_suffix='_values' =
+        _ = name_suffix
         Error.throw "TODO materialization"
 
     ## PRIVATE

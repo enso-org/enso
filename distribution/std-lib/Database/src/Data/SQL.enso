@@ -36,8 +36,8 @@ type Statement
 
     ## Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
-       # to_prepared_sql_with_substitutions : [Text, Vector Any]
-    to_prepared_sql_with_substitutions =
+       # prepare : [Text, Vector Any]
+    prepare =
         to_code fragment = case fragment of
             SqlCodePart code -> code
             SqlInterpolation _ -> "?"

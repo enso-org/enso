@@ -1,41 +1,6 @@
 from Base import all
 import Test
-import Database.Connection.Connection
-import Database.Data.Dialect
+import Database_Tests.Codegen_Spec
 
-#main = Test.Suite.runMain <|
-#    Table_Spec.spec
-
-main =
-    IO.println "Hello"
-    table1 = ["T1", ["A", "B", "C"]]
-    tables = Map.from_vector [table1]
-    conn = Connection.make_fake_connection Dialect.sqlite tables
-    IO.println conn.dialect
-
-    print t =
-        IO.println t
-        IO.println t.to_sql.unsafe_to_raw_sql
-        IO.println ""
-
-    t1 = conn.access_table "T1"
-    print t1
-
-    mask = (t1.at "A" < t1.at "B") && (t1.at "C" == 42)
-    print mask
-
-    t2 = t1.where mask
-    print t2
-    IO.println t2.to_json
-
-    t3 = t2.join (t2.set_index "A") on="B"
-    print t3
-
-    t4 = t1.sort by="A"
-    print t4
-
-    t5 = t1.group by="A" . at "B" . max
-    print t5
-
-    t6 = t1.group by="A" . count
-    print t6
+main = Test.Suite.runMain <|
+    Codegen_Spec.spec
