@@ -8,6 +8,7 @@ use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::searcher;
+use crate::status_bar;
 
 use enso_frp as frp;
 use ensogl::application;
@@ -24,7 +25,7 @@ use ensogl_theme::Theme as Theme;
 // === Constants ===
 // =================
 
-/// The gap between newly created node and selected one, in pixels.
+/// The gap between the newly created node and selected one, in pixels.
 pub const NEW_NODE_Y_GAP:f32 = 60.0;
 
 
@@ -41,6 +42,7 @@ struct Model {
     graph_editor   : GraphEditor,
     searcher       : searcher::View,
     code_editor    : code_editor::View,
+    status_bar     : status_bar::View,
 }
 
 impl Model {
@@ -50,12 +52,14 @@ impl Model {
         let searcher       = app.new_view::<searcher::View>();
         let graph_editor   = app.new_view::<GraphEditor>();
         let code_editor    = app.new_view::<code_editor::View>();
+        let status_bar     = status_bar::View::new(app);
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
+        display_object.add_child(&status_bar);
         display_object.remove_child(&searcher);
         let app = app.clone_ref();
-        Self{app,logger,display_object,graph_editor,searcher,code_editor}
+        Self{app,logger,display_object,graph_editor,searcher,code_editor,status_bar}
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
@@ -306,6 +310,9 @@ impl View {
 
     /// Code Editor View.
     pub fn code_editor(&self) -> &code_editor::View { &self.model.code_editor }
+
+    /// Status Bar View.
+    pub fn status_bar(&self) -> &status_bar::View { &self.model.status_bar }
 }
 
 impl display::Object for View {

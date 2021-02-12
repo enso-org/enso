@@ -10,8 +10,9 @@ use crate::controller::graph::NodeTrees;
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::Actions;
 use crate::model::execution_context::ComputedValueInfo;
-use crate::model::execution_context::LocalCall;
+use crate::model::execution_context::EvaluationError;
 use crate::model::execution_context::ExpressionId;
+use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -651,6 +652,11 @@ impl Model {
                 })
             });
             self.set_method_pointer(id,method_pointer);
+            if self.node_views.borrow().get_by_left(&id).contains(&&node_id) {
+                if let Some(error) = info.and_then(|info| info.error.as_ref()) {
+                    self.set_error(node_id,error);
+                }
+            }
         }
     }
 
@@ -664,6 +670,24 @@ impl Model {
     fn set_method_pointer(&self, id:ExpressionId, method:Option<graph_editor::MethodPointer>) {
         let event = (id,method);
         self.view.graph().frp.input.set_method_pointer.emit(&event);
+    }
+
+    /// Mark node as erroneous. The node will have an error message if it is the main cause of
+    /// the error in the current scene.
+    fn set_error(&self, node_id:graph_editor::NodeId, error:&EvaluationError) {
+        let root_cause = self.get_node_causing_error_on_current_graph(error);
+        let message    = if root_cause.contains(&node_id) { error.message.clone() }
+                         else                             { default()             };
+        let error      = node::error::Error {message};
+        self.view.graph().set_node_error_status(node_id,error);
+    }
+
+    /// Get the node being a main cause of some error from the current nodes on the scene. Returns
+    /// [`None`] if the error is not present on the scene at all.
+    fn get_node_causing_error_on_current_graph
+    (&self, error:&EvaluationError) -> Option<graph_editor::NodeId> {
+        let node_view_by_expression = self.node_view_by_expression.borrow();
+        error.trace.iter().find_map(|expr_id| node_view_by_expression.get(&expr_id).copied())
     }
 
     /// Set the position in the node's metadata.

@@ -35,6 +35,7 @@ pub mod debug_scenes;
 pub mod documentation;
 pub mod project;
 pub mod searcher;
+pub mod status_bar;
 
 pub use ide_view_graph_editor as graph_editor;
 

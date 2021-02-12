@@ -158,6 +158,8 @@ pub mod response {
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     #[serde(rename_all="camelCase")]
     pub struct OpenProject {
+        /// The version of the started language server represented by a semver version string.
+        pub engine_version : String,
         /// Address of the endpoint for JSON-RPC communication.
         pub language_server_json_address : IpWithSocket,
         /// Address of the endpoint for binary FlatBuffers communication.
@@ -204,11 +206,12 @@ mod mock_client_tests {
         let host                    = "localhost".to_string();
         let port                    = 30500;
         let language_server_address = IpWithSocket {host,port};
-        let expected_ip_with_socket = response::OpenProject {
+        let expected_open_result    = response::OpenProject {
+            engine_version                 : "0.2.1".to_owned(),
             language_server_json_address   : language_server_address.clone(),
             language_server_binary_address : language_server_address,
         };
-        let open_result              = Ok(expected_ip_with_socket.clone());
+        let open_result              = Ok(expected_open_result.clone());
         let missing_component_action = MissingComponentAction::Fail;
         expect_call!(mock_client.create_project(
             name                     = "HelloWorld".to_string(),
@@ -231,7 +234,7 @@ mod mock_client_tests {
 
         let ip_with_socket = result(mock_client.open_project(&uuid,&missing_component_action));
         let ip_with_socket = ip_with_socket.expect("Couldn't open project");
-        assert_eq!(ip_with_socket, expected_ip_with_socket);
+        assert_eq!(ip_with_socket, expected_open_result);
 
         expect_call!(mock_client.close_project(expected_uuid) => Ok(()));
         result(mock_client.close_project(&uuid)).expect("Couldn't close project.");
@@ -347,7 +350,8 @@ mod remote_client_tests {
         let unit_json                = json!(null);
         let project_id               = Uuid::default();
         let missing_component_action = MissingComponentAction::Install;
-        let engine_version           = Some("1.0.0".to_owned());
+        let engine_version           = "1.0.0".to_owned();
+        let engine_version_opt       = Some(engine_version.clone());
         let create_project_response  = response::CreateProject { project_id };
         let project_id_json          = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
         let project_id_and_mca       = json!({
@@ -355,13 +359,13 @@ mod remote_client_tests {
             "missingComponentAction" : "Install"
         });
 
+        let engine_version                 = "0.2.1".to_owned();
         let language_server_json_address   = IpWithSocket{host:"localhost".to_string(),port:27015};
         let language_server_binary_address = IpWithSocket{host:"localhost".to_string(),port:27016};
-        let ip_with_address                = response::OpenProject {
-            language_server_json_address,
-            language_server_binary_address
-        };
-        let ip_with_address_json = json!({
+        let open_result                    = response::OpenProject {engine_version
+            ,language_server_json_address,language_server_binary_address};
+        let open_result_json = json!({
+            "engineVersion" : "0.2.1",
             "languageServerJsonAddress" : {
                 "host" : "localhost",
                 "port" : 27015
@@ -424,8 +428,8 @@ mod remote_client_tests {
             |client| client.open_project(&project_id,&missing_component_action),
             "project/open",
             &project_id_and_mca,
-            &ip_with_address_json,
-            &ip_with_address
+            &open_result_json,
+            &open_result
         );
         test_request(
             |client| client.close_project(&project_id),
@@ -442,7 +446,7 @@ mod remote_client_tests {
             &()
         );
         test_request(
-            |client| client.create_project(&project_name,&engine_version,&missing_component_action),
+            |client| client.create_project(&project_name,&engine_version_opt,&missing_component_action),
             "project/create",
             &project_create_json,
             &project_id_json,

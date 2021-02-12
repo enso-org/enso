@@ -314,13 +314,16 @@ fn test_computed_value_update() {
     let typename     = "Number";
     let notification = json!({
         "jsonrpc" : "2.0",
-        "method"  : "executionContext/expressionValuesComputed",
+        "method"  : "executionContext/expressionUpdates",
         "params"  :  {
             "contextId" : context_id,
             "updates"   : [{
                 "expressionId"  : id,
                 "type"          : typename,
-                "methodPointer" : null
+                "methodPointer" : null,
+                "profilingInfo" : [],
+                "fromCache"     : true,
+                "payload"       : ExpressionUpdatePayload::Value,
             }]
         }
     });
@@ -334,14 +337,16 @@ fn test_computed_value_update() {
 
     let notification = stream.expect_next();
     match notification {
-        Event::Notification(Notification::ExpressionValuesComputed(expression_value_update)) => {
-            assert_eq!(expression_value_update.context_id, context_id);
-            let update = &expression_value_update.updates.first().unwrap();
+        Event::Notification(Notification::ExpressionUpdates(expression_updates)) => {
+            assert_eq!(expression_updates.context_id, context_id);
+            let update = &expression_updates.updates.first().unwrap();
             assert_eq!(update.expression_id, id);
             assert_eq!(update.typename.as_ref().map(|ty| ty.as_str()), Some(typename));
             assert!(update.method_pointer.is_none());
+            assert!(update.from_cache);
+            assert!(matches!(update.payload, ExpressionUpdatePayload::Value))
         }
-        _ => panic!("Expected Notification::ExpressionValuesComputed"),
+        _ => panic!("Expected Notification::ExpressionUpdates"),
     }
 }
 

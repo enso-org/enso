@@ -10,7 +10,7 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::module;
 
 use enso_protocol::language_server;
-use enso_protocol::language_server::ExpressionValuesComputed;
+use enso_protocol::language_server::ExpressionUpdates;
 
 
 // ==========================
@@ -89,8 +89,8 @@ impl ExecutionContext {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_expression_values_computed
-    (&self, notification:ExpressionValuesComputed) -> FallibleResult {
+    pub fn handle_expression_updates
+    (&self, notification:ExpressionUpdates) -> FallibleResult {
         self.model.computed_value_info_registry.apply_updates(notification.updates);
         Ok(())
     }
@@ -292,7 +292,7 @@ pub mod test {
         /// Generates a mock update for a random expression id.
         ///
         /// It will set the typename of the expression to mock typename.
-        pub fn mock_expression_value_update() -> language_server::ExpressionValueUpdate {
+        pub fn mock_expression_update() -> language_server::ExpressionUpdate {
             use enso_protocol::language_server::types::test::value_update_with_type;
             let expression_id = model::execution_context::ExpressionId::new_v4();
             value_update_with_type(expression_id,crate::test::mock::data::TYPE_NAME)
@@ -301,10 +301,10 @@ pub mod test {
         /// Generates a mock update for a single expression.
         ///
         /// The updated expression id will be random. The typename will be mock typename.
-        pub fn mock_values_computed_update(data:&MockData) -> ExpressionValuesComputed {
-            ExpressionValuesComputed {
+        pub fn mock_expression_updates(data:&MockData) -> ExpressionUpdates {
+            ExpressionUpdates {
                 context_id : data.context_id,
-                updates    : vec![Self::mock_expression_value_update()],
+                updates    : vec![Self::mock_expression_update()],
             }
         }
     }

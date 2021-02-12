@@ -9,7 +9,6 @@ use crate::model::module::Path as ModulePath;
 use crate::ide::integration::Integration;
 
 use ensogl::application::Application;
-use ensogl::system::web;
 use enso_protocol::language_server::MethodPointer;
 use parser::Parser;
 
@@ -72,7 +71,7 @@ pub struct Ide {
 
 impl Ide {
     /// Constructor.
-    pub async fn new(project:model::Project) -> FallibleResult<Self> {
+    pub async fn new(application:Application, view:ide_view::project::View, project:model::Project) -> FallibleResult<Self> {
         let logger      = Logger::new("Ide");
         let module_path = initial_module_path(&project)?;
         let file_path   = module_path.file_path().clone();
@@ -90,11 +89,6 @@ impl Ide {
         let graph         = controller::ExecutedGraph::new(&logger,project.clone_ref(),method).await?;
         let text          = controller::Text::new(&logger, &project, file_path).await?;
         let visualization = project.visualization().clone();
-
-        let application   = Application::new(&web::get_html_element_by_id("root").unwrap());
-
-        let view = application.new_view::<ide_view::project::View>();
-        application.display.add_child(&view);
 
         let integration = Integration::new(view,graph,text,visualization,project);
         Ok(Ide {application,integration})

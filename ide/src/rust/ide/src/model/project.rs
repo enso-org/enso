@@ -32,6 +32,9 @@ pub trait API:Debug {
     /// Get Language Server binary Connection for this project.
     fn binary_rpc(&self) -> Rc<binary::Connection>;
 
+    /// Get the engine's version of the project.
+    fn engine_version(&self) -> &semver::Version;
+
     /// Get the instance of parser that is set up for this project.
     fn parser(&self) -> Parser;
 
