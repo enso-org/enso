@@ -35,3 +35,6 @@ main =
 
     t5 = t1.group by="A" . at "B" . max
     print t5
+
+    t6 = t1.group by="A" . count
+    print t6

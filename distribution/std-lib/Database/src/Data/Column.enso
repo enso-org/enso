@@ -173,4 +173,76 @@ type Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
         True -> Column new_name this.connection this.expression this.context
 
-# TODO [RW] starts_with, ends_with, contains
+    # TODO [RW] starts_with, ends_with, contains
+
+## Wraps a column grouped by its index. Allows performing aggregation operations
+   on the contained values.
+type Aggregate_Column
+    # type Aggregate_Column (name : Text) (connection : Connection)
+    #                       (expression : IR.Expression) (context : IR.Context)
+    type Aggregate_Column name connection expression context
+
+    ## Sums the values in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    sum : Text -> Column
+    sum name_suffix='_sum' =
+        this.make_aggregate "SUM" name_suffix
+
+    ## Computes the maximum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    max : Text -> Column
+    max name_suffix='_max' =
+        this.make_aggregate "MAX" name_suffix
+
+    ## Computes the minimum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    min : Text -> Column
+    min name_suffix='_min' =
+        this.make_aggregate "MIN" name_suffix
+
+    ## Computes the number of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    count : Text -> Column
+    count name_suffix='_count' =
+        this.make_aggregate "COUNT" name_suffix
+
+    ## Computes the mean of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    mean : Text -> Column
+    mean name_suffix='_mean' =
+        this.make_aggregate "AVG" name_suffix
+
+    ## Gathers all elements in a group into a vector and returns a (dataframe)
+       column of such vectors.
+
+       This actually performs a database query to materialize the values in
+       local memory.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    values : Text -> Column
+    values name_suffix='_values' =
+        Error.throw "TODO materialization"
+
+    ## PRIVATE
+    make_aggregate operation name_suffix =
+        new_name = this.name + name_suffix
+        expr = IR.Operation operation [this.expression]
+        case Helpers.ensure_name_is_sane new_name of
+                True -> Column new_name this.connection expr this.context

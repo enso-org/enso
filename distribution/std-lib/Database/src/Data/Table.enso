@@ -1,4 +1,6 @@
 from Base import all
+import Table.Data.Table
+from Table.Data.Table import No_Such_Column_Error
 from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 import Database.Data.Internal.Helpers
@@ -40,8 +42,8 @@ type Table
     at : Text -> Column ! UnknownColumnError
     at name =
         internal = this.internal_columns.find (p -> p.first == name) |>
-            _.map_error (_ -> UnknownColumnError name)
-        Column internal.first this.connection internal.second this.context
+            _.map_error (_ -> No_Such_Column_Error name)
+        this.make_column internal
 
     ## PRIVATE
        Resolves the column name to a column within this table. If instead of a
@@ -219,27 +221,16 @@ type Table
        value of the specified column.
 
        If the `by` argument is not set, the index is used for grouping instead.
-
-       > Example
-         Creates a simple table and computes aggregation statistics:
-            name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
-            price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
-            quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
-            t = Table.new [name, price, quantity] # TODO [RW] DB example
-
-            agg = t.group by='name'
-
-            records_num = agg.count
-            total_quantity = agg.at 'quantity' . sum
-            mean_price = agg.at 'price' . mean
-
-            Table.join [records_num, total_quantity, mean_price]
     group : Vector Text | Text | Nothing -> Aggregate_Table
-    group by=Nothing =
-        exprs = Helpers.resolve_index "group by" this by
-        new_ctx = this.context.set_orders exprs
-        this.updated_context new_ctx
-        Error.throw "TODO: aggregates"
+    group by=Nothing = Panic.recover <|
+        exprs = case by of
+            Nothing ->
+                if this.context.meta_index.is_empty then Panic.throw "Trying to group by an empty index." else
+                    this.context.meta_index
+            _ ->
+                Helpers.unify_vector_singleton by . map (this.resolve >> Panic.rethrow >> .expression)
+        new_ctx = this.context.set_groups exprs
+        Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
     ## Returns a new Table without rows that contained missing values in any of
        the columns.
@@ -293,15 +284,51 @@ type Table
     ## PRIVATE
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
 
+## Represents a table with grouped rows.
+type Aggregate_Table
+    # type Aggregate_Table (name : Text) (connection : Connection)
+    #                      (internal_columns : Vector [Text, IR.Expression])
+    #                      (context : IR.Context)
+    type Aggregate_Table name connection internal_columns context
 
+    ## Returns a vector of aggregate columns in this table.
+    columns : Vector.Vector
+    columns = this.internal_columns . map this.make_column
+
+    ## Returns a materialized dataframe containing columns resulting from calling
+       `values` on each column in `this`.
+    values : Table.Table
+    values = Error.throw "TODO materialization"
+
+    ## Returns a column containing the number of elements in each group.
+    count : Column
+    count =
+        expr = IR.Operation "COUNT_ROWS" []
+        Column "count" this.connection expr this.context
+
+    ## Returns an aggregate column with the given name, contained in this table.
+    at : Text -> Column ! No_Such_Column_Error
+    at name =
+        internal = this.internal_columns.find (p -> p.first == name) |>
+            _.map_error (_ -> No_Such_Column_Error name)
+        this.make_column internal
+
+    ## Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print : Integer -> Nothing
+    print show_rows=10 = this.values.print show_rows
+
+    ## PRIVATE
+       # make_column : [Text, IR.Expression] -> Aggregate_Column
+    make_column pair =
+        Aggregate_Column pair.first this.connection pair.second this.context
+
+## PRIVATE
 type InternalColumn
+    ## PRIVATE
     type InternalColumn external_name internal_name expression
-
-type UnknownColumnError
-    type UnknownColumnError name
-
-    to_text : Text
-    to_text = "Unknown column: " + this.name
 
 type IntegrityError
     type IntegrityError object_description

@@ -39,6 +39,12 @@ make_function name =
     arguments ->
         (SQL.code name) ++ (SQL.join ", " arguments . paren)
 
+make_constant : Text -> Vector SQL.Builder -> SQL.Builder
+make_constant code =
+    arguments ->
+        if arguments.not_empty then Error.throw "No arguments were expected" else
+            SQL.code code
+
 base_dialect =
     bin = here.make_binary_op
     unary = here.make_unary_op
@@ -46,7 +52,7 @@ base_dialect =
     arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
     logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
     compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
-    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"]]
+    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"], ["SUM", fun "SUM"], ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls)
     InternalDialect base_map
