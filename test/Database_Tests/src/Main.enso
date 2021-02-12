@@ -26,6 +26,7 @@ main =
 
     t2 = t1.where mask
     print t2
+    IO.println t2.to_json
 
     t3 = t2.join (t2.set_index "A") on="B"
     print t3

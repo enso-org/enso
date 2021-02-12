@@ -32,11 +32,7 @@ type Table
 
     ## Converts this table to a JSON structure.
     to_json : Json
-    to_json =
-        col_jsons = this.columns.map .to_json
-        cols_json = Json.Array col_jsons
-        fields = Map.singleton "columns" cols_json
-        Json.Object fields
+    to_json = this.to_sql.to_json
 
     ## Returns the column with the given name.
     at : Text -> Column ! UnknownColumnError

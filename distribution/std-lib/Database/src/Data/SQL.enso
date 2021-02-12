@@ -48,6 +48,16 @@ type Statement
         substitutions = this.fragments.flat_map to_subst
         [sql, substitutions]
 
+    to_json : Json
+    to_json =
+        jsonify fragment = case fragment of
+            SqlCodePart code -> Json.from_pairs [["sql_code", code]]
+            SqlInterpolation obj ->
+                inner = obj.to_json
+                Json.from_pairs [["sql_interpolation", inner]]
+        fragments = Json.Array (this.internal_fragments.map jsonify)
+        Json.from_pairs [["query", fragments]]
+
 type Builder
     # type Builder (fragments : VectorBuilder.VectorBuilder SqlFragment)
     type Builder fragments

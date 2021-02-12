@@ -10,7 +10,7 @@ type Column
 
     ## Converts this column to JSON.
     to_json : Json
-    to_json = Error.throw "TODO materialization"
+    to_json = this.to_sql.to_json
 
     ## Converts this column into a single-column table.
     to_table : Table.Table
