@@ -1,0 +1,23 @@
+from Base import all
+from Table import all
+
+## UNSTABLE
+
+   Create a `Table` representing a geographic point with the specified latitude,
+   longitude, and elevation.
+
+   Arguments:
+   - latitude: The latitude of the geographic point, specified in decimal form
+     using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
+     coordinate system.
+   - longitude: The longitude of the gepgraphic point, specified in decimal form
+     using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
+     coordinate system.
+   - elevation: The elevation of the point from sea level, in metres.
+
+   > Example
+     Create a point representing the centre of London.
+         Geo.point 51.509865 -0.118092
+point : Decimal -> Decimal -> Decimal -> Table.Table
+point latitude longitude elevation=0 =
+    Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]
