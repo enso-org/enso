@@ -36,12 +36,14 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - [Added the ability to reposition visualisations.][1096] There is now an icon in the visualization 
   action bar that allows dragging the visualization. Once the visualization has been moved, there 
   appears another icon that will reset the position to the original position.
+- [There is now an API to show VCS status for node][1160].
 - [A shortcut for reloading visualization files.][1190] The visible visualizations must be switched 
   to another and switched back to see the effect.
 
 [1096]: https://github.com/enso-org/ide/pull/1172
 [1098]: https://github.com/enso-org/ide/pull/1098
 [1181]: https://github.com/enso-org/ide/pull/1181
+[1160]: https://github.com/enso-org/ide/pull/1160
 [1190]: https://github.com/enso-org/ide/pull/1190
 <br/>
 

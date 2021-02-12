@@ -199,6 +199,11 @@ define_themes! { [light:0, dark:1]
                     hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
                 }
             }
+            vcs {
+                unchanged = Lcha::transparent(), Lcha::transparent();
+                added     = Lcha::green(0.8,1.0), Lcha::green(0.8,1.0);
+                edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
+            }
         }
         visualization {
             background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);

@@ -408,6 +408,11 @@ ensogl::define_endpoints! {
         debug_set_test_visualization_data_for_selected_node(),
 
 
+        // === VCS Status ===
+
+        set_node_vcs_status     ((NodeId,Option<node::vcs::Status>)),
+
+
         set_detached_edge_targets    (EdgeEndpoint),
         set_detached_edge_sources    (EdgeEndpoint),
         set_edge_source              ((EdgeId,EdgeEndpoint)),
@@ -2791,6 +2796,16 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     out.source.node_exited  <+ inputs.exit_node;
     removed_edges_on_exit   <= out.node_exited.map(f_!(model.model.clear_all_detached_edges()));
     out.source.on_edge_drop <+ any(removed_edges_on_enter,removed_edges_on_exit);
+
+
+
+    // ================
+    // === Node VCS ===
+    // ================
+
+    eval inputs.set_node_vcs_status(((node_id,status))
+         model.with_node(*node_id, |node| node.set_vcs_status.emit(status))
+     );
 
 
 

@@ -130,6 +130,29 @@ fn init(app:&Application) {
     graph_editor.frp.connect_nodes.emit((src,tgt));
 
 
+    // === VCS ===
+
+    let dummy_node_added_id     = graph_editor.add_node();
+    let dummy_node_edited_id    = graph_editor.add_node();
+    let dummy_node_unchanged_id = graph_editor.add_node();
+
+    graph_editor.frp.set_node_position.emit((dummy_node_added_id,Vector2(-450.0,50.0)));
+    graph_editor.frp.set_node_position.emit((dummy_node_edited_id,Vector2(-450.0,125.0)));
+    graph_editor.frp.set_node_position.emit((dummy_node_unchanged_id,Vector2(-450.0,200.0)));
+
+    let dummy_node_added_expr     = expression_mock_string("This node was added.");
+    let dummy_node_edited_expr    = expression_mock_string("This node was edited.");
+    let dummy_node_unchanged_expr = expression_mock_string("This node was not changed.");
+
+    graph_editor.frp.set_node_expression.emit((dummy_node_added_id,dummy_node_added_expr));
+    graph_editor.frp.set_node_expression.emit((dummy_node_edited_id,dummy_node_edited_expr));
+    graph_editor.frp.set_node_expression.emit((dummy_node_unchanged_id,dummy_node_unchanged_expr));
+
+    graph_editor.frp.set_node_vcs_status.emit((dummy_node_added_id,Some(vcs::Status::Edited)));
+    graph_editor.frp.set_node_vcs_status.emit((dummy_node_edited_id,Some(vcs::Status::Added)));
+    graph_editor.frp.set_node_vcs_status.emit((dummy_node_unchanged_id,Some(vcs::Status::Unchanged)));
+
+
     // === Types (Port Coloring) ===
 
     let mut dummy_type_generator = DummyTypeGenerator::default();
@@ -215,6 +238,7 @@ fn init(app:&Application) {
 // =============
 
 use crate::graph_editor::component::node::Expression;
+use crate::graph_editor::component::node::vcs;
 
 use ast::crumbs::*;
 use ast::crumbs::PatternMatchCrumb::*;
@@ -222,6 +246,19 @@ use enso_protocol::prelude::Uuid;
 use ensogl_text_msdf_sys::run_once_initialized;
 use span_tree::traits::*;
 
+
+pub fn expression_mock_string(label:&str) -> Expression {
+    let pattern    = Some(label.to_string());
+    let code       = format!("\"{}\"", label);
+    let parser     = Parser::new_or_panic();
+    let parameters       = vec![];
+    let ast              = parser.parse_line(&code).unwrap();
+    let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
+    let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
+    let output_span_tree = span_tree::SpanTree::default();
+    let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
+    Expression {pattern,code,input_span_tree,output_span_tree}
+}
 
 pub fn expression_mock() -> Expression {
     let pattern    = Some("var1".to_string());
