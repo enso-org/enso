@@ -52,6 +52,21 @@ type Table
         fields = Map.singleton "columns" cols_json
         Json.Object fields
 
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a Text used to display this table in the IDE by default.
+       Returns a JSON object containing useful metadata and previews of column
+       values.
+    to_display =
+        max_size = 10
+        nrows = ['number_of_rows', this.nrows]
+        cols = this.columns.map c->
+            name = c.name
+            items = c.to_vector.take_start max_size
+            Json.from_pairs [['name', name], ['data', items]]
+        Json.from_pairs [nrows, ['columns', cols]] . to_text
+
     ## Returns the column with the given name.
     at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnByName name of

@@ -118,3 +118,14 @@ Any.<< that = x -> this (that x)
 Any.>> : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.>> that = x -> that (this x)
 
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE. The particular
+   representation is left unspecified and subject to change in the future.
+   The current implementation uses a JSON serialization as the default.
+
+   Types defining their own versions of this method should ensure that the
+   result is reasonably small and the operation is quick to compute.
+Any.to_display : Text
+Any.to_display = this.to_json.to_text

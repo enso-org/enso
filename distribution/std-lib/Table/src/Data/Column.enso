@@ -235,7 +235,7 @@ type Column
 
     ## Returns a vector containing all the elements in this column.
     to_vector : Vector
-    to_vector = Vector.new this.length this.at
+    to_vector = Vector.Vector this.java_column.getStorage.toList
 
     ## Returns the underlying storage type of this column.
     storage_type : Storage.Type
@@ -288,6 +288,20 @@ type Column
     ## Converts this column into a single-column table.
     to_table : Table.Table
     to_table = Table.Table this.java_column.toTable
+
+    ## UNSTABLE
+       ADVANCED
+
+       Shows a JSON serialization of a truncated version of this column, for the
+       benefit of visualization in the IDE.
+    to_display : Text
+    to_display =
+        size = ['length', this.length]
+        name = ['name', this.name]
+        max_data = 100
+        data = ['data', this.to_vector.take_start max_data]
+        Json.from_pairs [size, name, data] . to_text
+
 
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
