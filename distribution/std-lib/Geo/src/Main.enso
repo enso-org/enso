@@ -1,7 +1,9 @@
 from Base import all
 from Table import all
 
-## Create a `Table` representing a geographic point with the specified latitude,
+## UNSTABLE
+
+   Create a `Table` representing a geographic point with the specified latitude,
    longitude, and elevation.
 
    Arguments:
