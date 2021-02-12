@@ -3,6 +3,7 @@
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
 #![feature(coerce_unsized)]
+#![feature(matches_macro)]
 #![feature(trait_alias)]
 #![feature(type_alias_impl_trait)]
 #![warn(missing_docs)]

@@ -23,7 +23,7 @@ software development! We can't fix or improve on the things that we don't
 know about, so report as many bugs as you can! If you're not sure whether
 something is a bug, file it anyway!
 
-Even though GitHub search can be a bit hard to use sometimes, we'd
+Even though GitHub search can sometimes be a bit hard to use, we'd
 appreciate if you could
 [search](https://github.com/enso-org/enso/search?q=&type=Issues&utf8=%E2%9C%93)
 for your issue before filing a bug as it's possible that someone else has
@@ -45,11 +45,11 @@ or Architecture specific.
 <br/>
 
 ## Development Environment
-The project builds on MacOS, Windows, and Linux. Cross-platform targets work
-well on all of these platforms, however, MacOS package will miss the right
-application icon if built on Linux or Windows due to non-trival icon
-generation on these platforms. In order to develop the source code you will
-need the following setup:
+The project builds on macOS, Windows, and Linux. Cross-platform targets work
+well on all of these platforms, however, macOS package will miss the right
+application icon if built on Linux or Windows due to non-trivial icon
+generation on these platforms. To develop the source code you will need the
+following setup:
 
 - **The Rust Toolchain (nightly-2019-11-04)**
 
@@ -66,11 +66,11 @@ need the following setup:
 
 - **Node and Node Package Manager LTS**
 
-  In order to build the web and desktop applications you will need
+  To build the web and desktop applications you will need
   [the latest LTS version of node and npm](https://nodejs.org/en/download). Even
   minor release changes are known to cause serious issues, thus **we provide
   support for the latest LTS version only. Please do not report build issues
-  if you use other versions.** In case you run run MacOS or
+  if you use other versions.** In case you run macOS or
   Linux the easiest way to set up the proper version is by installing the
   [Node Version Manager](https://github.com/nvm-sh/nvm) and running
   `nvm install --lts && nvm use --lts`.
@@ -82,7 +82,7 @@ need the following setup:
   Otherwise, relying on the generated files that are being stored in this
   repository is fine.
 
-  `flatc` must be in version *newer than 1.12* due to 
+  `flatc` must be in the version *newer than 1.12* due to 
   [this bug](https://github.com/google/flatbuffers/issues/5055). As of
   writing this text there are no official releases with this issue fixed,
   however current binaries can be obtained from the project's CI 
@@ -109,32 +109,12 @@ If you have not installed it already you can do so via `npm install prettier`. T
 via command line run `prettier --write` to all JavaScript files in the project. Alternatively, 
 there are plugins for many IDEs available to do this for you.
 
-### Setting up Engine Services
-IDE requires a service named Project Manager to be running in the background
-on the local machine. The service, being part of the Enso Engine, can be
-downloaded from [per-commit builds](https://github.com/enso-org/enso/actions?query=workflow%3A"Engine+CI"+branch%3Amain).
-The minimal supported version is commit 
-[d80089ab6916f86d0b8ce479438520f24a2ae345](https://github.com/enso-org/enso/actions/runs/399967504).
-
-If the service is not running,the IDE will not start. However, it is possible 
-to hack on many components of the IDE without the service. The debug scenes 
-and tests will work even without the Project Manager.
-
-The Project Manager requires to be run with the GraalVM version `20.2.0` and it 
-must be the Java 11 build. You can download it from [here](https://github.com/graalvm/graalvm-ce-builds/releases/tag/vm-20.2.0),
-and install according to the [instructions](https://www.graalvm.org/docs/getting-started-with-graalvm/#install-graalvm).
-Remember to set `$PATH` and `$JAVA_HOME` to the GraalVM installation directory.
-
-In future significant improvements to this process are planned, specifically:
-* not requiring the engine to be able to start the IDE;
-* providing self-contained Project Manager service packages.
-
 ### Development
 As this is a multi-part project with many complex dependencies, it is
-equipped with a build script which both validates your working environment as
-well as takes care of providing the most suitable compilation flags for a
-particular development stage. In order to run the build script simply run
-`node ./run` in the root of the codebase. On MacOS and Linux you can use a
+equipped with a build script which both validates your working environment and 
+takes care of providing the most suitable compilation flags for a
+particular development stage. To run the build script simply run
+`node ./run` in the root of the codebase. On macOS and Linux you can use a
 simpler form of `./run`, however, this doc will use the former form in order
 to stay cross-platform compatible. Run `node ./run help` to learn about
 available commands and options. All arguments provided after the `--` symbol
@@ -173,7 +153,6 @@ are presented below:
   were defined or re-exported by that crate. In particular, the `ide` crate
   exposes the `entry_point_ide` function, so you have to compile it to test
   your code in the Enso IDE.
-  
   
 ### Using IDE as a library.
 In case you want to use the IDE as a library, for example to embed it into 

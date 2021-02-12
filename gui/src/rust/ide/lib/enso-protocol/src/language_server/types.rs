@@ -113,35 +113,32 @@ pub enum Notification {
     FileEvent(FileEvent),
 
     /// Sent from the server to the client to inform about new information for certain expressions
-    /// becoming available.
+    /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
-    ExpressionValuesComputed(ExpressionValuesComputed),
+    ExpressionValuesComputed(serde_json::Value),
+
+    /// Sent from the server to the client to inform about new information for certain expressions
+    /// becoming available.
+    #[serde(rename = "executionContext/expressionUpdates")]
+    ExpressionUpdates(ExpressionUpdates),
 
     /// Sent from the server to the client to inform about a failure during execution of an
     /// execution context.
     #[serde(rename = "executionContext/executionFailed")]
     ExecutionFailed(ExecutionFailed),
 
+    /// Sent from the server to the client to inform about a status of execution.
+    #[serde(rename = "executionContext/executionStatus")]
+    ExecutionStatus(ExecutionStatus),
+
     /// Sent from server to the client to inform abouth the change in the suggestions database.
     #[serde(rename = "search/suggestionsDatabaseUpdates")]
     SuggestionDatabaseUpdates(SuggestionDatabaseUpdatesEvent),
 }
 
-/// Sent from the server to the client to inform about new information for certain expressions
-/// becoming available.
-#[derive(Clone,Debug,PartialEq)]
-#[derive(Serialize,Deserialize)]
-#[allow(missing_docs)]
-#[serde(rename_all="camelCase")]
-pub struct ExpressionValuesComputed {
-    pub context_id : ContextId,
-    pub updates    : Vec<ExpressionValueUpdate>,
-}
-
 /// Sent from the server to the client to inform about a failure during execution of an execution
 /// context.
-#[derive(Clone,Debug,PartialEq)]
-#[derive(Serialize,Deserialize)]
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
 #[allow(missing_docs)]
 #[serde(rename_all="camelCase")]
 pub struct ExecutionFailed {
@@ -149,17 +146,117 @@ pub struct ExecutionFailed {
     pub message    : String,
 }
 
-/// The updates from `executionContext/expressionValuesComputed`.
-#[derive(Clone,Debug,PartialEq)]
-#[derive(Serialize,Deserialize)]
+
+
+// =======================
+// === ExecutionUpdate ===
+// =======================
+
+/// Sent from the server to the client to inform about new information for certain expressions
+/// becoming available.
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
 #[allow(missing_docs)]
 #[serde(rename_all="camelCase")]
-pub struct ExpressionValueUpdate {
+pub struct ExpressionUpdates {
+    pub context_id : ContextId,
+    pub updates    : Vec<ExpressionUpdate>,
+}
+
+/// An update about the computed expression.
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all="camelCase")]
+pub struct ExpressionUpdate {
     pub expression_id  : ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
     pub typename       : Option<String>,
     pub method_pointer : Option<SuggestionId>,
+    pub profiling_info : Vec<ProfilingInfo>,
+    pub from_cache     : bool,
+    pub payload        : ExpressionUpdatePayload
 }
+
+/// Profiling information on an executed expression. It is implemented as a union as additional
+/// types of information will be added in the future.
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+// Not sure what the future variants will be, and implementing Copy is not essential for this.
+#[allow(missing_copy_implementations)]
+pub enum ProfilingInfo {
+    #[serde(rename_all="camelCase")]
+    ExecutionTime {
+        nano_time : u64,
+    }
+}
+
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+#[serde(tag="type")]
+pub enum ExpressionUpdatePayload {
+    Value,
+    #[serde(rename_all="camelCase")]
+    DataflowError {
+        trace : Vec<ExpressionId>
+    },
+    #[serde(rename_all="camelCase")]
+    Panic {
+        message : String,
+        trace   : Vec<ExpressionId>,
+    },
+}
+
+
+
+// =======================
+// === ExecutionStatus ===
+// =======================
+
+/// Sent from the server to the client to inform about a status of execution.
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all="camelCase")]
+pub struct ExecutionStatus {
+    pub context_id  : ContextId,
+    pub diagnostics : Vec<Diagnostic>,
+}
+
+/// The type of diagnostic message.
+#[derive(Clone,Copy,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+pub enum DiagnosticType {Error,Warning}
+
+/// A diagnostic object is produced as a result of an execution attempt, like pushing the method
+/// pointer to a call stack, or editing the file. It can represent a compiler warning, a compilation
+/// error, or a runtime error. The message has optional path, location and stack fields containing
+/// information about the location in the source code.
+//
+// In case of the runtime errors, the path and location fields may be empty if the error happens in
+// a builtin node. Then, to locate the error in the code, you can use the stack field with a stack
+// trace to find the first element with non-empty location (as the head of the stack will point to
+// the builtin element).
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all="camelCase")]
+pub struct Diagnostic {
+    kind          : DiagnosticType,
+    message       : String,
+    path          : Option<Path>,
+    location      : Option<TextRange>,
+    expression_id : Option<ExpressionId>,
+    stack         : Vec<StackTraceElement>,
+}
+
+/// The frame of the stack trace. If the error refer to a builtin node, the path and location fields
+/// will be empty.
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
+#[allow(missing_docs)]
+#[serde(rename_all="camelCase")]
+pub struct StackTraceElement {
+    function_name : String,
+    path          : Option<Path>,
+    location      : Option<TextRange>,
+}
+
 
 
 // =================
@@ -788,23 +885,61 @@ pub mod test {
 
     use crate::language_server::ExpressionId;
 
-    /// Generate `ExpressionValueUpdate` with update for a single expression bringing only the
+    /// Generate [`ExpressionUpdate`] with an update for a single expression bringing only the
     /// typename.
-    pub fn value_update_with_type(id:ExpressionId, typename:impl Into<String>) -> ExpressionValueUpdate {
-        ExpressionValueUpdate {
+    pub fn value_update_with_type(id:ExpressionId, typename:impl Into<String>) -> ExpressionUpdate {
+        ExpressionUpdate {
             expression_id  : id,
             typename       : Some(typename.into()),
             method_pointer : None,
+            profiling_info : default(),
+            from_cache     : false,
+            payload        : ExpressionUpdatePayload::Value,
         }
     }
 
-    /// Generate `ExpressionValueUpdate` with update for a single expression bringing only the
+    /// Generate [`ExpressionUpdate`] with an update for a single expression bringing only the
     /// method pointer.
-    pub fn value_update_with_method_ptr(id:ExpressionId, method_pointer:SuggestionId) -> ExpressionValueUpdate {
-        ExpressionValueUpdate {
+    pub fn value_update_with_method_ptr
+    (id:ExpressionId, method_pointer:SuggestionId) -> ExpressionUpdate {
+        ExpressionUpdate {
             expression_id  : id,
             typename       : None,
             method_pointer : Some(method_pointer),
+            profiling_info : default(),
+            from_cache     : false,
+            payload        : ExpressionUpdatePayload::Value
+        }
+    }
+
+    /// Generate [`ExpressionUpdate`] with an update for a single expression which resulted in
+    /// a dataflow error.
+    pub fn value_update_with_dataflow_error
+    (id:ExpressionId) -> ExpressionUpdate {
+        let trace = default();
+        ExpressionUpdate {
+            expression_id  : id,
+            typename       : None,
+            method_pointer : None,
+            profiling_info : default(),
+            from_cache     : false,
+            payload        : ExpressionUpdatePayload::DataflowError {trace}
+        }
+    }
+
+    /// Generate [`ExpressionUpdate`] with an update for a single expression which resulted in
+    /// a dataflow panic.
+    pub fn value_update_with_dataflow_panic
+    (id:ExpressionId, message:impl Into<String>) -> ExpressionUpdate {
+        let trace   = default();
+        let message = message.into();
+        ExpressionUpdate {
+            expression_id  : id,
+            typename       : None,
+            method_pointer : None,
+            profiling_info : default(),
+            from_cache     : false,
+            payload        : ExpressionUpdatePayload::Panic {trace,message}
         }
     }
 }

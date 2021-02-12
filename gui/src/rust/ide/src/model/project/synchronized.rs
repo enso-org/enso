@@ -68,10 +68,10 @@ impl ExecutionContextsRegistry {
     }
 
     /// Handles the update about expressions being computed.
-    pub fn handle_expression_values_computed
-    (&self, update:language_server::ExpressionValuesComputed) -> FallibleResult {
+    pub fn handle_expression_updates
+    (&self, update:language_server::ExpressionUpdates) -> FallibleResult {
         self.with_context(update.context_id, |ctx| {
-            ctx.handle_expression_values_computed(update)
+            ctx.handle_expression_updates(update)
         })
     }
 
@@ -129,6 +129,7 @@ pub struct Project {
     pub project_manager     : Option<Rc<dyn project_manager::API>>,
     pub language_server_rpc : Rc<language_server::Connection>,
     pub language_server_bin : Rc<binary::Connection>,
+    pub engine_version      : Rc<semver::Version>,
     pub module_registry     : Rc<model::registry::Registry<module::Path,module::Synchronized>>,
     pub execution_contexts  : Rc<ExecutionContextsRegistry>,
     pub visualization       : controller::Visualization,
@@ -144,6 +145,7 @@ impl Project {
     , project_manager     : Option<Rc<dyn project_manager::API>>
     , language_server_rpc : Rc<language_server::Connection>
     , language_server_bin : Rc<binary::Connection>
+    , engine_version      : semver::Version
     , id                  : Uuid
     , name                : impl Str
     ) -> FallibleResult<Self> {
@@ -153,6 +155,7 @@ impl Project {
         let json_rpc_events         = language_server_rpc.events();
         let embedded_visualizations = default();
         let language_server         = language_server_rpc.clone();
+        let engine_version          = Rc::new(engine_version);
         let module_registry         = default();
         let execution_contexts      = default();
         let visualization           = controller::Visualization::new(language_server,embedded_visualizations);
@@ -164,8 +167,8 @@ impl Project {
         
         let data = Rc::new(Data {id,name});
 
-        let ret = Project {data,parser,project_manager,language_server_rpc,module_registry,
-            execution_contexts,language_server_bin,logger,visualization,suggestion_db};
+        let ret = Project {data,parser,project_manager,language_server_rpc,language_server_bin
+            ,engine_version,module_registry,execution_contexts,logger,visualization,suggestion_db};
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
@@ -183,12 +186,14 @@ impl Project {
     , project_manager     : Option<Rc<dyn project_manager::API>>
     , language_server_rpc : language_server::Connection
     , language_server_bin : binary::Connection
+    , engine_version      : semver::Version
     , id                  : Uuid
     , name                : impl Str
     ) -> impl Future<Output=FallibleResult<Self>> {
         let language_server_rpc = Rc::new(language_server_rpc);
         let language_server_bin = Rc::new(language_server_bin);
-        Self::new(parent,project_manager,language_server_rpc,language_server_bin,id,name)
+        Self::new(parent,project_manager,language_server_rpc,language_server_bin,engine_version,id
+            ,name)
     }
 
     /// Returns a handling function capable of processing updates from the binary protocol.
@@ -248,21 +253,23 @@ impl Project {
             use enso_protocol::language_server::Event;
             use enso_protocol::language_server::Notification;
             match event {
-                Event::Notification(Notification::ExpressionValuesComputed(update)) => {
+                Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
-                        let result = execution_contexts.handle_expression_values_computed(update);
+                        let result = execution_contexts.handle_expression_updates(updates);
                         if let Err(error) = result {
-                            error!(logger,"Failed to handle the expression values computed update: \
-                            {error}.");
+                            error!(logger,"Failed to handle the expression update: {error}");
                         }
                     } else {
-                        error!(logger,"Received a `ExpressionValuesComputed` update despite \
-                        execution context being already dropped.");
+                        error!(logger,"Received a `ExpressionUpdates` update despite execution \
+                            context being already dropped.");
                     }
+                }
+                Event::Notification(Notification::ExpressionValuesComputed(_)) => {
+                    // the notification is superseded by `ExpressionUpdates`.
                 }
                 Event::Notification(Notification::ExecutionFailed(update)) => {
                     error!(logger,"Execution failed in context {update.context_id}. Error: \
-                    {update.message}.");
+                        {update.message}.");
                 }
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) => {
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {
@@ -309,6 +316,8 @@ impl model::project::API for Project {
     fn binary_rpc(&self) -> Rc<binary::Connection> {
         self.language_server_bin.clone_ref()
     }
+
+    fn engine_version(&self) -> &semver::Version { &*self.engine_version }
 
     fn parser(&self) -> Parser {
         self.parser.clone_ref()
@@ -372,6 +381,7 @@ mod test {
     use enso_protocol::types::Sha3_224;
     use enso_protocol::language_server::response;
     use json_rpc::expect_call;
+    use enso_protocol::language_server::Notification::ExpressionUpdates;
 
     #[allow(unused)]
     struct Fixture {
@@ -414,8 +424,9 @@ mod test {
             let project_manager   = Rc::new(project_manager);
             let logger            = Logger::new("Fixture");
             let id                = Uuid::new_v4();
+            let engine_version    = semver::Version::new(0,2,1);
             let project_fut       = Project::from_connections(logger,Some(project_manager),
-                json_connection,binary_connection,id,DEFAULT_PROJECT_NAME).boxed_local();
+                json_connection,binary_connection,engine_version,id,DEFAULT_PROJECT_NAME).boxed_local();
             let project = test.expect_completion(project_fut).unwrap();
             Fixture {test,project,binary_events_sender,json_events_sender}
         }
@@ -461,7 +472,6 @@ mod test {
     #[wasm_bindgen_test]
     fn execution_context_management() {
         use execution_context::synchronized::test::Fixture as ExecutionFixture;
-        use language_server::Notification::ExpressionValuesComputed;
         use language_server::Event;
 
         let context_data = execution_context::plain::test::MockData::new();
@@ -484,14 +494,14 @@ mod test {
         assert!(result1.is_ok());
 
         // Context has no information about type.
-        let notification   = ExecutionFixture::mock_values_computed_update(&context_data);
+        let notification   = ExecutionFixture::mock_expression_updates(&context_data);
         let value_update   = &notification.updates[0];
         let expression_id  = value_update.expression_id;
         let value_registry = execution.computed_value_info_registry();
         assert!(value_registry.get(&expression_id).is_none());
 
         // Send notification with type information.
-        let event = Event::Notification(ExpressionValuesComputed(notification.clone()));
+        let event = Event::Notification(ExpressionUpdates(notification.clone()));
         json_events_sender.unbounded_send(event).unwrap();
         test.run_until_stalled();
 
