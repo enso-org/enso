@@ -22,6 +22,13 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// TODO [AA] 21.0.0 migration
+//  1. Remove the `Scope` from here.
+//  2. Return `TopLevelScope` from `Language::getScope` instead.
+//  3. Implement the required interop messages for it.
+//  4. Fix the exception mess.
+//  5. Remove interop usages from `ErrorResolver`.
+
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
