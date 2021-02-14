@@ -19,6 +19,9 @@ type Matrix
     columns : Integer
     columns = this.opencv_mat.cols
 
+    channels : Integer
+    channels = this.opencv_mat.channels
+
     copy : Matrix
     copy = Matrix this.opencv_mat.clone
 
@@ -76,3 +79,8 @@ type Matrix
     to_vector =
         arr = Java_Matrix.to_vector this.opencv_mat
         Vector.Vector arr
+
+    to_json : Json
+    to_json =
+        base64 = Java_Matrix.to_base64 this.opencv_mat
+        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]

@@ -2,12 +2,15 @@ package org.enso.image.data;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.imgcodecs.Imgcodecs;
+
+import java.util.Base64;
 
 public class Matrix {
 
   // type depth constants
-  public static final int
-      CV_8U = CvType.CV_8U,
+  public static final int CV_8U = CvType.CV_8U,
       CV_8UC1 = CvType.CV_8UC1,
       CV_8S = CvType.CV_8S,
       CV_16U = CvType.CV_16U,
@@ -16,6 +19,8 @@ public class Matrix {
       CV_32F = CvType.CV_32F,
       CV_64F = CvType.CV_64F,
       CV_16F = CvType.CV_16F;
+
+  private static final String EXTENSION_PNG = ".png";
 
   public static int CV_8UC(int channels) {
     return CvType.CV_8UC(channels);
@@ -67,6 +72,14 @@ public class Matrix {
         return buf16f;
     }
     return null;
+  }
+
+  public static String to_base64(Mat image) {
+    MatOfByte buf = new MatOfByte();
+    Imgcodecs.imencode(EXTENSION_PNG, image, buf);
+    byte[] bufData = new byte[(int) buf.total() * buf.channels()];
+    buf.get(0, 0, bufData);
+    return Base64.getEncoder().encodeToString(bufData);
   }
 
   private static int dataSize(int type) {

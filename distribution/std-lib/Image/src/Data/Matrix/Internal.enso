@@ -30,7 +30,8 @@ core_op mat value op =
         Matrix.Matrix m ->
             m
         _ ->
-            Scalar.new value
+            v = Vector.fill mat.channels value
+            Scalar.new v.to_array
     op mat scalar new_mat
     Matrix.Matrix new_mat
 
