@@ -105,41 +105,52 @@ a single language.
 
 ### Getting Started
 
-<img align="right" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="340">
+<img align="right" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="380">
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/get_app/materialiconsround/24px.svg">
 <ul><ul>
     <b>Download Enso</b><br/>
-    <a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a><br/>
-    <a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI, optional)</a>
+    <ul>
+        <li><a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a></li>
+        <li><a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI, optional)</a></li>
+    </ul>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/social/school/materialiconsround/24px.svg">
 <ul><ul>
     <b>Watch Tutorials</b><br/>
-    <a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a><br/>
-    <a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a><br/>
-    <a href="https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">... other tutorials</a>
+    <ul>
+        <li><a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a></li>
+        <li><a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a></li>
+        <li><a href="https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">... other tutorials</a></li>
+    </ul>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/cast_for_education/materialiconsround/24px.svg">
 <ul><ul>
     <b>Watch Video Podcasts</b><br/>
-    <a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a><br/>
-    <a href="https://www.youtube.com/c/Enso_org/videos?view=2&sort=dd&live_view=503&shelf_id=3">... other video podcasts</a>
+    <ul>
+        <li><a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a></li>
+        <li><a href="https://www.youtube.com/c/Enso_org/videos?view=2&sort=dd&live_view=503&shelf_id=3">... other video podcasts</a></li>
+    </ul>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/communication/forum/materialiconsround/24px.svg">
 <ul><ul>
     <b>Join The Community</b><br/>
-    <a href="https://discord.gg/enso">Get help, share your use cases, meet the team behind Enso and other Enso users.</a>
+    <ul>
+        <li><a href="https://discord.gg/enso">Discord chat. Get help, share your use cases, meet the team behind Enso and other Enso users!</a></li>
+        <li><a href="https://github.com/enso-org/enso/discussions">GitHub Discussion Forum</a></li>
+    </ul>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/new_releases/materialiconsround/24px.svg">
 <ul><ul>
     <b>Keep up with the latest updates</b><br/>
-    <a href="https://medium.com/@enso_org">Enso Development Blog</a><br/>
-    <a href="http://eepurl.com/bRru9j">Enso Mailing List</a><br/>
+    <ul>
+        <li><a href="https://medium.com/@enso_org">Enso Development Blog</a></li>
+        <li><a href="http://eepurl.com/bRru9j">Enso Mailing List</a></li>
+    </ul>
 </ul></ul>
 
 <br/><br/>
