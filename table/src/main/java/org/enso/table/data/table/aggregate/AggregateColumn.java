@@ -8,6 +8,7 @@ import org.enso.table.data.table.Column;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 /** A column wrapper used for aggregation operations. */
 public class AggregateColumn {
@@ -45,7 +46,8 @@ public class AggregateColumn {
         column.getStorage().getAggregator(aggName, aggregatorFunction, skipNa, uniqueIndex.size());
 
     for (int i = 0; i < uniqueIndex.size(); i++) {
-      List<Integer> ixes = column.getIndex().loc(uniqueIndex.iloc(i));
+      IntStream ixes =
+          column.getIndex().loc(uniqueIndex.iloc(i)).stream().mapToInt(Integer::intValue);
       aggregator.nextGroup(ixes);
     }
     return new Column(column.getName() + outSuffix, uniqueIndex, aggregator.seal());

@@ -7,6 +7,7 @@ import Base.Meta
 from Builtins export Text
 
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import org.enso.base.Text_Utils
 
 ## Computes the number of characters in the text.
@@ -268,3 +269,6 @@ Text.take_last count =
     iterator.last
     boundary = iterator.next -count
     if boundary == -1 then this else Text_Utils.drop_first this boundary
+
+Text.to_lower_case : Text
+Text.to_lower_case = UCharacter.toLowerCase this

@@ -3,6 +3,7 @@ import Table.Data.Table
 import Table.Data.Storage
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
     type Column java_column
@@ -302,6 +303,56 @@ type Column
         data = ['data', this.to_vector.take_start max_data]
         Json.from_pairs [size, name, data] . to_text
 
+    ## Sums the values in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    sum : Any
+    sum = this.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
+
+    ## Computes the maximum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    max : Any
+    max =
+        this.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
+
+    ## Computes the minimum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    min : Any
+    min =
+        this.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
+
+    ## Computes the mean of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    mean : Any
+    mean =
+        vec_mean v = if v.length == 0 then Nothing else
+            (Vector.Vector v).reduce (+) / v.length
+        this.java_column.aggregate 'mean' vec_mean True
+
+    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Order.Ascending missing_last=True comparator=Nothing =
+        order_bool = case order of
+            Sort_Order.Ascending -> True
+            Sort_Order.Descending -> False
+        java_cmp = case comparator of
+            Nothing -> Nothing
+            cmp -> Table.comparator_to_java cmp
+        rule = OrderBuilder.OrderRule.new this.java_column java_cmp order_bool missing_last
+        fallback_cmp = Table.comparator_to_java .compare_to
+        mask = OrderBuilder.buildOrderMask [rule].to_array fallback_cmp
+        new_col = this.java_column.applyMask mask
+        Column new_col
 
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
