@@ -15,9 +15,13 @@ use crate::known;
 // === Imports ===
 // ===============
 
-/// The keyword introducing an import declaration. See:
+/// The keyword introducing an qualified import declaration. See:
 /// https://dev.enso.org/docs/enso/syntax/imports.html#import-syntax
-pub const IMPORT_KEYWORD:&str = "import";
+pub const QUALIFIED_IMPORT_KEYWORD:&str = "import";
+/// The keyword introducing an unqualified import declaration.
+pub const UNQUALIFIED_IMPORT_KEYWORD:&str = "from";
+/// The keyword introducing an unqualified export declaration.
+pub const QUALIFIED_EXPORT_KEYWORD:&str = "export";
 
 /// If the given AST node is an import declaration, returns it as a Match (which is the only shape
 /// capable of storing import declarations). Returns `None` otherwise.
@@ -30,7 +34,19 @@ pub fn ast_as_import_match(ast:&Ast) -> Option<known::Match> {
 pub fn is_match_import(ast:&known::Match) -> bool {
     let segment = &ast.segs.head;
     let keyword = crate::identifier::name(&segment.head);
-    keyword.contains_if(|str| *str == IMPORT_KEYWORD)
+    if keyword.contains_if(|str| *str == UNQUALIFIED_IMPORT_KEYWORD) {
+        let second_segment = &ast.segs.tail.first();
+        match second_segment {
+            Some(seg) => {
+                let keyword_2 = crate::identifier::name(&seg.head);
+                if keyword_2.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD) {
+                    return true
+                }
+            }
+            None => return false
+        }
+    }
+    keyword.contains_if(|str| *str == QUALIFIED_IMPORT_KEYWORD)
 }
 
 /// Check if the given ast node is an import declaration.

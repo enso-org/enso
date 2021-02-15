@@ -359,9 +359,16 @@ impl Fixture {
         });
     }
 
+    fn deserialize_annotation(&mut self) {
+        self.test_shape("@Tail_call",|annotation: &Annotation| {
+            let expected_annotation = Annotation {name:"@Tail_call".into()};
+            assert_eq!(annotation,&expected_annotation);
+        });
+    }
+
     /// Tests parsing a number of sample macro usages.
     ///
-    /// As macros geneerate usually really huge ASTs, this test only checks
+    /// As macros generate usually really huge ASTs, this test only checks
     /// that we are able to deserialize the response and that it is a macro
     /// match node. Node contents is not covered.
     fn deserialize_macro_matches(&mut self) {
@@ -375,11 +382,14 @@ impl Fixture {
             , "(foo -> bar)"
             , "a b c -> bar"
             , "type Maybe a\n    Just val:a"
-            , "foreign Python3\n  bar"
             , "if foo > 8 then 10 else 9"
             , "skip bar"
             , "freeze bar"
             , "case foo of\n  bar"
+            , "import foo"
+            , "export bar"
+            , "from bar import all"
+            , "from bar export bo"
             ];
 
         for macro_usage in macro_usages.iter() {
@@ -428,6 +438,7 @@ impl Fixture {
         self.deserialize_right();
         self.deserialize_sides();
         self.deserialize_block();
+        self.deserialize_annotation();
         self.deserialize_macro_matches();
         self.deserialize_macro_ambiguous();
     }

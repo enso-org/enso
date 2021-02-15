@@ -28,11 +28,12 @@ fn extension_operator_methods() {
     let ast = parser::Parser::new_or_panic().parse_line("Int.+").unwrap();
 
     use ast::*;
-    // TODO: Here we should not get invalid suffix, likely whole thing should be infix . with
-    //  argument being an Opr(+). https://github.com/enso-org/enso/issues/565
-    if let Shape::Prefix(Prefix {arg,..}) = ast.shape() {
-        if let Shape::InvalidSuffix(InvalidSuffix{..}) = arg.shape() {
-            return;
+    if let Shape::Infix(Infix {larg:_larg,loff:_loff,opr,roff:_roff,rarg}, ..) = ast.shape() {
+        if let Shape::Opr(Opr{..}) = opr.shape() {
+            // TODO: should be Opr(+). https://github.com/enso-org/enso/issues/565
+            if let Shape::Var(Var{..}) = rarg.shape() {
+                return;
+            }
         }
     }
     panic!("Should have matched into return.");
