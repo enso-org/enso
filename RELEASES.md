@@ -1,3 +1,23 @@
+# Enso 0.2.3 (2021-02-15)
+
+## Tooling
+
+- Improved the robustness of the project manager and language server in the
+  presence of rapid restarts
+  ([#1463](https://github.com/enso-org/enso/pull/1463)).
+
+## Libraries
+
+- Significantly improved the efficiency of visualising large tables through
+  zero-cost translation to Enso's vectors
+  ([#1476](https://github.com/enso-org/enso/pull/1476)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-02-15)
+  for issues opened before the release date.
+
 # Enso 0.2.2 (2021-02-11)
 
 ## Language
