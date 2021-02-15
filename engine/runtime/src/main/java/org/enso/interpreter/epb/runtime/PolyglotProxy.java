@@ -48,21 +48,21 @@ public class PolyglotProxy implements TruffleObject {
 
   @ExportMessage
   public boolean isNull(@CachedLibrary("this.delegate") InteropLibrary nulls) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return nulls.isNull(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public boolean hasMembers(@CachedLibrary("this.delegate") InteropLibrary members) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return members.hasMembers(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
@@ -72,23 +72,23 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this.delegate") InteropLibrary members,
       @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnsupportedMessageException {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return contextRewrapNode.execute(
           members.getMembers(this.delegate, includeInternal), origin, target);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public boolean isMemberInvocable(
       String member, @CachedLibrary("this.delegate") InteropLibrary members) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return members.isMemberInvocable(this.delegate, member);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
@@ -104,23 +104,23 @@ public class PolyglotProxy implements TruffleObject {
     for (int i = 0; i < arguments.length; i++) {
       wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return contextRewrapNode.execute(
           members.invokeMember(this.delegate, member, wrappedArgs), origin, target);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public boolean isMemberReadable(
       String member, @CachedLibrary("this.delegate") InteropLibrary members) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return members.isMemberReadable(this.delegate, member);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
@@ -130,21 +130,21 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this.delegate") InteropLibrary members,
       @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnknownIdentifierException, UnsupportedMessageException {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return contextRewrapNode.execute(members.readMember(this.delegate, member), origin, target);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public boolean isExecutable(@CachedLibrary("this.delegate") InteropLibrary functions) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return functions.isExecutable(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
@@ -158,44 +158,44 @@ public class PolyglotProxy implements TruffleObject {
     for (int i = 0; i < arguments.length; i++) {
       wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return contextRewrapNode.execute(
           functions.execute(this.delegate, wrappedArgs), origin, target);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public boolean hasArrayElements(@CachedLibrary("this.delegate") InteropLibrary arrays) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return arrays.hasArrayElements(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null, p);
     }
   }
 
   @ExportMessage
   public long getArraySize(@CachedLibrary("this.delegate") InteropLibrary arrays)
       throws UnsupportedMessageException {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return arrays.getArraySize(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 
   @ExportMessage
   public boolean isArrayElementReadable(
       long idx, @CachedLibrary("this.delegate") InteropLibrary arrays) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return arrays.isArrayElementReadable(this.delegate, idx);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 
@@ -205,44 +205,44 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this.delegate") InteropLibrary arrays,
       @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws InvalidArrayIndexException, UnsupportedMessageException {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return contextRewrapNode.execute(
           arrays.readArrayElement(this.delegate, index), origin, target);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 
   @ExportMessage
   public boolean isString(@CachedLibrary("this.delegate") InteropLibrary strings) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return strings.isString(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 
   @ExportMessage
   public String asString(@CachedLibrary("this.delegate") InteropLibrary strings)
       throws UnsupportedMessageException {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return strings.asString(this.delegate);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 
   @ExportMessage
   public Object toDisplayString(
       boolean allowSideEffects, @CachedLibrary("this.delegate") InteropLibrary displays) {
-    Object p = origin.enter();
+    Object p = origin.enter(null);
     try {
       return displays.toDisplayString(this.delegate, allowSideEffects);
     } finally {
-      origin.leave(p);
+      origin.leave(null,p);
     }
   }
 }
