@@ -54,16 +54,15 @@ public class GetStackTraceTextNode extends Node {
         stack = fullStack;
       }
 
+      boolean first = true;
       for (var errorFrame : stack) {
         var rootNode = errorFrame.getLocation().getRootNode();
         var languageInfo = rootNode.getLanguageInfo();
         var langId = (languageInfo == null) ? "java" : languageInfo.getId();
         var fName = rootNode.getName();
-        System.out.println(fName);
         var src = "Internal";
-        var sourceLoc = errorFrame.getLocation().getSourceSection();
+        var sourceLoc = errorFrame.getLocation().getEncapsulatingSourceSection();
         if (sourceLoc != null) {
-          System.out.println("SRC: " + sourceLoc);
           var path = sourceLoc.getSource().getPath();
           var ident = (path != null) ? path : sourceLoc.getSource().getName();
           var loc = (sourceLoc.getStartLine() == sourceLoc.getEndLine()) ?
@@ -71,7 +70,12 @@ public class GetStackTraceTextNode extends Node {
               (sourceLoc.getStartLine() + "-" + sourceLoc.getEndLine());
           src = ident + ":" + loc;
         }
-        sb.append("        at <" + langId + "> " + fName + "(" + src + ")\n");
+        if (first) {
+          first = false;
+        } else {
+          sb.append('\n');
+        }
+        sb.append("        at <" + langId + "> " + fName + "(" + src + ")");
       }
     }
     return sb.toString();
