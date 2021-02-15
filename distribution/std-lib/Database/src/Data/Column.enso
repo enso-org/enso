@@ -29,7 +29,7 @@ type Column
     make_binary_op : Text -> Text -> (Column | Any) -> Column
     make_binary_op op_kind operand =
         case operand of
-            Column other_name _ other_expr _ ->
+            Column _ _ other_expr _ ->
                 case Helpers.check_integrity this operand of
                     False ->
                         Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."

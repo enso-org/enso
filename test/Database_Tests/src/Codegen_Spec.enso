@@ -75,11 +75,11 @@ spec =
         t2 = test_connection.access_table "T2"
         t3 = test_connection.access_table "T3"
         Test.specify "should allow joining tables index-on-index" <|
-            r_1 = t1.set_index 'A' . join (t2.set_index 'A')
+            r1 = t1.set_index 'A' . join (t2.set_index 'A')
             # TODO
 
         Test.specify "should allow joining tables column-on-index" <|
-            r_1 = t1.join (t2.set_index 'A') on='B'
+            r1 = t1.join (t2.set_index 'A') on='B'
             # TODO
 
         Test.specify "should append suffixes to disambiguate column names" <|
@@ -94,36 +94,49 @@ spec =
     Test.group "Dropping Missing Values" <|
         Test.specify "should drop missing rows in a Column" <|
             col = t1.at "A" . drop_missing
-            # TODO
+            IO.println col
+            col.to_sql.prepare . should_equal ["SELECT T1.A AS A FROM T1 AS T1 WHERE (NOT (T1.A IS NULL))", []]
 
         Test.specify "should drop rows that contain at least one missing column in a Table" <|
-            t1.drop_missing_rows
-            # TODO
+            t2 = t1.drop_missing_rows
+            t2.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (NOT (T1.A IS NULL)) AND (NOT (T1.B IS NULL)) AND (NOT (T1.C IS NULL))", []]
 
     Test.group "Aggregation" <|
         agg = t1.group by='A'
 
         Test.specify "should allow counting group sizes" <|
-            agg.count # TODO
+            agg.count.to_sql.prepare . should_equal ["SELECT COUNT(*) AS count FROM T1 AS T1 GROUP BY T1.A", []]
 
         Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
-            agg.at 'B' . mean # TODO
-            agg.at 'B' . min
+            c1 = agg.at 'B' . mean
+            c1.to_sql.prepare . should_equal ["SELECT AVG(T1.B) AS B_mean FROM T1 AS T1 GROUP BY T1.A", []]
+            c2 = agg.at 'B' . min
+            c2.to_sql.prepare . should_equal ["SELECT MIN(T1.B) AS B_min FROM T1 AS T1 GROUP BY T1.A", []]
+
+        Test.specify "should allow grouping by multiple columns" <|
+            agg = t1.group by=['A','B']
+            agg.count.to_sql.prepare . should_equal ["SELECT COUNT(*) AS count FROM T1 AS T1 GROUP BY T1.A, T1.B", []]
 
     Test.group "Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
-            r1 = t1.sort by="A" . at "B" # TODO
-            r_3 = t1.sort by="B" missing_last=False order=Sort_Order.Descending . at "A"
+            r1 = t1.sort by="A" . at "B"
+            r1.to_sql.prepare . should_equal ["SELECT T1.B AS B FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST", []]
+
+            r2 = t1.sort by="B" missing_last=False order=Sort_Order.Descending . at "A"
+            r2.to_sql.prepare . should_equal ["SELECT T1.A AS A FROM T1 AS T1 ORDER BY T1.B DESC NULLS FIRST", []]
 
         Test.specify 'should allow sorting by multiple column names' <|
-            r_1 = t1.sort by=['A', 'B'] # TODO
+            r1 = t1.sort by=['A', 'B']
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST, T1.B ASC NULLS LAST", []]
 
         Test.specify 'should allow sorting by expressions' <|
             sum = t1.at 'A' + t1.at 'B'
-            r_1 = t1.sort by=sum . at "C" # TODO
+            r1 = t1.sort by=sum . at "C"
+            r1.to_sql.prepare . should_equal ["SELECT T1.C AS C FROM T1 AS T1 ORDER BY (T1.A + T1.B) ASC NULLS LAST", []]
 
         Test.specify 'should allow sorting with specific by-column rules' <|
-            r_1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Order.Descending)] # TODO
+            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Order.Descending)]
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST, T1.B DESC NULLS LAST", []]
 
         Test.specify 'should return dataflow error when passed a non-existent column' <|
             r = t1.sort by='foobar'

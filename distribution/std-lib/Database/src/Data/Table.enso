@@ -226,13 +226,14 @@ type Table
             _ ->
                 Helpers.unify_vector_singleton by . map (this.resolve >> .expression)
         new_ctx = this.context.set_groups exprs
+        # TODO [RW] when doing materialization, make sure that the index is set properly so that `display` will include the group names
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
     ## Returns a new Table without rows that contained missing values in any of
        the columns.
     drop_missing_rows : Table
     drop_missing_rows =
-        filters = this.columns.map (c -> c.is_missing.not)
+        filters = this.columns.map (c -> c.is_missing.not.expression)
         new_ctx = this.context.set_where_filters (this.context.where_filters + filters)
         this.updated_context new_ctx
 
