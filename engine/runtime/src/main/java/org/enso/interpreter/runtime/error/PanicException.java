@@ -3,9 +3,11 @@ package org.enso.interpreter.runtime.error;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.SourceSection;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
@@ -19,7 +21,7 @@ public class PanicException extends AbstractTruffleException {
    * @param location the node throwing this exception, for use in guest stack traces
    */
   public PanicException(Object payload, Node location) {
-    super(payload.toString(), location);
+    super(location);
     this.payload = payload;
   }
 
@@ -30,6 +32,11 @@ public class PanicException extends AbstractTruffleException {
    */
   public Object getPayload() {
     return payload;
+  }
+
+  @Override
+  public String getMessage() {
+    return payload.toString();
   }
 
   @ExportMessage
@@ -55,5 +62,19 @@ public class PanicException extends AbstractTruffleException {
   @ExportMessage
   boolean isExceptionIncompleteSource() {
     return false;
+  }
+
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getLocation().getEncapsulatingSourceSection() != null;
+  }
+
+  @ExportMessage(name = "getSourceLocation")
+  SourceSection getSourceSection() throws UnsupportedMessageException {
+    SourceSection loc = getLocation().getEncapsulatingSourceSection();
+    if (loc == null) {
+      throw UnsupportedMessageException.create();
+    }
+    return getLocation().getEncapsulatingSourceSection();
   }
 }

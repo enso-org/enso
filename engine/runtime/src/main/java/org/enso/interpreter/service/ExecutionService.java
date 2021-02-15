@@ -1,5 +1,6 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
@@ -271,5 +272,43 @@ public class ExecutionService {
               return new Object();
             });
     return changesetBuilder;
+  }
+
+  /**
+   * Returns the language for the provided object, if it exists.
+   *
+   * @param o the object to get the language for
+   * @return the associated language, or {@code null} if it doesn't exist
+   */
+  public String getLanguage(Object o) {
+    if (interopLibrary.hasSourceLocation(o)) {
+      try {
+        var sourceSection = interopLibrary.getSourceLocation(o);
+        var source = sourceSection.getSource();
+        if (source != null) {
+          return source.getLanguage();
+        }
+      } catch (UnsupportedMessageException ignored) {
+        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the source section for the provided object, if it exists.
+   *
+   * @param o the object to get the source section for
+   * @return the associated source section, or {@code null} if it doesn't exist
+   */
+  public SourceSection getSourceLocation(Object o) {
+    if (interopLibrary.hasSourceLocation(o)) {
+      try {
+        return interopLibrary.getSourceLocation(o);
+      } catch (UnsupportedMessageException ignored) {
+        CompilerDirectives.shouldNotReachHere("Message support already checked.");
+      }
+    }
+    return null;
   }
 }
