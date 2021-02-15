@@ -198,7 +198,7 @@ type Table
                 new_ctx = IR.Context new_from [] [] [] new_index
 
                 left_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
-                right_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
+                right_names = Map.from_vector (other.internal_columns.map (p -> [p.first, True]))
                 rename suffix other_names this_name =
                     if other_names.get_or_else this_name False then this_name+suffix else this_name
                 rename_left = rename left_suffix right_names

@@ -16,7 +16,7 @@ postgresql =
                 sub = arguments.at 1
                 res = str ++ (SQL.code " LIKE CONCAT(") ++ sub ++ (SQL.code ", '%')")
                 res.paren
-             False ->
+            False ->
                 Error.throw ("Invalid amount of arguments for operation starts_with")
     ends_with arguments =
         case arguments.length == 2 of

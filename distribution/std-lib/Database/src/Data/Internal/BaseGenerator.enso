@@ -81,11 +81,11 @@ generate_from_part dialect from_spec = case from_spec of
         right = here.generate_from_part dialect right_spec
         prefix = case kind of
             IR.InnerJoin -> "INNER JOIN"
-            IR.LeftJoin -> "LEFT OUTER JOIN"
-            IR.RightJoin -> "RIGHT OUTER JOIN"
+            IR.LeftJoin -> "LEFT JOIN"
+            IR.RightJoin -> "RIGHT JOIN"
             IR.CrossJoin -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
-        (left ++ (SQL.code " "+prefix+" ") ++ right ++ ons).paren
+        left ++ (SQL.code " "+prefix+" ") ++ right ++ ons
     IR.SubQuery columns context as_name ->
         sub = here.generate_query dialect (IR.Select columns context)
         sub.paren.alias as_name
