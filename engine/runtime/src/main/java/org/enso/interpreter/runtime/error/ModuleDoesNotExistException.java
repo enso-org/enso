@@ -1,10 +1,9 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 
 /** Thrown when a module was requested for importing but could not be found. */
-public class ModuleDoesNotExistException extends RuntimeException implements TruffleException {
+public class ModuleDoesNotExistException extends AbstractTruffleException {
   /**
    * Creates a new instance of this error.
    *
@@ -12,15 +11,5 @@ public class ModuleDoesNotExistException extends RuntimeException implements Tru
    */
   public ModuleDoesNotExistException(String name) {
     super("Module " + name + " does not exist.");
-  }
-
-  /**
-   * Reports a null location for this exception.
-   *
-   * @return null.
-   */
-  @Override
-  public Node getLocation() {
-    return null;
   }
 }

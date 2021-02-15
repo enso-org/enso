@@ -1,8 +1,8 @@
 package org.enso.interpreter.runtime.error;
 
 /**
- * An exception that is thrown whenever a call is made to a {@link
- * org.enso.interpreter.runtime.callable.Callable} with the wrong number of arguments.
+ * An exception that is thrown whenever a call is made to a Callable with the wrong number of
+ * arguments.
  */
 public class ArityException extends RuntimeException {
 
