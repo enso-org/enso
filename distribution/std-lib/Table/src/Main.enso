@@ -24,9 +24,7 @@ Json.Array.to_table fields = case this of
     Json.Array items ->
         rows = items.map <| case _ of
             Json.Object fs ->
-                fields.map n-> case fs.get n of
-                    Nothing -> Nothing
-                    js -> js.unwrap
+                fields.map n-> fs.get n . unwrap . catch (_ -> Nothing)
             _ -> Vector.fill fields.length Nothing
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]

@@ -6,9 +6,7 @@ import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.operation.aggregate.CountAggregator;
 import org.enso.table.data.column.operation.aggregate.FunctionAggregator;
 
-import java.util.BitSet;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -253,4 +251,9 @@ public abstract class Storage {
    *     to specify no natural ordering.
    */
   public abstract Comparator<Object> getDefaultComparator();
+
+  public List<Object> toList() {
+    return new StorageListView(this);
+  }
+
 }

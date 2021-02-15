@@ -79,6 +79,17 @@ spec =
             t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
             t.at 'baz' . to_vector . should_equal [False, True, False]
 
+    Test.group "Vector conversion" <|
+        Test.specify "should allow converting columns to valid vectors" <|
+            col_1 = Column.from_vector 'x' [1, 2, 3]
+            col_1.to_vector.reduce (+) . should_equal 6
+
+            col_2 = Column.from_vector 'y' [My 1 2, My 2 3]
+            col_2.to_vector.map (my -> my.x + my.y) . should_equal [3, 5]
+
+            col_3 = Column.from_vector 'z' [False, True, False]
+            col_3.to_vector.map .not . should_equal [True, False, True]
+
     Test.group "Mapping Operations" <|
         Test.specify "should allow mapping a function over a column" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
