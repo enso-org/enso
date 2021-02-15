@@ -16,11 +16,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -48,7 +46,7 @@ public abstract class PrintlnNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible. self is guaranteed to be a string");
     }
-    return new Stateful(state, ctx.getUnit().newInstance());
+    return new Stateful(state, ctx.getNothing().newInstance());
   }
 
   @Specialization(guards = "!strings.isString(message)")
@@ -64,7 +62,7 @@ public abstract class PrintlnNode extends Node {
       @Cached ExpectStringNode expectStringNode) {
     Stateful str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     print(ctx.getOut(), expectStringNode.execute(str.getValue()));
-    return new Stateful(str.getState(), ctx.getUnit().newInstance());
+    return new Stateful(str.getState(), ctx.getNothing().newInstance());
   }
 
   boolean isText(Object o) {
