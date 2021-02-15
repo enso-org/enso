@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
@@ -20,6 +21,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -114,7 +116,8 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!methods.hasFunctionalDispatch(_this)",
         "!methods.hasSpecialDispatch(_this)",
-        "polyglotCallType != NOT_SUPPORTED"
+        "polyglotCallType != NOT_SUPPORTED",
+        "polyglotCallType != CONVERT_TO_TEXT"
       })
   Stateful doPolyglot(
       VirtualFrame frame,
@@ -139,7 +142,36 @@ public abstract class InvokeMethodNode extends BaseNode {
         state, hostMethodCallNode.execute(polyglotCallType, symbol.getName(), _this, args));
   }
 
-  @ExplodeLoop
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_TEXT"
+      })
+  Stateful doConvertText(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary textDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      String str = interop.asString(_this);
+      Text txt = Text.create(str);
+      Function function = textDispatch.getFunctionalDispatch(txt, symbol);
+      arguments[0] = txt;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
+  }
+
   @Specialization(
       guards = {
         "!methods.hasFunctionalDispatch(_this)",

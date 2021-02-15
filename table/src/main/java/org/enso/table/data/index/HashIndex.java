@@ -1,6 +1,8 @@
 package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.mask.OrderMask;
+
 import java.util.*;
 
 public class HashIndex extends Index {
@@ -58,6 +60,12 @@ public class HashIndex extends Index {
   @Override
   public Index countMask(int[] counts, int total) {
     Storage newSt = items.countMask(counts, total);
+    return HashIndex.fromStorage(name, newSt);
+  }
+
+  @Override
+  public Index applyMask(OrderMask mask) {
+    Storage newSt = items.applyMask(mask);
     return HashIndex.fromStorage(name, newSt);
   }
 

@@ -18,11 +18,33 @@ public abstract class HostMethodCallNode extends Node {
 
   /** Represents a mode of calling a method on a polyglot value. */
   public enum PolyglotCallType {
+    /**
+     * The method call should be handled through {@link InteropLibrary#invokeMember(Object, String,
+     * Object...)}.
+     */
     CALL_METHOD,
+    /**
+     * The method call should be handled through {@link InteropLibrary#readMember(Object, String)}.
+     */
     GET_MEMBER,
+    /**
+     * The method call should be handled through {@link InteropLibrary#instantiate(Object,
+     * Object...)}.
+     */
     INSTANTIATE,
+    /** The method call should be handled through {@link InteropLibrary#getArraySize(Object)}. */
     GET_ARRAY_LENGTH,
+    /**
+     * The method call should be handled through {@link InteropLibrary#readArrayElement(Object,
+     * long)}.
+     */
     READ_ARRAY_ELEMENT,
+    /**
+     * The method call should be handled by converting {@code _this} to a {@link
+     * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
+     */
+    CONVERT_TO_TEXT,
+    /** The method call should be handled by dispatching through the {@code Any} type. */
     NOT_SUPPORTED
   }
 
@@ -53,6 +75,8 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.GET_ARRAY_LENGTH;
     } else if (library.hasArrayElements(_this) && methodName.equals(ARRAY_READ_NAME)) {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
+    } else if (library.isString(_this)) {
+      return PolyglotCallType.CONVERT_TO_TEXT;
     } else {
       return PolyglotCallType.NOT_SUPPORTED;
     }

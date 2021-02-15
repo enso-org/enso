@@ -1,0 +1,16 @@
+from Base import all
+from Table import Table
+
+import Geo
+import Test
+
+spec =
+    Test.group "Geo Points" <|
+        point = Geo.point 51.509865 -0.118092
+        Test.specify "should be able to be created as a Table" <|
+            point.is_a Table.Table . should_be_true
+        Test.specify "should contain a latitude and longitude" <|
+            point.at "latitude" . at 0 . should_equal 51.509865
+            point.at "longitude" . at 0 . should_equal -0.118092
+            point.at "elevation" . at 0 . should_equal 0
+

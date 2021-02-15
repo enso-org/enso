@@ -1,10 +1,13 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Comparator;
+
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.text.StringBooleanOp;
+import org.enso.table.data.mask.OrderMask;
 
 /** A column storing strings. */
 public class StringStorage extends ObjectStorage {
@@ -64,8 +67,8 @@ public class StringStorage extends ObjectStorage {
   }
 
   @Override
-  public StringStorage orderMask(int[] positions) {
-    ObjectStorage storage = super.orderMask(positions);
+  public StringStorage applyMask(OrderMask mask) {
+    ObjectStorage storage = super.applyMask(mask);
     return new StringStorage(storage.getData(), (int) storage.size());
   }
 
@@ -73,6 +76,11 @@ public class StringStorage extends ObjectStorage {
   public StringStorage countMask(int[] counts, int total) {
     ObjectStorage storage = super.countMask(counts, total);
     return new StringStorage(storage.getData(), total);
+  }
+
+  @Override
+  public Comparator getDefaultComparator() {
+    return Comparator.<String>naturalOrder();
   }
 
   private static MapOpStorage<StringStorage> buildOps() {

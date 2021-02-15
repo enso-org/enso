@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{AST, Debug, Location}
 
 import scala.annotation.unused
@@ -5113,7 +5114,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Definition(
-      lang: String,
+      lang: EpbParser.ForeignLanguage,
       code: String,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -5133,7 +5134,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        lang: String                         = lang,
+        lang: EpbParser.ForeignLanguage      = lang,
         code: String                         = code,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -5807,6 +5808,11 @@ object IR {
 
       case object InvalidOperatorName extends Reason {
         override def explanation: String = "Invalid operator name."
+      }
+
+      case class InvalidForeignDefinition(details: String) extends Reason {
+        override def explanation: String =
+          s"Invalid foreign definition. $details"
       }
     }
 

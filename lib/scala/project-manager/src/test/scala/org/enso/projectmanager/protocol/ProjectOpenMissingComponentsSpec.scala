@@ -18,10 +18,10 @@ class ProjectOpenMissingComponentsSpec
     with RetrySpec
     with ProjectManagementOps
     with MissingComponentBehavior {
-  val ordinaryVersion: SemVer                  = SemVer(0, 0, 1)
-  override val engineToInstall: Option[SemVer] = Some(ordinaryVersion)
-  var ordinaryProject: UUID                    = _
-  var brokenProject: UUID                      = _
+  val ordinaryVersion: SemVer  = SemVer(0, 0, 1)
+  override val engineToInstall = Some(ordinaryVersion)
+  var ordinaryProject: UUID    = _
+  var brokenProject: UUID      = _
 
   override val deleteProjectsRootAfterEachTest = false
   override def beforeAll(): Unit = {

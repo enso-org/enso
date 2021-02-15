@@ -1,5 +1,5 @@
 # Catch All
-* @iamrecursion @kustosz
+* @iamrecursion @kustosz @radeusgd
 
 # Distribution
 /distribution @iamrecursion @kustosz @radeusgd
@@ -11,23 +11,23 @@
 /lib/scala/flexer @iamrecursion @kustosz
 /lib/scala/graph @iamrecursion @kustosz
 /lib/scala/interpreter-dsl @iamrecursion @kustosz
-/lib/scala/json-rpc-server @lolczak @4e6 @iamrecursion @kustosz
-/lib/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion @kustosz
+/lib/scala/json-rpc-server @radeusgd @4e6 @iamrecursion @kustosz
+/lib/scala/json-rpc-server-test @radeusgd @4e6 @iamrecursion @kustosz
 /lib/scala/logger @kustosz @iamrecursion
 /lib/scala/parser-service @kustosz @iamrecursion
 /lib/scala/pkg @iamrecursion @kustosz
-/lib/scala/project-manager @lolczak @4e6 @kustosz
-/lib/scala/searcher @4e6 @lolczak
+/lib/scala/project-manager @radeusgd @4e6 @kustosz
+/lib/scala/searcher @4e6 @radeusgd @kustosz
 /lib/scala/syntax @iamrecursion @kustosz
-/lib/scala/testkit @4e6 @kustosz
+/lib/scala/testkit @4e6 @kustosz @iamrecursion
 /lib/scala/text-buffer @iamrecursion @kustosz
 /lib/scala/version-output @iamrecursion @kustosz @radeusgd
 
 # Rust Libraries
-/lib/rust/ @iamrecursion @wdanilo
+/lib/rust/ @iamrecursion @wdanilo @radeusgd
 
 # Main Project
-/engine/language-server @lolczak @4e6 @kustosz
+/engine/language-server @radeusgd @4e6 @kustosz
 /engine/launcher @iamrecursion @kustosz @radeusgd
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @radeusgd

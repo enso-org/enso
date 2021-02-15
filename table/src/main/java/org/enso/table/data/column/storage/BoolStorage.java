@@ -1,10 +1,13 @@
 package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
+import java.util.Comparator;
+
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.error.UnexpectedTypeException;
 
@@ -120,7 +123,8 @@ public class BoolStorage extends Storage {
   }
 
   @Override
-  public Storage orderMask(int[] positions) {
+  public Storage applyMask(OrderMask mask) {
+    int[] positions = mask.getPositions();
     BitSet newNa = new BitSet();
     BitSet newVals = new BitSet();
     for (int i = 0; i < positions.length; i++) {
@@ -296,5 +300,11 @@ public class BoolStorage extends Storage {
     }
     mask.andNot(storage.getIsMissing());
     return mask;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public Comparator getDefaultComparator() {
+    return Comparator.naturalOrder();
   }
 }
