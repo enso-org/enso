@@ -25,7 +25,6 @@ public class GetStackTraceTextNode extends Node {
     return Text.create(repr);
   }
 
-
   @TruffleBoundary
   String printStackTrace(Throwable throwable) {
     var sb = new StringBuilder();
