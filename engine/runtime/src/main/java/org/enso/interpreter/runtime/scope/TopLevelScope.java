@@ -23,8 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 // TODO [AA] 21.0.0 migration
-//  1. Remove the `Scope` from here.
-//  2. Return `TopLevelScope` from `Language::getScope` instead.
 //  3. Implement the required interop messages for it.
 //  4. Fix the exception mess.
 //  5. Remove interop usages from `ErrorResolver`.
@@ -34,7 +32,6 @@ import java.util.stream.Collectors;
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final Map<String, Module> modules;
-  private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
   /**
    * Creates a new instance of top scope.
@@ -45,15 +42,6 @@ public class TopLevelScope implements TruffleObject {
   public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
     this.modules = modules;
-  }
-
-  /**
-   * Returns a polyglot representation of this scope.
-   *
-   * @return a polyglot Scope object.
-   */
-  public Scope getScope() {
-    return scope;
   }
 
   /** @return the list of modules in the scope. */
@@ -230,5 +218,67 @@ public class TopLevelScope implements TruffleObject {
         || member.equals(MethodNames.TopScope.CREATE_MODULE)
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE);
+  }
+
+  /**
+   * Checks if the receiver is a scope object.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  boolean isScope() {
+    return true;
+  }
+
+  /**
+   * Returns true if this scope has an enclosing parent scope, else false.
+   *
+   * @return {@code false}
+   */
+  @ExportMessage
+  boolean hasScopeParent() {
+    return false;
+  }
+
+  /**
+   * Returns the parent scope of this scope, if one exists.
+   *
+   * @return {@code null}
+   * @throws UnsupportedMessageException always, as this scope can never have a parent
+   */
+  @ExportMessage
+  Object getScopeParent() throws UnsupportedMessageException {
+    return UnsupportedMessageException.create();
+  }
+
+  /**
+   * Checks if this value is associated with a language.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  final boolean hasLanguage() {
+    return true;
+  }
+
+  /**
+   * Returns the language associated with this scope value.
+   *
+   * @return the language with which this value is associated
+   */
+  @ExportMessage
+  final Class<Language> getLanguage() {
+    return Language.class;
+  }
+
+  /**
+   * Converts this scope to a human readable string.
+   *
+   * @param allowSideEffects whether or not side effects are allowed
+   * @return a string representation of this scope
+   */
+  @ExportMessage
+  final Object toDisplayString(boolean allowSideEffects) {
+    return "Enso.Top_Scope";
   }
 }
