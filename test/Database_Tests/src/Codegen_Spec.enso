@@ -31,11 +31,13 @@ spec =
             t2 = t1.select ["C", "B", "undefined"]
             t2.to_sql.prepare . should_equal ["SELECT (T1.C) AS C, (T1.B) AS B FROM T1 AS T1", []]
 
-            foo = t2.at "A" . rename "FOO"
+            foo = t1.at "A" . rename "FOO"
             foo.to_sql.prepare . should_equal ["SELECT (T1.A) AS FOO FROM T1 AS T1", []]
 
             t3 = t2.set "bar" foo
-            t3.to_sql.prepare . should_equal ["SELECT (T1.A) AS bar FROM T1 AS T1", []]
+            t3.to_sql.prepare . should_equal ["SELECT (T1.C) AS C, (T1.B) AS B, (T1.A) AS bar FROM T1 AS T1", []]
+        Test.specify "should fail if at is called for a nonexisting column" <|
+            t1.at "undefined" . should_fail_with No_Such_Column_Error
 
     Test.group "Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
@@ -94,7 +96,7 @@ spec =
         agg = t1.group by='A'
 
         Test.specify "should allow counting group sizes" <|
-            agg.count.to_vector.should_equal [3, 2, 1, 1]
+            agg.count # TODO
 
         Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
             agg.at 'B' . mean # TODO

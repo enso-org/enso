@@ -154,7 +154,7 @@ type Vector
     find predicate =
         len = this.length
         go idx =
-            if (idx >= len) then Nothing else
+            if (idx >= len) then Error.throw Nothing else
                 elem = this.at idx
                 if (predicate elem) then elem else
                     @Tail_Call go idx+1

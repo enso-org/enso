@@ -37,9 +37,8 @@ type Table
     ## Returns the column with the given name.
     at : Text -> Column ! UnknownColumnError
     at name =
-        internal = this.internal_columns.find (p -> p.first == name) |>
-            _.map_error (_ -> No_Such_Column_Error name)
-        this.make_column internal
+        internal = this.internal_columns.find (p -> p.first == name)
+        this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## PRIVATE
        Resolves the column name to a column within this table. If instead of a
@@ -74,7 +73,6 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            IO.println this.internal_columns
             new_col = [name, column.expression]
             replace = this.internal_columns.exists (c -> c.first == name)
             case replace of
@@ -308,9 +306,8 @@ type Aggregate_Table
     ## Returns an aggregate column with the given name, contained in this table.
     at : Text -> Column ! No_Such_Column_Error
     at name =
-        internal = this.internal_columns.find (p -> p.first == name) |>
-            _.map_error (_ -> No_Such_Column_Error name)
-        this.make_column internal
+        internal = this.internal_columns.find (p -> p.first == name)
+        this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## Prints an ASCII-art table with this data to the standard output.
 
