@@ -224,6 +224,13 @@ type Error
     catch_primitive : (Error -> Any) -> Any
     catch_primitive handler = @Builtin_Method "Any.catch"
 
+    ## PRIVATE 
+       UNSTABLE
+
+       Returns a textual representation of the stack trace attached to an error.
+    get_stack_trace_text : Text
+    get_stack_trace_text = @Builtin_Method "Error.get_stack_trace_text"
+
     ## Converts an error to a corresponding textual representation.
     to_text : Text
     to_text = @Builtin_Method "Error.to_text"
@@ -1792,4 +1799,3 @@ type Ordering
     ## A representation that the first value orders as greater than the second.
     @Builtin_Type
     type Greater
-

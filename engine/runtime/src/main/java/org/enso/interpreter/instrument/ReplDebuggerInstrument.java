@@ -184,7 +184,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     protected void onEnter(VirtualFrame frame) {
       CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
-      Object lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
+      Object lastReturn = lookupContextReference(Language.class).get().getNothing().newInstance();
       // Note [Safe Access to State in the Debugger Instrument]
       Object lastState = Function.ArgumentsHelper.getState(frame.getArguments());
       nodeState = new ReplExecutionEventNodeState(lastReturn, lastState, lastScope);
