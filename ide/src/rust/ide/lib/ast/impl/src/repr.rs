@@ -134,25 +134,26 @@ has_tokens!(MacroAmbiguousSegment<T>, self.head, self.body);
 has_tokens!(MacroPatternMatchRawBegin  );
 has_tokens!(MacroPatternMatchRawEnd    );
 has_tokens!(MacroPatternMatchRawNothing);
-has_tokens!(MacroPatternMatchRawSeq    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawOr     <T>, self.elem);
-has_tokens!(MacroPatternMatchRawMany   <T>, self.elem);
-has_tokens!(MacroPatternMatchRawExcept <T>, self.elem);
-has_tokens!(MacroPatternMatchRawBuild  <T>, self.elem);
-has_tokens!(MacroPatternMatchRawErr    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawTag    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawCls    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawTok    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawBlank  <T>, self.elem);
-has_tokens!(MacroPatternMatchRawVar    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawCons   <T>, self.elem);
-has_tokens!(MacroPatternMatchRawOpr    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawMod    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawNum    <T>, self.elem);
-has_tokens!(MacroPatternMatchRawText   <T>, self.elem);
-has_tokens!(MacroPatternMatchRawBlock  <T>, self.elem);
-has_tokens!(MacroPatternMatchRawMacro  <T>, self.elem);
-has_tokens!(MacroPatternMatchRawInvalid<T>, self.elem);
+has_tokens!(MacroPatternMatchRawSeq        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawOr         <T>, self.elem);
+has_tokens!(MacroPatternMatchRawMany       <T>, self.elem);
+has_tokens!(MacroPatternMatchRawExcept     <T>, self.elem);
+has_tokens!(MacroPatternMatchRawBuild      <T>, self.elem);
+has_tokens!(MacroPatternMatchRawErr        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawTag        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawCls        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawTok        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawBlank      <T>, self.elem);
+has_tokens!(MacroPatternMatchRawVar        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawCons       <T>, self.elem);
+has_tokens!(MacroPatternMatchRawOpr        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawAnnotation <T>, self.elem);
+has_tokens!(MacroPatternMatchRawMod        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawNum        <T>, self.elem);
+has_tokens!(MacroPatternMatchRawText       <T>, self.elem);
+has_tokens!(MacroPatternMatchRawBlock      <T>, self.elem);
+has_tokens!(MacroPatternMatchRawMacro      <T>, self.elem);
+has_tokens!(MacroPatternMatchRawInvalid    <T>, self.elem);
 
 
 // === Switch ===
@@ -188,6 +189,7 @@ has_tokens!(Blank           , BLANK_TOKEN);
 has_tokens!(Var             , self.name  );
 has_tokens!(Cons            , self.name  );
 has_tokens!(Opr             , self.name  );
+has_tokens!(Annotation      , self.name  );
 has_tokens!(Mod             , self.name, MOD_SUFFIX );
 has_tokens!(InvalidSuffix<T>, self.elem, self.suffix);
 
@@ -330,7 +332,9 @@ has_tokens!(Ambiguous<T>, self.segs);
 // =====================
 
 spaceless_ast!(Comment);
+spaceless_ast!(Documented<T>);
 spaceless_ast!(Import<T>);
+spaceless_ast!(Export<T>);
 spaceless_ast!(JavaImport<T>);
 spaceless_ast!(Mixfix<T>);
 spaceless_ast!(Group<T>);
@@ -375,7 +379,8 @@ mod tests {
     // === Import ===
 
     fn make_import() -> Shape<Ast> {
-        Import {path : Ast::var("Target")}.into()
+        let path = vec!(Ast::var("Target"));
+        Import { path,rename:None, isAll:false, onlyNames:None, hidingNames:None }.into()
     }
 
     #[test]

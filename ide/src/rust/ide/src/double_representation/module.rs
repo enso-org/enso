@@ -350,7 +350,7 @@ impl ImportInfo {
 impl Display for ImportInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let target = self.target.join(ast::opr::predefined::ACCESS);
-        write!(f, "{} {}",ast::macros::IMPORT_KEYWORD,target)
+        write!(f, "{} {}",ast::macros::QUALIFIED_IMPORT_KEYWORD,target)
     }
 }
 
