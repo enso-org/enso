@@ -27,7 +27,7 @@ type Column
     to_sql = this.to_table.to_sql
 
     make_binary_op : Text -> Text -> (Column | Any) -> Column
-    make_binary_op op_kind op_name operand =
+    make_binary_op op_kind operand =
         case operand of
             Column other_name _ other_expr _ ->
                 case Helpers.check_integrity this operand of
@@ -35,117 +35,114 @@ type Column
                         Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
                         new_expr = IR.Operation op_kind [this.expression, other_expr]
-                        new_name = this.name + "_" + op_name + "_" + other_name
-                        Column new_name this.connection new_expr this.context
+                        Column this.name this.connection new_expr this.context
             _ ->
                 other = IR.make_constant operand
                 new_expr = IR.Operation op_kind [this.expression, other]
-                new_name = this.name + "_" + op_name
-                Column new_name this.connection new_expr this.context
+                Column this.name this.connection new_expr this.context
 
     make_unary_op : Text -> Text -> Column
-    make_unary_op op_kind op_name =
+    make_unary_op op_kind =
         new_expr = IR.Operation op_kind [this.expression]
-        new_name = this.name + "_" + op_name
-        Column new_name this.connection new_expr this.context
+        Column this.name this.connection new_expr this.context
 
     ## Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     == : Column | Any -> Column
-    == other = this.make_binary_op "=" "equals" other
+    == other = this.make_binary_op "=" other
 
     ## Element-wise non-equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     != : Column | Any -> Column
-    != other = this.make_binary_op "!=" "not_equals" other
+    != other = this.make_binary_op "!=" other
 
     ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     >= : Column | Any -> Column
-    >= other = this.make_binary_op ">=" "geq" other
+    >= other = this.make_binary_op ">=" other
 
     ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     <= : Column | Any -> Column
-    <= other = this.make_binary_op "<=" "leq" other
+    <= other = this.make_binary_op "<=" other
 
     ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     > : Column | Any -> Column
-    > other = this.make_binary_op ">" "greater" other
+    > other = this.make_binary_op ">" other
 
     ## Element-wise order comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     < : Column | Any -> Column
-    < other = this.make_binary_op "<" "less" other
+    < other = this.make_binary_op "<" other
 
     ## Element-wise addition. Returns a column containing the result
        of adding `other` to each element of `this`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     + : Column | Any -> Column
-    + other = this.make_binary_op "+" "plus" other
+    + other = this.make_binary_op "+" other
 
     ## Element-wise subtraction. Returns a column containing the result
        of subtracting `other` from each element of `this`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     - : Column | Any -> Column
-    - other = this.make_binary_op "-" "minus" other
+    - other = this.make_binary_op "-" other
 
     ## Element-wise multiplication. Returns a column containing the result
        of multiplying `other` by each element of `this`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     * : Column | Any -> Column
-    * other = this.make_binary_op "*" "times" other
+    * other = this.make_binary_op "*" other
 
     ## Element-wise division. Returns a column containing the result
        of dividing each element of `this` by `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     / : Column | Any -> Column
-    / other = this.make_binary_op "/" "divided" other
+    / other = this.make_binary_op "/" other
 
     ## Element-wise boolean conjunction. Returns a column containing the result
        of performing the boolean `and` on `other` and each element of `this`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     && : Column | Any -> Column
-    && other = this.make_binary_op "AND" "and" other
+    && other = this.make_binary_op "AND" other
 
     ## Element-wise boolean disjunction. Returns a column containing the result
        of performing the boolean `or` on `other` and each element of `this`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     || : Column | Any -> Column
-    || other = this.make_binary_op "OR" "or" other
+    || other = this.make_binary_op "OR" other
 
     ## Boolean negation of each element in this column.
     not : Column
-    not = this.make_unary_op "NOT" "not"
+    not = this.make_unary_op "NOT"
 
     ## Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = this.make_unary_op "ISNULL" "isnull"
+    is_missing = this.make_unary_op "ISNULL"
 
     ## Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
-    fill_missing default = this.make_binary_op "FILLNULL" "fillnull" default
+    fill_missing default = this.make_binary_op "FILLNULL" default
 
     ## Selects only the rows of this column that correspond to `True` values in
        `indexes`.
@@ -173,7 +170,35 @@ type Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
         True -> Column new_name this.connection this.expression this.context
 
-    # TODO [RW] starts_with, ends_with, contains
+    ## Returns the length of this column.
+    length : Integer
+    length = Error.throw "TODO materialization"
+
+    ## Returns the number of missing items in this column.
+    count_missing : Integer
+    count_missing = Error.throw "TODO materialization"
+
+    ## Returns the number of non-null items in this column.
+    count : Integer
+    count = Error.throw "TODO materialization"
+
+    ## Checks for each element of the column if it starts with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    starts_with : Column | Text -> Column
+    starts_with other = this.make_binary_op "starts_with" other
+
+    ## Checks for each element of the column if it ends with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    ends_with : Column | Text -> Column
+    ends_with other = this.make_binary_op "ends_with" other
+
+    ## Checks for each element of the column if it contains `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    contains : Column | Text -> Column
+    contains other = this.make_binary_op "contains" other
 
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.

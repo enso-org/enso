@@ -6,6 +6,12 @@ type InternalDialect
     # type InternalDialect (operation_map : Map Text (Vector SQL.Builder -> SQL.Builder))
     type InternalDialect operation_map
 
+    ## PRIVATE
+       extend_with : Vector [Text, Vector SQL.Builder -> SQL.Builder] -> InternalDialect
+    extend_with mappings =
+        new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
+        InternalDialect new_map
+
 make_binary_op : Text -> Vector SQL.Builder -> SQL.Builder
 make_binary_op name =
     arguments ->
@@ -98,7 +104,7 @@ generate_query : InternalDialect -> Query -> SQL.Builder
 generate_query dialect query = case query of
     IR.Select columns ctx ->
         gen_exprs exprs = exprs.map (here.generate_expression dialect)
-        gen_column pair = (here.generate_expression dialect pair.second).paren.alias pair.first
+        gen_column pair = (here.generate_expression dialect pair.second).alias pair.first
 
         cols = SQL.join ", " (columns.map gen_column)
 

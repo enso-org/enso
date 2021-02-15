@@ -44,12 +44,12 @@ type Table
        Resolves the column name to a column within this table. If instead of a
        name, a column is provided, it is returned as-is as long as it comes from
        the same context.
-    resolve : Text | Column -> Column ! Error
+    resolve : Text | Column -> Column
     resolve column = case column of
-        Text -> this.at column
+        Text -> Panic.rethrow (this.at column)
         _ ->
             if Helpers.check_integrity this column then column else
-                Error.throw (IntegrityError "Column "+column.name)
+                Panic.throw (IntegrityError "Column "+column.name)
 
     ## Selects only the rows of this table that correspond to `True` values in
        `filter`.
@@ -88,7 +88,7 @@ type Table
 
     ## Sets the index of this table, using the column with the provided name.
     set_index : Text | Column | Vector (Text | Column) -> Table
-    set_index index =
+    set_index index = Panic.recover <|
         new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .expression)
         new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
@@ -224,7 +224,7 @@ type Table
                 if this.context.meta_index.is_empty then Panic.throw "Trying to group by an empty index." else
                     this.context.meta_index
             _ ->
-                Helpers.unify_vector_singleton by . map (this.resolve >> Panic.rethrow >> .expression)
+                Helpers.unify_vector_singleton by . map (this.resolve >> .expression)
         new_ctx = this.context.set_groups exprs
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 

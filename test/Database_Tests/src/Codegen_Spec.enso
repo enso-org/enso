@@ -16,42 +16,60 @@ spec =
     Test.group "JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = t1.where (t1.at "B" == 42) . to_json
-            part1 = Json.from_pairs [["sql_code", "SELECT (T1.A) AS A, (T1.B) AS B, (T1.C) AS C FROM T1 AS T1 WHERE (T1.B = "]]
+            part1 = Json.from_pairs [["sql_code", "SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (T1.B = "]]
             part2 = Json.from_pairs [["sql_interpolation", 42]]
             part3 = Json.from_pairs [["sql_code", ")"]]
             expected = Json.from_pairs [["query", Json.Array [part1, part2, part3]]]
             q1.should_equal expected
 
             q2 = t1.at "A" . to_json
-            q2.should_equal (Json.from_pairs [["query", Json.Array [Json.from_pairs [["sql_code", "SELECT (T1.A) AS A FROM T1 AS T1"]]]]])
+            q2.should_equal (Json.from_pairs [["query", Json.Array [Json.from_pairs [["sql_code", "SELECT T1.A AS A FROM T1 AS T1"]]]]])
 
     Test.group "Basic Select" <|
         Test.specify "should select columns from a table" <|
-            t1.to_sql.prepare . should_equal ["SELECT (T1.A) AS A, (T1.B) AS B, (T1.C) AS C FROM T1 AS T1", []]
+            t1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1", []]
             t2 = t1.select ["C", "B", "undefined"]
-            t2.to_sql.prepare . should_equal ["SELECT (T1.C) AS C, (T1.B) AS B FROM T1 AS T1", []]
+            t2.to_sql.prepare . should_equal ["SELECT T1.C AS C, T1.B AS B FROM T1 AS T1", []]
 
             foo = t1.at "A" . rename "FOO"
-            foo.to_sql.prepare . should_equal ["SELECT (T1.A) AS FOO FROM T1 AS T1", []]
+            foo.to_sql.prepare . should_equal ["SELECT T1.A AS FOO FROM T1 AS T1", []]
 
             t3 = t2.set "bar" foo
-            t3.to_sql.prepare . should_equal ["SELECT (T1.C) AS C, (T1.B) AS B, (T1.A) AS bar FROM T1 AS T1", []]
+            t3.to_sql.prepare . should_equal ["SELECT T1.C AS C, T1.B AS B, T1.A AS bar FROM T1 AS T1", []]
         Test.specify "should fail if at is called for a nonexisting column" <|
             t1.at "undefined" . should_fail_with No_Such_Column_Error
 
     Test.group "Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
-            0 # TODO
+            a = t1.at "A"
+            b = t1.at "B"
+            arith = (a * 2) + 1
+            bool = (a || a.not) && True
+            cmp = (a / a >= b) && (a - b < a)
+            arith.to_sql.prepare . should_equal ["SELECT ((T1.A * ?) + ?) AS A FROM T1 AS T1", [2, 1]]
+            bool.to_sql.prepare . should_equal ["SELECT ((T1.A OR (NOT T1.A)) AND ?) AS A FROM T1 AS T1", [True]]
+            cmp.to_sql.prepare . should_equal ["SELECT (((T1.A / T1.A) >= T1.B) AND ((T1.A - T1.B) < T1.A)) AS A FROM T1 AS T1", []]
 
-    Test.group "Masking Tables" <|
+        Test.specify "should support simple text operations" <|
+            a = t1.at "A"
+            add = a + "SUFFIX"
+            add.to_sql.prepare . should_equal ["SELECT (T1.A + ?) AS A FROM T1 AS T1", ["SUFFIX"]]
+
+            ends = a.ends_with "suf"
+            starts = a.starts_with "pref"
+            contains = a.contains "inf"
+            ends.to_sql.prepare . should_equal ["SELECT (T1.A LIKE ('%' || ?)) AS A FROM T1 AS T1", ["suf"]]
+            starts.to_sql.prepare . should_equal ["SELECT (T1.A LIKE (? || '%')) AS A FROM T1 AS T1", ["pref"]]
+            contains.to_sql.prepare . should_equal ["SELECT (T1.A LIKE ('%' || ? || '%')) AS A FROM T1 AS T1", ["inf"]]
+
+    Test.group "Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
-            0 # TODO
-        Test.specify "should treat NA values in the mask as false" <|
-            0 # TODO
+            t2 = t1.where (t1.at "A" == 42)
+            t2.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (T1.A = ?)", [42]]
 
-    Test.group "Masking Columns" <|
         Test.specify "should allow selecting column rows based on a boolean expression" <|
-            0 # TODO
+            c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
+            c2.to_sql.prepare . should_equal ["SELECT T1.B AS B FROM T1 AS T1 WHERE (T1.A = T1.C)", []]
 
     Test.group "Joining Tables" <|
         t2 = test_connection.access_table "T2"
@@ -70,18 +88,8 @@ spec =
 
     Test.group "Filling Missing Values" <|
         Test.specify "should allow to replace missing values in a column with a constant" <|
-            # TODO
-
-        Test.specify "should allow to replace missing values in a column with a column" <|
-            # TODO do we want to support this?
-
-    Test.group "Counting Values" <|
-        Test.specify "should count missing and non-missing values" <|
-            col = t1.at "A"
-            # TODO counting nulls in SQL
-#            col.length
-#            col.count
-#            col.count_missing
+            c = t1.at "A" . fill_missing "not-applicable"
+            c.to_sql.prepare . should_equal ["SELECT COALESCE(T1.A, ?) AS A FROM T1 AS T1", ["not-applicable"]]
 
     Test.group "Dropping Missing Values" <|
         Test.specify "should drop missing rows in a Column" <|
