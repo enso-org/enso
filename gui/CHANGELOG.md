@@ -19,6 +19,9 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - [Documentation in Searcher][1098]. Fixed cases where text would be misinterpreted as tag, added
   support for new tag types, added support for more common characters, properly renders overflowing
   text.
+- [Assigning intermediate expressions to values][1067]. Nodes added with searcher will have their 
+  values automatically assigned to a newly generated variables. This allows Enso Engine to cache
+  intermediate values, improving visualization performance.
   
 #### EnsoGL
 - New multi-camera management system, allowing the same shape systems be rendered on different 

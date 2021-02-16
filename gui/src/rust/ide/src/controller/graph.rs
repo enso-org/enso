@@ -103,17 +103,21 @@ pub struct NewNodeInfo {
     /// ID to be given to the node.
     pub id : Option<ast::Id>,
     /// Where line created by adding this node should appear.
-    pub location_hint : LocationHint
+    pub location_hint : LocationHint,
+    /// Introduce variable name for the node, making it into an assignment line.
+    pub introduce_pattern : bool,
+
 }
 
 impl NewNodeInfo {
     /// New node with given expression added at the end of the graph's blocks.
     pub fn new_pushed_back(expression:impl Str) -> NewNodeInfo {
         NewNodeInfo {
-            expression    : expression.into(),
-            metadata      : default(),
-            id            : default(),
-            location_hint : LocationHint::End,
+            expression        : expression.into(),
+            metadata          : default(),
+            id                : default(),
+            location_hint     : LocationHint::End,
+            introduce_pattern : default(),
         }
     }
 }
@@ -715,6 +719,11 @@ impl Handle {
             node_info.set_id(desired_id)
         }
 
+        if node.introduce_pattern && node_info.pattern().is_none() {
+            let var = self.variable_name_for(&node_info)?;
+            node_info.set_pattern(var.into());
+        }
+
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
             let node_ast  = node_info.ast().clone();
@@ -1244,12 +1253,13 @@ main =
             let position = Some(model::module::Position::new(10.0,20.0));
             let metadata = NodeMetadata {position,..default()};
             let info     = NewNodeInfo {
-                expression    : "a+b".into(),
-                metadata      : Some(metadata),
-                id            : Some(id),
-                location_hint : LocationHint::End,
+                expression        : "a+b".into(),
+                metadata          : Some(metadata),
+                id                : Some(id),
+                location_hint     : LocationHint::End,
+                introduce_pattern : false,
             };
-            graph.add_node(info).unwrap();
+            graph.add_node(info.clone()).unwrap();
             let expected_program = r"
 main =
     foo = 2
@@ -1283,6 +1293,20 @@ main =
             assert!(graph.module.node_metadata(id).is_err());
 
             model::module::test::expect_code(&*graph.module, PROGRAM);
+
+
+            // === Test adding node with automatically generated pattern ===
+            let info_w_pattern = NewNodeInfo {
+                introduce_pattern : true,
+                ..info
+            };
+            graph.add_node(info_w_pattern).unwrap();
+            let expected_program = r"
+main =
+    foo = 2
+    print foo
+    sum1 = a+b";
+            model::module::test::expect_code(&*graph.module,expected_program);
         })
     }
 
