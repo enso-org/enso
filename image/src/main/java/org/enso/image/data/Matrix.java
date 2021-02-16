@@ -85,4 +85,5 @@ public class Matrix {
   private static int dataSize(int type) {
     return CvType.ELEM_SIZE(type) / CvType.channels(type);
   }
+
 }
