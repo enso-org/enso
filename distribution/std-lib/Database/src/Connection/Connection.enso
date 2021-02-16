@@ -38,7 +38,7 @@ type Connection
     prepare_statement : Text | SQL.Statement -> PreparedStatement
     prepare_statement statement = case statement of
         Text -> this.internal_connection.prepare_statement statement []
-        SQL.Statement ->
+        SQL.Statement _ ->
             compiled = statement.prepare
             this.internal_connection.prepare_statement compiled.first compiled.second
 
@@ -53,7 +53,9 @@ type Connection
     execute_update : Text | SQL.Statement -> Integer
     execute_update statement =
         prep_stmt = this.prepare_statement statement
-        prep_stmt.executeLargeUpdate
+        # TODO we may want to use executeLargeUpdate but it seems to not be implemented by default (checked that it does throw)
+        # we may try every time to call large update and if it fails, fall back to normal update
+        prep_stmt.executeUpdate
 
 ## PRIVATE
 make_fake_connection dialect tables =

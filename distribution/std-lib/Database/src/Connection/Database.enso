@@ -1,5 +1,5 @@
 from Base import all
-import Database.Connection.Connection
+from Database.Connection.Connection as Connection_Module import Connection
 import Database.Connection.Internal.JDBCConnection
 
 connect : Text -> Nothing | Text -> Nothing | Text -> Connection

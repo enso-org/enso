@@ -1,4 +1,5 @@
-#polyglot java import java.sql.Connection
+from Base import all
+import Database.Data.Internal.Helpers
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 
@@ -21,7 +22,7 @@ type JDBCConnection
 
     prepare_statement : Text -> Vector Any -> PreparedStatement
     prepare_statement template holes=[] =
-        stmt = java_connection.prepareStatement template
+        stmt = this.java_connection.prepareStatement template
         holes.map_with_index ix-> obj->
             position = ix + 1
             Error.throw "TODO interpolation"
