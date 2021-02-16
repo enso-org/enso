@@ -1,16 +1,12 @@
 package org.enso.interpreter.epb.runtime;
 
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.InvalidArrayIndexException;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.epb.node.ContextRewrapExceptionNode;
 import org.enso.interpreter.epb.node.ContextRewrapNode;
 
 /**
@@ -111,6 +107,8 @@ public class PolyglotProxy implements TruffleObject {
       Object[] arguments,
       @CachedLibrary("this.delegate") InteropLibrary members,
       @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary(limit = "5") InteropLibrary exceptions,
+      @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws ArityException, UnknownIdentifierException, UnsupportedMessageException,
           UnsupportedTypeException {
@@ -122,6 +120,13 @@ public class PolyglotProxy implements TruffleObject {
     try {
       return contextRewrapNode.execute(
           members.invokeMember(this.delegate, member, wrappedArgs), origin, target);
+    } catch (Throwable e) {
+      if (exceptions.isException(e)) {
+        // `isException` means this must be AbstractTruffleException
+        throw contextRewrapExceptionNode.execute((AbstractTruffleException) e, origin, target);
+      } else {
+        throw e;
+      }
     } finally {
       origin.leave(node, p);
     }
@@ -278,4 +283,20 @@ public class PolyglotProxy implements TruffleObject {
       origin.leave(node, p);
     }
   }
+
+  @ExportMessage
+  ExceptionType getExceptionType(
+      @CachedLibrary("this.delegate") InteropLibrary exceptions,
+      @CachedLibrary("this") InteropLibrary node)
+      throws UnsupportedMessageException {
+    return exceptions.getExceptionType(delegate);
+  }
+
+  // TODO ALL THE REST OF EXCEPTION MESSAGES
+
+  // one important caveat – `throwException` should:
+  // 1. Delegate to throwException on delegate
+  // 2. Catch immediately
+  // 3. Wrap in PolyglotExceptionProxy (use ContextRewrapExceptionNode!)
+  // 4. Rethrow the wrapped
 }
