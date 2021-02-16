@@ -653,9 +653,7 @@ impl Model {
             });
             self.set_method_pointer(id,method_pointer);
             if self.node_views.borrow().get_by_left(&id).contains(&&node_id) {
-                if let Some(error) = info.and_then(|info| info.error.as_ref()) {
-                    self.set_error(node_id,error);
-                }
+                self.set_error(node_id,info.and_then(|info| info.error.as_ref()));
             }
         }
     }
@@ -674,11 +672,13 @@ impl Model {
 
     /// Mark node as erroneous. The node will have an error message if it is the main cause of
     /// the error in the current scene.
-    fn set_error(&self, node_id:graph_editor::NodeId, error:&EvaluationError) {
-        let root_cause = self.get_node_causing_error_on_current_graph(error);
-        let message    = if root_cause.contains(&node_id) { error.message.clone() }
-                         else                             { default()             };
-        let error      = node::error::Error {message};
+    fn set_error(&self, node_id:graph_editor::NodeId, error:Option<&EvaluationError>) {
+        let error = error.map(|error| {
+            let root_cause = self.get_node_causing_error_on_current_graph(error);
+            let message    = if root_cause.contains(&node_id) { error.message.clone() }
+            else                                              { default()             };
+            node::error::Error {message}
+        });
         self.view.graph().set_node_error_status(node_id,error);
     }
 
