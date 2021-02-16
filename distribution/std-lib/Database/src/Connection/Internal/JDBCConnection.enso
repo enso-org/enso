@@ -2,6 +2,7 @@ from Base import all
 import Database.Data.Internal.Helpers
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
+polyglot java import java.sql.Types
 
 type JDBCConnection
     type JDBCConnection java_connection
@@ -14,11 +15,9 @@ type JDBCConnection
             rs = stmt.executeQuery sql
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
-            get_column_name ix =
-                metadata.getColumnName ix+1
-            cols = Vector.new ncols get_column_name
-            rs.close
-            cols
+            column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
+            stmt.close
+            column_names
 
     prepare_statement : Text -> Vector Any -> PreparedStatement
     prepare_statement template holes=[] =

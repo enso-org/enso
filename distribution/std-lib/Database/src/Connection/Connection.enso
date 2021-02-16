@@ -1,6 +1,9 @@
 from Base import all
-import Database.Data.Table
+import Database.Data.Table as Database_Table
+import Table.Data.Table as Materialized_Table
 import Database.Data.SQL
+polyglot java import java.util.ArrayList
+polyglot java import java.sql.Types
 
 type Connection
 
@@ -24,10 +27,10 @@ type Connection
 
        Arguments:
        - name: name of the table to access
-    access_table : Text -> Table
+    access_table : Text -> Database_Table
     access_table name =
         column_names = this.internal_connection.fetch_column_names name
-        Table.make_table this name column_names
+        Database_Table.make_table this name column_names
 
     explain_query_plan : SQL.Statement -> Text
     explain_query_plan statement =
@@ -43,15 +46,33 @@ type Connection
             this.internal_connection.prepare_statement compiled.first compiled.second
 
     ## ADVANCED
-    execute_query : Text | SQL.Statement -> ResultSet =
-    execute_query statement =
+    execute_query : Text | SQL.Statement -> Materialized_Table =
+    execute_query statement = Panic.recover <|
         prep_stmt = this.prepare_statement statement
         java_rs = prep_stmt.executeQuery
-        Error.throw "TODO wrapping result set"
+        metadata = java_rs.getMetaData
+        ncols = metadata.getColumnCount
+        ## TODO [RW] we wrap everything in objects, in the future we may want to
+           try a more performant solution for columns of numbers or booleans
+        column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
+        column_types = Vector.new ncols (ix -> metadata.getColumnType ix+1)
+        columns = column_names.map (name -> [name, ArrayList.new])
+        go has_next = if has_next.not then Nothing else
+            columns.map_with_index ix-> pair->
+                results = pair.second
+                typ_id = column_types.at ix
+                 # getObject handles most types by default correctly, but it would cast booleans to integers
+                obj = if typ_id == Types.BOOLEAN then java_rs.getBoolean ix+1 else
+                    java_rs.getObject ix+1
+                results.add obj
+            go java_rs.next
+        go java_rs.next
+        column_vectors = columns.map (pair -> [pair.first, Vector.Vector pair.second.toArray])
+        Materialized_Table.new column_vectors
 
     ## ADVANCED
     execute_update : Text | SQL.Statement -> Integer
-    execute_update statement =
+    execute_update statement = Panic.recover <|
         prep_stmt = this.prepare_statement statement
         # TODO we may want to use executeLargeUpdate but it seems to not be implemented by default (checked that it does throw)
         # we may try every time to call large update and if it fails, fall back to normal update

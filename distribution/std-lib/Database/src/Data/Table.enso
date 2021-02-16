@@ -268,9 +268,24 @@ type Table
         new_ctx = this.context.set_where_filters (this.context.where_filters + filters)
         this.updated_context new_ctx
 
+    ## Returns a new Table without columns that contained any missing values.
+    drop_missing_columns : Table
+    drop_missing_columns =
+        Error.throw "TODO needs materialization"
+
+    ## Returns the amount of rows in this table.
+    nrows : Integer
+    nrows = Error.throw "TODO materialization"
+
+    to_dataframe : (Integer | Nothing) -> Table.Table
+    to_dataframe limit=Nothing =
+        # TODO [RW] limit
+        sql = this.to_sql
+        Error.throw "TODO materialization"
+
     ## UNSTABLE
 
-       Returns an Sql statement that will be used for materializing this table.
+       Returns an SQL statement that will be used for materializing this table.
     to_sql : Sql.Statement
     to_sql =
         cols = this.internal_columns
