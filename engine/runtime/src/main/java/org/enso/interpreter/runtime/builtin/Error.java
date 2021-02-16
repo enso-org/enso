@@ -45,7 +45,8 @@ public class Error {
         new AtomConstructor("Type_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(0, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "actual", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(2, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
     compileError =
         new AtomConstructor("Compile_Error", scope)
             .initializeFields(
@@ -153,10 +154,11 @@ public class Error {
    *
    * @param expected the expected type
    * @param actual the actual type
+   * @param name the name of the variable that is a type error
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeError(Object expected, Object actual) {
-    return typeError.newInstance(expected, actual);
+  public Atom makeTypeError(Object expected, Object actual, String name) {
+    return typeError.newInstance(expected, actual, name);
   }
 
   /**

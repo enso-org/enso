@@ -16,29 +16,29 @@ import org.enso.interpreter.runtime.error.PanicException;
 public abstract class ExpectTextNode extends Node {
   private @Child InteropLibrary library = InteropLibrary.getFactory().createDispatched(10);
 
-  public abstract Text execute(Object o);
+  public abstract Text execute(Object str);
 
   public static ExpectTextNode build() {
     return ExpectTextNodeGen.create();
   }
 
   @Specialization
-  Text doText(Text o) {
-    return o;
+  Text doText(Text str) {
+    return str;
   }
 
   @Specialization
-  Text doString(String o) {
-    return Text.create(o);
+  Text doString(String str) {
+    return Text.create(str);
   }
 
   @Fallback
-  Text doFallback(Object o) {
+  Text doFallback(Object str) {
     try {
-      return Text.create(library.asString(o));
+      return Text.create(library.asString(str));
     } catch (UnsupportedMessageException e) {
       Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
-      Atom err = builtins.error().makeTypeError(builtins.text().getText(), o);
+      Atom err = builtins.error().makeTypeError(builtins.text().getText(), str, "str");
       throw new PanicException(err, this);
     }
   }
