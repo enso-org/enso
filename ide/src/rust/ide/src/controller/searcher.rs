@@ -23,6 +23,16 @@ pub use action::Action;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// If enabled, searcher will assign names for all nodes created with it, not only when it is
+/// needed. Currently enabled to trigger engine's caching of user-added nodes.
+/// See: https://github.com/enso-org/ide/issues/1067
+pub const ASSIGN_NAMES_FOR_NODES:bool = true;
+
+
 
 // ==============
 // === Errors ===
@@ -649,8 +659,9 @@ impl Searcher {
 
         let id = match *self.mode {
             Mode::NewNode {position} => {
-                let mut new_node  = NewNodeInfo::new_pushed_back(expression);
-                new_node.metadata = Some(NodeMetadata {position,intended_method});
+                let mut new_node           = NewNodeInfo::new_pushed_back(expression);
+                new_node.metadata          = Some(NodeMetadata {position,intended_method});
+                new_node.introduce_pattern = ASSIGN_NAMES_FOR_NODES;
                 let graph         = self.graph.graph();
                 if let Some(this) = self.this_arg.deref().as_ref() {
                     this.introduce_pattern(graph.clone_ref())?;
@@ -1553,26 +1564,26 @@ pub mod test {
 
         let cases = vec![
             // Completion was picked.
-            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
+            Case::new("2 + 2",&["sum1 = 2 + 2","operator1 = sum1.testFunction1"], |f| {
                 f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
             // The input was manually written (not picked).
-            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.testFunction1"], |f| {
+            Case::new("2 + 2",&["sum1 = 2 + 2","operator1 = sum1.testFunction1"], |f| {
                 f.searcher.set_input("testFunction1 ".to_owned()).unwrap();
             }),
             // Completion was picked and edited.
-            Case::new("2 + 2",&["sum1 = 2 + 2","sum1.var.testFunction1"], |f| {
+            Case::new("2 + 2",&["sum1 = 2 + 2","operator1 = sum1.var.testFunction1"], |f| {
                 f.searcher.use_suggestion(f.entry1.clone()).unwrap();
                 let new_parsed_input = ParsedInput::new("var.testFunction1",&f.searcher.parser);
                 f.searcher.data.borrow_mut().input = new_parsed_input.unwrap();
             }),
             // Variable name already present, need to use it. And not break it.
-            Case::new("my_var = 2 + 2",&["my_var = 2 + 2","my_var.testFunction1"], |f| {
+            Case::new("my_var = 2 + 2",&["my_var = 2 + 2","operator1 = my_var.testFunction1"], |f| {
                 f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
             // Variable names unusable (subpatterns are not yet supported).
             // Don't use "this" argument adjustments at all.
-            Case::new("[x,y] = 2 + 2",&["[x,y] = 2 + 2","testFunction1"], |f| {
+            Case::new("[x,y] = 2 + 2",&["[x,y] = 2 + 2","testfunction11 = testFunction1"], |f| {
                 f.searcher.use_suggestion(f.entry1.clone()).unwrap();
             }),
         ];
@@ -1610,7 +1621,7 @@ pub mod test {
         searcher.mode = Immutable(Mode::NewNode {position});
         searcher.commit_node().unwrap();
 
-        let expected_code = "import Test.Test\nmain = \n    2 + 2\n    Test.testMethod1";
+        let expected_code = "import Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
         assert_eq!(module.ast().repr(), expected_code);
         let (node1,node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         let expected_intended_method = Some(MethodId {
@@ -1623,7 +1634,7 @@ pub mod test {
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode {node_id:node1.info.id()});
         searcher.commit_node().unwrap();
-        let expected_code = "import Test.Test\nmain = \n    Test.testMethod1\n    Test.testMethod1";
+        let expected_code = "import Test.Test\nmain = \n    Test.testMethod1\n    operator1 = Test.testMethod1";
         let (node1,_)     = searcher.graph.graph().nodes().unwrap().expect_tuple();
         assert_eq!(node1.metadata.unwrap().intended_method, expected_intended_method);
         assert_eq!(module.ast().repr(), expected_code);
