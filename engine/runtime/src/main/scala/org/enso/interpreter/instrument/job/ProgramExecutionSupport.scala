@@ -37,7 +37,7 @@ import org.enso.interpreter.service.error.{
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.interpreter.runtime.error.PanicSentinel
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 
 import scala.jdk.OptionConverters._
 
@@ -331,6 +331,10 @@ trait ProgramExecutionSupport {
               sentinel.getMessage,
               ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
             )
+        case error: DataflowError =>
+          Api.ExpressionUpdate.Payload.DataflowError(
+            ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+          )
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
       }
