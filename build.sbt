@@ -1316,7 +1316,9 @@ lazy val database = project
   .in(file("database"))
   .settings(
     autoScalaLibrary := false,
-    libraryDependencies ++= Seq(),
+    libraryDependencies ++= Seq(
+      "org.xerial" % "sqlite-jdbc" % "3.34.0"
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits

@@ -1,0 +1,37 @@
+#polyglot java import java.sql.Connection
+polyglot java import java.sql.DriverManager
+polyglot java import java.sql.PreparedStatement
+
+type JDBCConnection
+    type JDBCConnection java_connection
+
+    fetch_column_names : Text -> Vector Text
+    fetch_column_names name = case Helpers.ensure_name_is_sane name of
+        True ->
+            sql = "SELECT * FROM " + name + " LIMIT 0"
+            stmt = this.java_connection.createStatement
+            rs = stmt.executeQuery sql
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            get_column_name ix =
+                metadata.getColumnName ix+1
+            cols = Vector.new ncols get_column_name
+            rs.close
+            cols
+
+    prepare_statement : Text -> Vector Any -> PreparedStatement
+    prepare_statement template holes=[] =
+        stmt = java_connection.prepareStatement template
+        holes.map_with_index ix-> obj->
+            position = ix + 1
+            Error.throw "TODO interpolation"
+        stmt
+
+create_connection : Text -> Nothing | Text -> Nothing | Text -> JDBCConnection
+create_connection url user=Nothing password=Nothing =
+    java_connection = case user.is_nothing && password.is_nothing of
+        True ->
+            DriverManager.getConnection url
+        False ->
+            DriverManager.getConnection url user password
+    JDBCConnection java_connection

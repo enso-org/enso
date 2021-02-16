@@ -1,5 +1,6 @@
 from Base import all
 import Database.Data.Table
+import Database.Data.SQL
 
 type Connection
 
@@ -27,3 +28,33 @@ type Connection
     access_table name =
         column_names = this.internal_connection.fetch_column_names name
         Table.make_table this name column_names
+
+    explain_query_plan : SQL.Statement -> Text
+    explain_query_plan statement =
+        _ = statement
+        Error.throw "TODO"
+
+    ## PRIVATE
+    prepare_statement : Text | SQL.Statement -> PreparedStatement
+    prepare_statement statement = case statement of
+        Text -> this.internal_connection.prepare_statement statement []
+        SQL.Statement ->
+            compiled = statement.prepare
+            this.internal_connection.prepare_statement compiled.first compiled.second
+
+    ## ADVANCED
+    execute_query : Text | SQL.Statement -> ResultSet =
+    execute_query statement =
+        prep_stmt = this.prepare_statement statement
+        java_rs = prep_stmt.executeQuery
+        Error.throw "TODO wrapping result set"
+
+    ## ADVANCED
+    execute_update : Text | SQL.Statement -> Integer
+    execute_update statement =
+        prep_stmt = this.prepare_statement statement
+        prep_stmt.executeLargeUpdate
+
+## PRIVATE
+make_fake_connection dialect tables =
+    Connection (FakeTestConnection.new tables dialect)
