@@ -23,6 +23,9 @@ public class Error {
   private final AtomConstructor invalidArrayIndexError;
   private final AtomConstructor arityError;
   private final AtomConstructor unsupportedArgumentsError;
+  private final AtomConstructor moduleDoesNotExistError;
+  private final AtomConstructor duplicateArgumentNameError;
+  private final AtomConstructor notInvokableError;
 
   private final Atom arithmeticErrorShiftTooBig;
   private final Atom arithmeticErrorDivideByZero;
@@ -81,7 +84,6 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "array", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "index", ArgumentDefinition.ExecutionMode.EXECUTE));
-
     arityError =
         new AtomConstructor("Arity_Error", scope)
             .initializeFields(
@@ -92,6 +94,18 @@ public class Error {
         new AtomConstructor("Unsupported_Argument_Types", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
+    moduleDoesNotExistError =
+        new AtomConstructor("Module_Does_Not_Exist", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
+    duplicateArgumentNameError =
+        new AtomConstructor("Duplicate_Argument_Name", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
+    notInvokableError =
+        new AtomConstructor("Not_Invokable", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(typeError);
@@ -216,5 +230,29 @@ public class Error {
    */
   public Atom makeUnsupportedArgumentsError(Object[] args) {
     return unsupportedArgumentsError.newInstance(new Array(args));
+  }
+
+  /**
+   * @param name the name of the module that doesn't exist
+   * @return a module does not exist error
+   */
+  public Atom makeModuleDoesNotExistError(String name) {
+    return moduleDoesNotExistError.newInstance(name);
+  }
+
+  /**
+   * @param name the name of the duplicated argument
+   * @return a duplicate argument name error
+   */
+  public Atom makeDuplicateArgumentNameError(String name) {
+    return duplicateArgumentNameError.newInstance(name);
+  }
+
+  /**
+   * @param target the target attempted to be invoked
+   * @return a not invokable error
+   */
+  public Atom makeNotInvokableError(Object target) {
+    return notInvokableError.newInstance(target);
   }
 }

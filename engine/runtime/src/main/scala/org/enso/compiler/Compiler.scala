@@ -1,6 +1,5 @@
 package org.enso.compiler
 
-import java.io.StringReader
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
@@ -15,15 +14,15 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.Context
-import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.interpreter.runtime.error.PanicException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
+import java.io.StringReader
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -195,7 +194,14 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     val module = context.getTopScope
       .getModule(qualifiedName)
       .toScala
-      .getOrElse(throw new ModuleDoesNotExistException(qualifiedName))
+      .getOrElse(
+        throw new PanicException(
+          context.getBuiltins
+            .error()
+            .makeModuleDoesNotExistError(qualifiedName),
+          null
+        )
+      )
     if (
       !module.getCompilationStage.isAtLeast(
         Module.CompilationStage.AFTER_RUNTIME_STUBS

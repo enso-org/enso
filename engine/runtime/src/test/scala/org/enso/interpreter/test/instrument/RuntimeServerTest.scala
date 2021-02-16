@@ -3001,7 +3001,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Object 42 is not invokable.",
+              "Not_Invokable 42",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               None,
