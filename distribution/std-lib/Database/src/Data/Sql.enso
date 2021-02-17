@@ -1,25 +1,25 @@
 from Base import all
-import Database.Data.Internal.VectorBuilder
+import Database.Data.Internal.Vector_Builder
 
-type SqlFragment
-    # type SqlCodePart (code : Text)
-    type SqlCodePart code
+type Sql_Fragment
+    # type Sql_Code_Part (code : Text)
+    type Sql_Code_Part code
 
-    # type SqlInterpolation (object : Any)
-    type SqlInterpolation object
+    # type Sql_Interpolation (object : Any)
+    type Sql_Interpolation object
 
 type Statement
-    # type Statement (internal_fragments : Vector SqlFragment)
+    # type Statement (internal_fragments : Vector Sql_Fragment)
     type Statement internal_fragments
 
-    fragments : VectorBuilder SqlFragment
+    fragments : Vector_Builder Sql_Fragment
     fragments = this.internal_fragments
 
     ## UNSAFE
-       This function returns a raw SQL string for the query, manually handling
+       This function returns a raw Sql string for the query, manually handling
        the interpolation that is normally handled by the database engine itself.
 
-       It should be used EXTREMELY carefully - the returned SQL code should
+       It should be used EXTREMELY carefully - the returned Sql code should
        always be read by a human to ensure that it does what is expected before
        executing it in any REPLs or other database interfaces.
 
@@ -27,23 +27,23 @@ type Statement
     unsafe_to_raw_sql : Text
     unsafe_to_raw_sql =
         strings = this.internal_fragments . map <| case _ of
-            SqlCodePart code -> code
+            Sql_Code_Part code -> code
             # TODO at some point we may try more sophisticated serialization based on data type
-            SqlInterpolation obj -> case obj of
+            Sql_Interpolation obj -> case obj of
                 Number -> obj.to_text
                 _ -> "'" + obj.to_text.replace "'" "''" + "'"
         strings.join ""
 
-    ## Returns a pair consisting of the SQL code with holes for values and
+    ## Returns a pair consisting of the Sql code with holes for values and
        a list for values that should be substituted.
        # prepare : [Text, Vector Any]
     prepare =
         to_code fragment = case fragment of
-            SqlCodePart code -> code
-            SqlInterpolation _ -> "?"
+            Sql_Code_Part code -> code
+            Sql_Interpolation _ -> "?"
         to_subst fragment = case fragment of
-            SqlCodePart _ -> []
-            SqlInterpolation obj -> [obj]
+            Sql_Code_Part _ -> []
+            Sql_Interpolation obj -> [obj]
         sql = this.fragments.map to_code . join ""
         substitutions = this.fragments.flat_map to_subst
         [sql, substitutions]
@@ -51,15 +51,15 @@ type Statement
     to_json : Json
     to_json =
         jsonify fragment = case fragment of
-            SqlCodePart code -> Json.from_pairs [["sql_code", code]]
-            SqlInterpolation obj ->
+            Sql_Code_Part code -> Json.from_pairs [["sql_code", code]]
+            Sql_Interpolation obj ->
                 inner = obj.to_json
                 Json.from_pairs [["sql_interpolation", inner]]
         fragments = Json.Array (this.internal_fragments.map jsonify)
         Json.from_pairs [["query", fragments]]
 
 type Builder
-    # type Builder (fragments : VectorBuilder.VectorBuilder SqlFragment)
+    # type Builder (fragments : Vector_Builder.Vector_Builder Sql_Fragment)
     type Builder fragments
 
     ++ : Builder -> Builder
@@ -91,15 +91,15 @@ type Builder
         if this.is_empty then this else pref++this
 
 empty : Builder
-empty = Builder (VectorBuilder.empty)
+empty = Builder (Vector_Builder.empty)
 
 code : Text -> Builder
 code text =
-    vec = if text.is_empty then [] else [SqlCodePart text]
-    Builder (VectorBuilder.from_vector vec)
+    vec = if text.is_empty then [] else [Sql_Code_Part text]
+    Builder (Vector_Builder.from_vector vec)
 
 interpolation : Any -> Builder
-interpolation object = Builder (VectorBuilder.from_vector [SqlInterpolation object])
+interpolation object = Builder (Vector_Builder.from_vector [Sql_Interpolation object])
 
 join : Builder | Text -> Vector Builder -> Builder
 join separator statements =
@@ -110,28 +110,28 @@ join separator statements =
     if statements.length == 0 then here.empty else
         (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
 
-optimize_fragments : Vector SqlFragment -> Vector SqlFragment
+optimize_fragments : Vector Sql_Fragment -> Vector Sql_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder
     go elem =
-        last_part = State.get SqlCodePart
+        last_part = State.get Sql_Code_Part
         case elem of
-            SqlCodePart code ->
+            Sql_Code_Part code ->
                 new_part = case last_part of
-                    Nothing -> SqlCodePart code
-                    SqlCodePart other -> SqlCodePart other+code
-                State.put SqlCodePart new_part
-            SqlInterpolation _ ->
+                    Nothing -> Sql_Code_Part code
+                    Sql_Code_Part other -> Sql_Code_Part other+code
+                State.put Sql_Code_Part new_part
+            Sql_Interpolation _ ->
                 case last_part of
                     Nothing -> Nothing
-                    SqlCodePart _ ->
+                    Sql_Code_Part _ ->
                         builder.append last_part
-                        State.put SqlCodePart Nothing
+                        State.put Sql_Code_Part Nothing
                 builder.append elem
-    State.run SqlCodePart Nothing <|
+    State.run Sql_Code_Part Nothing <|
         fragments.each go
-        last_part = State.get SqlCodePart
+        last_part = State.get Sql_Code_Part
         case last_part of
             Nothing -> Nothing
-            SqlCodePart _ -> builder.append last_part
+            Sql_Code_Part _ -> builder.append last_part
     builder.to_vector

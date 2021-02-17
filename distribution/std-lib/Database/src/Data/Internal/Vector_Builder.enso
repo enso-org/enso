@@ -1,7 +1,7 @@
 from Builtins import Array
 from Base import all
 
-type VectorBuilder
+type Vector_Builder
     type Leaf vec
     type Append left right len
 
@@ -27,7 +27,7 @@ type VectorBuilder
        go 0 this
        Vector.Vector array
 
-    ++ : VectorBuilder Any | Vector Any -> VectorBuilder Any
+    ++ : Vector_Builder Any | Vector Any -> Vector_Builder Any
     ++ other =
         len = this.length + other.length
         case other of
@@ -35,8 +35,8 @@ type VectorBuilder
             Append _ _ _ -> Append this other len
             Vector.Vector _ -> Append this (Leaf other) len
 
-empty : VectorBuilder Any
+empty : Vector_Builder Any
 empty = Leaf []
 
-from_vector : Vector Any -> VectorBuilder Any
+from_vector : Vector Any -> Vector_Builder Any
 from_vector vec = Leaf vec

@@ -1,10 +1,10 @@
 from Base import all
-import Database.Data.SQL
-import Database.Data.Internal.BaseGenerator
+import Database.Data.Sql
+import Database.Data.Internal.Base_Generator
 
 type Dialect
     # type Dialect (name : Text)
-    #              (generate_sql : Query -> SQL.Statement)
+    #              (generate_sql : Query -> Sql.Statement)
     type Dialect name generate_sql
 
 postgresql : Dialect
@@ -14,7 +14,7 @@ postgresql =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE CONCAT(") ++ sub ++ (SQL.code ", '%')")
+                res = str ++ (Sql.code " LIKE CONCAT(") ++ sub ++ (Sql.code ", '%')")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation starts_with")
@@ -23,7 +23,7 @@ postgresql =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE CONCAT('%', ") ++ sub ++ (SQL.code ")")
+                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ")")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation ends_with")
@@ -32,13 +32,13 @@ postgresql =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE CONCAT('%', ") ++ sub ++ (SQL.code ", '%')")
+                res = str ++ (Sql.code " LIKE CONCAT('%', ") ++ sub ++ (Sql.code ", '%')")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
-    dialect = BaseGenerator.base_dialect . extend_with my_mappings
-    Dialect "PostgreSQL" (query -> BaseGenerator.generate_query dialect query . build)
+    dialect = Base_Generator.base_dialect . extend_with my_mappings
+    Dialect "PostgreSql" (query -> Base_Generator.generate_query dialect query . build)
 
 sqlite : Dialect
 sqlite =
@@ -47,7 +47,7 @@ sqlite =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE (") ++ sub ++ (SQL.code " || '%')")
+                res = str ++ (Sql.code " LIKE (") ++ sub ++ (Sql.code " || '%')")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation starts_with")
@@ -56,7 +56,7 @@ sqlite =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE ('%' || ") ++ sub ++ (SQL.code ")")
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code ")")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation ends_with")
@@ -65,10 +65,10 @@ sqlite =
             True ->
                 str = arguments.at 0
                 sub = arguments.at 1
-                res = str ++ (SQL.code " LIKE ('%' || ") ++ sub ++ (SQL.code " || '%')")
+                res = str ++ (Sql.code " LIKE ('%' || ") ++ sub ++ (Sql.code " || '%')")
                 res.paren
             False ->
                 Error.throw ("Invalid amount of arguments for operation contains")
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
-    dialect = BaseGenerator.base_dialect . extend_with my_mappings
-    Dialect "SQLite" (query -> BaseGenerator.generate_query dialect query . build)
+    dialect = Base_Generator.base_dialect . extend_with my_mappings
+    Dialect "Sqlite" (query -> Base_Generator.generate_query dialect query . build)

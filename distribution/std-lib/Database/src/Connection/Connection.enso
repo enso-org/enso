@@ -13,11 +13,6 @@ type Connection
         column_names = this.internal_connection.fetch_column_names name
         Table.make_table this name column_names
 
-    explain_query_plan : SQL.Statement -> Text
-    explain_query_plan statement =
-        _ = statement
-        Error.throw "TODO"
-
 ## PRIVATE
 make_fake_connection dialect tables =
     Connection (FakeTestConnection.new tables dialect)

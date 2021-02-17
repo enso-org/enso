@@ -22,8 +22,8 @@ type Column
     to_vector : Vector
     to_vector = this.to_table.to_dataframe.at this.name . to_vector
 
-    ## Returns an SQL statement that will be used for materializing this column.
-    to_sql : SQL.Statement
+    ## Returns an Sql statement that will be used for materializing this column.
+    to_sql : Sql.Statement
     to_sql = this.to_table.to_sql
 
     make_binary_op : Text -> Text -> (Column | Any) -> Column
@@ -170,18 +170,6 @@ type Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
         True -> Column new_name this.connection this.expression this.context
 
-    ## Returns the length of this column.
-    length : Integer
-    length = Error.throw "TODO materialization"
-
-    ## Returns the number of missing items in this column.
-    count_missing : Integer
-    count_missing = Error.throw "TODO materialization"
-
-    ## Returns the number of non-null items in this column.
-    count : Integer
-    count = Error.throw "TODO materialization"
-
     ## Checks for each element of the column if it starts with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
@@ -251,20 +239,6 @@ type Aggregate_Column
     mean : Text -> Column
     mean name_suffix='_mean' =
         this.make_aggregate "AVG" name_suffix
-
-    ## Gathers all elements in a group into a vector and returns a (dataframe)
-       column of such vectors.
-
-       This actually performs a database query to materialize the values in
-       local memory.
-
-       Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
-    values : Text -> Column
-    values name_suffix='_values' =
-        _ = name_suffix
-        Error.throw "TODO materialization"
 
     ## PRIVATE
     make_aggregate operation name_suffix =

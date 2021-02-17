@@ -237,49 +237,25 @@ type Table
         new_ctx = this.context.set_where_filters (this.context.where_filters + filters)
         this.updated_context new_ctx
 
-    ## Returns a new Table without columns that contained any missing values.
-    drop_missing_columns : Table
-    drop_missing_columns =
-        Error.throw "TODO needs materialization"
-
-    ## Returns the amount of rows in this table.
-    nrows : Integer
-    nrows = Error.throw "TODO materialization"
-
-    to_dataframe : (Integer | Nothing) -> Table.Table
-    to_dataframe limit=Nothing =
-        _ = limit
-        Error.throw "TODO materialization"
-
-    ## Returns an SQL statement that will be used for materializing this table.
-    to_sql : SQL.Statement
+    ## Returns an Sql statement that will be used for materializing this table.
+    to_sql : Sql.Statement
     to_sql =
         cols = this.internal_columns
         query = IR.Select cols this.context
         this.connection.dialect.generate_sql query
 
-    explain_query_plan : Text
-    explain_query_plan =
-        this.connection.explain_query_plan this.to_sql
-
-    ## Returns a Table describing this table's contents.
-
-       The table lists all columns, counts of non-null items and storage types
-       of each column.
-    info : Table
-    info =
-        cols = this.columns
-        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
-
     ## PRIVATE
+       Helper to create columns from internal columns.
        # make_column : [Text, IR.Expression] -> Column
     make_column pair =
         Column pair.first this.connection pair.second this.context
 
     ## PRIVATE
+       Returns a copy of this table with updated internal columns.
     updated_columns columns = Table this.name this.connection columns this.context
 
     ## PRIVATE
+       Returns a copy of this table with updated context.
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
 
 ## Represents a table with grouped rows.
@@ -292,11 +268,6 @@ type Aggregate_Table
     ## Returns a vector of aggregate columns in this table.
     columns : Vector.Vector
     columns = this.internal_columns . map this.make_column
-
-    ## Returns a materialized dataframe containing columns resulting from calling
-       `values` on each column in `this`.
-    values : Table.Table
-    values = Error.throw "TODO materialization"
 
     ## Returns a column containing the number of elements in each group.
     count : Column
@@ -327,6 +298,10 @@ type InternalColumn
     ## PRIVATE
     type InternalColumn external_name internal_name expression
 
+## Signalizes that an operation tried using objects coming from different
+   contexts.
+
+   To use columns from different tables, you must first join them.
 type IntegrityError
     type IntegrityError object_description
 
