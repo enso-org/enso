@@ -1,3 +1,15 @@
+/** Table visualization. */
+
+// ============================
+// === Style Initialisation ===
+// ============================
+
+loadStyleFromString(scrollbarStyle)
+
+// ===========================
+// === Table visualization ===
+// ===========================
+
 class TableVisualization extends Visualization {
     static inputType = 'Any'
     static label = 'Table'
