@@ -11,6 +11,8 @@ public abstract class Builder {
    */
   public abstract void append(Object o);
 
+  public abstract void appendNulls(int count);
+
   /** @return the number of appended elements */
   public abstract int getCurrentSize();
 

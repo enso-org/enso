@@ -138,6 +138,9 @@ type Column
     is_missing : Column
     is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
 
+    is_present : Column
+    is_present = this.is_missing.not
+
     ## Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
@@ -214,6 +217,11 @@ type Column
     ## Returns the number of non-null items in this column.
     count : Integer
     count = this.length - this.count_missing
+
+    index : Column | Nothing
+    index = case this.java_column.getIndex.toColumn of
+        Nothing -> Nothing
+        i -> Column i
 
     ## Returns the item contained in this column at the given index.
     at : Integer -> Any

@@ -87,9 +87,12 @@ type Table
 
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
-    set : Text -> Column -> Table
-    set name column =
-        Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
+    set : Text -> Column.Column | Vector.Vector -> Table
+    set name column = case column of
+        Vector.Vector _ ->
+            this.set name (Column.from_vector name column)
+        Column.Column _ ->
+            Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## Returns the vector of columns contained in this table.
     columns : Vector
@@ -284,6 +287,9 @@ type Table
                     Nothing -> Nothing
                     c -> here.comparator_to_java c
                 OrderBuilder.OrderRule.new c java_cmp o nulls
+
+    concat other =
+        Table (this.java_table.concat other.java_table)
 
 ## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign

@@ -1,11 +1,10 @@
 package org.enso.table.data.table;
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
@@ -149,14 +148,17 @@ public class Table {
     if (col == null) throw new NoSuchColumnException(name);
     Storage storage = col.getStorage();
     Index ix = HashIndex.fromStorage(col.getName(), storage);
-    Column[] newColumns = new Column[columns.length - 1];
-    int j = 0;
-    for (int i = 0; i < columns.length; i++) {
-      if (!columns[i].getName().equals(name)) {
-        newColumns[j++] = columns[i].withIndex(ix);
+    List<Column> newColumns = new ArrayList<>();
+    Column indexCol = index.toColumn();
+    if (indexCol != null) {
+      newColumns.add(indexCol.withIndex(ix));
+    }
+    for (Column column : columns) {
+      if (!column.getName().equals(name)) {
+        newColumns.add(column.withIndex(ix));
       }
     }
-    return new Table(newColumns, ix);
+    return new Table(newColumns.toArray(new Column[0]), ix);
   }
 
   /**
@@ -274,6 +276,72 @@ public class Table {
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
     return names.contains(name) ? name + suffix : name;
+  }
+
+  public Table concat(Table other) {
+    Index newIndex = concatIndexes(index, other.index);
+    List<Column> newColumns = new ArrayList<>();
+    int leftLen = (int) nrows();
+    int rightLen = (int) other.nrows();
+    for (Column c : columns) {
+      Column match = other.getColumnByName(c.getName());
+      Storage storage =
+          match == null
+              ? nullPad(rightLen, c.getStorage(), false)
+              : concatStorages(c.getStorage(), match.getStorage());
+      Column r = new Column(c.getName(), newIndex, storage);
+      newColumns.add(r);
+    }
+    for (Column c : other.columns) {
+      boolean match = newColumns.stream().anyMatch(col -> col.getName().equals(c.getName()));
+      if (!match) {
+        Storage storage = nullPad(leftLen, c.getStorage(), true);
+        Column r = new Column(c.getName(), newIndex, storage);
+        newColumns.add(r);
+      }
+    }
+    return new Table(newColumns.toArray(new Column[0]), newIndex);
+  }
+
+  private Storage concatStorages(Storage left, Storage right) {
+    InferredBuilder builder = new InferredBuilder(left.size() + right.size());
+    for (int i = 0; i < left.size(); i++) {
+      builder.append(left.getItemBoxed(i));
+    }
+    for (int j = 0; j < right.size(); j++) {
+      builder.append(right.getItemBoxed(j));
+    }
+    return builder.seal();
+  }
+
+  private Storage nullPad(int nullCount, Storage storage, boolean start) {
+    InferredBuilder builder = new InferredBuilder(nullCount + storage.size());
+    if (start) {
+      builder.appendNulls(nullCount);
+    }
+    for (int i = 0; i < storage.size(); i++) {
+      builder.append(storage.getItemBoxed(i));
+    }
+    if (!start) {
+      builder.appendNulls(nullCount);
+    }
+    return builder.seal();
+  }
+
+  private Index concatIndexes(Index left, Index right) {
+    if (left instanceof DefaultIndex && right instanceof DefaultIndex) {
+      return new DefaultIndex(left.size() + right.size());
+    } else {
+      InferredBuilder builder = new InferredBuilder(left.size() + right.size());
+      for (int i = 0; i < left.size(); i++) {
+        builder.append(left.iloc(i));
+      }
+      for (int j = 0; j < right.size(); j++) {
+        builder.append(right.iloc(j));
+      }
+      Storage storage = builder.seal();
+      return HashIndex.fromStorage(left.getName(), storage);
+    }
   }
 
   private Table hconcat(Table other, String lsuffix, String rsuffix) {
