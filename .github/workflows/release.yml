@@ -81,16 +81,16 @@ jobs:
           tar -xzf sbt.tgz
           echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
 
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
+      # Caches (Disabled due to an issue with instrumentation)
+      #      - name: Cache SBT
+      #        uses: actions/cache@v2
+      #        with:
+      #          path: |
+      #            ~/.sbt
+      #            ~/.ivy2/cache
+      #            ~/.cache
+      #          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+      #          restore-keys: ${{ runner.os }}-sbt-
 
       # Bootstrap
       - name: Enable Release Mode
