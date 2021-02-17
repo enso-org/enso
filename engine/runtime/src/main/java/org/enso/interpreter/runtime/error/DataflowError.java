@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -29,10 +30,8 @@ public class DataflowError extends AbstractTruffleException {
    * @param location the node in which the error was created
    * @return a new dataflow error
    */
-  public static DataflowError withDefaultTrace(Object payload, Node location) {
-    var error = new DataflowError(payload, location);
-    error.fillInStackTrace();
-    return error;
+  public static DataflowError withoutTrace(Object payload, Node location) {
+    return new DataflowError(payload, location);
   }
 
   /**

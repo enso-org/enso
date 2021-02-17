@@ -34,7 +34,7 @@ public abstract class ModNode extends Node {
     try {
       return toEnsoNumberNode.execute(BigIntegerOps.modulo(_this.getValue(), that));
     } catch (ArithmeticException e) {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getDivideByZeroError(), this);
     }
   }

@@ -28,7 +28,7 @@ public abstract class ModNode extends Node {
     try {
       return _this % that;
     } catch (ArithmeticException e) {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getDivideByZeroError(), this);
     }
   }

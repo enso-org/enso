@@ -59,7 +59,7 @@ public abstract class PutStateNode extends Node {
     if (index == SmallMap.NOT_FOUND) {
       return new Stateful(
           state,
-          DataflowError.withDefaultTrace(
+          DataflowError.withoutTrace(
               ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this));
     } else {
       return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
@@ -75,7 +75,7 @@ public abstract class PutStateNode extends Node {
       @CachedContext(Language.class) Context ctx) {
     return new Stateful(
         state,
-        DataflowError.withDefaultTrace(
+        DataflowError.withoutTrace(
             ctx.getBuiltins().error().uninitializedState().newInstance(key), this));
   }
 }

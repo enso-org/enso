@@ -46,7 +46,7 @@ public abstract class BitShiftNode extends Node {
     if (fitsInIntProfileLeftShift.profile(BigIntegerOps.fitsInInt(that))) {
       return doBigIntShiftLeft(_this, that);
     } else {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -74,7 +74,7 @@ public abstract class BitShiftNode extends Node {
       return BigIntegerOps.nonNegative(_this.getValue()) ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
