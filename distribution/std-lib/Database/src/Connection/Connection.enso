@@ -1,12 +1,21 @@
 from Base import all
 import Database.Data.Table
 
+## A Database connection.
+
+   Allows to access tables from a database.
 type Connection
     type Connection internal_connection
 
+    ## SQL dialect that the database associated with that connection is using.
     dialect : String
     dialect = this.internal_connection.dialect
 
+    ## Accesses a table within the database, returning an object that can be
+       used to create queries for that table.
+
+       Arguments:
+       - name: name of the table to access
     access_table : Text -> Table
     access_table name =
         column_names = this.internal_connection.fetch_column_names name

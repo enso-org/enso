@@ -1,6 +1,0 @@
-from Base import all
-import Database.Connection.Connection
-
-connect : Text -> Connection
-connect = Panic.throw "TODO connect"
-
