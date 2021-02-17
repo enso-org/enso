@@ -33,31 +33,16 @@ const LIGHT_ACCENT_COLOR = [1, 234, 146]
 // === Script & Style Initialisation ===
 // =====================================
 
-function loadScript(url) {
-    const script = document.createElement('script')
-    script.src = url
-
-    document.head.appendChild(script)
-}
-
-function loadStyle(url) {
-    const link = document.createElement('link')
-    link.href = url
-    link.rel = 'stylesheet'
-
-    document.head.appendChild(link)
-}
-
 loadScript('https://unpkg.com/deck.gl@latest/dist.min.js')
 loadScript('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.js')
 loadStyle('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.css')
 
-const styleHead = document.createElement('style')
-styleHead.innerText = `
+const mapboxStyle = `
 .mapboxgl-map {
     border-radius: 14px;
 }`
-document.head.appendChild(styleHead)
+
+loadStyleFromString(mapboxStyle)
 
 // ====================
 // === Id Generator ===
