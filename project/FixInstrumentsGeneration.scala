@@ -74,7 +74,11 @@ object FixInstrumentsGeneration {
     Tracked.diffInputs(fragileClassFilesStore, FileInfo.lastModified)(
       fragileClassFiles.toSet
     ) { sourcesDiff: ChangeReport[File] =>
-      if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
+      if (
+        sys.env.contains(
+          "CI"
+        ) && sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty
+      ) {
         fragileClassFiles.foreach(_.delete())
 
         val projectName = name.value
