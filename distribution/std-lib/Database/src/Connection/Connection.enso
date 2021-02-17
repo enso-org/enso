@@ -1,6 +1,5 @@
 from Base import all
 import Database.Data.Table
-import Database.Connection.Internal.FakeTestConnection
 
 type Connection
     type Connection internal_connection
@@ -12,7 +11,3 @@ type Connection
     access_table name =
         column_names = this.internal_connection.fetch_column_names name
         Table.make_table this name column_names
-
-## PRIVATE
-make_fake_connection dialect tables =
-    Connection (FakeTestConnection.new tables dialect)

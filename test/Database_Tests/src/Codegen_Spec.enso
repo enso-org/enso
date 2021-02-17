@@ -1,9 +1,9 @@
 from Base import all
 from Database import all
 from Table import No_Such_Column_Error, Order_Rule
-import Database.Connection.Connection
 import Database.Data.Dialect
 import Test
+import Database_Tests.Helpers.Fake_Test_Connection
 
 spec =
     test_connection =
@@ -11,7 +11,7 @@ spec =
         table2 = ["T2", ["D", "E", "F"]]
         table3 = ["T3", ["A", "E", "F"]]
         tables = Map.from_vector [table1, table2, table3]
-        Connection.make_fake_connection Dialect.sqlite tables
+        Fake_Test_Connection.make Dialect.sqlite tables
     t1 = test_connection.access_table "T1"
     Test.group "JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
