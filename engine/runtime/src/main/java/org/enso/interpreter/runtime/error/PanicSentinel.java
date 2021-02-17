@@ -16,7 +16,6 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
  * <p>This tracing is enabled by the active intervention of the runtime instrumentation, and does
  * not function in textual mode.
  */
-@ExportLibrary(value = InteropLibrary.class, delegateTo = "panic")
 @ExportLibrary(MethodDispatchLibrary.class)
 public class PanicSentinel extends AbstractTruffleException {
   final PanicException panic;
@@ -49,44 +48,5 @@ public class PanicSentinel extends AbstractTruffleException {
   @ExportMessage
   boolean hasSpecialDispatch() {
     return true;
-  }
-
-  @ExportMessage
-  boolean isException() {
-    return true;
-  }
-
-  @ExportMessage
-  RuntimeException throwException() {
-    throw this;
-  }
-
-  @ExportMessage
-  ExceptionType getExceptionType() {
-    return ExceptionType.RUNTIME_ERROR;
-  }
-
-  @ExportMessage
-  int getExceptionExitStatus() {
-    return 1;
-  }
-
-  @ExportMessage
-  boolean isExceptionIncompleteSource() {
-    return false;
-  }
-
-  @ExportMessage
-  boolean hasSourceLocation() {
-    return getLocation().getEncapsulatingSourceSection() != null;
-  }
-
-  @ExportMessage(name = "getSourceLocation")
-  SourceSection getSourceSection() throws UnsupportedMessageException {
-    SourceSection loc = getLocation().getEncapsulatingSourceSection();
-    if (loc == null) {
-      throw UnsupportedMessageException.create();
-    }
-    return getLocation().getEncapsulatingSourceSection();
   }
 }

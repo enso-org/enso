@@ -1,13 +1,23 @@
 package org.enso.interpreter.runtime.scope;
 
-import com.oracle.truffle.api.Scope;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.io.File;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -17,15 +27,6 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
-
-import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
-
-// TODO [AA] 21.0.0 migration
-//  3. Implement the required interop messages for it.
-//  4. Fix the exception mess.
-//  5. Remove interop usages from `ErrorResolver`.
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)

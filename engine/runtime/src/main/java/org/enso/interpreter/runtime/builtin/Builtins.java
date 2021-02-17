@@ -58,8 +58,6 @@ public class Builtins {
   private final AtomConstructor function;
   private final AtomConstructor nothing;
   private final AtomConstructor panic;
-  private final AtomConstructor thunk;
-  private final AtomConstructor unresolvedSymbol;
 
   private final Bool bool;
   private final DataflowError dataflowError;
@@ -106,8 +104,6 @@ public class Builtins {
     resource = new Resource(language, scope);
     system = new System(language, scope);
     text = new Text(language, scope);
-    thunk = new AtomConstructor("Thunk", scope).initializeFields();
-    unresolvedSymbol = new AtomConstructor("Unresolved_Symbol", scope).initializeFields();
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -345,10 +341,6 @@ public class Builtins {
         return mutable.ref().newInstance();
       case Constants.TEXT:
         return text.getText().newInstance();
-      case Constants.THUNK:
-        return thunk.newInstance();
-      case Constants.UNRESOLVED_SYMBOL:
-        return unresolvedSymbol.newInstance();
       default:
         return null;
     }

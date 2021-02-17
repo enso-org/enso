@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -23,7 +24,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     description = "Executes an action and converts any Panic thrown by it into an Error")
 public abstract class RecoverPanicNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
-  private final ConditionProfile exceptionProfile = ConditionProfile.createCountingProfile();
+  private final BranchProfile unknownExceptionProfile = BranchProfile.create();
 
   static RecoverPanicNode build() {
     return RecoverPanicNodeGen.create();
@@ -43,12 +44,13 @@ public abstract class RecoverPanicNode extends Node {
     } catch (PanicException e) {
       return new Stateful(state, DataflowError.withTrace(e.getPayload(), this, e.getStackTrace()));
     } catch (Throwable e) {
-      if (exceptionProfile.profile(exceptions.isException(e))) {
+      if (exceptions.isException(e)) {
         return new Stateful(
             state,
             DataflowError.withTrace(
                 ctx.getBuiltins().error().makePolyglotError(e), this, e.getStackTrace()));
       }
+      unknownExceptionProfile.enter();
       throw e;
     }
   }

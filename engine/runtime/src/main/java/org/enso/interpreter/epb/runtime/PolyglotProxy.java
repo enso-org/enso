@@ -476,16 +476,25 @@ public class PolyglotProxy implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isException(@CachedLibrary("this.delegate") InteropLibrary errors) {
-    return errors.isException(delegate);
+  boolean isException(
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary("this.delegate") InteropLibrary errors) {
+    Object p = origin.enter(node);
+    try {
+      return errors.isException(delegate);
+    } finally {
+      origin.leave(node, p);
+    }
   }
 
   @ExportMessage
   RuntimeException throwException(
       @CachedLibrary("this.delegate") InteropLibrary delegate,
+      @CachedLibrary("this") InteropLibrary node,
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode)
       throws UnsupportedMessageException {
+    Object p = origin.enter(node);
     try {
       throw delegate.throwException(delegate);
     } catch (Throwable e) {
@@ -496,24 +505,47 @@ public class PolyglotProxy implements TruffleObject {
       } else {
         throw e;
       }
+    } finally {
+      origin.leave(node, p);
     }
   }
 
   @ExportMessage
-  ExceptionType getExceptionType(@CachedLibrary("this.delegate") InteropLibrary errors)
+  ExceptionType getExceptionType(
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary("this.delegate") InteropLibrary errors)
       throws UnsupportedMessageException {
-    return errors.getExceptionType(delegate);
+    Object p = origin.enter(node);
+    try {
+      return errors.getExceptionType(delegate);
+    } finally {
+      origin.leave(node, p);
+    }
   }
 
   @ExportMessage
-  int getExceptionExitStatus(@CachedLibrary("this.delegate") InteropLibrary errors)
+  int getExceptionExitStatus(
+      @CachedLibrary("this") InteropLibrary node,
+      @CachedLibrary("this.delegate") InteropLibrary errors)
       throws UnsupportedMessageException {
-    return errors.getExceptionExitStatus(delegate);
+    Object p = origin.enter(node);
+    try {
+      return errors.getExceptionExitStatus(delegate);
+    } finally {
+      origin.leave(node, p);
+    }
   }
 
   @ExportMessage
-  boolean isExceptionIncompleteSource(@CachedLibrary("this.delegate") InteropLibrary errors)
+  boolean isExceptionIncompleteSource(
+      @CachedLibrary("this.delegate") InteropLibrary errors,
+      @CachedLibrary("this") InteropLibrary node)
       throws UnsupportedMessageException {
-    return errors.isExceptionIncompleteSource(delegate);
+    Object p = origin.enter(node);
+    try {
+      return errors.isExceptionIncompleteSource(delegate);
+    } finally {
+      origin.leave(node, p);
+    }
   }
 }
