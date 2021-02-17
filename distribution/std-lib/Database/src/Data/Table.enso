@@ -1,20 +1,19 @@
 from Base import all
-import Table.Data.Table
+import Table.Data.Table as Materialized_Table
 from Table.Data.Table import No_Such_Column_Error
 from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
+import Database.Data.SQL
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
-
     ## UNSTABLE
 
        Represents a column-oriented table data structure backed by a database.
-
        # type Table (name : Text) (connection : Connection)
-       #            (internal_columns : Vector [Text, IR.Expression])
+       #            (internal_columns : Vector InternalColumn)
        #            (context : IR.Context)
     type Table name connection internal_columns context
 
@@ -50,7 +49,7 @@ type Table
        Returns the column with the given name.
     at : Text -> Column ! UnknownColumnError
     at name =
-        internal = this.internal_columns.find (p -> p.first == name)
+        internal = this.internal_columns.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## PRIVATE
@@ -90,11 +89,11 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            new_col = [name, column.expression]
-            replace = this.internal_columns.exists (c -> c.first == name)
+            new_col = InternalColumn name column.sql_type column.expression
+            replace = this.internal_columns.exists (c -> c.name == name)
             case replace of
                 True ->
-                    new_cols = this.internal_columns.map (c -> if c.first == name then new_col else c)
+                    new_cols = this.internal_columns.map (c -> if c.name == name then new_col else c)
                     this.updated_columns new_cols
                 False ->
                     this.updated_columns (this.internal_columns + [new_col])
@@ -151,7 +150,7 @@ type Table
             [this.resolve elem . expression, order_to_ir order, missing_to_ir missing_last]
         to_ir elem = case elem of
             Text -> wrap_elem elem
-            Column _ _ _ _ -> wrap_elem elem
+            Column _ _ _ _ _ -> wrap_elem elem
             Order_Rule elem Nothing my_order my_nulls ->
                 chosen_order = if my_order.is_nothing then order else my_order
                 chosen_nulls = if my_nulls.is_nothing then missing_last else my_nulls
@@ -167,7 +166,7 @@ type Table
        Selects a subset of columns from this table by name.
     select : Vector Text -> Table
     select columns =
-        find_col = (name -> this.internal_columns.find (p -> p.first == name))
+        find_col = (name -> this.internal_columns.find (p -> p.name == name))
         selected_cols = columns.map (find_col >> .catch) . filter (c -> c.is_nothing.not)
         this.updated_columns selected_cols
 
@@ -213,8 +212,10 @@ type Table
                 left_alias = aliases.first
                 right_alias = aliases.second
 
-                left_query = IR.Sub_Query this.internal_columns this.context left_alias
-                right_query = IR.Sub_Query other.internal_columns other.context right_alias
+                left_cols = this.internal_columns.map c-> [c.name, c.expression]
+                right_cols = other.internal_columns.map c-> [c.name, c.expression]
+                left_query = IR.Sub_Query left_cols this.context left_alias
+                right_query = IR.Sub_Query right_cols other.context right_alias
 
                 left_renamed_index = my_index.map (IR.substitute_origin this.name left_alias)
                 right_renamed_index = other_index.map (IR.substitute_origin other.name right_alias)
@@ -224,17 +225,17 @@ type Table
                 new_from = IR.Join kind left_query right_query on_exprs
                 new_ctx = IR.Context new_from [] [] [] new_index
 
-                left_names = Map.from_vector (this.internal_columns.map (p -> [p.first, True]))
-                right_names = Map.from_vector (other.internal_columns.map (p -> [p.first, True]))
+                left_names = Map.from_vector (this.internal_columns.map (p -> [p.name, True]))
+                right_names = Map.from_vector (other.internal_columns.map (p -> [p.name, True]))
                 rename suffix other_names this_name =
                     if other_names.get_or_else this_name False then this_name+suffix else this_name
                 rename_left = rename left_suffix right_names
                 rename_right = rename right_suffix left_names
 
                 new_left_columns = this.internal_columns.map p->
-                    [rename_left p.first, IR.Column left_alias p.first]
+                    InternalColumn (rename_left p.name) p.sql_type (IR.Column left_alias p.name)
                 new_right_columns = other.internal_columns.map p->
-                    [rename_right p.first, IR.Column right_alias p.first]
+                    InternalColumn (rename_right p.name) p.sql_type (IR.Column right_alias p.name)
 
                 new_columns = new_left_columns + new_right_columns
 
@@ -277,7 +278,7 @@ type Table
     nrows : Integer
     nrows = Error.throw "TODO materialization"
 
-    to_dataframe : (Integer | Nothing) -> Table.Table
+    to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe limit=Nothing =
         # TODO [RW] limit
         sql = this.to_sql
@@ -288,16 +289,29 @@ type Table
        Returns an SQL statement that will be used for materializing this table.
     to_sql : Sql.Statement
     to_sql =
-        cols = this.internal_columns
+        cols = this.internal_columns.map (c -> [c.name, c.expression])
         query = IR.Select cols this.context
         this.connection.dialect.generate_sql query
+
+    explain_query_plan : Text
+    explain_query_plan =
+        this.connection.explain_query_plan this.to_sql
+
+    ## Returns a Table describing this table's contents.
+
+       The table lists all columns, counts of non-null items and storage types
+       of each column.
+    info : Table
+    info =
+        cols = this.columns
+        Materialized_Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["SQL Type", cols.map .sql_type]]
 
     ## PRIVATE
 
        Helper to create columns from internal columns.
        # make_column : [Text, IR.Expression] -> Column
-    make_column pair =
-        Column pair.first this.connection pair.second this.context
+    make_column internal =
+        Column internal.name this.connection internal.sql_type internal.expression this.context
 
     ## PRIVATE
 
@@ -332,14 +346,14 @@ type Aggregate_Table
     count : Column
     count =
         expr = IR.Operation "COUNT_ROWS" []
-        Column "count" this.connection expr this.context
+        Column "count" this.connection SQL.SqlType.integer expr this.context
 
     ## UNSTABLE
 
        Returns an aggregate column with the given name, contained in this table.
     at : Text -> Column ! No_Such_Column_Error
     at name =
-        internal = this.internal_columns.find (p -> p.first == name)
+        internal = this.internal_columns.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## UNSTABLE
@@ -354,15 +368,15 @@ type Aggregate_Table
     ## PRIVATE
 
        Helper to create aggregate columns from internal columns.
-       # make_column : [Text, IR.Expression] -> Aggregate_Column
-    make_column pair =
-        Aggregate_Column pair.first this.connection pair.second this.context
+       # make_column : InternalColumn -> Aggregate_Column
+    make_column internal =
+        Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
 
 type InternalColumn
     ## PRIVATE
 
        An internal column structure which is a part of the Table.
-    type InternalColumn external_name internal_name expression
+    type InternalColumn name sql_type expression
 
 type IntegrityError
     ## UNSTABLE
@@ -380,8 +394,8 @@ type IntegrityError
 ## PRIVATE
 
    Creates a Table out of a connection, name and list of column names.
-make_table : Connection -> Text -> Vector Text -> Table
-make_table connection table_name column_names =
+   # make_table : Connection -> Text -> Vector [Text, SQL.SqlType] -> Table
+make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
-    cols = column_names.map (name -> [name, IR.Column table_name name])
+    cols = columns.map (p -> InternalColumn p.first p.second (IR.Column table_name p.first))
     Table table_name connection cols ctx

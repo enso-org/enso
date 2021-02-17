@@ -25,10 +25,12 @@ type Expression
        be interpolated when building the query.
 
        Arguments:
+       - sql_type: The SQL type that this object is going to be serialized to.
+         It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    # type Constant (value : Any)
-    type Constant value
+    # type Constant (sql_type : SQL.SqlType) (value : Any)
+    type Constant sql_type value
 
     ## PRIVATE
 
@@ -252,10 +254,10 @@ make_ctx_from table_name =
 ## PRIVATE
 
    Creates an expression which is a simple constant to be interpolated.
-make_constant : Any -> Expression
-make_constant x =
+make_constant : SQL.SqlType -> Any -> Expression
+make_constant sql_type x =
     # TODO [RW] may add some sanitization, like checking if the value type is supported
-    Constant x
+    Constant sql_type x
 
 ## PRIVATE
 
@@ -265,6 +267,6 @@ substitute_origin : Text -> Text -> Expression
 substitute_origin old_origin new_origin expr = case expr of
     Column origin name ->
         if origin == old_origin then Column new_origin name else expr
-    Constant _ -> expr
+    Constant _ _ -> expr
     Operation kind exprs ->
         Operation kind (exprs.map (here.substitute_origin old_origin new_origin))

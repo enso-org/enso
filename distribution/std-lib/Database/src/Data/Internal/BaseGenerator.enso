@@ -1,0 +1,120 @@
+from Base import all
+import Database.Data.SQL
+import Database.Data.Internal.IR
+from Database.Data.SQL import SqlType
+
+type InternalDialect
+    # type InternalDialect (operation_map : Map Text (Vector SQL.Builder -> SQL.Builder))
+    type InternalDialect operation_map
+
+    ## PRIVATE
+       extend_with : Vector [Text, Vector SQL.Builder -> SQL.Builder] -> InternalDialect
+    extend_with mappings =
+        new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
+        InternalDialect new_map
+
+make_binary_op : Text -> Vector SQL.Builder -> SQL.Builder
+make_binary_op name =
+    arguments ->
+        case arguments.length == 2 of
+            True ->
+                op = SQL.code " "+name+" "
+                (arguments.at 0)++op++(arguments.at 1) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+make_unary_op : Text -> Vector SQL.Builder -> SQL.Builder
+make_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (SQL.code name+" ")++(arguments.at 0) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+make_right_unary_op : Text -> Vector SQL.Builder -> SQL.Builder
+make_right_unary_op name =
+    arguments ->
+        case arguments.length == 1 of
+            True ->
+                (arguments.at 0)++(SQL.code " "+name) . paren
+            False ->
+                Error.throw ("Invalid amount of arguments for operation " + name)
+
+make_function : Text -> Vector SQL.Builder -> SQL.Builder
+make_function name =
+    arguments ->
+        (SQL.code name) ++ (SQL.join ", " arguments . paren)
+
+make_constant : Text -> Vector SQL.Builder -> SQL.Builder
+make_constant code =
+    arguments ->
+        if arguments.not_empty then Error.throw "No arguments were expected" else
+            SQL.code code
+
+base_dialect =
+    bin = here.make_binary_op
+    unary = here.make_unary_op
+    fun = here.make_function
+    arith = [["+", bin "+"], ["-", bin "-"], ["*", bin "*"], ["/", bin "/"]]
+    logic = [["AND", bin "AND"], ["OR", bin "OR"], ["NOT", unary "NOT"]]
+    compare = [["=", bin "="], ["!=", bin "!="], ["<", bin "<"], [">", bin ">"], ["<=", bin "<="], [">=", bin ">="]]
+    agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"], ["SUM", fun "SUM"], ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
+    nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
+    base_map = Map.from_vector (arith + logic + compare + agg + nulls)
+    InternalDialect base_map
+
+generate_expression : InternalDialect -> IR.Expression -> SQL.Builder
+generate_expression dialect expr = case expr of
+    IR.Column origin name -> SQL.code origin+"."+name
+    IR.Constant sql_type value -> SQL.interpolation sql_type value
+    IR.Operation kind arguments ->
+        op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
+        parsed_args = arguments.map (here.generate_expression dialect)
+        op parsed_args
+
+generate_from_part : InternalDialect -> FromSpec -> SQL.Builder
+generate_from_part dialect from_spec = case from_spec of
+    IR.FromTable name as_name ->
+        SQL.code name . alias as_name
+    IR.Join kind left_spec right_spec on ->
+        left = here.generate_from_part dialect left_spec
+        right = here.generate_from_part dialect right_spec
+        prefix = case kind of
+            IR.InnerJoin -> "INNER JOIN"
+            IR.LeftJoin -> "LEFT JOIN"
+            IR.RightJoin -> "RIGHT JOIN"
+            IR.CrossJoin -> "CROSS JOIN"
+        ons = SQL.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
+        left ++ (SQL.code " "+prefix+" ") ++ right ++ ons
+    IR.SubQuery columns context as_name ->
+        sub = here.generate_query dialect (IR.Select columns context)
+        sub.paren.alias as_name
+
+# generate_order : InternalDialect -> [Expression, IR.OrderType, IR.NullsOrder] -> SQL.Builder
+generate_order dialect order_description =
+    order_suffix = case order_description.second of
+        IR.Ascending -> SQL.code " ASC"
+        IR.Descending -> SQL.code " DESC"
+    nulls_suffix = case order_description.at 2 of
+        IR.NullsFirst -> SQL.code " NULLS FIRST"
+        IR.NullsLast -> SQL.code " NULLS LAST"
+    (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
+
+generate_query : InternalDialect -> Query -> SQL.Builder
+generate_query dialect query = case query of
+    IR.Select columns ctx ->
+        gen_exprs exprs = exprs.map (here.generate_expression dialect)
+        gen_column pair = (here.generate_expression dialect pair.second).alias pair.first
+
+        cols = SQL.join ", " (columns.map gen_column)
+
+        from_part = here.generate_from_part dialect ctx.from_spec
+        where_part = (SQL.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
+        group_part = (SQL.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+
+        orders = ctx.orders.map (here.generate_order dialect)
+        order_part = (SQL.join ", " orders) . prefix_if_present " ORDER BY "
+
+        (SQL.code "SELECT ") ++ cols ++ (SQL.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part
+    _ -> Error.throw "Unsupported query type."

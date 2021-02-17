@@ -176,8 +176,9 @@ run_spec ~behavior =
     result = maybeExc.catch ex->
         case ex of
             Failure _ -> ex
-            Finished_With_Error x -> 
-                Failure ("An unexpected error was returned: " + x.to_text + '\n' + maybeExc.get_stack_trace_text)
+            Finished_With_Error x ->
+                # TODO [RW] display at least original error location
+                Failure ("An unexpected error was returned: " + x.to_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
     result
 

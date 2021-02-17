@@ -1,23 +1,29 @@
 from Base import all
 import Database.Data.Internal.Helpers
+import Database.Data.Dialect
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
+from Database.Data.SQL import SqlType
 
 type JDBCConnection
-    type JDBCConnection java_connection
+    type JDBCConnection java_connection dialect
 
-    fetch_column_names : Text -> Vector Text
-    fetch_column_names name = case Helpers.ensure_name_is_sane name of
+    # fetch_columns : Text -> Vector [Text, SqlType]
+    fetch_columns table_name = case Helpers.ensure_name_is_sane table_name of
         True ->
-            sql = "SELECT * FROM " + name + " LIMIT 0"
+            sql = "SELECT * FROM " + table_name + " LIMIT 0"
             stmt = this.java_connection.createStatement
             rs = stmt.executeQuery sql
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
-            column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typ = metadata.getColumnType ix+1
+                [name, SqlType typ]
+            columns = Vector.new ncols resolve_column
             stmt.close
-            column_names
+            columns
 
     prepare_statement : Text -> Vector Any -> PreparedStatement
     prepare_statement template holes=[] =
@@ -27,11 +33,14 @@ type JDBCConnection
             Error.throw "TODO interpolation"
         stmt
 
+type UnsupportedDialect url
+
 create_connection : Text -> Nothing | Text -> Nothing | Text -> JDBCConnection
 create_connection url user=Nothing password=Nothing =
+    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> UnsupportedDialect url)
     java_connection = case user.is_nothing && password.is_nothing of
         True ->
             DriverManager.getConnection url
         False ->
             DriverManager.getConnection url user password
-    JDBCConnection java_connection
+    JDBCConnection java_connection dialect

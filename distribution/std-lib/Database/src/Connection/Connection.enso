@@ -29,8 +29,8 @@ type Connection
        - name: name of the table to access
     access_table : Text -> Database_Table
     access_table name =
-        column_names = this.internal_connection.fetch_column_names name
-        Database_Table.make_table this name column_names
+        columns = this.internal_connection.fetch_columns name
+        Database_Table.make_table this name columns
 
     explain_query_plan : SQL.Statement -> Text
     explain_query_plan statement =

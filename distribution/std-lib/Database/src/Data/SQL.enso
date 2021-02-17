@@ -1,0 +1,147 @@
+from Base import all
+import Database.Data.Internal.VectorBuilder
+polyglot java import java.sql.Types
+
+type SqlType
+    type SqlType typeid
+
+    boolean : SqlType
+    boolean = SqlType Types.BOOLEAN
+
+    integer : SqlType
+    integer = SqlType Types.INTEGER
+
+type SqlFragment
+    # type SqlCodePart (code : Text)
+    type SqlCodePart code
+
+    # type SqlInterpolation (sql_type : SqlType) (object : Any)
+    type SqlInterpolation sql_type object
+
+type Statement
+    # type Statement (internal_fragments : Vector SqlFragment)
+    type Statement internal_fragments
+
+    fragments : VectorBuilder SqlFragment
+    fragments = this.internal_fragments
+
+    ## UNSAFE
+       This function returns a raw SQL string for the query, manually handling
+       the interpolation that is normally handled by the database engine itself.
+
+       It should be used EXTREMELY carefully - the returned SQL code should
+       always be read by a human to ensure that it does what is expected before
+       executing it in any REPLs or other database interfaces.
+
+       It should NEVER be used in production code.
+    unsafe_to_raw_sql : Text
+    unsafe_to_raw_sql =
+        strings = this.internal_fragments . map <| case _ of
+            SqlCodePart code -> code
+            # TODO at some point we may try more sophisticated serialization based on data type
+            SqlInterpolation _ obj -> case obj of
+                Number -> obj.to_text
+                _ -> "'" + obj.to_text.replace "'" "''" + "'"
+        strings.join ""
+
+    ## Returns a pair consisting of the SQL code with holes for values and
+       a list for values that should be substituted.
+       # prepare : [Text, Vector Any]
+    prepare =
+        to_code fragment = case fragment of
+            SqlCodePart code -> code
+            SqlInterpolation _ _ -> "?"
+        to_subst fragment = case fragment of
+            SqlCodePart _ -> []
+            SqlInterpolation typ obj -> [[obj, typ]]
+        sql = this.fragments.map to_code . join ""
+        substitutions = this.fragments.flat_map to_subst
+        [sql, substitutions]
+
+    to_json : Json
+    to_json =
+        jsonify fragment = case fragment of
+            SqlCodePart code -> Json.from_pairs [["sql_code", code]]
+            SqlInterpolation (SqlType typeid) obj ->
+                inner = Json.from_pairs [["value", obj.to_json], ["typeid", typeid]]
+                Json.from_pairs [["sql_interpolation", inner]]
+        fragments = Json.Array (this.internal_fragments.map jsonify)
+        Json.from_pairs [["query", fragments]]
+
+type Builder
+    # type Builder (fragments : VectorBuilder.VectorBuilder SqlFragment)
+    type Builder fragments
+
+    ++ : Builder -> Builder
+    ++ other = Builder (this.fragments ++ other.fragments)
+
+    is_empty : Boolean
+    is_empty = this.fragments.is_empty
+
+    build : Statement
+    build =
+        fragments = here.optimize_fragments this.fragments.build
+        Statement fragments
+
+    alias : Text -> Builder
+    alias name =
+        this ++ here.code " AS "+name
+
+    paren : Builder
+    paren =
+        l = here.code "("
+        r = here.code ")"
+        l ++ this ++ r
+
+    prefix_if_present : Text | Builder -> Builder
+    prefix_if_present prefix =
+        pref = case prefix of
+            Builder _ -> prefix
+            _ -> here.code prefix
+        if this.is_empty then this else pref++this
+
+empty : Builder
+empty = Builder (VectorBuilder.empty)
+
+code : Text -> Builder
+code text =
+    vec = if text.is_empty then [] else [SqlCodePart text]
+    Builder (VectorBuilder.from_vector vec)
+
+interpolation : SqlType -> Any -> Builder
+interpolation sql_type object = Builder (VectorBuilder.from_vector [SqlInterpolation sql_type object])
+
+join : Builder | Text -> Vector Builder -> Builder
+join separator statements =
+    sep = case separator of
+        Builder _ -> separator
+        _ -> here.code separator
+
+    if statements.length == 0 then here.empty else
+        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
+
+optimize_fragments : Vector SqlFragment -> Vector SqlFragment
+optimize_fragments fragments =
+    builder = Vector.new_builder
+    go elem =
+        last_part = State.get SqlCodePart
+        case elem of
+            SqlCodePart code ->
+                new_part = case last_part of
+                    Nothing -> SqlCodePart code
+                    SqlCodePart other -> SqlCodePart other+code
+                State.put SqlCodePart new_part
+            SqlInterpolation _ _ ->
+                case last_part of
+                    Nothing -> Nothing
+                    SqlCodePart _ ->
+                        builder.append last_part
+                        State.put SqlCodePart Nothing
+                builder.append elem
+    State.run SqlCodePart Nothing <|
+        fragments.each go
+        last_part = State.get SqlCodePart
+        case last_part of
+            Nothing -> Nothing
+            SqlCodePart _ -> builder.append last_part
+    builder.to_vector
