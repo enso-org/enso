@@ -9,7 +9,7 @@ type FakeTestConnection
     fetch_columns table_name =
         this.tables.get table_name
 
-    prepare_statement : Text -> Vector Any -> PreparedStatement
+    # prepare_statement : Text -> Vector [Any, SqlType] -> PreparedStatement
     prepare_statement template holes=[] =
         _ = template
         _ = holes

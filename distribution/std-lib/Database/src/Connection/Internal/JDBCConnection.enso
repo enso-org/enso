@@ -25,12 +25,14 @@ type JDBCConnection
             stmt.close
             columns
 
-    prepare_statement : Text -> Vector Any -> PreparedStatement
+    # prepare_statement : Text -> Vector [Any, SqlType] -> PreparedStatement
     prepare_statement template holes=[] =
         stmt = this.java_connection.prepareStatement template
         holes.map_with_index ix-> obj->
             position = ix + 1
-            Error.throw "TODO interpolation"
+            case obj.first of
+                Nothing -> stmt.setNull position obj.second.typeid
+                _ -> stmt.setObject position obj.first
         stmt
 
 type UnsupportedDialect url
