@@ -26,7 +26,6 @@ env:
     CONTRIBUTING.md
     LICENSE
     README.md
-  CI: 1
 
 jobs:
   test_and_publish:

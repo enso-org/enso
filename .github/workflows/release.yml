@@ -14,7 +14,6 @@ env:
   sbtVersion: 1.4.1
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
-  CI: 1
 
 jobs:
   # This job should be kept up-to-date with scala.yml#build (but keep the added version check)

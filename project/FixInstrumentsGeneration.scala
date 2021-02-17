@@ -75,7 +75,7 @@ object FixInstrumentsGeneration {
       fragileClassFiles.toSet
     ) { sourcesDiff: ChangeReport[File] =>
       if (
-        sys.env.contains(
+        !sys.env.contains(
           "CI"
         ) && sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty
       ) {
