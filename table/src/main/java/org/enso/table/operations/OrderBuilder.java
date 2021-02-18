@@ -85,7 +85,7 @@ public class OrderBuilder {
    */
   public static OrderMask buildOrderMask(
       List<OrderRule> rules, Comparator<Object> fallbackComparator) {
-    int size = (int) rules.get(0).column.getSize();
+    int size = rules.get(0).column.getSize();
     Comparator<Integer> comparator =
         rules.stream()
             .map(rule -> rule.toComparator(fallbackComparator))

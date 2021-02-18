@@ -52,7 +52,7 @@ public class Column {
   }
 
   /** @return the number of items in this column. */
-  public long getSize() {
+  public int getSize() {
     return getStorage().size();
   }
 
