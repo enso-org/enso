@@ -41,6 +41,8 @@ object FixInstrumentsGeneration {
           s"consistency of generated services files."
         )
 
+        reportInstrumentationState(sourcesDiff, classFilesDirectory)
+
         fragileClassFiles.foreach(_.delete())
       }
     }
@@ -73,6 +75,7 @@ object FixInstrumentsGeneration {
       fragileClassFiles.toSet
     ) { sourcesDiff: ChangeReport[File] =>
       if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
+        reportInstrumentationState(sourcesDiff, classFilesDirectory)
         fragileClassFiles.foreach(_.delete())
 
         val projectName = name.value
@@ -91,6 +94,26 @@ object FixInstrumentsGeneration {
     }
 
     compilationResult
+  }
+
+  private def reportInstrumentationState(
+    sourcesDiff: ChangeReport[File],
+    classFilesRoot: File
+  ): Unit = {
+    println("=== INSTRUMENTATION REPORT ===")
+    println(s"Following files have been modified: ${sourcesDiff.modified}")
+    println(s"but these files have not: ${sourcesDiff.unmodified}")
+    val serviceRoot = classFilesRoot / "META-INF" / "services"
+    println(
+      s"After all, the instrumentation state ($serviceRoot) is following:"
+    )
+    for (f <- IO.listFiles(serviceRoot)) {
+      println(s"File <${f.toPath.toAbsolutePath.normalize}>:")
+      println("---")
+      println(IO.read(f))
+      println("---")
+    }
+    println("=== END OF INSTRUMENTATION REPORT ===")
   }
 
   private case class FragileFiles(sources: Seq[File], classFiles: Seq[File])

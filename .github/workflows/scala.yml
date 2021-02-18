@@ -128,10 +128,10 @@ jobs:
           sleep 1
           sbt --no-colors engine-runner/assembly
 
-#      - name: Test Enso
-#        run: |
-#          sleep 1
-#          sbt --no-colors "set Global / parallelExecution := false; test"
+      - name: Test Enso
+        run: |
+          sleep 1
+          sbt --no-colors "set Global / parallelExecution := false; test"
 #      - name: Check Runtime Benchmark Compilation
 #        run: |
 #          sleep 1
