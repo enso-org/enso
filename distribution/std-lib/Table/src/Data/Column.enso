@@ -3,6 +3,7 @@ import Table.Data.Table
 import Table.Data.Storage
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.operations.OrderBuilder
 
 type Column
     type Column java_column
@@ -137,6 +138,11 @@ type Column
     is_missing : Column
     is_missing = here.run_vectorized_unary_op this "is_missing" (== Nothing)
 
+    ## Returns a column of booleans, with `True` items at the positions where
+       this column does not contain a `Nothing`.
+    is_present : Column
+    is_present = this.is_missing.not
+
     ## Returns a new column where missing values have been replaced with the
        provided default.
     fill_missing : Any -> Column
@@ -213,6 +219,13 @@ type Column
     ## Returns the number of non-null items in this column.
     count : Integer
     count = this.length - this.count_missing
+
+    ## Returns the index of this column, as a column (indexed by itself).
+       Returns `Nothing` if there is no index set.
+    index : Column | Nothing
+    index = case this.java_column.getIndex.toColumn of
+        Nothing -> Nothing
+        i -> Column i
 
     ## Returns the item contained in this column at the given index.
     at : Integer -> Any
@@ -302,6 +315,67 @@ type Column
         data = ['data', this.to_vector.take_start max_data]
         Json.from_pairs [size, name, data] . to_text
 
+    ## Sums the values in this column.
+    sum : Any
+    sum = this.java_column.aggregate 'sum' (x-> Vector.Vector x . reduce (+)) True
+
+    ## Computes the maximum element of this column.
+    max : Any
+    max =
+        this.java_column.aggregate 'max' (x-> Vector.Vector x . reduce Math.max) True
+
+    ## Computes the minimum element of this column.
+    min : Any
+    min =
+        this.java_column.aggregate 'min' (x-> Vector.Vector x . reduce Math.min) True
+
+    ## Computes the mean of non-missing elements of this column.
+    mean : Any
+    mean =
+        vec_mean v = if v.length == 0 then Nothing else
+            (Vector.Vector v).reduce (+) / v.length
+        this.java_column.aggregate 'mean' vec_mean True
+
+    ## UNSTABLE
+
+       Sorts the column according to the specified rules.
+
+       Arguments:
+         - order: specifies the default sort order for this operation.
+         - missing_last: specifies the default placement of missing values when
+           compared to non-missing ones. Note thet this argument is independent
+           from `order`, i.e. missing values will always be sorted according to
+           this rule, ignoring the ascending / descending setting.
+         - comparator: function taking two items in this column and returning
+           an ordering. If specified, it is used instead of the natural
+           (`.compare_to`) ordering.
+
+       > Example
+         Sorting `column` in ascending order.
+             column.sort
+
+       > Example
+         Sorting `column` in descending order, placing missing values at the
+         top of the resulting column.
+             table.sort order=Sort_Order.Descending missing_last=False
+
+       > Sorting `column` in ascending order, using a custom comparator
+         function.
+             manhattan_comparator a b = (a.x.abs + a.y.abs) . compare_to (b.x.abs + b.y.abs)
+             column.sort comparator=manhattan_comparator
+    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Order.Ascending missing_last=True comparator=Nothing =
+        order_bool = case order of
+            Sort_Order.Ascending -> True
+            Sort_Order.Descending -> False
+        java_cmp = case comparator of
+            Nothing -> Nothing
+            cmp -> Table.comparator_to_java cmp
+        rule = OrderBuilder.OrderRule.new this.java_column java_cmp order_bool missing_last
+        fallback_cmp = Table.comparator_to_java .compare_to
+        mask = OrderBuilder.buildOrderMask [rule].to_array fallback_cmp
+        new_col = this.java_column.applyMask mask
+        Column new_col
 
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column

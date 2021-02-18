@@ -7,7 +7,7 @@ import Table.Data.Order_Rule
 
 from Table.Io.Csv export all hiding Parser
 export Table.Data.Column
-from Table.Data.Table export new, join, No_Such_Column_Error, Table
+from Table.Data.Table export new, from_rows, join, No_Such_Column_Error, Table
 from Table.Data.Order_Rule export Order_Rule
 
 ## Converts a JSON array into a dataframe, by looking up the requested keys
@@ -29,4 +29,3 @@ Json.Array.to_table fields = case this of
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
         Table.new cols
-

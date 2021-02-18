@@ -2,11 +2,13 @@ from Base import all
 from Builtins import Text, Prim_Text_Helpers
 
 import Base.Data.Text.Split_Kind
+import Base.Data.Locale
 import Base.Meta
 
 from Builtins export Text
 
 polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import org.enso.base.Text_Utils
 
 ## Computes the number of characters in the text.
@@ -268,3 +270,37 @@ Text.take_last count =
     iterator.last
     boundary = iterator.next -count
     if boundary == -1 then this else Text_Utils.drop_first this boundary
+
+## Converts each character in `this` to lower case.
+
+   Arguments:
+     - locale: specifies the locale for charater case mapping. Defaults to the
+       `Locale.default` locale.
+
+   > Example
+     Converting a text to lower case in the default locale:
+         "My TeXt!".to_lower_case == "my text!"
+
+   > Example
+     Converting a text to lower case in a specified locale:
+         "I".to_lower_case (Locale.new "tr") == "ı"
+Text.to_lower_case : Locale.Locale -> Text
+Text.to_lower_case locale=Locale.default =
+    UCharacter.toLowerCase locale.java_locale this
+
+## Converts each character in `this` to upper case.
+
+   Arguments:
+     - locale: specifies the locale for charater case mapping. Defaults to
+       `Locale.default`.
+
+   > Example
+     Converting a text to upper case in the default locale:
+         "My TeXt!".to_lower_case == "my text!"
+
+   > Example
+     Converting a text to upper case in a specified locale:
+         "i".to_upper_case (Locale.new "tr") . should_equal "İ"
+Text.to_upper_case : Locale.Locale -> Text
+Text.to_upper_case locale=Locale.default =
+    UCharacter.toUpperCase locale.java_locale this

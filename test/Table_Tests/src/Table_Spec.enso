@@ -79,6 +79,15 @@ spec =
             t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
             t.at 'baz' . to_vector . should_equal [False, True, False]
 
+    Test.group 'Construction' <|
+        Test.specify 'should allow creating a table from rows' <|
+            header = ['foo', 'bar']
+            rows = [[1, False], [2, True], [3, False]]
+            r = Table.from_rows header rows
+
+            r.at 'foo' . to_vector . should_equal [1, 2, 3]
+            r.at 'bar' . to_vector . should_equal [False, True, False]
+
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
             col_1 = Column.from_vector 'x' [1, 2, 3]
@@ -334,7 +343,15 @@ spec =
                 if sorted.is_empty then Nothing else sorted.at (sorted.length-1 / 2).floor
             agg.at 'quantity' . reduce median . to_vector . should_equal [30, 20, 40, 70]
 
-    Test.group "Sorting" <|
+    Test.group "Column-wide statistics" <|
+        Test.specify 'should allow computing basic column-wide stats' <|
+            price = Column.from_vector 'price' [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]
+            price.sum.should_equal 107.6
+            price.min.should_equal 0.4
+            price.max.should_equal 97
+            price.mean.should_equal 26.9
+
+    Test.group "Sorting Tables" <|
         df = (Enso_Project.data / "clothes.csv").read_csv
 
         Test.specify "should allow sorting by a single column name" <|
@@ -386,3 +403,73 @@ spec =
         Test.specify 'should return dataflow error when passed a non-existent column' <|
             r = df.sort by='foobar'
             r.should_fail_with No_Such_Column_Error
+
+    Test.group "Sorting Columns" <|
+        Test.specify 'should sort columns with specified ordering and missing placement' <|
+            c = Column.from_vector 'foo' [1, 7, Nothing, 4, 8, Nothing]
+
+            r_1 = c.sort
+            r_1.to_vector.should_equal [1,4,7,8,Nothing,Nothing]
+
+            r_2 = c.sort order=Sort_Order.Descending
+            r_2.to_vector.should_equal [8,7,4,1,Nothing,Nothing]
+
+            r_3 = c.sort order=Sort_Order.Descending missing_last=False
+            r_3.to_vector.should_equal [Nothing,Nothing,8,7,4,1]
+
+        Test.specify 'should respect defined comparison operations for custom types' <|
+            c = Column.from_vector 'foo'  [My 1 2, My 3 4, My 2 1, My 5 2, My 7 0, My 4 -1]
+            r = c.sort
+            r.to_vector.should_equal [My 1 2, My 2 1, My 4 -1, My 3 4, My 5 2, My 7 0]
+
+        Test.specify 'should allow passing a custom comparator' <|
+            c = Column.from_vector 'foo' [My 1 2, My 2 5, My 3 4, My 6 3, Nothing, My 1 0]
+            cmp a b = (a.x-a.y).abs . compare_to (b.x-b.y).abs
+            r = c.sort comparator=cmp
+            r.to_vector.should_equal [My 1 2, My 3 4, My 1 0, My 2 5, My 6 3, Nothing]
+
+    Test.group "Concatenating Tables" <|
+        Test.specify 'should concat tables with the same schema' <|
+            c_1_1 = ['foo', [1, 2, 3, 4]]
+            c_1_2 = ['bar', ['baz', 'quux', 'spam', 'eggs']]
+            t_1 = Table.new [c_1_1, c_1_2]
+
+            c_2_1 = ['foo', [5, 6, 7]]
+            c_2_2 = ['bar', [False, True, False]]
+            t_2 = Table.new [c_2_1, c_2_2]
+
+            r = t_1.concat t_2
+
+            r.columns.length.should_equal 2
+            r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
+            r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', False, True, False]
+
+        Test.specify 'should missing-pad unmatched columns' <|
+            c_1_1 = ['foo', [1, 2, 3, 4]]
+            c_1_2 = ['bar', ['baz', 'quux', 'spam', 'eggs']]
+            t_1 = Table.new [c_1_1, c_1_2]
+
+            c_2_1 = ['foo', [5, 6, 7]]
+            c_2_2 = ['baz', [False, True, False]]
+            t_2 = Table.new [c_2_1, c_2_2]
+
+            r = t_1.concat t_2
+
+            r.columns.length.should_equal 3
+            r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
+            r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', Nothing, Nothing, Nothing]
+            r.at 'baz' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, False, True, False]
+
+        Test.specify 'should concatenate indexes' <|
+            i_1 = ['ix', [1, 2, 3]]
+            c_1 = ['col', [5, 6, 7]]
+
+            i_2 = ['ix_2', [False, True]]
+            c_2 = ['col', [7, 8]]
+
+            t_1 = Table.new [i_1, c_1] . set_index 'ix'
+            t_2 = Table.new [i_2, c_2] . set_index 'ix_2'
+
+            r = t_1.concat t_2
+
+            r.index.to_vector.should_equal [1, 2, 3, False, True]

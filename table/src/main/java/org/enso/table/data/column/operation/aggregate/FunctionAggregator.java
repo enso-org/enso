@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /** Aggregates the storage using a provided {@link Function}. */
@@ -20,7 +21,7 @@ public class FunctionAggregator extends Aggregator {
    * @param aggregateFunction the function used to obtain aggregation of a group
    * @param storage the storage serving as data source
    * @param skipNa whether missing values should be passed to the function
-   * @param resultSize the number of times {@link #nextGroup(List)} will be called
+   * @param resultSize the number of times {@link Aggregator#nextGroup(IntStream)} will be called
    */
   public FunctionAggregator(
       Function<List<Object>, Object> aggregateFunction,
@@ -34,14 +35,14 @@ public class FunctionAggregator extends Aggregator {
   }
 
   @Override
-  public void nextGroup(List<Integer> positions) {
+  public void nextGroup(IntStream positions) {
     List<Object> items = getItems(positions);
     Object result = aggregateFunction.apply(items);
     builder.append(result);
   }
 
-  private List<Object> getItems(List<Integer> positions) {
-    Stream<Object> items = positions.stream().map(storage::getItemBoxed);
+  private List<Object> getItems(IntStream positions) {
+    Stream<Object> items = positions.mapToObj(storage::getItemBoxed);
     if (skipNa) {
       items = items.filter(Objects::nonNull);
     }

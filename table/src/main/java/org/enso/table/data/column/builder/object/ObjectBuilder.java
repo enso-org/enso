@@ -45,6 +45,11 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
+  public void appendNulls(int count) {
+    currentSize += count;
+  }
+
+  @Override
   public int getCurrentSize() {
     return currentSize;
   }

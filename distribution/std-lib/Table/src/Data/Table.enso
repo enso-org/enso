@@ -87,9 +87,12 @@ type Table
 
     ## Sets the column value at the given name. If a column with the given name
        already exists, it will be replaced. Otherwise a new column is added.
-    set : Text -> Column -> Table
-    set name column =
-        Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
+    set : Text -> Column.Column | Vector.Vector -> Table
+    set name column = case column of
+        Vector.Vector _ ->
+            this.set name (Column.from_vector name column)
+        Column.Column _ ->
+            Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## Returns the vector of columns contained in this table.
     columns : Vector
@@ -100,6 +103,13 @@ type Table
     set_index : Text -> Table
     set_index index =
         Table (this.java_table.indexFromColumn index)
+
+    ## Returns the index of this table, as a column (indexed by itself).
+       Returns `Nothing` if there is no index set.
+    index : Column.Column | Nothing
+    index = case this.java_table.getIndex.toColumn of
+        Nothing -> Nothing
+        i -> Column.Column i
 
     ## Selects a subset of columns from this table by name.
     select : Vector -> Table
@@ -285,6 +295,14 @@ type Table
                     c -> here.comparator_to_java c
                 OrderBuilder.OrderRule.new c java_cmp o nulls
 
+    ## UNSTABLE
+
+       Concatenates `other` to `this`. Any column that is present in one table,
+       but missing in another, will be `Nothing`-padded in the positions
+       corresponding to the missing column.
+    concat other =
+        Table (this.java_table.concat other.java_table)
+
 ## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign
 
@@ -320,6 +338,28 @@ type Aggregate_Table
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)
+
+## Creates a new table from a vector of column names and a vector of vectors
+   specifying row contents.
+
+   Arguments:
+     - header: a list of texts specifying the column names
+     - rows: a vector of vectors, specifying the contents of each table row.
+       the length of each element of `rows` must be equal in length to `header`.
+
+   > Example
+     The code below creates a table with 3 columns, named `foo`, `bar`, and
+     `baz`, containing `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`,
+     respectively.
+         header = [ 'foo' , 'bar' , 'baz' ]
+         row_1 =  [ 1     , True  , 'a'   ]
+         row_2 =  [ 2     , False , 'b'   ]
+         row_3 =  [ 3     , True  , 'c'   ]
+         Table.from_rows header [row_1, row_2, row_3]
+from_rows : Vector.Vector -> Vector.Vector -> Table
+from_rows header rows =
+    columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
+    here.new columns
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
