@@ -100,6 +100,7 @@ jobs:
         run: |
           sleep 1
           sbt -debug --no-colors compile
+
       - name: Build 2
         run: |
           sleep 1
@@ -128,10 +129,10 @@ jobs:
 #        run: |
 #          sleep 1
 #          sbt --no-colors launcher/buildNativeImage
-      - name: Build the Runner & Runtime Uberjars
+      - name: Build the Runner
         run: |
           sleep 1
-          sbt -debug --no-colors engine-runner/assembly
+          sbt -debug --no-colors "engine-runner/assembly"
 
       - name: Test Enso
         run: |
