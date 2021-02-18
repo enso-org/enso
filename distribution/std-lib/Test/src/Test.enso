@@ -164,8 +164,8 @@ run_spec ~behavior =
         case ex of
             Failure _ -> ex
             Finished_With_Error x -> 
-                Failure ("An unexpected error was returned: " + x.to_text)
-            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text)
+                Failure ("An unexpected error was returned: " + x.to_text + '\n' + maybeExc.get_stack_trace_text)
+            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
     result
 
 ## Creates a new test group, desribing properties of the object

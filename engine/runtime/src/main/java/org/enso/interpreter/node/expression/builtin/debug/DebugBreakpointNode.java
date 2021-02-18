@@ -48,7 +48,7 @@ public abstract class DebugBreakpointNode extends Node implements Instrumentable
       Object state,
       Object _this,
       @CachedContext(Language.class) Context context) {
-    return new Stateful(state, context.getUnit().newInstance());
+    return new Stateful(state, context.getNothing().newInstance());
   }
 
   /**

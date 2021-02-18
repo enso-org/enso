@@ -180,7 +180,7 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
       scope.modules.remove(name);
-      return context.getUnit().newInstance();
+      return context.getNothing().newInstance();
     }
 
     private static Object leakContext(Context context) {

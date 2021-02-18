@@ -288,12 +288,12 @@ public class Context {
   }
 
   /**
-   * Returns the atom constructor corresponding to the {@code Unit} type, for builtin constructs
+   * Returns the atom constructor corresponding to the {@code Nothing} type, for builtin constructs
    * that need to return an atom of this type.
    *
-   * @return the builtin {@code Unit} atom constructor
+   * @return the builtin {@code Nothing} atom constructor
    */
-  public AtomConstructor getUnit() {
+  public AtomConstructor getNothing() {
     return getBuiltins().nothing();
   }
 
