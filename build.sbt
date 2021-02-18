@@ -998,8 +998,9 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(CopyTruffleJAR.preCompileTask)
       .value,
-    Compile / compile := FixInstrumentsGeneration.patchedCompile
-      .dependsOn(FixInstrumentsGeneration.preCompileTask)
+    Compile / compile := (Compile / compile)
+    //Compile / compile := FixInstrumentsGeneration.patchedCompile
+    //  .dependsOn(FixInstrumentsGeneration.preCompileTask)
       .dependsOn(`core-definition` / Compile / packageBin)
       .value,
     // Note [Classpath Separation]

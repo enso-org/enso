@@ -95,11 +95,15 @@ jobs:
       - name: Bootstrap Enso project
         run: |
           sleep 1
-          sbtn --no-colors bootstrap
+          sbt --no-colors bootstrap
       - name: Build Enso
         run: |
           sleep 1
-          sbtn --no-colors compile
+          sbt --no-colors compile
+      - name: Build Enso2
+        run: |
+          sleep 1
+          sbt --no-colors compile
 
       # Debugging
       - name: Print JVM Version
@@ -123,7 +127,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbtn --no-colors launcher/buildNativeImage
+          sbt --no-colors launcher/buildNativeImage
       - name: Print Instruments File
         shell: bash
         run: |
@@ -133,7 +137,7 @@ jobs:
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbtn --no-colors engine-runner/assembly
+          sbt --no-colors engine-runner/assembly
       - name: Print Instruments File
         shell: bash
         run: |
@@ -144,7 +148,7 @@ jobs:
       - name: Test Enso
         run: |
           sleep 1
-          sbtn --no-colors "set Global / parallelExecution := false; test"
+          sbt --no-colors "set Global / parallelExecution := false; test"
 #      - name: Check Runtime Benchmark Compilation
 #        run: |
 #          sleep 1
