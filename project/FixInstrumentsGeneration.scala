@@ -16,34 +16,32 @@ object FixInstrumentsGeneration {
     * It should be added as a dependency of Compile / compile / compileInputs.
     */
   lazy val preCompileTask = Def.task {
-    if (!sys.env.contains("CI")) {
-      val log                 = streams.value.log
-      val root                = baseDirectory.value
-      val classFilesDirectory = (Compile / classDirectory).value
-      val FragileFiles(fragileSources, fragileClassFiles) =
-        getFragileFiles(root, classFilesDirectory)
+    val log                 = streams.value.log
+    val root                = baseDirectory.value
+    val classFilesDirectory = (Compile / classDirectory).value
+    val FragileFiles(fragileSources, fragileClassFiles) =
+      getFragileFiles(root, classFilesDirectory)
 
-      val fragileSourcesStore =
-        streams.value.cacheStoreFactory.make("instruments_fixer")
+    val fragileSourcesStore =
+      streams.value.cacheStoreFactory.make("instruments_fixer")
 
-      Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(
-        fragileSources.toSet
-      ) { sourcesDiff: ChangeReport[File] =>
-        if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
-          val others =
-            if (sourcesDiff.modified.size >= 2)
-              s" and ${sourcesDiff.modified.size - 1} others"
-            else ""
-          val firstInstrument = sourcesDiff.modified.head
-          val sourcesMessage  = firstInstrument.toString + others
-          log.warn(
-            s"Instruments sources ($sourcesMessage) have been changed.\n" +
-            s"Forcing recompilation of all instruments to maintain " +
-            s"consistency of generated services files."
-          )
+    Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(
+      fragileSources.toSet
+    ) { sourcesDiff: ChangeReport[File] =>
+      if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
+        val others =
+          if (sourcesDiff.modified.size >= 2)
+            s" and ${sourcesDiff.modified.size - 1} others"
+          else ""
+        val firstInstrument = sourcesDiff.modified.head
+        val sourcesMessage  = firstInstrument.toString + others
+        log.warn(
+          s"Instruments sources ($sourcesMessage) have been changed.\n" +
+          s"Forcing recompilation of all instruments to maintain " +
+          s"consistency of generated services files."
+        )
 
-          fragileClassFiles.foreach(_.delete())
-        }
+        fragileClassFiles.foreach(_.delete())
       }
     }
   }
@@ -74,11 +72,7 @@ object FixInstrumentsGeneration {
     Tracked.diffInputs(fragileClassFilesStore, FileInfo.lastModified)(
       fragileClassFiles.toSet
     ) { sourcesDiff: ChangeReport[File] =>
-      if (
-        !sys.env.contains(
-          "CI"
-        ) && sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty
-      ) {
+      if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
         fragileClassFiles.foreach(_.delete())
 
         val projectName = name.value
