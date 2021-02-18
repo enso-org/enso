@@ -96,20 +96,20 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
-      - name: Build Enso
-        run: |
-          sleep 1
-          sbt --no-colors compile
+#      - name: Build Enso
+#        run: |
+#          sleep 1
+#          sbt --no-colors compile
 
       # Debugging
       - name: Print JVM Version
         run: |
           java --version
-      - name: Print Instruments File
-        run: |
-          cd ./engine/runtime/target/scala-2.13/classes/META-INF/services;
-          for file in `ls .`; do echo $file; cat $file;  done
-          cd ../../../../../../../;
+#      - name: Print Instruments File
+#        run: |
+#          cd ./engine/runtime/target/scala-2.13/classes/META-INF/services;
+#          for file in `ls .`; do echo $file; cat $file;  done
+#          cd ../../../../../../../;
 
       # Tests
 #      - name: Setup Tests on Windows
@@ -118,11 +118,11 @@ jobs:
 #        run: |
 #          echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
 #          echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
-      - name: Build the Launcher
-        shell: bash
-        run: |
-          sleep 1
-          sbt --no-colors launcher/buildNativeImage
+#      - name: Build the Launcher
+#        shell: bash
+#        run: |
+#          sleep 1
+#          sbt --no-colors launcher/buildNativeImage
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
