@@ -95,11 +95,11 @@ jobs:
       - name: Bootstrap Enso project
         run: |
           sleep 1
-          sbt --no-colors bootstrap
-#      - name: Build Enso
-#        run: |
-#          sleep 1
-#          sbt --no-colors compile
+          sbt -debug --no-colors bootstrap
+      - name: Build Enso
+        run: |
+          sleep 1
+          sbt -debug --no-colors compile
 
       # Debugging
       - name: Print JVM Version
@@ -126,7 +126,7 @@ jobs:
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbt --no-colors engine-runner/assembly
+          sbt -debug --no-colors engine-runner/assembly
 
       - name: Test Enso
         run: |
