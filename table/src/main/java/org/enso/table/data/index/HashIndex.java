@@ -2,6 +2,7 @@ package org.enso.table.data.index;
 
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.table.Column;
 
 import java.util.*;
 
@@ -49,6 +50,11 @@ public class HashIndex extends Index {
   @Override
   public String getName() {
     return name;
+  }
+
+  @Override
+  public Column toColumn() {
+    return new Column(name, this, items);
   }
 
   @Override

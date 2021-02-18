@@ -15,6 +15,7 @@ import Tests.Semantic.Names_Spec
 import Tests.Data.Interval_Spec
 import Tests.Data.Json_Spec
 import Tests.Data.List_Spec
+import Tests.Data.Locale_Spec
 import Tests.Data.Map_Spec
 import Tests.Data.Maybe_Spec
 import Tests.Data.Noise.Generator_Spec as Noise_Generator_Spec
@@ -49,6 +50,7 @@ main = Test.Suite.runMain <|
     Js_Interop_Spec.spec
     Json_Spec.spec
     List_Spec.spec
+    Locale_Spec.spec
     Map_Spec.spec
     Maybe_Spec.spec
     Meta_Spec.spec

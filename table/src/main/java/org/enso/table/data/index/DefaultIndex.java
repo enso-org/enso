@@ -1,6 +1,7 @@
 package org.enso.table.data.index;
 
 import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.table.Column;
 
 import java.util.BitSet;
 import java.util.Collections;
@@ -41,6 +42,11 @@ public class DefaultIndex extends Index {
   @Override
   public String getName() {
     return "";
+  }
+
+  @Override
+  public Column toColumn() {
+    return null;
   }
 
   @Override

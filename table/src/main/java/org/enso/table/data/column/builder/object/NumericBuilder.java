@@ -76,6 +76,12 @@ public class NumericBuilder extends TypedBuilder {
     }
   }
 
+  @Override
+  public void appendNulls(int count) {
+    isMissing.set(currentSize, currentSize + count);
+    currentSize += count;
+  }
+
   /**
    * Append a new item in raw form to this builder.
    *

@@ -2,11 +2,16 @@ package org.enso.table.data.table;
 
 import java.util.BitSet;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+
 import org.enso.table.data.column.builder.object.InferredBuilder;
+import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.index.Index;
+import org.enso.table.data.mask.OrderMask;
 import org.enso.table.error.UnexpectedColumnTypeException;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
@@ -47,7 +52,7 @@ public class Column {
   }
 
   /** @return the number of items in this column. */
-  public long getSize() {
+  public int getSize() {
     return getStorage().size();
   }
 
@@ -122,5 +127,34 @@ public class Column {
   /** @return the index of this column */
   public Index getIndex() {
     return index;
+  }
+
+  /**
+   * Aggregates the values in this column, using a given aggregation operation.
+   *
+   * @param aggName name of a vectorized operation that can be used if possible. If null is passed,
+   *     this parameter is unused.
+   * @param aggregatorFunction the function to use if a vectorized operation is not available.
+   * @param skipNa whether missing values should be passed to the {@code fallback} function.
+   * @return a column indexed by the unique index of this aggregate, storing results of applying the
+   *     specified operation.
+   */
+  public Object aggregate(
+      String aggName, Function<List<Object>, Object> aggregatorFunction, boolean skipNa) {
+    Aggregator aggregator = storage.getAggregator(aggName, aggregatorFunction, skipNa, 1);
+
+    IntStream ixes = IntStream.range(0, storage.size());
+    aggregator.nextGroup(ixes);
+    return aggregator.seal().getItemBoxed(0);
+  }
+
+  /**
+   * @param mask the reordering to apply
+   * @return a new column, resulting from reordering this column according to {@code mask}.
+   */
+  public Column applyMask(OrderMask mask) {
+    Index newIndex = index.applyMask(mask);
+    Storage newStorage = storage.applyMask(mask);
+    return new Column(name, newIndex, newStorage);
   }
 }
