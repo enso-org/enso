@@ -20,7 +20,7 @@ jobs:
   test_and_publish:
     name: Build and Test
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -29,8 +29,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.5.0
-#      - name: Setup Go
-#        uses: actions/setup-go@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -47,11 +47,11 @@ jobs:
         run: >
           Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
           -UdpIPv6
-#      - name: Install Rust
-#        uses: actions-rs/toolchain@v1.0.6
-#        with:
-#          toolchain: ${{ env.rustToolchain }}
-#          override: true
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
       - name: Setup conda
         uses: s-weigand/setup-conda@v1.0.5
         with:
@@ -95,79 +95,56 @@ jobs:
       - name: Bootstrap Enso project
         run: |
           sleep 1
-          sbtn --no-colors bootstrap
+          sbt --no-colors bootstrap
       - name: Build Enso
         run: |
           sleep 1
-          sbtn --no-colors compile
-
-      # Debugging
-      - name: Print JVM Version
-        run: |
-          java --version
-      - name: Print Instruments File
-        shell: bash
-        run: |
-          cd ./engine/runtime/target/scala-2.13/classes/META-INF/services;
-          for file in `ls .`; do echo $file; cat $file;  done
-          cd ../../../../../../../;
+          sbt --no-colors compile
 
       # Tests
-#      - name: Setup Tests on Windows
-#        if: runner.os == 'Windows'
-#        shell: bash
-#        run: |
-#          echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
-#          echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
-      - name: Build the Launcher
+      - name: Setup Tests on Windows
+        if: runner.os == 'Windows'
         shell: bash
+        run: |
+          echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
+          echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
+      - name: Build the Launcher
         run: |
           sleep 1
-          sbtn --no-colors launcher/buildNativeImage
-      - name: Print Instruments File
-        shell: bash
-        run: |
-          cd ./engine/runtime/target/scala-2.13/classes/META-INF/services;
-          for file in `ls .`; do echo $file; cat $file;  done
-          cd ../../../../../../../;
+          sbt --no-colors launcher/buildNativeImage
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbtn --no-colors engine-runner/assembly
-      - name: Print Instruments File
-        shell: bash
-        run: |
-          cd ./engine/runtime/target/scala-2.13/classes/META-INF/services;
-          for file in `ls .`; do echo $file; cat $file;  done
-          cd ../../../../../../../;
+          sbt --no-colors "runtime/clean; engine-runner/assembly"
 
       - name: Test Enso
         run: |
           sleep 1
-          sbtn --no-colors "set Global / parallelExecution := false; test"
-#      - name: Check Runtime Benchmark Compilation
-#        run: |
-#          sleep 1
-#          sbt --no-colors runtime/Benchmark/compile
-#      - name: Check Language Server Benchmark Compilation
-#        run: |
-#          sleep 1
-#          sbt --no-colors language-server/Benchmark/compile
-#      - name: Check Searcher Benchmark Compilation
-#        run: |
-#          sleep 1
-#          sbt --no-colors searcher/Benchmark/compile
+          sbt --no-colors "set Global / parallelExecution := false; runtime/clean; compile; test"
+      - name: Check Runtime Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors "runtime/clean; runtime/Benchmark/compile"
+      - name: Check Language Server Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors language-server/Benchmark/compile
+      - name: Check Searcher Benchmark Compilation
+        run: |
+          sleep 1
+          sbt --no-colors searcher/Benchmark/compile
 
       # Build Distribution
-#      - name: Build the Project Manager Native Image
-#        run: |
-#          sleep 1
-#          sbt --no-colors project-manager/buildNativeImage
-#      - name: Build the Parser JS Bundle
-        # The builds are run on 3 platforms, but Flatbuffer schemas are platform
-        # agnostic, so they just need to be uploaded from one of the runners.
-#        if: runner.os == 'Linux'
-#        run: sbt -no-colors syntaxJS/fullOptJS
+      - name: Build the Project Manager Native Image
+        run: |
+          sleep 1
+          sbt --no-colors project-manager/buildNativeImage
+      - name: Build the Parser JS Bundle
+        # The builds are run on 3 platforms, but
+        # Flatbuffer schemas are platform agnostic, so they just need to be
+        # uploaded from one of the runners.
+        if: runner.os == 'Linux'
+        run: sbt --no-colors syntaxJS/fullOptJS
 
       # Prepare distributions
       # The version used in filenames is based on the version of the launcher.
@@ -175,32 +152,32 @@ jobs:
       # can be used interchangeably like this. If in the future the versions
       # become independent, this may require updating to use proper versions
       # for each component.
-#      - name: Prepare Distribution Version (Unix)
-#        if: runner.os != 'Windows'
-#        shell: bash
-#        run: |
-#          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
-#          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
-#
-#      - name: Prepare Distribution Version (Windows)
-#        if: runner.os == 'Windows'
-#        shell: bash
-#        run: |
-#          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
-#          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+      - name: Prepare Distribution Version (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+
+      - name: Prepare Distribution Version (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
+          echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
 
       # Currently the only architecture supported by Github runners is amd64
-#      - name: Prepare Distribution Environment
-#        shell: bash
-#        run: >
-#          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
-#          tools/ci/prepare-distribution-env.sh
+      - name: Prepare Distribution Environment
+        shell: bash
+        run: >
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}') bash
+          tools/ci/prepare-distribution-env.sh
 
-#      - name: Prepare Launcher Distribution
-#        shell: bash
-#        run: |
-#          sleep 1
-#          sbt buildLauncherDistribution
+      - name: Prepare Launcher Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildLauncherDistribution
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
@@ -209,118 +186,118 @@ jobs:
       # So the following line has been removed from this step, as it does
       # nothing useful:
       #  chmod +x $ENGINE_DIST_DIR/bin/enso
-#      - name: Prepare Engine Distribution
-#        shell: bash
-#        run: |
-#          sleep 1
-#          sbt buildEngineDistribution
-#
-#      - name: Prepare Project Manager Distribution
-#        shell: bash
-#        run: |
-#          sleep 1
-#          sbt buildProjectManagerDistribution
+      - name: Prepare Engine Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt "runtime/clean; buildEngineDistribution"
+
+      - name: Prepare Project Manager Distribution
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildProjectManagerDistribution
 
       # Test Distribution
-#      - name: Prepare Engine Test Environment
-#        shell: bash
-#        run: |
-#          go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
-#          $(go env GOPATH)/bin/httpbin -host :8080 &
-#
-#      - name: Test Engine Distribution (Unix)
-#        shell: bash
-#        if: runner.os != 'Windows'
-#        run: |
-#          $ENGINE_DIST_DIR/bin/enso --run test/Tests
-#          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
-#          $ENGINE_DIST_DIR/bin/enso --run test/Geo_Tests
-#
-#      - name: Test Engine Distribution (Windows)
-#        shell: bash
-#        if: runner.os == 'Windows'
-#        run: |
-#          $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
-#          $ENGINE_DIST_DIR/bin/enso.bat --run test/Table_Tests
-#          $ENGINE_DIST_DIR/bin/enso.bat --run test/Geo_Tests
+      - name: Prepare Engine Test Environment
+        shell: bash
+        run: |
+          go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
+          $(go env GOPATH)/bin/httpbin -host :8080 &
+
+      - name: Test Engine Distribution (Unix)
+        shell: bash
+        if: runner.os != 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso --run test/Geo_Tests
+
+      - name: Test Engine Distribution (Windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Table_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Geo_Tests
 
       # Publish
-#      - name: Publish the Engine Distribution Artifact
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: ${{ env.ENGINE_DIST_NAME }}
-#          path: ${{ env.ENGINE_DIST_ROOT }}
-#      - name: Publish the Launcher
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: ${{ env.LAUNCHER_DIST_NAME }}
-#          path: ${{ env.LAUNCHER_DIST_ROOT }}
-#      - name: Publish the Project Manager
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
-#          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
+      - name: Publish the Engine Distribution Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.ENGINE_DIST_NAME }}
+          path: ${{ env.ENGINE_DIST_ROOT }}
+      - name: Publish the Launcher
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.LAUNCHER_DIST_NAME }}
+          path: ${{ env.LAUNCHER_DIST_ROOT }}
+      - name: Publish the Project Manager
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
+          path: ${{ env.PROJECTMANAGER_DIST_ROOT }}
 
-#      - name: Prepare the FlatBuffers Schemas for Upload
+      - name: Prepare the FlatBuffers Schemas for Upload
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
         # agnostic, so they just need to be uploaded from one of the runners.
-#        if: runner.os == 'Linux'
-#        run: |
-#          mkdir fbs-upload
-#          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
-#          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
-#      - name: Publish the FlatBuffers Schemas
-#        if: runner.os == 'Linux'
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: Engine Protocol FlatBuffers Schemas
-#          path: ./fbs-upload/fbs-schema.zip
-#      - name: Prepare Parser JS Bundle for Upload
-#        if: runner.os == 'Linux'
-#        run: |
-#          mkdir parser-upload
-#          cp ./target/scala-parser.js parser-upload
-#      - name: Publish the Parser JS Bundle
-#        if: runner.os == 'Linux'
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: Parser JS Bundle
-#          path: ./target/scala-parser.js
-#      - name: Publish the Manifest
-#        if: runner.os == 'Linux'
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: manifest
-#          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
+        if: runner.os == 'Linux'
+        run: |
+          mkdir fbs-upload
+          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
+          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
+      - name: Publish the FlatBuffers Schemas
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Engine Protocol FlatBuffers Schemas
+          path: ./fbs-upload/fbs-schema.zip
+      - name: Prepare Parser JS Bundle for Upload
+        if: runner.os == 'Linux'
+        run: |
+          mkdir parser-upload
+          cp ./target/scala-parser.js parser-upload
+      - name: Publish the Parser JS Bundle
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Parser JS Bundle
+          path: ./target/scala-parser.js
+      - name: Publish the Manifest
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: ${{ env.ENGINE_DIST_DIR }}/manifest.yaml
 
       # Publish FlatBuffer Schemas and Parser Bundle to S3
-#      - name: Prepare AWS Session
-#        shell: bash
-#        if: runner.os == 'Linux'
-#        run: |
-#          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-#          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
-#          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-#          us-west-2
-#          text
-#          EOF
-#      - name: Upload Parser JS Bundle to S3
-#        shell: bash
-#        if: runner.os == 'Linux'
-#        run: |
-#          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-#      - name: Upload FlatBuffers Schemas to S3
-#        shell: bash
-#        if: runner.os == 'Linux'
-#        run: |
-#          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-#      - name: Teardown AWS Session
-#        shell: bash
-#        if: runner.os == 'Linux'
-#        run: |
-#          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-#          null
-#          null
-#          null
-#          text
-#          EOF
+      - name: Prepare AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          us-west-2
+          text
+          EOF
+      - name: Upload Parser JS Bundle to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Upload FlatBuffers Schemas to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Teardown AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF

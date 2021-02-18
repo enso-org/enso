@@ -31,7 +31,7 @@ scalaVersion in ThisBuild := scalacVersion
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
 gatherLicenses := {
-  GatherLicenses.run.value
+  val _ = GatherLicenses.run.value
 }
 lazy val verifyLicensePackages =
   taskKey[Unit](
@@ -964,11 +964,16 @@ lazy val parser = (project in file("lib/scala/parser"))
   )
   .dependsOn(ast)
 
+lazy val cleanInstruments = taskKey[Unit](
+  "Cleans fragile class files to force a full recompilation and preserve" +
+  "consistency of instrumentation configuration."
+)
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
     version := ensoVersion,
     commands += WithDebugCommand.withDebug,
+    cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
@@ -1267,7 +1272,7 @@ lazy val `std-bits` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      StdBits
+      val _ = StdBits
         .copyDependencies(
           `std-lib-polyglot-root`,
           "std-bits.jar",
@@ -1289,7 +1294,7 @@ lazy val `table` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      StdBits
+      val _ = StdBits
         .copyDependencies(
           `table-polyglot-root`,
           "table.jar",

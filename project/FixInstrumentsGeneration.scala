@@ -90,6 +90,33 @@ object FixInstrumentsGeneration {
     compilationResult
   }
 
+  /** Deletes the compiled instrumentation class files, forcing all of them to
+    * be recompiled.
+    *
+    * Since all instruments are recompiled at once, the service state should be
+    * consistent as all of them will be re-registered.
+    */
+  def cleanInstruments = Def.task {
+    val log                 = streams.value.log
+    val root                = baseDirectory.value
+    val classFilesDirectory = (Compile / classDirectory).value
+    val FragileFiles(_, fragileClassFiles) =
+      getFragileFiles(root, classFilesDirectory)
+    fragileClassFiles.foreach { file =>
+      if (file.exists()) {
+        log.info(s"[clean-instruments] Removing $file")
+        file.delete()
+      } else {
+        log.info(s"[clean-instruments] $file was already missing")
+      }
+    }
+    log.info(
+      "All fragile class files have been deleted. The next compilation " +
+      "should be forced to recompile all of them, preserving instrumentation " +
+      "configuration consistency."
+    )
+  }
+
   private case class FragileFiles(sources: Seq[File], classFiles: Seq[File])
 
   private def getFragileFiles(
