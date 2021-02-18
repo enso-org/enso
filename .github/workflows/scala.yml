@@ -99,7 +99,11 @@ jobs:
       - name: Build Enso
         run: |
           sleep 1
-          sbt -debug --no-colors "set Global / parallelExecution := false; compile"
+          sbt -debug --no-colors compile
+      - name: Build Enso again XD
+        run: |
+          sleep 1
+          sbt -debug --no-colors compile
 
       # Debugging
       - name: Print JVM Version
@@ -126,7 +130,7 @@ jobs:
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbt -debug --no-colors "set Global / parallelExecution := false; engine-runner/assembly"
+          sbt -debug --no-colors engine-runner/assembly
 
       - name: Test Enso
         run: |
