@@ -7,6 +7,10 @@ polyglot java import java.util.Locale as JavaLocale
 # top ten countries by total (nominal, not per-capita) GDP.
 
 ## The default locale.
+
+   The default locale is a locale that does not specify any language, country,
+   or variant and is used as the language/country-neutral setting for locale
+   sensitive operations.
 default : Locale
 default = here.from_java JavaLocale.ROOT
 

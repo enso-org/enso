@@ -278,6 +278,14 @@ public class Table {
     return names.contains(name) ? name + suffix : name;
   }
 
+  /**
+   * Concatenates {@code other} to {@code this}. Any column that is present in one table, but
+   * missing in another, will be {@code null}-padded in the positions corresponding to the missing
+   * column.
+   *
+   * @param other the table to append to this one.
+   * @return a table result from concatenating both tables
+   */
   public Table concat(Table other) {
     Index newIndex = concatIndexes(index, other.index);
     List<Column> newColumns = new ArrayList<>();

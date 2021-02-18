@@ -46,6 +46,10 @@ public abstract class Index {
   /** @return the name of this index */
   public abstract String getName();
 
+  /**
+   * @return the contents of this index as a column. May be null, if the index does not represent
+   *     any meaningful data.
+   */
   public abstract Column toColumn();
 
   /**

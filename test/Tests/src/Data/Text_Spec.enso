@@ -2,6 +2,7 @@ from Base import all
 import Test
 
 import Base.Data.Text.Split_Kind
+import Base.Data.Locale
 
 type Auto a
 
@@ -66,3 +67,11 @@ spec = Test.group "Text" <|
         txt.drop_first 2 . should_equal (accent_1 + accent_2)
         txt.take_last  2 . should_equal (accent_1 + accent_2)
         txt.drop_last  2 . should_equal (kshi + facepalm)
+
+    Test.specify "should correctly convert character case" <|
+        "FooBar Baz".to_lower_case.should_equal "foobar baz"
+        "FooBar Baz".to_upper_case.should_equal "FOOBAR BAZ"
+        "i".to_upper_case . should_equal "I"
+        "I".to_lower_case . should_equal "i"
+        "i".to_upper_case (Locale.new "tr") . should_equal "İ"
+        "I".to_lower_case (Locale.new "tr") . should_equal "ı"

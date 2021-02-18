@@ -130,7 +130,7 @@ public class Column {
   }
 
   /**
-   * Aggregates the groups using a given aggregation operation.
+   * Aggregates the values in this column, using a given aggregation operation.
    *
    * @param aggName name of a vectorized operation that can be used if possible. If null is passed,
    *     this parameter is unused.
@@ -148,6 +148,10 @@ public class Column {
     return aggregator.seal().getItemBoxed(0);
   }
 
+  /**
+   * @param mask the reordering to apply
+   * @return a new column, resulting from reordering this column according to {@code mask}.
+   */
   public Column applyMask(OrderMask mask) {
     Index newIndex = index.applyMask(mask);
     Storage newStorage = storage.applyMask(mask);
