@@ -622,8 +622,16 @@ class ExpressionErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, xId, Constants.ERROR),
-      TestMessages.update(contextId, yId, Constants.ERROR),
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
       TestMessages.update(contextId, mainResId, Constants.NOTHING),
       context.executionComplete(contextId)
     )
@@ -664,9 +672,17 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.ERROR),
-      TestMessages.update(contextId, yId, Constants.ERROR),
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(

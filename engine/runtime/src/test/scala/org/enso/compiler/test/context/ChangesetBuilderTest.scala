@@ -345,7 +345,7 @@ class ChangesetBuilderTest extends CompilerTest {
           |#### METADATA ####
           |[[{"index": {"value": 47}, "size": {"value": 1}}, "b95f644b-e877-4e33-b5da-11a65e01068e"],[{"index": {"value": 37}, "size": {"value": 5}}, "17edd47d-b546-4d57-a453-0529036b393f"],[{"index": {"value": 15}, "size": {"value": 13}}, "b1c393b2-67be-488b-b46d-2adba21bca6d"]]
           |[]
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val edit = TextEdit(Range(Position(1, 12), Position(1, 21)), "42")
 
       val ir = code.preprocessModule
