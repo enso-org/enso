@@ -1030,8 +1030,10 @@ impl Model {
     /// Create a controller-compatible description of the visualization based on the input received
     /// from the graph editor endpoints.
     fn prepare_visualization
-    (&self, node_id:&graph_editor::NodeId) -> FallibleResult<Visualization> {
+    (&self, node_id:&graph_editor::NodeId, metadata:&Option<visualization::Metadata>)
+    -> FallibleResult<Visualization> {
         use crate::model::module::QualifiedName;
+        let metadata = metadata.as_ref();
 
         // TODO [mwu]
         //   Currently it is not possible to:
@@ -1045,18 +1047,22 @@ impl Model {
         let module_name          = crate::ide::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_segments(project_name,&[module_name])?;
         let id                   = VisualizationId::new_v4();
-        let expression           = crate::constants::SERIALIZE_TO_JSON_EXPRESSION.into();
+        let metadata_expression  = metadata.and_then(|m| m.preprocessor.as_ref().map(|e| e.to_string()));
+        let default_expression   = crate::constants::SERIALIZE_TO_JSON_EXPRESSION;
+        let expression           = metadata_expression.unwrap_or_else(||default_expression.into());
         let ast_id               = self.get_controller_node_id(*node_id)?;
         Ok(Visualization{ast_id,expression,id,visualisation_module})
     }
 
-    fn visualization_enabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult {
+    fn visualization_enabled_in_ui
+    (&self, (node_id,vis_metadata):&(graph_editor::NodeId,Option<visualization::Metadata>))
+    -> FallibleResult {
         // Do nothing if there is already a visualization attached.
         let err = || VisualizationAlreadyAttached(*node_id);
         self.get_controller_visualization_id(*node_id).is_err().ok_or_else(err)?;
 
         debug!(self.logger, "Attaching visualization on {node_id}.");
-        let visualization  = self.prepare_visualization(node_id)?;
+        let visualization  = self.prepare_visualization(node_id,vis_metadata)?;
         let id             = visualization.id;
         let node_id        = *node_id;
         let controller     = self.graph.clone();
