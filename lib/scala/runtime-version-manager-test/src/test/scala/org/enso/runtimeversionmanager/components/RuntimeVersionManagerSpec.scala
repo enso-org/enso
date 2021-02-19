@@ -34,7 +34,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
       )
 
       val runtime = componentsManager.findGraalRuntime(engine)
-      runtime.value.version shouldEqual GraalVMVersion(SemVer(2, 0, 0), "11")
+      runtime.value.version shouldEqual GraalVMVersion("2.0.0", "11")
       assert(
         runtime.value.path.startsWith(distributionManager.paths.runtimes),
         "Engine should be installed in the engines directory."
@@ -47,8 +47,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         Set(SemVer(0, 0, 0), SemVer(0, 0, 1), SemVer(0, 0, 1, Some("pre")))
       val runtimeVersions =
         Set(
-          components.GraalVMVersion(SemVer(1, 0, 0), "11"),
-          components.GraalVMVersion(SemVer(2, 0, 0), "11")
+          components.GraalVMVersion("1.0.0.1.foo", "11"),
+          components.GraalVMVersion("2.0.0", "11")
         )
       engineVersions.map(componentsManager.findOrInstallEngine)
 
@@ -63,7 +63,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
 
       val runtime2 =
         componentsManager
-          .findGraalRuntime(components.GraalVMVersion(SemVer(2, 0, 0), "11"))
+          .findGraalRuntime(components.GraalVMVersion("2.0.0", "11"))
           .value
       componentsManager.findEnginesUsingRuntime(runtime2) should have length 2
     }
@@ -138,7 +138,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
       val runtimes2 = componentsManager.listInstalledGraalRuntimes()
       runtimes2 should have length 1
       runtimes2.map(_.version).head shouldEqual components.GraalVMVersion(
-        SemVer(1, 0, 0),
+        "1.0.0.1.foo",
         "11"
       )
 
@@ -183,7 +183,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
 
     "support bundled components" in {
       val engineVersion  = SemVer(0, 1, 0)
-      val runtimeVersion = GraalVMVersion(SemVer(1, 0, 0), "11")
+      val runtimeVersion = GraalVMVersion("1.0.0.1.foo", "11")
       prepareBundle(
         engines  = Seq(engineVersion),
         runtimes = Seq(runtimeVersion)
@@ -201,7 +201,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
 
     "fail to uninstall a read-only bundled component" taggedAs OsUnix in {
       val engineVersion  = SemVer(0, 1, 0)
-      val runtimeVersion = GraalVMVersion(SemVer(1, 0, 0), "11")
+      val runtimeVersion = GraalVMVersion("1.0.0.1.foo", "11")
       prepareBundle(
         engines  = Seq(engineVersion),
         runtimes = Seq(runtimeVersion)
@@ -211,8 +211,9 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
       def installedRuntimes =
         manager.listInstalledGraalRuntimes().map(_.version)
 
-      val enginePath  = getTestDirectory / "dist" / "0.1.0"
-      val runtimePath = getTestDirectory / "runtime" / "graalvm-ce-java11-1.0.0"
+      val enginePath = getTestDirectory / "dist" / "0.1.0"
+      val runtimePath =
+        getTestDirectory / "runtime" / "graalvm-ce-java11-1.0.0.1.foo"
 
       enginePath.toFile.setWritable(false)
       try {
@@ -246,7 +247,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
     "include both bundled and installed components in list" in {
       prepareBundle(
         engines  = Seq(SemVer(0, 0, 1)),
-        runtimes = Seq(GraalVMVersion(SemVer(1, 0, 0), "11"))
+        runtimes = Seq(GraalVMVersion("1.0.0.1.foo", "11"))
       )
       val manager = makeRuntimeVersionManager()
       manager.findOrInstallEngine(SemVer(0, 1, 0))
@@ -260,8 +261,8 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
 
       val runtimeVersions = manager.listInstalledGraalRuntimes().map(_.version)
       runtimeVersions.map(_.graalVersion) should contain theSameElementsAs Seq(
-        SemVer(1, 0, 0),
-        SemVer(2, 0, 0)
+        "1.0.0.1.foo",
+        "2.0.0"
       )
       runtimeVersions.map(_.java).toSet shouldEqual Set("11")
     }
@@ -286,7 +287,7 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
   private def fakeInstallEngine(searchPath: Path, version: SemVer): Unit = {
     val manifest = """minimum-launcher-version: 0.0.1
                      |minimum-project-manager-version: 0.0.1
-                     |graal-vm-version: 1.0.0
+                     |graal-vm-version: 1.0.0.1.foo
                      |graal-java-version: 11""".stripMargin
     val root     = searchPath / version.toString
     Files.createDirectories(root)

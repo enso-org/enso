@@ -36,7 +36,7 @@ import scala.util.{Failure, Try, Using}
   */
 case class Manifest(
   requiredInstallerVersions: RequiredInstallerVersions,
-  graalVMVersion: SemVer,
+  graalVMVersion: String,
   graalJavaVersion: String,
   jvmOptions: Seq[JVMOption],
   brokenMark: Boolean
@@ -200,7 +200,7 @@ object Manifest {
       minimumProjectManagerVersion <- json.get[SemVer](
         Fields.minimumProjectManagerVersion
       )
-      graalVMVersion <- json.get[SemVer](Fields.graalVMVersion)
+      graalVMVersion <- json.get[String](Fields.graalVMVersion)
       graalJavaVersion <-
         json
           .get[String](Fields.graalJavaVersion)
