@@ -17,6 +17,7 @@ pub mod channel;
 pub mod env;
 pub mod fail;
 pub mod future;
+pub mod serde;
 pub mod string;
 pub mod test;
 pub mod vec;

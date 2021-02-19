@@ -22,7 +22,7 @@ pub use ast::Ast;
 // === Metadata ===
 
 /// Things that are metadata.
-pub trait Metadata:Serialize+DeserializeOwned {}
+pub trait Metadata:Default+Serialize+DeserializeOwned {}
 
 /// Raw metadata.
 impl Metadata for serde_json::Value {}
@@ -128,6 +128,8 @@ pub struct ParsedSourceFile<Metadata> {
     /// Ast representation.
     pub ast: ast::known::Module,
     /// Raw metadata in json.
+    #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
+    #[serde(deserialize_with="utils::serde::deserialize_or_default")]
     pub metadata: Metadata
 }
 
@@ -223,7 +225,7 @@ mod test {
 
 
 
-    #[derive(Clone,Debug,Deserialize,Serialize)]
+    #[derive(Clone,Debug,Default,Deserialize,Serialize)]
     struct Metadata {
         foo : usize,
     }

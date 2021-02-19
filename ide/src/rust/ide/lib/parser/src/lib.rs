@@ -85,6 +85,9 @@ impl Parser {
 
     /// Parse contents of the program source file, where program code may be followed by idmap and
     /// metadata.
+    ///
+    /// If metadata deserialization fails, error is ignored and default value for metadata is used.
+    /// Other errors are returned through `Result`.
     pub fn parse_with_metadata<M:api::Metadata>
     (&self, program:String) -> api::Result<api::ParsedSourceFile<M>> {
         self.borrow_mut().parse_with_metadata(program)

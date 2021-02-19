@@ -291,10 +291,11 @@ pub struct Notification {
 // ==============
 
 /// Mapping between ID and metadata.
-#[derive(Debug,Clone,Deserialize,Serialize)]
+#[derive(Clone,Debug,Deserialize,PartialEq,Serialize)]
 pub struct Metadata {
     /// Metadata used within ide.
     #[serde(default="default")]
+    #[serde(deserialize_with="utils::serde::deserialize_or_default")]
     pub ide : IdeMetadata,
     #[serde(flatten)]
     /// Metadata of other users of ParsedSourceFile<Metadata> API.
@@ -316,21 +317,24 @@ impl Default for Metadata {
 }
 
 /// Metadata that belongs to ide.
-#[derive(Debug,Clone,Default,Deserialize,Serialize)]
+#[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
 pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
+    #[serde(deserialize_with="utils::serde::deserialize_or_default")]
     node : HashMap<ast::Id,NodeMetadata>
 }
 
 /// Metadata of specific node.
-#[derive(Debug,Clone,Default,Serialize,Deserialize)]
+#[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
 pub struct NodeMetadata {
     /// Position in x,y coordinates.
+    #[serde(deserialize_with="utils::serde::deserialize_or_default")]
     pub position:Option<Position>,
     /// A method which user intends this node to be, e.g. by picking specific suggestion in
     /// Searcher Panel.
     ///
     /// The methods may be defined for different types, so the name alone don't specify them.
+    #[serde(deserialize_with="utils::serde::deserialize_or_default")]
     pub intended_method:Option<MethodId>,
 }
 
@@ -504,6 +508,8 @@ pub type Synchronized = synchronized::Module;
 pub mod test {
     use super::*;
 
+    use std::str::FromStr;
+
     pub fn expect_code(module:&dyn API, expected_code:impl AsRef<str>) {
         let code = module.ast().repr();
         assert_eq!(code,expected_code.as_ref())
@@ -574,5 +580,26 @@ pub mod test {
         let module_path  = Path::from_file_path(file_path).unwrap();
         let qualified    = module_path.qualified_module_name(project_name);
         assert_eq!(qualified.to_string(), "P.Foo.Bar");
+    }
+
+    #[wasm_bindgen_test]
+    fn outdated_metadata_parses() {
+        // Metadata here will fail to serialize because `File` is not a valid qualified name.
+        // Expected behavior is that invalid metadata parts will be filled with defaults.
+        let code = r#"main = 5
+
+
+#### METADATA ####
+[]
+{"ide":{"node":{"bd891b65-4c2f-4c05-bc3b-6077b4417cc1":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}}}}}"#;
+        let result = Parser::new_or_panic().parse_with_metadata::<Metadata>(code.into());
+        let file = result.unwrap();
+        assert_eq!(file.ast.repr(), "main = 5");
+        assert_eq!(file.metadata.ide.node.len(), 1);
+        let id = ast::Id::from_str("bd891b65-4c2f-4c05-bc3b-6077b4417cc1").unwrap();
+        let node = file.metadata.ide.node.get(&id).unwrap();
+        assert_eq!(node.position, Some(Position::new(-75.5,52.0)));
+        assert_eq!(node.intended_method, None);
+        assert_eq!(file.metadata.rest, serde_json::Value::Object(default()));
     }
 }

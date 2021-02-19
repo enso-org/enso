@@ -13,6 +13,7 @@ use api::Error::*;
 use api::ParsedSourceFile;
 use ast::IdMap;
 
+use serde::de::DeserializeOwned;
 use std::fmt::Formatter;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
@@ -98,6 +99,7 @@ pub enum Request {
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Deserialize)]
 pub enum Response<Metadata> {
+    #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
     Success { module  : ParsedSourceFile<Metadata> },
     Error   { message : String                     },
 }
