@@ -3,12 +3,16 @@ import Database.Data.Sql
 import Database.Data.Internal.Base_Generator
 
 ## INTERNAL
-   A SQL dialect.
+   Represents a specific SQL dialect.
+
+   It encapsulates dialect-specific code generation details allowing us to
+   support differing SQL dialects.
 type Dialect
     # type Dialect (name : Text)
     #              (generate_sql : Query -> Sql.Statement)
     type Dialect name generate_sql
 
+## The dialect of PostgreSQL databases.
 postgresql : Dialect
 postgresql =
     starts_with arguments =
@@ -40,8 +44,9 @@ postgresql =
                 Error.throw ("Invalid amount of arguments for operation contains")
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
     dialect = Base_Generator.base_dialect . extend_with my_mappings
-    Dialect "PostgreSql" (query -> Base_Generator.generate_query dialect query . build)
+    Dialect "postgresql" (query -> Base_Generator.generate_query dialect query . build)
 
+## The dialect of SQLite databases.
 sqlite : Dialect
 sqlite =
     starts_with arguments =
@@ -73,4 +78,4 @@ sqlite =
                 Error.throw ("Invalid amount of arguments for operation contains")
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
     dialect = Base_Generator.base_dialect . extend_with my_mappings
-    Dialect "Sqlite" (query -> Base_Generator.generate_query dialect query . build)
+    Dialect "sqlite" (query -> Base_Generator.generate_query dialect query . build)

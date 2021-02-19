@@ -3,6 +3,13 @@ import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 import Database.Data.Table
 
+## Represents a single column backed by a database.
+
+   These columns may come from the Table or can be created by combining other
+   columns with operators. Expressions created in this way may be materialized
+   or used to apply filters, groupings etc. to tables from which they come.
+   Combined expressions must come from the same context - they must both have
+   the same filtering, grouping etc. rules applied to be able to be combined.
 type Column
     # type Column (name : Text) (connection : Connection)
     #             (expression : IR.Expression) (context : IR.Context)
@@ -25,26 +32,6 @@ type Column
     ## Returns an Sql statement that will be used for materializing this column.
     to_sql : Sql.Statement
     to_sql = this.to_table.to_sql
-
-    make_binary_op : Text -> Text -> (Column | Any) -> Column
-    make_binary_op op_kind operand =
-        case operand of
-            Column _ _ other_expr _ ->
-                case Helpers.check_integrity this operand of
-                    False ->
-                        Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
-                    True ->
-                        new_expr = IR.Operation op_kind [this.expression, other_expr]
-                        Column this.name this.connection new_expr this.context
-            _ ->
-                other = IR.make_constant operand
-                new_expr = IR.Operation op_kind [this.expression, other]
-                Column this.name this.connection new_expr this.context
-
-    make_unary_op : Text -> Text -> Column
-    make_unary_op op_kind =
-        new_expr = IR.Operation op_kind [this.expression]
-        Column this.name this.connection new_expr this.context
 
     ## Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
@@ -188,6 +175,30 @@ type Column
     contains : Column | Text -> Column
     contains other = this.make_binary_op "contains" other
 
+    ## PRIVATE
+       Helper for implementing binary operators.
+    make_binary_op : Text -> Text -> (Column | Any) -> Column
+    make_binary_op op_kind operand =
+        case operand of
+            Column _ _ other_expr _ ->
+                case Helpers.check_integrity this operand of
+                    False ->
+                        Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
+                    True ->
+                        new_expr = IR.Operation op_kind [this.expression, other_expr]
+                        Column this.name this.connection new_expr this.context
+            _ ->
+                other = IR.make_constant operand
+                new_expr = IR.Operation op_kind [this.expression, other]
+                Column this.name this.connection new_expr this.context
+
+    ## PRIVATE
+       Helper for implementing unary operators.
+    make_unary_op : Text -> Text -> Column
+    make_unary_op op_kind =
+        new_expr = IR.Operation op_kind [this.expression]
+        Column this.name this.connection new_expr this.context
+
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
 type Aggregate_Column
@@ -241,6 +252,8 @@ type Aggregate_Column
         this.make_aggregate "AVG" name_suffix
 
     ## PRIVATE
+       A helper method for creating an aggregated column by applying some
+       operation.
     make_aggregate operation name_suffix =
         new_name = this.name + name_suffix
         expr = IR.Operation operation [this.expression]

@@ -289,11 +289,13 @@ type Aggregate_Table
     print show_rows=10 = this.values.print show_rows
 
     ## PRIVATE
+       Helper to create aggregate columns from internal columns.
        # make_column : [Text, IR.Expression] -> Aggregate_Column
     make_column pair =
         Aggregate_Column pair.first this.connection pair.second this.context
 
 ## PRIVATE
+   An internal column structure which is a part of the Table.
 type InternalColumn
     ## PRIVATE
     type InternalColumn external_name internal_name expression
@@ -305,10 +307,12 @@ type InternalColumn
 type IntegrityError
     type IntegrityError object_description
 
+    # Return a readable description of this error.
     to_text : Text
     to_text = this.object_description + " comes from a different context."
 
 ## PRIVATE
+   Creates a Table out of a connection, name and list of column names.
 make_table : Connection -> Text -> Vector Text -> Table
 make_table connection table_name column_names =
     ctx = IR.make_ctx_from table_name

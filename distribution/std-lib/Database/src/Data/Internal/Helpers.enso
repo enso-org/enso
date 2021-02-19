@@ -3,6 +3,12 @@ from Database.Data.Table as Table_Module import Table
 from Database.Data.Column as Column_Module import Column
 polyglot java import java.util.regex.Pattern
 
+## INTERNAL
+   Checks if the two tables or columns have the same context and use the same
+   connection.
+
+   To combine different objects they need to satisfy this requirement, otherwise
+   the combination would be ill-formed.
 check_integrity : (Table | Column) -> (Table | Column) -> Boolean
 check_integrity entity1 entity2 =
     con = entity1.connection == entity2.connection
