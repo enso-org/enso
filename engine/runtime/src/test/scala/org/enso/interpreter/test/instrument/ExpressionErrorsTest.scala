@@ -13,6 +13,7 @@ import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
+import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -220,7 +221,7 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(8) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -569,6 +570,359 @@ class ExpressionErrorsTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual Seq("42")
+  }
+
+  it should "continue execution after dataflow errors" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(55, 19)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError
+        |
+        |main =
+        |    x = Error.throw MyError
+        |    y = x - 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("(Error: MyError)")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 8), model.Position(5, 27)),
+              "1234567890123456789"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, xId, Constants.INTEGER),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("1234567890123456788")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 8), model.Position(5, 27)),
+              "1000000000000.div 0"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List(
+      "(Error: (Arithmetic_Error 'Cannot divide by zero.'))"
+    )
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 8), model.Position(5, 27)),
+              "1000000000000.div 2"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, xId, Constants.INTEGER),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("499999999999")
+  }
+
+  it should "continue execution after thrown panics" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(55, 19)
+    val yId        = metadata.addItem(83, 5)
+    val mainResId  = metadata.addItem(93, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError
+        |
+        |main =
+        |    x = Panic.throw MyError
+        |    y = x - 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 8), model.Position(5, 27)),
+              "1234567890123456789"
+            )
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, xId, Constants.INTEGER),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("1234567890123456788")
+  }
+
+  it should "continue execution after panics in expressions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(41, 7)
+    val yId        = metadata.addItem(57, 5)
+    val mainResId  = metadata.addItem(67, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = 1 + foo
+        |    y = x - 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "Variable `foo` is not defined.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 12), model.Position(3, 15))),
+              None
+            )
+          )
+        )
+      ),
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error Variable `foo` is not defined.",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error Variable `foo` is not defined.",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile_Error Variable `foo` is not defined.",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 12), model.Position(3, 15)),
+              "101"
+            )
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, xId, Constants.INTEGER),
+      TestMessages.update(contextId, yId, Constants.INTEGER),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("101")
+
   }
 
 }

@@ -6,7 +6,10 @@ import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.{
+  asDynamic,
+  asStatic
+}
 
 import scala.collection.mutable
 
@@ -129,7 +132,7 @@ case object DataflowAnalysis extends IRPass {
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
-            "dataflow analysis."
+          "dataflow analysis."
         )
       case err: IR.Error => err
     }
@@ -411,10 +414,12 @@ case object DataflowAnalysis extends IRPass {
             aliasInfo.graph.getOccurrence(defLink.target) match {
               case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
                 DependencyInfo.Type.Static(id, ext)
-              case _ => DependencyInfo.Type.Dynamic(name.name, None)
+              case _ =>
+                asDynamic(name)
             }
 
-          case None => DependencyInfo.Type.Dynamic(name.name, None)
+          case None =>
+            asDynamic(name)
         }
 
         info.updateAt(key, Set(asStatic(name)))
