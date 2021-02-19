@@ -28,6 +28,7 @@ pub mod data;
 pub mod definition;
 pub mod foreign;
 pub mod instance;
+pub mod metadata;
 pub mod path;
 pub mod registry;
 
@@ -36,5 +37,6 @@ pub use data::*;
 pub use definition::*;
 pub use foreign::*;
 pub use instance::Instance;
+pub use metadata::*;
 pub use path::*;
 pub use registry::*;

@@ -508,7 +508,7 @@ ensogl::define_endpoints! {
         nodes_labels_visible      (bool),
 
 
-        visualization_enabled                   (NodeId),
+        visualization_enabled                   (NodeId,Option<visualization::Metadata>),
         visualization_disabled                  (NodeId),
         visualization_enable_fullscreen         (NodeId),
         visualization_preprocessor_changed      ((NodeId,data::enso::Code)),
@@ -1087,16 +1087,21 @@ impl GraphEditorModelWithNetwork {
             output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 
-
+            metadata <- node.model.visualization.frp.preprocessor.map(move |code| {
+                let preprocessor = Some(code.clone());
+                Some(visualization::Metadata{preprocessor})
+            });
             // Ensure the graph editor knows about internal changes to the visualisation. If the
             // visualisation changes that should indicate that the old one has been disabled and a
             // new one has been enabled.
             // TODO: Create a better API for updating the controller about visualisation changes
             // (see #896)
             output.source.visualization_disabled          <+ vis_changed.constant(node_id);
-            output.source.visualization_enabled           <+ vis_changed.constant(node_id);
+            output.source.visualization_enabled           <+
+                vis_changed.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
 
-            output.source.visualization_enabled           <+ vis_enabled.constant(node_id);
+            output.source.visualization_enabled           <+
+                vis_enabled.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
             output.source.visualization_disabled          <+ vis_disabled.constant(node_id);
             output.source.visualization_enable_fullscreen <+ vis_fullscreen.constant(node_id);
         }
