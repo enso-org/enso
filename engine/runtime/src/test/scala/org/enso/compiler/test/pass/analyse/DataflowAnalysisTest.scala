@@ -873,7 +873,7 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(undefinedNameId) shouldEqual Some(Set(bindingExprId))
     }
 
-    "propagate undefined variables in expressions" in {
+    "work properly for undefined variables in expressions" in {
       implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
