@@ -5,7 +5,12 @@ use parser::prelude::*;
 
 use ast::*;
 use ast::test_utils::expect_shape;
+use parser::api::Metadata;
 use parser::api::ParsedSourceFile;
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use std::str::FromStr;
 use utils::test::ExpectTuple;
 use wasm_bindgen_test::wasm_bindgen_test;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -37,6 +42,18 @@ fn roundtrip_program(program:&str) {
     let ast    = parser.parse(program.to_string(), Default::default()).unwrap();
     assert_eq!(ast.repr(), program, "{:#?}", ast);
 }
+
+
+
+// ================
+// === Metadata ===
+// ================
+
+/// Wrapper for using ant serializable type as metadata.
+#[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
+struct FauxMetadata<T>(T);
+
+impl<T:Default+Serialize+DeserializeOwned> Metadata for FauxMetadata<T> {}
 
 
 
@@ -467,4 +484,31 @@ fn block_roundtrip() {
     for program in programs {
         roundtrip_program(program);
     }
+}
+
+#[wasm_bindgen_test]
+fn dealing_with_invalid_metadata() {
+    let f = Fixture::new();
+
+    let id = ast::Id::from_str("52233542-5c73-430b-a2b7-a68aaf81341b").unwrap();
+    let var = ast::Ast::new(ast::Var{name:"variable1".into()}, Some(id));
+    let module = ast::Module::from_line(var);
+    let ast = known::Module::new_no_id(module);
+    let metadata = FauxMetadata("certainly_not_a_number".to_string());
+
+    // Make sure that out metadata cannot be deserialized as `FauxMetadata<i32>`.
+    let serialized_text_metadata = serde_json::to_string(&metadata).unwrap();
+    assert!(serde_json::from_str::<FauxMetadata<i32>>(&serialized_text_metadata).is_err());
+
+    let parsed_file = parser::api::ParsedSourceFile {ast, metadata};
+    let generated = parsed_file.serialize().unwrap();
+    let expected_generated = r#"variable1
+
+
+#### METADATA ####
+[[{"index":{"value":0},"size":{"value":9}},"52233542-5c73-430b-a2b7-a68aaf81341b"]]
+"certainly_not_a_number""#;
+    assert_eq!(generated.content, expected_generated);
+    let r = f.parser.parse_with_metadata::<FauxMetadata<i32>>(generated.content).unwrap();
+    assert_eq!(r.metadata, default());
 }
