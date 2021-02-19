@@ -61,7 +61,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       )
     val direct = invalidated(edits)
     val transitive = direct
-      .map(ChangesetBuilder.toDataflowDependencyType)
+      .flatMap(ChangesetBuilder.toDataflowDependencyTypes)
       .flatMap(metadata.getExternal)
       .flatten
     direct.flatMap(_.externalId) ++ transitive
@@ -108,14 +108,18 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
 object ChangesetBuilder {
 
+  type Symbol = String
+
   /** An identifier of IR node.
     *
     * @param internalId internal IR id
     * @param externalId external IR id
+    * @param name optional node name
     */
   case class NodeId(
     internalId: IR.Identifier,
-    externalId: Option[IR.ExternalId]
+    externalId: Option[IR.ExternalId],
+    name: Option[Symbol]
   )
 
   object NodeId {
@@ -126,7 +130,7 @@ object ChangesetBuilder {
       * @return the identifier
       */
     def apply(ir: IR): NodeId =
-      new NodeId(ir.getId, ir.getExternalId)
+      new NodeId(ir.getId, ir.getExternalId, getName(ir))
 
     implicit val ordering: Ordering[NodeId] = (x: NodeId, y: NodeId) => {
       val cmpInternal = Ordering[UUID].compare(x.internalId, y.internalId)
@@ -198,7 +202,7 @@ object ChangesetBuilder {
       * @return a select node
       */
     def select(location: Location): Node =
-      new Node(NodeId(UUID.nameUUIDFromBytes(Array()), None), location)
+      new Node(NodeId(UUID.nameUUIDFromBytes(Array()), None, None), location)
 
     implicit val ordering: Ordering[Node] = (x: Node, y: Node) => {
       val compareStart =
@@ -209,6 +213,12 @@ object ChangesetBuilder {
         else compareEnd
       } else compareStart
     }
+  }
+
+  /** Get the IR name if available. */
+  private def getName(ir: IR): Option[String] = ir match {
+    case name: IR.Name => Some(name.name)
+    case _             => None
   }
 
   /** Build an internal representation of the [[IR]].
@@ -333,9 +343,14 @@ object ChangesetBuilder {
     * @param node the invalidated node
     * @return the dataflow dependency type
     */
-  private def toDataflowDependencyType(
+  private def toDataflowDependencyTypes(
     node: NodeId
-  ): DataflowAnalysis.DependencyInfo.Type.Static =
-    DataflowAnalysis.DependencyInfo.Type
+  ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
+    val static = DataflowAnalysis.DependencyInfo.Type
       .Static(node.internalId, node.externalId)
+    val dynamic = node.name.map { name =>
+      DataflowAnalysis.DependencyInfo.Type.Dynamic(name, node.externalId)
+    }
+    static +: dynamic.toSeq
+  }
 }
