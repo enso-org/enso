@@ -34,6 +34,10 @@ Error.catch (handler = x->x) = this.catch_primitive handler
 Error.to_default_visualization_data : Text
 Error.to_default_visualization_data = this.catch .to_default_visualization_data
 
+## Returns a human-readable text representing this error.
+Error.to_display_text : Text
+Error.to_display_text  = "Error: " + (this.catch .to_display_text)
+
 ## Takes any value, and if it is a dataflow error, throws it as a Panic.
    Otherwise, returns the original value unchanged.
 Panic.rethrow : (Any ! Any) -> Any

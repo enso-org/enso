@@ -22,3 +22,5 @@ spec =
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type "aaa").to_default_visualization_data
             json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type"]]).to_text
+        Test.specify "should implement to_display_text" <|
+            Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
