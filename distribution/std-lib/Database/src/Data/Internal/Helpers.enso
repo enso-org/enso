@@ -16,6 +16,11 @@ check_integrity entity1 entity2 =
     ctx = entity1.context == entity2.context
     con && ctx
 
+## INTERNAL
+
+   A helper function simplifying argument handling. It always returns a vector,
+   if the argument was already a vector, it is kept as-is, otherwise it is
+   wrapped in a singleton vector.
 unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
 unify_vector_singleton x = case x of
     Vector.Vector _ -> x
@@ -23,7 +28,11 @@ unify_vector_singleton x = case x of
 
 ## UNSTABLE
 
+   Signals that a name for a column or table is not supported.
 
+   Currently the names can only include ASCII letters, numbers and the
+   underscore. This is a temporary limitation simplifying name handling. It will
+   be removed in a future version.
 type Unsupported_Name_Error text
 
 ## INTERNAL
@@ -35,7 +44,7 @@ type Unsupported_Name_Error text
    Sql-safe names for columns.
 
    # TODO [RW] better name handling in Tables
-ensure_name_is_sane : Text -> Boolean ! Text
+ensure_name_is_sane : Text -> Boolean ! Unsupported_Name_Error
 ensure_name_is_sane name =
     is_safe =
         Pattern.matches "[A-Za-z_0-9]+" name

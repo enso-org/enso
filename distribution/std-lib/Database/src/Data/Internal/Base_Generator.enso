@@ -3,15 +3,28 @@ import Database.Data.Sql
 import Database.Data.Internal.IR
 
 type Internal_Dialect
-    # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
+    ## INTERNAL
+
+       An internal representation of a SQL dialect.
+
+       Arguments:
+       - operation_map: the mapping which maps operation names to their
+         implementations; each implementation is a function which takes SQL
+         builders for the arguments and should return a builder yielding the
+         whole operation.
+       # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
     type Internal_Dialect operation_map
 
-    ## PRIVATE
-       extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
+    ## Creates a copy of the dialect that supports additional operations or
+       overrides existing ones.
+       # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
     extend_with mappings =
         new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect new_map
 
+## INTERNAL
+
+   A helper function to create a binary operator.
 make_binary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_binary_op name =
     arguments ->
@@ -22,6 +35,9 @@ make_binary_op name =
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+## INTERNAL
+
+   A helper function to create a unary operator.
 make_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_unary_op name =
     arguments ->
@@ -31,6 +47,10 @@ make_unary_op name =
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+## INTERNAL
+
+   A helper function to create a unary operator which is added to the right of
+   the expression.
 make_right_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_right_unary_op name =
     arguments ->
@@ -40,17 +60,29 @@ make_right_unary_op name =
             False ->
                 Error.throw ("Invalid amount of arguments for operation " + name)
 
+## INTERNAL
+
+   A helper function to create a functional operation.
 make_function : Text -> Vector Sql.Builder -> Sql.Builder
 make_function name =
     arguments ->
         (Sql.code name) ++ (Sql.join ", " arguments . paren)
 
+## INTERNAL
+
+   A helper function to create an operation that takes no arguments.
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
         if arguments.not_empty then Error.throw "No arguments were expected" else
             Sql.code code
 
+## INTERNAL
+
+   The base SQL dialect that is shared between most SQL implementations.
+
+   It is a base to help creating concrete dialects. It can be extended or
+   completely overridden.
 base_dialect =
     bin = here.make_binary_op
     unary = here.make_unary_op
@@ -63,6 +95,9 @@ base_dialect =
     base_map = Map.from_vector (arith + logic + compare + agg + nulls)
     Internal_Dialect base_map
 
+## INTERNAL
+
+   Builds code for an expression.
 generate_expression : Internal_Dialect -> IR.Expression -> Sql.Builder
 generate_expression dialect expr = case expr of
     IR.Column origin name -> Sql.code origin+"."+name
@@ -72,6 +107,9 @@ generate_expression dialect expr = case expr of
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
+## INTERNAL
+
+   Builds code for the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Sql.Builder
 generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
@@ -90,7 +128,10 @@ generate_from_part dialect from_spec = case from_spec of
         sub = here.generate_query dialect (IR.Select columns context)
         sub.paren.alias as_name
 
-# generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
+## INTERNAL
+
+   Builds code for an ordering.
+   # generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
 generate_order dialect order_description =
     order_suffix = case order_description.second of
         IR.Ascending -> Sql.code " ASC"
@@ -100,6 +141,9 @@ generate_order dialect order_description =
         IR.Nulls_Last -> Sql.code " NULLS LAST"
     (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
 
+## INTERNAL
+
+   Builds code for a whole query.
 generate_query : Internal_Dialect -> Query -> Sql.Builder
 generate_query dialect query = case query of
     IR.Select columns ctx ->
