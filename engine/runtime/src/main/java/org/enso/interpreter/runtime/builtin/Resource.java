@@ -7,6 +7,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Container for builtin Managed_Resource types */
 public class Resource {
+  private final AtomConstructor managedResource;
 
   /**
    * Creates and registers the relevant constructors.
@@ -15,8 +16,7 @@ public class Resource {
    * @param scope the scope to register constructors in.
    */
   public Resource(Language language, ModuleScope scope) {
-    AtomConstructor managedResource =
-        new AtomConstructor("Managed_Resource", scope).initializeFields();
+    managedResource = new AtomConstructor("Managed_Resource", scope).initializeFields();
     scope.registerConstructor(managedResource);
     AtomConstructor resource = new AtomConstructor("Resource", scope).initializeFields();
     scope.registerConstructor(resource);
@@ -25,5 +25,10 @@ public class Resource {
     scope.registerMethod(managedResource, "with", WithMethodGen.makeFunction(language));
     scope.registerMethod(managedResource, "take", TakeMethodGen.makeFunction(language));
     scope.registerMethod(managedResource, "finalize", FinalizeMethodGen.makeFunction(language));
+  }
+
+  /** @return the managed resource atom constructor. */
+  public AtomConstructor getManagedResource() {
+    return managedResource;
   }
 }

@@ -116,7 +116,7 @@ public abstract class SortNode extends Node {
         resultProfile.enter();
         var ordering = ctxRef.get().getBuiltins().ordering().ordering();
         throw new PanicException(
-            ctxRef.get().getBuiltins().error().makeTypeError(ordering, res), outerThis);
+            ctxRef.get().getBuiltins().error().makeTypeError(ordering, res, "result"), outerThis);
       }
     }
   }

@@ -54,7 +54,7 @@ public abstract class GetStateNode extends Node {
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
     int idx = state.indexOf(key);
     if (idx == SmallMap.NOT_FOUND) {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().uninitializedState().newInstance(key), this);
     } else {
       return state.getValues()[idx];
@@ -64,14 +64,14 @@ public abstract class GetStateNode extends Node {
   @Specialization
   Object doEmpty(
       EmptyMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    return DataflowError.withDefaultTrace(
+    return DataflowError.withoutTrace(
         ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 
   @Specialization
   Object doSingletonError(
       SingletonMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
-    return DataflowError.withDefaultTrace(
+    return DataflowError.withoutTrace(
         ctx.getBuiltins().error().uninitializedState().newInstance(key), this);
   }
 }

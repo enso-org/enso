@@ -1,14 +1,9 @@
 package org.enso.interpreter.instrument.execution
 
-import java.io.File
-
-import com.oracle.truffle.api.{
-  TruffleException,
-  TruffleStackTrace,
-  TruffleStackTraceElement
-}
+import com.oracle.truffle.api.{TruffleStackTrace, TruffleStackTraceElement}
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.io.File
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters.RichOptional
 
@@ -23,12 +18,13 @@ object ErrorResolver {
     */
   def getStackTrace(
     throwable: Throwable
-  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] =
+  )(implicit ctx: RuntimeContext): Vector[Api.StackTraceElement] = {
     TruffleStackTrace
       .getStackTrace(throwable)
       .asScala
-      .map(toStackElement)
+      .flatMap(toStackElement)
       .toVector
+  }
 
   /** Convert from the truffle stack element to the runtime API representation.
     *
@@ -38,31 +34,22 @@ object ErrorResolver {
     */
   private def toStackElement(
     element: TruffleStackTraceElement
-  )(implicit ctx: RuntimeContext): Api.StackTraceElement = {
-    val node = element.getLocation
-    node.getEncapsulatingSourceSection match {
-      case null =>
-        Api.StackTraceElement(node.getRootNode.getName, None, None, None)
-      case section =>
-        Api.StackTraceElement(
-          element.getTarget.getRootNode.getName,
-          findFileByModuleName(section.getSource.getName),
-          Some(LocationResolver.sectionToRange(section)),
-          LocationResolver.getExpressionId(section).map(_.externalId)
-        )
-    }
+  )(implicit ctx: RuntimeContext): Option[Api.StackTraceElement] = {
+    val node = Option(element.getLocation)
+    node.map(x => {
+      x.getEncapsulatingSourceSection match {
+        case null =>
+          Api.StackTraceElement(x.getRootNode.getName, None, None, None)
+        case section =>
+          Api.StackTraceElement(
+            element.getTarget.getRootNode.getName,
+            findFileByModuleName(section.getSource.getName),
+            Some(LocationResolver.sectionToRange(section)),
+            LocationResolver.getExpressionId(section).map(_.externalId)
+          )
+      }
+    })
   }
-
-  /** Get the language produced the runtime exception.
-    *
-    * @param ex the runtime exception
-    * @return the language of the source file produced the runtime exception
-    */
-  def getLanguage(ex: TruffleException): Option[String] =
-    for {
-      location <- Option(ex.getSourceLocation)
-      source   <- Option(location.getSource)
-    } yield source.getLanguage
 
   /** Find source file path by the module name.
     *

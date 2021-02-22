@@ -10,6 +10,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
     description = "Returns a new value error with given payload.")
 public class ThrowErrorNode extends Node {
   public Object execute(Object _this, Object payload) {
-    return DataflowError.withDefaultTrace(payload, this);
+    return DataflowError.withoutTrace(payload, this);
   }
 }

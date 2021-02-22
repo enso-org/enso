@@ -1,12 +1,7 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.{Objects, UUID}
-
 import cats.implicits._
-import com.oracle.truffle.api.TruffleException
+import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -29,6 +24,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.data.text.Text
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.error.{
   ConstructorNotFoundException,
   MethodNotFoundException,
@@ -37,8 +33,11 @@ import org.enso.interpreter.service.error.{
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 
+import java.io.File
+import java.util.function.Consumer
+import java.util.logging.Level
+import java.util.{Objects, UUID}
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -261,9 +260,10 @@ trait ProgramExecutionSupport {
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
     t match {
-      case ex: TruffleException
-          if ErrorResolver.getLanguage(ex).forall(_ == LanguageInfo.ID) =>
-        val section = Option(ex.getSourceLocation)
+      case ex: AbstractTruffleException
+          if Option(ctx.executionService.getLanguage(ex))
+            .forall(_ == LanguageInfo.ID) =>
+        val section = Option(ctx.executionService.getSourceLocation(ex))
         Some(
           Api.ExecutionResult.Diagnostic.error(
             ex.getMessage,
@@ -328,7 +328,7 @@ trait ProgramExecutionSupport {
         case sentinel: PanicSentinel =>
           Api.ExpressionUpdate.Payload
             .Panic(
-              sentinel.getMessage,
+              sentinel.getPanic.getMessage,
               ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
             )
         case error: DataflowError =>

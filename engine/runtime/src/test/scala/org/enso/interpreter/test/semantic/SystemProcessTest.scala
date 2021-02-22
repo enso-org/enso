@@ -195,7 +195,8 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stdout
           |""".stripMargin
 
-      eval(code) shouldEqual s"foobar${System.lineSeparator()}"
+      val result = eval(code).asString().replace("\r\n","\n")
+      result shouldEqual "foobar\n"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
