@@ -307,8 +307,8 @@ type Column
 
        Shows a JSON serialization of a truncated version of this column, for the
        benefit of visualization in the IDE.
-    to_display : Text
-    to_display =
+    to_default_visualization_data : Text
+    to_default_visualization_data =
         size = ['length', this.length]
         name = ['name', this.name]
         max_data = 100

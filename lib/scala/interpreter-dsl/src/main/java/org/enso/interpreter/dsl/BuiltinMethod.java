@@ -16,5 +16,5 @@ public @interface BuiltinMethod {
   String name();
 
   /** @return a short description of this method. */
-  String description();
+  String description() default "";
 }
