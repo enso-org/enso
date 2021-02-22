@@ -328,7 +328,7 @@ trait ProgramExecutionSupport {
         case sentinel: PanicSentinel =>
           Api.ExpressionUpdate.Payload
             .Panic(
-              sentinel.getPanic.getMessage,
+              ctx.executionService.getExceptionMessage(sentinel.getPanic),
               ErrorResolver.getStackTrace(sentinel).flatMap(_.expressionId)
             )
         case error: DataflowError =>

@@ -28,6 +28,7 @@ import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
+import org.enso.interpreter.node.expression.builtin.text.AnyToDisplayTextMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
@@ -163,6 +164,7 @@ public class Builtins {
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
 
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
+    scope.registerMethod(any, "to_display_text", AnyToDisplayTextMethodGen.makeFunction(language));
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));

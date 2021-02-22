@@ -127,5 +127,5 @@ Any.>> that = x -> that (this x)
 
    Types defining their own versions of this method should ensure that the
    result is reasonably small and the operation is quick to compute.
-Any.to_display : Text
-Any.to_display = this.to_json.to_text
+Any.to_default_visualization_data : Text
+Any.to_default_visualization_data = this.to_json.to_text

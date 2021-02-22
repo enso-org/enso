@@ -69,6 +69,36 @@ public class Text implements TruffleObject {
     return new Text(new ConcatRope(t1.contents, t2));
   }
 
+  /**
+   * Creates a new Text by concatenating a text and a string.
+   *
+   * @param t1 the left operand.
+   * @param t2 the right operand.
+   * @return a Text representing concatenation of t1 and t2.
+   */
+  public static Text create(String t1, Text t2) {
+    return new Text(new ConcatRope(t1, t2.contents));
+  }
+
+  /**
+   * Creates a new Text by concatenating two strings.
+   *
+   * @param t1 the left operand.
+   * @param t2 the right operand.
+   * @return a Text representing concatenation of t1 and t2.
+   */
+  public static Text create(String t1, String t2) {
+    return new Text(new ConcatRope(t1, t2));
+  }
+
+  public Text add(String other) {
+    return new Text(new ConcatRope(this.contents, other));
+  }
+
+  public Text add(Text other) {
+    return new Text(new ConcatRope(this.contents, other.contents));
+  }
+
   @ExportMessage
   boolean isString() {
     return true;
