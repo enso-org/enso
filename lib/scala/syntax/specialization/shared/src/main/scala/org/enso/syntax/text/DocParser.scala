@@ -270,19 +270,20 @@ object DocParserHTMLGenerator {
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
   def generateHTMLForEveryDocumented(ast: AST): String = {
+    var allDocs = new String
     ast.map { elem =>
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          return file.code.toString() + generateHTMLForEveryDocumented(
+          allDocs += file.code.toString() + generateHTMLForEveryDocumented(
             documented
-          )
+          ) + HTML.br
         case _ =>
-          generateHTMLForEveryDocumented(elem)
+          allDocs += generateHTMLForEveryDocumented(elem)
       }
       elem
     }
-    new String
+    allDocs
   }
 
   /** Function to generate HTML File from pure doc comment w/o connection to AST
