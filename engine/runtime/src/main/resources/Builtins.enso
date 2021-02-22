@@ -264,6 +264,15 @@ type Compile_Error message
 @Builtin_Type
 type Inexhaustive_Pattern_Match_Error scrutinee
 
+## The error thrown when the number of arguments provided to an operation
+   does not match the expected number of arguments.
+
+   Arguments:
+     - expected: the expected number of arguments.
+     - actual: the actual number of arguments passed.
+@Builtin_Type
+type Arity_Error expected actual
+
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
 

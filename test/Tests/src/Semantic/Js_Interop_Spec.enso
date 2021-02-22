@@ -16,6 +16,19 @@ type My_Type
         var r = this.my_method_2(y)
         return r + 1;
 
+    foreign js my_throw = """
+        var err = new Error("JS EXc");
+        throw err;
+
+    do_throw = Panic.throw this
+
+    foreign js do_catch = """
+        try {
+            this.do_throw();
+        } catch (e) {
+            return e.a;
+        }
+
 foreign js make_object = """
     return {
         x: 10,
@@ -59,4 +72,16 @@ spec = Test.group "Polyglot JS" <|
             Text -> True
             _ -> False
         t.should_be_true
+
+    Test.specify "should allow Enso to catch JS exceptions" <|
+        value = My_Type 1 2
+        result = Panic.recover <| value.my_throw
+        err = result.catch
+        err.cause.message . should_equal "JS EXc"
+        err.cause.name . should_equal "Error"
+
+    Test.specify "should allow JS to catch Enso exceptions" <|
+        value = My_Type 7 2
+        result = value.do_catch
+        result . should_equal 7
 

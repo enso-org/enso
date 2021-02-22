@@ -3001,7 +3001,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Object 42 is not invokable.",
+              "Not_Invokable 42",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               None,
@@ -3145,7 +3145,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type_Error Text 2",
+              "Type_Error Text 2 str",
               None,
               None,
               None,
@@ -3302,7 +3302,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unexpected type provided for argument `that` in Integer.+",
+              "Type_Error Number UnresolvedSymbol<quux> that",
               None,
               None,
               None,

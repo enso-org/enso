@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.mutable;
 
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -68,6 +67,6 @@ public abstract class CopyNode extends Node {
       Object _this, Object src, long source_index, Array dest, long dest_index, long count) {
     Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
     throw new PanicException(
-        builtins.error().makeTypeError(builtins.mutable().array().newInstance(), src), this);
+        builtins.error().makeTypeError(builtins.mutable().array().newInstance(), src, "src"), this);
   }
 }

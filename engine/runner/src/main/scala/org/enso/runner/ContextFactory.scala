@@ -42,6 +42,7 @@ class ContextFactory {
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(DebugServerInfo.ENABLE_OPTION, "true")
+      .option("js.foreign-object-prototype", "true")
       .out(out)
       .in(in)
       .serverTransport { (uri, peer) =>

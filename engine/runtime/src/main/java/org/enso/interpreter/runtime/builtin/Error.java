@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.builtin.error.displaytext.*;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -23,6 +24,8 @@ public class Error {
   private final AtomConstructor invalidArrayIndexError;
   private final AtomConstructor arityError;
   private final AtomConstructor unsupportedArgumentsError;
+  private final AtomConstructor moduleDoesNotExistError;
+  private final AtomConstructor notInvokableError;
 
   private final Atom arithmeticErrorShiftTooBig;
   private final Atom arithmeticErrorDivideByZero;
@@ -45,7 +48,8 @@ public class Error {
         new AtomConstructor("Type_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(0, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "actual", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(2, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
     compileError =
         new AtomConstructor("Compile_Error", scope)
             .initializeFields(
@@ -80,31 +84,77 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "array", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "index", ArgumentDefinition.ExecutionMode.EXECUTE));
-
     arityError =
         new AtomConstructor("Arity_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "expected", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(0, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "actual", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     unsupportedArgumentsError =
         new AtomConstructor("Unsupported_Argument_Types", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
+    moduleDoesNotExistError =
+        new AtomConstructor("Module_Does_Not_Exist", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
+    notInvokableError =
+        new AtomConstructor("Not_Invokable", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE));
 
-    scope.registerConstructor(syntaxError);
-    scope.registerConstructor(typeError);
-    scope.registerConstructor(compileError);
-    scope.registerConstructor(inexhaustivePatternMatchError);
-    scope.registerConstructor(uninitializedState);
-    scope.registerConstructor(noSuchMethodError);
-    scope.registerConstructor(polyglotError);
-    scope.registerConstructor(moduleNotInPackageError);
-    scope.registerConstructor(arithmeticError);
-    scope.registerConstructor(invalidArrayIndexError);
-    scope.registerConstructor(typeError);
     scope.registerConstructor(arityError);
+    scope.registerMethod(
+        arityError, "to_display_text", ArityErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(syntaxError);
+    scope.registerMethod(
+        syntaxError, "to_display_text", SyntaxErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(typeError);
+    scope.registerMethod(
+        typeError, "to_display_text", TypeErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(compileError);
+    scope.registerMethod(
+        compileError, "to_display_text", CompileErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(inexhaustivePatternMatchError);
+    scope.registerMethod(
+        inexhaustivePatternMatchError,
+        "to_display_text",
+        InexhaustivePatternMatchErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(uninitializedState);
+    scope.registerMethod(
+        uninitializedState,
+        "to_display_text",
+        UninitializedStateErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(noSuchMethodError);
+    scope.registerMethod(
+        noSuchMethodError,
+        "to_display_text",
+        NoSuchMethodErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(polyglotError);
+    scope.registerMethod(
+        polyglotError,
+        "to_display_text",
+        PolyglotErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(moduleNotInPackageError);
+    scope.registerMethod(
+        moduleNotInPackageError,
+        "to_display_text",
+        ModuleNotInPackageErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(arithmeticError);
+    scope.registerMethod(
+        arithmeticError,
+        "to_display_text",
+        ArithmeticErrorToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(invalidArrayIndexError);
+    scope.registerMethod(
+        invalidArrayIndexError,
+        "to_display_text",
+        InvalidArrayIndexErrorToDisplayTextMethodGen.makeFunction(language));
     scope.registerConstructor(unsupportedArgumentsError);
+    scope.registerMethod(
+        unsupportedArgumentsError,
+        "to_display_text",
+        UnsupportedArgumentTypesToDisplayTextMethodGen.makeFunction(language));
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */
@@ -153,10 +203,11 @@ public class Error {
    *
    * @param expected the expected type
    * @param actual the actual type
+   * @param name the name of the variable that is a type error
    * @return a runtime representation of the error.
    */
-  public Atom makeTypeError(Object expected, Object actual) {
-    return typeError.newInstance(expected, actual);
+  public Atom makeTypeError(Object expected, Object actual, String name) {
+    return typeError.newInstance(expected, actual, name);
   }
 
   /**
@@ -214,5 +265,21 @@ public class Error {
    */
   public Atom makeUnsupportedArgumentsError(Object[] args) {
     return unsupportedArgumentsError.newInstance(new Array(args));
+  }
+
+  /**
+   * @param name the name of the module that doesn't exist
+   * @return a module does not exist error
+   */
+  public Atom makeModuleDoesNotExistError(String name) {
+    return moduleDoesNotExistError.newInstance(Text.create(name));
+  }
+
+  /**
+   * @param target the target attempted to be invoked
+   * @return a not invokable error
+   */
+  public Atom makeNotInvokableError(Object target) {
+    return notInvokableError.newInstance(target);
   }
 }

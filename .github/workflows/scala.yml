@@ -8,30 +8,19 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 20.2.0
+  graalVersion: 21.0.0.2
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.4.1
+  sbtVersion: 1.4.7
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
-  excludedPaths: |
-    .github/PULL_REQUEST_TEMPLATE.md
-    .github/CODEOWNERS
-    .github/ISSUE_TEMPLATE/*
-    /doc/*
-    .gitignore
-    .scalafmt.conf
-    CODE_OF_CONDUCT.md
-    CONTRIBUTING.md
-    LICENSE
-    README.md
 
 jobs:
   test_and_publish:
     name: Build and Test
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -120,23 +109,22 @@ jobs:
           echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
           echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
       - name: Build the Launcher
-        shell: bash
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
-          sbt --no-colors engine-runner/assembly
+          sbt --no-colors "runtime/clean; engine-runner/assembly"
 
       - name: Test Enso
         run: |
           sleep 1
-          sbt --no-colors "set Global / parallelExecution := false; test"
+          sbt --no-colors "set Global / parallelExecution := false; runtime/clean; compile; test"
       - name: Check Runtime Benchmark Compilation
         run: |
           sleep 1
-          sbt --no-colors runtime/Benchmark/compile
+          sbt --no-colors "runtime/clean; runtime/Benchmark/compile"
       - name: Check Language Server Benchmark Compilation
         run: |
           sleep 1
@@ -152,10 +140,11 @@ jobs:
           sleep 1
           sbt --no-colors project-manager/buildNativeImage
       - name: Build the Parser JS Bundle
-        # The builds are run on 3 platforms, but Flatbuffer schemas are platform
-        # agnostic, so they just need to be uploaded from one of the runners.
+        # The builds are run on 3 platforms, but
+        # Flatbuffer schemas are platform agnostic, so they just need to be
+        # uploaded from one of the runners.
         if: runner.os == 'Linux'
-        run: sbt -no-colors syntaxJS/fullOptJS
+        run: sbt --no-colors syntaxJS/fullOptJS
 
       # Prepare distributions
       # The version used in filenames is based on the version of the launcher.
@@ -201,7 +190,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt buildEngineDistribution
+          sbt "runtime/clean; buildEngineDistribution"
 
       - name: Prepare Project Manager Distribution
         shell: bash

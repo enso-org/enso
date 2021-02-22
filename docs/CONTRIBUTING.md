@@ -410,6 +410,32 @@ getting the project into a working state in IntelliJ.
     Java Format for formatting Java code. For more information see the relevant
     [Style Guides](style-guide/README.md).
 
+Depending on the version of GraalVM with which you are working, you may be
+required to add the following flags to the per-module overrides for IntelliJ's
+java compiler in order for it to not show spurious errors. This is because some
+versions of GraalVM export their own closed version of `com.oracle.truffle.api`
+that IntelliJ picks up preferentially to the version we use for development. You
+can find these options in
+`Preferences -> Build, Execution, Deployment -> Compiler -> Java Compiler`.
+
+```
+--add-exports org.graalvm.truffle/com.oracle.truffle.api=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.debug=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.dsl=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.exception=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.frame=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.instrumentation=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.interop=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.io=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.library=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.memory=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.nodes=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.object=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.profiles=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.source=ALL-UNNAMED
+--add-exports org.graalvm.truffle/com.oracle.truffle.api.utilities=ALL-UNNAMED
+```
+
 However, as mentioned in the [Troubleshooting](#troubleshooting) section below,
 the forked nature of execution in the SBT shell means that we can't trivially
 make use of the IntelliJ debugger. In order to get debugging working, you will

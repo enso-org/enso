@@ -1,13 +1,17 @@
 package org.enso.interpreter.node.expression.builtin.number.bigInteger;
 
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Big_Integer", name = "bit_xor", description = "Bitwise exclusive or.")
@@ -31,12 +35,16 @@ public abstract class BitXorNode extends Node {
   }
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
-    throw new TypeError("Unexpected type provided for `this` in Integer.bit_xor", this);
+  Object doAtomThis(Atom _this, Object that, @CachedContext(Language.class) Context ctx) {
+    Builtins builtins = ctx.getBuiltins();
+    Atom integer = builtins.number().getInteger().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(integer, _this, "this"), this);
   }
 
   @Fallback
   Object doOther(Object _this, Object that) {
-    throw new TypeError("Unexpected type provided for `that` in Integer.bit_xor", this);
+    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Atom integer = builtins.number().getInteger().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 }

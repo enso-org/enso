@@ -2,7 +2,6 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.BaseNode;

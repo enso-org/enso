@@ -7,7 +7,7 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 20.2.0
+  graalVersion: 21.0.0.2
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
@@ -98,6 +98,7 @@ jobs:
         run: echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
       - name: Bootstrap the Project
         working-directory: repo
+        shell: bash
         run: |
           sleep 1
           sbt --no-colors bootstrap
@@ -106,6 +107,7 @@ jobs:
       - name: Verify Packages
         if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
         working-directory: repo
+        shell: bash
         run: |
           sleep 1
           sbt --no-colors verifyLicensePackages
@@ -113,6 +115,7 @@ jobs:
       # Prepare distributions
       - name: Build the Launcher Native Image
         working-directory: repo
+        shell: bash
         run: |
           sleep 1
           sbt --no-colors launcher/buildNativeImage
@@ -303,6 +306,7 @@ jobs:
           prerelease: true
 
       # - name: Login to ACR
+      # if: runner.os == "Linux"
       # uses: docker/login-action@v1
       # with:
       # registry: ensosharedwus2acr.azurecr.io
@@ -310,12 +314,14 @@ jobs:
       # password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
       #
       # - name: Copy the docker entrypoint script
+      # if: runner.os == "Linux"
       # shell: bash
       # run: |
       # sleep 1
       # cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
       #
       # - name: Publish Runtime Docker Image
+      # if: runner.os == "Linux"
       # shell: bash
       # run: |
       # sleep 1

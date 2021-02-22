@@ -42,7 +42,7 @@ spec =
             (almost_max_long * 2 / almost_max_long_times_three) . should_equal 0.6666666 epsilon=eps
         Test.specify "should support integer division" <|
             (10.div 3) . should_equal 3
-            # (10.div 0).should_fail_with Arithmetic_Error
+            (10.div 0).should_fail_with Arithmetic_Error
         Test.specify "should support integral binary literals" <|
             lit = 2_01101101
             lit . should_equal 109
