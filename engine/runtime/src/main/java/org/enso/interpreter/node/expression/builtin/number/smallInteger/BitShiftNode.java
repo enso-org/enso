@@ -12,9 +12,10 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ImportStatic(BigIntegerOps.class)
@@ -47,7 +48,7 @@ public abstract class BitShiftNode extends Node {
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
       return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(_this, (int) that));
     } else {
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -79,7 +80,7 @@ public abstract class BitShiftNode extends Node {
       return _this >= 0 ? 0L : -1L;
     } else {
       // Note [Well-Formed BigIntegers]
-      return DataflowError.withDefaultTrace(
+      return DataflowError.withoutTrace(
           ctxRef.get().getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
   }
@@ -91,13 +92,17 @@ public abstract class BitShiftNode extends Node {
    */
 
   @Specialization
-  Object doAtomThis(Atom _this, Object that) {
-    throw new TypeError("Unexpected type provided for `this` in Integer.bit_shift", this);
+  Object doAtomThis(Atom _this, Object that, @CachedContext(Language.class) Context ctx) {
+    Builtins builtins = ctx.getBuiltins();
+    Atom integer = builtins.number().getInteger().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(integer, that, "this"), this);
   }
 
   @Fallback
   Object doOther(Object _this, Object that) {
-    throw new TypeError("Unexpected type provided for `that` in Integer.bit_shift", this);
+    Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
+    Atom integer = builtins.number().getInteger().newInstance();
+    throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }
 
   boolean hasFreeBitsLeftShift(long number, long shift) {

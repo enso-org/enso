@@ -1,7 +1,5 @@
 package org.enso.compiler.codegen
 
-import java.math.BigInteger
-
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.frame.FrameSlot
 import com.oracle.truffle.api.source.{Source, SourceSection}
@@ -65,7 +63,7 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
+import org.enso.interpreter.runtime.error.PanicException
 import org.enso.interpreter.runtime.scope.{
   FramePointer,
   LocalScope,
@@ -73,6 +71,7 @@ import org.enso.interpreter.runtime.scope.{
 }
 import org.enso.interpreter.{Constants, Language}
 
+import java.math.BigInteger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -1053,7 +1052,9 @@ class IrToTruffle(
           val argName = arg.getName
 
           if (seenArgNames contains argName) {
-            throw new DuplicateArgumentNameException(argName)
+            val err =
+              context.getBuiltins.error.makeDuplicateArgumentNameError(argName)
+            throw new PanicException(err, null)
           } else seenArgNames.add(argName)
           slot
         }

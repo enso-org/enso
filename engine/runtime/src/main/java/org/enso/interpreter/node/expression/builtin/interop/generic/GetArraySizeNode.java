@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.interop.generic;
 
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
@@ -25,7 +26,7 @@ public class GetArraySizeNode extends Node {
       err.enter();
       Builtins builtins = lookupContextReference(Language.class).get().getBuiltins();
       throw new PanicException(
-          builtins.error().makeTypeError(builtins.mutable().array(), array), this);
+          builtins.error().makeTypeError(builtins.mutable().array(), array, "array"), this);
     }
   }
 }

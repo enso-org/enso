@@ -2,6 +2,7 @@ package org.enso.interpreter.epb.runtime;
 
 import com.oracle.truffle.api.TruffleContext;
 
+import com.oracle.truffle.api.nodes.Node;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -30,28 +31,31 @@ public class GuardedTruffleContext {
    * will block indefinitely until the context becomes available.
    *
    * <p>Any code following a call to this method should be executed in a try/finally block, with
-   * {@link #leave(Object)} being called in the finally block. It is crucial that this context is
-   * always left as soon as guest code execution finishes.
+   * {@link #leave(Node, Object)} being called in the finally block. It is crucial that this context
+   * is always left as soon as guest code execution finishes.
    *
    * <p>The token returned from this method may not be stored or used for any purpose other than
    * leaving the context.
    *
-   * @return a context restoration token that must be passed to {@link #leave(Object)}
+   * @param node the node to enter this context for
+   * @return a context restoration token that must be passed to {@link #leave(Node, Object)}
    */
-  public Object enter() {
+  public Object enter(Node node) {
     if (lock != null) {
       lock.lock();
     }
-    return context.enter();
+    return context.enter(node);
   }
 
   /**
    * Leaves the context and unlocks it if this wrapper is GILed.
    *
-   * @param prev the token obtained from the call to {@link #enter()}
+   * @param node the node to leave this context for (this must correspond to the same node used in
+   *     the call that provided the {@code prev} token
+   * @param prev the token obtained from the call to {@link #enter(Node)}
    */
-  public void leave(Object prev) {
-    context.leave(prev);
+  public void leave(Node node, Object prev) {
+    context.leave(node, prev);
     if (lock != null) {
       lock.unlock();
     }

@@ -1,10 +1,9 @@
 package org.enso.interpreter.runtime.error;
 
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 
 /** An exception thrown when the program tries to redefine an already-defined method */
-public class RedefinedMethodException extends RuntimeException implements TruffleException {
+public class RedefinedMethodException extends AbstractTruffleException {
 
   /**
    * Creates a new error.
@@ -14,15 +13,5 @@ public class RedefinedMethodException extends RuntimeException implements Truffl
    */
   public RedefinedMethodException(String atom, String method) {
     super("Methods cannot be overloaded, but you have tried to overload " + atom + "." + method);
-  }
-
-  /**
-   * Gets the location where the exception occurred.
-   *
-   * @return the location where the exception occurred
-   */
-  @Override
-  public Node getLocation() {
-    return null;
   }
 }
