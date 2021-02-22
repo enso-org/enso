@@ -72,32 +72,32 @@ generate_expression dialect expr = case expr of
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
-generate_from_part : Internal_Dialect -> FromSpec -> Sql.Builder
+generate_from_part : Internal_Dialect -> From_Spec -> Sql.Builder
 generate_from_part dialect from_spec = case from_spec of
-    IR.FromTable name as_name ->
+    IR.From_Table name as_name ->
         Sql.code name . alias as_name
     IR.Join kind left_spec right_spec on ->
         left = here.generate_from_part dialect left_spec
         right = here.generate_from_part dialect right_spec
         prefix = case kind of
-            IR.InnerJoin -> "INNER JOIN"
-            IR.LeftJoin -> "LEFT JOIN"
-            IR.RightJoin -> "RIGHT JOIN"
-            IR.CrossJoin -> "CROSS JOIN"
+            IR.Join_Inner -> "INNER JOIN"
+            IR.Join_Left -> "LEFT JOIN"
+            IR.Join_Right -> "RIGHT JOIN"
+            IR.Join_Cross -> "CROSS JOIN"
         ons = Sql.join " AND " (on.map (here.generate_expression dialect)) . prefix_if_present " ON "
         left ++ (Sql.code " "+prefix+" ") ++ right ++ ons
-    IR.SubQuery columns context as_name ->
+    IR.Sub_Query columns context as_name ->
         sub = here.generate_query dialect (IR.Select columns context)
         sub.paren.alias as_name
 
-# generate_order : Internal_Dialect -> [Expression, IR.OrderType, IR.NullsOrder] -> Sql.Builder
+# generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
 generate_order dialect order_description =
     order_suffix = case order_description.second of
         IR.Ascending -> Sql.code " ASC"
         IR.Descending -> Sql.code " DESC"
     nulls_suffix = case order_description.at 2 of
-        IR.NullsFirst -> Sql.code " NULLS FIRST"
-        IR.NullsLast -> Sql.code " NULLS LAST"
+        IR.Nulls_First -> Sql.code " NULLS FIRST"
+        IR.Nulls_Last -> Sql.code " NULLS LAST"
     (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
 
 generate_query : Internal_Dialect -> Query -> Sql.Builder

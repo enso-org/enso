@@ -3,6 +3,7 @@ import Database.Data.Sql
 import Database.Data.Internal.Base_Generator
 
 ## INTERNAL
+
    Represents a specific SQL dialect.
 
    It encapsulates dialect-specific code generation details allowing us to

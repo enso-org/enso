@@ -176,6 +176,7 @@ type Column
     contains other = this.make_binary_op "contains" other
 
     ## PRIVATE
+
        Helper for implementing binary operators.
     make_binary_op : Text -> Text -> (Column | Any) -> Column
     make_binary_op op_kind operand =
@@ -193,6 +194,7 @@ type Column
                 Column this.name this.connection new_expr this.context
 
     ## PRIVATE
+
        Helper for implementing unary operators.
     make_unary_op : Text -> Text -> Column
     make_unary_op op_kind =
@@ -252,6 +254,7 @@ type Aggregate_Column
         this.make_aggregate "AVG" name_suffix
 
     ## PRIVATE
+
        A helper method for creating an aggregated column by applying some
        operation.
     make_aggregate operation name_suffix =

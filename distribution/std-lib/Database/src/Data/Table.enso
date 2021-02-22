@@ -122,8 +122,8 @@ type Table
             Sort_Order.Ascending -> IR.Ascending
             Sort_Order.Descending -> IR.Descending
         missing_to_ir last = case last of
-            True -> IR.NullsLast
-            False -> IR.NullsFirst
+            True -> IR.Nulls_Last
+            False -> IR.Nulls_First
         wrap_elem elem =
             [this.resolve elem . expression, order_to_ir order, missing_to_ir missing_last]
         to_ir elem = case elem of
@@ -166,7 +166,7 @@ type Table
     join : Table -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = Panic.recover <|
         Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
-        kind = if drop_unmatched then IR.InnerJoin else IR.LeftJoin
+        kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
         my_index : Vector Expression
         my_index = case on of
             Nothing -> this.context.meta_index
@@ -186,8 +186,8 @@ type Table
                 left_alias = aliases.first
                 right_alias = aliases.second
 
-                left_query = IR.SubQuery this.internal_columns this.context left_alias
-                right_query = IR.SubQuery other.internal_columns other.context right_alias
+                left_query = IR.Sub_Query this.internal_columns this.context left_alias
+                right_query = IR.Sub_Query other.internal_columns other.context right_alias
 
                 left_renamed_index = my_index.map (IR.substitute_origin this.name left_alias)
                 right_renamed_index = other_index.map (IR.substitute_origin other.name right_alias)
@@ -245,16 +245,19 @@ type Table
         this.connection.dialect.generate_sql query
 
     ## PRIVATE
+
        Helper to create columns from internal columns.
        # make_column : [Text, IR.Expression] -> Column
     make_column pair =
         Column pair.first this.connection pair.second this.context
 
     ## PRIVATE
+
        Returns a copy of this table with updated internal columns.
     updated_columns columns = Table this.name this.connection columns this.context
 
     ## PRIVATE
+
        Returns a copy of this table with updated context.
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
 
@@ -289,12 +292,14 @@ type Aggregate_Table
     print show_rows=10 = this.values.print show_rows
 
     ## PRIVATE
+
        Helper to create aggregate columns from internal columns.
        # make_column : [Text, IR.Expression] -> Aggregate_Column
     make_column pair =
         Aggregate_Column pair.first this.connection pair.second this.context
 
 ## PRIVATE
+
    An internal column structure which is a part of the Table.
 type InternalColumn
     ## PRIVATE
@@ -312,6 +317,7 @@ type IntegrityError
     to_text = this.object_description + " comes from a different context."
 
 ## PRIVATE
+
    Creates a Table out of a connection, name and list of column names.
 make_table : Connection -> Text -> Vector Text -> Table
 make_table connection table_name column_names =

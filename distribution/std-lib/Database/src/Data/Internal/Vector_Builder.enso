@@ -2,6 +2,7 @@ from Builtins import Array
 from Base import all
 
 ## INTERNAL
+
    An efficient builder for concatenating vectors.
 
    It builds a tree-like structure, thus making concatenation of vectors a
@@ -50,11 +51,13 @@ type Vector_Builder
             Vector.Vector _ -> Append this (Leaf other) len
 
 ## INTERNAL
+
    Creates an empty vector builder.
 empty : Vector_Builder Any
 empty = Leaf []
 
 ## INTERNAL
+
    Creates a vector builder from a vector.
 from_vector : Vector Any -> Vector_Builder Any
 from_vector vec = Leaf vec
