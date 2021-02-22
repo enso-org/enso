@@ -5,6 +5,10 @@ import Database.Data.Table
 
    Allows to access tables from a database.
 type Connection
+
+    ## A Database connection.
+
+       Allows to access tables from a database.
     type Connection internal_connection
 
     ## SQL dialect that the database associated with that connection is using.

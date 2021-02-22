@@ -9,8 +9,19 @@ import Database.Data.Internal.Base_Generator
    It encapsulates dialect-specific code generation details allowing us to
    support differing SQL dialects.
 type Dialect
-    # type Dialect (name : Text)
-    #              (generate_sql : Query -> Sql.Statement)
+
+    ## INTERNAL
+
+       Represents a specific SQL dialect.
+
+       It encapsulates dialect-specific code generation details allowing us to
+       support differing SQL dialects.
+
+       Arguments:
+       - name: name of the dialect.
+       - generate_sql: a function which generates SQL code from the internal
+         representation according to the specific dialect.
+       # type Dialect (name : Text) (generate_sql : Query -> Sql.Statement)
     type Dialect name generate_sql
 
 ## The dialect of PostgreSQL databases.
