@@ -314,6 +314,12 @@ public class ExecutionService {
     return null;
   }
 
+  /**
+   * Returns a human-readable message for a panic exception.
+   *
+   * @param panic the panic to display.
+   * @return a human-readable version of its contents.
+   */
   public String getExceptionMessage(PanicException panic) {
     try {
       return interopLibrary.asString(

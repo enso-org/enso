@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "Compile_Error", name = "to_display_text")
+@BuiltinMethod(type = "Arithmetic_Error", name = "to_display_text")
 public abstract class ArithmeticErrorToDisplayTextNode extends Node {
   static ArithmeticErrorToDisplayTextNode build() {
     return ArithmeticErrorToDisplayTextNodeGen.create();

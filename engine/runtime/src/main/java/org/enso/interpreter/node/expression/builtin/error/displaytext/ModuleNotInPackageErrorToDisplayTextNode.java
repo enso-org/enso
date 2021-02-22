@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Type_Error", name = "to_display_text")
+@BuiltinMethod(type = "Module_Not_In_Package_Error", name = "to_display_text")
 public class ModuleNotInPackageErrorToDisplayTextNode extends Node {
 
   Text execute(Object _this) {

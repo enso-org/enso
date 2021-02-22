@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Compile_Error", name = "to_display_text")
+@BuiltinMethod(type = "Arity_Error", name = "to_display_text")
 public abstract class ArityErrorToDisplayTextNode extends Node {
   static ArityErrorToDisplayTextNode build() {
     return ArityErrorToDisplayTextNodeGen.create();

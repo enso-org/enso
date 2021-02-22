@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "Type_Error", name = "to_display_text")
+@BuiltinMethod(type = "Not_Invokable_Error", name = "to_display_text")
 public abstract class NotInvokableErrorToDisplayTextNode extends Node {
   static NotInvokableErrorToDisplayTextNode build() {
     return NotInvokableErrorToDisplayTextNodeGen.create();

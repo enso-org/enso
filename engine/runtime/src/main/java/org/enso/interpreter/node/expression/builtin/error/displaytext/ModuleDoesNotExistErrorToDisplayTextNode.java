@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "Syntax_Error", name = "to_display_text")
+@BuiltinMethod(type = "Module_Does_Not_Exist_Error", name = "to_display_text")
 public abstract class ModuleDoesNotExistErrorToDisplayTextNode extends Node {
   static ModuleDoesNotExistErrorToDisplayTextNode build() {
     return ModuleDoesNotExistErrorToDisplayTextNodeGen.create();

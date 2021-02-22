@@ -91,10 +91,20 @@ public class Text implements TruffleObject {
     return new Text(new ConcatRope(t1, t2));
   }
 
+  /**
+   * Adds a string to this text.
+   * @param other the string add.
+   * @return the concatenation of this and the requested string.
+   */
   public Text add(String other) {
     return new Text(new ConcatRope(this.contents, other));
   }
 
+  /**
+   * Adds a text to this text.
+   * @param other the text add.
+   * @return the concatenation of this and the requested text.
+   */
   public Text add(Text other) {
     return new Text(new ConcatRope(this.contents, other.contents));
   }
