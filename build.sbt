@@ -1319,7 +1319,7 @@ lazy val database = project
     libraryDependencies ++= Seq(),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      StdBits
+      val _ = StdBits
         .copyDependencies(
           `database-polyglot-root`,
           None,

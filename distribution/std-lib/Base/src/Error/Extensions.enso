@@ -51,6 +51,13 @@ Error.to_display_text  = "Error: " + (this.catch .to_display_text)
 Error.map_error : (Error -> Error) -> Any
 Error.map_error f = this.catch (x -> Error.throw (f x))
 
+## Checks if the underlying value is an error.
+Error.is_error : Boolean
+Error.is_error =
+    non_error = case this of
+        _ -> False
+    non_error.catch (_ -> True)
+
 ## Takes any value, and if it is a dataflow error, throws it as a Panic.
    Otherwise, returns the original value unchanged.
 Panic.rethrow : (Any ! Any) -> Any
