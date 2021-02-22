@@ -1052,7 +1052,7 @@ class IrToTruffle(
 
           if (seenArgNames contains argName) {
             throw new IllegalStateException(
-              "A duplicate argument name found during codegen."
+              s"A duplicate argument name, $argName, was found during codegen."
             )
           } else seenArgNames.add(argName)
           slot
