@@ -58,7 +58,8 @@ type Table
        Returns a Text used to display this table in the IDE by default.
        Returns a JSON object containing useful metadata and previews of column
        values.
-    to_display =
+    to_default_visualization_data : Text
+    to_default_visualization_data =
         max_size = 10
         nrows = ['number_of_rows', this.nrows]
         cols = this.columns.map c->

@@ -63,7 +63,6 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.error.PanicException
 import org.enso.interpreter.runtime.scope.{
   FramePointer,
   LocalScope,
@@ -1052,9 +1051,9 @@ class IrToTruffle(
           val argName = arg.getName
 
           if (seenArgNames contains argName) {
-            val err =
-              context.getBuiltins.error.makeDuplicateArgumentNameError(argName)
-            throw new PanicException(err, null)
+            throw new IllegalStateException(
+              s"A duplicate argument name, $argName, was found during codegen."
+            )
           } else seenArgNames.add(argName)
           slot
         }

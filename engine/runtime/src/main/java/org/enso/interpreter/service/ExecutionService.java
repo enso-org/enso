@@ -11,10 +11,12 @@ import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.service.error.*;
@@ -310,5 +312,29 @@ public class ExecutionService {
       }
     }
     return null;
+  }
+
+  /**
+   * Returns a human-readable message for a panic exception.
+   *
+   * @param panic the panic to display.
+   * @return a human-readable version of its contents.
+   */
+  public String getExceptionMessage(PanicException panic) {
+    try {
+      return interopLibrary.asString(
+          interopLibrary.invokeMember(panic.getPayload(), "to_display_text"));
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException e) {
+      return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
+    } catch (Throwable e) {
+      if (interopLibrary.isException(e)) {
+        return TypeToDisplayTextNodeGen.getUncached().execute(panic.getPayload());
+      } else {
+        throw e;
+      }
+    }
   }
 }
