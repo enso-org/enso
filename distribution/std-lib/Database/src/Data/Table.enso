@@ -270,13 +270,32 @@ type Table
         this.updated_context new_ctx
 
     ## Returns a new Table without columns that contained any missing values.
+
+       This operation needs to actually materialize the underlying query in
+       order to know which columns to drop.
     drop_missing_columns : Table
     drop_missing_columns =
-        Error.throw "TODO needs materialization"
+        rows_expr = IR.Operation "COUNT_ROWS" []
+        all_rows_column_name = "nrows"
+        make_count_expr expr = IR.Operation "COUNT" [expr]
+        cols = this.internal_columns.map (c -> [c.name, make_count_expr c.expression])
+        query = IR.Select [[all_rows_column_name, rows_expr]]+cols this.context
+        sql = this.connection.dialect.generate_sql query
+        table = this.connection.execute_query sql
+        all_rows = table.at all_rows_column_name . at 0
+        kept_columns = this.internal_columns . filter c->
+            all_rows == table.at c.name . at 0
+        this.updated_columns kept_columns
 
     ## Returns the amount of rows in this table.
     nrows : Integer
-    nrows = Error.throw "TODO materialization"
+    nrows =
+        expr = IR.Operation "COUNT_ROWS" []
+        column_name = "nrows"
+        query = IR.Select [[column_name, expr]] this.context
+        sql = this.connection.dialect.generate_sql query
+        table = this.connection.execute_query sql
+        table.at column_name . at 0
 
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe limit=Nothing =
