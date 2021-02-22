@@ -47,7 +47,7 @@ object NativeImage {
     staticOnLinux: Boolean,
     initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitGigabytes: Option[Int] = Some(4),
+    memoryLimitGigabytes: Option[Int] = Some(3),
     initializeAtRuntime: Seq[String]  = Seq.empty
   ): Def.Initialize[Task[Unit]] = Def
     .task {
