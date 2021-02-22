@@ -23,6 +23,12 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
+  public void appendNulls(int count) {
+    isNa.set(size, size + count);
+    size += count;
+  }
+
+  @Override
   public Storage seal() {
     return new BoolStorage(vals, isNa, size, false);
   }

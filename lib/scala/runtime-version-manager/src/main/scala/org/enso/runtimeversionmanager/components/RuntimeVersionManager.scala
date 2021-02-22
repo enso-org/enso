@@ -593,15 +593,7 @@ class RuntimeVersionManager(
     val regex = """graalvm-ce-java(\d+)-(.+)""".r
     name match {
       case regex(javaVersionString, graalVersionString) =>
-        SemVer(graalVersionString) match {
-          case Some(graalVersion) =>
-            Some(GraalVMVersion(graalVersion, javaVersionString))
-          case None =>
-            logger.warn(
-              s"Invalid runtime version string `$graalVersionString`."
-            )
-            None
-        }
+        Some(GraalVMVersion(graalVersionString, javaVersionString))
       case _ =>
         logger.warn(
           s"Unrecognized runtime name `$name`."

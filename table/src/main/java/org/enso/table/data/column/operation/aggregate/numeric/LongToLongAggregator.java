@@ -5,7 +5,7 @@ import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
-import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 /** An aggregator consuming a {@link LongStorage} and returning a {@link LongStorage} */
@@ -17,7 +17,7 @@ public abstract class LongToLongAggregator extends Aggregator {
 
   /**
    * @param storage the data source
-   * @param resultSize the number of times {@link #nextGroup(List)} will be called
+   * @param resultSize the number of times {@link Aggregator#nextGroup(IntStream)} will be called
    */
   public LongToLongAggregator(LongStorage storage, int resultSize) {
     this.storage = storage;
@@ -47,8 +47,8 @@ public abstract class LongToLongAggregator extends Aggregator {
   protected abstract void runGroup(LongStream items);
 
   @Override
-  public void nextGroup(List<Integer> positions) {
-    LongStream items = positions.stream().filter(x -> !storage.isNa(x)).mapToLong(storage::getItem);
+  public void nextGroup(IntStream positions) {
+    LongStream items = positions.filter(x -> !storage.isNa(x)).mapToLong(storage::getItem);
     runGroup(items);
   }
 

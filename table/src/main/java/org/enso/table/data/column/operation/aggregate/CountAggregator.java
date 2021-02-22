@@ -3,7 +3,7 @@ package org.enso.table.data.column.operation.aggregate;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 
-import java.util.List;
+import java.util.stream.IntStream;
 
 /** Aggregates a storage by counting the non-missing values in each group. */
 public class CountAggregator extends Aggregator {
@@ -13,7 +13,8 @@ public class CountAggregator extends Aggregator {
 
   /**
    * @param storage the storage used as data source
-   * @param resultSize the exact number of times {@link #nextGroup(List)} will be called.
+   * @param resultSize the exact number of times {@link Aggregator#nextGroup(IntStream)} will be
+   *     called.
    */
   public CountAggregator(Storage storage, int resultSize) {
     this.storage = storage;
@@ -21,8 +22,8 @@ public class CountAggregator extends Aggregator {
   }
 
   @Override
-  public void nextGroup(List<Integer> positions) {
-    counts[position++] = positions.stream().filter(i -> !storage.isNa(i)).count();
+  public void nextGroup(IntStream positions) {
+    counts[position++] = positions.filter(i -> !storage.isNa(i)).count();
   }
 
   @Override

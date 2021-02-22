@@ -2,11 +2,11 @@ package org.enso.table.data.column.operation.aggregate;
 
 import org.enso.table.data.column.storage.Storage;
 
-import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * Represents a fold-like operation on a storage. An aggregator is usually created for a given
- * storage, then {@link #nextGroup(List)} is repeatedly called and the aggregator is responsible for
+ * storage, then {@link #nextGroup(IntStream)} is repeatedly called and the aggregator is responsible for
  * collecting the results of such calls. After that, {@link #seal()} is called to obtain a storage
  * containing all the results.
  */
@@ -17,10 +17,10 @@ public abstract class Aggregator {
    *
    * @param positions the positions to aggregate in this round.
    */
-  public abstract void nextGroup(List<Integer> positions);
+  public abstract void nextGroup(IntStream positions);
 
   /**
-   * Returns the results of all previous {@link #nextGroup(List)} calls.
+   * Returns the results of all previous {@link #nextGroup(IntStream)} calls.
    *
    * @return the storage containing all aggregation results.
    */

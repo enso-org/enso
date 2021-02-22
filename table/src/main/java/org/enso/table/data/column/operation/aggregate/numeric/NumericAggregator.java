@@ -6,9 +6,9 @@ import org.enso.table.data.column.storage.NumericStorage;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.BitSet;
-import java.util.List;
 import java.util.OptionalDouble;
 import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
 /**
  * An aggregator sourcing data from any {@link NumericStorage} and returning a {@link
@@ -22,7 +22,7 @@ public abstract class NumericAggregator extends Aggregator {
 
   /**
    * @param storage the data source
-   * @param resultSize the number of times {@link #nextGroup(List)} will be called
+   * @param resultSize the number of times {@link Aggregator#nextGroup(IntStream)} will be called
    */
   public NumericAggregator(NumericStorage storage, int resultSize) {
     this.storage = storage;
@@ -65,9 +65,9 @@ public abstract class NumericAggregator extends Aggregator {
   }
 
   @Override
-  public void nextGroup(List<Integer> positions) {
+  public void nextGroup(IntStream positions) {
     DoubleStream elements =
-        positions.stream().filter(i -> !storage.isNa(i)).mapToDouble(storage::getItemDouble);
+        positions.filter(i -> !storage.isNa(i)).mapToDouble(storage::getItemDouble);
     runGroup(elements);
   }
 

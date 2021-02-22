@@ -71,6 +71,14 @@ public class InferredBuilder extends Builder {
     currentSize++;
   }
 
+  @Override
+  public void appendNulls(int count) {
+    if (currentBuilder != null) {
+      currentBuilder.appendNulls(count);
+    }
+    currentSize += count;
+  }
+
   private void initBuilderFor(Object o) {
     if (o instanceof Boolean) {
       currentBuilder = new BoolBuilder();

@@ -1,6 +1,6 @@
 minimum-launcher-version: 0.0.1
 minimum-project-manager-version: 0.0.1
-graal-vm-version: 1.0.0
+graal-vm-version: 1.0.0.1.foo
 graal-java-version: 11
 jvm-options:
   - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"

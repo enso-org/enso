@@ -855,19 +855,59 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val binding     = ir.asInstanceOf[IR.Expression.Binding]
-      val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
-      val bindingExpr = binding.expression.asInstanceOf[IR.Error.Resolution]
+      val binding       = ir.asInstanceOf[IR.Expression.Binding]
+      val bindingName   = binding.name.asInstanceOf[IR.Name.Literal]
+      val bindingExpr   = binding.expression.asInstanceOf[IR.Error.Resolution]
+      val undefinedName = bindingExpr.originalName
 
       // The IDs
-      val bindingId     = mkStaticDep(binding.getId)
-      val bindingNameId = mkStaticDep(bindingName.getId)
-      val bindingExprId = mkStaticDep(bindingExpr.getId)
+      val bindingId       = mkStaticDep(binding.getId)
+      val bindingNameId   = mkStaticDep(bindingName.getId)
+      val bindingExprId   = mkStaticDep(bindingExpr.getId)
+      val undefinedNameId = mkDynamicDep(undefinedName.name)
 
       // The Test
       depInfo.getDirect(bindingId) should not be defined
       depInfo.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
       depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
+      depInfo.getDirect(undefinedNameId) shouldEqual Some(Set(bindingExprId))
+    }
+
+    "work properly for undefined variables in expressions" in {
+      implicit val inlineContext: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |x = 1 + undefined
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
+
+      val binding     = ir.asInstanceOf[IR.Expression.Binding]
+      val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
+      val bindingExpr = binding.expression.asInstanceOf[IR.Application.Prefix]
+      val undefinedArg =
+        bindingExpr
+          .arguments(1)
+          .asInstanceOf[IR.CallArgument.Specified]
+      val undefinedExpr = undefinedArg.value.asInstanceOf[IR.Error.Resolution]
+      val undefinedName = undefinedExpr.originalName
+
+      // The IDs
+      val bindingId       = mkStaticDep(binding.getId)
+      val bindingExprId   = mkStaticDep(bindingExpr.getId)
+      val bindingNameId   = mkStaticDep(bindingName.getId)
+      val undefinedArgId  = mkStaticDep(undefinedArg.getId)
+      val undefinedExprId = mkStaticDep(undefinedExpr.getId)
+      val undefinedNameId = mkDynamicDep(undefinedName.name)
+
+      // The Test
+      depInfo.getDirect(bindingId) should not be defined
+      depInfo.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
+      depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
+      depInfo.getDirect(undefinedArgId) shouldEqual Some(Set(bindingExprId))
+      depInfo.getDirect(undefinedExprId) shouldEqual Some(Set(undefinedArgId))
+      depInfo.getDirect(undefinedNameId) shouldEqual Some(Set(undefinedExprId))
     }
 
     "work properly for vector literals" in {
