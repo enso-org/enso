@@ -878,4 +878,5 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   ROOT || eof || documentation.onEOF()
+  ROOT || any || ()
 }
