@@ -5,7 +5,7 @@ from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
-import Database.Data.SQL
+import Database.Data.Sql
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
@@ -346,7 +346,7 @@ type Aggregate_Table
     count : Column
     count =
         expr = IR.Operation "COUNT_ROWS" []
-        Column "count" this.connection SQL.SqlType.integer expr this.context
+        Column "count" this.connection Sql.Sql_Type.integer expr this.context
 
     ## UNSTABLE
 
@@ -394,7 +394,7 @@ type IntegrityError
 ## PRIVATE
 
    Creates a Table out of a connection, name and list of column names.
-   # make_table : Connection -> Text -> Vector [Text, SQL.SqlType] -> Table
+   # make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
 make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
     cols = columns.map (p -> InternalColumn p.first p.second (IR.Column table_name p.first))

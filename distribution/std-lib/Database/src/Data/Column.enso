@@ -1,7 +1,7 @@
 from Base import all
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
-from Database.Data.SQL import SqlType
+from Database.Data.Sql import Sql_Type
 import Database.Data.Table
 
 type Column
@@ -17,7 +17,7 @@ type Column
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
     # type Column (name : Text) (connection : Connection)
-    #             (sql_type : SqlType) (expression : IR.Expression)
+    #             (sql_type : Sql_Type) (expression : IR.Expression)
     #             (context : IR.Context)
     type Column name connection sql_type expression context
 
@@ -53,7 +53,7 @@ type Column
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
-    make_binary_op : Text -> Text -> (Column | Any) -> (SqlType | Nothing) -> (SqlType | Nothing) -> Column
+    make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
     make_binary_op op_kind operand new_type=Nothing operand_type=Nothing =
         actual_new_type = if new_type.is_nothing then this.sql_type else new_type
         case operand of
@@ -73,7 +73,7 @@ type Column
     ## PRIVATE
 
        Helper for implementing unary operators.
-    make_unary_op : Text -> Text -> (SqlType | Nothing) -> Column
+    make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
     make_unary_op op_kind new_type=Nothing =
         actual_new_type = if new_type.is_nothing then this.sql_type else new_type
         new_expr = IR.Operation op_kind [this.expression]
@@ -86,7 +86,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     == : Column | Any -> Column
-    == other = this.make_binary_op "=" other new_type=SqlType.boolean
+    == other = this.make_binary_op "=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -95,7 +95,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     != : Column | Any -> Column
-    != other = this.make_binary_op "!=" other new_type=SqlType.boolean
+    != other = this.make_binary_op "!=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -104,7 +104,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     >= : Column | Any -> Column
-    >= other = this.make_binary_op ">=" other new_type=SqlType.boolean
+    >= other = this.make_binary_op ">=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -113,7 +113,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     <= : Column | Any -> Column
-    <= other = this.make_binary_op "<=" other new_type=SqlType.boolean
+    <= other = this.make_binary_op "<=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -122,7 +122,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     > : Column | Any -> Column
-    > other = this.make_binary_op ">" other new_type=SqlType.boolean
+    > other = this.make_binary_op ">" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -131,7 +131,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     < : Column | Any -> Column
-    < other = this.make_binary_op "<" other new_type=SqlType.boolean
+    < other = this.make_binary_op "<" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -198,7 +198,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = this.make_unary_op "ISNULL" new_type=SqlType.boolean
+    is_missing = this.make_unary_op "ISNULL" new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -246,7 +246,7 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     starts_with : Column | Text -> Column
-    starts_with other = this.make_binary_op "starts_with" other new_type=SqlType.boolean
+    starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -254,7 +254,7 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     ends_with : Column | Text -> Column
-    ends_with other = this.make_binary_op "ends_with" other new_type=SqlType.boolean
+    ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -262,7 +262,7 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     contains : Column | Text -> Column
-    contains other = this.make_binary_op "contains" other new_type=SqlType.boolean
+    contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
 
 type Aggregate_Column
     ## UNSTABLE
@@ -270,7 +270,7 @@ type Aggregate_Column
        Wraps a column grouped by its index. Allows performing aggregation operations
        on the contained values.
        # type Aggregate_Column (name : Text) (connection : Connection)
-       #                       (sql_type : SqlType) (expression : IR.Expression)
+       #                       (sql_type : Sql_Type) (expression : IR.Expression)
        #                       (context : IR.Context)
     type Aggregate_Column name connection sql_type expression context
 
@@ -316,7 +316,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
-        this.make_aggregate "COUNT" name_suffix new_type=SqlType.integer
+        this.make_aggregate "COUNT" name_suffix new_type=Sql_Type.integer
 
     ## UNSTABLE
 

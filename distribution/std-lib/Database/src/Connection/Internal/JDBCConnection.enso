@@ -4,12 +4,12 @@ import Database.Data.Dialect
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
-from Database.Data.SQL import SqlType
+from Database.Data.Sql import Sql_Type
 
 type JDBCConnection
     type JDBCConnection java_connection dialect
 
-    # fetch_columns : Text -> Vector [Text, SqlType]
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
     fetch_columns table_name = case Helpers.ensure_name_is_sane table_name of
         True ->
             sql = "SELECT * FROM " + table_name + " LIMIT 0"
@@ -20,12 +20,12 @@ type JDBCConnection
             resolve_column ix =
                 name = metadata.getColumnName ix+1
                 typ = metadata.getColumnType ix+1
-                [name, SqlType typ]
+                [name, Sql_Type typ]
             columns = Vector.new ncols resolve_column
             stmt.close
             columns
 
-    # prepare_statement : Text -> Vector [Any, SqlType] -> PreparedStatement
+    # prepare_statement : Text -> Vector [Any, Sql_Type] -> PreparedStatement
     prepare_statement template holes=[] =
         stmt = this.java_connection.prepareStatement template
         holes.map_with_index ix-> obj->

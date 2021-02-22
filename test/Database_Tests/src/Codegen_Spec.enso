@@ -2,14 +2,14 @@ from Base import all
 from Database import all
 from Table import No_Such_Column_Error, Order_Rule
 import Database.Data.Dialect
-from Database.Data.SQL import SqlType
+from Database.Data.Sql import Sql_Type
 import Test
 import Database_Tests.Helpers.Fake_Test_Connection
 
 spec =
-    int = SqlType.integer
-    bool = SqlType.boolean
-    str = SqlType 424242
+    int = Sql_Type.integer
+    bool = Sql_Type.boolean
+    str = Sql_Type 424242
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]

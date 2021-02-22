@@ -2,13 +2,19 @@ from Base import all
 from Database.Connection.Connection as Connection_Module import Connection
 
 type Fake_Test_Connection
-    # type Fake_Test_Connection (tables : Map Text (Vector Text))
-    #                         (dialect : Text)
+    # type Fake_Test_Connection (tables : Map Text (Vector [Text, Sql_Type]))
+    #                           (dialect : Text)
     type Fake_Test_Connection tables dialect
 
-    fetch_column_names : Text -> Vector Text
-    fetch_column_names name =
-        this.tables.get name
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns table_name =
+        this.tables.get table_name
+
+    # prepare_statement : Text -> Vector [Any, Sql_Type] -> PreparedStatement
+    prepare_statement template holes=[] =
+        _ = template
+        _ = holes
+        Error.throw "Fake_Test_Connection cannot be used to run actual queries."
 
 ## PRIVATE
 make dialect tables =

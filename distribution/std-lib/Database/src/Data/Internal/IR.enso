@@ -29,7 +29,7 @@ type Expression
          It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    # type Constant (sql_type : SQL.SqlType) (value : Any)
+    # type Constant (sql_type : Sql.Sql_Type) (value : Any)
     type Constant sql_type value
 
     ## PRIVATE
@@ -254,7 +254,7 @@ make_ctx_from table_name =
 ## PRIVATE
 
    Creates an expression which is a simple constant to be interpolated.
-make_constant : SQL.SqlType -> Any -> Expression
+make_constant : Sql.Sql_Type -> Any -> Expression
 make_constant sql_type x =
     # TODO [RW] may add some sanitization, like checking if the value type is supported
     Constant sql_type x
