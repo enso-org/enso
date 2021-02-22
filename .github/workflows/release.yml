@@ -542,8 +542,3 @@ jobs:
           asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
-
-      # Shutdown SBTn
-      - name: Shutdown SBTn
-        shell: bash
-        run: ${{ env.SBTN }} shutdown
