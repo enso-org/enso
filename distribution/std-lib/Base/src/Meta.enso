@@ -51,8 +51,8 @@ Unresolved_Symbol.scope : Any
 Unresolved_Symbol.scope = Builtins.Meta.get_unresolved_symbol_scope this.value
 
 ## Returns the payload carried by an error value.
-Base.Error.payload : Any
-Base.Error.payload = this.value.catch e->e
+Error.payload : Any
+Error.payload = this.value.catch e->e
 
 ## Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
