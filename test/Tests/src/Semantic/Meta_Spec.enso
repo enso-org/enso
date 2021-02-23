@@ -65,3 +65,5 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.is_an Error . should_be_false
         err.is_an Error . should_be_true
         err.is_a Text . should_be_false
+        Meta.is_an err Error . should_be_true
+        Meta.is_a err Text . should_be_false
