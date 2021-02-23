@@ -119,7 +119,10 @@ fn init(app:&Application) {
 
     let expression_3 = expression_mock2();
     graph_editor.frp.set_node_expression.emit((node3_id,expression_3));
-    let error = "Runtime Error".to_string().into();
+    let kind       = Immutable(graph_editor::component::node::error::Kind::Panic);
+    let message    = Rc::new(Some("Runtime Error".to_owned()));
+    let propagated = Immutable(false);
+    let error      = graph_editor::component::node::Error {kind,message,propagated};
     graph_editor.frp.set_node_error_status.emit((node3_id,Some(error)));
 
 

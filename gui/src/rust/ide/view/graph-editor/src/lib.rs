@@ -277,6 +277,10 @@ where K:Eq+Hash, S:std::hash::BuildHasher {
     pub fn remove(&self, k:&K) -> Option<V> {
         self.raw.borrow_mut().remove(k)
     }
+
+    pub fn contains_key(&self, key:&K) -> bool {
+        self.raw.borrow().contains_key(key)
+    }
 }
 
 impl<K,V,S> SharedHashMap<K,V,S> {
@@ -439,6 +443,7 @@ ensogl::define_endpoints! {
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
         set_visualization_data       ((NodeId,visualization::Data)),
+        set_error_visualization_data ((NodeId,visualization::Data)),
         enable_visualization         (NodeId),
 
         /// Remove from visualization registry all non-default visualizations.
@@ -508,7 +513,7 @@ ensogl::define_endpoints! {
         nodes_labels_visible      (bool),
 
 
-        visualization_enabled                   (NodeId,Option<visualization::Metadata>),
+        visualization_enabled                   (NodeId,visualization::Metadata),
         visualization_disabled                  (NodeId),
         visualization_enable_fullscreen         (NodeId),
         visualization_preprocessor_changed      ((NodeId,data::enso::Code)),
@@ -1072,11 +1077,10 @@ impl GraphEditorModelWithNetwork {
             // === Visualizations ===
 
             let vis_changed    =  node.model.visualization.frp.visualisation.clone_ref();
-            let vis_visible    =  node.model.visualization.frp.set_visibility.clone_ref();
             let vis_fullscreen =  node.model.visualization.frp.enable_fullscreen.clone_ref();
 
-            vis_enabled  <- vis_visible.gate(&vis_visible);
-            vis_disabled <- vis_visible.gate_not(&vis_visible);
+            vis_enabled  <- node.visualization_enabled.gate(&node.visualization_enabled);
+            vis_disabled <- node.visualization_enabled.gate_not(&node.visualization_enabled);
 
             let vis_is_selected = node.model.visualization.frp.is_selected.clone_ref();
 
@@ -1087,9 +1091,10 @@ impl GraphEditorModelWithNetwork {
             output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 
-            metadata <- node.model.visualization.frp.preprocessor.map(move |code| {
-                let preprocessor = Some(code.clone());
-                Some(visualization::Metadata{preprocessor})
+            metadata  <- any(...);
+            metadata <+ node.model.visualization.frp.preprocessor.map(move |code| {
+                let preprocessor = code.clone();
+                visualization::Metadata{preprocessor}
             });
             // Ensure the graph editor knows about internal changes to the visualisation. If the
             // visualisation changes that should indicate that the old one has been disabled and a
@@ -1105,7 +1110,10 @@ impl GraphEditorModelWithNetwork {
             output.source.visualization_disabled          <+ vis_disabled.constant(node_id);
             output.source.visualization_enable_fullscreen <+ vis_fullscreen.constant(node_id);
         }
-
+        let initial_metadata = visualization::Metadata {
+            preprocessor : node.model.visualization.frp.preprocessor.value()
+        };
+        metadata.emit(initial_metadata);
         self.nodes.insert(node_id,node);
         node_id
     }
@@ -1320,19 +1328,17 @@ impl GraphEditorModel {
         self.set_input_connected(target,tp,status);
     }
 
-    // FIXME: make nicer
     fn enable_visualization(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model.visualization.frp.set_visibility.emit(true);
+            node.enable_visualization();
         }
     }
 
-    // FIXME: make nicer
     fn disable_visualization(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.model.visualization.frp.set_visibility.emit(false);
+            node.disable_visualization();
         }
     }
 
@@ -1649,7 +1655,10 @@ impl GraphEditorModel {
     }
 
     fn with_edge_map_source<T>(&self, id:EdgeId, f:impl FnOnce(EdgeEndpoint)->T) -> Option<T> {
-        self.with_edge(id,|edge| edge.source.borrow().clone().map(f)).flatten()
+        self.with_edge(id,|edge| {
+            let edge = edge.source.borrow().deref().clone();
+            edge.map(f)
+        }).flatten()
     }
 
     fn with_edge_map_target<T>(&self, id:EdgeId, f:impl FnOnce(EdgeEndpoint)->T) -> Option<T> {
@@ -1698,7 +1707,8 @@ impl GraphEditorModel {
 
     fn with_edge_source<T>(&self, id:EdgeId, f:impl FnOnce(EdgeEndpoint)->T) -> Option<T> {
         self.with_edge(id,|edge| {
-            edge.source.borrow().clone().map(f).map_none(
+            let source = edge.source.borrow().deref().clone();
+            source.map(f).map_none(
                 || warning!(&self.logger,"Trying to access nonexistent source of the edge {id}.")
             )
         }).flatten()
@@ -1706,7 +1716,8 @@ impl GraphEditorModel {
 
     fn with_edge_target<T>(&self, id:EdgeId, f:impl FnOnce(EdgeEndpoint)->T) -> Option<T> {
         self.with_edge(id,|edge| {
-            edge.target.borrow().clone().map(f).map_none(
+            let target = edge.target.borrow().deref().clone();
+            target.map(f).map_none(
                 || warning!(&self.logger,"Trying to access nonexistent target of the edge {id}.")
             )
         }).flatten()
@@ -2715,11 +2726,17 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         }
     }));
 
-    def _set_data = inputs.set_visualization_data.map(f!([nodes]((node_id,data)) {
-         if let Some(node) = nodes.get_cloned(node_id) {
-             node.model.visualization.frp.set_data.emit(data);
-         }
-     }));
+    eval inputs.set_visualization_data ([nodes]((node_id,data)) {
+        if let Some(node) = nodes.get_cloned(node_id) {
+            node.model.visualization.frp.set_data.emit(data);
+        }
+    });
+
+    eval inputs.set_error_visualization_data ([nodes]((node_id,data)) {
+        if let Some(node) = nodes.get_cloned(node_id) {
+            node.model.error_visualization.send_data.emit(data);
+        }
+    });
 
      nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
      node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
@@ -2761,7 +2778,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
-                .map(|node| !node.model.visualization.is_active())
+                .map(|node| !node.visualization_enabled.value())
                 .unwrap_or_default()
         }).collect_vec()
     }));

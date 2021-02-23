@@ -23,8 +23,8 @@ use ensogl::system::web;
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
 const PROJECT_MANAGER_TIMEOUT_SEC     : u64  = 2 * 60 * 60;
-const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.2";
-const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.2";
+const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.4";
+const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.4";
 
 
 
@@ -150,8 +150,8 @@ impl Initializer {
         let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
         let version      = project.engine_version();
         if !requirements.matches(version) {
-            let message = format!("ERROR: Unsupported Enso Engine version - {} does not match {}. \
-                Please update engine_version in package.yaml.",version,requirements);
+            let message = format!("ERROR: Unsupported Enso Engine version. Please update \
+                engine_version in package.yaml to {}.",ENGINE_VERSION_FOR_NEW_PROJECTS);
             let label   = ide_view::status_bar::event::Label::from(message);
             view.status_bar().add_event(label);
         }
@@ -291,6 +291,15 @@ mod test {
 
     use json_rpc::expect_call;
     use wasm_bindgen_test::wasm_bindgen_test;
+
+
+
+    #[test]
+    fn new_project_engine_version_fills_requirements() {
+        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED).unwrap();
+        let version      = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS).unwrap();
+        assert!(requirements.matches(&version))
+    }
 
     #[wasm_bindgen_test(async)]
     async fn get_project_or_create_new() {

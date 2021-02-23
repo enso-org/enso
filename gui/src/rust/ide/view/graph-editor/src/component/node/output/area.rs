@@ -244,7 +244,7 @@ impl Model {
     /// Traverse all span tree nodes that are considered ports.
     fn traverse_borrowed_expression_raw
     (&self, mut f:impl FnMut(bool, &PortRef, &mut PortLayerBuilder)) {
-        let expression = self.expression.borrow_mut();
+        let expression = self.expression.borrow();
         expression.root_ref().dfs_with_layer_data(PortLayerBuilder::default(),|node,builder| {
             let is_leaf     = node.children.is_empty();
             let is_this     = node.is_this();
@@ -314,17 +314,21 @@ impl Model {
     }
 
     fn init_definition_types(&self) {
-        let port_count        = self.port_count.get();
-        let whole_expr_type   = self.expression.borrow().whole_expr_type.clone();
+        let port_count          = self.port_count.get();
+        let whole_expr_type     = self.expression.borrow().whole_expr_type.clone();
+        let mut signals_to_emit = Vec::<(frp::Any<Option<Type>>,Option<Type>)>::new();
         self.traverse_borrowed_expression(|_,node,_| {
             if let Some(port_frp) = &node.payload.frp {
                 let node_tp : Option<Type> = node.tp().cloned().map(|t|t.into());
                 let node_tp = if port_count != 0 { node_tp } else {
                     node_tp.or_else(||whole_expr_type.clone())
                 };
-                port_frp.set_definition_type.emit(node_tp);
+                signals_to_emit.push((port_frp.set_definition_type.clone_ref(),node_tp));
             }
-        })
+        });
+        for (endpoint,tp) in signals_to_emit {
+            endpoint.emit(tp);
+        }
     }
 
     fn set_expression(&self, new_expression:impl Into<node::Expression>) {
