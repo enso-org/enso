@@ -1,3 +1,36 @@
+# Enso 0.2.4 (2021-02-23)
+
+## Interpreter/Runtime
+
+- Fixed another issue where dependency analysis was operating at too fine a
+  granularity ([#1495](https://github.com/enso-org/enso/pull/1495)).
+- Moved all user-facing errors to in-Enso errors, allowing them to be presented
+  properly in the IDE, and interacted with by users
+  ([#1487](https://github.com/enso-org/enso/pull/1487)).
+
+## Tooling
+
+- Fixed an issue where the runtime server would not send correct expression
+  payloads for dataflow errors
+  ([#1484](https://github.com/enso-org/enso/pull/1484)).
+
+## Libraries
+
+- Added "pretty" representations to all Error types, allowing for better display
+  in the IDE ([#1498](https://github.com/enso-org/enso/pull/1498)).
+- Updated the Table library with a raft of additional features
+  ([#1489](https://github.com/enso-org/enso/pull/1489)). This includes table
+  concatenation, direct indexing and column aggregation, as well as a general
+  clean-up of the API pre-stabilisation.
+- Added a flexible sorting mechanism to the Table library
+  ([#1471](https://github.com/enso-org/enso/pull/1471)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-02-23)
+  for issues opened before the release date.
+
 # Enso 0.2.3 (2021-02-15)
 
 ## Tooling
