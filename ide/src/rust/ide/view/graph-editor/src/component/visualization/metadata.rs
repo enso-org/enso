@@ -10,5 +10,5 @@ pub struct Metadata {
     /// An Enso lambda, called on the Engine side before sending data to IDE, allowing us to do some
     /// compression or filtering for the best performance. See also _Lazy Visualization_ section
     /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-    pub preprocessor: Option<enso::Code>,
+    pub preprocessor: enso::Code,
 }

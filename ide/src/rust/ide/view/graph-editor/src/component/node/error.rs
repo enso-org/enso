@@ -1,7 +1,10 @@
 //! Contains a struct definition for error information on nodes.
 use crate::prelude::*;
 
-use crate::component::node::visualization;
+use crate::builtin::visualization::native::error as error_visualization;
+
+use serde::Deserialize;
+use serde::Serialize;
 
 
 
@@ -9,27 +12,30 @@ use crate::component::node::visualization;
 // === Error ===
 // =============
 
-/// Error information to be displayed on a node.
-///
-/// Note:
-/// Tis is a dummy implementation that can and should be extended once we have the proper
-/// error information from the language server.
-/// See [issue #1026](https://github.com/enso-org/ide/issues/1026) for more information.
-#[derive(Clone,Debug)]
+/// An error kind.
+#[allow(missing_docs)]
+#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub enum Kind {Panic,Dataflow}
+
+/// Additional error information (beside the error value itself) for some erroneous node.
+#[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
 pub struct Error {
-    /// The error message to show on the node.
-    pub message:String,
+    pub kind : Immutable<Kind>,
+    /// An error message overriding the error visualization data. Should be set in cases when the
+    /// visualization won't work (e.g. in case of panics).
+    pub message : Rc<Option<String>>,
+    /// Flag indicating that the error is propagated from another node visible on the scene.
+    pub propagated : Immutable<bool>,
 }
 
-impl From<Error> for visualization::Data {
-    fn from(error:Error) -> visualization::Data {
-        let content = serde_json::Value::String(error.message).into();
-        visualization::Data::Json {content}
-    }
-}
-
-impl From<String> for Error {
-    fn from(message:String) -> Error {
-        Self{message}
+impl Error {
+    /// Return data which should be sent to the Error Visualization to display this error.
+    /// Returns [`None`] if the data should arrive from the Engine.
+    pub fn visualization_data(&self) -> Option<error_visualization::Input> {
+        Some(error_visualization::Input {
+            kind    : Some(*self.kind),
+            message : self.message.as_ref().as_ref()?.clone(),
+        })
     }
 }

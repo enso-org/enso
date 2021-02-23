@@ -170,6 +170,7 @@ ensogl::define_endpoints! {
         visualisation (Option<visualization::Definition>),
         size          (Vector2),
         is_selected   (bool),
+        visible       (bool),
     }
 }
 
@@ -314,7 +315,7 @@ pub struct ContainerModel {
     display_object     : display::object::Instance,
     /// Internal root for all sub-objects. Will be moved when the visualisation
     /// container position is changed by dragging.
-    drag_root       : display::object::Instance,
+    drag_root          : display::object::Instance,
     visualization      : RefCell<Option<visualization::Instance>>,
     /// A network containing connection between currently set `visualization` FRP endpoints and
     /// container FRP. We keep a separate network for that, so we can manage life of such
@@ -409,6 +410,7 @@ impl ContainerModel {
             vis_preprocessor_change <- visualization.on_preprocessor_change.map(|x| x.clone());
             preprocessor            <+ vis_preprocessor_change;
         }
+        preprocessor.emit(visualization.on_preprocessor_change.value());
         self.view.add_child(&visualization);
         self.visualization.replace(Some(visualization));
         self.vis_frp_connection.replace(Some(vis_frp_connection));
@@ -530,6 +532,8 @@ impl Container {
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
+            frp.source.visible <+ frp.set_visibility;
+            frp.source.visible <+ frp.toggle_visibility.map(f!((()) model.is_active()));
             let preprocessor = &frp.source.preprocessor;
             frp.source.visualisation <+ frp.set_visualization.map(f!(
                 [model,action_bar,scene,logger,preprocessor](vis_definition) {
@@ -548,6 +552,7 @@ impl Container {
                 }
                 vis_definition.clone()
             }));
+
             eval  frp.set_data          ((t) model.set_visualization_data(t));
 
             eval_ frp.enable_fullscreen (model.set_visibility(true));

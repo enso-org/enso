@@ -46,7 +46,7 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 - [Allow Tables to feed the Geo Map visualisation.][1187] Tables that have `latitude`, `longitude`
   and optionally `label` columns can now be shown in a Geo Map visualisation where each row is 
   mapped to a point of the map with the given label.
-- [Erroneous nodes are highlighted.][1182] The error description appears above the node. The nodes 
+- [Erroneous nodes are highlighted.][1215]. The description appears below. The nodes 
   affected by error originating from another node will be highlighted without any description.
 - [There is now an API to show VCS status for node][1160].
 - [A shortcut for reloading visualization files.][1190] The visible visualizations must be switched 
@@ -55,7 +55,7 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 [1096]: https://github.com/enso-org/ide/pull/1172
 [1098]: https://github.com/enso-org/ide/pull/1098
 [1181]: https://github.com/enso-org/ide/pull/1181
-[1182]: https://github.com/enso-org/ide/pull/1182
+[1215]: https://github.com/enso-org/ide/pull/1215          
 [1160]: https://github.com/enso-org/ide/pull/1160
 [1190]: https://github.com/enso-org/ide/pull/1190
 [1187]: https://github.com/enso-org/ide/pull/1187

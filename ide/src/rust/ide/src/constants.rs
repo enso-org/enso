@@ -9,9 +9,6 @@ pub const LANGUAGE_FILE_EXTENSION:&str = "enso";
 /// The directory in the project that contains all the source files.
 pub const SOURCE_DIRECTORY:&str = "src";
 
-/// An invocable language expression that serialize given input into JSON.
-pub const SERIALIZE_TO_JSON_EXPRESSION:&str = "x -> x.to_json.to_text";
-
 /// Endpoint used by default by a locally run Project Manager.
 pub const PROJECT_MANAGER_ENDPOINT:&str = "ws://127.0.0.1:30535";
 

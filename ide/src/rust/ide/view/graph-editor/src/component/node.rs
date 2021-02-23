@@ -8,15 +8,19 @@ pub mod action_bar;
 pub mod expression;
 pub mod input;
 pub mod output;
-#[deny(missing_docs)]
+#[warn(missing_docs)]
 pub mod error;
 #[deny(missing_docs)]
 pub mod vcs;
 
-pub use expression::Expression;
 pub use error::Error;
+pub use expression::Expression;
 
 use crate::prelude::*;
+
+use crate::builtin::visualization::native as builtin_visualization;
+use crate::component::visualization;
+use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
@@ -26,16 +30,11 @@ use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::gui::text;
 use ensogl_text::Text;
-use ensogl_text::style::Size as TextSize;
 use ensogl_theme;
-
-use crate::Type;
-use crate::component::visualization;
+use std::f32::EPSILON;
 
 use super::edge;
-
 
 
 // =================
@@ -51,12 +50,13 @@ pub const RADIUS            : f32 = 14.0;
 pub const SHADOW_SIZE       : f32 = 10.0;
 
 const INFINITE                       : f32       = 99999.0;
-const ERROR_PATTERN_STRIPE_WIDTH     : f32       = 5.0;
+const ERROR_PATTERN_STRIPE_WIDTH     : f32       = 10.0;
 const ERROR_PATTERN_STRIPE_ANGLE     : f32       = 45.0;
-const ERROR_PATTERN_REPEAT_TILE_SIZE : (f32,f32) = (15.0,15.0);
+const ERROR_PATTERN_REPEAT_TILE_SIZE : (f32,f32) = (20.0,20.0);
 const ERROR_BORDER_WIDTH             : f32       = 10.0;
+const ERROR_VISUALIZATION_SIZE       : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
-const TEXT_SIZE                      : f32       = 12.0;
+const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
 
 
 
@@ -234,17 +234,19 @@ impl Default for Crumbs {
 
 // ============
 // === Node ===
-// ============
+// ============7
 
 ensogl::define_endpoints! {
     Input {
-        select              (),
-        deselect            (),
-        set_visualization   (Option<visualization::Definition>),
-        set_disabled        (bool),
-        set_input_connected (span_tree::Crumbs,Option<Type>,bool),
-        set_expression      (Expression),
-        set_error           (Option<Error>),
+        select                (),
+        deselect              (),
+        enable_visualization  (),
+        disable_visualization (),
+        set_visualization     (Option<visualization::Definition>),
+        set_disabled          (bool),
+        set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
+        set_expression        (Expression),
+        set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
@@ -255,11 +257,13 @@ ensogl::define_endpoints! {
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
-        background_press (),
-        expression       (Text),
-        skip             (bool),
-        freeze           (bool),
-        hover            (bool),
+        background_press      (),
+        expression            (Text),
+        skip                  (bool),
+        freeze                (bool),
+        hover                 (bool),
+        error                 (Option<Error>),
+        visualization_enabled (bool),
     }
 }
 
@@ -339,21 +343,18 @@ impl Deref for Node {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct NodeModel {
-    pub app             : Application,
-    pub display_object  : display::object::Instance,
-    pub logger          : Logger,
-    pub main_area       : shape::View,
-    pub drag_area       : drag_area::View,
-    pub error_indicator : error_shape::View,
-    // TODO: This extra text field should not be required after #1026 has been finished.
-    // Instead we should get the error content as normal node output that is visible in the
-    // visualisation. Alternatively it might be extended to use a preview of the new information.
-    pub error_text      : text::Area,
-    pub input           : input::Area,
-    pub output          : output::Area,
-    pub visualization   : visualization::Container,
-    pub action_bar      : action_bar::ActionBar,
-    pub vcs_indicator   : vcs::StatusIndicator,
+    pub app                 : Application,
+    pub display_object      : display::object::Instance,
+    pub logger              : Logger,
+    pub main_area           : shape::View,
+    pub drag_area           : drag_area::View,
+    pub error_indicator     : error_shape::View,
+    pub input               : input::Area,
+    pub output              : output::Area,
+    pub visualization       : visualization::Container,
+    pub error_visualization : builtin_visualization::Error,
+    pub action_bar          : action_bar::ActionBar,
+    pub vcs_indicator       : vcs::StatusIndicator,
 }
 
 impl NodeModel {
@@ -384,19 +385,12 @@ impl NodeModel {
         let error_indicator = error_shape::View::new(&error_indicator_logger);
         let main_area       = shape::View::new(&main_logger);
         let drag_area       = drag_area::View::new(&drag_logger);
-        let error_text      = app.new_view::<text::Area>();
         let vcs_indicator   = vcs::StatusIndicator::new(app);
 
         let display_object  = display::object::Instance::new(&logger);
         display_object.add_child(&drag_area);
         display_object.add_child(&main_area);
-        display_object.add_child(&error_indicator);
-        display_object.add_child(&error_text);
         display_object.add_child(&vcs_indicator);
-
-        error_text.set_default_color.emit(color::Rgba::red());
-        error_text.set_default_text_size(TextSize::from(TEXT_SIZE));
-
 
         // Disable shadows to allow interaction with the output port.
         let shape_system = scene.layers.main.shape_system_registry.shape_system
@@ -409,6 +403,10 @@ impl NodeModel {
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
+        let error_visualization = builtin_visualization::Error::new(&scene);
+        let (x,y)               = ERROR_VISUALIZATION_SIZE;
+        error_visualization.set_size.emit(Vector2(x,y));
+
         let action_bar = action_bar::ActionBar::new(&logger,&app);
         display_object.add_child(&action_bar);
 
@@ -416,8 +414,8 @@ impl NodeModel {
         display_object.add_child(&output);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,main_area,drag_area,output,input,visualization,action_bar,
-              error_indicator,error_text,vcs_indicator}.init()
+        Self {app,display_object,logger,main_area,drag_area,output,input,visualization
+            ,error_visualization,action_bar,error_indicator,vcs_indicator}.init()
     }
 
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
@@ -465,19 +463,15 @@ impl NodeModel {
         self.error_indicator.set_position_x(width/2.0);
         self.vcs_indicator.set_position_x(width/2.0);
 
-        self.error_text.set_position_y(height + TEXT_SIZE);
-        self.error_text.set_position_x(CORNER_RADIUS);
-
         let action_bar_width = ACTION_BAR_WIDTH;
         self.action_bar.mod_position(|t| {
             t.x = width + CORNER_RADIUS + action_bar_width / 2.0;
         });
         self.action_bar.frp.set_size(Vector2::new(action_bar_width,ACTION_BAR_HEIGHT));
 
-        self.visualization.mod_position(|t| {
-            t.x = width / 2.0;
-            t.y = -120.0;
-        });
+        let visualization_pos = Vector2(width / 2.0, VISUALIZATION_OFFSET_Y);
+        self.error_visualization.set_position_xy(visualization_pos);
+        self.visualization.set_position_xy(visualization_pos);
 
         size
     }
@@ -487,9 +481,28 @@ impl NodeModel {
     }
 
     fn set_error(&self, error:Option<&Error>) {
-        let message = error.map(|t| t.message.clone()).unwrap_or_default();
-        self.error_text.set_content.emit(message);
+        if let Some(error) = error {
+            self.error_visualization.display_kind(*error.kind);
+            if let Some(error_data) = error.visualization_data() {
+                self.error_visualization.set_data(&error_data);
+            }
+            if !*error.propagated {
+                self.display_object.add_child(&self.error_visualization);
+            } else {
+                self.error_visualization.unset_parent();
+            }
+        } else {
+            self.error_visualization.unset_parent();
+        }
+    }
 
+    fn set_error_color(&self, color:&color::Lcha) {
+        self.error_indicator.color_rgba.set(color::Rgba::from(color).into());
+        if color.alpha < EPSILON {
+            self.error_indicator.unset_parent();
+        } else {
+            self.display_object.add_child(&self.error_indicator);
+        }
     }
 }
 
@@ -543,11 +556,6 @@ impl Node {
             model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
 
 
-            // === Visualization ===
-
-            eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
-
-
             // === Size ===
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
@@ -562,23 +570,30 @@ impl Node {
             eval out.hover ((t) action_bar.set_visibility(t));
 
 
-            // === Set Node Error ===
+            // === Errors on Node ===
 
-            error_color_anim.target <+ frp.set_error.map(f!((error) {
+            is_error_set <- frp.error.map(|err| err.is_some());
+
+            frp.source.error <+ frp.set_error.map(f!([model](error) {
                 model.set_error(error.as_ref());
-                match error.as_ref() {
-                    Some(error) => {
-                        let error_data:visualization::Data = error.clone().into();
-                        model.visualization.frp.set_data.emit(error_data);
-                        color::Lcha::from(color::Rgba::red())
-                    },
-                    None => color::Lcha::transparent(),
-                }
+                error.clone()
             }));
 
-            eval error_color_anim.value((value)
-                model.error_indicator.color_rgba.set(color::Rgba::from(value).into());
+            error_color_anim.target <+ frp.error.map(f!([style](error)
+                Self::error_color(error,&style))
             );
+
+            eval error_color_anim.value ((value) model.set_error_color(value));
+
+
+            // === Visualization ===
+
+            eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
+            visualization_enabled <- bool(&frp.disable_visualization,&frp.enable_visualization);
+            no_error_set          <- not(&is_error_set);
+            visualization_visible <- visualization_enabled && no_error_set;
+            frp.source.visualization_enabled <+ visualization_enabled;
+            eval visualization_visible ((is_visible) model.visualization.frp.set_visibility(is_visible));
 
 
             // === Color Handling ===
@@ -602,6 +617,20 @@ impl Node {
         frp.set_error.emit(None);
         frp.set_disabled.emit(false);
         Self {frp,model}
+    }
+
+    fn error_color(error:&Option<Error>, style:&StyleWatch) -> color::Lcha {
+        use ensogl_theme::graph_editor::node::error as error_theme;
+
+        if let Some(error) = error {
+            let path = match *error.kind {
+                error::Kind::Panic    => error_theme::panic,
+                error::Kind::Dataflow => error_theme::dataflow,
+            };
+            style.get_color(path)
+        } else {
+            color::Lcha::transparent()
+        }
     }
 }
 
