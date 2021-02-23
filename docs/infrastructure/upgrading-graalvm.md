@@ -25,3 +25,18 @@ take the following actions to be able to continue development after the upgrade:
    - If there are problems building the Native Image, removing
      `engine/launcher/build-cache` (which contains the downloaded `musl`
      package) may help.
+
+## Upgrading the Build
+
+If you are upgrading the _build_ to a new GraalVM version, you additionally need
+to perform the following tasks:
+
+- Change the expected GraalVM version in the [`build.sbt`](../../build.sbt)
+  configuration. This is both a version number and (if it is changed), the
+  associated version of Java.
+- Change the expected GraalVM version in the
+  [`scala.yml`](../../.github/workflows/scala.yml) and
+  [`release.yml`](../../.github/workflows/release.yml) workflows.
+- Change the base image in the [`Dockerfile`](../../tools/ci/docker/Dockerfile)
+  to contain the correct GraalVM version.
+- Ensure that all deprecations have been handled.
