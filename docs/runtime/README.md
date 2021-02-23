@@ -43,3 +43,10 @@ broken up as follows:
   techniques for achieving unbounded recursion on the JVM.
 - [**Instruments:**](./instruments.md) A description of instrumentation in the
   language runtime.
+- [**Execution Server Flow:**](./execution-server-flow.md) An explanation of how
+  the execution server orchestrates Enso's execution.
+- [**Builtin Base Methods:**](./builtin-base-methods.md) An explanation of the
+  DSL we use for defining builtin types and methods.
+- [**Searcher:**](./searcher.md) An explanation of how the searcher works.
+- [**Instruments:**](./instruments.md) An explanation of how we compile Truffle
+  instrumentation.
