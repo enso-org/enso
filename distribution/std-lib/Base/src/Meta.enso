@@ -51,8 +51,8 @@ Unresolved_Symbol.scope : Any
 Unresolved_Symbol.scope = Builtins.Meta.get_unresolved_symbol_scope this.value
 
 ## Returns the payload carried by an error value.
-Error.payload : Any
-Error.payload = this.value.catch e->e
+Base.Error.payload : Any
+Base.Error.payload = this.value.catch e->e
 
 ## Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
@@ -80,6 +80,14 @@ Any.is_a typ = here.is_a this typ
 ## Checks if `this` is an instance of `typ`.
 Any.is_an : Any -> Boolean
 Any.is_an typ = here.is_a this typ
+
+## Checks if `this` is an instance of `typ`.
+Base.Error.is_a : Any -> Boolean
+Base.Error.is_a typ = this.is_an typ
+
+## Checks if `this` is an instance of `typ`.
+Base.Error.is_an : Any -> Boolean
+Base.Error.is_an typ = typ == Base.Error
 
 ## Checks if `value` is an instance of `typ`.
 is_a : Any -> Any -> Boolean
