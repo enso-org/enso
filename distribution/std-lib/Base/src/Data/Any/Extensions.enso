@@ -1,9 +1,16 @@
 from Base import all
 
-## Generic equality of arbitrary values.
+## Checks if `this` is equal to `that.`
+
+   Arguments:
+   - that: The object to compare `this` against.
 
    Two values are considered to be equal in Enso when they have the same
    structure, and each of the values of their fields are recursively equal.
+
+   > Example
+     Checking if 1 is equal to 2.
+         1 == 2
 Any.== : Any -> Boolean
 Any.== that = if Meta.is_same_object this that then True else
     this_meta = Meta.meta this
@@ -24,6 +31,17 @@ Any.== that = if Meta.is_same_object this that then True else
            Primitive objects should define their own equality.
            Therefore, there is no more cases to handle in this method.
         _ -> False
+
+## Checks if `this` is not equal to `that`.
+
+   Arguments:
+   - that: The object to compare `this` against.
+
+   > Example
+     Checking if 1 is not equal to 2.
+         1 != 2
+Any.!= : Any -> Boolean
+Any.!= that = (this == that).not
 
 ## Checks if `this` is greater than `that`.
 
