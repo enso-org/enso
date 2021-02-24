@@ -13,6 +13,8 @@ use enso_protocol::project_manager::ProjectName;
 use uuid::Uuid;
 use ensogl::application::Application;
 use ensogl::system::web;
+use ensogl::system::web::platform;
+use ensogl::system::web::platform::Platform;
 
 
 // =================
@@ -150,12 +152,22 @@ impl Initializer {
         let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
         let version      = project.engine_version();
         if !requirements.matches(version) {
-            let message = format!("ERROR: Unsupported Enso Engine version. Please update \
-                engine_version in package.yaml to {}.",ENGINE_VERSION_FOR_NEW_PROJECTS);
+            let message = format!("Unsupported Engine version. Please update engine_version in {} \
+                to {}.",self.package_yaml_path(),ENGINE_VERSION_FOR_NEW_PROJECTS);
             let label   = ide_view::status_bar::event::Label::from(message);
             view.status_bar().add_event(label);
         }
         Ok(())
+    }
+
+    fn package_yaml_path(&self) -> String {
+        let project_name = &self.config.project_name;
+        match platform::current() {
+            Some(Platform::Linux)   |
+            Some(Platform::MacOS)   => format!("~/enso/projects/{}/package.yaml", project_name),
+            Some(Platform::Windows) => format!("%userprofile%\\enso\\projects\\{}\\package.yaml", project_name),
+            _ => format!("<path-to-enso-projects>/{}/package.yaml", project_name)
+        }
     }
 }
 

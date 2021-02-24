@@ -564,7 +564,7 @@ impl Node {
 
             // === Action Bar ===
 
-            eval action_bar.action_visbility ((t) model.visualization.frp.set_visibility.emit(t));
+            let visualization_enabled = action_bar.action_visbility.clone_ref();
             out.source.skip   <+ action_bar.action_skip;
             out.source.freeze <+ action_bar.action_freeze;
             eval out.hover ((t) action_bar.set_visibility(t));
@@ -589,7 +589,8 @@ impl Node {
             // === Visualization ===
 
             eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
-            visualization_enabled <- bool(&frp.disable_visualization,&frp.enable_visualization);
+            visualization_enabled_frp <- bool(&frp.disable_visualization,&frp.enable_visualization);
+            eval visualization_enabled_frp ((enabled) model.action_bar.set_action_visibility_state(enabled));
             no_error_set          <- not(&is_error_set);
             visualization_visible <- visualization_enabled && no_error_set;
             frp.source.visualization_enabled <+ visualization_enabled;

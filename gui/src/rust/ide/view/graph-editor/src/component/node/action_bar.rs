@@ -52,8 +52,9 @@ mod hover_area {
 
 ensogl::define_endpoints! {
     Input {
-        set_size       (Vector2),
-        set_visibility (bool),
+        set_size                    (Vector2),
+        set_visibility              (bool),
+        set_action_visibility_state (bool),
     }
 
     Output {
@@ -251,8 +252,9 @@ impl ActionBar {
 
             // === Input Processing ===
 
-            eval frp.set_size ((size) model.set_size(*size));
-            eval frp.set_visibility ((t) model.icons.set_visibility(*t));
+            eval frp.set_size                    ((size)  model.set_size(*size));
+            eval frp.set_visibility              ((t)     model.icons.set_visibility(*t));
+            eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
 
 
             // === Mouse Interactions ===

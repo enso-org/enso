@@ -35,11 +35,16 @@ ensogl_core::define_endpoints! {
         set_visibility   (bool),
         set_color_scheme (ColorScheme),
         set_size         (Vector2),
+        toggle           (),
+        set_state        (bool),
     }
     Output {
         state      (bool),
+        visible    (bool),
         mouse_over (),
         mouse_out  (),
+        is_hovered (bool),
+        is_pressed (bool),
     }
 }
 
@@ -205,11 +210,17 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             eval frp.set_size ((size) model.icon.size().set(*size));
 
 
+            // === State ===
+
+            toggle <- any(frp.toggle,icon.mouse_down);
+            frp.source.state <+ toggle.toggle();
+            frp.source.state <+ frp.set_state;
+
+
             // === Mouse Interactions ===
 
             frp.source.mouse_over <+ icon.mouse_over;
             frp.source.mouse_out  <+ icon.mouse_out;
-            frp.source.state      <+ icon.mouse_down.toggle();
 
 
             // === Color ===
@@ -217,11 +228,11 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             invisible <- frp.set_visibility.on_false().constant(0.0);
             color.target_alpha <+ invisible;
 
-            visible    <- frp.set_visibility.gate(&frp.set_visibility);
-            is_hovered <- bool(&icon.mouse_out,&icon.mouse_over);
-            is_pressed <- bool(&icon.mouse_up,&icon.mouse_down);
+            frp.source.visible    <+ frp.set_visibility;
+            frp.source.is_hovered <+ bool(&icon.mouse_out,&icon.mouse_over);
+            frp.source.is_pressed <+ bool(&icon.mouse_up,&icon.mouse_down);
 
-            button_state <- all_with4(&visible,&frp.state,&is_hovered,&is_pressed,
+            button_state <- all_with4(&frp.visible,&frp.state,&frp.is_hovered,&frp.is_pressed,
                 |a,b,c,d| ButtonState::new(*a,*b,*c,*d));
 
             color_target <- all_with(&frp.set_color_scheme,&button_state,
