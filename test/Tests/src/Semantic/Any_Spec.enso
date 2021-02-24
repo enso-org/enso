@@ -21,4 +21,7 @@ spec = Test.group "Callables" <|
         (+1 >> *2) 2 . should_equal 6
         (*2 >> My_Type) 2 . should_equal <| My_Type 4
         (*2 >> .floor) 2.75 . should_equal 5
+    Test.specify "should define generic inequality on values" <|
+        (1 != 2) . should_be_true
+        (1 != 1) . should_be_false
 
