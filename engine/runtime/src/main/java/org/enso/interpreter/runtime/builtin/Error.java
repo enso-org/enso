@@ -207,7 +207,7 @@ public class Error {
    * @return a runtime representation of the error.
    */
   public Atom makeTypeError(Object expected, Object actual, String name) {
-    return typeError.newInstance(expected, actual, name);
+    return typeError.newInstance(expected, actual, Text.create(name));
   }
 
   /**
