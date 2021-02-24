@@ -8,9 +8,6 @@ polyglot java import org.opencv.imgcodecs.Imgcodecs
 read_flag_to_integer flag = case flag of
     Codecs.Read_Alpha_Channel -> Imgcodecs.IMREAD_UNCHANGED
     Codecs.Read_Grayscale -> Imgcodecs.IMREAD_GRAYSCALE
-    Codecs.Read_Color -> Imgcodecs.IMREAD_COLOR
-    Codecs.Read_Anydepth -> Imgcodecs.IMREAD_ANYDEPTH
-    Codecs.Read_Anycolor -> Imgcodecs.IMREAD_ANYCOLOR
     Codecs.Read_Gdal -> Imgcodecs.IMREAD_LOAD_GDAL
 
 ## PRIVATE
@@ -18,7 +15,6 @@ write_flag_to_vector flag = case flag of
     Codecs.Write_Jpeg_Quality value -> [Imgcodecs.IMWRITE_JPEG_QUALITY, value]
     Codecs.Write_Jpeg_Progressive -> [Imgcodecs.IMWRITE_JPEG_PROGRESSIVE, 1]
     Codecs.Write_Jpeg_Optimize -> [Imgcodecs.IMWRITE_JPEG_OPTIMIZE, 1]
-    Codecs.Write_Jpeg_Restart_Interval value -> [Imgcodecs.IMWRITE_JPEG_RST_INTERVAL, value]
     Codecs.Write_Jpeg_Luma_Quality value -> [Imgcodecs.IMWRITE_JPEG_LUMA_QUALITY, value]
     Codecs.Write_Jpeg_Chroma_Quality value -> [Imgcodecs.IMWRITE_JPEG_CHROMA_QUALITY, value]
     Codecs.Write_Png_Compression value -> [Imgcodecs.IMWRITE_PNG_COMPRESSION, value]

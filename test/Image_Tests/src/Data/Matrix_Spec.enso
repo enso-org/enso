@@ -18,8 +18,8 @@ spec =
             eye.get 0 0 . should_equal [1]
             eye.get 1 0 . should_equal [0]
             eye.get 1 1 . should_equal [1]
-            Test.expect_error_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
-            Test.expect_error_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
 
         Test.specify "should add scalar" <|
             (zeros + 1).to_vector . should_equal (Vector.fill 9 1)
@@ -27,7 +27,7 @@ spec =
         Test.specify "should add vector" <|
             (zeros + [1]).to_vector . should_equal (Vector.fill 9 1)
             (ones + [1, 1]).to_vector . should_equal (Vector.fill 9 2)
-            Test.expect_error_with (eye + []) Color.Unsupported_Channels_Number
+            Test.expect_panic_with (eye + []) Color.Unsupported_Channels_Number
         Test.specify "should add color" <|
             c1 = Color.from_vector [1]
             (zeros + c1).to_vector . should_equal (Vector.fill 9 1)
@@ -42,7 +42,7 @@ spec =
         Test.specify "should subtract vector" <|
             (zeros - [1]).to_vector . should_equal (Vector.fill 9 0)
             (ones - [1, 1]).to_vector . should_equal (Vector.fill 9 0)
-            Test.expect_error_with (eye - []) Color.Unsupported_Channels_Number
+            Test.expect_panic_with (eye - []) Color.Unsupported_Channels_Number
         Test.specify "should subtract color" <|
             c1 = Color.from_vector [1]
             (ones - c1).to_vector . should_equal (Vector.fill 9 0)
@@ -57,7 +57,7 @@ spec =
         Test.specify "should multiply vector" <|
             (zeros * [2]).to_vector . should_equal (Vector.fill 9 0)
             (ones + [2, 2]).to_vector . should_equal (Vector.fill 9 3)
-            Test.expect_error_with (eye * []) Color.Unsupported_Channels_Number
+            Test.expect_panic_with (eye * []) Color.Unsupported_Channels_Number
         Test.specify "should multiply color" <|
             c1 = Color.from_vector [2]
             (ones * c1).to_vector . should_equal (Vector.fill 9 2)
@@ -72,7 +72,7 @@ spec =
         Test.specify "should divide vector" <|
             (zeros / [2]).to_vector . should_equal (Vector.fill 9 0)
             (ones / [2, 2]).to_vector . should_equal (Vector.fill 9 0)
-            Test.expect_error_with (eye / []) Color.Unsupported_Channels_Number
+            Test.expect_panic_with (eye / []) Color.Unsupported_Channels_Number
         Test.specify "should divide color" <|
             c1 = Color.from_vector [1]
             (ones / c1).to_vector . should_equal (Vector.fill 9 1)
@@ -99,5 +99,5 @@ spec =
             eye.get 0 0 . should_equal [1, 0, 0]
             eye.get 1 0 . should_equal [0, 0, 0]
             eye.get 1 1 . should_equal [1, 0, 0]
-            Test.expect_error_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
-            Test.expect_error_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error

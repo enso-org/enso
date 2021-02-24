@@ -13,16 +13,6 @@ type Read_Flag
     ## Always convert image to the single channel grayscale image.
     type Read_Grayscale
 
-    ## Always convert image to the 3 channel BGR color image.
-    type Read_Color
-
-    ## Return 16-bit/32-bit image when the input has the corresponding depth,
-       otherwise convert it to 8-bit.
-    type Read_Anydepth
-
-    ## The image is read in any possible color format.
-    type Read_Anycolor
-
     ## Use the gdal driver for loading the image.
     type Read_Gdal
 
@@ -37,9 +27,6 @@ type Write_Flag
 
     ## Enable JPEG features. Disabled by default.
     type Write_Jpeg_Optimize
-
-    ## JPEG restart interval, 0 - 65535, default is 0 - no restart.
-    type Write_Jpeg_Restart_Interval value
 
     ## Separate luma quality level, 0 - 100, default is 0 - don't use.
     type Write_Jpeg_Luma_Quality value
@@ -69,7 +56,7 @@ read location flags=[] =
     Panic.recover (Matrix.Matrix (Java_Image.read path read_flags)) . catch e->
         case e of
             Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read ' + path))
-            err -> Error.throw err
+            err -> Panic.throw err
 
 write : (Text | File) -> Matrix -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
 write location image flags=[] =
