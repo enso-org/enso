@@ -152,6 +152,21 @@ impl GraphHelper {
 
 
 // =================
+// === Output ===
+// =================
+
+/// Describes the output of the extracted function.
+#[derive(Clone,Debug)]
+pub struct Output {
+    /// The node that introduces output variable.
+    pub node       : node::Id,
+    /// The identifier from the extracted nodes that is used outside.
+    pub identifier : Identifier
+}
+
+
+
+// =================
 // === Extracted ===
 // =================
 
@@ -160,11 +175,9 @@ impl GraphHelper {
 pub struct Extracted {
     /// Identifiers used in the collapsed nodes from the outside scope.
     inputs : Vec<Identifier>,
-    /// The identifier from the extracted nodes that is used outside.
-    /// Currently we allow at most one, to be revisited in the future.
-    output : Option<Identifier>,
-    /// The node that introduces output variable.
-    output_node : Option<node::Id>,
+    /// Information on node that will act as extracted function output.
+    /// Currently we allow at most one output, to be revisited in the future.
+    output : Option<Output>,
     /// Nodes that are being collapsed and extracted into a separate method.
     extracted_nodes : Vec<NodeInfo>,
     /// Helper for efficient lookup.
@@ -180,32 +193,46 @@ impl Extracted {
             extracted_nodes_set.contains(&node.id())
         }).cloned().collect();
 
-        let mut output_node = None;
+        // Leaf is an extracted node that has no outgoing connections.
+        let mut leaves      = extracted_nodes_set.clone();
         let mut inputs      = Vec::new();
         let mut output      = None;
         for connection in graph.info.connections() {
             let starts_inside = extracted_nodes_set.contains(&connection.source.node);
             let ends_inside   = extracted_nodes_set.contains(&connection.destination.node);
             let identifier    = graph.connection_variable(&connection)?;
+
+            leaves.remove(&connection.source.node);
             if !starts_inside && ends_inside {
                 inputs.push(identifier)
             } else if starts_inside && !ends_inside {
                 match output {
-                    Some(previous_identifier) if identifier != previous_identifier => {
+                    Some(Output{identifier:previous_identifier,..})
+                    if identifier != previous_identifier => {
                         let ident1 = identifier.to_string();
                         let ident2 = previous_identifier.to_string();
                         return Err(MultipleOutputIdentifiers(ident1,ident2).into())
                     }
                     Some(_) => {} // Ignore duplicate usage of the same identifier.
                     None    => {
-                        output      = Some(identifier);
-                        output_node = Some(connection.source.node)
+                        let node = connection.source.node;
+                        output   = Some(Output {identifier,node});
                     }
                 }
             }
         };
 
-        Ok(Self {extracted_nodes_set,extracted_nodes,inputs,output,output_node})
+        // If there is no output found so far, it means that none of our nodes is used outside
+        // the extracted function. In such we will return value from arbitrarily chosen leaf.
+        output = output.or_else(|| {
+            let output_leaf_id = leaves.into_iter().next()?;
+            let output_node = extracted_nodes.iter().find(|node| node.id() == output_leaf_id)?;
+            let identifier  = Identifier::new(output_node.pattern()?.clone_ref())?;
+            let node        = output_node.id();
+            Some(Output{identifier,node})
+        });
+
+        Ok(Self {extracted_nodes_set,extracted_nodes,inputs,output})
     }
 
     /// Check if the given node belongs to the selection (i.e. is extracted into a new method).
@@ -217,7 +244,7 @@ impl Extracted {
     /// None if there is no such need.
     pub fn return_line(&self) -> Option<Ast> {
         // To return value we just utter its identifier.
-        self.output.clone().map(Into::into)
+        self.output.as_ref().map(|out| out.identifier.clone().into())
     }
 
     /// Generate the description for the new method's definition with the extracted nodes.
@@ -273,7 +300,7 @@ impl Collapser {
         let graph          = GraphHelper::new(graph);
         let extracted      = Extracted::new(&graph,selected_nodes)?;
         let last_selected  = extracted.extracted_nodes.iter().last().ok_or(NoNodesSelected)?.id();
-        let replaced_node  = extracted.output_node.unwrap_or(last_selected);
+        let replaced_node  = extracted.output.as_ref().map(|out| out.node).unwrap_or(last_selected);
         let collapsed_node = node::Id::new_v4();
         Ok(Collapser {
             graph,
@@ -319,8 +346,8 @@ impl Collapser {
             let no_node_err  = failure::Error::from(CannotConstructCollapsedNode);
             let mut new_node = NodeInfo::new_expression(expression.clone_ref()).ok_or(no_node_err)?;
             new_node.set_id(self.collapsed_node);
-            if let Some(output_var) = self.extracted.output.clone() {
-                new_node.set_pattern(output_var.into())
+            if let Some(Output{identifier,..}) = &self.extracted.output {
+                new_node.set_pattern(identifier.into())
             }
             Ok(LineDisposition::Replace(new_node.ast().clone_ref()))
         } else {
@@ -432,15 +459,17 @@ mod tests {
         // Check that refactoring a single assignment line:
         // 1) Maintains the assignment and the introduced name for the value in the extracted
         //    method;
-        // 2) That invocation appears in the extracted node's place but has no assignment.
+        // 2) Extracted method returns the same value as extracted node;
+        // 3) That invocation appears in the extracted node's place and maintains assignment.
         case.extracted_lines    = 3..4;
         case.expected_generated = r"custom_new a b =
-    d = a + b";
+    d = a + b
+    d";
         case.expected_refactored = r"custom_old =
     a = 1
     b = 2
     c = A + B
-    here.custom_new a b
+    d = here.custom_new a b
     c + 7";
         case.run(&parser);
 
@@ -477,6 +506,24 @@ mod tests {
         case.expected_refactored = r"custom_old =
     c = here.custom_new
     c + c + 10";
+        case.run(&parser);
+
+
+    // Case reported in https://github.com/enso-org/ide/issues/1234
+        case.initial_method_code = r"custom_old =
+    number1 = 1
+    number2 = 2
+    range = number1.up_to number2
+    vector = range.to_vector";
+        case.extracted_lines    = 2..4;
+        case.expected_generated = r"custom_new number1 number2 =
+    range = number1.up_to number2
+    vector = range.to_vector
+    vector";
+        case.expected_refactored = r"custom_old =
+    number1 = 1
+    number2 = 2
+    vector = here.custom_new number1 number2";
         case.run(&parser);
     }
 }
