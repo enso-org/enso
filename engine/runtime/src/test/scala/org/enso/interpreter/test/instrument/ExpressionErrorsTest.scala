@@ -711,6 +711,102 @@ class ExpressionErrorsTest
     context.consumeOut shouldEqual List("499999999999")
   }
 
+  it should "send updates when dataflow error changes" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(70, 20)
+    val yId        = metadata.addItem(99, 5)
+    val mainResId  = metadata.addItem(109, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError1
+        |type MyError2
+        |
+        |main =
+        |    x = Error.throw MyError1
+        |    y = x - 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq("(Error: MyError1)")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 20), model.Position(6, 28)),
+              "MyError2"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.error(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      TestMessages.error(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("(Error: MyError2)")
+  }
+
   it should "continue execution after thrown panics" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -923,6 +1019,129 @@ class ExpressionErrorsTest
     )
     context.consumeOut shouldEqual List("101")
 
+  }
+
+  it should "send updates when panic changes" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(70, 20)
+    val yId        = metadata.addItem(99, 5)
+    val mainResId  = metadata.addItem(109, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |type MyError1
+        |type MyError2
+        |
+        |main =
+        |    x = Panic.throw MyError1
+        |    y = x - 1
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError1",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError1",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError1",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 20), model.Position(6, 28)),
+              "MyError2"
+            )
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError2",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError2",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "MyError2",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List()
   }
 
 }
