@@ -20,7 +20,7 @@ jobs:
   build:
     name: Build
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -305,28 +305,25 @@ jobs:
           draft: true
           prerelease: true
 
-      # - name: Login to ACR
-      # if: runner.os == "Linux"
-      # uses: docker/login-action@v1
-      # with:
-      # registry: ensosharedwus2acr.azurecr.io
-      # username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
-      # password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
-      #
-      # - name: Copy the docker entrypoint script
-      # if: runner.os == "Linux"
-      # shell: bash
-      # run: |
-      # sleep 1
-      # cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
-      #
-      # - name: Publish Runtime Docker Image
-      # if: runner.os == "Linux"
-      # shell: bash
-      # run: |
-      # sleep 1
-      # docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
-      # docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
+      - name: Login to ACR
+        uses: docker/login-action@v1
+        with:
+          registry: ensosharedwus2acr.azurecr.io
+          username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
+          password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
+
+      - name: Copy the docker entrypoint script
+        shell: bash
+        run: |
+          sleep 1
+          cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
+
+      - name: Publish Runtime Docker Image
+        shell: bash
+        run: |
+          sleep 1
+          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
+          docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
 
       # Publish the launcher packages to the backup/fallback S3 bucket
       - name: Prepare AWS Session

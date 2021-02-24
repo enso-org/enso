@@ -3,7 +3,7 @@ layout: developer-doc
 title: Instruments
 category: runtime
 tags: [runtime, instruments]
-order: 6
+order: 9
 ---
 
 # Instruments
