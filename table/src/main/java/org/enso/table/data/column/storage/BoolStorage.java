@@ -131,7 +131,7 @@ public class BoolStorage extends Storage {
       if (positions[i] == Index.NOT_FOUND || isMissing.get(positions[i])) {
         newNa.set(i);
       } else if (values.get(positions[i])) {
-        values.set(i);
+        newVals.set(i);
       }
     }
     return new BoolStorage(newVals, newNa, positions.length, negated);
