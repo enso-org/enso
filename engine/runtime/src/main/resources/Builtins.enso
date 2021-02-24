@@ -318,6 +318,14 @@ type Arithmetic_Error message
 @Builtin_Type
 type Invalid_Array_Index_Error array index
 
+## An error that occurs when an object is used as a function in a function
+   call, but it cannot be called.
+
+   Arguments:
+     - target: The called object.
+@Builtin_Type
+type Not_Invokable_Error target
+
 ## Panics.
 type Panic
 
