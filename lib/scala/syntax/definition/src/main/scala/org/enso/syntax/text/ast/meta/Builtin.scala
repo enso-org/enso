@@ -414,6 +414,13 @@ object Builtin {
       }
     }
 
+    val fakeDef = {
+      Definition(Var("foo") -> Pattern.Var()) { ctx =>
+        println("Oh god, oh god. They're in the walls.")
+        AST.Var("foo")
+      }
+    }
+
     // TODO
     // We may want to better represent empty AST. Moreover, there should be a
     // way to generate multiple top-level entities from macros (like multiple
@@ -443,7 +450,8 @@ object Builtin {
       docComment,
       disableComment,
       skip,
-      freeze
+      freeze,
+      fakeDef
     )
   }
 

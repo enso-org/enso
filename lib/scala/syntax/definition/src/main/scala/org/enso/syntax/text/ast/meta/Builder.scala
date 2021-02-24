@@ -1,13 +1,11 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.data
-import org.enso.data.List1
-import org.enso.data.Shifted
-import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.Ident
-import org.enso.syntax.text.AST.Macro
-import Pattern.streamShift
 import cats.data.NonEmptyList
+import org.enso.data
+import org.enso.data.{List1, Shifted}
+import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.{Ident, Macro}
+import org.enso.syntax.text.ast.meta.Pattern.streamShift
 
 import scala.annotation.tailrec
 
@@ -193,10 +191,7 @@ object Builder {
     ): (Shifted[Match.Segment], AST.Stream) = {
       val stream = revStream.reverse
       pat.matchOpt(stream, lineBegin, reversed) match {
-        case None =>
-          throw new Error(
-            s"Internal error: template pattern segment was unmatched"
-          )
+        case None => (Shifted(offset, Match.Segment(ast)), stream)
         case Some(rr) =>
           (Shifted(offset, Match.Segment(ast, rr.elem)), rr.stream)
       }
