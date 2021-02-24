@@ -404,6 +404,33 @@ spec =
             r = df.sort by='foobar'
             r.should_fail_with No_Such_Column_Error
 
+        Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
+            ord = [0, 3, 2, 4, 1]
+            ints = [1, 2, 3, 4, 5]
+            reals = [1.3, 4.6, 3.2, 5.2, 1.6]
+            bools = [False, False, True, True, False]
+            texts = ["foo", "foo", "bar", "baz", "spam"]
+            objs = [Cons 1 2, Cons 2 3, Cons 6 7, Cons 8 9, Cons 10 30]
+
+            df = Table.new [['ord', ord], ['ints', ints], ['reals', reals], ['bools', bools], ['texts', texts], ['objs', objs]]
+            r = df.sort by='ord'
+
+            r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
+            df.at 'ints' . to_vector . should_equal ints
+
+            r.at 'reals' . to_vector . should_equal [1.3, 1.6, 3.2, 4.6, 5.2]
+            df.at 'reals' . to_vector . should_equal reals
+
+            r.at 'bools' . to_vector . should_equal [False, False, True, False, True]
+            df.at 'bools' . to_vector . should_equal bools
+
+            r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
+            df.at 'texts' . to_vector . should_equal texts
+
+            r.at 'objs' . to_vector . should_equal [Cons 1 2, Cons 10 30, Cons 6 7, Cons 2 3, Cons 8 9]
+            df.at 'objs' . to_vector . should_equal objs
+
+
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
             c = Column.from_vector 'foo' [1, 7, Nothing, 4, 8, Nothing]
