@@ -32,6 +32,9 @@ object CacheInvalidation {
     /** Invalidate value from indexes. */
     case object All extends IndexSelector
 
+    /** Invalidate the error values index. */
+    case object ErrorValues extends IndexSelector
+
     /** Invalidate the types index. */
     case object Types extends IndexSelector
 
@@ -186,6 +189,7 @@ object CacheInvalidation {
   private def clearIndex(selector: IndexSelector, cache: RuntimeCache): Unit =
     selector match {
       case IndexSelector.All =>
+        cache.clearErrorValues()
         cache.clearTypes()
         cache.clearWeights()
         cache.clearCalls()
@@ -195,5 +199,7 @@ object CacheInvalidation {
         cache.clearTypes()
       case IndexSelector.Calls =>
         cache.clearCalls()
+      case IndexSelector.ErrorValues =>
+        cache.clearErrorValues()
     }
 }

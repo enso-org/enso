@@ -8,6 +8,7 @@ public final class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
+  private final Map<UUID, Object> errorValues = new HashMap<>();
   private final Map<UUID, IdExecutionInstrument.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
@@ -47,6 +48,19 @@ public final class RuntimeCache {
   /** Clear the cached values. */
   public void clear() {
     cache.clear();
+  }
+
+  /** Cache the error value of this expression.
+   *
+   * @return the previously cached error value.
+   */
+  public Object putErrorValue(UUID key, Object value) {
+    return errorValues.put(key, value);
+  }
+
+  /** @return the cached error value of the expression */
+  public Object getErrorValue(UUID key) {
+    return errorValues.get(key);
   }
 
   /**
@@ -101,6 +115,11 @@ public final class RuntimeCache {
   /** Clear the cached types. */
   public void clearTypes() {
     types.clear();
+  }
+
+  /** Clear the cached error values. */
+  public void clearErrorValues() {
+    errorValues.clear();
   }
 
   /** @return the weights of this cache. */
