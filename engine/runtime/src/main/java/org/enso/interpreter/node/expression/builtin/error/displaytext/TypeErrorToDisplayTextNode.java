@@ -22,9 +22,9 @@ public abstract class TypeErrorToDisplayTextNode extends Node {
   @Specialization
   Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
     try {
-      return Text.create("Type error: expected ")
+      return Text.create("Type error: expected `")
           .add(TypesGen.expectText(_this.getFields()[2]))
-          .add(" to be ")
+          .add("` to be ")
           .add(displayTypeNode.execute(_this.getFields()[0]))
           .add(", but got ")
           .add(displayTypeNode.execute(_this.getFields()[1]))

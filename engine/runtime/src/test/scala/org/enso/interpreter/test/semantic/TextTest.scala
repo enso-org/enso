@@ -114,16 +114,20 @@ class TextTest extends InterpreterTest {
           |    IO.println (Compile_Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match_Error 32).to_display_text
           |    IO.println (Arithmetic_Error "cannot frobnicate quaternions").to_display_text
+          |    IO.println ((Panic.recover (1 + "foo")).catch_primitive .to_display_text)
+          |    IO.println ((Panic.recover (7 1)).catch_primitive .to_display_text)
           |    IO.println (Arity_Error 10 20).to_display_text
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
         "Cons",
         "Syntax error: foo",
-        "Type error: expected myvar to be Nothing, but got Text.",
+        "Type error: expected `myvar` to be Nothing, but got Text.",
         "Compile error: error :(",
         "Inexhaustive pattern match: no branch matches 32 (Integer).",
         "Arithmetic error: cannot frobnicate quaternions",
+        "Type error: expected `that` to be Number, but got Text.",
+        "Type error: expected a function, but got 7 (Integer).",
         "Wrong number of arguments. Expected 10, but got 20."
       )
     }
