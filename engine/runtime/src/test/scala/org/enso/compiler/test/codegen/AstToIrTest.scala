@@ -1010,11 +1010,10 @@ class AstToIrTest extends CompilerTest with Inside {
 
     "result in foo errors" in {
       val ir =
-        """foo
+        """quux
           |
           |main = "foo"
           |""".stripMargin.toIrModule
-
       ir.bindings.head shouldBe an[IR.Error]
     }
   }
