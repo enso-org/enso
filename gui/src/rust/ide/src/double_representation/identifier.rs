@@ -153,6 +153,12 @@ impl From<Identifier> for Ast {
     }
 }
 
+impl From<&Identifier> for Ast {
+    fn from(value:&Identifier) -> Self {
+        value.0.clone()
+    }
+}
+
 impl Display for Identifier {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name(),f)
