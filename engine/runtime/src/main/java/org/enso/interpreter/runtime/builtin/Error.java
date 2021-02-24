@@ -99,7 +99,7 @@ public class Error {
             .initializeFields(
                 new ArgumentDefinition(0, "name", ArgumentDefinition.ExecutionMode.EXECUTE));
     notInvokableError =
-        new AtomConstructor("Not_Invokable", scope)
+        new AtomConstructor("Not_Invokable_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "target", ArgumentDefinition.ExecutionMode.EXECUTE));
 
@@ -155,6 +155,11 @@ public class Error {
         unsupportedArgumentsError,
         "to_display_text",
         UnsupportedArgumentTypesToDisplayTextMethodGen.makeFunction(language));
+    scope.registerConstructor(notInvokableError);
+    scope.registerMethod(
+        notInvokableError,
+        "to_display_text",
+        NotInvokableErrorToDisplayTextMethodGen.makeFunction(language));
   }
 
   /** @return the builtin {@code Syntax_Error} atom constructor. */

@@ -22,7 +22,8 @@ public abstract class NotInvokableErrorToDisplayTextNode extends Node {
   @Specialization
   Text doAtom(Atom _this, @Cached TypeToDisplayTextNode displayTypeNode) {
     return Text.create("Type error: expected a function, but got ")
-        .add(displayTypeNode.execute(_this.getFields()[0]));
+        .add(displayTypeNode.execute(_this.getFields()[0]))
+        .add(".");
   }
 
   @Specialization
