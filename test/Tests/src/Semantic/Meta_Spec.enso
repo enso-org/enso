@@ -26,6 +26,11 @@ spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should_equal (Meta.Primitive 1)
         Meta.meta "foo" . should_equal (Meta.Primitive "foo")
+    Test.specify "should allow manipulation of error values" <|
+        err = Error.throw "My Error"
+        meta_err = Meta.meta err
+        meta_err.is_a Meta.Error . should_be_true
+        meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
         1.is_an Any . should_be_true
         1.2.is_an Any . should_be_true

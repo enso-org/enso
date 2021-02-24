@@ -23,7 +23,7 @@ type Meta
     type Primitive value
     ## An unresolved symbol meta-representation.
     type Unresolved_Symbol value
-    ## An error meta-representation.
+    ## An error meta-representation, containing the payload of a dataflow error.
     type Error value
     ## A polyglot value meta-representation.
     type Polyglot value
@@ -49,10 +49,6 @@ Unresolved_Symbol.name = Builtins.Meta.get_unresolved_symbol_name this.value
 ## Returns the definition scope of an unresolved symbol.
 Unresolved_Symbol.scope : Any
 Unresolved_Symbol.scope = Builtins.Meta.get_unresolved_symbol_scope this.value
-
-## Returns the payload carried by an error value.
-Error.payload : Any
-Error.payload = this.value.catch e->e
 
 ## Returns a vector of field names defined by a constructor.
 Constructor.fields : Vector.Vector
@@ -126,7 +122,7 @@ meta value = if Builtins.Meta.is_atom value then Atom value else
     if Builtins.Meta.is_constructor value then Constructor value else
         if Builtins.Meta.is_polyglot value then Polyglot value else
             if Builtins.Meta.is_unresolved_symbol value then Unresolved_Symbol value else
-                if Builtins.Meta.is_error value then Error value else
+                if Builtins.Meta.is_error value then Error value.catch else
                     Primitive value
 
 ## Checks whether two objects are represented by the same underlying reference.
