@@ -1,12 +1,12 @@
 from Base import all
 
-## INTERNAL
+## PRIVATE
 
    The internal representation of an SQL expression which can be a column
    reference, an interpolated constant or an operation that combines other
    expressions.
 type Expression
-    ## INTERNAL
+    ## PRIVATE
 
        The internal representation of an SQL expression that gets a value from a
        column.
@@ -19,7 +19,7 @@ type Expression
        # type Column (origin : Text) (name : Text)
     type Column origin name
 
-    ## INTERNAL
+    ## PRIVATE
 
        The internal representation of an SQL expression which is a constant to
        be interpolated when building the query.
@@ -30,7 +30,7 @@ type Expression
     # type Constant (value : Any)
     type Constant value
 
-    ## INTERNAL
+    ## PRIVATE
 
        The internal representation of an SQL expression built from an operation
        and sub-expressions.
@@ -44,12 +44,12 @@ type Expression
     # type Operation (kind : Text) (expressions : Vector Expression)
     type Operation kind expressions
 
-## INTERNAL
+## PRIVATE
 
    A context associated with an SQL query.
 type Context
 
-    ## INTERNAL
+    ## PRIVATE
 
        A context associated with an SQL query.
 
@@ -95,11 +95,11 @@ type Context
     set_groups new_groups =
         Context this.from_spec this.where_filters this.orders new_groups this.meta_index
 
-## INTERNAL
+## PRIVATE
 
    Used as part of the context, specifies the sources of the query.
 type From_Spec
-    ## INTERNAL
+    ## PRIVATE
 
        A query source that takes data directly from a table in the
        database.
@@ -113,7 +113,7 @@ type From_Spec
        # type From_Table (table_name : Text) (alias : Text)
     type From_Table table_name alias
 
-    ## INTERNAL
+    ## PRIVATE
 
        A query source that performs a join operation on two sources.
 
@@ -128,7 +128,7 @@ type From_Spec
        #           (right_spec : From_Spec) (on : Vector Expression)
     type Join kind left_spec right_spec on
 
-    ## INTERNAL
+    ## PRIVATE
 
        A query source consisting of a sub-query.
 
@@ -143,11 +143,11 @@ type From_Spec
     #               (context : Context) (alias : Text)
     type Sub_Query columns context alias
 
-## INTERNAL
+## PRIVATE
 
    The kind of the join operation.
 type Join_Kind
-    ## INTERNAL
+    ## PRIVATE
 
        Inner join.
 
@@ -155,7 +155,7 @@ type Join_Kind
        source.
     type Join_Inner
 
-    ## INTERNAL
+    ## PRIVATE
 
        Left join.
 
@@ -166,7 +166,7 @@ type Join_Kind
        be set to NULL.
     type Join_Left
 
-    ## INTERNAL
+    ## PRIVATE
 
        Right join.
 
@@ -177,7 +177,7 @@ type Join_Kind
        be set to NULL.
     type Join_Right
 
-    ## INTERNAL
+    ## PRIVATE
 
        Cross join.
 
@@ -186,42 +186,42 @@ type Join_Kind
        in the query can be used to filter the results.
     type Join_Cross
 
-## INTERNAL
+## PRIVATE
 
    Specifies the direction of the ordering.
 type Order_Direction
 
-    ## INTERNAL
+    ## PRIVATE
 
        Orders elements in ascending order.
     type Ascending
 
-    ## INTERNAL
+    ## PRIVATE
 
        Orders elements in descending order.
     type Descending
 
-## INTERNAL
+## PRIVATE
 
    Specifies how null values should be handled within the ordering.
 type Nulls_Order
 
-    ## INTERNAL
+    ## PRIVATE
 
        Null values are included before any other values in the ordering.
     type Nulls_First
 
-    ## INTERNAL
+    ## PRIVATE
 
        Null values are included after all other values in the ordering.
     type Nulls_Last
 
-## INTERNAL
+## PRIVATE
 
    Describes a full SQL query.
 type Query
 
-    ## INTERNAL
+    ## PRIVATE
 
        A Select SQL query.
 
@@ -233,7 +233,7 @@ type Query
     # type Select (expressions : [Text, Expression]) (context : Context)
     type Select columns context
 
-## INTERNAL
+## PRIVATE
 
    Creates a query context that just fetches data from a table, without any
    additional processing.
@@ -241,7 +241,7 @@ make_ctx_from : Text -> Context
 make_ctx_from table_name =
     Context (From_Table table_name table_name) [] [] [] []
 
-## INTERNAL
+## PRIVATE
 
    Creates an expression which is a simple constant to be interpolated.
 make_constant : Any -> Expression
@@ -249,7 +249,7 @@ make_constant x =
     # TODO [RW] may add some sanitization, like checking if the value type is supported
     Constant x
 
-## INTERNAL
+## PRIVATE
    UNSTABLE
 
    A helper function to subsitute names tables inside of expressions. It is used

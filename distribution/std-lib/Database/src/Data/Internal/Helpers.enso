@@ -3,7 +3,7 @@ from Database.Data.Table as Table_Module import Table
 from Database.Data.Column as Column_Module import Column
 polyglot java import java.util.regex.Pattern
 
-## INTERNAL
+## PRIVATE
 
    Checks if the two tables or columns have the same context and use the same
    connection.
@@ -16,7 +16,7 @@ check_integrity entity1 entity2 =
     ctx = entity1.context == entity2.context
     con && ctx
 
-## INTERNAL
+## PRIVATE
 
    A helper function simplifying argument handling. It always returns a vector,
    if the argument was already a vector, it is kept as-is, otherwise it is
@@ -35,7 +35,7 @@ unify_vector_singleton x = case x of
    be removed in a future version.
 type Unsupported_Name_Error text
 
-## INTERNAL
+## PRIVATE
    UNSTABLE
 
    This is used to check if the new name is safe for use in Sql queries.

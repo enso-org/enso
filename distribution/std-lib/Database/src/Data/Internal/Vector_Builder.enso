@@ -1,7 +1,7 @@
 from Builtins import Array
 from Base import all
 
-## INTERNAL
+## PRIVATE
 
    An efficient builder for concatenating vectors.
 
@@ -50,13 +50,13 @@ type Vector_Builder
             Append _ _ _ -> Append this other len
             Vector.Vector _ -> Append this (Leaf other) len
 
-## INTERNAL
+## PRIVATE
 
    Creates an empty vector builder.
 empty : Vector_Builder Any
 empty = Leaf []
 
-## INTERNAL
+## PRIVATE
 
    Creates a vector builder from a vector.
 from_vector : Vector Any -> Vector_Builder Any

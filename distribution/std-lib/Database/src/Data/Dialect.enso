@@ -2,7 +2,7 @@ from Base import all
 import Database.Data.Sql
 import Database.Data.Internal.Base_Generator
 
-## INTERNAL
+## PRIVATE
 
    Represents a specific SQL dialect.
 
@@ -10,7 +10,7 @@ import Database.Data.Internal.Base_Generator
    support differing SQL dialects.
 type Dialect
 
-    ## INTERNAL
+    ## PRIVATE
 
        Represents a specific SQL dialect.
 
