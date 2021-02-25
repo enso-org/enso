@@ -221,7 +221,7 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(8) should contain theSameElementsAs Seq(
+    context.receive(9) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -255,6 +255,14 @@ class ExpressionErrorsTest
       Update.panic(
         contextId,
         yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile error: Variable `undefined` is not defined.",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        fooBodyId,
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: Variable `undefined` is not defined.",
           Seq(xId)
@@ -711,7 +719,7 @@ class ExpressionErrorsTest
     context.consumeOut shouldEqual List("499999999999")
   }
 
-  it should "send updates when dataflow error changes" in {
+  it should "send not updates when dataflow error changes" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
@@ -791,17 +799,7 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
+    context.receive(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("(Error: MyError2)")
