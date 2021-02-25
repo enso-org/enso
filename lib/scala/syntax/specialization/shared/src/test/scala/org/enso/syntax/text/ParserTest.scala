@@ -459,4 +459,3 @@ class ParserTest extends AnyFlatSpec with Matchers {
 // [ ] warnings in scala code
 // [ ] Undefined parsing
 // [ ] All block types
-// [ ] Unary minus
