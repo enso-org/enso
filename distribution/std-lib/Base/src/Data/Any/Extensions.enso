@@ -86,6 +86,23 @@ Any.is_nothing = case this of
 Any.catch : (Error -> Any) -> Any
 Any.catch (handler = x->x) = this.catch_primitive handler
 
+## Maps a dataflow error.
+   If the original value was a non-error value, it is not affected, but if it
+   was an error, the error is mapped through the provided function.
+
+   Arguments:
+   - f: The function to transform the error.
+
+   > Example
+     Wrapping an error value.
+       map.get "x" . map_error (_ -> ElementNotFound "x")
+Any.map_error : (Error -> Error) -> Any
+Any.map_error _ = this
+
+## Checks if the underlying value is an error.
+Any.is_error : Boolean
+Any.is_error = False
+
 ## Applies the function `this` to the provided argument.
 
    Arguments:
