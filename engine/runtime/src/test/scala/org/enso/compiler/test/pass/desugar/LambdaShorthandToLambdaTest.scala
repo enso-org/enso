@@ -497,4 +497,29 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       arg.defaultValue.get shouldBe an[IR.Function.Lambda]
     }
   }
+
+  "Lambda shorthand in nested functions" should {
+    "correctly translate the section-function in an application" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """(_ + 5) 5
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Application.Prefix]
+      val app = ir.asInstanceOf[IR.Application.Prefix]
+      app.function shouldBe an[IR.Function.Lambda]
+    }
+
+    "correctly translate the function in an application" in {
+      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """(f _ a) b
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Application.Prefix]
+    }
+  }
 }
