@@ -1,0 +1,331 @@
+from Base import all
+import Database.Data.Internal.Helpers
+import Database.Data.Internal.IR
+import Database.Data.Table
+
+type Column
+
+    ## UNSTABLE
+
+       Represents a single column backed by a database.
+
+       These columns may come from the Table or can be created by combining
+       other columns with operators. Expressions created in this way may be
+       materialized or used to apply filters, groupings etc. to tables from
+       which they come. Combined expressions must come from the same context -
+       they must both have the same filtering, grouping etc. rules applied to be
+       able to be combined.
+    # type Column (name : Text) (connection : Connection)
+    #             (expression : IR.Expression) (context : IR.Context)
+    type Column name connection expression context
+
+    ## UNSTABLE
+
+       Converts this column to JSON.
+    to_json : Json
+    to_json = this.to_sql.to_json
+
+    ## UNSTABLE
+
+       Converts this column into a single-column table.
+    to_table : Table.Table
+    to_table =
+        cols = [[this.name, this.expression]]
+        Table.Table this.name this.connection cols this.context
+
+    ## UNSTABLE
+
+       Returns a vector containing all the elements in this column.
+    to_vector : Vector
+    to_vector = this.to_table.to_dataframe.at this.name . to_vector
+
+    ## UNSTABLE
+
+       Returns an Sql statement that will be used for materializing this column.
+    to_sql : Sql.Statement
+    to_sql = this.to_table.to_sql
+
+    ## UNSTABLE
+
+       Element-wise equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    == : Column | Any -> Column
+    == other = this.make_binary_op "=" other
+
+    ## UNSTABLE
+
+       Element-wise non-equality comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    != : Column | Any -> Column
+    != other = this.make_binary_op "!=" other
+
+    ## UNSTABLE
+
+       Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    >= : Column | Any -> Column
+    >= other = this.make_binary_op ">=" other
+
+    ## UNSTABLE
+
+       Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    <= : Column | Any -> Column
+    <= other = this.make_binary_op "<=" other
+
+    ## UNSTABLE
+
+       Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    > : Column | Any -> Column
+    > other = this.make_binary_op ">" other
+
+    ## UNSTABLE
+
+       Element-wise order comparison. Returns a column with results of
+       comparing this column's elements against `other`.
+       If `other` is a column, the comparison is performed pairwise between
+       corresponding elements of `this` and `other`.
+    < : Column | Any -> Column
+    < other = this.make_binary_op "<" other
+
+    ## UNSTABLE
+
+       Element-wise addition. Returns a column containing the result
+       of adding `other` to each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    + : Column | Any -> Column
+    + other = this.make_binary_op "+" other
+
+    ## UNSTABLE
+
+       Element-wise subtraction. Returns a column containing the result
+       of subtracting `other` from each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    - : Column | Any -> Column
+    - other = this.make_binary_op "-" other
+
+    ## UNSTABLE
+
+       Element-wise multiplication. Returns a column containing the result
+       of multiplying `other` by each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    * : Column | Any -> Column
+    * other = this.make_binary_op "*" other
+
+    ## UNSTABLE
+
+       Element-wise division. Returns a column containing the result
+       of dividing each element of `this` by `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    / : Column | Any -> Column
+    / other = this.make_binary_op "/" other
+
+    ## UNSTABLE
+
+       Element-wise boolean conjunction. Returns a column containing the result
+       of performing the boolean `and` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    && : Column | Any -> Column
+    && other = this.make_binary_op "AND" other
+
+    ## UNSTABLE
+
+       Element-wise boolean disjunction. Returns a column containing the result
+       of performing the boolean `or` on `other` and each element of `this`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    || : Column | Any -> Column
+    || other = this.make_binary_op "OR" other
+
+    ## UNSTABLE
+
+       Boolean negation of each element in this column.
+    not : Column
+    not = this.make_unary_op "NOT"
+
+    ## UNSTABLE
+
+       Returns a column of booleans, with `True` items at the positions where
+       this column contains a `Nothing`.
+    is_missing : Column
+    is_missing = this.make_unary_op "ISNULL"
+
+    ## UNSTABLE
+
+       Returns a new column where missing values have been replaced with the
+       provided default.
+    fill_missing : Any -> Column
+    fill_missing default = this.make_binary_op "FILLNULL" default
+
+    ## UNSTABLE
+
+       Selects only the rows of this column that correspond to `True` values in
+       `indexes`.
+       This is useful for filtering the rows by given predicate.
+       > Example
+         Select only the rows of `my_column` where the `status_column` column
+         has the value `"Valid"`
+             my_column.where (status_column == "Valid")
+    where : Column -> Column
+    where filter =
+        case Helpers.check_integrity this filter of
+            False ->
+                # TODO [RW] more descriptive errors
+                Error.throw "Filtering over a column with differing context."
+            True ->
+                new_filters = this.context.where_filters + [filter.expression]
+                new_ctx = this.context.set_where_filters new_filters
+                Column this.name this.connection this.expression new_ctx
+
+    ## UNSTABLE
+
+       Returns a new column without rows that had missing values.
+    drop_missing : Any -> Column
+    drop_missing = this.where this.is_missing.not
+
+    ## UNSTABLE
+
+       Returns the same column with changed name.
+    rename : Text -> Column
+    rename new_name = case Helpers.ensure_name_is_sane new_name of
+        True -> Column new_name this.connection this.expression this.context
+
+    ## UNSTABLE
+
+       Checks for each element of the column if it starts with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    starts_with : Column | Text -> Column
+    starts_with other = this.make_binary_op "starts_with" other
+
+    ## UNSTABLE
+
+       Checks for each element of the column if it ends with `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    ends_with : Column | Text -> Column
+    ends_with other = this.make_binary_op "ends_with" other
+
+    ## UNSTABLE
+
+       Checks for each element of the column if it contains `other`.
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.
+    contains : Column | Text -> Column
+    contains other = this.make_binary_op "contains" other
+
+    ## PRIVATE
+
+       Helper for implementing binary operators.
+    make_binary_op : Text -> Text -> (Column | Any) -> Column
+    make_binary_op op_kind operand =
+        case operand of
+            Column _ _ other_expr _ ->
+                case Helpers.check_integrity this operand of
+                    False ->
+                        Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
+                    True ->
+                        new_expr = IR.Operation op_kind [this.expression, other_expr]
+                        Column this.name this.connection new_expr this.context
+            _ ->
+                other = IR.make_constant operand
+                new_expr = IR.Operation op_kind [this.expression, other]
+                Column this.name this.connection new_expr this.context
+
+    ## PRIVATE
+
+       Helper for implementing unary operators.
+    make_unary_op : Text -> Text -> Column
+    make_unary_op op_kind =
+        new_expr = IR.Operation op_kind [this.expression]
+        Column this.name this.connection new_expr this.context
+
+type Aggregate_Column
+    ## UNSTABLE
+
+       Wraps a column grouped by its index. Allows performing aggregation operations
+       on the contained values.
+       # type Aggregate_Column (name : Text) (connection : Connection)
+       #                       (expression : IR.Expression) (context : IR.Context)
+    type Aggregate_Column name connection expression context
+
+    ## UNSTABLE
+
+       Sums the values in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    sum : Text -> Column
+    sum name_suffix='_sum' =
+        this.make_aggregate "SUM" name_suffix
+
+    ## UNSTABLE
+
+       Computes the maximum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    max : Text -> Column
+    max name_suffix='_max' =
+        this.make_aggregate "MAX" name_suffix
+
+    ## UNSTABLE
+
+       Computes the minimum element of each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    min : Text -> Column
+    min name_suffix='_min' =
+        this.make_aggregate "MIN" name_suffix
+
+    ## UNSTABLE
+
+       Computes the number of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    count : Text -> Column
+    count name_suffix='_count' =
+        this.make_aggregate "COUNT" name_suffix
+
+    ## UNSTABLE
+
+       Computes the mean of non-missing elements in each group.
+
+       Arguments:
+         - name_suffix: a suffix that will be appended to the original column
+                        name to generate the resulting column name.
+    mean : Text -> Column
+    mean name_suffix='_mean' =
+        this.make_aggregate "AVG" name_suffix
+
+    ## PRIVATE
+
+       A helper method for creating an aggregated column by applying some
+       operation.
+    make_aggregate operation name_suffix =
+        new_name = this.name + name_suffix
+        expr = IR.Operation operation [this.expression]
+        case Helpers.ensure_name_is_sane new_name of
+                True -> Column new_name this.connection expr this.context

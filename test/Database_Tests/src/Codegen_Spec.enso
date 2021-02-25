@@ -1,0 +1,147 @@
+from Base import all
+from Database import all
+from Table import No_Such_Column_Error, Order_Rule
+import Database.Data.Dialect
+import Test
+import Database_Tests.Helpers.Fake_Test_Connection
+
+spec =
+    test_connection =
+        table1 = ["T1", ["A", "B", "C"]]
+        table2 = ["T2", ["D", "E", "F"]]
+        table3 = ["T3", ["A", "E", "F"]]
+        tables = Map.from_vector [table1, table2, table3]
+        Fake_Test_Connection.make Dialect.sqlite tables
+    t1 = test_connection.access_table "T1"
+    Test.group "JSON serialization" <|
+        Test.specify "should serialize Tables and Columns to their SQL representation" <|
+            q1 = t1.where (t1.at "B" == 42) . to_json
+            part1 = Json.from_pairs [["sql_code", "SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (T1.B = "]]
+            part2 = Json.from_pairs [["sql_interpolation", 42]]
+            part3 = Json.from_pairs [["sql_code", ")"]]
+            expected = Json.from_pairs [["query", Json.Array [part1, part2, part3]]]
+            q1.should_equal expected
+
+            q2 = t1.at "A" . to_json
+            q2.should_equal (Json.from_pairs [["query", Json.Array [Json.from_pairs [["sql_code", "SELECT T1.A AS A FROM T1 AS T1"]]]]])
+
+    Test.group "Basic Select" <|
+        Test.specify "should select columns from a table" <|
+            t1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1", []]
+            t2 = t1.select ["C", "B", "undefined"]
+            t2.to_sql.prepare . should_equal ["SELECT T1.C AS C, T1.B AS B FROM T1 AS T1", []]
+
+            foo = t1.at "A" . rename "FOO"
+            foo.to_sql.prepare . should_equal ["SELECT T1.A AS FOO FROM T1 AS T1", []]
+
+            t3 = t2.set "bar" foo
+            t3.to_sql.prepare . should_equal ["SELECT T1.C AS C, T1.B AS B, T1.A AS bar FROM T1 AS T1", []]
+
+        Test.specify "should fail if at is called for a nonexisting column" <|
+            t1.at "undefined" . should_fail_with No_Such_Column_Error
+
+    Test.group "Building Expressions" <|
+        Test.specify "should allow building expressions from columns and constants" <|
+            a = t1.at "A"
+            b = t1.at "B"
+            arith = (a * 2) + 1
+            bool = (a || a.not) && True
+            cmp = (a / a >= b) && (a - b < a)
+            arith.to_sql.prepare . should_equal ["SELECT ((T1.A * ?) + ?) AS A FROM T1 AS T1", [2, 1]]
+            bool.to_sql.prepare . should_equal ["SELECT ((T1.A OR (NOT T1.A)) AND ?) AS A FROM T1 AS T1", [True]]
+            cmp.to_sql.prepare . should_equal ["SELECT (((T1.A / T1.A) >= T1.B) AND ((T1.A - T1.B) < T1.A)) AS A FROM T1 AS T1", []]
+
+        Test.specify "should support simple text operations" <|
+            a = t1.at "A"
+            add = a + "SUFFIX"
+            add.to_sql.prepare . should_equal ["SELECT (T1.A + ?) AS A FROM T1 AS T1", ["SUFFIX"]]
+
+            ends = a.ends_with "suf"
+            starts = a.starts_with "pref"
+            contains = a.contains "inf"
+            ends.to_sql.prepare . should_equal ["SELECT (T1.A LIKE ('%' || ?)) AS A FROM T1 AS T1", ["suf"]]
+            starts.to_sql.prepare . should_equal ["SELECT (T1.A LIKE (? || '%')) AS A FROM T1 AS T1", ["pref"]]
+            contains.to_sql.prepare . should_equal ["SELECT (T1.A LIKE ('%' || ? || '%')) AS A FROM T1 AS T1", ["inf"]]
+
+    Test.group "Masking Tables and Columns" <|
+        Test.specify "should allow filtering table rows based on a boolean expression" <|
+            t2 = t1.where (t1.at "A" == 42)
+            t2.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (T1.A = ?)", [42]]
+
+        Test.specify "should allow selecting column rows based on a boolean expression" <|
+            c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
+            c2.to_sql.prepare . should_equal ["SELECT T1.B AS B FROM T1 AS T1 WHERE (T1.A = T1.C)", []]
+
+    Test.group "Joining Tables" <|
+        t2 = test_connection.access_table "T2"
+        t3 = test_connection.access_table "T3"
+        Test.specify "should allow joining tables index-on-index" <|
+            r1 = t1.set_index 'A' . join (t2.set_index 'D')
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C, T2.D AS D, T2.E AS E, T2.F AS F FROM (SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1) AS T1 LEFT JOIN (SELECT T2.D AS D, T2.E AS E, T2.F AS F FROM T2 AS T2) AS T2 ON (T1.A = T2.D)", []]
+
+        Test.specify "should allow joining tables column-on-index" <|
+            r1 = t1.join (t2.set_index 'D') on='B' drop_unmatched=True
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C, T2.D AS D, T2.E AS E, T2.F AS F FROM (SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1) AS T1 INNER JOIN (SELECT T2.D AS D, T2.E AS E, T2.F AS F FROM T2 AS T2) AS T2 ON (T1.B = T2.D)", []]
+
+        Test.specify "should append suffixes to disambiguate column names" <|
+            r1 = t1.join (t3.set_index 'E') on='A'
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A_left, T1.B AS B, T1.C AS C, T3.A AS A_right, T3.E AS E, T3.F AS F FROM (SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1) AS T1 LEFT JOIN (SELECT T3.A AS A, T3.E AS E, T3.F AS F FROM T3 AS T3) AS T3 ON (T1.A = T3.E)", []]
+
+        Test.specify "should correctly handle self-joins" <|
+            r1 = t1.join (t1.set_index 'A') on='B'
+            r1.to_sql.prepare . should_equal ["SELECT T1_left.A AS A_left, T1_left.B AS B_left, T1_left.C AS C_left, T1_right.A AS A_right, T1_right.B AS B_right, T1_right.C AS C_right FROM (SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1) AS T1_left LEFT JOIN (SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1) AS T1_right ON (T1_left.B = T1_right.A)", []]
+
+    Test.group "Filling Missing Values" <|
+        Test.specify "should allow to replace missing values in a column with a constant" <|
+            c = t1.at "A" . fill_missing "not-applicable"
+            c.to_sql.prepare . should_equal ["SELECT COALESCE(T1.A, ?) AS A FROM T1 AS T1", ["not-applicable"]]
+
+    Test.group "Dropping Missing Values" <|
+        Test.specify "should drop missing rows in a Column" <|
+            col = t1.at "A" . drop_missing
+            col.to_sql.prepare . should_equal ["SELECT T1.A AS A FROM T1 AS T1 WHERE (NOT (T1.A IS NULL))", []]
+
+        Test.specify "should drop rows that contain at least one missing column in a Table" <|
+            t2 = t1.drop_missing_rows
+            t2.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 WHERE (NOT (T1.A IS NULL)) AND (NOT (T1.B IS NULL)) AND (NOT (T1.C IS NULL))", []]
+
+    Test.group "Aggregation" <|
+        agg = t1.group by='A'
+
+        Test.specify "should allow counting group sizes" <|
+            agg.count.to_sql.prepare . should_equal ["SELECT COUNT(*) AS count FROM T1 AS T1 GROUP BY T1.A", []]
+
+        Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
+            c1 = agg.at 'B' . mean
+            c1.to_sql.prepare . should_equal ["SELECT AVG(T1.B) AS B_mean FROM T1 AS T1 GROUP BY T1.A", []]
+            c2 = agg.at 'B' . min
+            c2.to_sql.prepare . should_equal ["SELECT MIN(T1.B) AS B_min FROM T1 AS T1 GROUP BY T1.A", []]
+
+        Test.specify "should allow grouping by multiple columns" <|
+            agg = t1.group by=['A','B']
+            agg.count.to_sql.prepare . should_equal ["SELECT COUNT(*) AS count FROM T1 AS T1 GROUP BY T1.A, T1.B", []]
+
+    Test.group "Sorting" <|
+        Test.specify "should allow sorting by a single column name" <|
+            r1 = t1.sort by="A" . at "B"
+            r1.to_sql.prepare . should_equal ["SELECT T1.B AS B FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST", []]
+
+            r2 = t1.sort by="B" missing_last=False order=Sort_Order.Descending . at "A"
+            r2.to_sql.prepare . should_equal ["SELECT T1.A AS A FROM T1 AS T1 ORDER BY T1.B DESC NULLS FIRST", []]
+
+        Test.specify 'should allow sorting by multiple column names' <|
+            r1 = t1.sort by=['A', 'B']
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST, T1.B ASC NULLS LAST", []]
+
+        Test.specify 'should allow sorting by expressions' <|
+            sum = t1.at 'A' + t1.at 'B'
+            r1 = t1.sort by=sum . at "C"
+            r1.to_sql.prepare . should_equal ["SELECT T1.C AS C FROM T1 AS T1 ORDER BY (T1.A + T1.B) ASC NULLS LAST", []]
+
+        Test.specify 'should allow sorting with specific by-column rules' <|
+            r1 = t1.sort by=['A', (Order_Rule 'B' order=Sort_Order.Descending)]
+            r1.to_sql.prepare . should_equal ["SELECT T1.A AS A, T1.B AS B, T1.C AS C FROM T1 AS T1 ORDER BY T1.A ASC NULLS LAST, T1.B DESC NULLS LAST", []]
+
+        Test.specify 'should return dataflow error when passed a non-existent column' <|
+            r = t1.sort by='foobar'
+            r.should_fail_with No_Such_Column_Error

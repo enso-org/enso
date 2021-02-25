@@ -6,11 +6,11 @@ some of the dependencies that are listed here may not actually be distributed
 with it if their code was removed during compilation. For completeness, this
 document lists all source dependencies that were used for its compilation.
 
-The version of this launcher built for the Linux platform uses `zlib` created by
-Jean-loup Gailly and Mark Adler, see: `COPYRIGHT-ZLIB`.
+The version of this Project Manager built for the Linux platform uses `zlib`
+created by Jean-loup Gailly and Mark Adler, see: `COPYRIGHT-ZLIB`.
 
-The version of this launcher built for the Linux platform uses the `musl` libc
-licensed under the MIT license. Its copyright notice is included in file
+The version of this Project Manager built for the Linux platform uses the `musl`
+libc licensed under the MIT license. Its copyright notice is included in file
 `COPYRIGHT-MUSL`.
 
 ------------------------------
