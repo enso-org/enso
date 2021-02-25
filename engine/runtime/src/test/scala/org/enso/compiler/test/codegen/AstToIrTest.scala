@@ -996,4 +996,16 @@ class AstToIrTest extends CompilerTest with Inside {
       }
     }
   }
+
+  "Bad macro invocations" should {
+    "result in syntax errors" in {
+      val ir =
+        """import
+          |
+          |main = "foo"
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Error]
+    }
+  }
 }

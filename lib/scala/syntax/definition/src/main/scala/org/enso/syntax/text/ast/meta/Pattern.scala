@@ -76,6 +76,8 @@ object Pattern {
   final case class Block     (spaced : Spaced)                        extends P
   final case class Macro     (spaced : Spaced)                        extends P
   final case class Invalid   (spaced : Spaced)                        extends P
+
+  final case class FailedMatch(spaced: Spaced)                        extends P
   // format: on
 
   //// Smart Constructors ////
@@ -201,6 +203,8 @@ object Pattern {
     final case class Block     [T](pat:P.Block      , elem:T) extends M[T]
     final case class Macro     [T](pat:P.Macro      , elem:T) extends M[T]
     final case class Invalid   [T](pat:P.Invalid    , elem:T) extends M[T]
+
+    final case class FailedMatch[T](pat:P.FailedMatch) extends M[T]
     // format: on
 
     //// Smart Constructors ////
@@ -235,29 +239,30 @@ object Pattern {
     @nowarn("cat=unchecked")
     def mapStructShallow(f: MatchOf[T] => MatchOf[T]): MatchOf[T] =
       this match {
-        case m: M.Begin[T]      => m
-        case m: M.End[T]        => m
-        case m: M.Nothing[T]    => m
-        case m: M.Seq[T]        => m.copy(elem = m.elem.bimap(f, f))
-        case m: M.Or[T]         => m.copy(elem = m.elem.bimap(f, f))
-        case m: M.Many[T]       => m.copy(elem = m.elem.map(f))
-        case m: M.Except[T]     => m.copy(elem = f(m.elem))
-        case m: M.Build[T]      => m
-        case m: M.Err[T]        => m
-        case m: M.Tag[T]        => m.copy(elem = f(m.elem))
-        case m: M.Cls[T]        => m.copy(elem = f(m.elem))
-        case m: M.Tok[T]        => m
-        case m: M.Blank[T]      => m
-        case m: M.Var[T]        => m
-        case m: M.Cons[T]       => m
-        case m: M.Opr[T]        => m
-        case m: M.Annotation[T] => m
-        case m: M.Mod[T]        => m
-        case m: M.Num[T]        => m
-        case m: M.Text[T]       => m
-        case m: M.Block[T]      => m
-        case m: M.Macro[T]      => m
-        case m: M.Invalid[T]    => m
+        case m: M.Begin[T]       => m
+        case m: M.End[T]         => m
+        case m: M.Nothing[T]     => m
+        case m: M.Seq[T]         => m.copy(elem = m.elem.bimap(f, f))
+        case m: M.Or[T]          => m.copy(elem = m.elem.bimap(f, f))
+        case m: M.Many[T]        => m.copy(elem = m.elem.map(f))
+        case m: M.Except[T]      => m.copy(elem = f(m.elem))
+        case m: M.Build[T]       => m
+        case m: M.Err[T]         => m
+        case m: M.Tag[T]         => m.copy(elem = f(m.elem))
+        case m: M.Cls[T]         => m.copy(elem = f(m.elem))
+        case m: M.Tok[T]         => m
+        case m: M.Blank[T]       => m
+        case m: M.Var[T]         => m
+        case m: M.Cons[T]        => m
+        case m: M.Opr[T]         => m
+        case m: M.Annotation[T]  => m
+        case m: M.Mod[T]         => m
+        case m: M.Num[T]         => m
+        case m: M.Text[T]        => m
+        case m: M.Block[T]       => m
+        case m: M.Macro[T]       => m
+        case m: M.Invalid[T]     => m
+        case m: M.FailedMatch[T] => m
       }
 
     @nowarn("cat=unchecked")
@@ -554,6 +559,10 @@ sealed trait Pattern {
         case p @ P.Invalid(spaced) =>
           matchByCls_[AST.Invalid](spaced, M.Invalid(p, _))
 
+        case _: P.FailedMatch =>
+          throw new RuntimeException(
+            "Should not occur during pattern matching."
+          )
       }
     }
     step(this, stream0)
