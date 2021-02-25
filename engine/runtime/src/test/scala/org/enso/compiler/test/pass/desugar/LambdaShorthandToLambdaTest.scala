@@ -509,17 +509,56 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       ir shouldBe an[IR.Application.Prefix]
       val app = ir.asInstanceOf[IR.Application.Prefix]
       app.function shouldBe an[IR.Function.Lambda]
+      val lam = app.function.asInstanceOf[IR.Function.Lambda]
+      lam.arguments.length shouldEqual 1
+      val lamArg1Name = lam.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name
+      val lamBody = lam.body.asInstanceOf[IR.Application.Prefix]
+      lamBody.arguments.length shouldEqual 2
+      val appArg1Name = lamBody.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+        .name
+      lamArg1Name shouldEqual appArg1Name
     }
 
     "correctly translate the function in an application" in {
-      pending
       implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
-        """(f _ a) b
+        """(f _ _ b) b
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Application.Prefix]
+      ir shouldBe an[IR.Function.Lambda]
+      val firstLam = ir.asInstanceOf[IR.Function.Lambda]
+      firstLam.arguments.length shouldEqual 1
+      val firstLamArgName = firstLam.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name
+      val secondLam = firstLam.body.asInstanceOf[IR.Function.Lambda]
+      val secondLamArgName = secondLam.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name
+      val app = secondLam.body.asInstanceOf[IR.Application.Prefix]
+      app.arguments.length shouldEqual 4
+      val appArg1Name = app.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name]
+        .name
+      val appArg2Name = app
+        .arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name]
+        .name
+      firstLamArgName shouldEqual appArg1Name
+      secondLamArgName shouldEqual appArg2Name
     }
   }
 }

@@ -153,5 +153,16 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
       eval(code) shouldEqual 20
     }
+
+    "work properly when used inside the function of an application" in {
+      val code =
+        """
+          |import Builtins
+          |
+          |main = (_ - 5) 0
+          |""".stripMargin
+
+      eval(code) shouldEqual -5
+    }
   }
 }

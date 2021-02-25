@@ -200,14 +200,18 @@ case object LambdaShorthandToLambda extends IRPass {
             )
           val newName = newFn.name
           (newFn, Some(newName))
-        } else (fn, None)
+        } else {
+          val newFn = desugarExpression(fn, freshNameSupply)
+          (newFn, None)
+        }
 
         val processedApp = p.copy(
           function  = updatedFn,
           arguments = updatedArgs
         )
 
-        // Wrap the app in lambdas from right to left, lambda / shorthand arg
+        // Wrap the app in lambdas from right to left, 1 lambda per shorthand
+        // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: IR.Expression)((arg, body) =>
             IR.Function.Lambda(List(arg), body, None)
