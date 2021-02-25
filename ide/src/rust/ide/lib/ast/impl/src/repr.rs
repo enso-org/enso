@@ -154,6 +154,7 @@ has_tokens!(MacroPatternMatchRawText       <T>, self.elem);
 has_tokens!(MacroPatternMatchRawBlock      <T>, self.elem);
 has_tokens!(MacroPatternMatchRawMacro      <T>, self.elem);
 has_tokens!(MacroPatternMatchRawInvalid    <T>, self.elem);
+has_tokens!(MacroPatternMatchRawFailedMatch);
 
 
 // === Switch ===

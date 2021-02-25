@@ -407,6 +407,7 @@ impl Fixture {
             , "export bar"
             , "from bar import all"
             , "from bar export bo"
+            , "a ->"
             ];
 
         for macro_usage in macro_usages.iter() {
@@ -424,6 +425,7 @@ impl Fixture {
             assert_eq!(segment_body.off,2);
             assert_var(&segment_body.wrapped,"foo");
         });
+
     }
 
     fn run(&mut self) {

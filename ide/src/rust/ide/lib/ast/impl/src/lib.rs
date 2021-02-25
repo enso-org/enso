@@ -666,18 +666,19 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
     Cls     { cls  : PatternClass , pat     : MacroPattern      },
 
     // === Token Patterns ===
-    Tok        { spaced : Spaced     , ast     : Ast            },
-    Blank      { spaced : Spaced                                },
-    Var        { spaced : Spaced                                },
-    Cons       { spaced : Spaced                                },
-    Opr        { spaced : Spaced     , max_prec : Option<usize> },
-    Annotation { spaced : Spaced                                },
-    Mod        { spaced : Spaced                                },
-    Num        { spaced : Spaced                                },
-    Text       { spaced : Spaced                                },
-    Block      { spaced : Spaced                                },
-    Macro      { spaced : Spaced                                },
-    Invalid    { spaced : Spaced                                },
+    Tok         { spaced : Spaced     , ast     : Ast            },
+    Blank       { spaced : Spaced                                },
+    Var         { spaced : Spaced                                },
+    Cons        { spaced : Spaced                                },
+    Opr         { spaced : Spaced     , max_prec : Option<usize> },
+    Annotation  { spaced : Spaced                                },
+    Mod         { spaced : Spaced                                },
+    Num         { spaced : Spaced                                },
+    Text        { spaced : Spaced                                },
+    Block       { spaced : Spaced                                },
+    Macro       { spaced : Spaced                                },
+    Invalid     { spaced : Spaced                                },
+    FailedMatch { spaced : Spaced                                },
 }
 
 #[ast] pub enum PatternClass { Normal, Pattern }
@@ -739,18 +740,19 @@ pub enum MacroPatternMatchRaw<T> {
     Cls     { pat: MacroPatternRawCls     , elem: MacroPatternMatch<T>         },
 
     // === Token Matches ===
-    Tok        { pat: MacroPatternRawTok        , elem: T                      },
-    Blank      { pat: MacroPatternRawBlank      , elem: T                      },
-    Var        { pat: MacroPatternRawVar        , elem: T                      },
-    Cons       { pat: MacroPatternRawCons       , elem: T                      },
-    Opr        { pat: MacroPatternRawOpr        , elem: T                      },
-    Annotation { pat: MacroPatternRawAnnotation , elem: T                      },
-    Mod        { pat: MacroPatternRawMod        , elem: T                      },
-    Num        { pat: MacroPatternRawNum        , elem: T                      },
-    Text       { pat: MacroPatternRawText       , elem: T                      },
-    Block      { pat: MacroPatternRawBlock      , elem: T                      },
-    Macro      { pat: MacroPatternRawMacro      , elem: T                      },
-    Invalid    { pat: MacroPatternRawInvalid    , elem: T                      },
+    Tok         { pat: MacroPatternRawTok        , elem: T                      },
+    Blank       { pat: MacroPatternRawBlank      , elem: T                      },
+    Var         { pat: MacroPatternRawVar        , elem: T                      },
+    Cons        { pat: MacroPatternRawCons       , elem: T                      },
+    Opr         { pat: MacroPatternRawOpr        , elem: T                      },
+    Annotation  { pat: MacroPatternRawAnnotation , elem: T                      },
+    Mod         { pat: MacroPatternRawMod        , elem: T                      },
+    Num         { pat: MacroPatternRawNum        , elem: T                      },
+    Text        { pat: MacroPatternRawText       , elem: T                      },
+    Block       { pat: MacroPatternRawBlock      , elem: T                      },
+    Macro       { pat: MacroPatternRawMacro      , elem: T                      },
+    Invalid     { pat: MacroPatternRawInvalid    , elem: T                      },
+    FailedMatch { pat: MacroPatternRawFailedMatch                               },
 }
 
 // =============================================================================

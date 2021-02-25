@@ -12,7 +12,6 @@ wasm_bindgen_test_configure!(run_in_browser);
 fn missing_macro_segment() {
     // TODO: should succeed
     //  https://github.com/enso-org/enso/issues/256
-    assert!(parser::Parser::new_or_panic().parse_line("a ->").is_err());
     assert!(parser::Parser::new_or_panic().parse_line("-> a").is_err());
 }
 
