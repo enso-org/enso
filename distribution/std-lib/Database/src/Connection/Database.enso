@@ -7,4 +7,5 @@ connect url user=Nothing password=Nothing =
 
 open_sqlite_file : Text -> Connection
 open_sqlite_file path =
-    Error.throw "TODO"
+    url = "jdbc:sqlite:" + path
+    here.connect url

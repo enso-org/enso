@@ -237,7 +237,7 @@ type Table
             False -> Panic.throw "Cannot join with multi-indexes of different lengths."
             True ->
                 ## TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
-                   so it may be worth optimizing that here
+                   so it may be worth optimizing that here (#1515)
 
                 new_table_name = this.name + "_" + other.name
                 aliases = case this.name == other.name of

@@ -1,0 +1,24 @@
+from Base import all
+from Database import all
+import Test
+
+spec connection =
+    connection.execute_update "CREATE TABLE T1 (A INT, B INT, C INT);"
+    connection.execute_update "INSERT INTO T1 (A,B,C) VALUES (1,2,3);"
+    connection.execute_update "INSERT INTO T1 (A,B,C) VALUES (4,5,6);"
+    # TODO add values
+    t1 = connection.access_table "T1"
+    Test.group "basic table access" <|
+        Test.specify "should allow to materialize tables into local memory" <|
+            df = t1.to_dataframe
+            df.at 'A' . to_vector . should_equal [1, 4]
+
+sqlite_spec =
+    # TODO create a tmp directory for DB etc.
+    connection = Database.open_sqlite_file "test.db"
+    here.spec connection
+
+postgres_spec =
+    # TODO use env vars to read tmp DB config
+    IO.println "PostgreSQL test database is not configured, skipping."
+    Nothing

@@ -1,6 +1,9 @@
 from Base import all
 import Test
 import Database_Tests.Codegen_Spec
+import Database_Tests.Database_Spec
 
 main = Test.Suite.runMain <|
     Codegen_Spec.spec
+    Database_Spec.sqlite_spec
+    Database_Spec.postgres_spec
