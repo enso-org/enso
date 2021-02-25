@@ -1157,6 +1157,121 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates when function body is changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val fooX    = metadata.addItem(40, 1)
+    val fooRes  = metadata.addItem(46, 1)
+    val mainFoo = metadata.addItem(64, 8)
+    val mainRes = metadata.addItem(77, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |foo =
+        |    x = 4
+        |    x
+        |
+        |main =
+        |    y = here.foo
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+        ),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // push foo call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(mainFoo))
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, fooX, Constants.INTEGER),
+      TestMessages.update(contextId, fooRes, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "5"
+            )
+          )
+        )
+      )
+    )
+    context.receive(1) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("5")
+
+    // pop the foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+        ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("5")
+  }
+
   it should "not send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

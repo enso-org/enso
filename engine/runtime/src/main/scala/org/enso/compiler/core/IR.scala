@@ -1082,7 +1082,7 @@ object IR {
             override val diagnostics: DiagnosticStorage = DiagnosticStorage()
           ) extends Method
               with IRKind.Primitive {
-            override protected var id: Identifier = _
+            override protected var id: Identifier = randomId
 
             /** Creates a copy of `this`.
               *
