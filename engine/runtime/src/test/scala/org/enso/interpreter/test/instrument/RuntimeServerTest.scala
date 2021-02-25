@@ -405,7 +405,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -1358,7 +1358,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -2507,7 +2507,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -3590,7 +3590,9 @@ class RuntimeServerTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("(Error: (Syntax_Error 'Unrecognized token.'))")
+    context.consumeOut shouldEqual List(
+      "(Error: (Syntax_Error 'Unrecognized token.'))"
+    )
   }
 
   it should "return compiler error syntax error" in {
