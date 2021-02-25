@@ -446,15 +446,32 @@ impl TextEdit {
     /// ```
     /// # use enso_protocol::language_server::{TextEdit, Position, TextRange};
     /// # use enso_data::text::TextLocation;
-    /// let source = "\n333<->🌊12345\n";
-    /// let target = "\n333x🔥12345\n";
-    ///
-    /// let diff = TextEdit::from_prefix_postfix_differences(source,target);
-    ///
-    /// let edit_start:TextLocation = Position{line:1,character:3}.into();
-    /// let edit_end:TextLocation   = Position{line:1,character:7}.into();
-    /// let edit_range:TextRange    = (edit_start..edit_end).into();
+    /// let source     = "\n333<->🌊12345\n";
+    /// let target     = "\n333x🔥12345\n";
+    /// let diff       = TextEdit::from_prefix_postfix_differences(source,target);
+    /// let edit_range = TextRange {
+    ///     start : Position{line:1, character:3},
+    ///     end   : Position{line:1, character:7},
+    /// };
     /// assert_eq!(diff, TextEdit{range:edit_range, text:"x🔥".to_string()});
+    ///
+    /// let source     = "1\n2\n";
+    /// let target     = "1\n3\n2\n";
+    /// let diff       = TextEdit::from_prefix_postfix_differences(source,target);
+    /// let edit_range = TextRange {
+    ///     start : Position{line:1, character:0},
+    ///     end   : Position{line:1, character:0},
+    /// };
+    /// assert_eq!(diff, TextEdit{range:edit_range, text:"3\n".to_string()});
+    ///
+    /// let source     = "1\n2\n3\n";
+    /// let target     = "1\n3\n";
+    /// let diff       = TextEdit::from_prefix_postfix_differences(source,target);
+    /// let edit_range = TextRange {
+    ///     start : Position{line:1, character:0},
+    ///     end   : Position{line:2, character:0},
+    /// };
+    /// assert_eq!(diff, TextEdit{range:edit_range, text:"".to_string()});
     /// ```
     pub fn from_prefix_postfix_differences(source:&str, target:&str) -> TextEdit {
         use enso_data::text::Index;
@@ -463,8 +480,12 @@ impl TextEdit {
         let source_length = source.chars().count();
         let target_length = target.chars().count();
 
-        let prefix_length  = utils::string::common_prefix_length(source, target);
-        let postfix_length = utils::string::common_postfix_length(source, target);
+        let common_prefix_length  = utils::string::common_prefix_length(source, target);
+        let common_postfix_length = utils::string::common_postfix_length(source, target);
+        let common_parts_length   = common_prefix_length + common_postfix_length;
+        let overlaping_chars      = common_parts_length.saturating_sub(source_length.min(target_length));
+        let prefix_length         = common_prefix_length;
+        let postfix_length        = common_postfix_length - overlaping_chars;
 
         let source_start_index = Index::new(prefix_length);
         let source_end_index   = Index::new(source_length - postfix_length);
