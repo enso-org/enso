@@ -24,3 +24,16 @@ spec =
             json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type"]]).to_text
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
+        Test.specify "should be able to be mapped" <|
+            error = Error.throw 42
+            regular = 10
+            f x = 2*x
+            (error.map_error f . catch).should_equal 84
+            regular.map_error f . should_equal 10
+
+        Test.specify "should allow to check if the value is an error" <|
+            error = Error.throw 42
+            regular = 10
+
+            error.is_error . should_equal True
+            regular.is_error . should_equal False

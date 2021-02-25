@@ -217,6 +217,15 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
 Text.contains : Text -> Boolean
 Text.contains sequence = Text_Utils.contains this sequence
 
+## Replaces each occurrences of `old_sequence` within `this` with `new_sequence`.
+
+   The replacement from the beginning of the text, as shown in the example below.
+
+   > Example
+         'aaa'.replace 'aa' 'b' == 'ba'
+Text.replace : Text -> Text -> Text
+Text.replace old_sequence new_sequence = Text_Utils.replace this old_sequence new_sequence
+
 ## Text to JSON conversion.
 Text.to_json : Json.String
 Text.to_json = Json.String this

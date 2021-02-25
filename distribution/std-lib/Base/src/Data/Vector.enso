@@ -114,7 +114,7 @@ type Vector
         0.up_to this.length . fold initial f
 
     ## Combines all the elements of a non-empty vector using a binary operation.
-       If the vector is empty, it returns Nothing.
+       If the vector is empty, it throws Nothing.
 
        > Example
          In the following example, we'll compute the sum of all elements of a
@@ -140,6 +140,26 @@ type Vector
         go idx found = if found || (idx >= len) then found else
             @Tail_Call go idx+1 (predicate (this.at idx))
         go 0 False
+
+    ## Returns the first element of the vector that satisfies the predicate or
+       If no elements of the vector satisfy the predicate, it throws nothing.
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Finding a first element of the list that is larger than 3.
+             [1,2,3,4,5].find (> 3)
+    find : (Any -> Boolean) -> Any ! Nothing
+    find predicate =
+        len = this.length
+        go idx =
+            if (idx >= len) then Error.throw Nothing else
+                elem = this.at idx
+                if (predicate elem) then elem else
+                    @Tail_Call go idx+1
+        go 0
+
 
     ## Checks whether a predicate holds for at least one element of this vector.
        A predicate is a function that takes an element from the vector and
@@ -209,6 +229,25 @@ type Vector
     map : (Any -> Any) -> Vector
     map function =
         here.new this.length i-> function (this.at i)
+
+    ## Applies a function to each element of the vector, returning the vector
+       that contains all results concatenated.
+
+       > Example
+         In the following example, we replace each number `n` with itself
+         repeated `n` times:
+            [0, 1, 2] . flat_map (n -> Vector.fill n n)
+         The result of running the code above is:
+            [1, 2, 2]
+    flat_map : (Any -> Vector) -> Vector
+    flat_map function =
+        mapped = this.map function
+        length = mapped.fold 0 acc-> elem-> acc + elem.length
+        arr = Array.new length
+        mapped.fold 0 i-> vec->
+            vec.map_with_index j-> elem-> arr.set_at i+j elem
+            i + vec.length
+        Vector arr
 
     ## Applies a function to each element of the vector, returning the vector
        of results.
@@ -405,6 +444,15 @@ type Vector
              [].first == Nothing
     first : Vector ! Nothing
     first = this.head
+
+    ## Get the second element from the vector.
+       Useful when tuples are implemented as vectors.
+
+       > Example
+         The following code returns 2.
+             [1, 2, 3, 4].second
+    second : Vector ! Nothing
+    second = if this.length >= 2 then this.at 1 else Error.throw Nothing
 
     ## Get all elements in the vector except the first.
 

@@ -194,4 +194,16 @@ public class Text_Utils {
   public static boolean contains(String string, String substring) {
     return string.contains(substring);
   }
+
+  /**
+   * Replaces all occurrences of {@code oldSequence} within {@code str} with {@code newSequence}.
+   *
+   * @param str the string to process
+   * @param oldSequence the substring that is searched for and will be replaced
+   * @param newSequence the string that will replace occurrences of {@code oldSequence}
+   * @return {@code str} with all occurrences of {@code oldSequence} replaced with {@code newSequence}
+   */
+  public static String replace(String str, String oldSequence, String newSequence) {
+    return str.replace(oldSequence, newSequence);
+  }
 }

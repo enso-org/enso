@@ -38,6 +38,23 @@ Error.to_default_visualization_data = this.catch .to_default_visualization_data
 Error.to_display_text : Text
 Error.to_display_text  = "Error: " + (this.catch .to_display_text)
 
+## Maps a dataflow error.
+   If the original value was a non-error value, it is not affected, but if it
+   was an error, the error is mapped through the provided function.
+
+   Arguments:
+   - f: The function to transform the error.
+
+   > Example
+     Wrapping an error value.
+       map.get "x" . map_error (_ -> ElementNotFound "x")
+Error.map_error : (Error -> Error) -> Any
+Error.map_error f = this.catch (x -> Error.throw (f x))
+
+## Checks if the underlying value is an error.
+Error.is_error : Boolean
+Error.is_error = True
+
 ## Takes any value, and if it is a dataflow error, throws it as a Panic.
    Otherwise, returns the original value unchanged.
 Panic.rethrow : (Any ! Any) -> Any
