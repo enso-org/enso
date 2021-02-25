@@ -15,7 +15,9 @@ type Internal_Dialect
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
     type Internal_Dialect operation_map
 
-    ## Creates a copy of the dialect that supports additional operations or
+    ## PRIVATE
+
+       Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
     extend_with mappings =

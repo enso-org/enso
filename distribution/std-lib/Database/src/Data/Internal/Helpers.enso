@@ -36,7 +36,6 @@ unify_vector_singleton x = case x of
 type Unsupported_Name_Error text
 
 ## PRIVATE
-   UNSTABLE
 
    This is used to check if the new name is safe for use in Sql queries.
    In a future version we will decouple the internal Sql-safe names from the

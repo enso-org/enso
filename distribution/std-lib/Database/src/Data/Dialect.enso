@@ -24,7 +24,9 @@ type Dialect
        # type Dialect (name : Text) (generate_sql : Query -> Sql.Statement)
     type Dialect name generate_sql
 
-## The dialect of PostgreSQL databases.
+## PRIVATE
+
+   The dialect of PostgreSQL databases.
 postgresql : Dialect
 postgresql =
     starts_with arguments =
@@ -58,7 +60,9 @@ postgresql =
     dialect = Base_Generator.base_dialect . extend_with my_mappings
     Dialect "postgresql" (query -> Base_Generator.generate_query dialect query . build)
 
-## The dialect of SQLite databases.
+## PRIVATE
+
+   The dialect of SQLite databases.
 sqlite : Dialect
 sqlite =
     starts_with arguments =

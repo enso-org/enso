@@ -75,22 +75,30 @@ type Context
        #              (groups : Vector Expression) (meta_index : Vector Expression)
     type Context from_spec where_filters orders groups meta_index
 
-    ## Returns a copy of the context with changed `meta_index`.
+    ## PRIVATE
+
+       Returns a copy of the context with changed `meta_index`.
     set_index : Vector Text -> Context
     set_index new_index =
         Context this.from_spec this.where_filters this.orders this.groups new_index
 
-    ## Returns a copy of the context with changed `where_filters`.
+    ## PRIVATE
+
+       Returns a copy of the context with changed `where_filters`.
     set_where_filters : Vector Expression -> Context
     set_where_filters new_filters =
         Context this.from_spec new_filters this.orders this.groups this.meta_index
 
-    ## Returns a copy of the context with changed `orders`.
-    # set_orders : Vector [Expression, Order_Direction] -> Context
+    ## PRIVATE
+
+       Returns a copy of the context with changed `orders`.
+       # set_orders : Vector [Expression, Order_Direction] -> Context
     set_orders new_orders =
         Context this.from_spec this.where_filters new_orders this.groups this.meta_index
 
-    ## Returns a copy of the context with changed `groups`.
+    ## PRIVATE
+
+       Returns a copy of the context with changed `groups`.
     set_groups : Vector Expression -> Context
     set_groups new_groups =
         Context this.from_spec this.where_filters this.orders new_groups this.meta_index
@@ -250,7 +258,6 @@ make_constant x =
     Constant x
 
 ## PRIVATE
-   UNSTABLE
 
    A helper function to subsitute names tables inside of expressions. It is used
    for example when renaming a table during a join.

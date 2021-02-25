@@ -10,20 +10,29 @@ from Base import all
    is known in advance and the tree is traversed in order to create the
    resulting vector without resizing it.
 type Vector_Builder
+    ## PRIVATE
     type Leaf vec
+
+    ## PRIVATE
     type Append left right len
 
-    ## Number of elements inside of the to-be-built vector.
+    ## PRIVATE
+
+       Number of elements inside of the to-be-built vector.
     length : Integer
     length = case this of
         Leaf vec -> vec.length
         Append _ _ len -> len
 
-    ## Checks if this builder contains any elements.
+    ## PRIVATE
+
+       Checks if this builder contains any elements.
     is_empty : Boolean
     is_empty = this.length == 0
 
-    ## Materializes the actual vector from this builder.
+    ## PRIVATE
+
+       Materializes the actual vector from this builder.
     build : Vector.Vector Any
     build =
        array = Array.new this.length
@@ -38,7 +47,9 @@ type Vector_Builder
        go 0 this
        Vector.Vector array
 
-    ## Concatenates another builder or vector to this.
+    ## PRIVATE
+
+       Concatenates another builder or vector to this.
 
        It returns a new builder that will yield a vector that is a concatenation
        of `this` and the argument.
