@@ -72,8 +72,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
+    val modulesInScope =
+      ctx.executionService.getContext.getTopScope.getModules.asScala
+        .filterNot(m => modules.exists(_ == m))
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
-    val scopeCompilationStatus  = ensureCompiledScope()
+    val scopeCompilationStatus  = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -104,11 +107,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     *
     * @param ctx the runtime context
     */
-  private def ensureCompiledScope()(implicit
+  private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
     ctx: RuntimeContext
   ): Iterable[CompilationStatus] = {
-    val modulesInScope =
-      ctx.executionService.getContext.getTopScope.getModules.asScala
     ctx.executionService.getLogger
       .log(Level.FINEST, s"Modules in scope: ${modulesInScope.map(_.getName)}")
     modulesInScope
