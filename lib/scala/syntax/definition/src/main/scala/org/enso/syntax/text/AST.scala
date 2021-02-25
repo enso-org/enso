@@ -2319,14 +2319,20 @@ object AST {
           val segsFail = !ctx.body.forall(_.isValid)
           if (pfxFail || segsFail) unexpected(ctx, "invalid statement")
           else {
-            val ctx2 = ctx.copy(
-              prefix = ctx.prefix.map(unapplyValidChecker),
-              body   = unapplySegCheckers(ctx.body)
-            )
-            try resolver(ctx2)
-            catch {
+            try {
+              val ctx2 = ctx.copy(
+                prefix = ctx.prefix.map(unapplyValidChecker),
+                body   = unapplySegCheckers(ctx.body)
+              )
+              resolver(ctx2)
+            } catch {
               case _: Throwable =>
-                unexpected(ctx, "exception during macro resolution")
+                val tokens = ctx.body.flatMap(mat => {
+                  val firstElem = Shifted(mat.head)
+                  val rest      = mat.body.toStream
+                  firstElem :: rest
+                })
+                AST.Invalid.Unexpected("Unexpected tokens", tokens)
             }
           }
         }
