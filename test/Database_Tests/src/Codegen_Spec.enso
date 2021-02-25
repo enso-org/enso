@@ -45,6 +45,10 @@ spec =
         Test.specify "should fail if at is called for a nonexisting column" <|
             t1.at "undefined" . should_fail_with No_Such_Column_Error
 
+        Test.specify "should allow to limit the amount of returned results" <|
+            t2 = t1.limit 5
+            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
+
     Test.group "Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
             a = t1.at "A"

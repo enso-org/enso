@@ -124,7 +124,7 @@ type JDBC_Connection
     ## PRIVATE
     # fetch_columns : Text -> Vector [Text, Sql_Type]
     fetch_columns table_name =
-        query = IR.Select_All (IR.From table_name table_name)
+        query = IR.Select_All (IR.make_ctx_from table_name)
         compiled = this.dialect.generate_sql query
         Resource.bracket (this.prepare_statement compiled) .close stmt->
             rs = stmt.executeQuery

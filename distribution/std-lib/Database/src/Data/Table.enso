@@ -26,7 +26,9 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        (this.to_dataframe limit=show_rows).display show_rows format_terminal
+        # TODO [RW] but we need to handle the count of hidden rows too!
+        df = this.to_dataframe max_rows=show_rows
+        df.display show_rows format_terminal
 
     ## UNSTABLE
 
@@ -81,6 +83,38 @@ type Table
                 new_filters = this.context.where_filters + [filter.expression]
                 new_ctx = this.context.set_where_filters new_filters
                 this.updated_context new_ctx
+
+    ## UNSTABLE
+
+       Returns a new Table that will include at most `max_rows` rows from the
+       original Table.
+
+       Since this Table is backed by an SQL database, the Table returned by the
+       `limit` method is deterministic only if the Table has been ordered (using
+       the `sort` method).
+
+       Otherwise, no order is imposed, so the returned Table will include at most
+       `max_rows` rows, but there are no guarantees on which rows will be
+       selected. Moreover, even if the underlying table in the database did not
+       change, different sets of rows may be returned each time the returned
+       Table is materialized.
+
+       The limit is applied at the very end, so the new Table behaves exactly as
+       the old one, just limitting its results when being materialized.
+       Specifically, applying further filters will still apply to the whole
+       result set and the limit will be taken after applying these filters.
+
+       > For example:
+         In the call below, assuming that the table of `t1` contains rows for
+         numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
+         result as one could expect if the limit was applied before the filters.
+             t1 = table.sort by='A' . limit 5
+             t2 = t1.where (t1.at 'A' > 5)
+             t2.to_dataframe
+    limit : Integer -> Table
+    limit max_rows =
+        new_ctx = this.context.set_limit max_rows
+        this.updated_context new_ctx
 
     ## UNSTABLE
 
@@ -223,7 +257,8 @@ type Table
 
                 new_index = left_renamed_index
                 new_from = IR.Join kind left_query right_query on_exprs
-                new_ctx = IR.Context new_from [] [] [] new_index
+                new_limit = this.context.limit # TODO [RW] how to join limits?
+                new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
                 left_names = Map.from_vector (this.internal_columns.map (p -> [p.name, True]))
                 right_names = Map.from_vector (other.internal_columns.map (p -> [p.name, True]))
@@ -298,9 +333,8 @@ type Table
         table.at column_name . at 0
 
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
-    to_dataframe limit=Nothing =
-        # TODO [RW] limit
-        sql = this.to_sql
+    to_dataframe max_rows=Nothing =
+        sql = this.limit max_rows . to_sql
         this.connection.execute_query sql
 
     ## UNSTABLE

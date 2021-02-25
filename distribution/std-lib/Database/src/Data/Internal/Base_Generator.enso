@@ -173,10 +173,13 @@ generate_select_context dialect ctx =
     from_part = here.generate_from_part dialect ctx.from_spec
     where_part = (Sql.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
     group_part = (Sql.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+    limit_part = case ctx.limit of
+        Nothing -> Sql.empty
+        Integer -> Sql.code " LIMIT "+ctx.limit.to_text
 
     orders = ctx.orders.map (here.generate_order dialect)
     order_part = (Sql.join ", " orders) . prefix_if_present " ORDER BY "
-    (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part
+    (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
 
