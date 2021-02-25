@@ -9,7 +9,7 @@ import * as svg        from './svg'
 // === ProgressIndicator ===
 // =========================
 
-let bg_color     = "#e8e7e6"
+let bg_color     = "#f6f3f1"
 let loader_color = "#303030"
 let top_layer_index = 1000
 
@@ -159,6 +159,7 @@ export class Loader {
         this.download_speed    = 0
         this.last_receive_time = performance.now()
         this.initialized       = this.indicator.initialized
+        this.cap_progress_at   = 0.3
 
         let self          = this
         this.done_resolve = null
@@ -207,7 +208,8 @@ export class Loader {
         let received = this.show_received_bytes()
         console.log(`${percent}% (${received}) (${speed}).`)
 
-        this.indicator.set(this.value())
+        let indicator_progress = this.value() * this.cap_progress_at
+        this.indicator.set(indicator_progress)
         if (this.is_done()) { this.done_resolve() }
     }
 
