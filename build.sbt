@@ -708,15 +708,6 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       case "reference.conf"   => MergeStrategy.concat
       case _                  => MergeStrategy.first
     },
-    assemblyOption in assembly := (assemblyOption in assembly).value
-      .copy(
-        prependShellScript = Some(
-          defaultUniversalScript(
-            shebang  = false,
-            javaOpts = Seq("-Dtruffle.class.path.append=runtime.jar")
-          )
-        )
-      ),
     (Test / test) := (Test / test).dependsOn(`engine-runner` / assembly).value,
     rebuildNativeImage := NativeImage
       .buildNativeImage(
