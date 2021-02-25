@@ -243,6 +243,11 @@ type Query
     # type Select (expressions : [Text, Expression]) (context : Context)
     type Select columns context
 
+    ## PRIVATE
+
+       A Select SQL query that gets all columns in a table.
+    type Select_All context
+
 ## PRIVATE
 
    Creates a query context that just fetches data from a table, without any

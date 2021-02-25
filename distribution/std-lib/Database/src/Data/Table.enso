@@ -9,7 +9,7 @@ import Database.Data.Sql
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
-    ## UNSTABLE
+    ## PRIVATE
 
        Represents a column-oriented table data structure backed by a database.
        # type Table (name : Text) (connection : Connection)

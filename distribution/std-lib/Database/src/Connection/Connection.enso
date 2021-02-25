@@ -1,24 +1,29 @@
 from Base import all
+
 import Database.Data.Table as Database_Table
 import Table.Data.Table as Materialized_Table
+import Database.Data.Dialect
 import Database.Data.Sql
+import Database.Data.Internal.IR
+from Database.Data.Sql import Sql_Type
+
 polyglot java import java.util.ArrayList
+polyglot java import java.sql.DriverManager
+polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
 
-type Connection
+type JDBC_Connection
 
-    ## UNSTABLE
+    ## PRIVATE
 
-       A Database connection.
+       A Database connection using a JDBC driver.
 
        Allows to access tables from a database.
-    type Connection internal_connection
 
-    ## UNSTABLE
-
-       SQL dialect that the database associated with that connection is using.
-    dialect : String
-    dialect = this.internal_connection.dialect
+       Arguments:
+       - java_connection: the resource managing the underlying JDBC connection.
+       - dialect: the dialect associated with the database we are connected to.
+    type JDBC_Connection connection_resource dialect
 
     ## UNSTABLE
 
@@ -29,7 +34,7 @@ type Connection
        - name: name of the table to access
     access_table : Text -> Database_Table
     access_table name =
-        columns = this.internal_connection.fetch_columns name
+        columns = this.fetch_columns name
         Database_Table.make_table this name columns
 
     explain_query_plan : Sql.Statement -> Text
@@ -37,43 +42,119 @@ type Connection
         _ = statement
         Error.throw "TODO"
 
-    ## PRIVATE
-    prepare_statement : Text | Sql.Statement -> PreparedStatement
-    prepare_statement statement = case statement of
-        Text -> this.internal_connection.prepare_statement statement []
-        Sql.Statement _ ->
-            compiled = statement.prepare
-            this.internal_connection.prepare_statement compiled.first compiled.second
+    ## Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+
+       The connection is not usable afterwards.
+    close : Nothing
+    close =
+        Managed_Resource.finalize this.connection_resource
 
     ## ADVANCED
+
+       Executes a raw query and returns the result as an in-memory Table.
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
     execute_query : Text | Sql.Statement -> Materialized_Table =
     execute_query statement = Panic.recover <|
-        prep_stmt = this.prepare_statement statement
-        java_rs = prep_stmt.executeQuery
-        metadata = java_rs.getMetaData
-        ncols = metadata.getColumnCount
-        ## TODO [RW] we wrap everything in objects, in the future we may want to
-           try a more performant solution for columns of numbers or booleans
-        column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
-        column_types = Vector.new ncols (ix -> metadata.getColumnType ix+1)
-        columns = column_names.map (name -> [name, ArrayList.new])
-        go has_next = if has_next.not then Nothing else
-            columns.map_with_index ix-> pair->
-                results = pair.second
-                typ_id = column_types.at ix
-                 # getObject handles most types by default correctly, but it would cast booleans to integers
-                obj = if typ_id == Types.BOOLEAN then java_rs.getBoolean ix+1 else
-                    java_rs.getObject ix+1
-                results.add obj
-            go java_rs.next
-        go java_rs.next
-        column_vectors = columns.map (pair -> [pair.first, Vector.Vector pair.second.toArray])
-        Materialized_Table.new column_vectors
+        Resource.bracket (this.prepare_statement statement) .close stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            ## TODO [RW] we wrap everything in objects, in the future we may
+               want to try a more performant solution for columns of numbers or
+               booleans
+            column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
+            column_types = Vector.new ncols (ix -> metadata.getColumnType ix+1)
+            columns = column_names.map (name -> [name, ArrayList.new])
+            go has_next = if has_next.not then Nothing else
+                columns.map_with_index ix-> pair->
+                    results = pair.second
+                    typ_id = column_types.at ix
+                    ## getObject handles most types by default correctly, but it
+                       would cast booleans to integers
+                    obj = if typ_id == Types.BOOLEAN then rs.getBoolean ix+1 else
+                        rs.getObject ix+1
+                    results.add obj
+                go rs.next
+            go rs.next
+            column_vectors = columns.map (pair -> [pair.first, Vector.Vector pair.second.toArray])
+            Materialized_Table.new column_vectors
 
     ## ADVANCED
+
+       Executes a raw update query and returns the amount of affected rows (or 0
+       if not applicable).
+
+       Arguments:
+       - query: either raw SQL code as Text or an instance of Sql.Statement
+         representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
-    execute_update statement = Panic.recover <|
-        prep_stmt = this.prepare_statement statement
-        # TODO we may want to use executeLargeUpdate but it seems to not be implemented by default (checked that it does throw)
-        # we may try every time to call large update and if it fails, fall back to normal update
-        prep_stmt.executeUpdate
+    execute_update query = Panic.recover <|
+        Resource.bracket (this.prepare_statement query) .close stmt->
+            ## TODO we may want to use executeLargeUpdate but it seems to not be
+               implemented by default (checked that it does throw); we may try
+               every time to call large update and if it fails, fall back to
+               regular update
+            stmt.executeUpdate
+
+    ## PRIVATE
+    prepare_statement : Text | Sql.Statement -> Prepared_Statement
+    prepare_statement query =
+        go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
+            stmt = java_connection.prepareStatement template
+            setup_error = Panic.recover <|
+                holes.map_with_index ix-> obj->
+                    position = ix + 1
+                    case obj.first of
+                        Nothing -> stmt.setNull position obj.second.typeid
+                        _ -> stmt.setObject position obj.first
+            setup_error.catch error->
+                stmt.close
+                Panic.throw error
+            stmt
+        Panic.recover <| case query of
+            Text -> go query []
+            Sql.Statement _ ->
+                compiled = query.prepare
+                go compiled.first compiled.second
+
+    ## PRIVATE
+    # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns table_name =
+        query = IR.Select_All (IR.From table_name table_name)
+        compiled = this.dialect.generate_sql query
+        Resource.bracket (this.prepare_statement compiled) .close stmt->
+            rs = stmt.executeQuery
+            metadata = rs.getMetaData
+            ncols = metadata.getColumnCount
+            resolve_column ix =
+                name = metadata.getColumnName ix+1
+                typ = metadata.getColumnType ix+1
+                [name, Sql_Type typ]
+            Vector.new ncols resolve_column
+
+## An error indicating that a supported dialect could not be deduced for the
+   provided URL.
+type UnsupportedDialect url
+
+## PRIVATE
+
+   Creates a JDBC connection based on a URL and optionally username and
+   password.
+create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> JDBC_Connection
+create_jdbc_connection url user=Nothing password=Nothing =
+    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> UnsupportedDialect url)
+    java_connection = case user.is_nothing && password.is_nothing of
+        True ->
+            DriverManager.getConnection url
+        False ->
+            DriverManager.getConnection url user password
+    resource = Managed_Resource.register java_connection here.close_connection
+    JDBC_Connection resource dialect
+
+## PRIVATE
+close_connection connection =
+    connection.close

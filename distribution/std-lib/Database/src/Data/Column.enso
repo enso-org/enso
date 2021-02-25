@@ -7,6 +7,7 @@ import Database.Data.Table
 type Column
 
     ## UNSTABLE
+       PRIVATE
 
        Represents a single column backed by a database.
 

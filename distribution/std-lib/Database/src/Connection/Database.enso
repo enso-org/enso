@@ -1,11 +1,9 @@
 from Base import all
-from Database.Connection.Connection as Connection_Module import Connection
-import Database.Connection.Internal.JDBCConnection
+import Database.Connection.Connection
 
-connect : Text -> Nothing | Text -> Nothing | Text -> Connection
+connect : Text -> Nothing | Text -> Nothing | Text -> JDBC_Connection
 connect url user=Nothing password=Nothing =
-    internal = JDBCConnection.create_connection url user password
-    Connection internal
+    Connection.create_jdbc_connection url user password
 
 open_sqlite_file : Text -> Connection
 open_sqlite_file path =

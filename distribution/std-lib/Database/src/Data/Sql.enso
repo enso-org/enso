@@ -140,13 +140,6 @@ type Builder
 
     ## UNSTABLE
 
-       Appends `AS name` to the current fragment.
-    alias : Text -> Builder
-    alias name =
-        this ++ here.code " AS "+name
-
-    ## UNSTABLE
-
        Wraps the code fragment in parentheses.
     paren : Builder
     paren =
