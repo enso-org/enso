@@ -51,6 +51,14 @@ async function download_content(config) {
     let loader =
         new loader_module.Loader([wasm_glue_fetch,wasm_fetch], config)
 
+    // TODO [mwu]
+    // Progress indication for WASM loading is hereby capped at 30%.
+    // The remaining 70% is meant for IDE initialization. Currently we have no means of tracking
+    // it, so we keep spinner running at 30% to denote ongoing initialization.
+    // See https://github.com/enso-org/ide/issues/1237 for an immediate reason.
+    // See https://github.com/enso-org/ide/issues/1105 for a broader context.
+    loader.cap_progress_at = 0.3
+    
     loader.done.then(() => {
         console.groupEnd()
         console.log("Download finished. Finishing WASM compilation.")
@@ -391,7 +399,7 @@ async function reportCrash(message) {
 
 function style_root() {
     let root = document.getElementById('root')
-    root.style.backgroundColor = '#f6f3f199'
+    root.style.backgroundColor = '#f6f3f1'
 }
 
 function getUrlParams() {

@@ -26,6 +26,10 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
   dealing with incompatible node metadata (that store node visual positions, history of picked 
   searcher suggestions, etc.). This will allow IDE to correctly open projects that were created 
   using a different IDE version and prevent unnecessary lose of metadata information.
+- [Loading progress indicator remains visible while IDE initializes][1237]. Previously the spinner
+  acting as a loading progress indicator completed too quickly and stopped spinning before IDE was
+  ready. Now it stays active, giving a visual indication that the initialization is still in 
+  progress.
   
 #### EnsoGL
 - New multi-camera management system, allowing the same shape systems be rendered on different 
@@ -60,6 +64,7 @@ read the notes of the `Enso 2.0.0-alpha.1` release.
 [1190]: https://github.com/enso-org/ide/pull/1190
 [1187]: https://github.com/enso-org/ide/pull/1187
 [1214]: https://github.com/enso-org/ide/pull/1214
+[1237]: https://github.com/enso-org/ide/pull/1237
 <br/>
 
 
