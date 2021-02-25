@@ -719,7 +719,7 @@ class ExpressionErrorsTest
     context.consumeOut shouldEqual List("499999999999")
   }
 
-  it should "send not updates when dataflow error changes" in {
+  it should "not send updates when dataflow error changes" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
