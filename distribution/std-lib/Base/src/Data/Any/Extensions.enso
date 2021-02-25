@@ -97,14 +97,11 @@ Any.catch (handler = x->x) = this.catch_primitive handler
      Wrapping an error value.
        map.get "x" . map_error (_ -> ElementNotFound "x")
 Any.map_error : (Error -> Error) -> Any
-Any.map_error f = this.catch (x -> Error.throw (f x))
+Any.map_error _ = this
 
 ## Checks if the underlying value is an error.
 Any.is_error : Boolean
-Any.is_error =
-    non_error = case this of
-        _ -> False
-    non_error.catch (_ -> True)
+Any.is_error = False
 
 ## Applies the function `this` to the provided argument.
 
