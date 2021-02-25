@@ -144,6 +144,11 @@ impl Model {
     fn finish_process(&self, id:process::Id) -> bool {
         self.processes.borrow_mut().remove(&id).is_some()
     }
+
+    /// Returns empty string if no event received so far.
+    fn last_event_message(&self) -> event::Label {
+        self.events.borrow().last().cloned().unwrap_or_default()
+    }
 }
 
 
@@ -182,9 +187,15 @@ impl View {
             ));
             displayed_process_finished <- frp.finish_process.all(&frp.output.displayed_process).filter(|(fin,dis)| dis.contains(fin));
 
-            label_after_adding_event <- frp.add_event.map(|label| AsRef::<ImString>::as_ref(label).clone_ref());
-            label_after_adding_process <- frp.add_process.map(|label| AsRef::<ImString>::as_ref(label).clone_ref());
-            label_after_finishing_process <- displayed_process_finished.constant(ImString::default());
+            label_after_adding_event <- frp.add_event.map(
+                |label| AsRef::<ImString>::as_ref(label).clone_ref()
+            );
+            label_after_adding_process <- frp.add_process.map(
+                |label| AsRef::<ImString>::as_ref(label).clone_ref()
+            );
+            label_after_finishing_process <- displayed_process_finished.map(
+                f_!([model] AsRef::<ImString>::as_ref(&model.last_event_message()).clone_ref())
+            );
 
             label <- any(label_after_adding_event,label_after_adding_process,label_after_finishing_process);
             eval label ((label) model.label.set_content(label.to_string()));

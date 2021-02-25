@@ -490,7 +490,7 @@ impl Area {
             let not_a_port
                 =  node.is_positional_insertion_point()
                 || node.is_chained()
-                || node.is_root()
+                || (node.is_root() && !node.children.is_empty())
                 || skip_opr
                 || node.is_token()
                 || builder.parent_parensed;

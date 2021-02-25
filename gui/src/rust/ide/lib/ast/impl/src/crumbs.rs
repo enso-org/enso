@@ -946,6 +946,7 @@ fn pattern_subcrumbs(pat:&MacroPatternMatch<Shifted<Ast>>) -> Vec<Vec<PatternMat
             Block(_)      => {crumb.push(PatternMatchCrumb::Block)      ; crumbs.push(crumb)},
             Macro(_)      => {crumb.push(PatternMatchCrumb::Macro)      ; crumbs.push(crumb)},
             Invalid(_)    => {crumb.push(PatternMatchCrumb::Invalid)    ; crumbs.push(crumb)},
+            FailedMatch(_)=> (),
             Except(pat)   => {
                 crumb.push(PatternMatchCrumb::Except);
                 patterns.push((crumb,&pat.elem))
