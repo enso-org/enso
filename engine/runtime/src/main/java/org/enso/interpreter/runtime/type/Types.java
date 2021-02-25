@@ -139,6 +139,11 @@ public class Types {
     }
   }
 
+  /** Check if the given type is a panic. */
+  public static boolean isPanic(String typeName) {
+    return Constants.PANIC.equals(typeName);
+  }
+
   /**
    * Asserts that the arguments array has exactly one element of a given type and extracts it.
    *
