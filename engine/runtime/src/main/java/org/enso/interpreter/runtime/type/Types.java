@@ -139,11 +139,6 @@ public class Types {
     }
   }
 
-  /** Check if the given type represents an error. */
-  public static boolean isError(String typeName) {
-    return Constants.ERROR.equals(typeName) || Constants.PANIC.equals(typeName);
-  }
-
   /**
    * Asserts that the arguments array has exactly one element of a given type and extracts it.
    *

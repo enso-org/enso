@@ -89,7 +89,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
   public static class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
-    private final Object cachedError;
     private final String type;
     private final String cachedType;
     private final FunctionCallInfo callInfo;
@@ -102,7 +101,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
      *
      * @param expressionId the id of the expression being computed.
      * @param value the value returned by computing the expression.
-     * @param cachedError the cached error value.
      * @param type the type of the returned value.
      * @param cachedType the cached type of the value.
      * @param callInfo the function call data.
@@ -113,7 +111,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
     public ExpressionValue(
         UUID expressionId,
         Object value,
-        Object cachedError,
         String type,
         String cachedType,
         FunctionCallInfo callInfo,
@@ -122,7 +119,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
         boolean wasCached) {
       this.expressionId = expressionId;
       this.value = value;
-      this.cachedError = cachedError;
       this.type = type;
       this.cachedType = cachedType;
       this.callInfo = callInfo;
@@ -139,8 +135,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
           + expressionId
           + ", value="
           + value
-          + ", cachedError="
-          + cachedError
           + ", type='"
           + type
           + '\''
@@ -176,11 +170,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
     /** @return the computed value of the expression. */
     public Object getValue() {
       return value;
-    }
-
-    /** @return the cached error value of the expression. */
-    public Object getCachedError() {
-      return cachedError;
     }
 
     /** @return the function call data. */
@@ -346,7 +335,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
             new ExpressionValue(
                 nodeId,
                 result,
-                cache.getErrorValue(nodeId),
                 cache.getType(nodeId),
                 Types.getName(result),
                 calls.get(nodeId),
@@ -392,27 +380,13 @@ public class IdExecutionInstrument extends TruffleInstrument {
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
         cache.offer(nodeId, result);
-        Object cachedError;
-        if (Types.isError(resultType)) {
-          cachedError = cache.putErrorValue(nodeId, result);
-        } else {
-          cachedError = cache.getErrorValue(nodeId);
-        }
         String cachedType = cache.putType(nodeId, resultType);
         FunctionCallInfo call = calls.get(nodeId);
         FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
         var profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
         onComputedCallback.accept(
             new ExpressionValue(
-                nodeId,
-                result,
-                cachedError,
-                resultType,
-                cachedType,
-                call,
-                cachedCall,
-                profilingInfo,
-                false));
+                nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
         if (result instanceof PanicSentinel) {
           throw context.createUnwind(result);
         }
@@ -436,8 +410,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        onReturnValue(
-            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
       }

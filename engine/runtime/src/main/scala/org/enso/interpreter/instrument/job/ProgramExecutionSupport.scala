@@ -25,7 +25,6 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
-import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.service.error.{
   ConstructorNotFoundException,
   MethodNotFoundException,
@@ -39,7 +38,6 @@ import java.io.File
 import java.util.function.Consumer
 import java.util.logging.Level
 import java.util.{Objects, UUID}
-
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -113,7 +111,6 @@ trait ProgramExecutionSupport {
           onCachedMethodCallCallback.accept(
             new ExpressionValue(
               expressionId,
-              null,
               null,
               expressionType,
               expressionType,
@@ -325,11 +322,7 @@ trait ProgramExecutionSupport {
     if (
       (sendMethodCallUpdates && methodPointer.isDefined) ||
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
-      !Objects.equals(value.getType, value.getCachedType) ||
-      (Types.isError(value.getType) && !Objects.equals(
-        value.getValue,
-        value.getCachedError
-      ))
+      !Objects.equals(value.getType, value.getCachedType)
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
