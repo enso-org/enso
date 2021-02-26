@@ -3,6 +3,7 @@ import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
 from Database.Data.Sql import Sql_Type
 import Database.Data.Table
+from Database.Data.Table import Integrity_Error
 
 type Column
 
@@ -33,7 +34,7 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table =
-        cols = [Table.InternalColumn this.name this.sql_type this.expression]
+        cols = [Table.Internal_Column this.name this.sql_type this.expression]
         Table.Table this.name this.connection cols this.context
 
     ## UNSTABLE
@@ -221,8 +222,7 @@ type Column
     where filter =
         case Helpers.check_integrity this filter of
             False ->
-                # TODO [RW] more descriptive errors
-                Error.throw "Filtering over a column with differing context."
+                Error.throw (Integrity_Error "Column "+filter.name)
             True ->
                 new_filters = this.context.where_filters + [filter.expression]
                 new_ctx = this.context.set_where_filters new_filters
@@ -335,8 +335,9 @@ type Aggregate_Column
        A helper method for creating an aggregated column by applying some
        operation.
     make_aggregate operation name_suffix new_type=Nothing =
-        new_name = this.name + name_suffix
         actual_new_type = if new_type.is_nothing then this.sql_type else new_type
         expr = IR.Operation operation [this.expression]
-        case Helpers.ensure_name_is_sane new_name of
-                True -> Column new_name this.connection actual_new_type expr this.context
+        case Helpers.ensure_name_is_sane name_suffix of
+            True ->
+                new_name = this.name + name_suffix
+                Column new_name this.connection actual_new_type expr this.context

@@ -271,7 +271,6 @@ make_ctx_from table_name =
    Creates an expression which is a simple constant to be interpolated.
 make_constant : Sql.Sql_Type -> Any -> Expression
 make_constant sql_type x =
-    # TODO [RW] may add some sanitization, like checking if the value type is supported
     Constant sql_type x
 
 ## PRIVATE

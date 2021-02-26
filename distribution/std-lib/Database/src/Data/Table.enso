@@ -13,7 +13,7 @@ type Table
 
        Represents a column-oriented table data structure backed by a database.
        # type Table (name : Text) (connection : Connection)
-       #            (internal_columns : Vector InternalColumn)
+       #            (internal_columns : Vector Internal_Column)
        #            (context : IR.Context)
     type Table name connection internal_columns context
 
@@ -63,7 +63,7 @@ type Table
         Text -> Panic.rethrow (this.at column)
         _ ->
             if Helpers.check_integrity this column then column else
-                Panic.throw (IntegrityError "Column "+column.name)
+                Panic.throw (Integrity_Error "Column "+column.name)
 
     ## UNSTABLE
 
@@ -78,7 +78,7 @@ type Table
     where filter =
         case Helpers.check_integrity this filter of
             False ->
-                Error.throw (IntegrityError "Column "+filter.name)
+                Error.throw (Integrity_Error "Column "+filter.name)
             True ->
                 new_filters = this.context.where_filters + [filter.expression]
                 new_ctx = this.context.set_where_filters new_filters
@@ -123,7 +123,7 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            new_col = InternalColumn name column.sql_type column.expression
+            new_col = Internal_Column name column.sql_type column.expression
             replace = this.internal_columns.exists (c -> c.name == name)
             case replace of
                 True ->
@@ -268,9 +268,9 @@ type Table
                 rename_right = rename right_suffix left_names
 
                 new_left_columns = this.internal_columns.map p->
-                    InternalColumn (rename_left p.name) p.sql_type (IR.Column left_alias p.name)
+                    Internal_Column (rename_left p.name) p.sql_type (IR.Column left_alias p.name)
                 new_right_columns = other.internal_columns.map p->
-                    InternalColumn (rename_right p.name) p.sql_type (IR.Column right_alias p.name)
+                    Internal_Column (rename_right p.name) p.sql_type (IR.Column right_alias p.name)
 
                 new_columns = new_left_columns + new_right_columns
 
@@ -291,7 +291,7 @@ type Table
             _ ->
                 Helpers.unify_vector_singleton by . map (this.resolve >> .expression)
         new_ctx = this.context.set_groups exprs
-        # TODO [RW] when doing materialization, make sure that the index is set properly so that `display` will include the group names
+        # TODO!!! [RW] when doing materialization, make sure that the index is set properly so that `display` will include the group names
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
     ## UNSTABLE
@@ -417,24 +417,24 @@ type Aggregate_Table
     ## PRIVATE
 
        Helper to create aggregate columns from internal columns.
-       # make_column : InternalColumn -> Aggregate_Column
+       # make_column : Internal_Column -> Aggregate_Column
     make_column internal =
         Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
 
-type InternalColumn
+type Internal_Column
     ## PRIVATE
 
        An internal column structure which is a part of the Table.
-    type InternalColumn name sql_type expression
+    type Internal_Column name sql_type expression
 
-type IntegrityError
+type Integrity_Error
     ## UNSTABLE
 
        Signalizes that an operation tried using objects coming from different
        contexts.
 
        To use columns from different tables, you must first join them.
-    type IntegrityError object_description
+    type Integrity_Error object_description
 
     # Return a readable description of this error.
     to_text : Text
@@ -446,5 +446,5 @@ type IntegrityError
    # make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
 make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
-    cols = columns.map (p -> InternalColumn p.first p.second (IR.Column table_name p.first))
+    cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
     Table table_name connection cols ctx
