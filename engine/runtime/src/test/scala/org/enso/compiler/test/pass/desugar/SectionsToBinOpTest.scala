@@ -57,6 +57,7 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
 
       val irLam = ir.asInstanceOf[IR.Function.Lambda]
       irLam.arguments.length shouldEqual 1
@@ -86,6 +87,8 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      // TODO[DB] Section.Sides location is not parsed
+      //ir.location shouldBe defined
 
       val leftLam = ir.asInstanceOf[IR.Function.Lambda]
       leftLam.arguments.length shouldEqual 1
@@ -127,6 +130,7 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
 
       val irLam = ir.asInstanceOf[IR.Function.Lambda]
       irLam.arguments.length shouldEqual 1
@@ -175,6 +179,7 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
 
       val rightArgName =
