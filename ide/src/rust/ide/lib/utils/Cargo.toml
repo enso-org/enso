@@ -15,4 +15,5 @@ serde_json   = { version = "1.0"                        }
 
 failure      = "0.1.5"
 futures      = "0.3.1"
+itertools    = "0.10.0"
 pin-utils    = "0.1.0-alpha.4"
