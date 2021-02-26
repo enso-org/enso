@@ -243,7 +243,7 @@ impl NavigatorEvents {
                     let position   = data.mouse_position();
                     let zoom_speed = data.zoom_speed();
                     let movement   = Vector2::new(event.delta_x() as f32, -event.delta_y() as f32);
-                    let amount     = -movement_to_zoom(movement);
+                    let amount     = movement_to_zoom(movement);
                     let zoom_event = ZoomEvent::new(position,amount,zoom_speed);
                     data.on_zoom(zoom_event);
                 } else {
