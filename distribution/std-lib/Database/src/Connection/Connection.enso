@@ -11,6 +11,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
+polyglot java import java.lang.UnsupportedOperationException
 
 type JDBC_Connection
 
@@ -36,11 +37,6 @@ type JDBC_Connection
     access_table name =
         columns = this.fetch_columns name
         Database_Table.make_table this name columns
-
-    explain_query_plan : Sql.Statement -> Text
-    explain_query_plan statement =
-        _ = statement
-        Error.throw "TODO"
 
     ## Closes the connection releasing the underlying database resources
        immediately instead of waiting for them to be automatically released.
@@ -94,11 +90,14 @@ type JDBC_Connection
     execute_update : Text | Sql.Statement -> Integer
     execute_update query = Panic.recover <|
         Resource.bracket (this.prepare_statement query) .close stmt->
-            ## TODO we may want to use executeLargeUpdate but it seems to not be
-               implemented by default (checked that it does throw); we may try
-               every time to call large update and if it fails, fall back to
-               regular update
-            stmt.executeUpdate
+            result = Panic.recover stmt.executeLargeUpdate
+            result.catch err-> case err of
+                Polyglot_Error exc ->
+                    case Java.is_instance exc UnsupportedOperationException of
+                        True ->
+                            stmt.executeUpdate
+                        False -> Error.throw err
+                _ -> Error.throw err
 
     ## PRIVATE
     prepare_statement : Text | Sql.Statement -> Prepared_Statement

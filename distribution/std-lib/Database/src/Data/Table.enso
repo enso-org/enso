@@ -257,7 +257,7 @@ type Table
 
                 new_index = left_renamed_index
                 new_from = IR.Join kind left_query right_query on_exprs
-                new_limit = this.context.limit # TODO [RW] how to join limits?
+                new_limit = Nothing
                 new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
                 left_names = Map.from_vector (this.internal_columns.map (p -> [p.name, True]))
@@ -345,10 +345,6 @@ type Table
         cols = this.internal_columns.map (c -> [c.name, c.expression])
         query = IR.Select cols this.context
         this.connection.dialect.generate_sql query
-
-    explain_query_plan : Text
-    explain_query_plan =
-        this.connection.explain_query_plan this.to_sql
 
     ## Returns a Table describing this table's contents.
 
