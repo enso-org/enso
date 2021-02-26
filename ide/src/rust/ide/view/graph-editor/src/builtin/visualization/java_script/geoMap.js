@@ -33,7 +33,7 @@ const LIGHT_ACCENT_COLOR = [1, 234, 146]
 // === Script & Style Initialisation ===
 // =====================================
 
-loadScript('https://unpkg.com/deck.gl@latest/dist.min.js')
+loadScript('https://unpkg.com/deck.gl@8.3/dist.min.js')
 loadScript('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.js')
 loadStyle('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.css')
 
@@ -142,13 +142,29 @@ class GeoMapVisualization extends Visualization {
 
     onDataReceived(data) {
         if (!this.isInit) {
+            // FIXME: This should be simplified when issue [#1167]
+            //  (https://github.com/enso-org/ide/issues/1167) has been implemented.
+            //  Use the previous version again:
+            //  'df -> case df of\n' +
+            //      '    Table.Table _ ->\n' +
+            //      "        columns = df.select ['label', 'latitude', 'longitude'] . columns\n" +
+            //      "        serialized = columns.map (c -> ['df_' + c.name, c.to_vector])\n" +
+            //      '        Json.from_pairs serialized . to_text\n' +
+            //      '    _ -> df . to_json . to_text'
             this.setPreprocessor(
-                'df -> case df of\n' +
-                    '    Table.Table _ ->\n' +
-                    "        columns = df.select ['label', 'latitude', 'longitude'] . columns\n" +
-                    "        serialized = columns.map (c -> ['df_' + c.name, c.to_vector])\n" +
-                    '        Json.from_pairs serialized . to_text\n' +
-                    '    _ -> df . to_json . to_text'
+                'df -> \n' +
+                    '    get_cons_name : Any -> Text | Nothing\n' +
+                    '    get_cons_name val =\n' +
+                    '        meta_val = Meta.meta val\n' +
+                    '        case meta_val of\n' +
+                    '            Meta.Atom _ ->\n' +
+                    '                cons = meta_val.constructor\n' +
+                    '                Meta.Constructor cons . name \n' +
+                    '            _ -> Nothing\n' +
+                    "    if (((get_cons_name df)) == 'Table').not then (df . to_json . to_text) else\n" +
+                    "         columns = df.select ['label', 'latitude', 'longitude'] . columns\n" +
+                    "         serialized = columns.map (c -> ['df_' + c.name, c.to_vector])\n" +
+                    '         Json.from_pairs serialized . to_text'
             )
             this.isInit = true
             // We discard this data the first time. We will get another update with
@@ -160,28 +176,37 @@ class GeoMapVisualization extends Visualization {
         if (typeof data === 'string') {
             parsedData = JSON.parse(data)
         }
-        this.updateState(parsedData)
-        this.updateMap()
-        this.updateLayers()
+        if (this.updateState(parsedData)) {
+            this.updateMap()
+            this.updateLayers()
+        }
     }
 
     /**
      * Update the internal data with the new incoming data. Does not affect anything rendered.
+     * Returns true on a successful update and false if no valid data was provided.
      */
     updateState(data) {
-        extractDataPoints(data, this.dataPoints, this.accentColor)
+        // For now we assume every update has all data. If we move to incremental updates we need
+        // to keep the old state and do a proper update.
+        this.resetState()
 
+        extractDataPoints(data, this.dataPoints, this.accentColor)
+        if (this.dataPoints.length === 0) {
+            // We have no valid data and should skip initialisation.
+            return false
+        }
         const { latitude, longitude } = this.centerPoint()
 
         this.latitude = ok(data.latitude) ? data.latitude : latitude
         this.longitude = ok(data.longitude) ? data.longitude : longitude
-
         // TODO : Compute zoom somehow from span of latitudes and longitudes.
         this.zoom = ok(data.zoom) ? data.zoom : DEFAULT_MAP_ZOOM
         this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
         this.pitch = ok(data.pitch) ? data.pitch : 0
         this.controller = ok(data.controller) ? data.controller : true
         this.showingLabels = ok(data.showingLabels) ? data.showingLabels : false
+        return true
     }
 
     viewState() {
@@ -211,21 +236,51 @@ class GeoMapVisualization extends Visualization {
     }
 
     initDeckGl() {
-        this.deckgl = new deck.DeckGL({
-            container: this.mapId,
-            mapboxApiAccessToken: TOKEN,
-            mapStyle: this.mapStyle,
-            initialViewState: this.viewState(),
-            controller: this.controller,
-        })
+        try {
+            this.deckgl = new deck.DeckGL({
+                container: this.mapId,
+                mapboxApiAccessToken: TOKEN,
+                mapStyle: this.mapStyle,
+                initialViewState: this.viewState(),
+                controller: this.controller,
+            })
+        } catch (error) {
+            console.error(error)
+            this.resetState()
+            this.resetDeckGl()
+        }
+    }
+
+    /**
+     * Reset the internal state of the visualisation, discarding all previous data updates.
+     */
+    resetState() {
+        // We only need to reset the data points as everything else will be overwritten when new
+        // data arrives.
+        this.dataPoints = []
+    }
+
+    resetDeckGl() {
+        this.deckgl = undefined
+        this.resetMapElement()
+    }
+
+    resetMapElement() {
+        while (this.mapElem.hasChildNodes()) {
+            this.mapElem.removeChild(this.mapElem.childNodes[0])
+        }
     }
 
     updateDeckGl() {
+        this.deckgl.viewState = this.viewState()
         this.deckgl.mapStyle = this.mapStyle
         this.deckgl.controller = this.controller
     }
 
     updateLayers() {
+        if (!ok(this.deckgl)) {
+            return
+        }
         this.deckgl.setProps({
             layers: [this.makeScatterLayer()],
             getTooltip: ({ object }) =>
@@ -351,27 +406,35 @@ function pushPoints(dataPoints, targetList, accentColor) {
 }
 
 /**
- * Calculate the center of the bounding box of the given list of objects. The objects need to have
+ * Calculate the bounding box of the given list of objects. The objects need to have
  * a `position` attribute with two coordinates.
- * @returns {{x: number, y: number}}
  */
-function calculateCenterPoint(dataPoints) {
+function calculateExtent(dataPoints) {
     const xs = []
     const ys = []
     dataPoints.forEach((e) => {
         xs.push(e.position[0])
         ys.push(e.position[1])
     })
-    let x = 0.0
-    let y = 0.0
     if (xs.length && ys.length) {
         let minX = Math.min(...xs)
         let maxX = Math.max(...xs)
-        x = (minX + maxX) / 2
         let minY = Math.min(...ys)
         let maxY = Math.max(...ys)
-        y = (minY + maxY) / 2
+        return { minX, maxX, minY, maxY }
     }
+    return undefined
+}
+
+/**
+ * Calculate the center of the bounding box of the given list of objects. The objects need to have
+ * a `position` attribute with two coordinates.
+ * @returns {{x: number, y: number}}
+ */
+function calculateCenterPoint(dataPoints) {
+    let { minX, maxX, minY, maxY } = calculateExtent(dataPoints)
+    let x = (minX + maxX) / 2
+    let y = (minY + maxY) / 2
     return { x, y }
 }
 
