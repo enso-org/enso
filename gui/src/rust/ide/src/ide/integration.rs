@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use crate::controller::graph::Connections;
 use crate::controller::graph::NodeTrees;
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::Actions;
@@ -23,6 +24,7 @@ use enso_data::text::TextChange;
 use enso_frp as frp;
 use ensogl::display::traits::*;
 use ensogl_gui_components::list_view;
+use enso_protocol::language_server::ExpressionUpdatePayload;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
 use ide_view::graph_editor::component::visualization;
@@ -30,7 +32,8 @@ use ide_view::graph_editor::EdgeEndpoint;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use utils::channel::process_stream_with_handle;
-use enso_protocol::language_server::ExpressionUpdatePayload;
+use utils::iter::split_by_predicate;
+
 
 
 // ==============
@@ -138,6 +141,12 @@ const DEFAULT_NODE_X_POSITION   : f32 = -100.0;
 /// The default Y position of the node when user did not set any position of node - possibly when
 /// node was added by editing text.
 const DEFAULT_NODE_Y_POSITION   : f32 =  200.0;
+
+/// Default node position -- acts as a starting points for laying out nodes with no position defined
+/// in the metadata.
+pub fn default_node_position() -> Vector2 {
+    Vector2::new(DEFAULT_NODE_X_POSITION,DEFAULT_NODE_Y_POSITION)
+}
 
 /// A structure which handles integration between controller and graph_editor EnsoGl control.
 /// All changes made by user in view are reflected in controller, and all controller notifications
@@ -486,33 +495,45 @@ impl Model {
     /// Reload whole displayed content to be up to date with module state.
     pub fn refresh_graph_view(&self) -> FallibleResult {
         info!(self.logger, "Refreshing the graph view.");
-        use controller::graph::Connections;
-        let Connections{trees,connections} = self.graph.connections()?;
-        self.refresh_node_views(trees, true)?;
-        self.refresh_connection_views(connections)?;
+        let connections_info = self.graph.connections()?;
+        self.refresh_node_views(&connections_info, true)?;
+        self.refresh_connection_views(connections_info.connections)?;
         Ok(())
     }
 
     fn refresh_node_views
-    (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>, update_position:bool) -> FallibleResult {
-        let nodes = self.graph.graph().nodes()?;
-        let ids   = nodes.iter().map(|node| node.info.id() ).collect();
+    (&self, connections_info:&Connections, update_position:bool) -> FallibleResult {
+        let     base_default_position  = default_node_position();
+        let mut trees                  = connections_info.trees.clone();
+        let     nodes                  = self.graph.graph().nodes()?;
+        let     (without_pos,with_pos) = split_by_predicate(&nodes, |n| n.has_position());
+        let     bottommost_node_pos    = with_pos.iter()
+            .filter_map(|node| node.metadata.as_ref()?.position)
+            .min_by(model::module::Position::ord_by_y)
+            .map(|pos| pos.vector)
+            .unwrap_or(base_default_position);
+
+        let default_positions : HashMap<_,_> = (1..).zip(&without_pos).map(|(i,node)| {
+            let dy = i as f32 * DEFAULT_GAP_BETWEEN_NODES;
+            let pos = Vector2::new(bottommost_node_pos.x, bottommost_node_pos.y - dy);
+            (node.info.id(), pos)
+        }).collect();
+
+        let ids = nodes.iter().map(|node| node.info.id()).collect();
         self.retain_node_views(&ids);
-        for (i,node_info) in nodes.iter().enumerate() {
+        for node_info in &nodes {
             let id          = node_info.info.id();
             let node_trees  = trees.remove(&id).unwrap_or_else(default);
-            let x           = DEFAULT_NODE_X_POSITION;
-            let y           = DEFAULT_NODE_Y_POSITION + i as f32 * -DEFAULT_GAP_BETWEEN_NODES;
-            let default_pos = Vector2(x,y);
+            let default_pos = default_positions.get(&id).unwrap_or(&base_default_position);
             let displayed   = self.node_views.borrow_mut().get_by_left(&id).cloned();
             match displayed {
                 Some(displayed) => {
                    if update_position {
                        self.refresh_node_position(displayed,node_info)
                    };
-                   self.refresh_node_expression(displayed, node_info, node_trees);
+                   self.refresh_node_expression(displayed,node_info,node_trees);
                 },
-                None => self.create_node_view(node_info,node_trees,default_pos),
+                None => self.create_node_view(node_info,node_trees,*default_pos),
             }
         }
         Ok(())
@@ -521,9 +542,9 @@ impl Model {
     /// Refresh the expressions (e.g., types, ports) for all nodes.
     fn refresh_graph_expressions(&self) -> FallibleResult  {
         info!(self.logger, "Refreshing the graph expressions.");
-        let controller::graph::Connections{trees,connections} = self.graph.connections()?;
-        self.refresh_node_views(trees, false)?;
-        self.refresh_connection_views(connections)
+        let connections = self.graph.connections()?;
+        self.refresh_node_views(&connections, false)?;
+        self.refresh_connection_views(connections.connections)
     }
 
     /// Retain only given nodes in displayed graph.
