@@ -120,7 +120,7 @@ class MethodsTest extends InterpreterTest {
           |""".stripMargin
       the[InterpreterException] thrownBy eval(
         code
-      ) should have message "No_Such_Method_Error 7 UnresolvedSymbol<foo>"
+      ) should have message "Panic exception: No_Such_Method_Error"
     }
 
     "be callable for any type when defined on Any" in {

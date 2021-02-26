@@ -3169,7 +3169,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Not_Invokable_Error 42",
+              "Panic exception: Not_Invokable_Error",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               None,
@@ -3237,7 +3237,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
+              "Panic exception: No_Such_Method_Error",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
               None,
@@ -3313,7 +3313,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type_Error Text 2 str",
+              "Panic exception: Type_Error",
               None,
               None,
               None,
@@ -3391,7 +3391,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error Number UnresolvedSymbol<pi>",
+              "Panic exception: No_Such_Method_Error",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               None,
@@ -3470,7 +3470,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type_Error Number UnresolvedSymbol<quux> that",
+              "Panic exception: Type_Error",
               None,
               None,
               None,

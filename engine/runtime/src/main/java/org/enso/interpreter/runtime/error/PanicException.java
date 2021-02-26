@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
@@ -36,7 +37,12 @@ public class PanicException extends AbstractTruffleException {
 
   @Override
   public String getMessage() {
-    return payload.toString();
+    return "Panic exception: " + TypeToDisplayTextNodeGen.getUncached().execute(payload);
+  }
+
+  @Override
+  public String toString() {
+    return getMessage();
   }
 
   @ExportMessage

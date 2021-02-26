@@ -14,7 +14,7 @@ class ImportsTest extends PackageTest {
   "Overloaded methods" should "not be visible when not imported" in {
     the[InterpreterException] thrownBy evalTestProject(
       "TestNonImportedOverloads"
-    ) should have message "No_Such_Method_Error (X 1) UnresolvedSymbol<method>"
+    ) should have message "Panic exception: No_Such_Method_Error"
   }
 
   "Symbols from imported modules" should "not be visible when imported qualified" in {
