@@ -115,10 +115,10 @@ case object SectionsToBinOp extends IRPass {
             None
           )
           val opCall = IR.Application.Prefix(
-            op,
-            List(leftCallArg, rightCallArg),
+            function             = op,
+            arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
-            loc,
+            location             = None,
             passData,
             diagnostics
           )
@@ -132,15 +132,15 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(leftDefArg),
             rightLam,
-            None
+            loc
           )
 
         } else {
           val opCall = IR.Application.Prefix(
-            op,
-            List(arg, rightCallArg),
+            function             = op,
+            arguments            = List(arg, rightCallArg),
             hasDefaultsSuspended = false,
-            loc,
+            location             = None,
             passData,
             diagnostics
           )
@@ -148,7 +148,7 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(rightDefArg),
             opCall,
-            None
+            loc
           )
         }
       case Section.Sides(op, loc, passData, diagnostics) =>
@@ -173,10 +173,10 @@ case object SectionsToBinOp extends IRPass {
         )
 
         val opCall = IR.Application.Prefix(
-          op,
-          List(leftCallArg, rightCallArg),
+          function             = op,
+          arguments            = List(leftCallArg, rightCallArg),
           hasDefaultsSuspended = false,
-          loc,
+          location             = None,
           passData,
           diagnostics
         )
@@ -190,7 +190,7 @@ case object SectionsToBinOp extends IRPass {
         IR.Function.Lambda(
           List(leftDefArg),
           rightLambda,
-          None
+          loc
         )
 
       /* Note [Blanks in Sections]
@@ -237,10 +237,10 @@ case object SectionsToBinOp extends IRPass {
           )
 
           val opCall = IR.Application.Prefix(
-            op,
-            List(leftCallArg, rightCallArg),
+            function             = op,
+            arguments            = List(leftCallArg, rightCallArg),
             hasDefaultsSuspended = false,
-            loc,
+            location             = None,
             passData,
             diagnostics
           )
@@ -254,14 +254,14 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(rightDefArg),
             leftLam,
-            None
+            loc
           )
         } else {
           val opCall = IR.Application.Prefix(
-            op,
-            List(leftCallArg, arg),
+            function             = op,
+            arguments            = List(leftCallArg, arg),
             hasDefaultsSuspended = false,
-            loc,
+            location             = None,
             passData,
             diagnostics
           )
@@ -269,7 +269,7 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(leftDefArg),
             opCall,
-            None
+            loc
           )
         }
     }

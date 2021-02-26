@@ -4249,7 +4249,7 @@ object IR {
 
           override def toString: String =
             s"""
-            |IR.Application.Operator.Section.Centre(
+            |IR.Application.Operator.Section.Sides(
             |operator =  $operator,
             |location = $location,
             |passData = ${this.showPassData},
