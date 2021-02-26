@@ -2229,6 +2229,59 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates for a lambda" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val xId     = metadata.addItem(41, 5)
+    val mainRes = metadata.addItem(51, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = _ + 1
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xId, Constants.FUNCTION),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "support file modification operations without attached ids" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()

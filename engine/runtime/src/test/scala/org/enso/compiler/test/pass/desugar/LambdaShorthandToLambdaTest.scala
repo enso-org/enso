@@ -58,6 +58,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
       val irFnArgName =
         irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
@@ -98,6 +99,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
       val irFnArgName =
         irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
@@ -136,6 +138,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
       val irFnArgName =
         irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
@@ -157,6 +160,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
       val irFnArgName =
         irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
@@ -181,6 +185,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
 
       val irLam = ir.asInstanceOf[IR.Function.Lambda]
       irLam.arguments.length shouldEqual 1
@@ -205,6 +210,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
 
       val argName =
@@ -225,6 +231,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val underscoreFn      = ir.asInstanceOf[IR.Function.Lambda]
       val underscoreArgName = underscoreFn.arguments.head.name
 
@@ -253,6 +260,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn     = ir.asInstanceOf[IR.Function.Lambda]
       val arg1Name = irFn.arguments.head.name
 
@@ -278,6 +286,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
+      ir.location shouldBe defined
       val irFn         = ir.asInstanceOf[IR.Function.Lambda]
       val rightArgName = irFn.arguments.head.name
 
