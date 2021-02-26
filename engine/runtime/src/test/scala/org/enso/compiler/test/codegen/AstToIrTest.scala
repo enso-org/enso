@@ -1002,7 +1002,7 @@ class AstToIrTest extends CompilerTest with Inside {
   }
 
   "Bad macro invocations" should {
-    "result in syntax errors" in {
+    "result in syntax errors for imports" in {
       val ir =
         """import
           |
@@ -1010,6 +1010,22 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrModule
 
       ir.bindings.head shouldBe an[IR.Error]
+    }
+
+    "result in syntax errors for lambdas with no body" in {
+      val ir =
+        """a ->
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error]
+    }
+
+    "result in syntax errors for lambdas with no args" in {
+      val ir =
+        """-> a
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error]
     }
   }
 }

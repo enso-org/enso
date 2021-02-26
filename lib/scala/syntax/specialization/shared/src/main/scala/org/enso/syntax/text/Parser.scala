@@ -347,7 +347,7 @@ class Parser {
             val segments = resolvedAST.segs.toList().map(_.wrapped)
             val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
             resolvedAST.copy(shape = resolvedAST.shape.copy[AST](resolved = {
-              resolveMacros(spec.resolver(ctx))
+              Option(resolveMacros(spec.resolver(ctx)))
             }))
         }
       case _ => ast.map(resolveMacros)
@@ -404,8 +404,8 @@ class Parser {
         val originalSegments = (prefix ++ segments).map(deriveLocations)
         val originalSpan =
           Foldable[List].foldMap(originalSegments)(_.location)
-        val resolved = t.resolved.setLocation(originalSpan)
-        go(resolved)
+        val resolved = t.resolved.map(_.setLocation(originalSpan))
+        go(resolved.orNull)
       }
       case t => deriveLocation(t.map(go))
     }
