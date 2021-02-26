@@ -55,6 +55,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Application.Operator.Section.Left]
+      ir.location shouldBe defined
     }
 
     "work properly for sides sections" in {
@@ -64,6 +65,8 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Application.Operator.Section.Sides]
+      // TODO[DB] Section.Sides location is not parsed
+      //ir.location shouldBe defined
     }
 
     "work properly for right sections" in {
@@ -73,6 +76,7 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Application.Operator.Section.Right]
+      ir.location shouldBe defined
     }
 
     "disallow sections with named arguments" in {

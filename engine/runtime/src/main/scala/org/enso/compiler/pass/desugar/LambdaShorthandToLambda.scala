@@ -138,15 +138,15 @@ case object LambdaShorthandToLambda extends IRPass {
         IR.Function.Lambda(
           List(
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal(
+              name = IR.Name.Literal(
                 newName.name,
                 isReferent = false,
                 isMethod   = false,
                 None
               ),
-              None,
-              suspended = false,
-              None
+              defaultValue = None,
+              suspended    = false,
+              location     = None
             )
           ),
           newName,
@@ -218,7 +218,7 @@ case object LambdaShorthandToLambda extends IRPass {
           )
 
         // If the function is shorthand, do the same
-        if (functionIsShorthand) {
+        val resultExpr = if (functionIsShorthand) {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
@@ -238,6 +238,11 @@ case object LambdaShorthandToLambda extends IRPass {
             None
           )
         } else appResult
+
+        resultExpr match {
+          case lam: IR.Function.Lambda => lam.copy(location = p.location)
+          case result                  => result
+        }
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
       case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
