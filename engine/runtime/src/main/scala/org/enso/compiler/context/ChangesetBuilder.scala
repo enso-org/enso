@@ -59,11 +59,44 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         DataflowAnalysis,
         "Empty dataflow analysis metadata during changeset calculation."
       )
-    val direct = invalidated(edits)
-    val transitive = direct
-      .flatMap(ChangesetBuilder.toDataflowDependencyTypes)
-      .flatMap(metadata.getExternal)
-      .flatten
+
+    @scala.annotation.tailrec
+    def go(
+      queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
+      visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
+    ): Set[IR.ExternalId] =
+      if (queue.isEmpty) visited.flatMap(_.externalId).toSet
+      else {
+        val elem       = queue.dequeue()
+        val transitive = metadata.get(elem).getOrElse(Set())
+        val dynamic = transitive
+          .flatMap {
+            case DataflowAnalysis.DependencyInfo.Type.Static(int, ext) =>
+              ChangesetBuilder
+                .getExpressionName(ir, int)
+                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, ext))
+            case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
+              Some(dyn)
+            case _ =>
+              None
+          }
+          .flatMap(metadata.get)
+          .flatten
+        val combined = transitive.union(dynamic)
+
+        go(
+          queue ++= combined.diff(visited),
+          visited ++= combined
+        )
+      }
+
+    val direct =
+      invalidated(edits).flatMap(ChangesetBuilder.toDataflowDependencyTypes)
+    val transitive =
+      go(
+        mutable.Queue().addAll(direct),
+        mutable.Set()
+      )
     direct.flatMap(_.externalId) ++ transitive
   }
 
@@ -353,4 +386,19 @@ object ChangesetBuilder {
     }
     static +: dynamic.toSeq
   }
+
+  /** Get expression name by the given id.
+    *
+    * @param ir the IR tree
+    * @param id the node identifier
+    * @return the node name
+    */
+  private def getExpressionName(ir: IR, id: IR.Identifier): Option[String] =
+    ir.preorder.find(_.getId == id).collect {
+      case name: IR.Name =>
+        name.name
+      case method: IR.Module.Scope.Definition.Method =>
+        method.methodName.name
+    }
+
 }
