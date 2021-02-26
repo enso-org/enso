@@ -39,7 +39,7 @@ public class Table {
   }
 
   /** @return the number of rows in this table */
-  public int nrows() {
+  public int rowCount() {
     if (columns == null || columns.length == 0) {
       return 0;
     } else {
@@ -82,7 +82,7 @@ public class Table {
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
-    localStorageMask.set(0, nrows());
+    localStorageMask.set(0, rowCount());
     mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
@@ -194,7 +194,7 @@ public class Table {
       // The tables have exactly the same indexes, so they may be just be concatenated horizontally
       return hconcat(other, lsuffix, rsuffix);
     }
-    int s = nrows();
+    int s = rowCount();
     List<Integer>[] matches = new List[s];
     if (on == null) {
       for (int i = 0; i < s; i++) {
@@ -289,8 +289,8 @@ public class Table {
   public Table concat(Table other) {
     Index newIndex = concatIndexes(index, other.index);
     List<Column> newColumns = new ArrayList<>();
-    int leftLen = nrows();
-    int rightLen = other.nrows();
+    int leftLen = rowCount();
+    int rightLen = other.rowCount();
     for (Column c : columns) {
       Column match = other.getColumnByName(c.getName());
       Storage storage =

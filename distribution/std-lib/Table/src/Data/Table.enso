@@ -25,7 +25,7 @@ type Table
         index =  this.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
         col_vals = cols.map .getStorage
-        num_rows = this.java_table.nrows
+        num_rows = this.java_table.row_count
         display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
@@ -61,12 +61,12 @@ type Table
     to_default_visualization_data : Text
     to_default_visualization_data =
         max_size = 10
-        nrows = ['number_of_rows', this.nrows]
+        row_count = ['number_of_rows', this.row_count]
         cols = this.columns.map c->
             name = c.name
             items = c.to_vector.take_start max_size
             Json.from_pairs [['name', name], ['data', items]]
-        Json.from_pairs [nrows, ['columns', cols]] . to_text
+        Json.from_pairs [row_count, ['columns', cols]] . to_text
 
     ## Returns the column with the given name.
     at : Text -> Column ! No_Such_Column_Error
@@ -161,8 +161,8 @@ type Table
         Table (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the amount of rows in this table.
-    nrows : Integer
-    nrows = this.java_table.nrows
+    row_count : Integer
+    row_count = this.java_table.rowCount
 
     ## Returns a Table describing this table's contents.
 

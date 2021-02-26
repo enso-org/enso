@@ -290,8 +290,7 @@ type Table
                     this.context.meta_index
             _ ->
                 Helpers.unify_vector_singleton by . map (this.resolve >> .expression)
-        new_ctx = this.context.set_groups exprs
-        # TODO!!! [RW] when doing materialization, make sure that the index is set properly so that `display` will include the group names
+        new_ctx = this.context.set_groups exprs . set_index exprs
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
     ## UNSTABLE
@@ -311,7 +310,7 @@ type Table
     drop_missing_columns : Table
     drop_missing_columns =
         rows_expr = IR.Operation "COUNT_ROWS" []
-        all_rows_column_name = "nrows"
+        all_rows_column_name = "row_count"
         make_count_expr expr = IR.Operation "COUNT" [expr]
         cols = this.internal_columns.map (c -> [c.name, make_count_expr c.expression])
         query = IR.Select [[all_rows_column_name, rows_expr]]+cols this.context
@@ -323,10 +322,10 @@ type Table
         this.updated_columns kept_columns
 
     ## Returns the amount of rows in this table.
-    nrows : Integer
-    nrows =
+    row_count : Integer
+    row_count =
         expr = IR.Operation "COUNT_ROWS" []
-        column_name = "nrows"
+        column_name = "row_count"
         query = IR.Select [[column_name, expr]] this.context
         sql = this.connection.dialect.generate_sql query
         table = this.connection.execute_query sql
