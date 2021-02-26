@@ -322,7 +322,7 @@ object Shape extends ShapeImplicit {
   final case class Match[T](
     pfx: Option[Pattern.Match],
     segs: Shifted.List1[Match.Segment[T]],
-    resolved: AST
+    resolved: Option[AST]
   ) extends Macro[T] {
     def path: List1[AST] = segs.toList1().map(_.wrapped.head)
   }
@@ -2153,7 +2153,7 @@ object AST {
       def apply(
         pfx: Option[Pattern.Match],
         segs: Shifted.List1[Match.Segment],
-        resolved: AST
+        resolved: Option[AST]
       ): Match = Shape.Match[AST](pfx, segs, resolved)
 
       type Segment = Shape.Match.Segment[AST]
