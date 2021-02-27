@@ -12,6 +12,8 @@ polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
 polyglot java import java.lang.UnsupportedOperationException
+polyglot java import java.sql.SQLException
+polyglot java import java.sql.SQLTimeoutException
 
 type JDBC_Connection
 
@@ -34,7 +36,7 @@ type JDBC_Connection
        Arguments:
        - name: name of the table to access
     access_table : Text -> Database_Table
-    access_table name =
+    access_table name = here.wrap_sql_errors <|
         columns = this.fetch_columns name
         Database_Table.make_table this name columns
 
@@ -54,7 +56,7 @@ type JDBC_Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_query : Text | Sql.Statement -> Materialized_Table =
-    execute_query statement = Panic.recover <|
+    execute_query statement = here.wrap_sql_errors <|
         Resource.bracket (this.prepare_statement statement) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
@@ -88,7 +90,7 @@ type JDBC_Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_update : Text | Sql.Statement -> Integer
-    execute_update query = Panic.recover <|
+    execute_update query = here.wrap_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             result = Panic.recover stmt.executeLargeUpdate
             result.catch err-> case err of
@@ -114,7 +116,7 @@ type JDBC_Connection
                 stmt.close
                 Panic.throw error
             stmt
-        Panic.recover <| case query of
+        case query of
             Text -> go query []
             Sql.Statement _ ->
                 compiled = query.prepare
@@ -144,7 +146,7 @@ type UnsupportedDialect url
    Creates a JDBC connection based on a URL and optionally username and
    password.
 create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> JDBC_Connection
-create_jdbc_connection url user=Nothing password=Nothing =
+create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors <|
     dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> UnsupportedDialect url)
     java_connection = case user.is_nothing && password.is_nothing of
         True ->
@@ -157,3 +159,44 @@ create_jdbc_connection url user=Nothing password=Nothing =
 ## PRIVATE
 close_connection connection =
     connection.close
+
+type Sql_Error
+    ## UNSTABLE
+
+       Indicates an error with executing a query, update or connecting to the
+       database.
+
+       Wraps an SQLException from the Java drvier.
+    type Sql_Error java_exception
+
+    ## UNSTABLE
+    to_text : Text
+    to_text = this.java_exception.getMessage
+
+    ## UNSTABLE
+    to_display_text : Text
+    to_display_text = this.to_text
+
+type Sql_Timeout_Error
+    ## UNSTABLE
+
+       Indicates that an operation has timed out.
+    type Sql_Timeout_Error java_exception
+
+    ## UNSTABLE
+    to_text : Text
+    to_text = this.java_exception.getMessage
+
+    ## UNSTABLE
+    to_display_text : Text
+    to_display_text = this.to_text
+
+## PRIVATE
+wrap_sql_errors ~action =
+    result = Panic.recover action
+    result.catch err-> case err of
+        Polyglot_Error exc ->
+            transformed = if Java.is_instance exc SQLTimeoutException then Sql_Timeout_Error exc else
+                if Java.is_instance exc SQLException then Sql_Error exc else err
+            Error.throw transformed
+        _ -> Error.throw err
