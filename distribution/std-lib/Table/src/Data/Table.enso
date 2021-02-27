@@ -25,7 +25,7 @@ type Table
         index =  this.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
         col_vals = cols.map .getStorage
-        num_rows = this.java_table.row_count
+        num_rows = this.row_count
         display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->

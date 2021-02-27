@@ -26,6 +26,27 @@ type Column
 
     ## UNSTABLE
 
+       Returns a text containing an ASCII-art table displaying this data.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
+        this.to_table.display show_rows format_terminal
+
+    ## UNSTABLE
+
+       Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print show_rows=10 =
+        IO.println (this.display show_rows format_terminal=True)
+        IO.println ''
+
+    ## UNSTABLE
+
        Converts this column to JSON.
     to_json : Json
     to_json = this.to_sql.to_json

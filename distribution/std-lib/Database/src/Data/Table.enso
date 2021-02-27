@@ -1,5 +1,6 @@
 from Base import all
 import Table.Data.Table as Materialized_Table
+import Table.Data.Column as Materialized_Column
 from Table.Data.Table import No_Such_Column_Error
 from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
@@ -27,9 +28,11 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        # TODO [RW] but we need to handle the count of hidden rows too!
-        df = this.to_dataframe max_rows=show_rows
-        df.display show_rows format_terminal
+        # TODO [RW] should I display the row with numbers if no index is set as in dataframes??
+        df = this.reset_index.to_dataframe max_rows=show_rows
+        indices_count = this.context.meta_index.length
+        all_rows_count = this.row_count
+        here.display_dataframe df indices_count all_rows_count format_terminal
 
     ## UNSTABLE
 
@@ -368,7 +371,7 @@ type Table
     ## PRIVATE
     reset_index : Table
     reset_index =
-        new_cols = this.context.meta_index + this.internal_columns
+        new_cols = this.internal_columns_with_index
         new_ctx = this.context.set_index []
         this.updated_context new_ctx . updated_columns new_cols
 
@@ -488,10 +491,10 @@ display_dataframe df indices_count all_rows_count format_terminal =
     cols = Vector.Vector df.java_table.getColumns
     col_names = cols.map .getName
     col_vals = cols.map .getStorage
-    display_rows = this.java_table.row_count
+    display_rows = df.row_count
     rows = Vector.new display_rows row_num->
         col_vals.map col->
-            if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
+            if col.isNa row_num then "Nothing" else Materialized_Column.get_item_string col row_num
     table = Materialized_Table.print_table col_names rows indices_count format_terminal
     if display_rows == all_rows_count then table else
         missing_rows_count = all_rows_count - display_rows
