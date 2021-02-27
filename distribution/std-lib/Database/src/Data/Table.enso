@@ -124,14 +124,18 @@ type Table
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
-            new_col = Internal_Column name column.sql_type column.expression
-            replace = this.internal_columns.exists (c -> c.name == name)
-            case replace of
-                True ->
-                    new_cols = this.internal_columns.map (c -> if c.name == name then new_col else c)
-                    this.updated_columns new_cols
+            is_used_in_index = this.context.meta_index.exists i-> i.name == name
+            case is_used_in_index of
+                True -> Error.throw "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                 False ->
-                    this.updated_columns (this.internal_columns + [new_col])
+                    new_col = Internal_Column name column.sql_type column.expression
+                    replace = this.internal_columns.exists (c -> c.name == name)
+                    case replace of
+                        True ->
+                            new_cols = this.internal_columns.map (c -> if c.name == name then new_col else c)
+                            this.updated_columns new_cols
+                        False ->
+                            this.updated_columns (this.internal_columns + [new_col])
 
     ## UNSTABLE
 
@@ -146,7 +150,10 @@ type Table
     set_index index = Panic.recover <|
         new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .as_internal)
         new_ctx = this.context.set_index new_index
-        this.updated_context new_ctx
+        new_cols = this.internal_columns.filter col->
+            turned_into_index = new_index.exists i-> i.name == col.name
+            turned_into_index.not
+        this.updated_context new_ctx . updated_columns new_cols
 
     ## UNSTABLE
 
@@ -247,10 +254,10 @@ type Table
                 left_alias = aliases.first
                 right_alias = aliases.second
 
-                left_cols = this.internal_columns.map c-> [c.name, c.expression]
-                right_cols = other.internal_columns.map c-> [c.name, c.expression]
-                left_query = IR.Sub_Query left_cols this.context left_alias
-                right_query = IR.Sub_Query right_cols other.context right_alias
+                left_subquery_cols = this.internal_columns_with_index.map c-> [c.name, c.expression]
+                right_subquery_cols = other.internal_columns_with_index.map c-> [c.name, c.expression]
+                left_query = IR.Sub_Query left_subquery_cols this.context left_alias
+                right_query = IR.Sub_Query right_subquery_cols other.context right_alias
 
                 left_renamed_index = my_index.map <|
                     IR.lift_expression_map (IR.substitute_origin this.name left_alias)
@@ -361,16 +368,7 @@ type Table
     ## PRIVATE
     reset_index : Table
     reset_index =
-        # TODO [RW] This is O(N^2), shall I optimize it using Map as Set?
-        find_fresh_name existing_columns name i =
-            new_name = if i == 0 then name else name + "_" + i.to_text
-            case existing_columns.exists (_.name == new_name) of
-                False -> new_name
-                True -> find_fresh_name existing_columns name i+1
-        new_cols = this.context.meta_index.reverse.fold this.internal_columns existing_columns-> index_column->
-            new_name = find_fresh_name existing_columns index_column.name 0
-            new_ix_column = index_column.rename new_name
-            [new_ix_column] + existing_columns
+        new_cols = this.context.meta_index + this.internal_columns
         new_ctx = this.context.set_index []
         this.updated_context new_ctx . updated_columns new_cols
 
@@ -408,6 +406,11 @@ type Table
 
        Returns a copy of this table with updated context.
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
+
+    ## PRIVATE
+    internal_columns_with_index : Vector Internal_Column
+    internal_columns_with_index =
+        this.context.meta_index + this.internal_columns
 
 ## Represents a table with grouped rows.
 type Aggregate_Table

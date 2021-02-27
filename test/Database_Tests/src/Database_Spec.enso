@@ -9,9 +9,29 @@ spec connection =
     # TODO add values
     t1 = connection.access_table "T1"
     Test.group "basic table access" <|
-        Test.specify "should allow to materialize tables into local memory" <|
+        Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.to_dataframe
+            a = t1.at 'A' . to_dataframe
             df.at 'A' . to_vector . should_equal [1, 4]
+            a.to_vector . should_equal [1, 4]
+        Test.specify "should allow to materialize columns directly into a Vector" <|
+            v = t1.at 'A' . to_vector
+            v . should_equal [1, 4]
+        Test.specify "should preserve indexes when materializing tables"
+            # TODO add multi indexes when implemented
+            df = t1.set_index 'A' . to_dataframe
+            df.at 'B' . to_vector . should_equal [2, 5]
+            df.columns.map .name . should_equal ['B', 'C']
+            ix = df.index
+            ix.name . should_equal 'A'
+            ix.to_vector . should_equal [1, 4]
+        Test.specify "should preserve indexes when materializing columns"
+            # TODO add multi indexes when implemented
+            df = t1.set_index 'A' . at 'B' . to_dataframe
+            df.to_vector . should_equal [2, 5]
+            ix = df.index
+            ix.name . should_equal 'A'
+            ix.to_vector . should_equal [1, 4]
 
 sqlite_spec =
     file = File.new "target/sqlite_test.db"

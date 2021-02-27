@@ -257,7 +257,12 @@ type Column
        Returns the same column with changed name.
     rename : Text -> Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
-        True -> Column new_name this.connection this.sql_type this.expression this.context
+        True ->
+            is_used_in_index = this.context.meta_index.exists i-> i.name == new_name
+            case is_used_in_index of
+                True -> Error.throw "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                False ->
+                    Column new_name this.connection this.sql_type this.expression this.context
 
     ## UNSTABLE
 
