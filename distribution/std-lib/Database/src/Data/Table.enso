@@ -5,6 +5,7 @@ from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
+from Database.Data.Internal.IR import Internal_Column
 import Database.Data.Sql
 
 ## Represents a column-oriented table data structure backed by a database.
@@ -143,7 +144,7 @@ type Table
        Sets the index of this table, using the column with the provided name.
     set_index : Text | Column | Vector (Text | Column) -> Table
     set_index index = Panic.recover <|
-        new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .expression)
+        new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .as_internal)
         new_ctx = this.context.set_index new_index
         this.updated_context new_ctx
 
@@ -227,11 +228,11 @@ type Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = Panic.recover <|
         Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
         kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
-        my_index : Vector Expression
+        my_index : Vector Internal_Column
         my_index = case on of
             Nothing -> this.context.meta_index
             _ ->
-                (Helpers.unify_vector_singleton on).map (this.resolve >> .expression)
+                (Helpers.unify_vector_singleton on).map (this.resolve >> .as_internal)
         other_index = other.context.meta_index
         case my_index.length == other_index.length of
             False -> Panic.throw "Cannot join with multi-indexes of different lengths."
@@ -251,15 +252,19 @@ type Table
                 left_query = IR.Sub_Query left_cols this.context left_alias
                 right_query = IR.Sub_Query right_cols other.context right_alias
 
-                left_renamed_index = my_index.map (IR.substitute_origin this.name left_alias)
-                right_renamed_index = other_index.map (IR.substitute_origin other.name right_alias)
-                on_exprs = left_renamed_index.zip right_renamed_index (l -> r -> IR.Operation "=" [l, r])
+                left_renamed_index = my_index.map <|
+                    IR.lift_expression_map (IR.substitute_origin this.name left_alias)
+                right_renamed_index = other_index.map <|
+                    IR.lift_expression_map (IR.substitute_origin other.name right_alias)
+                on_exprs = left_renamed_index.zip right_renamed_index l-> r->
+                    IR.Operation "=" [l.expression, r.expression]
 
                 new_index = left_renamed_index
                 new_from = IR.Join kind left_query right_query on_exprs
                 new_limit = Nothing
                 new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
+                # TODO [RW, MK] what if we have name conflict because both tables contain 'A', but then also one of them contains 'A'+suffix ??
                 left_names = Map.from_vector (this.internal_columns.map (p -> [p.name, True]))
                 right_names = Map.from_vector (other.internal_columns.map (p -> [p.name, True]))
                 rename suffix other_names this_name =
@@ -284,13 +289,15 @@ type Table
        If the `by` argument is not set, the index is used for grouping instead.
     group : Vector Text | Text | Nothing -> Aggregate_Table
     group by=Nothing = Panic.recover <|
-        exprs = case by of
+        cols = case by of
             Nothing ->
                 if this.context.meta_index.is_empty then Panic.throw "Trying to group by an empty index." else
                     this.context.meta_index
             _ ->
-                Helpers.unify_vector_singleton by . map (this.resolve >> .expression)
-        new_ctx = this.context.set_groups exprs . set_index exprs
+
+                Helpers.unify_vector_singleton by . map (this.resolve >> .as_internal)
+        exprs = cols.map .expression
+        new_ctx = this.context.set_groups exprs . set_index cols
         Aggregate_Table this.name this.connection this.internal_columns new_ctx
 
     ## UNSTABLE
@@ -331,10 +338,41 @@ type Table
         table = this.connection.execute_query sql
         table.at column_name . at 0
 
+    ## UNSTABLE
+
+       Returns a materialized dataframe containing rows of this table.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe max_rows=Nothing =
-        sql = this.limit max_rows . to_sql
-        this.connection.execute_query sql
+        case this.context.meta_index.length > 1 of
+            True -> Error.throw "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
+            False ->
+                sql = this.reset_index.limit max_rows . to_sql
+                table = this.connection.execute_query sql
+                case this.context.meta_index.length == 1 of
+                    False -> table
+                    True ->
+                        ix_col_name = table.columns.first.name
+                        table.set_index ix_col_name
+
+    ## PRIVATE
+    reset_index : Table
+    reset_index =
+        # TODO [RW] This is O(N^2), shall I optimize it using Map as Set?
+        find_fresh_name existing_columns name i =
+            new_name = if i == 0 then name else name + "_" + i.to_text
+            case existing_columns.exists (_.name == new_name) of
+                False -> new_name
+                True -> find_fresh_name existing_columns name i+1
+        new_cols = this.context.meta_index.reverse.fold this.internal_columns existing_columns-> index_column->
+            new_name = find_fresh_name existing_columns index_column.name 0
+            new_ix_column = index_column.rename new_name
+            [new_ix_column] + existing_columns
+        new_ctx = this.context.set_index []
+        this.updated_context new_ctx . updated_columns new_cols
 
     ## UNSTABLE
 
@@ -420,12 +458,6 @@ type Aggregate_Table
     make_column internal =
         Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
 
-type Internal_Column
-    ## PRIVATE
-
-       An internal column structure which is a part of the Table.
-    type Internal_Column name sql_type expression
-
 type Integrity_Error
     ## UNSTABLE
 
@@ -447,3 +479,18 @@ make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
     cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
     Table table_name connection cols ctx
+
+display_dataframe : Materialized_Table.Table -> Integer -> Integer -> Boolean -> Text
+display_dataframe df indices_count all_rows_count format_terminal =
+    cols = Vector.Vector df.java_table.getColumns
+    col_names = cols.map .getName
+    col_vals = cols.map .getStorage
+    display_rows = this.java_table.row_count
+    rows = Vector.new display_rows row_num->
+        col_vals.map col->
+            if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
+    table = Materialized_Table.print_table col_names rows indices_count format_terminal
+    if display_rows == all_rows_count then table else
+        missing_rows_count = all_rows_count - display_rows
+        missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
+        table + missing

@@ -5,7 +5,7 @@ connect : Text -> Nothing | Text -> Nothing | Text -> JDBC_Connection
 connect url user=Nothing password=Nothing =
     Connection.create_jdbc_connection url user password
 
-open_sqlite_file : Text -> Connection
-open_sqlite_file path =
-    url = "jdbc:sqlite:" + path
+open_sqlite_file : File -> Connection
+open_sqlite_file file =
+    url = "jdbc:sqlite:" + file.absolute.path
     here.connect url

@@ -31,7 +31,7 @@ type Table
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
             [index.ilocString row_num] + cols
-        table = here.print_table col_names rows format_terminal
+        table = here.print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -392,7 +392,7 @@ ansi_bold enabled txt =
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
-print_table header rows format_term =
+print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
         Math.max max_row (header.at i . characters . length)
@@ -400,7 +400,8 @@ print_table header rows format_term =
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = r.zip content_lengths here.pad
-        with_bold_ix = [here.ansi_bold format_term (x.at 0)] + x.drop_start 1
+        ixes = x.take_start indices_count . map (here.ansi_bold format_term)
+        with_bold_ix = ixes + x.drop_start indices_count
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'

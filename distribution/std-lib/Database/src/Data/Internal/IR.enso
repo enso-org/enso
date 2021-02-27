@@ -46,6 +46,16 @@ type Expression
     # type Operation (kind : Text) (expressions : Vector Expression)
     type Operation kind expressions
 
+type Internal_Column
+    ## PRIVATE
+
+       An internal column structure.
+    type Internal_Column name sql_type expression
+
+    ## PRIVATE
+    rename : Text -> Internal_Column
+    rename new_name = Internal_Column new_name this.sql_type this.expression
+
 ## PRIVATE
 
    A context associated with an SQL query.
@@ -70,20 +80,19 @@ type Context
        - groups: a list of grouping expressions, for each entry a GROUP BY is
          added, the resulting query can then directly include only the
          grouped-by columns or aggregate expressions.
-       - meta_index: a piece of meta-data which specifies default columns for
-         joining or grouping.
+       - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
        # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
        #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
-       #              (groups : Vector Expression) (meta_index : Vector Expression)
+       #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
        #              (limit : Nothing | Integer)
     type Context from_spec where_filters orders groups meta_index limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `meta_index`.
-    set_index : Vector Text -> Context
+    set_index : Vector Internal_Column -> Context
     set_index new_index =
         Context this.from_spec this.where_filters this.orders this.groups new_index this.limit
 
@@ -284,3 +293,8 @@ substitute_origin old_origin new_origin expr = case expr of
     Constant _ _ -> expr
     Operation kind exprs ->
         Operation kind (exprs.map (here.substitute_origin old_origin new_origin))
+
+## PRIVATE
+lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
+lift_expression_map f col =
+    Internal_Column col.name col.sql_type (f col.expression)

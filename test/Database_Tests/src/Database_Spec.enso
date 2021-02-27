@@ -14,9 +14,11 @@ spec connection =
             df.at 'A' . to_vector . should_equal [1, 4]
 
 sqlite_spec =
-    # TODO create a tmp directory for DB etc.
-    connection = Database.open_sqlite_file "test.db"
+    file = File.new "target/sqlite_test.db"
+    file.delete_if_exists
+    connection = Database.open_sqlite_file file
     here.spec connection
+    file.delete
 
 postgres_spec =
     # TODO use env vars to read tmp DB config

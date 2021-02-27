@@ -4,6 +4,7 @@ import Database.Data.Internal.IR
 from Database.Data.Sql import Sql_Type
 import Database.Data.Table
 from Database.Data.Table import Integrity_Error
+import Table.Data.Column as Materialized_Column
 
 type Column
 
@@ -34,14 +35,31 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table =
-        cols = [Table.Internal_Column this.name this.sql_type this.expression]
-        Table.Table this.name this.connection cols this.context
+        Table.Table this.name this.connection [this.as_internal] this.context
+
+    ## UNSTABLE
+
+       Returns a materialized dataframe containing rows of this table.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
+    to_dataframe max_rows=Nothing =
+        df = this.to_table.to_dataframe max_rows
+        df.at this.name
 
     ## UNSTABLE
 
        Returns a vector containing all the elements in this column.
     to_vector : Vector
-    to_vector = this.to_table.to_dataframe.at this.name . to_vector
+    to_vector =
+        ## We remove the index to avoid fetching index data that will not be
+           used anyway when constructing the raw Vector.
+        without_ix = this.to_table.set_index []
+        df = without_ix . to_dataframe
+        raw_column = df.at this.name
+        raw_column.to_vector
 
     ## UNSTABLE
 
@@ -264,6 +282,10 @@ type Column
        corresponding elements of `this` and `other`.
     contains : Column | Text -> Column
     contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
+
+    ## PRIVATE
+    as_internal : IR.Internal_Column
+    as_internal = IR.Internal_Column this.name this.sql_type this.expression
 
 type Aggregate_Column
     ## UNSTABLE
