@@ -239,7 +239,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       }
       eval(code)
       val errorMsg =
-        "Panic exception: Compile_Error"
+        "Compile error: Variable `undefined` is not defined."
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 

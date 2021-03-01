@@ -24,7 +24,8 @@ class CaseTest extends InterpreterTest {
           |        Nil2 -> 0
           |""".stripMargin
 
-      val msg = "Panic exception: Compile_Error"
+      val msg =
+        "Compile error: Cons2 is not visible in this scope, Nil2 is not visible in this scope"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
 
@@ -39,7 +40,8 @@ class CaseTest extends InterpreterTest {
           |        Cons a -> a
           |""".stripMargin
 
-      val msg = "Panic exception: Compile_Error"
+      val msg =
+        "Compile error: Cannot match on Cons using 1 field (expecting 2)"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
   }

@@ -3169,7 +3169,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Panic exception: Not_Invokable_Error",
+              "Type error: expected a function, but got 42 (Integer).",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               None,
@@ -3237,7 +3237,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Panic exception: No_Such_Method_Error",
+              "Method `+` of x (Unresolved_Symbol) could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
               None,
@@ -3313,7 +3313,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Panic exception: Type_Error",
+              "Type error: expected `str` to be Text, but got 2 (Integer).",
               None,
               None,
               None,
@@ -3391,7 +3391,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Panic exception: No_Such_Method_Error",
+              "Method `pi` of Number could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               None,
@@ -3470,7 +3470,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Panic exception: Type_Error",
+              "Type error: expected `that` to be Number, but got quux (Unresolved_Symbol).",
               None,
               None,
               None,

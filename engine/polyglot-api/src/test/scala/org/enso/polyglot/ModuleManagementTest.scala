@@ -176,6 +176,6 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     )
     val exception =
       the[PolyglotException] thrownBy mod2.getAssociatedConstructor
-    exception.getMessage shouldEqual "org.enso.interpreter.runtime.error.PanicException: Module_Does_Not_Exist Test.Main"
+    exception.getMessage shouldEqual "Module_Does_Not_Exist"
   }
 }
