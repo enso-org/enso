@@ -25,7 +25,7 @@ class CaseTest extends InterpreterTest {
           |""".stripMargin
 
       val msg =
-        "Compile_Error Cons2 is not visible in this scope, Nil2 is not visible in this scope"
+        "Compile error: Cons2 is not visible in this scope, Nil2 is not visible in this scope"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
 
@@ -40,7 +40,8 @@ class CaseTest extends InterpreterTest {
           |        Cons a -> a
           |""".stripMargin
 
-      val msg = "Compile_Error Cannot match on Cons using 1 field (expecting 2)"
+      val msg =
+        "Compile error: Cannot match on Cons using 1 field (expecting 2)"
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
   }

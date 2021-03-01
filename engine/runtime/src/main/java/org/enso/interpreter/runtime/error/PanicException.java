@@ -1,13 +1,16 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
-import com.oracle.truffle.api.interop.ExceptionType;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
+import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
+import org.enso.interpreter.runtime.data.text.Text;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
@@ -36,7 +39,17 @@ public class PanicException extends AbstractTruffleException {
 
   @Override
   public String getMessage() {
-    return payload.toString();
+    InteropLibrary library = InteropLibrary.getUncached();
+    try {
+      return library.asString(library.getExceptionMessage(this));
+    } catch (UnsupportedMessageException e) {
+      return TypeToDisplayTextNodeGen.getUncached().execute(payload);
+    }
+  }
+
+  @Override
+  public String toString() {
+    return getMessage();
   }
 
   @ExportMessage
@@ -47,6 +60,26 @@ public class PanicException extends AbstractTruffleException {
   @ExportMessage
   RuntimeException throwException() {
     throw this;
+  }
+
+  @ExportMessage
+  boolean hasExceptionMessage() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getExceptionMessage(
+      @CachedLibrary(limit = "5") InteropLibrary payloads,
+      @CachedLibrary(limit = "3") InteropLibrary strings,
+      @Cached TypeToDisplayTextNode typeToDisplayTextNode) {
+    try {
+      return Text.create(strings.asString(payloads.invokeMember(payload, "to_display_text")));
+    } catch (UnsupportedTypeException
+        | UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException e) {
+      return Text.create(typeToDisplayTextNode.execute(payload));
+    }
   }
 
   @ExportMessage
