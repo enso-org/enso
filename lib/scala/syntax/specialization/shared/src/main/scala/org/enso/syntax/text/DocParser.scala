@@ -278,6 +278,11 @@ object DocParserHTMLGenerator {
           allDocs += file.code.toString() + generateHTMLForEveryDocumented(
             documented
           ) + HTML.br
+        case AST.Def.any(tp) =>
+          tp.body match {
+            case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
+            case None       => ()
+          }
         case _ =>
           allDocs += generateHTMLForEveryDocumented(elem)
       }
@@ -477,7 +482,7 @@ object DocParserHTMLGenerator {
     if (argsStr.nonEmpty) {
       argsStrUrl = "_" + argsStrUrl
     }
-    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
+    val pageHref = HTML.`href` := "#" + nameStr + argsStrUrl
     val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
     HTML.a(pageHref)(innerDiv)
   }
@@ -489,10 +494,8 @@ object DocParserHTMLGenerator {
     * @return - HTML code generated from Infix
     */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
-    val cls = HTML.`class` := "Infix"
-    val pageHref = HTML.`href` := infix.larg
-      .show()
-      .replaceAll(" ", "_") + ".html"
+    val cls      = HTML.`class` := "Infix"
+    val pageHref = HTML.`href` := "#" + infix.larg.show().replaceAll(" ", "_")
     val innerDiv = HTML.div(cls)(infix.larg.show())
     HTML.a(pageHref)(innerDiv)
   }
