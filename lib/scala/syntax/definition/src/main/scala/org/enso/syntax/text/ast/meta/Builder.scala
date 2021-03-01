@@ -123,8 +123,9 @@ final class Builder(
           case List(seg) =>
             seg.body.toStream match {
               case List(mod) => mod.wrapped
-              case _         => throw new scala.Error("Impossible happened")
+              case _         => throw new scala.Error("The impossible happened")
             }
+          case _ => throw new scala.Error("The impossible happened")
         }
       }
     )
@@ -134,9 +135,9 @@ final class Builder(
       case Macro.Match.any(m) =>
         m.segs.head.body.toStream match {
           case s :: Nil => s.wrapped
-          case _        => throw new scala.Error("Impossible happened.")
+          case _        => throw new scala.Error("The impossible happened.")
         }
-      case _ => throw new scala.Error("Impossible happened.")
+      case _ => throw new scala.Error("The impossible happened.")
     }
   }
 }

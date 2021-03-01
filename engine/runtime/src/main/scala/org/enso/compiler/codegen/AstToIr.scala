@@ -122,6 +122,7 @@ object AstToIr {
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
         Module(imports, exports, statements, getIdentifiedLocation(module))
+      case _ => throw new UnhandledEntity(module, "translateModule")
     }
   }
 
@@ -167,6 +168,8 @@ object AstToIr {
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name
           case AST.Ident.Opr.any(opr)  => opr
+          case _ =>
+            throw new UnhandledEntity(name, "translateModuleSymbol")
         }
 
         val methodRef = if (targetPath.nonEmpty) {
@@ -940,6 +943,7 @@ object AstToIr {
             getIdentifiedLocation(right)
           )
         }
+      case _ => throw new UnhandledEntity(section, "translateOperatorSection")
     }
   }
 
@@ -1104,11 +1108,11 @@ object AstToIr {
   /** Translates an export statement from its [[AST]] representation into
     * [[IR]].
     *
-    * @param imp the export to translate
+    * @param exp the export to translate
     * @return the [[IR]] representation of `imp`
     */
-  def translateExport(imp: AST.Export): Module.Scope.Export = {
-    imp match {
+  def translateExport(exp: AST.Export): Module.Scope.Export = {
+    exp match {
       case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Export(
           IR.Name.Qualified(path.map(buildName(_)).toList, None),
@@ -1116,8 +1120,9 @@ object AstToIr {
           isAll,
           onlyNames.map(_.map(buildName(_)).toList),
           hiddenNames.map(_.map(buildName(_)).toList),
-          getIdentifiedLocation(imp)
+          getIdentifiedLocation(exp)
         )
+      case _ => throw new UnhandledEntity(exp, "translateExport")
     }
   }
 

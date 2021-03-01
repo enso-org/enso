@@ -11,7 +11,7 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.3"
+val scalacVersion = "2.13.5"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "21.0.0.2"
 val javaVersion   = "11"
@@ -355,7 +355,7 @@ val scalaCompiler = Seq(
 
 // === Splain =================================================================
 
-val splainVersion = "0.5.7"
+val splainVersion = "0.5.8"
 val splainOptions = Seq(
   "-P:splain:infix:true",
   "-P:splain:foundreq:true",
@@ -385,7 +385,7 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "29.0-jre"
 val jlineVersion            = "3.15.0"
-val kindProjectorVersion    = "0.11.2"
+val kindProjectorVersion    = "0.11.3"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"

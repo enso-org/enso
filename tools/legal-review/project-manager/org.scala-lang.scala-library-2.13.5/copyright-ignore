@@ -1,0 +1,3 @@
+val copyrightString       = scalaPropOrElse("copyright.string", "Copyright 2002-2020, LAMP/EPFL and Lightbend, Inc.")
+private[scala] def versionFor(command: String) = s"Scala $command $versionString -- $copyrightString"
+case _                      => "No copyright"

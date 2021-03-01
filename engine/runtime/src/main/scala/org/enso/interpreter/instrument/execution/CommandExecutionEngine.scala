@@ -91,6 +91,14 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
               ex
             )
             Future.failed[Completion](ex)
+
+          case Failure(ex) =>
+            logger.log(
+              Level.SEVERE,
+              s"An error occurred during execution of $cmd command",
+              ex
+            )
+            Future.failed[Completion](ex)
         }
 
     for {

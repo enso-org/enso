@@ -159,7 +159,8 @@ trait ProgramExecutionSupport {
     val logger = ctx.executionService.getLogger
     logger.log(
       Level.FINEST,
-      s"Run program updatedVisualisations=$updatedVisualisations sendMethodCallUpdates=$sendMethodCallUpdates"
+      s"Run program updatedVisualisations=$updatedVisualisations " +
+      s"sendMethodCallUpdates=$sendMethodCallUpdates"
     )
     @scala.annotation.tailrec
     def unwind(
@@ -174,6 +175,7 @@ trait ProgramExecutionSupport {
           (Some(ExecutionFrame(ExecutionItem.Method(call), cache)), localCalls)
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
+        case _ => throw new MatchError(stack)
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
