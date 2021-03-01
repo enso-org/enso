@@ -71,10 +71,10 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val transitive = metadata.get(elem).getOrElse(Set())
         val dynamic = transitive
           .flatMap {
-            case DataflowAnalysis.DependencyInfo.Type.Static(int, ext) =>
+            case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
               ChangesetBuilder
                 .getExpressionName(ir, int)
-                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, ext))
+                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, None))
             case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
               Some(dyn)
             case _ =>

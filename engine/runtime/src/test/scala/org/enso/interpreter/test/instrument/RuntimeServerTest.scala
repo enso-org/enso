@@ -1163,6 +1163,10 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
+    // foo definition
+    metadata.addItem(26, 22)
+    // foo name
+    metadata.addItem(26, 3)
     val fooX    = metadata.addItem(40, 1)
     val fooRes  = metadata.addItem(46, 1)
     val mainFoo = metadata.addItem(64, 8)
