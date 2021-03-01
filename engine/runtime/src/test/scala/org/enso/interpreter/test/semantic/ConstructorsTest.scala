@@ -80,7 +80,7 @@ class ConstructorsTest extends InterpreterTest {
           |        Cons h t -> 0
       """.stripMargin
       the[InterpreterException] thrownBy eval(testCode)
-        .call() should have message "Inexhaustive_Pattern_Match_Error Nil"
+        .call() should have message "Inexhaustive pattern match: no branch matches Nil."
     }
 
     "be usable in code, with arbitrary definition order" in {
