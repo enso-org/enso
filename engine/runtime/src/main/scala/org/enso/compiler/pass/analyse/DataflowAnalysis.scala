@@ -6,10 +6,7 @@ import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.{
-  asDynamic,
-  asStatic
-}
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
 import scala.collection.mutable
 
@@ -106,9 +103,7 @@ case object DataflowAnalysis extends IRPass {
         info.updateAt(asStatic(body), Set(asStatic(method)))
 
         method
-          .copy(
-            body = analyseExpression(body, info)
-          )
+          .copy(body = analyseExpression(body, info))
           .updateMetadata(this -->> info)
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
@@ -415,11 +410,11 @@ case object DataflowAnalysis extends IRPass {
               case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
                 DependencyInfo.Type.Static(id, ext)
               case _ =>
-                asDynamic(name)
+                DependencyInfo.Type.Dynamic(name.name, None)
             }
 
           case None =>
-            asDynamic(name)
+            DependencyInfo.Type.Dynamic(name.name, None)
         }
 
         info.updateAt(key, Set(asStatic(name)))
