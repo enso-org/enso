@@ -1,22 +1,19 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.syntax.text.{AST, HasSpan, OffsetZip}
+import org.enso.data.{Index, Shifted}
 import org.enso.syntax.text.AST.SAST
-import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.Repr
+import org.enso.syntax.text.prec.Operator
+import org.enso.syntax.text.{AST, HasSpan, OffsetZip}
 
 import scala.annotation.{nowarn, tailrec}
-import org.enso.data.Index
-import org.enso.data.Shifted
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Pattern ///////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 object Pattern {
-  import cats.Foldable
-  import cats.Functor
-  import cats.Traverse
+  import cats.{Foldable, Functor, Traverse}
   import cats.derived._
 
   type P      = Pattern
@@ -401,8 +398,8 @@ sealed trait Pattern {
     reversed: Boolean  = false
   ): Match.Result = {
     matchOpt(stream, lineBegin, reversed).getOrElse {
-      val msg = "Internal error: template pattern segment was unmatched"
-      throw new Error(msg)
+      val badMatch: Match = Match.FailedMatch(FailedMatch(None))
+      Match.Result(badMatch, stream)
     }
   }
 
