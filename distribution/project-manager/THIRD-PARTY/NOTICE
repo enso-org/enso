@@ -46,11 +46,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.11.1`.
 
 
-'scala-reflect', licensed under the Apache-2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.3`.
-
-
 'shapeless_2.13', licensed under the Apache 2, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.3`.
@@ -69,6 +64,11 @@ Copyright notices related to this dependency can be found in the directory `com.
 'enumeratum-macros_2.13', licensed under the MIT, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-macros_2.13-1.6.1`.
+
+
+'scala-reflect', licensed under the Apache-2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.5`.
 
 
 'akka-actor_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
@@ -248,7 +248,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'scala-library', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.5`.
 
 
 'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the project-manager.

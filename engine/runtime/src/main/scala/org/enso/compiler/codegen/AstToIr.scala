@@ -1108,11 +1108,11 @@ object AstToIr {
   /** Translates an export statement from its [[AST]] representation into
     * [[IR]].
     *
-    * @param export the export to translate
+    * @param exp the export to translate
     * @return the [[IR]] representation of `imp`
     */
-  def translateExport(`export`: AST.Export): Module.Scope.Export = {
-    `export` match {
+  def translateExport(exp: AST.Export): Module.Scope.Export = {
+    exp match {
       case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Export(
           IR.Name.Qualified(path.map(buildName(_)).toList, None),
@@ -1120,9 +1120,9 @@ object AstToIr {
           isAll,
           onlyNames.map(_.map(buildName(_)).toList),
           hiddenNames.map(_.map(buildName(_)).toList),
-          getIdentifiedLocation(`export`)
+          getIdentifiedLocation(exp)
         )
-      case _ => throw new UnhandledEntity(`export`, "translateExport")
+      case _ => throw new UnhandledEntity(exp, "translateExport")
     }
   }
 
