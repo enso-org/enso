@@ -405,7 +405,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -1157,6 +1157,125 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates when function body is changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    // foo definition
+    metadata.addItem(26, 22)
+    // foo name
+    metadata.addItem(26, 3)
+    val fooX    = metadata.addItem(40, 1)
+    val fooRes  = metadata.addItem(46, 1)
+    val mainFoo = metadata.addItem(64, 8)
+    val mainRes = metadata.addItem(77, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |foo =
+        |    x = 4
+        |    x
+        |
+        |main =
+        |    y = here.foo
+        |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+        ),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // push foo call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(mainFoo))
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, fooX, Constants.INTEGER),
+      TestMessages.update(contextId, fooRes, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // Modify the foo method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 8), model.Position(3, 9)),
+              "5"
+            )
+          )
+        )
+      )
+    )
+    context.receive(1) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("5")
+
+    // pop the foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          mainFoo,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+        ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("5")
+  }
+
   it should "not send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -1358,7 +1477,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -2114,6 +2233,59 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates for a lambda" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val xId     = metadata.addItem(41, 5)
+    val mainRes = metadata.addItem(51, 12)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = _ + 1
+        |    IO.println x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xId, Constants.FUNCTION),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "support file modification operations without attached ids" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -2507,7 +2679,7 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      context.Main.Update.mainY(contextId, fromCache    = true),
+      context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
 
@@ -3001,7 +3173,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Not_Invokable_Error 42",
+              "Type error: expected a function, but got 42 (Integer).",
               Some(mainFile),
               Some(model.Range(model.Position(0, 7), model.Position(0, 24))),
               None,
@@ -3069,7 +3241,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error UnresolvedSymbol<x> UnresolvedSymbol<+>",
+              "Method `+` of x (Unresolved_Symbol) could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
               None,
@@ -3145,7 +3317,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type_Error Text 2 str",
+              "Type error: expected `str` to be Text, but got 2 (Integer).",
               None,
               None,
               None,
@@ -3223,7 +3395,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "No_Such_Method_Error Number UnresolvedSymbol<pi>",
+              "Method `pi` of Number could not be found.",
               Some(mainFile),
               Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
               None,
@@ -3302,7 +3474,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Type_Error Number UnresolvedSymbol<quux> that",
+              "Type error: expected `that` to be Number, but got quux (Unresolved_Symbol).",
               None,
               None,
               None,
@@ -3590,7 +3762,9 @@ class RuntimeServerTest
       ),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("(Error: (Syntax_Error 'Unrecognized token.'))")
+    context.consumeOut shouldEqual List(
+      "(Error: (Syntax_Error 'Unrecognized token.'))"
+    )
   }
 
   it should "return compiler error syntax error" in {

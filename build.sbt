@@ -11,11 +11,11 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.3"
+val scalacVersion = "2.13.5"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "21.0.0.2"
 val javaVersion   = "11"
-val ensoVersion   = "0.2.5-SNAPSHOT" // Note [Engine And Launcher Version]
+val ensoVersion   = "0.2.6-SNAPSHOT" // Note [Engine And Launcher Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,7 +74,12 @@ GatherLicenses.distributions := Seq(
   Distribution(
     "std-lib-Table",
     file("distribution/std-lib/Table/THIRD-PARTY"),
-    Distribution.sbtProjects(`table`)
+    Distribution.sbtProjects(table)
+  ),
+  Distribution(
+    "std-lib-Database",
+    file("distribution/std-lib/Database/THIRD-PARTY"),
+    Distribution.sbtProjects(database)
   )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -350,7 +355,7 @@ val scalaCompiler = Seq(
 
 // === Splain =================================================================
 
-val splainVersion = "0.5.7"
+val splainVersion = "0.5.8"
 val splainOptions = Seq(
   "-P:splain:infix:true",
   "-P:splain:foundreq:true",
@@ -380,7 +385,7 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "29.0-jre"
 val jlineVersion            = "3.15.0"
-val kindProjectorVersion    = "0.11.2"
+val kindProjectorVersion    = "0.11.3"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"
@@ -1040,6 +1045,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-bits` / Compile / packageBin)
       .dependsOn(table / Compile / packageBin)
+      .dependsOn(database / Compile / packageBin)
       .value
   )
   .settings(
@@ -1257,9 +1263,10 @@ lazy val `locking-test-helper` = project
     assemblyOutputPath in assembly := file("locking-test-helper.jar")
   )
 
-val `std-lib-root`          = file("distribution/std-lib/")
-val `std-lib-polyglot-root` = `std-lib-root` / "Base" / "polyglot" / "java"
-val `table-polyglot-root`   = `std-lib-root` / "Table" / "polyglot" / "java"
+val `std-lib-root`           = file("distribution/std-lib/")
+val `std-lib-polyglot-root`  = `std-lib-root` / "Base" / "polyglot" / "java"
+val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
+val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
 
 lazy val `std-bits` = project
   .in(file("std-bits"))
@@ -1275,7 +1282,7 @@ lazy val `std-bits` = project
       val _ = StdBits
         .copyDependencies(
           `std-lib-polyglot-root`,
-          "std-bits.jar",
+          Some("std-bits.jar"),
           ignoreScalaLibrary = true
         )
         .value
@@ -1283,7 +1290,7 @@ lazy val `std-bits` = project
     }.value
   )
 
-lazy val `table` = project
+lazy val table = project
   .in(file("table"))
   .settings(
     autoScalaLibrary := false,
@@ -1297,7 +1304,25 @@ lazy val `table` = project
       val _ = StdBits
         .copyDependencies(
           `table-polyglot-root`,
-          "table.jar",
+          Some("table.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val database = project
+  .in(file("database"))
+  .settings(
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `database-polyglot-root`,
+          None,
           ignoreScalaLibrary = true
         )
         .value

@@ -1,3 +1,36 @@
+# Enso 0.2.5 (2021-02-26)
+
+## Interpreter/Runtime
+
+- Fixed an issue where the parser would crash on partial inputs, causing issues
+  for both the engine and IDE
+  ([#1509](https://github.com/enso-org/enso/pull/1509)).
+- Fixed a problem where `Type_Error`s would not be displayed properly when
+  pretty printed ([#1504](https://github.com/enso-org/enso/pull/1504)).
+- Fixed an issue with `_` desugaring where it would not desugar correctly when
+  used in function position
+  ([#1512](https://github.com/enso-org/enso/pull/1512)).
+
+## Tooling
+
+- Fixed an issue where suggestions were sometimes not being provided for modules
+  other than `Base` ([#1507](https://github.com/enso-org/enso/pull/1507)).
+- Fixed a few issues where expression and value updates were not sent when they
+  should be ([#1516](https://github.com/enso-org/enso/pull/1516),
+  [#1522](https://github.com/enso-org/enso/pull/1522), and
+  [#1508](https://github.com/enso-org/enso/pull/1508)).
+
+## Libraries
+
+- Fixed a bug where sorting boolean columns in a `Table` would produce incorrect
+  output ([#1505](https://github.com/enso-org/enso/pull/1505)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-02-26)
+  for issues opened before the release date.
+
 # Enso 0.2.4 (2021-02-23)
 
 ## Interpreter/Runtime

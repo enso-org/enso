@@ -138,15 +138,15 @@ case object LambdaShorthandToLambda extends IRPass {
         IR.Function.Lambda(
           List(
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal(
+              name = IR.Name.Literal(
                 newName.name,
                 isReferent = false,
                 isMethod   = false,
                 None
               ),
-              None,
-              suspended = false,
-              None
+              defaultValue = None,
+              suspended    = false,
+              location     = None
             )
           ),
           newName,
@@ -200,21 +200,25 @@ case object LambdaShorthandToLambda extends IRPass {
             )
           val newName = newFn.name
           (newFn, Some(newName))
-        } else (fn, None)
+        } else {
+          val newFn = desugarExpression(fn, freshNameSupply)
+          (newFn, None)
+        }
 
         val processedApp = p.copy(
           function  = updatedFn,
           arguments = updatedArgs
         )
 
-        // Wrap the app in lambdas from right to left, lambda / shorthand arg
+        // Wrap the app in lambdas from right to left, 1 lambda per shorthand
+        // arg
         val appResult =
           actualDefArgs.foldRight(processedApp: IR.Expression)((arg, body) =>
             IR.Function.Lambda(List(arg), body, None)
           )
 
         // If the function is shorthand, do the same
-        if (functionIsShorthand) {
+        val resultExpr = if (functionIsShorthand) {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
@@ -234,6 +238,11 @@ case object LambdaShorthandToLambda extends IRPass {
             None
           )
         } else appResult
+
+        resultExpr match {
+          case lam: IR.Function.Lambda => lam.copy(location = p.location)
+          case result                  => result
+        }
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
       case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>

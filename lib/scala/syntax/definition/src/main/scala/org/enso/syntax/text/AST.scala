@@ -157,6 +157,7 @@ object Phantom {
 
 sealed trait Shape[T]
 
+@nowarn("msg=parameter value evidence")
 object Shape extends ShapeImplicit {
   import AST.StreamOf
   import HasSpan.implicits._
@@ -322,7 +323,7 @@ object Shape extends ShapeImplicit {
   final case class Match[T](
     pfx: Option[Pattern.Match],
     segs: Shifted.List1[Match.Segment[T]],
-    resolved: AST
+    resolved: Option[AST]
   ) extends Macro[T] {
     def path: List1[AST] = segs.toList1().map(_.wrapped.head)
   }
@@ -1618,6 +1619,7 @@ object AST {
       import io.circe.syntax._
 
       // Note [JSON Format Customizations]
+      @nowarn("msg=parameter value evidence")
       @unused implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
         block =>
           Json.obj(
@@ -2153,7 +2155,7 @@ object AST {
       def apply(
         pfx: Option[Pattern.Match],
         segs: Shifted.List1[Match.Segment],
-        resolved: AST
+        resolved: Option[AST]
       ): Match = Shape.Match[AST](pfx, segs, resolved)
 
       type Segment = Shape.Match.Segment[AST]
@@ -2319,14 +2321,20 @@ object AST {
           val segsFail = !ctx.body.forall(_.isValid)
           if (pfxFail || segsFail) unexpected(ctx, "invalid statement")
           else {
-            val ctx2 = ctx.copy(
-              prefix = ctx.prefix.map(unapplyValidChecker),
-              body   = unapplySegCheckers(ctx.body)
-            )
-            try resolver(ctx2)
-            catch {
+            try {
+              val ctx2 = ctx.copy(
+                prefix = ctx.prefix.map(unapplyValidChecker),
+                body   = unapplySegCheckers(ctx.body)
+              )
+              resolver(ctx2)
+            } catch {
               case _: Throwable =>
-                unexpected(ctx, "exception during macro resolution")
+                val tokens = ctx.body.flatMap(mat => {
+                  val firstElem = Shifted(mat.head)
+                  val rest      = mat.body.toStream
+                  firstElem :: rest
+                })
+                AST.Invalid.Unexpected("Unexpected tokens", tokens)
             }
           }
         }

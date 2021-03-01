@@ -33,6 +33,16 @@ trait CompilerRunner {
 
       parser.dropMacroMeta(unresolvedAST)
     }
+
+    /** Produces the [[AST]] representation of [[source]] without dropping the
+      * macro metadata.
+      *
+      * @return [[source]] as an AST
+      */
+    def toAstWithMeta: AST = {
+      val parser: Parser = Parser()
+      parser.runWithIds(source)
+    }
   }
 
   /** An extension method to allow converting string source code to IR as a

@@ -36,7 +36,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
-      error.getMessage should include("nonexistentcommandxyz")
+      error.getMessage should include("a polyglot object")
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }

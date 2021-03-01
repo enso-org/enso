@@ -129,7 +129,7 @@ class PatternMatchTest extends InterpreterTest {
           |    f MyAtom
           |""".stripMargin
 
-      val msg = "Inexhaustive_Pattern_Match_Error MyAtom"
+      val msg = "Inexhaustive pattern match: no branch matches MyAtom."
       the[InterpreterException] thrownBy eval(code) should have message msg
     }
 

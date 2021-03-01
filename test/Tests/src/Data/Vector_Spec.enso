@@ -58,6 +58,10 @@ spec = Test.group "Vectors" <|
         mapped = vec.map x-> x * x
         vec.to_text.should_equal "[1, 2, 3, 4]"
         mapped.to_text.should_equal "[1, 4, 9, 16]"
+    Test.specify "should allow flat_mapping an operation, returning a new vector" <|
+        vec = [1, 2, 0, 3]
+        mapped = vec.flat_map n-> Vector.fill n n
+        mapped.should_equal [1, 2, 2, 3, 3, 3]
     Test.specify "should allow applying a function to each element" <|
         vec = [1, 2, 3, 4]
         vec_mut = Vector.new_builder

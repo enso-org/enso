@@ -1,5 +1,10 @@
 package org.enso.interpreter.instrument.job
 
+import java.io.File
+import java.util.function.Consumer
+import java.util.logging.Level
+import java.util.{Objects, UUID}
+
 import cats.implicits._
 import com.oracle.truffle.api.exception.AbstractTruffleException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
@@ -25,6 +30,7 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.data.text.Text
 import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
+import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.service.error.{
   ConstructorNotFoundException,
   MethodNotFoundException,
@@ -34,10 +40,6 @@ import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
-import java.io.File
-import java.util.function.Consumer
-import java.util.logging.Level
-import java.util.{Objects, UUID}
 import scala.jdk.OptionConverters._
 
 /** Provides support for executing Enso code. Adds convenient methods to
@@ -157,7 +159,8 @@ trait ProgramExecutionSupport {
     val logger = ctx.executionService.getLogger
     logger.log(
       Level.FINEST,
-      s"Run program updatedVisualisations=$updatedVisualisations sendMethodCallUpdates=$sendMethodCallUpdates"
+      s"Run program updatedVisualisations=$updatedVisualisations " +
+      s"sendMethodCallUpdates=$sendMethodCallUpdates"
     )
     @scala.annotation.tailrec
     def unwind(
@@ -172,6 +175,7 @@ trait ProgramExecutionSupport {
           (Some(ExecutionFrame(ExecutionItem.Method(call), cache)), localCalls)
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
+        case _ => throw new MatchError(stack)
       }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
@@ -322,7 +326,8 @@ trait ProgramExecutionSupport {
     if (
       (sendMethodCallUpdates && methodPointer.isDefined) ||
       !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
-      !Objects.equals(value.getType, value.getCachedType)
+      !Objects.equals(value.getType, value.getCachedType) ||
+      Types.isPanic(value.getType)
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
