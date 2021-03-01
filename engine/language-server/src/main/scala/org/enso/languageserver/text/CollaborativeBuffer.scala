@@ -375,7 +375,7 @@ class CollaborativeBuffer(
         sender() ! CapabilityReleaseBadRequest
         context.become(collaborativeEditing(buffer, clients, lockHolder))
 
-      case Some(holder) if holder.clientId == clientId =>
+      case Some(_) =>
         sender() ! CapabilityReleased
         context.become(collaborativeEditing(buffer, clients, None))
     }
@@ -397,7 +397,7 @@ class CollaborativeBuffer(
         sender() ! CapabilityAcquisitionBadRequest
         context.become(collaborativeEditing(buffer, clients, lockHolder))
 
-      case Some(holder) if holder != clientId =>
+      case Some(holder) =>
         sender() ! CapabilityAcquired
         holder.rpcController ! CapabilityForceReleased(
           CapabilityRegistration(CanEdit(path))

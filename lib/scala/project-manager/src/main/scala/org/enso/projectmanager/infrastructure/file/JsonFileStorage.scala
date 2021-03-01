@@ -1,7 +1,6 @@
 package org.enso.projectmanager.infrastructure.file
 
 import java.io.File
-
 import io.circe.parser._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
@@ -12,6 +11,8 @@ import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import shapeless.{:+:, CNil, _}
 
+import scala.annotation.nowarn
+
 /** ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
   * [[Decoder]] to encode/decode objects.
   *
@@ -19,6 +20,7 @@ import shapeless.{:+:, CNil, _}
   * @param fileSystem a filesystem algebra
   * @tparam A a datatype to store
   */
+@nowarn("msg=parameter value evidence")
 class JsonFileStorage[
   A: Encoder: Decoder,
   F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap

@@ -375,39 +375,41 @@ class IrToTruffle(
       BindingAnalysis,
       "No binding analysis at the point of codegen."
     )
-    bindingsMap.exportedSymbols.foreach { case (name, List(resolution)) =>
-      if (resolution.module != moduleScope.getModule) {
-        resolution match {
-          case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-            val runtimeCons =
-              definitionModule.getScope.getConstructors.get(cons.name)
-            val fun = mkConsGetter(runtimeCons)
-            moduleScope.registerMethod(
-              moduleScope.getAssociatedType,
-              name,
-              fun
-            )
-          case BindingsMap.ResolvedModule(module) =>
-            val runtimeCons =
-              module.getScope.getAssociatedType
-            val fun = mkConsGetter(runtimeCons)
-            moduleScope.registerMethod(
-              moduleScope.getAssociatedType,
-              name,
-              fun
-            )
-          case BindingsMap.ResolvedMethod(module, method) =>
-            val fun = module.getScope.getMethods
-              .get(module.getScope.getAssociatedType)
-              .get(method.name)
-            moduleScope.registerMethod(
-              moduleScope.getAssociatedType,
-              name,
-              fun
-            )
-          case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+    bindingsMap.exportedSymbols.foreach {
+      case (name, List(resolution)) =>
+        if (resolution.module != moduleScope.getModule) {
+          resolution match {
+            case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+              val runtimeCons =
+                definitionModule.getScope.getConstructors.get(cons.name)
+              val fun = mkConsGetter(runtimeCons)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedModule(module) =>
+              val runtimeCons =
+                module.getScope.getAssociatedType
+              val fun = mkConsGetter(runtimeCons)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedMethod(module, method) =>
+              val fun = module.getScope.getMethods
+                .get(module.getScope.getAssociatedType)
+                .get(method.name)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+          }
         }
-      }
+      case _ => throw new CompilerError("Unreachable")
     }
   }
 

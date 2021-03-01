@@ -75,7 +75,7 @@ object SuggestionDiff {
       as.foldLeft((acc, bs)) {
         case ((acc, b +: bs), a) =>
           (acc += These.Both(a, b), bs)
-        case ((acc, Seq()), a) =>
+        case ((acc, _), a) =>
           (acc += These.Here(a), Seq())
       }
     unmatched.foreach(arg => b += These.There(arg))

@@ -2,7 +2,7 @@ package org.enso.flexer.spec
 
 import org.enso.flexer.Parser
 
-import scala.annotation.unused
+import scala.annotation.{nowarn, unused}
 import scala.reflect.macros.blackbox.Context
 
 // FIXME: Needs to be refactored. Contains deprecated API usage
@@ -26,6 +26,7 @@ object Macro {
     }
   }
 
+  @nowarn("msg=parameter value evidence")
   def compileImpl[T: c.WeakTypeTag, P: c.WeakTypeTag](
     c: Context
   )(p: c.Expr[P])(@unused ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {

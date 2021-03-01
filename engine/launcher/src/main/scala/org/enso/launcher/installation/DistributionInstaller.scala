@@ -322,7 +322,7 @@ class DistributionInstaller(
             s"Installer was asked to ${value.description}, but it seems to " +
             s"not be running from a bundle package."
           )
-        case None =>
+        case _ =>
       }
 
       IgnoreBundles

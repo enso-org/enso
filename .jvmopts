@@ -1,4 +1,4 @@
 -Xss16M
--Xmx3G
+-Xmx4G
 -XX:+UseCompressedOops
 --upgrade-module-path=engine/runtime/build-cache/truffle-api.jar
