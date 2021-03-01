@@ -348,9 +348,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     invalidationCommands: Iterable[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAll.values
-      .collect {
-        case stack if stack.nonEmpty =>
+      .foreach { stack =>
+        if (stack.nonEmpty) {
           CacheInvalidation.runAll(stack, invalidationCommands)
+        }
       }
   }
 

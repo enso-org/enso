@@ -36,11 +36,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.11.1`.
 
 
-'scala-reflect', licensed under the Apache-2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.3`.
-
-
 'jline', licensed under the The BSD License, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.15.0`.
@@ -79,6 +74,11 @@ Copyright notices related to this dependency can be found in the directory `com.
 'enumeratum-macros_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum-macros_2.13-1.6.1`.
+
+
+'scala-reflect', licensed under the Apache-2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-reflect-2.13.5`.
 
 
 'auto-common', licensed under the Apache 2.0, is distributed with the engine.
@@ -189,6 +189,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'akka-http-core_2.13', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-http-core_2.13-10.2.0-RC1`.
+
+
+'jline', licensed under the The BSD License, is distributed with the engine.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.jline.jline-3.19.0`.
 
 
 'akka-parsing_2.13', licensed under the Apache-2.0, is distributed with the engine.
@@ -306,6 +311,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `nl.gn0s1s.bump_2.13-0.1.3`.
 
 
+'scala-compiler', licensed under the Apache-2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.5`.
+
+
 'alleycats-core_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.typelevel.alleycats-core_2.13-2.1.1`.
@@ -348,7 +358,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'scala-library', licensed under the Apache-2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.3`.
+Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-library-2.13.5`.
 
 
 'jackson-databind', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
@@ -384,11 +394,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'j2objc-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.j2objc.j2objc-annotations-1.3`.
-
-
-'scala-compiler', licensed under the Apache-2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `org.scala-lang.scala-compiler-2.13.3`.
 
 
 'refined_2.13', licensed under the MIT, is distributed with the engine.

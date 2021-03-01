@@ -157,6 +157,7 @@ object Phantom {
 
 sealed trait Shape[T]
 
+@nowarn("msg=parameter value evidence")
 object Shape extends ShapeImplicit {
   import AST.StreamOf
   import HasSpan.implicits._
@@ -1618,6 +1619,7 @@ object AST {
       import io.circe.syntax._
 
       // Note [JSON Format Customizations]
+      @nowarn("msg=parameter value evidence")
       @unused implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
         block =>
           Json.obj(
