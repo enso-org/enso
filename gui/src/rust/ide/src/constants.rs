@@ -15,6 +15,10 @@ pub const PROJECT_MANAGER_ENDPOINT:&str = "ws://127.0.0.1:30535";
 /// Default project name used by IDE on startup.
 pub const DEFAULT_PROJECT_NAME:&str = "Unnamed";
 
+/// The name of the main module in each project. The main module is explicitly imported when the
+/// import statement has the project name only.
+pub const PROJECTS_MAIN_MODULE:&str = "Main";
+
 /// Visualization folder where IDE can look for user-defined visualizations per project.
 pub const VISUALIZATION_DIRECTORY:&str = "visualization";
 

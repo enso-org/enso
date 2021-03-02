@@ -107,7 +107,11 @@ impl Entry {
     pub fn code_to_insert(&self, current_module:Option<&module::QualifiedName>) -> String {
         if self.has_self_type(&self.module) {
             let module_var = if current_module.contains(&&self.module) {keywords::HERE.to_owned()}
-                else {self.module.name().clone().into()};
+            else {
+                let mut module = self.module.clone();
+                module.remove_main_module_segment();
+                module.name().into()
+            };
             format!("{}.{}",module_var,self.name)
         } else {
             self.name.clone()
@@ -361,43 +365,45 @@ mod test {
     #[test]
     fn code_from_entry() {
         let module         = module::QualifiedName::from_text("Project.Main").unwrap();
-        let another_module = module::QualifiedName::from_text("Project.AnotherModule").unwrap();
-        let atom_entry = Entry {
-            name          : "Atom".to_string(),
+        let another_module = module::QualifiedName::from_text("Project.Another_Module").unwrap();
+        let atom = Entry {
+            name          : "Atom".to_owned(),
             kind          : Kind::Atom,
             module        : module.clone(),
             arguments     : vec![],
-            return_type   : "Number".to_string(),
+            return_type   : "Number".to_owned(),
             documentation : None,
             self_type     : None,
             scope         : Scope::Everywhere,
         };
-        let method_entry = Entry {
+        let method = Entry {
             name      : "method".to_string(),
             kind      : Kind::Method,
             self_type : Some("Base.Main.Number".to_string().try_into().unwrap()),
-            ..atom_entry.clone()
+            ..atom.clone()
         };
-        let module_method_entry = Entry {
-            name      : "moduleMethod".to_string(),
+        let module_method = Entry {
+            name      : "module_method".to_owned(),
             self_type : Some(module.clone().into()),
-            ..method_entry.clone()
+            ..method.clone()
+        };
+        let another_module_method = Entry {
+            module    : another_module.clone(),
+            self_type : Some(another_module.into()),
+            ..module_method.clone()
         };
 
         let current_module = None;
-        assert_eq!(atom_entry.code_to_insert(current_module)         , "Atom");
-        assert_eq!(method_entry.code_to_insert(current_module)       , "method");
-        assert_eq!(module_method_entry.code_to_insert(current_module), "Main.moduleMethod");
+        assert_eq!(atom.code_to_insert(current_module)                 , "Atom");
+        assert_eq!(method.code_to_insert(current_module)               , "method");
+        assert_eq!(module_method.code_to_insert(current_module)        , "Project.module_method");
+        assert_eq!(another_module_method.code_to_insert(current_module), "Another_Module.module_method");
 
         let current_module = Some(&module);
-        assert_eq!(atom_entry.code_to_insert(current_module)         , "Atom");
-        assert_eq!(method_entry.code_to_insert(current_module)       , "method");
-        assert_eq!(module_method_entry.code_to_insert(current_module), "here.moduleMethod");
-
-        let current_module = Some(&another_module);
-        assert_eq!(atom_entry.code_to_insert(current_module)         , "Atom");
-        assert_eq!(method_entry.code_to_insert(current_module)       , "method");
-        assert_eq!(module_method_entry.code_to_insert(current_module), "Main.moduleMethod");
+        assert_eq!(atom.code_to_insert(current_module)                 , "Atom");
+        assert_eq!(method.code_to_insert(current_module)               , "method");
+        assert_eq!(module_method.code_to_insert(current_module)        , "here.module_method");
+        assert_eq!(another_module_method.code_to_insert(current_module), "Another_Module.module_method");
     }
 
     #[test]

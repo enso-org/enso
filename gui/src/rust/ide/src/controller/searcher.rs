@@ -733,10 +733,11 @@ impl Searcher {
     fn add_required_imports(&self) -> FallibleResult {
         let data_borrowed = self.data.borrow();
         let fragments     = data_borrowed.fragments_added_by_picking.iter();
-        let imports       = fragments.map(|frag| &frag.picked_suggestion.module);
+        let imports       = fragments.map(|frag| frag.picked_suggestion.module.clone());
         let mut module    = self.module();
         let here          = self.module_qualified_name();
-        for import in imports {
+        for mut import in imports {
+            import.remove_main_module_segment();
             module.add_module_import(&here, &self.parser, &import);
         }
         self.graph.graph().module.update_ast(module.ast)

@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::constants::keywords::HERE;
+use crate::constants::PROJECTS_MAIN_MODULE;
 use crate::double_representation::definition;
 use crate::double_representation::definition::DefinitionProvider;
 use crate::double_representation::identifier;
@@ -34,11 +35,6 @@ pub struct ImportNotFound(pub ImportInfo);
 #[fail(display="Line index is out of bounds.")]
 #[allow(missing_docs)]
 pub struct LineIndexOutOfBounds;
-
-/// Happens if an empty segments list is provided as qualified module name.
-#[derive(Clone,Copy,Debug,Fail)]
-#[fail(display="No name segments were provided.")]
-pub struct EmptyName;
 
 #[allow(missing_docs)]
 #[derive(Clone,Copy,Debug,Fail)]
@@ -75,7 +71,7 @@ pub struct NotDirectChild(ast::Crumbs);
 /// Includes segments of module path but *NOT* the project name (see: `QualifiedName`).
 #[derive(Clone,Debug,Shrinkwrap,PartialEq,Eq,Hash)]
 pub struct Id {
-    /// The vector is non-empty.
+    /// The vector can be empty - in that case we point to the module called `Main`.
     segments:Vec<ReferentName>
 }
 
@@ -83,13 +79,9 @@ impl Id {
     /// Construct a module's ID value from a name segments sequence.
     ///
     /// Fails if the given sequence is empty.
-    pub fn new(segments:impl IntoIterator<Item=ReferentName>) -> Result<Id,EmptyName> {
+    pub fn new(segments:impl IntoIterator<Item=ReferentName>) -> Id {
         let segments = segments.into_iter().collect_vec();
-        if segments.is_empty() {
-            Err(EmptyName)
-        } else {
-            Ok(Id {segments})
-        }
+        Id {segments}
     }
 
     /// Construct a module's ID value from a name segments sequence.
@@ -100,7 +92,7 @@ impl Id {
         let names = texts.map(|text| ReferentName::new(text.as_ref()));
 
         let segments:Vec<_> = Result::from_iter(names)?;
-        Self::new(segments).map_err(Into::into)
+        Ok(Self::new(segments))
     }
 
     /// Get the segments of the module's path. They correspond to the module's file parent
@@ -109,7 +101,7 @@ impl Id {
     /// The names are ordered beginning with the root one. The last one is the direct parent of the
     /// target module's file. The module name itself is not included.
     pub fn parent_segments(&self) -> &[ReferentName] {
-        &self.segments[..self.segments.len() - 1]
+        &self.segments[..self.segments.len().saturating_sub(1)]
     }
 
     /// Consume the [`Id`] and returns the inner representation of segments.
@@ -118,9 +110,10 @@ impl Id {
     }
 
     /// Get the name of a module identified by this value.
-    pub fn name(&self) -> &ReferentName {
-        // Safe, as the invariant guarantees segments to be non-empty.
-        self.segments.iter().last().unwrap()
+    pub fn name(&self) -> ReferentName {
+        self.segments.iter().last().cloned().unwrap_or_else(
+            || ReferentName::new(PROJECTS_MAIN_MODULE).unwrap()
+        )
     }
 }
 
@@ -208,8 +201,9 @@ impl QualifiedName {
     }
 
     /// Get the module's name. It is also the module's typename.
-    pub fn name(&self) -> &ReferentName {
-        self.id.name()
+    pub fn name(&self) -> ReferentName {
+        if self.id.segments.is_empty() { self.project_name.clone() }
+        else                           { self.id.name()            }
     }
 
     /// Get the name of project owning this module.
@@ -225,6 +219,31 @@ impl QualifiedName {
     /// Get all segments of the fully qualified name.
     pub fn segments(&self) -> impl Iterator<Item=&ReferentName> {
         std::iter::once(&self.project_name).chain(self.id.segments.iter())
+    }
+
+    /// Remove the main module segment from the qualified name.
+    ///
+    /// The main module does not need to be explicitly mentioned, so the modified structure will
+    /// still identify the same entity.
+    ///
+    /// ```
+    /// # use ide::model::module::QualifiedName;
+    /// let mut name_with_main            = QualifiedName::from_text("Project.Main").unwrap();
+    /// let mut name_without_main         = QualifiedName::from_text("Project.Foo.Bar").unwrap();
+    /// let mut main_but_not_project_main = QualifiedName::from_text("Project.Foo.Main").unwrap();
+    ///
+    /// name_with_main            .remove_main_module_segment();
+    /// name_without_main         .remove_main_module_segment();
+    /// main_but_not_project_main .remove_main_module_segment();
+    ///
+    /// assert_eq!(name_with_main           .to_string(), "Project");
+    /// assert_eq!(name_without_main        .to_string(), "Project.Foo.Bar");
+    /// assert_eq!(main_but_not_project_main.to_string(), "Project.Foo.Main");
+    /// ```
+    pub fn remove_main_module_segment(&mut self) {
+        if self.id.segments == [PROJECTS_MAIN_MODULE] {
+            self.id.segments.pop();
+        }
     }
 }
 
@@ -694,7 +713,6 @@ mod tests {
 
     #[test]
     fn qualified_name_validation() {
-        assert!(QualifiedName::try_from("ProjectName").is_err());
         assert!(QualifiedName::try_from("project.Name").is_err());
         assert!(QualifiedName::try_from("Project.name").is_err());
         assert!(QualifiedName::try_from("Project.").is_err());

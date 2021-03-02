@@ -86,7 +86,7 @@ impl Path {
         // We prepend source directory and replace trailing segment with filename.
         let src_dir  = std::iter::once(SOURCE_DIRECTORY.to_owned());
         let dirs     = id.parent_segments().iter().map(ToString::to_string);
-        let filename = std::iter::once(Self::module_filename(id.name()));
+        let filename = std::iter::once(Self::module_filename(&id.name()));
         let segments = src_dir.chain(dirs).chain(filename).collect();
         let path     = FilePath {root_id,segments};
         Path {file_path:Rc::new(path)}
@@ -140,7 +140,7 @@ impl Path {
     (root_id:Uuid, name_segments:impl IntoIterator<Item:AsRef<str>>) -> FallibleResult<Path> {
         let segment_results = name_segments.into_iter().map(|s| ReferentName::new(s.as_ref()));
         let segments:Vec<_> = Result::from_iter(segment_results)?;
-        let id              = Id::new(segments)?;
+        let id              = Id::new(segments);
         Ok(Self::from_id(root_id,&id))
     }
 
@@ -152,7 +152,7 @@ impl Path {
             let parent_segments = dirs.iter().map(ReferentName::new).map(Result::unwrap);
             let final_segment   = std::iter::once(self.module_name());
             let segments        = parent_segments.chain(final_segment);
-            Id::new(segments).unwrap()
+            Id::new(segments)
         } else {
             // Class invariant guarantees at least two segments in path.
             panic!("Unreachable")
