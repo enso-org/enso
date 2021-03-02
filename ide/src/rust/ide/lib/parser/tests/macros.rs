@@ -27,7 +27,7 @@ fn import_utilities() {
         assert!(ast_as_import_match(&ast).is_none());
     };
 
-    // expect_import("import"); // TODO [mwu] https://github.com/enso-org/enso/issues/1016
+    expect_import("import");
     expect_import("import Foo");
     expect_import("import Foo.Bar");
     expect_import("import Foo.Bar.Baz");
@@ -39,6 +39,8 @@ fn import_utilities() {
     expect_not_import("type Foo as Bar");
     expect_not_import("if Foo then Bar else Baz");
     expect_not_import("Foo.Bar.Baz");
+    expect_not_import("->");
+    expect_not_import("export");
     expect_not_import("export Foo");
     expect_not_import("from Foo export all hiding Bar");
 }
@@ -63,7 +65,7 @@ fn recognizing_lambdas() {
     expect_lambda("a->b",       "a",    "b");
     expect_lambda("foo->4+(4)", "foo",  "4+(4)");
     expect_lambda("a->b->c",    "a",    "b->c");
-    // expect_lambda("(a->b)->c"); // TODO: Failing due to internal parser error: java.lang.NullPointerException
+    expect_lambda("(a->b)->c",  "(a->b)", "c");
 
     expect_not_lambda("(a->b)");
     expect_not_lambda("a+b");

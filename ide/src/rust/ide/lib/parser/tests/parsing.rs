@@ -404,10 +404,13 @@ impl Fixture {
             , "freeze bar"
             , "case foo of\n  bar"
             , "import foo"
+            , "import"
             , "export bar"
             , "from bar import all"
             , "from bar export bo"
             , "a ->"
+            , "-> a"
+            , "(a -> b) -> c"
             ];
 
         for macro_usage in macro_usages.iter() {

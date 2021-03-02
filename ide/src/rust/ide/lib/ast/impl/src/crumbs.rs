@@ -2029,7 +2029,7 @@ mod tests {
             head : MacroMatchSegment{head:var.clone(),body:body.clone()},
             tail : vec![]
         };
-        Match{pfx:Some(body),segs,resolved:var.clone()}
+        Match{pfx:Some(body),segs,resolved:Some(var.clone())}
     }
 
     #[test]
@@ -2068,7 +2068,7 @@ mod tests {
         let crumb6 = MatchCrumb::Segs{val:SegmentMatchCrumb::Body{val:crumb1},index:0};
         let crumb7 = MatchCrumb::Segs{val:SegmentMatchCrumb::Body{val:crumb2},index:0};
         let match1 = match_();
-        let ast    = [match1.resolved.clone(), Ast::var("X"), Ast::var("Y"), Ast::var("Z")];
+        let ast    = [match1.resolved.clone().unwrap(),Ast::var("X"),Ast::var("Y"),Ast::var("Z")];
         let match2 = match1.set(&crumb3,ast[1].clone()).unwrap();
         let match3 = match2.set(&crumb5,ast[2].clone()).unwrap();
         let match4 = match3.set(&crumb7,ast[3].clone()).unwrap();
