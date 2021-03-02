@@ -474,15 +474,11 @@ object DocParserHTMLGenerator {
     * @return - Def title in HTML
     */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    val clsTitle   = HTML.`class` := "DefTitle"
-    val clsArgs    = HTML.`class` := "DefArgs"
-    val nameStr    = name.show()
-    val argsStr    = args.map(_.show())
-    var argsStrUrl = argsStr.mkString("_")
-    if (argsStr.nonEmpty) {
-      argsStrUrl = "_" + argsStrUrl
-    }
-    val pageHref = HTML.`href` := "#" + nameStr + argsStrUrl
+    val clsTitle = HTML.`class` := "DefTitle"
+    val clsArgs  = HTML.`class` := "DefArgs"
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show() + " ")
+    val pageHref = HTML.`href` := "#" + nameStr
     val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
     HTML.a(pageHref)(innerDiv)
   }
