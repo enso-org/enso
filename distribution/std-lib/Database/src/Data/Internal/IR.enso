@@ -267,6 +267,15 @@ type Query
        A Select SQL query that gets all columns in a table.
     type Select_All context
 
+    ## PRIVATE
+
+       An Insert SQL query that inserts a single row to the table.
+
+       Arguments:
+       - table_name: name of the table to insert to.
+       - pairs: a list of pairs consisting of a column name and and expression.
+    type Insert table_name pairs
+
 ## PRIVATE
 
    Creates a query context that just fetches data from a table, without any

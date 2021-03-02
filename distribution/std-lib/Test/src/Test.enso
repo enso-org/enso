@@ -168,9 +168,11 @@ specify label ~behavior pending=Nothing =
 
 ## PRIVATE
 run_spec ~behavior =
-    recovery = # Panic.recover <| ## FIXME UNCOMMENT
-        behavior.catch err-> Panic.throw (Finished_With_Error err)
-        Nothing
+    ## FIXME UNCOMMENT
+#    recovery = Panic.recover <|
+#        behavior.catch err-> Panic.throw (Finished_With_Error err)
+#        Nothing
+    recovery = behavior.map_error Finished_With_Error
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->

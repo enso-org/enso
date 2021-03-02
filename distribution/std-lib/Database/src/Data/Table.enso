@@ -415,6 +415,29 @@ type Table
     internal_columns_with_index =
         this.context.meta_index + this.internal_columns
 
+    ## PRIVATE
+
+       Inserts a new row to the table. It actually modifies the underlying table
+       in the database.
+
+       It can only be called on the Table if no operations modifying it have
+       been performed like modifying, removing or adding columns, filtering,
+       grouping etc.
+    insert : Vector Any -> Nothing
+    insert values =
+        table_name = case this.context.from_spec of
+            IR.From_Table name _ -> name
+            _ -> Error.throw "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+        # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
+        pairs = this.internal_columns.zip values col-> value->
+            [col.name, IR.Constant col.sql_type value]
+        query = this.connection.dialect.generate_sql <| IR.Insert table_name pairs
+        affected_rows = this.connection.execute_update query
+        case affected_rows == 1 of
+            False -> Error.throw "The update unexpectedly affected "+affected_rows.to_text+" rows."
+            True -> Nothing
+
+
 ## Represents a table with grouped rows.
 type Aggregate_Table
 

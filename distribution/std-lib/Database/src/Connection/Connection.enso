@@ -56,8 +56,8 @@ type JDBC_Connection
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
     execute_query : Text | Sql.Statement -> Materialized_Table =
-    execute_query statement = here.wrap_sql_errors <|
-        Resource.bracket (this.prepare_statement statement) .close stmt->
+    execute_query query = here.wrap_sql_errors <|
+        Resource.bracket (this.prepare_statement query) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount

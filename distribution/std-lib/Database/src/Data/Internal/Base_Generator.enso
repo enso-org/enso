@@ -182,6 +182,14 @@ generate_select_context dialect ctx =
     (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
+generate_insert_query dialect table_name pairs =
+    names = Sql.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
+    values = Sql.join ", " <| pairs.map (.second >> here.generate_expression dialect)
+    into = dialect.wrap_identifier table_name
+
+    Sql.code "INSERT INTO " ++ into ++ Sql.code " (" ++ names ++ Sql.code ") VALUES (" ++ values ++ Sql.code ")"
+
+## PRIVATE
 
    Builds code for a whole query.
 generate_query : Internal_Dialect -> IR.Query -> Sql.Builder
@@ -192,4 +200,6 @@ generate_query dialect query = case query of
         (Sql.code "SELECT ") ++ cols ++ here.generate_select_context dialect ctx
     IR.Select_All ctx ->
         (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
+    IR.Insert table_name pairs ->
+        here.generate_insert_query dialect table_name pairs
     _ -> Error.throw "Unsupported query type."
