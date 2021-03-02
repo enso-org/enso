@@ -783,7 +783,7 @@ impl Handle {
     pub fn collapse
     (&self, nodes:impl IntoIterator<Item=node::Id>, new_method_name_base:&str)
     -> FallibleResult<node::Id> {
-        analytics::remote_log(analytics::AnonymousData("graph::collapse"));
+        analytics::remote_log_event("graph::collapse");
         use double_representation::refactorings::collapse::collapse;
         use double_representation::refactorings::collapse::Collapsed;
         let nodes : Vec<_> = Result::from_iter(nodes.into_iter().map(|id| self.node(id)))?;

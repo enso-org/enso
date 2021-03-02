@@ -177,22 +177,36 @@ mixpanel.init("5b541aeab5e08f313cdc1d1bbebc12ac", { "api_host": "https://api-eu.
 
 const MAX_MESSAGE_LENGTH = 500;
 
+function trim_message(message) {
+    let trimmed = message.substr(0,MAX_MESSAGE_LENGTH)
+    if (trimmed.length < message.length) {
+        trimmed += "..."
+    }
+    return trimmed
+}
+
 function remoteLog(event,data) {
     if (mixpanel) {
-        event = JSON.stringify(event).substr(0,MAX_MESSAGE_LENGTH)
-        if (data !== undefined) {
-            data = JSON.stringify(data).substr(0,MAX_MESSAGE_LENGTH)
+        event = trim_message(event)
+        if (data !== undefined && data !== null) {
+            data = trim_message(JSON.stringify(data))
+            mixpanel.track(event,{data});
+        } else {
+            mixpanel.track(event);
         }
-        mixpanel.track(event,{data:data});
     } else {
         console.warn(`Failed to log the event '${event}'.`)
     }
 }
 
-window.enso.remote_log = remoteLog
+window.enso.remoteLog = remoteLog
 
 window.setInterval(() =>{remoteLog("alive");}, 1000 * 60)
 
+//Build data injected during the build process. See `webpack.config.js` for the source.
+window.enso.remoteLog("git_hash", {hash: GIT_HASH})
+window.enso.remoteLog("build_information", BUILD_INFO)
+window.enso.remoteLog("git_status", {satus: GIT_STATUS})
 
 // ======================
 // === Logs Buffering ===
@@ -251,7 +265,7 @@ class LogRouter {
     }
 
     handleError(...args) {
-        remoteLog(args)
+        remoteLog("error", args)
     }
 }
 

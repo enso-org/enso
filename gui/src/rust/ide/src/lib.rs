@@ -92,6 +92,13 @@ pub fn entry_point_ide() {
 
     // FIXME: This code is temporary. It's used to remove the loader UI.
     ensogl_text_msdf_sys::run_once_initialized(|| {
+
+        // Logging of build information.
+        #[cfg(debug_assertions)]
+            analytics::remote_log_value("debug_mode", "debug_mode_is_active", analytics::AnonymousData(true));
+        #[cfg(not(debug_assertions))]
+            analytics::remote_log_value("debug_mode", "debug_mode_is_active", analytics::AnonymousData(false));
+
         let config = crate::config::Startup::from_web_arguments().expect("Failed to read configuration.");
         crate::ide::Initializer::new(config).start_and_forget();
     });
