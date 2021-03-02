@@ -324,19 +324,19 @@ impl Integration {
         }
 
         frp::extend! { network
-            eval_ editor_outs.node_editing_started([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_editing_started"))});
-            eval_ editor_outs.node_editing_finished([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_editing_finished"))});
-            eval_ editor_outs.node_added([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_added"))});
-            eval_ editor_outs.node_removed([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_removed"))});
-            eval_ editor_outs.nodes_collapsed([]{analytics::remote_log(analytics::AnonymousData("graph_editor::nodes_collapsed"))});
-            eval_ editor_outs.node_entered([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_enter_request"))});
-            eval_ editor_outs.node_exited([]{analytics::remote_log(analytics::AnonymousData("graph_editor::node_exit_request"))});
-            eval_ editor_outs.on_edge_endpoints_set([]{analytics::remote_log(analytics::AnonymousData("graph_editor::edge_endpoints_set"))});
-            eval_ editor_outs.visualization_enabled([]{analytics::remote_log(analytics::AnonymousData("graph_editor::visualization_enabled"))});
-            eval_ editor_outs.visualization_disabled([]{analytics::remote_log(analytics::AnonymousData("graph_editor::visualization_disabled"))});
-            eval_ on_connection_removed([]{analytics::remote_log(analytics::AnonymousData("graph_editor::connection_removed"))});
-            eval_ searcher_frp.used_as_suggestion([]{analytics::remote_log(analytics::AnonymousData("searcher::used_as_suggestion"))});
-            eval_ project_frp.editing_committed([]{analytics::remote_log(analytics::AnonymousData("project::editing_committed"))});
+            eval_ editor_outs.node_editing_started([]{analytics::remote_log_event("graph_editor::node_editing_started")});
+            eval_ editor_outs.node_editing_finished([]{analytics::remote_log_event("graph_editor::node_editing_finished")});
+            eval_ editor_outs.node_added([]{analytics::remote_log_event("graph_editor::node_added")});
+            eval_ editor_outs.node_removed([]{analytics::remote_log_event("graph_editor::node_removed")});
+            eval_ editor_outs.nodes_collapsed([]{analytics::remote_log_event("graph_editor::nodes_collapsed")});
+            eval_ editor_outs.node_entered([]{analytics::remote_log_event("graph_editor::node_enter_request")});
+            eval_ editor_outs.node_exited([]{analytics::remote_log_event("graph_editor::node_exit_request")});
+            eval_ editor_outs.on_edge_endpoints_set([]{analytics::remote_log_event("graph_editor::edge_endpoints_set")});
+            eval_ editor_outs.visualization_enabled([]{analytics::remote_log_event("graph_editor::visualization_enabled")});
+            eval_ editor_outs.visualization_disabled([]{analytics::remote_log_event("graph_editor::visualization_disabled")});
+            eval_ on_connection_removed([]{analytics::remote_log_event("graph_editor::connection_removed")});
+            eval_ searcher_frp.used_as_suggestion([]{analytics::remote_log_event("searcher::used_as_suggestion")});
+            eval_ project_frp.editing_committed([]{analytics::remote_log_event("project::editing_committed")});
         }
 
 
@@ -788,7 +788,7 @@ impl Model {
 
     /// Handle notification received from controller about values having been entered.
     pub fn on_node_entered(&self, local_call:&LocalCall) -> FallibleResult {
-        analytics::remote_log(analytics::AnonymousData("integration::node_entered"));
+        analytics::remote_log_event("integration::node_entered");
         let definition = local_call.definition.clone().into();
         let call       = local_call.call;
         let local_call = graph_editor::LocalCall{definition,call};
@@ -800,7 +800,7 @@ impl Model {
 
     /// Handle notification received from controller about node having been exited.
     pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult {
-        analytics::remote_log(analytics::AnonymousData("integration::node_exited"));
+        analytics::remote_log_event("integration::node_exited");
         self.view.graph().frp.deselect_all_nodes.emit(&());
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
@@ -1083,9 +1083,10 @@ impl Model {
                 if let Err(e) = controller.enter_method_pointer(&local_call).await {
                     error!(logger,"Entering node failed: {e}.");
 
-                    let event = analytics::AnonymousData("integration::entering_node_failed");
-                    let data  = analytics::AnonymousData(|| format!("{:?}", e));
-                    analytics::remote_log_data(event, data)
+                    let event = "integration::entering_node_failed";
+                    let field = "error";
+                    let data  = analytics::AnonymousData(|| e.to_string());
+                    analytics::remote_log_value(event,field,data)
                 }
             };
             executor::global::spawn(enter_action);
@@ -1111,9 +1112,10 @@ impl Model {
             if let Err(e) = controller.exit_node().await {
                 debug!(logger, "Exiting node failed: {e}.");
 
-                let event = analytics::AnonymousData("integration::exiting_node_failed");
-                let data  = analytics::AnonymousData(|| format!("{:?}", e));
-                analytics::remote_log_data(event, data)
+                let event = "integration::exiting_node_failed";
+                let field = "error";
+                let data  = analytics::AnonymousData(|| e.to_string());
+                analytics::remote_log_value(event,field,data)
             }
         };
         executor::global::spawn(exit_node_action);

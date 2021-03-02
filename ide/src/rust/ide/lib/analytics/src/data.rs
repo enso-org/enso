@@ -12,6 +12,7 @@ pub trait Loggable{
     fn get(self) -> JsValue;
 }
 
+impl      Loggable for bool     { fn get(self) -> JsValue { self.into() } }
 impl      Loggable for &str     { fn get(self) -> JsValue { self.into() } }
 impl      Loggable for String   { fn get(self) -> JsValue { self.into() } }
 impl      Loggable for &String  { fn get(self) -> JsValue { self.into() } }
@@ -21,6 +22,7 @@ impl<F,S> Loggable for F
         self().get()
     }
 }
+
 
 /// Wrapper struct for data that can be made public and has no privacy implications.
 #[derive(Clone,Copy,Debug)]
