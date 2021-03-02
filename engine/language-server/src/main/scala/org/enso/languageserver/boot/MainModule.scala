@@ -9,7 +9,6 @@ import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -41,17 +40,14 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
   * @param serverConfig configuration for the language server
   * @param logLevel log level for the Language Server
   */
-class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel)
-    extends InitializationComponent {
+class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
@@ -231,8 +227,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel)
       "std-in-controller"
     )
 
+  val initializationComponent = new ResourcesInitialization(
+    system.eventStream,
+    directoriesConfig,
+    suggestionsRepo,
+    versionsRepo
+  )(system.dispatcher)
+
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
-    this,
+    initializationComponent,
     bufferRegistry,
     capabilityRouter,
     fileManager,
@@ -279,55 +282,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel)
       new BinaryConnectionControllerFactory(fileManager)
     )
   log.trace("Created BinaryWebSocketServer")
-
-  /** Initialize the module. */
-  override def init(): Future[InitializationComponent.Initialized.type] = {
-    import system.dispatcher
-
-    val directoriesInit: Future[Unit] = Future {
-      directoriesConfig.createDirectories()
-    }
-
-    def suggestionsRepoInit: Future[Unit] = {
-      val initAction = suggestionsRepo.init
-      initAction.onComplete {
-        case Success(()) =>
-          system.eventStream.publish(
-            InitializedEvent.SuggestionsRepoInitialized
-          )
-        case Failure(ex) =>
-          log.error("Failed to initialize SQL suggestions repo", ex)
-      }
-      initAction
-    }
-
-    def versionsRepoInit: Future[Unit] = {
-      val initAction = versionsRepo.init
-      initAction.onComplete {
-        case Success(()) =>
-          system.eventStream.publish(
-            InitializedEvent.FileVersionsRepoInitialized
-          )
-        case Failure(ex) =>
-          log.error("Failed to initialize SQL versions repo", ex)
-      }
-      initAction
-    }
-
-    val initialization = for {
-      _ <- directoriesInit
-      _ <- Future.sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-    } yield InitializationComponent.Initialized
-
-    initialization.onComplete {
-      case Success(_) =>
-        system.eventStream.publish(InitializedEvent.InitializationFinished)
-      case _ =>
-        system.eventStream.publish(InitializedEvent.InitializationFailed)
-    }
-
-    initialization
-  }
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
