@@ -495,7 +495,7 @@ pub enum Shape<T> {
     // === Macros ===
     Match         { pfx      : Option<MacroPatternMatch<Shifted<T>>>
                   , segs     : ShiftedVec1<MacroMatchSegment<T>>
-                  , resolved : Ast                                     },
+                  , resolved : Option<Ast>                             },
     Ambiguous     { segs     : ShiftedVec1<MacroAmbiguousSegment<T>>
                   , paths    : Tree<Ast, Unit>                         },
 

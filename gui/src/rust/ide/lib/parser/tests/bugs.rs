@@ -9,20 +9,6 @@ use wasm_bindgen_test::wasm_bindgen_test_configure;
 wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
-fn missing_macro_segment() {
-    // TODO: should succeed
-    //  https://github.com/enso-org/enso/issues/256
-    assert!(parser::Parser::new_or_panic().parse_line("-> a").is_err());
-}
-
-#[wasm_bindgen_test]
-fn nested_macros() {
-    // TODO: should succeed
-    //   https://github.com/enso-org/enso/issues/256 or https://github.com/enso-org/enso/issues/343
-    assert!(parser::Parser::new_or_panic().parse_line("(a -> b) -> c").is_err());
-}
-
-#[wasm_bindgen_test]
 fn extension_operator_methods() {
     let ast = parser::Parser::new_or_panic().parse_line("Int.+").unwrap();
 
