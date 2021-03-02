@@ -50,7 +50,8 @@ import scala.util.{Failure, Success}
   * @param serverConfig configuration for the language server
   * @param logLevel log level for the Language Server
   */
-class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
+class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel)
+    extends InitializationComponent {
 
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
@@ -231,6 +232,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+    this,
     bufferRegistry,
     capabilityRouter,
     fileManager,
@@ -279,11 +281,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   log.trace("Created BinaryWebSocketServer")
 
   /** Initialize the module. */
-  def init: Future[Unit] = {
+  override def init(): Future[InitializationComponent.Initialized.type] = {
     import system.dispatcher
 
-    val directoriesInit: Future[Unit] =
-      Future { directoriesConfig.createDirectories() }
+    val directoriesInit: Future[Unit] = Future {
+      directoriesConfig.createDirectories()
+    }
 
     def suggestionsRepoInit: Future[Unit] = {
       val initAction = suggestionsRepo.init
@@ -307,17 +310,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
           )
         case Failure(ex) =>
           log.error("Failed to initialize SQL versions repo", ex)
-      }(system.dispatcher)
+      }
       initAction
     }
 
     val initialization = for {
       _ <- directoriesInit
       _ <- Future.sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-    } yield ()
+    } yield InitializationComponent.Initialized
 
     initialization.onComplete {
-      case Success(()) =>
+      case Success(_) =>
         system.eventStream.publish(InitializedEvent.InitializationFinished)
       case _ =>
         system.eventStream.publish(InitializedEvent.InitializationFailed)

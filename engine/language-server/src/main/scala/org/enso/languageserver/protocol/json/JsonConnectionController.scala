@@ -3,8 +3,10 @@ package org.enso.languageserver.protocol.json
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.pattern.pipe
 import akka.util.Timeout
 import org.enso.jsonrpc._
+import org.enso.languageserver.boot.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -62,7 +64,8 @@ import scala.concurrent.duration._
 /** An actor handling communications between a single client and the language
   * server.
   *
-  * @param connectionId the internal connection id.
+  * @param connectionId the internal connection id
+  * @param mainComponent the main initialization logic
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
@@ -72,6 +75,7 @@ import scala.concurrent.duration._
   */
 class JsonConnectionController(
   val connectionId: UUID,
+  val mainComponent: InitializationComponent,
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
@@ -86,6 +90,8 @@ class JsonConnectionController(
     with Stash
     with ActorLogging
     with UnhandledLogging {
+
+  import context.dispatcher
 
   implicit val timeout = Timeout(requestTimeout)
 
@@ -122,6 +128,24 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
+      log.info("Initializing resources")
+      mainComponent.init().pipeTo(self)
+      context.become(initializing(webActor, clientId, req, sender()))
+
+    case Request(_, id, _) =>
+      sender() ! ResponseError(Some(id), SessionNotInitialisedError)
+
+    case MessageHandler.Disconnected =>
+      context.stop(self)
+  }
+
+  private def initializing(
+    webActor: ActorRef,
+    clientId: UUID,
+    request: Request[_, _],
+    receiver: ActorRef
+  ): Receive = {
+    case InitializationComponent.Initialized =>
       log.info(s"RPC session initialized for client: $clientId")
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
@@ -129,14 +153,11 @@ class JsonConnectionController(
       val handler = context.actorOf(
         InitProtocolConnectionHandler.props(fileManager, requestTimeout)
       )
-      handler.forward(req)
+      handler.tell(request, receiver)
+      unstashAll()
       context.become(initialised(webActor, session, requestHandlers))
 
-    case Request(_, id, _) =>
-      sender() ! ResponseError(Some(id), SessionNotInitialisedError)
-
-    case MessageHandler.Disconnected =>
-      context.stop(self)
+    case _ => stash()
   }
 
   private def initialised(
@@ -316,7 +337,8 @@ object JsonConnectionController {
 
   /** Creates a configuration object used to create a [[JsonConnectionController]].
     *
-    * @param connectionId the internal connection id.
+    * @param connectionId the internal connection id
+    * @param mainComponent the main initialization logic
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
@@ -327,6 +349,7 @@ object JsonConnectionController {
     */
   def props(
     connectionId: UUID,
+    mainComponent: InitializationComponent,
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
@@ -341,6 +364,7 @@ object JsonConnectionController {
     Props(
       new JsonConnectionController(
         connectionId,
+        mainComponent,
         bufferRegistry,
         capabilityRouter,
         fileManager,
