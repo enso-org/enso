@@ -167,6 +167,9 @@ labels:
   - name: "Type: RFC"
     color: "#ede2fe"
     description: An RFC proposing a change to Enso
+  - name: "Type: Release"
+    color: "#ede2fe"
+    description: Preparation for an Enso release
 
   - name: "RFC: Active"
     color: "#e4decb"
