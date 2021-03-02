@@ -122,6 +122,53 @@ type Column
 
     ## UNSTABLE
 
+       Sums the values in this column.
+    sum : Any
+    sum = this.compute_aggregate "SUM"
+
+    ## UNSTABLE
+
+       Computes the maximum element of this column.
+    max : Any
+    max = this.compute_aggregate "MAX"
+
+    ## UNSTABLE
+
+       Computes the minimum element of this column.
+    min : Any
+    min = this.compute_aggregate "MIN"
+
+    ## UNSTABLE
+
+       Computes the mean of non-missing elements of this column.
+    mean : Any
+    mean = this.compute_aggregate "AVG"
+
+    ## PRIVATE
+    compute_aggregate op_name =
+        agg = here.make_aggregate this op_name
+        agg.to_vector . at 0
+
+    ## UNSTABLE
+
+       Returns the length of this column.
+    length : Integer
+    length = this.to_table.row_count
+
+    ## UNSTABLE
+
+       Returns the number of missing items in this column.
+    count_missing : Integer
+    count_missing = this.where this.is_missing . length
+
+    ## UNSTABLE
+
+       Returns the number of non-null items in this column.
+    count : Integer
+    count = this.where this.is_missing.not . length
+
+    ## UNSTABLE
+
        Element-wise equality comparison. Returns a column with results of
        comparing this column's elements against `other`.
        If `other` is a column, the comparison is performed pairwise between
@@ -332,7 +379,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
-        this.make_aggregate "SUM" name_suffix
+        here.make_aggregate this "SUM" name_suffix
 
     ## UNSTABLE
 
@@ -343,7 +390,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        this.make_aggregate "MAX" name_suffix
+        here.make_aggregate this "MAX" name_suffix
 
     ## UNSTABLE
 
@@ -354,7 +401,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        this.make_aggregate "MIN" name_suffix
+        here.make_aggregate this "MIN" name_suffix
 
     ## UNSTABLE
 
@@ -365,7 +412,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
-        this.make_aggregate "COUNT" name_suffix new_type=Sql_Type.integer
+        here.make_aggregate this "COUNT" name_suffix new_type=Sql_Type.integer
 
     ## UNSTABLE
 
@@ -376,16 +423,16 @@ type Aggregate_Column
                         name to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
-        this.make_aggregate "AVG" name_suffix
+        here.make_aggregate this "AVG" name_suffix
 
-    ## PRIVATE
+## PRIVATE
 
-       A helper method for creating an aggregated column by applying some
-       operation.
-    make_aggregate operation name_suffix new_type=Nothing =
-        actual_new_type = if new_type.is_nothing then this.sql_type else new_type
-        expr = IR.Operation operation [this.expression]
-        case Helpers.ensure_name_is_sane name_suffix of
-            True ->
-                new_name = this.name + name_suffix
-                Column new_name this.connection actual_new_type expr this.context
+   A helper method for creating an aggregated column by applying some
+   operation.
+make_aggregate column operation name_suffix new_type=Nothing =
+    actual_new_type = if new_type.is_nothing then column.sql_type else new_type
+    expr = IR.Operation operation [column.expression]
+    case Helpers.ensure_name_is_sane name_suffix of
+        True ->
+            new_name = column.name + name_suffix
+            Column new_name column.connection actual_new_type expr column.context

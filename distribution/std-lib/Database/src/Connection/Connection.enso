@@ -55,8 +55,10 @@ type JDBC_Connection
        Arguments:
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
-    execute_query : Text | Sql.Statement -> Materialized_Table =
-    execute_query query = here.wrap_sql_errors <|
+       - expected_types: an optional array of expected types of each column;
+         meant only for internal use.
+    execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
+    execute_query query expected_types=Nothing = here.wrap_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
@@ -65,16 +67,20 @@ type JDBC_Connection
                want to try a more performant solution for columns of numbers or
                booleans
             column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
-            column_types = Vector.new ncols (ix -> metadata.getColumnType ix+1)
+            column_types = if expected_types.is_nothing.not then expected_types else
+                Vector.new ncols (ix -> Sql.Sql_Type <| metadata.getColumnType ix+1)
             columns = column_names.map (name -> [name, ArrayList.new])
             go has_next = if has_next.not then Nothing else
                 columns.map_with_index ix-> pair->
                     results = pair.second
-                    typ_id = column_types.at ix
+                    typ = column_types.at ix
                     ## getObject handles most types by default correctly, but it
                        would cast booleans to integers
-                    obj = if typ_id == Types.BOOLEAN then rs.getBoolean ix+1 else
-                        rs.getObject ix+1
+                    obj = case typ == Sql.Sql_Type.boolean of
+                        True ->
+                            bool = rs.getBoolean ix+1
+                            if rs.wasNull then Nothing else bool
+                        False -> rs.getObject ix+1
                     results.add obj
                 go rs.next
             go rs.next

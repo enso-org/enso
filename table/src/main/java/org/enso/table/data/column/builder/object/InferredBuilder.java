@@ -127,6 +127,9 @@ public class InferredBuilder extends Builder {
 
   @Override
   public Storage seal() {
+    if (currentBuilder == null) {
+      initBuilderFor(null);
+    }
     return currentBuilder.seal();
   }
 }

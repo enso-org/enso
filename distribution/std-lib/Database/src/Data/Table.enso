@@ -360,8 +360,10 @@ type Table
         case this.context.meta_index.length > 1 of
             True -> Error.throw "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
-                sql = this.reset_index.limit max_rows . to_sql
-                table = this.connection.execute_query sql
+                preprocessed = this.reset_index.limit max_rows
+                sql = preprocessed.to_sql
+                expected_types = preprocessed.internal_columns.map .sql_type
+                table = this.connection.execute_query sql expected_types
                 case this.context.meta_index.length == 1 of
                     False -> table
                     True ->
