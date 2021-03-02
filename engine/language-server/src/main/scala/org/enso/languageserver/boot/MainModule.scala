@@ -55,8 +55,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
 
-  val directoriesConfig =
-    DirectoriesConfig.initialize(serverConfig.contentRootPath)
+  val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
@@ -283,25 +282,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   def init: Future[Unit] = {
     import system.dispatcher
 
-    val suggestionsRepoInit = suggestionsRepo.init
-    suggestionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL suggestions repo", ex)
+    val directoriesInit: Future[Unit] =
+      Future { directoriesConfig.createDirectories() }
+
+    def suggestionsRepoInit: Future[Unit] = {
+      val initAction = suggestionsRepo.init
+      initAction.onComplete {
+        case Success(()) =>
+          system.eventStream.publish(
+            InitializedEvent.SuggestionsRepoInitialized
+          )
+        case Failure(ex) =>
+          log.error("Failed to initialize SQL suggestions repo", ex)
+      }
+      initAction
     }
 
-    val versionsRepoInit = versionsRepo.init
-    versionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL versions repo", ex)
-    }(system.dispatcher)
+    def versionsRepoInit: Future[Unit] = {
+      val initAction = versionsRepo.init
+      initAction.onComplete {
+        case Success(()) =>
+          system.eventStream.publish(
+            InitializedEvent.FileVersionsRepoInitialized
+          )
+        case Failure(ex) =>
+          log.error("Failed to initialize SQL versions repo", ex)
+      }(system.dispatcher)
+      initAction
+    }
 
-    val initialization = Future
-      .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-      .map(_ => ())
+    val initialization = for {
+      _ <- directoriesInit
+      _ <- Future.sequence(Seq(suggestionsRepoInit, versionsRepoInit))
+    } yield ()
 
     initialization.onComplete {
       case Success(()) =>
