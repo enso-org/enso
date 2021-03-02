@@ -168,9 +168,6 @@ spec connection =
             t4.at 'B' . fill_missing False . to_vector . should_equal [True, False, True, False, False]
             t4.at 'C' . fill_missing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
 
-        Test.specify "not allow to mix types" <|
-            t4.at 'A' . fill_missing "str" . to_vector . should_fail_with Sql_Error
-
     Test.group "Counting Values" <|
         Test.specify "should count missing and non-missing values" <|
             t4.row_count . should_equal 5
@@ -179,25 +176,40 @@ spec connection =
             col.count . should_equal 3
             col.count_missing . should_equal 2
 
-#    Test.group "Dropping Missing Values" <|
-#        Test.specify "should drop missing rows in a Column" <|
-#            col = Column.from_vector 'x' [1, Nothing, 2, Nothing]
-#            col.drop_missing.to_vector . should_equal [1, 2]
-#
-#        Test.specify "should drop rows that contain at least one missing column in a Table" <|
-#            t = Table.new [["a", [1, Nothing, 3, 4]], ["b", [1, 2, Nothing, "x"]]]
-#            d = t.drop_missing_rows
-#            d.at "a" . to_vector . should_equal [1, 4]
-#            d.at "b" . to_vector . should_equal [1, "x"]
-#
-#        Test.specify "should drop columns that contain at least one missing row in a Table" <|
-#            a = ["a", [1, Nothing, 3, 4]]
-#            b = ["b", [1, 2, Nothing, "x"]]
-#            c = ["c", [10, 20, 30, 40]]
-#            t = Table.new [a, b, c]
-#            d = t.drop_missing_columns
-#            d.columns.map .name . should_equal ["c"]
-#            d.at "c" . to_vector . should_equal [10, 20, 30, 40]
+    Test.group "Dropping Missing Values" <|
+        Test.specify "should drop missing rows in a Column" <|
+            col = t4.at 'A'
+            col.drop_missing.to_vector . should_equal [0, 1, 42]
+
+        Test.specify "should drop rows that contain at least one missing column in a Table" <|
+            d = t4.drop_missing_rows.to_dataframe
+            d.at 'A' . to_vector . should_equal [0]
+            d.at 'B' . to_vector . should_equal [True]
+            d.at 'C' . to_vector . should_equal [""]
+
+        Test.specify "should drop columns that contain at least one missing row in a Table" <|
+            t5 = make_table "T5" ["A", "B"] ["INT", "BOOLEAN", "VARCHAR"]
+            t5.insert [1, True, "foo"]
+            t5.insert [2, False, Nothing]
+            t5.insert [3, Nothing, "aaa"]
+
+            r = t5.drop_missing_columns
+            r.columns.map .name . should_equal ["A"]
+            r.at "A" . to_vector . should_equal [1, 2, 3]
+
+            empty = t4.drop_missing_columns
+            hmm = empty.print
+            recovery = Panic.recover <|
+                hmm.catch err-> Panic.throw err
+                Nothing
+            maybeExc = case recovery of
+                _ -> True
+            result = maybeExc.catch ex-> case ex of
+                _ -> IO.println (ex.to_text)
+
+#            empty.columns.length . should_equal 0
+#            empty.to_dataframe.columns.length . should_equal 0
+
 #
 #    Test.group "Info" <|
 #        Test.specify "should return Table information" <|
