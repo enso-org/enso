@@ -31,4 +31,6 @@ object SessionApi {
   case object SessionAlreadyInitialisedError
       extends Error(6002, "Session already initialised")
 
+  case object ResourcesInitializationError
+      extends Error(6003, "Failed to initialize the Language Server resources")
 }

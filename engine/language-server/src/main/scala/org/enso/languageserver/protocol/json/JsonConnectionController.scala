@@ -2,7 +2,7 @@ package org.enso.languageserver.protocol.json
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import org.enso.jsonrpc._
@@ -52,6 +52,7 @@ import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
+  ResourcesInitializationError,
   SessionAlreadyInitialisedError,
   SessionNotInitialisedError
 }
@@ -156,6 +157,11 @@ class JsonConnectionController(
       handler.tell(request, receiver)
       unstashAll()
       context.become(initialised(webActor, session, requestHandlers))
+
+    case Status.Failure(ex) =>
+      log.error(ex, "Failed to initialize the resources")
+      receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
+      context.become(connected(webActor))
 
     case _ => stash()
   }

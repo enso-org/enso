@@ -105,14 +105,6 @@ object DirectoriesConfig {
     * @param root the root directory path
     * @return data directory config
     */
-  def initialize(root: String): DirectoriesConfig =
-    initialize(new File(root))
-
-  /** Create default data directory config, creating directories if not exist.
-    *
-    * @param root the root directory path
-    * @return data directory config
-    */
   def initialize(root: File): DirectoriesConfig = {
     val config = new DirectoriesConfig(root)
     config.createDirectories()
