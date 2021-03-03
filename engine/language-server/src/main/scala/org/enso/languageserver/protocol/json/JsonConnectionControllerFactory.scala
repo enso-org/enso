@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
-import org.enso.languageserver.boot.InitializationComponent
+import org.enso.languageserver.boot.resource.InitializationComponent
 
 /** Language server client controller factory.
   *

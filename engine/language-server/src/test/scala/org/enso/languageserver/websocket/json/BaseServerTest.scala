@@ -8,7 +8,11 @@ import io.circe.literal._
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
-import org.enso.languageserver.boot.ResourcesInitialization
+import org.enso.languageserver.boot.resource.{
+  DirectoriesInitialization,
+  RepoInitialization,
+  SequentialResourcesInitialization
+}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
@@ -33,6 +37,8 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
+
+  import system.dispatcher
 
   val timeout: FiniteDuration = 10.seconds
 
@@ -86,12 +92,10 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
 
-  val initializationComponent = new ResourcesInitialization(
-    system.eventStream,
-    config.directories,
-    suggestionsRepo,
-    versionsRepo
-  )(system.dispatcher)
+  val initializationComponent = SequentialResourcesInitialization(
+    new DirectoriesInitialization(config.directories),
+    new RepoInitialization(system.eventStream, suggestionsRepo, versionsRepo)
+  )
 
   override def clientControllerFactory: ClientControllerFactory = {
     val fileManager =

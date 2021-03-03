@@ -1,4 +1,4 @@
-package org.enso.languageserver.boot
+package org.enso.languageserver.boot.resource
 
 import scala.concurrent.Future
 

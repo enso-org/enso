@@ -1,72 +1,45 @@
 package org.enso.languageserver.boot
 
 import akka.event.EventStream
+import org.enso.languageserver.boot.resource.{
+  DirectoriesInitialization,
+  InitializationComponent,
+  RepoInitialization,
+  SequentialResourcesInitialization,
+  TruffleContextInitialization
+}
 import org.enso.languageserver.data.DirectoriesConfig
-import org.enso.languageserver.event.InitializedEvent
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
-import org.slf4j.LoggerFactory
+import org.graalvm.polyglot.Context
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
-/** Initialization of the Language Server resources. Creates the directories and
-  * initializes the databases.
-  *
-  * @param eventStream system event stream
-  * @param directoriesConfig configuration of directories that should be created
-  * @param suggestionsRepo the suggestions repo
-  * @param versionsRepo the file versions repo
+/** Helper object for the initialization of the Language Server resources.
+  * Creates the directories, initializes the databases, and the Truffle context.
   */
-class ResourcesInitialization(
-  eventStream: EventStream,
-  directoriesConfig: DirectoriesConfig,
-  suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: FileVersionsRepo[Future]
-)(implicit ec: ExecutionContext)
-    extends InitializationComponent {
+object ResourcesInitialization {
 
-  private val log = LoggerFactory.getLogger(this.getClass)
-
-  /** @inheritdoc */
-  override def init(): Future[InitializationComponent.Initialized.type] = {
-    val directoriesInit: Future[Unit] = Future {
-      directoriesConfig.createDirectories()
-    }
-
-    val initialization = for {
-      _ <- directoriesInit
-      _ <- Future.sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-    } yield InitializationComponent.Initialized
-
-    initialization.onComplete {
-      case Success(_) =>
-        eventStream.publish(InitializedEvent.InitializationFinished)
-      case _ =>
-        eventStream.publish(InitializedEvent.InitializationFailed)
-    }
-    initialization
+  /** Create the initialization component of the Language Server.
+    *
+    * @param eventStream system event stream
+    * @param directoriesConfig configuration of directories that should be created
+    * @param suggestionsRepo the suggestions repo
+    * @param versionsRepo the file versions repo
+    * @param truffleContext the runtime context
+    * @return the initialization component
+    */
+  def apply(
+    eventStream: EventStream,
+    directoriesConfig: DirectoriesConfig,
+    suggestionsRepo: SuggestionsRepo[Future],
+    versionsRepo: FileVersionsRepo[Future],
+    truffleContext: Context
+  )(implicit ec: ExecutionContext): InitializationComponent = {
+    val resources = Seq(
+      new DirectoriesInitialization(directoriesConfig),
+      new RepoInitialization(eventStream, suggestionsRepo, versionsRepo),
+      new TruffleContextInitialization(truffleContext)
+    )
+    new SequentialResourcesInitialization(resources)
   }
-
-  private def suggestionsRepoInit: Future[Unit] = {
-    val initAction = suggestionsRepo.init
-    initAction.onComplete {
-      case Success(()) =>
-        eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL suggestions repo", ex)
-    }
-    initAction
-  }
-
-  private def versionsRepoInit: Future[Unit] = {
-    val initAction = versionsRepo.init
-    initAction.onComplete {
-      case Success(()) =>
-        eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize versions repo", ex)
-    }
-    initAction
-  }
-
 }

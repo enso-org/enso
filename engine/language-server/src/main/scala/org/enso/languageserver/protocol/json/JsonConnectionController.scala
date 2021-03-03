@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import org.enso.jsonrpc._
-import org.enso.languageserver.boot.InitializationComponent
+import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,

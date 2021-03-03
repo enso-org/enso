@@ -163,7 +163,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  log.trace("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -195,8 +194,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       } else null
     })
     .build()
-  context.initialize(LanguageInfo.ID)
-  log.trace("Runtime context initialized")
+  log.trace("Runtime context created")
 
   system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
   log.trace(s"Set akka log level to $logLevel")
@@ -227,11 +225,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
-  val initializationComponent = new ResourcesInitialization(
+  val initializationComponent = ResourcesInitialization(
     system.eventStream,
     directoriesConfig,
     suggestionsRepo,
-    versionsRepo
+    versionsRepo,
+    context
   )(system.dispatcher)
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
