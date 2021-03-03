@@ -82,7 +82,7 @@ make_function name =
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
-        if arguments.not_empty then Error.throw "No arguments were expected" else
+        if arguments.not_empty then Error.throw <| Illegal_State_Error "No arguments were expected" else
             Sql.code code
 
 ## PRIVATE
@@ -123,7 +123,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
     IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+op+" is not supported.")
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
@@ -202,4 +202,4 @@ generate_query dialect query = case query of
         (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
     IR.Insert table_name pairs ->
         here.generate_insert_query dialect table_name pairs
-    _ -> Error.throw "Unsupported query type."
+    _ -> Error.throw <| Illegal_State_Error "Unsupported query type."

@@ -23,7 +23,7 @@ spec connection =
         Test.specify "should allow to materialize columns directly into a Vector" <|
             v = t1.at 'A' . to_vector
             v . should_equal [1, 4]
-        Test.specify "should preserve indexes when materializing tables"
+        Test.specify "should preserve indexes when materializing tables" <|
             # TODO add multi indexes when implemented
             df = t1.set_index 'A' . to_dataframe
             df.at 'B' . to_vector . should_equal [2, 5]
@@ -31,13 +31,22 @@ spec connection =
             ix = df.index
             ix.name . should_equal 'A'
             ix.to_vector . should_equal [1, 4]
-        Test.specify "should preserve indexes when materializing columns"
+        Test.specify "should preserve indexes when materializing columns" <|
             # TODO add multi indexes when implemented
             df = t1.set_index 'A' . at 'B' . to_dataframe
             df.to_vector . should_equal [2, 5]
             ix = df.index
             ix.name . should_equal 'A'
             ix.to_vector . should_equal [1, 4]
+        Test.specify "should work correctly when there are no columns" <|
+            empty = t1.select []
+            empty.to_dataframe.columns.length . should_equal 0
+
+            ## TODO [RW, MK] do we want this to hold? this would require special
+               support from Table, namely creating tables with a non-empty
+               default index and no columns and reporting rowCount based on that
+               index if there are no columns
+            # empty.to_dataframe.row_count . should_equal empty.row_count
 
     Test.group "Mapping Operations" <|
         t2 = make_table "T2" ["x", "y", "b"] ["INT", "INT", "BOOLEAN"]
@@ -198,17 +207,8 @@ spec connection =
             r.at "A" . to_vector . should_equal [1, 2, 3]
 
             empty = t4.drop_missing_columns
-            hmm = empty.print
-            recovery = Panic.recover <|
-                hmm.catch err-> Panic.throw err
-                Nothing
-            maybeExc = case recovery of
-                _ -> True
-            result = maybeExc.catch ex-> case ex of
-                _ -> IO.println (ex.to_text)
-
-#            empty.columns.length . should_equal 0
-#            empty.to_dataframe.columns.length . should_equal 0
+            empty.columns.length . should_equal 0
+            empty.to_dataframe.columns.length . should_equal 0
 
 #
 #    Test.group "Info" <|

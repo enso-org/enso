@@ -48,7 +48,9 @@ type Table
 
        Converts this table to a JSON structure.
     to_json : Json
-    to_json = this.to_sql.to_json
+    to_json = case this.internal_columns.is_empty of
+        True -> "Table: no columns".to_json
+        False -> this.to_sql.to_json
 
     ## UNSTABLE
 
@@ -129,7 +131,7 @@ type Table
         True ->
             is_used_in_index = this.context.meta_index.exists i-> i.name == name
             case is_used_in_index of
-                True -> Error.throw "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                True -> Error.throw <| Illegal_State_Error "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
                 False ->
                     new_col = Internal_Column name column.sql_type column.expression
                     replace = this.internal_columns.exists (c -> c.name == name)
@@ -201,7 +203,7 @@ type Table
                 chosen_nulls = if my_nulls.is_nothing then missing_last else my_nulls
                 [this.resolve elem . expression, order_to_ir chosen_order, missing_to_ir chosen_nulls]
             Order_Rule _ _ _ _ ->
-                Error.throw "Custom comparators are not supported in Database"
+                Error.throw <| Illegal_State_Error "Custom comparators are not supported in Database"
         elems = Helpers.unify_vector_singleton by . map to_ir
         new_ctx = this.context.set_orders elems
         this.updated_context new_ctx
@@ -245,7 +247,7 @@ type Table
                 (Helpers.unify_vector_singleton on).map (this.resolve >> .as_internal)
         other_index = other.context.meta_index
         case my_index.length == other_index.length of
-            False -> Panic.throw "Cannot join with multi-indexes of different lengths."
+            False -> Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
             True ->
                 ## TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
                    so it may be worth optimizing that here (#1515)
@@ -301,7 +303,7 @@ type Table
     group by=Nothing = Panic.recover <|
         cols = case by of
             Nothing ->
-                if this.context.meta_index.is_empty then Panic.throw "Trying to group by an empty index." else
+                if this.context.meta_index.is_empty then Panic.throw <| Illegal_State_Error "Trying to group by an empty index." else
                     this.context.meta_index
             _ ->
 
@@ -358,17 +360,22 @@ type Table
     to_dataframe : (Integer | Nothing) -> Materialized_Table.Table
     to_dataframe max_rows=Nothing =
         case this.context.meta_index.length > 1 of
-            True -> Error.throw "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
+            True -> Error.throw <| Illegal_State_Error "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
             False ->
                 preprocessed = this.reset_index.limit max_rows
-                sql = preprocessed.to_sql
-                expected_types = preprocessed.internal_columns.map .sql_type
-                table = this.connection.execute_query sql expected_types
-                case this.context.meta_index.length == 1 of
-                    False -> table
+                case preprocessed.internal_columns.is_empty of
                     True ->
-                        ix_col_name = table.columns.first.name
-                        table.set_index ix_col_name
+                        ## TODO we could try making the default index have the same length as the amount of rows in the surrounding context, but I'm not sure if it is worth it
+                        Materialized_Table.new []
+                    False ->
+                        sql = preprocessed.to_sql
+                        expected_types = preprocessed.internal_columns.map .sql_type
+                        table = this.connection.execute_query sql expected_types
+                        case this.context.meta_index.length == 1 of
+                            False -> table
+                            True ->
+                                ix_col_name = table.columns.first.name
+                                table.set_index ix_col_name
 
     ## PRIVATE
     reset_index : Table
@@ -383,8 +390,11 @@ type Table
     to_sql : Sql.Statement
     to_sql =
         cols = this.internal_columns.map (c -> [c.name, c.expression])
-        query = IR.Select cols this.context
-        this.connection.dialect.generate_sql query
+        case cols.is_empty of
+            True -> Error.throw <| Illegal_State_Error "Cannot generate SQL for a table with no columns."
+            False ->
+                query = IR.Select cols this.context
+                this.connection.dialect.generate_sql query
 
     ## Returns a Table describing this table's contents.
 
@@ -429,14 +439,14 @@ type Table
     insert values =
         table_name = case this.context.from_spec of
             IR.From_Table name _ -> name
-            _ -> Error.throw "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
+            _ -> Error.throw <| Illegal_State_Error "Inserting can only be performed on tables as returned by `access_table`, any further processing is not allowed."
         # TODO [RW] before removing the PRIVATE tag, add a check that no bad stuff was done to the table as described above
         pairs = this.internal_columns.zip values col-> value->
             [col.name, IR.Constant col.sql_type value]
         query = this.connection.dialect.generate_sql <| IR.Insert table_name pairs
         affected_rows = this.connection.execute_update query
         case affected_rows == 1 of
-            False -> Error.throw "The update unexpectedly affected "+affected_rows.to_text+" rows."
+            False -> Error.throw <| Illegal_State_Error "The update unexpectedly affected "+affected_rows.to_text+" rows."
             True -> Nothing
 
 
@@ -481,6 +491,9 @@ type Aggregate_Table
          - show_rows: the number of initial rows that should be displayed.
     print : Integer -> Nothing
     print show_rows=10 = this.values.print show_rows
+
+    values : Table
+    values = Error.throw "TODO"
 
     ## PRIVATE
 

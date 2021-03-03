@@ -12,6 +12,7 @@ import Base.Data.Pair
 import Base.Data.Range
 import Base.Data.Text.Extensions
 import Base.Data.Vector
+import Base.Error.Common
 import Base.Error.Extensions
 import Base.Math
 import Base.Meta
@@ -39,6 +40,7 @@ from Base.Data.Noise export all hiding Noise
 from Base.Data.Pair export Pair
 from Base.Data.Range export Range
 from Base.Data.Text.Extensions export Text
+from Base.Error.Common export all
 from Base.Error.Extensions export all
 from Base.Meta.Enso_Project export all
 from Base.Polyglot.Java export all

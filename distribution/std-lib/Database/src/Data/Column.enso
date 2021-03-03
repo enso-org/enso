@@ -101,7 +101,7 @@ type Column
             Column _ _ _ other_expr _ ->
                 case Helpers.check_integrity this operand of
                     False ->
-                        Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
+                        Error.throw <| Illegal_State_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
                     True ->
                         new_expr = IR.Operation op_kind [this.expression, other_expr]
                         Column this.name this.connection actual_new_type new_expr this.context
@@ -328,7 +328,7 @@ type Column
         True ->
             is_used_in_index = this.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
                     Column new_name this.connection this.sql_type this.expression this.context
 
