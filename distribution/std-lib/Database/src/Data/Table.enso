@@ -160,6 +160,15 @@ type Table
             turned_into_index.not
         this.updated_context new_ctx . updated_columns new_cols
 
+    ## Returns the index (or indexes) of this table, as a column (indexed by itself).
+       Returns `Nothing` if there is no index set.
+    index : Column | Vector Column | Nothing
+    index =
+        ixes = this.context.meta_index.map this.make_column
+        len = this.context.meta_index.length
+        if len == 0 then Nothing else
+            if len == 1 then ixes.at 0 else ixes
+
     ## UNSTABLE
 
        Sorts the table according to the specified rules.
@@ -403,12 +412,14 @@ type Table
     info : Table
     info =
         cols = this.columns
+        ## TODO [RW] the counts could be fetched in a single query instead
+        ## TODO [RW] we could try rendering the storage type to human-readable typenames (currently it is numeric typeids)
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["SQL Type", cols.map .sql_type]]
 
     ## PRIVATE
 
        Helper to create columns from internal columns.
-       # make_column : [Text, IR.Expression] -> Column
+    make_column : Internal_Column -> Column
     make_column internal =
         Column internal.name this.connection internal.sql_type internal.expression this.context
 
@@ -482,18 +493,6 @@ type Aggregate_Table
     at name =
         internal = this.internal_columns.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
-
-    ## UNSTABLE
-
-       Prints an ASCII-art table with this data to the standard output.
-
-       Arguments:
-         - show_rows: the number of initial rows that should be displayed.
-    print : Integer -> Nothing
-    print show_rows=10 = this.values.print show_rows
-
-    values : Table
-    values = Error.throw "TODO"
 
     ## PRIVATE
 
