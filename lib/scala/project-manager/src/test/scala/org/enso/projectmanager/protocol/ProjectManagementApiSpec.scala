@@ -8,7 +8,6 @@ import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.pkg.SemVerJson._
-import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
@@ -605,47 +604,6 @@ class ProjectManagementApiSpec
       val lines       = buffer.getLines()
       lines.contains("name: Bar") shouldBe true
       buffer.close()
-      //teardown
-      deleteProject(projectId)
-    }
-
-    "move project dir on project close".taggedAs(Retry, Flaky) in {
-      implicit val client = new WsTestClient(address)
-      //given
-      val projectId = createProject("foo")
-      openProject(projectId)
-      //when
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/rename",
-              "id": 0,
-              "params": {
-                "projectId": $projectId,
-                "name": "bar"
-              }
-            }
-          """)
-      //then
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "result": null
-          }
-          """)
-      val projectDir = new File(userProjectDir, "bar")
-      projectDir.exists() shouldBe false
-      closeProject(projectId)
-      Thread.sleep(1000)
-      projectDir.exists() shouldBe true
-      val packageFile = new File(projectDir, "package.yaml")
-      val buffer      = Source.fromFile(packageFile)
-      val lines       = buffer.getLines()
-      lines.contains("name: Bar") shouldBe true
-      buffer.close()
-      val jsonSocket = openProject(projectId)
-      tryConnect(jsonSocket).isRight shouldBe true
-      closeProject(projectId)
       //teardown
       deleteProject(projectId)
     }
