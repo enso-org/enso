@@ -56,6 +56,22 @@ public class PolyglotProxy implements TruffleObject {
     return target;
   }
 
+  Object enterOrigin(InteropLibrary n) {
+    if (n.isAdoptable()) {
+      return origin.enter(n);
+    } else {
+      return origin.enter(null);
+    }
+  }
+
+  void leaveOrigin(InteropLibrary node, Object prev) {
+    if (node.isAdoptable()) {
+      origin.leave(node, prev);
+    } else {
+      origin.leave(null, prev);
+    }
+  }
+
   @ExportMessage
   public boolean isNull(
       @CachedLibrary("this.delegate") InteropLibrary nulls,
@@ -63,7 +79,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return nulls.isNull(this.delegate);
     } catch (Throwable e) {
@@ -76,7 +92,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -87,7 +103,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return members.hasMembers(this.delegate);
     } catch (Throwable e) {
@@ -100,7 +116,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -114,7 +130,7 @@ public class PolyglotProxy implements TruffleObject {
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(
           members.getMembers(this.delegate, includeInternal), origin, target);
@@ -128,7 +144,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -140,7 +156,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return members.isMemberInvocable(this.delegate, member);
     } catch (Throwable e) {
@@ -153,7 +169,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -173,7 +189,7 @@ public class PolyglotProxy implements TruffleObject {
     for (int i = 0; i < arguments.length; i++) {
       wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(
           members.invokeMember(this.delegate, member, wrappedArgs), origin, target);
@@ -187,7 +203,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -199,7 +215,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return members.isMemberReadable(this.delegate, member);
     } catch (Throwable e) {
@@ -212,7 +228,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -226,7 +242,7 @@ public class PolyglotProxy implements TruffleObject {
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile)
       throws UnknownIdentifierException, UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(members.readMember(this.delegate, member), origin, target);
     } catch (Throwable e) {
@@ -239,7 +255,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -250,7 +266,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return functions.isExecutable(this.delegate);
     } catch (Throwable e) {
@@ -263,7 +279,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -281,7 +297,7 @@ public class PolyglotProxy implements TruffleObject {
     for (int i = 0; i < arguments.length; i++) {
       wrappedArgs[i] = contextRewrapNode.execute(arguments[i], target, origin);
     }
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(
           functions.execute(this.delegate, wrappedArgs), origin, target);
@@ -295,7 +311,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -306,7 +322,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return arrays.hasArrayElements(this.delegate);
     } catch (Throwable e) {
@@ -319,7 +335,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -331,7 +347,7 @@ public class PolyglotProxy implements TruffleObject {
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return arrays.getArraySize(this.delegate);
     } catch (Throwable e) {
@@ -344,7 +360,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -356,7 +372,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return arrays.isArrayElementReadable(this.delegate, idx);
     } catch (Throwable e) {
@@ -369,7 +385,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -383,7 +399,7 @@ public class PolyglotProxy implements TruffleObject {
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile)
       throws InvalidArrayIndexException, UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return contextRewrapNode.execute(
           arrays.readArrayElement(this.delegate, index), origin, target);
@@ -397,7 +413,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -408,7 +424,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return strings.isString(this.delegate);
     } catch (Throwable e) {
@@ -421,7 +437,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -433,7 +449,7 @@ public class PolyglotProxy implements TruffleObject {
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return strings.asString(this.delegate);
     } catch (Throwable e) {
@@ -446,7 +462,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -458,7 +474,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode,
       @Cached @Cached.Exclusive BranchProfile profile) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return displays.toDisplayString(this.delegate, allowSideEffects);
     } catch (Throwable e) {
@@ -471,7 +487,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -479,11 +495,11 @@ public class PolyglotProxy implements TruffleObject {
   boolean isException(
       @CachedLibrary("this") InteropLibrary node,
       @CachedLibrary("this.delegate") InteropLibrary errors) {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return errors.isException(delegate);
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -494,7 +510,7 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary(limit = "5") InteropLibrary errors,
       @Cached @Cached.Exclusive ContextRewrapExceptionNode contextRewrapExceptionNode)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       throw delegate.throwException(delegate);
     } catch (Throwable e) {
@@ -506,7 +522,7 @@ public class PolyglotProxy implements TruffleObject {
         throw e;
       }
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -515,11 +531,11 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this") InteropLibrary node,
       @CachedLibrary("this.delegate") InteropLibrary errors)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return errors.getExceptionType(delegate);
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -528,11 +544,11 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this") InteropLibrary node,
       @CachedLibrary("this.delegate") InteropLibrary errors)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return errors.getExceptionExitStatus(delegate);
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 
@@ -541,11 +557,11 @@ public class PolyglotProxy implements TruffleObject {
       @CachedLibrary("this.delegate") InteropLibrary errors,
       @CachedLibrary("this") InteropLibrary node)
       throws UnsupportedMessageException {
-    Object p = origin.enter(node);
+    Object p = enterOrigin(node);
     try {
       return errors.isExceptionIncompleteSource(delegate);
     } finally {
-      origin.leave(node, p);
+      leaveOrigin(node, p);
     }
   }
 }

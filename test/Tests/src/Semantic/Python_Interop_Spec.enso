@@ -84,7 +84,8 @@ spec = Test.group "Polyglot Python" <|
         err.cause.args.at 0 . should_equal 'Error!'
         err.cause.to_text . should_equal "RuntimeError('Error!')"
 
-    Test.specify "should allow JS to catch Enso exceptions" <|
+    pending_msg = "Graalpython does not support handling interop exceptions"
+    Test.specify "should allow Python to catch Enso exceptions" pending=pending_msg <|
         value = My_Type 7 2
         result = value.do_catch
         result . should_equal 7
