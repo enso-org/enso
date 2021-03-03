@@ -45,14 +45,17 @@ public class DataflowError extends AbstractTruffleException {
    * @param trace a specific stack trace
    * @return a new dataflow error
    */
-  public static DataflowError withTrace(Object payload, Node location, StackTraceElement[] trace) {
-    var error = new DataflowError(payload, location);
-    error.setStackTrace(trace);
-    return error;
+  public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
+    return new DataflowError(payload, prototype);
   }
 
   DataflowError(Object payload, Node location) {
     super(location);
+    this.payload = payload;
+  }
+
+  DataflowError(Object payload, AbstractTruffleException prototype) {
+    super(prototype);
     this.payload = payload;
   }
 
