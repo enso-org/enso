@@ -15,7 +15,7 @@ import java.io.File;
 @BuiltinMethod(
     type = "Polyglot",
     name = "is_language_installed",
-    description = "Adds a path to the host class path.")
+    description = "Checks if a polyglot language is installed in the runtime environment.")
 public abstract class IsLanguageInstalledNode extends Node {
 
   static IsLanguageInstalledNode build() {
