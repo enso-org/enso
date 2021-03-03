@@ -18,8 +18,8 @@ public abstract class PyForeignNode extends ForeignFunctionCallNode {
       Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
     try {
       return interopLibrary.execute(getForeignFunction(), arguments);
-    } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
-      throw new RuntimeException("later");
+    } catch (UnsupportedMessageException | UnsupportedTypeException | ArityException e) {
+      throw new IllegalStateException("Python parser returned a malformed object", e);
     }
   }
 }

@@ -48,45 +48,48 @@ foreign python make_array = """
 foreign python make_str str = """
     return ("foo " + str + " bar")
 
-spec = Test.group "Polyglot Python" <|
-    Test.specify "should allow declaring module-level methods in JS" <|
-        here.my_method 1 2 . should_equal 3
+spec =
+    pending = if Polyglot.is_language_installed "python" then Nothing else """
+        Can't run Python tests, Python is not installed.
+    Test.group "Polyglot Python" pending=pending <|
+        Test.specify "should allow declaring module-level methods in JS" <|
+            here.my_method 1 2 . should_equal 3
 
-    Test.specify "should allow mutual calling of instance-level methods" <|
-        My_Type 3 4 . my_method_3 5 . should_equal 36
+        Test.specify "should allow mutual calling of instance-level methods" <|
+            My_Type 3 4 . my_method_3 5 . should_equal 36
 
-    Test.specify "should expose methods and fields of JS objects" <|
-        obj = here.make_object
-        obj.x . should_equal 10
-        obj.y . should_be_false
-        obj.compare 5 . should_be_false
-        obj.compare 11 . should_be_true
+        Test.specify "should expose methods and fields of JS objects" <|
+            obj = here.make_object
+            obj.x . should_equal 10
+            obj.y . should_be_false
+            obj.compare 5 . should_be_false
+            obj.compare 11 . should_be_true
 
-    Test.specify "should expose array interfaces for JS arrays" <|
-        vec = Vector.Vector here.make_array
-        vec.map .x . should_equal [10, 20, 30]
+        Test.specify "should expose array interfaces for JS arrays" <|
+            vec = Vector.Vector here.make_array
+            vec.map .x . should_equal [10, 20, 30]
 
-    Test.specify "should correctly marshall strings" <|
-        str = here.make_str "x" + " baz"
-        str.should_equal "foo x bar baz"
+        Test.specify "should correctly marshall strings" <|
+            str = here.make_str "x" + " baz"
+            str.should_equal "foo x bar baz"
 
-    Test.specify "should make Python strings type pattern-matchable" <|
-        str = here.make_str "x"
-        t = case str of
-            Text -> True
-            _ -> False
-        t.should_be_true
+        Test.specify "should make Python strings type pattern-matchable" <|
+            str = here.make_str "x"
+            t = case str of
+                Text -> True
+                _ -> False
+            t.should_be_true
 
-    Test.specify "should allow Enso to catch Python exceptions" <|
-        value = My_Type 1 2
-        result = Panic.recover <| value.my_throw
-        err = result.catch
-        err.cause.args.at 0 . should_equal 'Error!'
-        err.cause.to_text . should_equal "RuntimeError('Error!')"
+        Test.specify "should allow Enso to catch Python exceptions" <|
+            value = My_Type 1 2
+            result = Panic.recover <| value.my_throw
+            err = result.catch
+            err.cause.args.at 0 . should_equal 'Error!'
+            err.cause.to_text . should_equal "RuntimeError('Error!')"
 
-    pending_msg = "Graalpython does not support handling interop exceptions"
-    Test.specify "should allow Python to catch Enso exceptions" pending=pending_msg <|
-        value = My_Type 7 2
-        result = value.do_catch
-        result . should_equal 7
+        pending_msg = "Graalpython does not support handling interop exceptions"
+        Test.specify "should allow Python to catch Enso exceptions" pending=pending_msg <|
+            value = My_Type 7 2
+            result = value.do_catch
+            result . should_equal 7
 
