@@ -4,14 +4,17 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
+import org.enso.languageserver.boot.resource.InitializationComponent
 
 /** Language server client controller factory.
   *
+  * @param mainComponent the main initialization logic
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
   */
 class JsonConnectionControllerFactory(
+  mainComponent: InitializationComponent,
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
@@ -27,12 +30,13 @@ class JsonConnectionControllerFactory(
   /** Creates a client controller actor.
     *
     * @param clientId the internal client id.
-    * @return
+    * @return the client controller actor
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
       JsonConnectionController.props(
         clientId,
+        mainComponent,
         bufferRegistry,
         capabilityRouter,
         fileManager,

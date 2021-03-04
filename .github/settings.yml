@@ -212,7 +212,7 @@ branches:
         strict: true
         contexts:
           - "Build and Test (macOS-latest)"
-          - "Build and Test (ubuntu-latest)"
+          - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
           - "Docs Check"
           - "Rust Check"
@@ -238,7 +238,7 @@ branches:
         strict: true
         contexts:
           - "Build and Test (macOS-latest)"
-          - "Build and Test (ubuntu-latest)"
+          - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
           - "Docs Check"
           - "Build Engine"
