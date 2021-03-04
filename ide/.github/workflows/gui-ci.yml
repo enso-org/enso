@@ -5,14 +5,26 @@
 
 name: GUI CI
 'on':
-  - push
-  - pull_request
+  push:
+    branches:
+      - unstable
+      - stable
+  pull_request: {}
 jobs:
-  dumpGitHubContext:
-    name: Dump GitHub context
-    env:
-      GITHUB_CONTEXT: ${{ toJson(github) }}
-    run: echo "$GITHUB_CONTEXT"
+  info:
+    name: Build Info
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macOS-latest
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v1
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
   version_assertions:
     name: Assertions
     runs-on: ${{ matrix.os }}
@@ -34,14 +46,10 @@ jobs:
         shell: bash
       - name: Assert Version Unstable
         run: node ./run assert-version-unstable --skip-version-validation
-        if: >-
-          github.ref == 'refs/heads/unstable' ||
-          github.event.pull_request.base.ref == 'refs/heads/unstable'
+        if: github.ref == 'refs/heads/unstable' || github.base_ref == 'unstable'
       - name: Assert Version Stable
         run: node ./run assert-version-stable --skip-version-validation
-        if: >-
-          github.ref == 'refs/heads/stable' ||
-          github.event.pull_request.base.ref == 'refs/heads/stable'
+        if: github.ref == 'refs/heads/stable' || github.base_ref == 'stable'
       - id: checkCurrentReleaseTag
         uses: mukunku/tag-exists-action@v1.0.0
         env:
@@ -56,19 +64,22 @@ jobs:
         id: changed_files
         run: |2-
 
-                  list=`git diff --name-only origin/develop HEAD | tr '\n' ' '`
+                  list=`git diff --name-only origin/${{github.base_ref}} HEAD | tr '\n' ' '`
                   echo $list
                   echo "::set-output name=list::'$list'"
               
         shell: bash
-      - name: Assert if CHANGELOG.md was updated
+        if: >-
+          github.base_ref == 'develop' || github.base_ref == 'unstable' ||
+          github.base_ref == 'stable'
+      - name: Assert if CHANGELOG.md was updated (on pull request)
         run: >-
           if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') ||
           contains(github.event.head_commit.message,'[ci no changelog needed]')
           }} == false ]]; then exit 1; fi
         if: >-
-          github.ref != 'refs/heads/develop' && github.ref !=
-          'refs/heads/stable' && github.ref != 'refs/heads/unstable'
+          github.base_ref == 'develop' || github.base_ref == 'unstable' ||
+          github.base_ref == 'stable'
   lint:
     name: Linter
     runs-on: ${{ matrix.os }}
@@ -228,8 +239,9 @@ jobs:
         if: matrix.os == 'macos-latest'
     if: >-
       !(contains(github.event.head_commit.message,'[ci build]') || github.ref ==
-      'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref ==
-      'refs/heads/unstable' || github.ref == 'refs/heads/stable')
+      'refs/heads/main' || github.ref == 'refs/heads/develop' || (github.ref ==
+      'refs/heads/unstable' || github.ref == 'refs/heads/stable') &&
+      github.base_ref == '')
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -356,8 +368,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
     if: >-
       contains(github.event.head_commit.message,'[ci build]') || github.ref ==
-      'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref ==
-      'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+      'refs/heads/main' || github.ref == 'refs/heads/develop' || (github.ref ==
+      'refs/heads/unstable' || github.ref == 'refs/heads/stable') &&
+      github.base_ref == ''
   release_to_github:
     name: GitHub Release
     runs-on: ${{ matrix.os }}
@@ -401,7 +414,9 @@ jobs:
           tag_name: v${{fromJson(steps.changelog.outputs.content).version}}
           body: ${{fromJson(steps.changelog.outputs.content).body}}
           prerelease: ${{fromJson(steps.changelog.outputs.content).prerelease}}
-    if: github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+    if: >-
+      (github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable')
+      && github.base_ref == ''
     needs:
       - version_assertions
       - lint
@@ -465,7 +480,9 @@ jobs:
           aws s3 cp ./artifacts/content/assets/wasm_imports.js.gz
           s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/wasm_imports.js.gz
           --profile s3-upload --acl public-read --content-encoding gzip
-    if: github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'
+    if: >-
+      (github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable')
+      && github.base_ref == ''
     needs:
       - version_assertions
       - lint
