@@ -70,7 +70,7 @@ GatherLicenses.distributions := Seq(
     "Standard",
     file("distribution/std-lib/Standard/THIRD-PARTY"),
     Distribution.sbtProjects(`std-bits`)
-  ),
+  )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
@@ -1252,9 +1252,10 @@ lazy val `std-bits` = project
     Compile / packageBin / artifactPath :=
       `standard-polyglot-root` / "std-bits.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"   % "icu4j"             % icuVersion,
-      "com.univocity" % "univocity-parsers" % "2.9.0",
-      "org.xerial"    % "sqlite-jdbc"       % "3.34.0"
+      "com.ibm.icu"    % "icu4j"             % icuVersion,
+      "com.univocity"  % "univocity-parsers" % "2.9.0",
+      "org.xerial"     % "sqlite-jdbc"       % "3.34.0",
+      "org.postgresql" % "postgresql"        % "42.2.19"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
