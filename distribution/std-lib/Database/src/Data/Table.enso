@@ -28,7 +28,6 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
-        # TODO [RW] should I display the row with numbers if no index is set as in dataframes??
         df = this.reset_index.to_dataframe max_rows=show_rows
         indices_count = this.context.meta_index.length
         all_rows_count = this.row_count
@@ -275,6 +274,8 @@ type Table
     join : Table -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = Panic.recover <|
         Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
+        if left_suffix == right_suffix then
+            Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
         kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
         my_index : Vector Internal_Column
         my_index = case on of
@@ -312,18 +313,14 @@ type Table
                 new_limit = Nothing
                 new_ctx = IR.Context new_from [] [] [] new_index new_limit
 
-                # TODO [RW, MK] what if we have name conflict because both tables contain 'A', but then also one of them contains 'A'+suffix ??
-                left_names = Map.from_vector (this.internal_columns.map (p -> [p.name, True]))
-                right_names = Map.from_vector (other.internal_columns.map (p -> [p.name, True]))
-                rename suffix other_names this_name =
-                    if other_names.get_or_else this_name False then this_name+suffix else this_name
-                rename_left = rename left_suffix right_names
-                rename_right = rename right_suffix left_names
+                new_names = here.combine_names (this.internal_columns.map .name) (other.internal_columns.map .name) left_suffix right_suffix
+                left_names = new_names.first
+                right_names = new_names.second
 
-                new_left_columns = this.internal_columns.map p->
-                    Internal_Column (rename_left p.name) p.sql_type (IR.Column left_alias p.name)
-                new_right_columns = other.internal_columns.map p->
-                    Internal_Column (rename_right p.name) p.sql_type (IR.Column right_alias p.name)
+                new_left_columns = this.internal_columns.zip left_names p-> new_name->
+                    Internal_Column new_name p.sql_type (IR.Column left_alias p.name)
+                new_right_columns = other.internal_columns.zip right_names p-> new_name->
+                    Internal_Column new_name p.sql_type (IR.Column right_alias p.name)
 
                 new_columns = new_left_columns + new_right_columns
 
@@ -564,3 +561,38 @@ display_dataframe df indices_count all_rows_count format_terminal =
         missing_rows_count = all_rows_count - display_rows
         missing = '\n\u2026 and ' + missing_rows_count.to_text + ' hidden rows.'
         table + missing
+
+## PRIVATE
+
+   Creates a list of non-colliding names by merging the two lists and
+   appending suffixes if necessary.
+
+   If even after appending the suffixes it is impossible to have unique names,
+   it throws a panic. It returns two vectors, one for each input. It assumes
+   that the names within each argument itself are unique.
+combine_names left_names right_names left_suffix right_suffix =
+    make_count_map names =
+        map = names.fold Map.empty acc-> name->
+            count = acc.get_or_else name 0 + 1
+            acc.insert name count
+        name-> map.get_or_else name 0
+    original_names_count = make_count_map left_names+right_names
+    add_suffix_if_necessary suffix name = case original_names_count name > 1 of
+        True -> [name, name+suffix]
+        False -> [name, name]
+    left_pairs = left_names.map <| add_suffix_if_necessary left_suffix
+    right_pairs = right_names.map <| add_suffix_if_necessary right_suffix
+
+    new_names_count = make_count_map (left_pairs+right_pairs . map .second)
+    catch_ambiguity pairs = pairs.each pair->
+        original_name = pair.first
+        new_name = pair.second
+        case new_name!=original_name && (new_names_count new_name > 1) of
+            True ->
+                Panic.throw <| Illegal_State_Error "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
+            False -> Nothing
+    catch_ambiguity left_pairs
+    catch_ambiguity right_pairs
+    new_left_names = left_pairs.map .second
+    new_right_names = right_pairs.map .second
+    [new_left_names, new_right_names]
