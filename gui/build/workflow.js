@@ -372,7 +372,7 @@ let assertions = list(
 // ===============
 
 let releaseCondition = `(github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable') && github.base_ref == ''`
-let buildCondition   = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || ${releaseCondition}`
+let buildCondition   = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'`
 
 let workflow = {
     name : "GUI CI",
