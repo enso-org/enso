@@ -112,7 +112,8 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md#enso-026-2021-03-02).
 
-[1096]: https://github.com/enso-org/ide/pull/1172
+[1067]: https://github.com/enso-org/ide/pull/1067
+[1096]: https://github.com/enso-org/ide/pull/1096
 [1098]: https://github.com/enso-org/ide/pull/1098
 [1181]: https://github.com/enso-org/ide/pull/1181
 [1215]: https://github.com/enso-org/ide/pull/1215
