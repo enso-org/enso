@@ -8,6 +8,11 @@ name: GUI CI
   - push
   - pull_request
 jobs:
+  dumpGitHubContext:
+    name: Dump GitHub context
+    env:
+      GITHUB_CONTEXT: ${{ toJson(github) }}
+    run: echo "$GITHUB_CONTEXT"
   version_assertions:
     name: Assertions
     runs-on: ${{ matrix.os }}
