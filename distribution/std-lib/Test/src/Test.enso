@@ -19,7 +19,7 @@ Spec.is_fail = this.behaviors.any .is_fail
 Suite.is_fail = this.specs.any .is_fail
 
 ## PRIVATE
-type Finished_With_Error err stack_trace
+type Finished_With_Error err stack_trace_text
 
 ## PRIVATE
 type Matched_On_Error err

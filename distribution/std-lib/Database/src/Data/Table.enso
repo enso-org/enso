@@ -411,6 +411,8 @@ type Table
                                 table.set_index ix_col_name
 
     ## PRIVATE
+
+       Brings the index back as columns.
     reset_index : Table
     reset_index =
         new_cols = this.internal_columns_with_index
@@ -458,6 +460,9 @@ type Table
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
 
     ## PRIVATE
+
+       Returns a vector that contains first the internal representations of all
+       indices and then all columns.
     internal_columns_with_index : Vector Internal_Column
     internal_columns_with_index =
         this.context.meta_index + this.internal_columns
@@ -547,6 +552,22 @@ make_table connection table_name columns =
     cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
     Table table_name connection cols ctx
 
+## PRIVATE
+
+   Renders an ASCII-art representation for a Table from a dataframe that
+   contains a fragment of the underlying data and count of all rows.
+
+   Arguments:
+   - df: the materialized dataframe that contains the data to be displayed, it
+     should have no indices set.
+   - indices_count: indicates how many columns from the materialized dataframe
+     should be treated as indices in the display (index columns will be bold if
+     `format_terminal` is enabled).
+   - all_rows_count: the count of all rows in the underlying Table; if
+     `all_rows_count` is bigger than the amount of rows of `df`, an additional
+     line will be included that will say how many hidden rows there are.
+   - format_term: a boolean flag, specifying whether to use ANSI escape codes
+     for rich formatting in the terminal.
 display_dataframe : Materialized_Table.Table -> Integer -> Integer -> Boolean -> Text
 display_dataframe df indices_count all_rows_count format_terminal =
     cols = Vector.Vector df.java_table.getColumns

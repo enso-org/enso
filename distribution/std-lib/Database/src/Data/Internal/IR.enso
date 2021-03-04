@@ -304,6 +304,10 @@ substitute_origin old_origin new_origin expr = case expr of
         Operation kind (exprs.map (here.substitute_origin old_origin new_origin))
 
 ## PRIVATE
+
+   Lifts a function mapping expressions into a function mapping internal columns
+   which applies the original function to their expressions, leaving other
+   fields as-is.
 lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
 lift_expression_map f col =
     Internal_Column col.name col.sql_type (f col.expression)

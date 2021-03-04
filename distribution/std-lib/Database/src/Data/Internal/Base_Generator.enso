@@ -127,6 +127,10 @@ generate_expression dialect expr = case expr of
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
 
+## PRIVATE
+
+   Adds an alias for the expression, applicable for expressions that represent
+   columns or sub-queries.
 alias : Internal_Dialect -> Text -> Sql.Builder
 alias dialect name =
     wrapped = dialect.wrap_identifier name

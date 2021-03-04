@@ -380,6 +380,9 @@ join tables =
     tables.reduce .join
 
 ## PRIVATE
+
+   Ensures that the `txt` has at least `len` characters by appending spaces at
+   the end.
 pad txt len =
     true_len = txt.characters.length
     txt + (" ".repeat (len - true_len))
@@ -392,6 +395,18 @@ ansi_bold enabled txt =
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
+
+   A helper function for creating an ASCII-art representation of tabular data.
+
+   Arguments:
+   - header: vector of names of columns in the table.
+   - rows: a vector of rows, where each row is a vector that contains a text
+     representation of each cell
+   - indices_count: the number specifying how many columns should be treated as
+     indices; this will make them in bold font if `format_term` is enabled.
+   - format_term: a boolean flag, specifying whether to use ANSI escape codes
+     for rich formatting in the terminal.
+print_table : Vector Text -> (Vector (Vector Text)) -> Integer -> Boolean -> Text
 print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)

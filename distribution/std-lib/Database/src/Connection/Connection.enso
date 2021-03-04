@@ -108,7 +108,7 @@ type JDBC_Connection
                 _ -> Error.throw err
 
     ## PRIVATE
-    prepare_statement : Text | Sql.Statement -> Prepared_Statement
+    prepare_statement : Text | Sql.Statement -> PreparedStatement
     prepare_statement query =
         go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
             stmt = java_connection.prepareStatement template
@@ -129,6 +129,9 @@ type JDBC_Connection
                 go compiled.first compiled.second
 
     ## PRIVATE
+
+       A helper function that fetches column names and sql types associated with
+       them for a table in the database.
     # fetch_columns : Text -> Vector [Text, Sql_Type]
     fetch_columns table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
@@ -163,6 +166,8 @@ create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors 
     JDBC_Connection resource dialect
 
 ## PRIVATE
+
+   This cannot be a closure due to limitations of Managed_Resource.
 close_connection connection =
     connection.close
 
@@ -198,6 +203,9 @@ type Sql_Timeout_Error
     to_display_text = this.to_text
 
 ## PRIVATE
+
+   Executes `action` and returns its result, catching any panics and if they are
+   coming from JDBC, wraps them with our own error types.
 wrap_sql_errors ~action =
     result = Panic.recover action
     result.catch err-> case err of
