@@ -9,7 +9,6 @@ import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -41,9 +40,7 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 /** A main module containing all components of the server.
   *
@@ -55,8 +52,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val log = LoggerFactory.getLogger(this.getClass)
   log.trace("Initializing...")
 
-  val directoriesConfig =
-    DirectoriesConfig.initialize(serverConfig.contentRootPath)
+  val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
@@ -167,7 +163,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  log.trace("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -199,8 +194,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       } else null
     })
     .build()
-  context.initialize(LanguageInfo.ID)
-  log.trace("Runtime context initialized")
+  log.trace("Runtime context created")
 
   system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
   log.trace(s"Set akka log level to $logLevel")
@@ -231,7 +225,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       "std-in-controller"
     )
 
+  val initializationComponent = ResourcesInitialization(
+    system.eventStream,
+    directoriesConfig,
+    suggestionsRepo,
+    versionsRepo,
+    context
+  )(system.dispatcher)
+
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+    initializationComponent,
     bufferRegistry,
     capabilityRouter,
     fileManager,
@@ -278,40 +281,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       new BinaryConnectionControllerFactory(fileManager)
     )
   log.trace("Created BinaryWebSocketServer")
-
-  /** Initialize the module. */
-  def init: Future[Unit] = {
-    import system.dispatcher
-
-    val suggestionsRepoInit = suggestionsRepo.init
-    suggestionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL suggestions repo", ex)
-    }
-
-    val versionsRepoInit = versionsRepo.init
-    versionsRepoInit.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
-      case Failure(ex) =>
-        log.error("Failed to initialize SQL versions repo", ex)
-    }(system.dispatcher)
-
-    val initialization = Future
-      .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
-      .map(_ => ())
-
-    initialization.onComplete {
-      case Success(()) =>
-        system.eventStream.publish(InitializedEvent.InitializationFinished)
-      case _ =>
-        system.eventStream.publish(InitializedEvent.InitializationFailed)
-    }
-
-    initialization
-  }
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
