@@ -429,7 +429,7 @@ type Aggregate_Column
 
    A helper method for creating an aggregated column by applying some
    operation.
-make_aggregate column operation name_suffix new_type=Nothing =
+make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = if new_type.is_nothing then column.sql_type else new_type
     expr = IR.Operation operation [column.expression]
     case Helpers.ensure_name_is_sane name_suffix of
