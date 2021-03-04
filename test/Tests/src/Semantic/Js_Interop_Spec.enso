@@ -44,6 +44,12 @@ foreign js make_array = """
 foreign js make_str str = """
     return "foo " + str + " bar"
 
+foreign js make_int = """
+    return 10
+
+foreign js make_double = """
+    return 10.5
+
 spec = Test.group "Polyglot JS" <|
     Test.specify "should allow declaring module-level methods in JS" <|
         here.my_method 1 2 . should_equal 3
@@ -72,6 +78,20 @@ spec = Test.group "Polyglot JS" <|
             Text -> True
             _ -> False
         t.should_be_true
+
+    Test.specify "should make JS numbers type pattern-matchable" <|
+        int_match = case here.make_int of
+            Integer -> True
+        int_match.should_be_true
+        double_match = case here.make_double of
+            Decimal -> True
+        double_match.should_be_true
+        num_int_match = case here.make_int of
+            Number -> True
+        num_int_match.should_be_true
+        num_double_match = case here.make_double of
+            Number -> True
+        num_double_match.should_be_true
 
     Test.specify "should allow Enso to catch JS exceptions" <|
         value = My_Type 1 2

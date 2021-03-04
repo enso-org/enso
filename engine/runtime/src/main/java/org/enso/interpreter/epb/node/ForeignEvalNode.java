@@ -93,7 +93,7 @@ public abstract class ForeignEvalNode extends RootNode {
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
       CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
-      foreign = insert(JsForeignNodeGen.create(argNames.length, fn));
+      foreign = insert(JsForeignNode.build(argNames.length, fn));
     } finally {
       inner.leave(this, p);
     }
