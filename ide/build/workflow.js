@@ -371,8 +371,14 @@ let assertions = list(
 // === Workflow ===
 // ===============
 
-let releaseCondition = `(github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable') && github.base_ref == ''`
-let buildCondition   = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'`
+/// Make a release only if it was a push to 'unstable' or 'stable'. Even if it was a pull request
+/// FROM these branches, the `github.ref` will be different.
+let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 'refs/heads/stable'`
+
+/// Make a full build if one of the following conditions is true:
+/// 1. There was a `FLAG_FORCE_CI_BUILD` flag set in the commit message (see its docs for more info).
+/// 2. It was a pull request to 'develop', 'unstable', or 'stable'.
+let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'`
 
 let workflow = {
     name : "GUI CI",
