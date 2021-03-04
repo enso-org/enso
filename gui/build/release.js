@@ -84,14 +84,14 @@ class ChangelogEntry {
     }
 
     assert_is_unstable() {
-        assert_is_newest_version_defined()
+        this.assert_is_newest_version_defined()
         if (!this.isPrerelease()) {
             throw "Assertion failed. The version is stable."
         }
     }
 
     assert_is_stable() {
-        assert_is_newest_version_defined()
+        this.assert_is_newest_version_defined()
         if (this.isPrerelease()) {
             throw "Assertion failed. The version is unstable."
         }
