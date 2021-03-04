@@ -194,6 +194,33 @@ type Table
            particular rules of the `by` argument.  Note thet this argument is
            independent from `order`, i.e. missing values will always be sorted
            according to this rule, ignoring the ascending / descending setting.
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`
+             table.sort by='Quantity'
+
+       > Example
+         Sorting `table` in descending order by the value in column `'Quantity'`,
+         placing missing values at the top of the table.
+             table.sort by='Quantity' order=Sort_Order.Descending missing_last=False
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` for breaking ties.
+             table.sort by=['Quantity', 'Rating']
+
+       > Example
+         Sorting `table` in ascending order by the value in column `'Quantity'`,
+         using the value in column `'Rating'` in descending order for breaking
+         ties.
+             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Order.Descending)]
+
+       > Example
+         Sorting `table` in ascending order by the value in an externally
+         computed column, using the value in column `'Rating'` for breaking
+         ties.
+             quality_ratio = table.at 'Rating' / table.at 'Price'
+             table.sort by=[quality_ratio, 'Rating']
     sort : Text | Column | Order_Rule | Vector.Vector (Text | Column | Order_Rule) -> Sort_Order -> Boolean -> Table
     sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
         order_to_ir = case _ of

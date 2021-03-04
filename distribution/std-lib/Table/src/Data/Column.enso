@@ -357,7 +357,7 @@ type Column
        > Example
          Sorting `column` in descending order, placing missing values at the
          top of the resulting column.
-             table.sort order=Sort_Order.Descending missing_last=False
+             column.sort order=Sort_Order.Descending missing_last=False
 
        > Sorting `column` in ascending order, using a custom comparator
          function.

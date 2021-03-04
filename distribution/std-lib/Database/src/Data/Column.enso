@@ -334,6 +334,29 @@ type Column
 
     ## UNSTABLE
 
+       Sorts the column according to the specified rules.
+
+       Arguments:
+         - order: specifies the default sort order for this operation.
+         - missing_last: specifies the default placement of missing values when
+           compared to non-missing ones. Note thet this argument is independent
+           from `order`, i.e. missing values will always be sorted according to
+           this rule, ignoring the ascending / descending setting.
+
+       > Example
+         Sorting `column` in ascending order.
+             column.sort
+
+       > Example
+         Sorting `column` in descending order, placing missing values at the
+         top of the resulting column.
+             column.sort order=Sort_Order.Descending missing_last=False
+    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Order.Ascending missing_last=True =
+        this.to_table.sort by=this order=order missing_last=missing_last . at this.name
+
+    ## UNSTABLE
+
        Checks for each element of the column if it starts with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
