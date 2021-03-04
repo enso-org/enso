@@ -2286,6 +2286,195 @@ class RuntimeServerTest
     )
   }
 
+  it should "not instrument the body of a method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val fExpr   = metadata.addItem(32, 5)
+    val fApp    = metadata.addItem(62, 8)
+    val mainRes = metadata.addItem(50, 21)
+
+    println(s"fExpr=$fExpr")
+    println(s"fApp=$fApp")
+    println(s"res=$mainRes")
+
+    val code =
+      """from Builtins import all
+        |
+        |f x = x + 1
+        |
+        |main =
+        |    IO.println (here.f 1)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          fApp,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "f")
+        ),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument the body of a function" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val fExpr   = metadata.addItem(43, 5)
+    val fApp    = metadata.addItem(65, 3)
+    val mainRes = metadata.addItem(53, 16)
+
+    println(s"fExpr=$fExpr")
+    println(s"fApp=$fApp")
+    println(s"res=$mainRes")
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    f x = x + 1
+        |    IO.println (f 1)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, fExpr, Constants.INTEGER),
+      TestMessages.update(contextId, fApp, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument the body of a lambda" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val aExpr   = metadata.addItem(41, 14)
+    val lam     = metadata.addItem(42, 10)
+    val lamExpr = metadata.addItem(47, 5)
+    val lamArg  = metadata.addItem(54, 1)
+    val mainRes = metadata.addItem(60, 12)
+
+    println(s"a=$aExpr")
+    println(s"lam=$lam")
+    println(s"lamExpr=$lamExpr")
+    println(s"lamArg=$lamArg")
+    println(s"res=$mainRes")
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    a = (x -> x + 1) 1
+        |    IO.println a
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, aExpr, Constants.INTEGER),
+      TestMessages.update(contextId, lam, Constants.FUNCTION),
+      TestMessages.update(contextId, lamExpr, Constants.INTEGER),
+      TestMessages.update(contextId, lamArg, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "support file modification operations without attached ids" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
