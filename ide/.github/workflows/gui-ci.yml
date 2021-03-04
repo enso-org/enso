@@ -6,6 +6,7 @@
 name: GUI CI
 'on':
   - push
+  - pull_request
 jobs:
   version_assertions:
     name: Assertions
@@ -28,10 +29,14 @@ jobs:
         shell: bash
       - name: Assert Version Unstable
         run: node ./run assert-version-unstable --skip-version-validation
-        if: github.ref == 'refs/heads/unstable'
+        if: >-
+          github.ref == 'refs/heads/unstable' ||
+          github.event.pull_request.base.ref == 'refs/heads/unstable'
       - name: Assert Version Stable
         run: node ./run assert-version-stable --skip-version-validation
-        if: github.ref == 'refs/heads/stable'
+        if: >-
+          github.ref == 'refs/heads/stable' ||
+          github.event.pull_request.base.ref == 'refs/heads/stable'
       - id: checkCurrentReleaseTag
         uses: mukunku/tag-exists-action@v1.0.0
         env:
