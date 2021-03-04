@@ -317,13 +317,13 @@ function uploadToCDN(...names) {
 let assertVersionUnstable = {
     name: "Assert Version Unstable",
     run: "node ./run assert-version-unstable --skip-version-validation",
-    if: `github.ref == 'refs/heads/unstable'`
+    if: `github.ref == 'refs/heads/unstable' || github.event.pull_request.base.ref == 'refs/heads/unstable'`
 }
 
 let assertVersionStable = {
     name: "Assert Version Stable",
     run: "node ./run assert-version-stable --skip-version-validation",
-    if: `github.ref == 'refs/heads/stable'`
+    if: `github.ref == 'refs/heads/stable' || github.event.pull_request.base.ref == 'refs/heads/stable'`
 }
 
 let assertReleaseDoNotExists = [
@@ -361,7 +361,7 @@ let buildCondition   = `contains(github.event.head_commit.message,'${FLAG_FORCE_
 
 let workflow = {
     name : "GUI CI",
-    on: ['push'],
+    on: ['push','pull_request'],
     jobs: {
         version_assertions: job_on_macos("Assertions", [
             getCurrentReleaseChangelogInfo,
