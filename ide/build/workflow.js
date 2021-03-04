@@ -70,6 +70,20 @@ function list(...args) {
 
 
 
+// ============
+// === Info ===
+// ============
+
+dumpGitHubContext = {
+    name: 'Dump GitHub context',
+    env: {
+        GITHUB_CONTEXT: '${{ toJson(github) }}'
+    },
+    run: 'echo "$GITHUB_CONTEXT"'
+}
+
+
+
 // ====================
 // === Dependencies ===
 // ====================
@@ -363,6 +377,7 @@ let workflow = {
     name : "GUI CI",
     on: ['push','pull_request'],
     jobs: {
+        dumpGitHubContext,
         version_assertions: job_on_macos("Assertions", [
             getCurrentReleaseChangelogInfo,
             assertions
