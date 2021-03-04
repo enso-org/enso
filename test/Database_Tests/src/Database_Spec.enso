@@ -349,6 +349,7 @@ sqlite_spec =
     connection = Database.open_sqlite_file file
     here.spec connection
     here.sqlite_specific_spec connection
+    connection.close
     file.delete
 
 postgres_spec =
