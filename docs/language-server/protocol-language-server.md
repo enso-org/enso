@@ -161,6 +161,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`CapabilityNotAcquired`](#capabilitynotacquired)
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
+  - [`ResourcesInitializationError`](#resourcesinitializationerror)
   - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
   - [`ProjectNotFoundError`](#projectnotfounderror)
   - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
@@ -1079,6 +1080,8 @@ be correlated between the textual and data connections.
 
 - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal
   that session is already initialised.
+- [`ResourcesInitializationError`](#resourcesinitializationerror) to signal
+  about the error during the initialization of Language Server resources.
 
 ### `session/initBinaryConnection`
 
@@ -3735,6 +3738,17 @@ Signals that session is already initialised.
 "error" : {
   "code" : 6002,
   "message" : "Session already initialised"
+}
+```
+
+### `ResourcesInitializationError`
+
+Signals about the failure in the Language Server initialization process.
+
+```typescript
+"error" : {
+  "code" : 6003,
+  "message" : "Failed to initialize the Language Server resources"
 }
 ```
 

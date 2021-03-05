@@ -36,7 +36,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .on(_.suggestionId === _.id)
 
   /** Initialize the repo. */
-  def init: Future[Unit] =
+  override def init: Future[Unit] =
     db.run(initQuery)
 
   /** @inheritdoc */

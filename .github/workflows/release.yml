@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
+        os: [macOS-latest, ubuntu-18.04, windows-latest]
       fail-fast: true
     steps:
       - name: Checkout
@@ -230,7 +230,7 @@ jobs:
 
   create-release:
     name: Prepare Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: build
     steps:
       - name: Checkout code
