@@ -205,6 +205,14 @@ case class DocParserDef() extends Parser[Doc] {
             }
           case Some(_) | None => result.push()
         }
+        if (result.stack.head.isInstanceOf[Elem.List]) {
+          val code = result.current.get.asInstanceOf[Elem.CodeBlock]
+          result.pop()
+          val list     = result.current.get.asInstanceOf[Elem.List]
+          val newElems = list.elems ::: code.elems
+          val newList  = Elem.List(list.indent, list.typ, newElems)
+          result.current = Some(newList)
+        }
         result.push()
       }
 
