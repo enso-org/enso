@@ -14,7 +14,7 @@ spec connection =
     t1 = make_table "T1" ["A", "B", "C"] ["INT", "INT", "INT"]
     t1.insert [1, 2, 3]
     t1.insert [4, 5, 6]
-    Test.group "Basic Table Access" <|
+    Test.group "Basic Table Access" <| # FIXME [RW] TODO [RW] add test for many rows
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.to_dataframe
             a = t1.at 'A' . to_dataframe

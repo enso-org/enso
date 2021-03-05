@@ -33,6 +33,16 @@ public class Column {
   }
 
   /**
+   * Creates a new column.
+   *
+   * @param name the column name
+   * @param storage the underlying storage
+   */
+  public Column(String name, Storage storage) {
+    this(name, new DefaultIndex(storage.size()), storage);
+  }
+
+  /**
    * Converts this column to a single-column table.
    *
    * @return a table containing only this column

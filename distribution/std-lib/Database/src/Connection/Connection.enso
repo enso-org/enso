@@ -6,6 +6,7 @@ import Database.Data.Dialect
 import Database.Data.Sql
 import Database.Data.Internal.IR
 from Database.Data.Sql import Sql_Type
+import Table.Internal.Java_Exports
 
 polyglot java import java.util.ArrayList
 polyglot java import java.sql.DriverManager
@@ -63,29 +64,19 @@ type JDBC_Connection
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
-            ## TODO [RW] we wrap everything in objects, in the future we may
-               want to try a more performant solution for columns of numbers or
-               booleans
-            column_names = Vector.new ncols (ix -> metadata.getColumnName ix+1)
             column_types = if expected_types.is_nothing.not then expected_types else
-                Vector.new ncols (ix -> Sql.Sql_Type <| metadata.getColumnType ix+1)
-            columns = column_names.map (name -> [name, ArrayList.new])
+                Vector.new ncols (ix -> Sql_Type <| metadata.getColumnType ix+1)
+            column_builders = column_types.map typ->
+                here.create_builder typ
             go has_next = if has_next.not then Nothing else
-                columns.map_with_index ix-> pair->
-                    results = pair.second
-                    typ = column_types.at ix
-                    ## getObject handles most types by default correctly, but it
-                       would cast booleans to integers
-                    obj = case typ == Sql.Sql_Type.boolean of
-                        True ->
-                            bool = rs.getBoolean ix+1
-                            if rs.wasNull then Nothing else bool
-                        False -> rs.getObject ix+1
-                    results.add obj
+                column_builders.map_with_index ix-> builder->
+                    builder.fetch_and_append rs ix+1
                 go rs.next
             go rs.next
-            column_vectors = columns.map (pair -> [pair.first, Vector.Vector pair.second.toArray])
-            Materialized_Table.new column_vectors
+            columns = column_builders.map_with_index ix-> builder->
+                name = metadata.getColumnName ix+1
+                builder.make_column name
+            Materialized_Table.from_columns columns
 
     ## ADVANCED
 
@@ -145,6 +136,71 @@ type JDBC_Connection
                 typ = metadata.getColumnType ix+1
                 [name, Sql_Type typ]
             Vector.new ncols resolve_column
+
+## PRIVATE
+
+   Creates a builder for a column based on a provided SQL type, trying to infer
+   the best type for the builder.
+
+   WARNING: Currently it coerces decimals into floating point numbers.
+create_builder : Sql_Type -> Builder
+create_builder sql_type =
+    initial_size = 10
+    if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
+        if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
+            is_double =  sql_type.is_definitely_double || sql_type==Sql_Type.decimal
+            if is_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
+                Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
+
+type Builder
+    ## PRIVATE
+    type Builder_Inferred java_builder
+
+    ## PRIVATE
+    type Builder_Double java_builder
+
+    ## PRIVATE
+    type Builder_Long java_builder
+
+    ## PRIVATE
+    type Builder_Boolean java_builder
+
+    ## PRIVATE
+
+       Fetches the value of ith column from the current row of the result set
+       and appends it to the builder.
+
+       Arguments:
+       - rs: the Java ResultSet from which the value will be fetched.
+       - i: the index of the column to fetch from (starting from 1 as is the
+         ResultSet convention).
+    fetch_and_append rs i = case this of
+        Builder_Inferred _ ->
+            obj = rs.getObject i
+            this.java_builder.append obj
+        Builder_Boolean _ ->
+            bool = rs.getBoolean i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendBoolean bool
+        Builder_Long _ ->
+            long = rs.getLong i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendLong long
+        Builder_Double _ ->
+            double = rs.getDouble i
+            case rs.wasNull of
+                True -> this.java_builder.appendNulls 1
+                False -> this.java_builder.appendDouble double
+
+    ## PRIVATE
+
+       Seals the builder and returns a built Java-column.
+    make_column : Text -> Java_Exports.Column
+    make_column name =
+        storage = this.java_builder.seal
+        Java_Exports.make_column name storage
 
 ## An error indicating that a supported dialect could not be deduced for the
    provided URL.
