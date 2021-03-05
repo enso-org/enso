@@ -147,17 +147,15 @@ object DocParserRunner {
             tail match {
               case line2 :: rest =>
                 line2 match {
-                  case Line(Some(AST.App.Infix.any(ast)), offset) =>
+                  case Line(Some(AST.App.Infix.any(ast)), _) =>
                     commentWithInfixForDocumented(
                       com,
                       off,
                       ast,
-                      rest,
-                      0,
-                      offset
+                      rest
                     )
-                  case Line(Some(AST.Def.any(ast)), offset) =>
-                    commentWithDefForDocumented(com, off, ast, rest, 0, offset)
+                  case Line(Some(AST.Def.any(ast)), _) =>
+                    commentWithDefForDocumented(com, off, ast, rest)
                   case Line(None, _) =>
                     var restTrav  = rest
                     var emp       = 1
@@ -169,23 +167,21 @@ object DocParserRunner {
                     val rTail = restTrav.tail
                     val rHead = restTrav.head
                     rHead match {
-                      case Line(Some(AST.App.Infix.any(ast)), offset) =>
+                      case Line(Some(AST.App.Infix.any(ast)), _) =>
                         commentWithInfixForDocumented(
                           com,
                           off,
                           ast,
                           rTail,
-                          emp,
-                          offset
+                          emp
                         )
-                      case Line(Some(AST.Def.any(ast)), offset) =>
+                      case Line(Some(AST.Def.any(ast)), _) =>
                         commentWithDefForDocumented(
                           com,
                           off,
                           ast,
                           rTail,
-                          emp,
-                          offset
+                          emp
                         )
                       case _ =>
                         line1 :: line2 :: attachDocToSubsequentAST(rest)
@@ -205,8 +201,8 @@ object DocParserRunner {
     * @param comment - Comment found in AST.
     * @return - Documentation.
     */
-  def createDocFromComment(comment: AST.Comment, offsetBeg: Int): Doc = {
-    val in = " " * (offsetBeg + 2) + comment.lines.mkString("\n")
+  def createDocFromComment(comment: AST.Comment): Doc = {
+    val in = comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 
@@ -225,12 +221,11 @@ object DocParserRunner {
     off: Int,
     ast: AST.Def,
     rest: List[AST.Block.OptLine],
-    emptyLines: Int = 0,
-    offsetBeg: Int
+    emptyLines: Int = 0
   ): List[AST.Block.OptLine] = {
     val docFromAst = createDocs(ast)
     val docLine =
-      createDocumentedLine(com, emptyLines, docFromAst, off, offsetBeg)
+      createDocumentedLine(com, emptyLines, docFromAst, off)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -249,10 +244,9 @@ object DocParserRunner {
     off: Int,
     ast: AST.App.Infix,
     rest: List[AST.Block.OptLine],
-    emptyLines: Int = 0,
-    offsetBeg: Int
+    emptyLines: Int = 0
   ): List[AST.Block.OptLine] = {
-    val docLine = createDocumentedLine(com, emptyLines, ast, off, offsetBeg)
+    val docLine = createDocumentedLine(com, emptyLines, ast, off)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -269,10 +263,9 @@ object DocParserRunner {
     comment: AST.Comment,
     emptyLines: Int,
     ast: AST,
-    off: Int,
-    offsetBeg: Int
+    off: Int
   ): Line[Some[AST.Documented]] = {
-    val doc        = createDocFromComment(comment, offsetBeg)
+    val doc        = createDocFromComment(comment)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)
   }
