@@ -1,3 +1,26 @@
+# Enso 0.2.6 (2021-03-02)
+
+## Interpreter/Runtime
+
+- Fixed another issue where the parser would crash on partial issues, causing
+  issues for both the Engine and IDE
+  ([#1523](https://github.com/enso-org/enso/pull/1523)).
+- Made panic messages short, fixing an issue where retention would cause
+  ballooned memory usage while the full message contents were waiting to be
+  logged ([#1528](https://github.com/enso-org/enso/pull/1528)).
+
+## Tooling
+
+- Fixed an issue where dynamic dependencies were analysed incorrectly, leading
+  to missing updates for the IDE
+  ([#1532](https://github.com/enso-org/enso/pull/1532)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-02)
+  for issues opened before the release date.
+
 # Enso 0.2.5 (2021-02-26)
 
 ## Interpreter/Runtime
