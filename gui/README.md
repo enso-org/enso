@@ -21,7 +21,6 @@
   <br/>
 </p>
 
-
 ### Overview
 
 <p>
@@ -52,11 +51,13 @@ University and NASA as one of 20 most unique technologies worldwide. Enso
 consists of several sub-projects, including the
 [Enso Language Compiler](https://github.com/enso-org/enso), the
 [Enso Integrated Development Environment (IDE)](https://github.com/enso-org/ide),
-and [a high performance WebGL UI framework (EnsoGL)](https://github.com/enso-org/ide/tree/main/src/rust/ensogl).
+and
+[a high performance WebGL UI framework (EnsoGL)](https://github.com/enso-org/ide/tree/main/src/rust/ensogl).
 
 <br/>
 
 ### Getting Started
+
 Enso is distributed both in form of
 [pre-build packages for MacOS, Windows, or Linux](https://github.com/enso-org/ide/releases),
 as well as the [source code](https://github.com/enso-org). See the
@@ -64,11 +65,13 @@ as well as the [source code](https://github.com/enso-org). See the
 more.
 
 Currently to start IDE you have to run **Enso Project Manager** first. For more
-information and packages see [Enso repository](https://github.com/enso-org/enso).
+information and packages see
+[Enso repository](https://github.com/enso-org/enso).
 
 <br/>
 
 ### Building
+
 The project builds on MacOS, Linux, and Windows. Simply run `node ./run build`
 to build it and use `node ./run --help` to learn about other available commands
 and options. Read the detailed [development guide](docs/CONTRIBUTING.md) to
@@ -77,18 +80,20 @@ learn more.
 <br/>
 
 ### License
+
 The Enso Language Compiler is released under the terms of the
-[Apache v2 License](https://github.com/enso-org/enso/blob/main/LICENSE). The Enso
-Graphical Interface and it's rendering engine are released under the terms of
-the [AGPL v3 License](https://github.com/enso-org/ide/blob/main/LICENSE).  This
-license set was choosen to both provide you with a complete freedom to use Enso,
-create libraries, and release them under any license of your choice, while also
-allowing us to release commercial products on top of the platform, including
-Enso Cloud and Enso Enterprise on-premise server managers.
+[Apache v2 License](https://github.com/enso-org/enso/blob/main/LICENSE). The
+Enso Graphical Interface and it's rendering engine are released under the terms
+of the [AGPL v3 License](https://github.com/enso-org/ide/blob/main/LICENSE).
+This license set was choosen to both provide you with a complete freedom to use
+Enso, create libraries, and release them under any license of your choice, while
+also allowing us to release commercial products on top of the platform,
+including Enso Cloud and Enso Enterprise on-premise server managers.
 
 <br/>
 
 ### Contributing
+
 Enso is a community-driven open source project which is and will always be open
 and free to use. We are committed to a fully transparent development process and
 highly appreciate every contribution. If you love the vision behind Enso and you

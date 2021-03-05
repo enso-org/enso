@@ -2,18 +2,19 @@
 
 This is a release focused on bug-fixing, stability, and performance. It improves
 the performance of workflows and visualizations, and improves the look and feel
-of the graphical interface. In addition, the graphical interface informs the
-users now about errors and where they originate.
+of the graphical interface. In addition, the graphical interface now informs the
+users about errors and where they originate.
 
 <br/>![New Learning Resources](/docs/assets/tags/new_learning_resources.svg)
 
 - [Learn how to define custom data visualizations in
   Enso][podcast-custom-visualizations].
-- [Learn how to use Java libraries in Enso][podcast-java-interop].
-- [Learn how to use HTTP libraries in Enso to build custom server-side website
-  rendering][podcast-http-server].
-- [Discover why Enso Compiler is so fast and how it was build to support a
-  dual-representation langauge][podcast-compiler-internals].
+- [Learn how to use Java libraries in Enso, to build a
+  webserver][podcast-java-interop].
+- [Learn how to use Javascript libraries in Enso, to build custom server-side
+  website rendering][podcast-http-server].
+- [Discover why Enso Compiler is so fast and how it was built to support a
+  dual-representation language][podcast-compiler-internals].
 - [Learn more about the vision behind Enso and about its planned
   future][podcast-future-of-enso].
 
@@ -24,23 +25,22 @@ users now about errors and where they originate.
 - [Errors in workflows are now displayed in the graphical interface][1215].
   Previously, these errors were silently skipped, which was non-intuitive and
   hard to understand. Now, the IDE displays both dataflow errors and panics in a
-  nice and descriptive way.
+  nice and descriptive fashion.
 - [Added geographic map support for Tables (data frames).][1187] Tables that
-  have `latitude`, `longitude` and optionally `label` columns can now be shown
+  have `latitude`, `longitude`, and optionally `label` columns can now be shown
   as points on a map.
-- [Added a shortcut for live reloading of visualization files.][1190] It
-  drastically improves how fast new visualizations can be tested during their
+- [Added a shortcut for live reloading of visualization files.][1190] This
+  drastically improves how quickly new visualizations can be tested during their
   development. This is _currently_ limited in that, after reloading
   visualization definitions, the currently visible visualizations must be
-  switched to another and switched back to refresh its content. See the [video
-  podcast about building custom visualizations][podcast-custom-visualizations]  
+  switched to another and switched back to refresh their content. See the [video
+  podcast about building custom visualizations][podcast-custom-visualizations]
   to learn more.
 - [Added a visual indicator of the ongoing standard library compilation][1264].
-  Currently, each time after IDE is started, backend needs to compile the
-  standard library, before it can provide IDE with type information and values.
-  Because of that, not all functionalities are ready to work directly after
-  starting the IDE. Now, there is a visible indication of the ongoing background
-  process.
+  Currently, each time IDE is started, the backend needs to compile the standard
+  library before it can provide IDE with type information and values. Because of
+  that, not all functionalities are ready to work directly after starting the
+  IDE. Now, there is a visible indication of the ongoing background process.
 - [Added the ability to reposition visualisations.][1096] There is now an icon
   in the visualization action bar that allows dragging the visualization away
   from a node. Once the visualization has been moved, another icon appears that
@@ -56,7 +56,7 @@ users now about errors and where they originate.
   note, that large tables will get truncated to 2000 entries. This limitation
   will be lifted in future releases.
 - [Performance improvements during visual workflow][1067]. Nodes added with the
-  searcher will have their values automatically assigned to a newly generated
+  searcher will have their values automatically assigned to newly generated
   variables, which allows the Enso Engine to cache intermediate values and hence
   improve visualization performance.
 - [Minor documentation rendering fixes][1098]. Fixed cases where text would be
@@ -66,7 +66,7 @@ users now about errors and where they originate.
   is now better at dealing with incompatible metadata in files, which stores
   node visual position information, the history of chosen searcher suggestions,
   etc. This will allow IDE to correctly open projects that were created using a
-  different IDE version and prevent unnecessary lose of metadata.
+  different IDE version and prevent unnecessary loss of metadata.
 - Pressing and holding up and down arrow keys make the list view selection move
   continuously.
 - The shortcuts to close the application and to toggle the developer tools at
@@ -78,14 +78,14 @@ users now about errors and where they originate.
 - [Fixed visual glitch where a node's text was displayed as white on a white
   background][1264]. Most notably this occurred with the output node of a
   function generated using the node collapse refactoring.
-- Many visual glitches vere fixed, including small "pixel-like" artifacts
+- Many visual glitches were fixed, including small "pixel-like" artifacts
   appearing on the screen.
 - [Several parser improvements][1274]. The parser used in the IDE has been
   updated to the latest version. This resolves several issues with language
-  constructs like `import`, lambdas, and parentheses, where upon typing certain
+  constructs like `import`, lambdas, and parentheses, whereupon typing certain
   text the edit could be automatically reverted.
 - [The auto-import functionality was improved][1279]. Libraries' `Main` modules
-  are omitted in expressions inserted by searcher. For example, the `point`
+  are omitted in expressions inserted by the searcher. For example, the `point`
   method of `Geo` library will be displayed as `Geo.point` and will insert
   import `Geo` instead of `Geo.Main`.
 - Cursors in text editors behave correctly now (they are not affected by scene
@@ -94,7 +94,7 @@ users now about errors and where they originate.
 
 #### EnsoGL (rendering engine)
 
-- A new multi-camera management system, allowing the same shape systems be
+- A new multi-camera management system, allowing the same shape systems to be
   rendered on different layers from different cameras. The implementation
   automatically caches the same shape system definitions per scene layer in
   order to minimize the amount of WebGL draw calls and hence improve
