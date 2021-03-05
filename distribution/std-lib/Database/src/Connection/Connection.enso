@@ -58,12 +58,14 @@ type JDBC_Connection
          representing the query to execute.
        - expected_types: an optional array of expected types of each column;
          meant only for internal use.
+       # TODO [RW] comments regarding handling of decimals!
     execute_query : Text | Sql.Statement -> Vector Sql.Sql_Type -> Materialized_Table =
     execute_query query expected_types=Nothing = here.wrap_sql_errors <|
         Resource.bracket (this.prepare_statement query) .close stmt->
             rs = stmt.executeQuery
             metadata = rs.getMetaData
             ncols = metadata.getColumnCount
+            column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
             column_types = if expected_types.is_nothing.not then expected_types else
                 Vector.new ncols (ix -> Sql_Type <| metadata.getColumnType ix+1)
             column_builders = column_types.map typ->
@@ -71,10 +73,9 @@ type JDBC_Connection
             go has_next = if has_next.not then Nothing else
                 column_builders.map_with_index ix-> builder->
                     builder.fetch_and_append rs ix+1
-                go rs.next
+                @Tail_Call go rs.next
             go rs.next
-            columns = column_builders.map_with_index ix-> builder->
-                name = metadata.getColumnName ix+1
+            columns = column_builders.zip column_names builder-> name->
                 builder.make_column name
             Materialized_Table.from_columns columns
 
