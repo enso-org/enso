@@ -5,6 +5,9 @@ import java.io.File
 /** The object for accessing the database containing the file versions. */
 trait FileVersionsRepo[F[_]] {
 
+  /** Initialize the repo. */
+  def init: F[Unit]
+
   /** Get the file version.
     *
     * @param file the file path

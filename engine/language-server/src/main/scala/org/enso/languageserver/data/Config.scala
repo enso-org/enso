@@ -88,7 +88,7 @@ case class DirectoriesConfig(root: File) {
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
 
   /** Create data directories if not exist. */
-  private def createDirectories(): Unit =
+  def createDirectories(): Unit =
     Files.createDirectories(dataDirectory.toPath)
 }
 
@@ -97,13 +97,8 @@ object DirectoriesConfig {
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
-  /** Create default data directory config, creating directories if not exist.
-    *
-    * @param root the root directory path
-    * @return data directory config
-    */
-  def initialize(root: String): DirectoriesConfig =
-    initialize(new File(root))
+  def apply(root: String): DirectoriesConfig =
+    new DirectoriesConfig(new File(root))
 
   /** Create default data directory config, creating directories if not exist.
     *

@@ -12,6 +12,9 @@ import org.enso.searcher.data.QueryResult
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
 
+  /** Initialize the repo. */
+  def init: F[Unit]
+
   /** Get current version of the repo. */
   def currentVersion: F[Long]
 
