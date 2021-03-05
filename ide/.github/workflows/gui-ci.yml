@@ -60,6 +60,7 @@ jobs:
         run: >-
           if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
           then exit 1; fi
+        if: github.base_ref == 'unstable' || github.base_ref == 'stable'
       - name: Get list of changed files
         id: changed_files
         run: |2-
@@ -107,6 +108,8 @@ jobs:
         run: npm install --save-dev --save-exact prettier
       - name: Install Clippy
         run: rustup component add clippy
+      - name: Lint Markdown sources
+        run: npx prettier --check '*.md'
       - name: Lint JavaScript sources
         run: npx prettier --check 'src/**/*.js'
       - name: Lint Rust sources
@@ -161,7 +164,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'macOS-latest'
+        if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -172,7 +175,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -183,7 +186,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
       - name: Run tests (WASM)
         run: node ./run test --no-native --skip-version-validation
   simple_build:
@@ -215,7 +218,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'macOS-latest'
+        if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -226,7 +229,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -237,10 +240,10 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
       - name: Build (macos)
         run: node ./run dist --skip-version-validation --target macos
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os,'macos')
     if: >-
       !(contains(github.event.head_commit.message,'[ci build]') ||
       github.base_ref == 'develop' || github.base_ref == 'unstable' ||
@@ -286,7 +289,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'macOS-latest'
+        if: startsWith(matrix.os,'macOS')
       - name: Install wasm-pack (Windows)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -297,7 +300,7 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Install wasm-pack (Linux)
         env:
           WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.9.1
@@ -308,29 +311,29 @@ jobs:
                       mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
                       rm -r $WASMPACKDIR
         shell: bash
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
       - name: Build (macos)
         run: node ./run dist --skip-version-validation --target macos
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os,'macos')
       - name: Build (win)
         run: node ./run dist --skip-version-validation --target win
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Build (linux)
         run: node ./run dist --skip-version-validation --target linux
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
       - name: Upload Content Artifacts
         uses: actions/upload-artifact@v1
         with:
           name: content
           path: dist/content
-        if: matrix.os == 'macOS-latest'
+        if: startsWith(matrix.os,'macOS')
       - name: Upload Artifacts (macOS, dmg)
         uses: actions/upload-artifact@v1
         with:
           name: enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
           path: >-
             dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os,'macos')
       - name: Upload Artifacts (macOS, dmg.sha256)
         uses: actions/upload-artifact@v1
         with:
@@ -338,14 +341,14 @@ jobs:
             enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
           path: >-
             dist/client/enso-mac-${{fromJson(steps.changelog.outputs.content).version}}.dmg.sha256
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os,'macos')
       - name: Upload Artifacts (Windows, exe)
         uses: actions/upload-artifact@v1
         with:
           name: enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
           path: >-
             dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Upload Artifacts (Windows, exe.sha256)
         uses: actions/upload-artifact@v1
         with:
@@ -353,7 +356,7 @@ jobs:
             enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
           path: >-
             dist/client/enso-win-${{fromJson(steps.changelog.outputs.content).version}}.exe.sha256
-        if: matrix.os == 'windows-latest'
+        if: startsWith(matrix.os,'windows')
       - name: Upload Artifacts (Linux, AppImage)
         uses: actions/upload-artifact@v1
         with:
@@ -361,7 +364,7 @@ jobs:
             enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
           path: >-
             dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
       - name: Upload Artifacts (Linux, AppImage.sha256)
         uses: actions/upload-artifact@v1
         with:
@@ -369,7 +372,7 @@ jobs:
             enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
           path: >-
             dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
-        if: matrix.os == 'ubuntu-latest'
+        if: startsWith(matrix.os,'ubuntu')
     if: >-
       contains(github.event.head_commit.message,'[ci build]') || github.base_ref
       == 'develop' || github.base_ref == 'unstable' || github.base_ref ==
@@ -408,6 +411,11 @@ jobs:
         run: >-
           if [[ ${{ steps.checkCurrentReleaseTag.outputs.exists }} == true ]];
           then exit 1; fi
+        if: github.base_ref == 'unstable' || github.base_ref == 'stable'
+      - name: Install Prettier
+        run: npm install --save-dev --save-exact prettier
+      - name: Pretty print changelog.
+        run: npx prettier --prose-wrap never CHANGELOG.md --write
       - name: Upload GitHub Release
         uses: softprops/action-gh-release@v1
         env:
@@ -431,7 +439,7 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-18.04
       fail-fast: false
     steps:
       - uses: actions/checkout@v1
