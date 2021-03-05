@@ -752,14 +752,12 @@ class DocParserTests extends AnyFlatSpec with Matchers {
 
   """
     | - bar
-    | baz
+    |   baz
     |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         Newline,
-        List(1, List.Unordered, " bar"),
-        Newline,
-        CodeBlock(CodeBlock.Line(1, "baz")),
+        List(1, List.Unordered, " bar\n   baz"),
         Newline
       )
     )
