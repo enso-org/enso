@@ -80,6 +80,10 @@ jobs:
         if: >-
           github.base_ref == 'develop' || github.base_ref == 'unstable' ||
           github.base_ref == 'stable'
+      - name: Fail if squash commit to the 'unstable' or the 'stable' branch.
+        run: >-
+          if [[ ${{ github.base_ref }} == "unstable" || ${{ github.base_ref }}
+          == "stable" ]]; then exit 1; fi
   lint:
     name: Linter
     runs-on: ${{ matrix.os }}
@@ -240,7 +244,8 @@ jobs:
     if: >-
       !(contains(github.event.head_commit.message,'[ci build]') ||
       github.base_ref == 'develop' || github.base_ref == 'unstable' ||
-      github.base_ref == 'stable')
+      github.base_ref == 'stable' || github.ref == 'refs/heads/unstable' ||
+      github.ref == 'refs/heads/stable')
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -368,7 +373,8 @@ jobs:
     if: >-
       contains(github.event.head_commit.message,'[ci build]') || github.base_ref
       == 'develop' || github.base_ref == 'unstable' || github.base_ref ==
-      'stable'
+      'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/stable'
   release_to_github:
     name: GitHub Release
     runs-on: ${{ matrix.os }}

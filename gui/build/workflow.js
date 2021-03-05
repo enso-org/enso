@@ -358,11 +358,17 @@ let assertReleaseDoNotExists = [
     }
 ]
 
+assertNoSquashCommitForRelease = {
+    name: `Fail if squash commit to the 'unstable' or the 'stable' branch.`,
+    run: 'if [[ ${{ github.base_ref }} == "unstable" || ${{ github.base_ref }} == "stable" ]]; then exit 1; fi',
+}
+
 let assertions = list(
     assertVersionUnstable,
     assertVersionStable,
     assertReleaseDoNotExists,
-    assertChangelogWasUpdated
+    assertChangelogWasUpdated,
+    assertNoSquashCommitForRelease,
 )
 
 
@@ -378,7 +384,7 @@ let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 're
 /// Make a full build if one of the following conditions is true:
 /// 1. There was a `FLAG_FORCE_CI_BUILD` flag set in the commit message (see its docs for more info).
 /// 2. It was a pull request to 'develop', 'unstable', or 'stable'.
-let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'`
+let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
 
 let workflow = {
     name : "GUI CI",
@@ -452,7 +458,7 @@ let workflow = {
             uploadToCDN('index.js.gz','style.css','ide.wasm','wasm_imports.js.gz'),
         ],{ if:releaseCondition,
             needs:['version_assertions','lint','test','wasm-test','build']
-        }),
+        })
     }
 }
 
