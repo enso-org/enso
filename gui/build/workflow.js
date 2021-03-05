@@ -360,7 +360,7 @@ let assertReleaseDoNotExists = [
 
 assertNoSquashCommitForRelease = {
     name: `Fail if squash commit to the 'unstable' or the 'stable' branch.`,
-    run: 'if [[ ${{ github.base_ref }} == "unstable" || ${{ github.base_ref }} == "stable" ]]; then exit 1; fi',
+    run: 'if [[ "${{ github.base_ref }}" == "unstable" || "${{ github.base_ref }}" == "stable" ]]; then exit 1; fi',
 }
 
 let assertions = list(
