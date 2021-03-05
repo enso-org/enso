@@ -7,7 +7,7 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import flexer.Parser.{compile, Result => res}
+import flexer.Parser.{Result => res}
 import org.enso.data.List1
 import org.enso.syntax.text.Shape.Block.Line
 
@@ -148,9 +148,16 @@ object DocParserRunner {
               case line2 :: rest =>
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), offset) =>
-                    commentWithInfixForDocumented(com, off, ast, rest, offset)
+                    commentWithInfixForDocumented(
+                      com,
+                      off,
+                      ast,
+                      rest,
+                      0,
+                      offset
+                    )
                   case Line(Some(AST.Def.any(ast)), offset) =>
-                    commentWithDefForDocumented(com, off, ast, rest, offset)
+                    commentWithDefForDocumented(com, off, ast, rest, 0, offset)
                   case Line(None, _) =>
                     var restTrav  = rest
                     var emp       = 1
@@ -199,7 +206,7 @@ object DocParserRunner {
     * @return - Documentation.
     */
   def createDocFromComment(comment: AST.Comment, offsetBeg: Int): Doc = {
-    val in = " " * offsetBeg + comment.lines.mkString("\n")
+    val in = " " * (offsetBeg + 2) + comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 
