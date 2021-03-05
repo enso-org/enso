@@ -29,6 +29,8 @@ public class Polyglot {
     scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
     scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "is_language_installed", IsLanguageInstalledMethodGen.makeFunction(language));
   }
 
   /** @return the atom constructor for polyglot */

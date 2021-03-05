@@ -7,10 +7,12 @@ import Tests.Semantic.Case_Spec
 import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
 import Tests.Semantic.Error_Spec
 import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
-import Tests.Semantic.Java_Interop_Spec
-import Tests.Semantic.Js_Interop_Spec
 import Tests.Semantic.Meta_Spec
 import Tests.Semantic.Names_Spec
+
+import Tests.Semantic.Java_Interop_Spec
+import Tests.Semantic.Js_Interop_Spec
+import Tests.Semantic.Python_Interop_Spec
 
 import Tests.Data.Interval_Spec
 import Tests.Data.Json_Spec
@@ -60,6 +62,7 @@ main = Test.Suite.runMain <|
     Numbers_Spec.spec
     Ordering_Spec.spec
     Process_Spec.spec
+    Python_Interop_Spec.spec
     Range_Spec.spec
     Text_Spec.spec
     Time_Spec.spec

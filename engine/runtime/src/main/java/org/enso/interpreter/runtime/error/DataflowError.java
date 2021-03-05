@@ -41,18 +41,20 @@ public class DataflowError extends AbstractTruffleException {
    * want to point to the original location of the panic.
    *
    * @param payload the user-provided value carried by the error
-   * @param location the node in which the error was located
-   * @param trace a specific stack trace
+   * @param prototype the exception to derive the stacktrace from
    * @return a new dataflow error
    */
-  public static DataflowError withTrace(Object payload, Node location, StackTraceElement[] trace) {
-    var error = new DataflowError(payload, location);
-    error.setStackTrace(trace);
-    return error;
+  public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
+    return new DataflowError(payload, prototype);
   }
 
   DataflowError(Object payload, Node location) {
     super(location);
+    this.payload = payload;
+  }
+
+  DataflowError(Object payload, AbstractTruffleException prototype) {
+    super(prototype);
     this.payload = payload;
   }
 
