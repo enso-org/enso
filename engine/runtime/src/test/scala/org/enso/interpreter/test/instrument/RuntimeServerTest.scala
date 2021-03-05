@@ -2357,20 +2357,25 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val fExpr   = metadata.addItem(43, 5)
-    val fApp    = metadata.addItem(65, 3)
-    val mainRes = metadata.addItem(53, 16)
+    val fExpr    = metadata.addItem(43, 5)
+    val aExpr    = metadata.addItem(57, 1)
+    val fApp     = metadata.addItem(75, 3)
+    val mainRes  = metadata.addItem(63, 16)
+    val mainExpr = metadata.addItem(32, 47)
 
     println(s"fExpr=$fExpr")
+    println(s"aExpr=$aExpr")
     println(s"fApp=$fApp")
-    println(s"res=$mainRes")
+    println(s"mainRes=$mainRes")
+    println(s"mainExpr=$mainExpr")
 
     val code =
       """from Builtins import all
         |
         |main =
         |    f x = x + 1
-        |    IO.println (f 1)
+        |    a = 1
+        |    IO.println (f a)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -2401,11 +2406,12 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, fExpr, Constants.INTEGER),
+      TestMessages.update(contextId, aExpr, Constants.INTEGER),
       TestMessages.update(contextId, fApp, Constants.INTEGER),
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, mainExpr, Constants.NOTHING),
       context.executionComplete(contextId)
     )
   }

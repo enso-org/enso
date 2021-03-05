@@ -74,9 +74,7 @@ object LocationResolver {
     ir: IR,
     location: Location
   ): Option[ExpressionId] =
-    ir.preorder
-      .find(_.location.map(_.location).contains(location))
-      .flatMap(getExpressionId)
+    findByLocation(ir, location).flatMap(getExpressionId)
 
   /** Get the id of the given `IR`.
     *
@@ -85,6 +83,9 @@ object LocationResolver {
     */
   def getExpressionId(ir: IR): Option[ExpressionId] =
     ir.getExternalId.map(ExpressionId(ir.getId, _))
+
+  def findByLocation(ir: IR, location: Location): Option[IR] =
+    ir.preorder.find(_.location.map(_.location).contains(location))
 
   /** Convert truffle source section to the range of text.
     *

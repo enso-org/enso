@@ -9,10 +9,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
@@ -239,6 +236,20 @@ public class Context {
    */
   public Optional<Module> findModule(String moduleName) {
     return getTopScope().getModule(moduleName);
+  }
+
+  /**
+   * Find a module containing the given expression id.
+   *
+   * @param expressionId the expression id to lookup.
+   * @return the relevant module, if exists.
+   */
+  public Optional<Module> findModuleByExpressionId(UUID expressionId) {
+    return getTopScope()
+        .getModules()
+        .stream()
+        .filter(module -> module.getIr().preorder().exists(ir -> ir.getId() == expressionId))
+        .findFirst();
   }
 
   /**
