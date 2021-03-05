@@ -109,7 +109,7 @@ public class Column {
   public static Column fromItems(String name, List<Object> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     for (Object item : items) {
-      builder.append(item);
+      builder.appendNoGrow(item);
     }
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
   }

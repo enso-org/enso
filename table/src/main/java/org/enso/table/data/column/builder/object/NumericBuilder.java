@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
@@ -7,14 +8,12 @@ import org.enso.table.data.column.storage.Storage;
 
 /** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {
-  private final int size;
   private final BitSet isMissing = new BitSet();
-  private final long[] data;
+  private long[] data;
   private boolean isDouble;
   private int currentSize;
 
   private NumericBuilder(boolean isDouble, int size) {
-    this.size = size;
     this.data = new long[size];
     this.isDouble = isDouble;
   }
@@ -64,7 +63,7 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
-  public void append(Object o) {
+  public void appendNoGrow(Object o) {
     if (o == null) {
       isMissing.set(currentSize++);
     } else if (isDouble && o instanceof Double) {
@@ -77,19 +76,54 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
+  public void append(Object o) {
+    if (currentSize + 1 > data.length) {
+      grow();
+    }
+    appendNoGrow(o);
+  }
+
+  @Override
   public void appendNulls(int count) {
     isMissing.set(currentSize, currentSize + count);
     currentSize += count;
   }
 
   /**
-   * Append a new item in raw form to this builder.
+   * Append a new item in raw form to this builder, assuming that it has enough allocated space.
+   *
+   * <p>This function should only be used when it is guaranteed that the builder has enough
+   * capacity, for example if it was initialized with an initial capacity known up-front.
    *
    * @param rawData the raw encoding of the item, for long numbers just the number and for doubles,
    *     its long bytes
    */
-  public void appendRaw(long rawData) {
+  public void appendRawNoGrow(long rawData) {
     data[currentSize++] = rawData;
+  }
+
+  /**
+   * Append a new integer to this builder.
+   *
+   * @param data the integer to append
+   */
+  public void appendLong(long data) {
+    if (currentSize + 1 > this.data.length) {
+      grow();
+    }
+    appendRawNoGrow(data);
+  }
+
+  /**
+   * Append a new double to this builder.
+   *
+   * @param data the double to append
+   */
+  public void appendDouble(double data) {
+    if (currentSize + 1 > this.data.length) {
+      grow();
+    }
+    appendRawNoGrow(Double.doubleToRawLongBits(data));
   }
 
   @Override
@@ -98,11 +132,24 @@ public class NumericBuilder extends TypedBuilder {
   }
 
   @Override
+  public int getCurrentCapacity() {
+    return data.length;
+  }
+
+  @Override
   public Storage seal() {
     if (isDouble) {
-      return new DoubleStorage(data, size, isMissing);
+      return new DoubleStorage(data, currentSize, isMissing);
     } else {
-      return new LongStorage(data, size, isMissing);
+      return new LongStorage(data, currentSize, isMissing);
     }
+  }
+
+  private void grow() {
+    int desiredCapacity = 3;
+    if (data.length > 1) {
+      desiredCapacity = (data.length * 3 / 2);
+    }
+    this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }
