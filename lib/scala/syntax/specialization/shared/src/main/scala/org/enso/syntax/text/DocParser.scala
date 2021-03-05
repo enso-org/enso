@@ -7,7 +7,7 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import flexer.Parser.{Result => res}
+import flexer.Parser.{compile, Result => res}
 import org.enso.data.List1
 import org.enso.syntax.text.Shape.Block.Line
 
@@ -147,10 +147,10 @@ object DocParserRunner {
             tail match {
               case line2 :: rest =>
                 line2 match {
-                  case Line(Some(AST.App.Infix.any(ast)), _) =>
-                    commentWithInfixForDocumented(com, off, ast, rest)
-                  case Line(Some(AST.Def.any(ast)), _) =>
-                    commentWithDefForDocumented(com, off, ast, rest)
+                  case Line(Some(AST.App.Infix.any(ast)), offset) =>
+                    commentWithInfixForDocumented(com, off, ast, rest, offset)
+                  case Line(Some(AST.Def.any(ast)), offset) =>
+                    commentWithDefForDocumented(com, off, ast, rest, offset)
                   case Line(None, _) =>
                     var restTrav  = rest
                     var emp       = 1
@@ -162,10 +162,24 @@ object DocParserRunner {
                     val rTail = restTrav.tail
                     val rHead = restTrav.head
                     rHead match {
-                      case Line(Some(AST.App.Infix.any(ast)), _) =>
-                        commentWithInfixForDocumented(com, off, ast, rTail, emp)
-                      case Line(Some(AST.Def.any(ast)), _) =>
-                        commentWithDefForDocumented(com, off, ast, rTail, emp)
+                      case Line(Some(AST.App.Infix.any(ast)), offset) =>
+                        commentWithInfixForDocumented(
+                          com,
+                          off,
+                          ast,
+                          rTail,
+                          emp,
+                          offset
+                        )
+                      case Line(Some(AST.Def.any(ast)), offset) =>
+                        commentWithDefForDocumented(
+                          com,
+                          off,
+                          ast,
+                          rTail,
+                          emp,
+                          offset
+                        )
                       case _ =>
                         line1 :: line2 :: attachDocToSubsequentAST(rest)
                     }
@@ -182,11 +196,10 @@ object DocParserRunner {
   /** Creates Docs from comments found in parsed data
     *
     * @param comment - Comment found in AST.
-    * @param offset - Offset of the first line.
     * @return - Documentation.
     */
-  def createDocFromComment(offset: Int, comment: AST.Comment): Doc = {
-    val in = " " * offset + comment.lines.mkString("\n")
+  def createDocFromComment(comment: AST.Comment, offsetBeg: Int): Doc = {
+    val in = " " * offsetBeg + comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 
@@ -205,10 +218,12 @@ object DocParserRunner {
     off: Int,
     ast: AST.Def,
     rest: List[AST.Block.OptLine],
-    emptyLines: Int = 0
+    emptyLines: Int = 0,
+    offsetBeg: Int
   ): List[AST.Block.OptLine] = {
     val docFromAst = createDocs(ast)
-    val docLine    = createDocumentedLine(com, emptyLines, docFromAst, off)
+    val docLine =
+      createDocumentedLine(com, emptyLines, docFromAst, off, offsetBeg)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -227,9 +242,10 @@ object DocParserRunner {
     off: Int,
     ast: AST.App.Infix,
     rest: List[AST.Block.OptLine],
-    emptyLines: Int = 0
+    emptyLines: Int = 0,
+    offsetBeg: Int
   ): List[AST.Block.OptLine] = {
-    val docLine = createDocumentedLine(com, emptyLines, ast, off)
+    val docLine = createDocumentedLine(com, emptyLines, ast, off, offsetBeg)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -246,9 +262,10 @@ object DocParserRunner {
     comment: AST.Comment,
     emptyLines: Int,
     ast: AST,
-    off: Int
+    off: Int,
+    offsetBeg: Int
   ): Line[Some[AST.Documented]] = {
-    val doc        = createDocFromComment(off, comment)
+    val doc        = createDocFromComment(comment, offsetBeg)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)
   }
@@ -346,7 +363,11 @@ object DocParserHTMLGenerator {
     * @return -  HTML Code from Doc and contents of [[AST.Def]] or
     *            [[AST.App.Infix]]
     */
-  def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
+  def DocumentedToHtml(
+    ast: AST,
+    doc: Doc,
+    isInOtherDoc: Boolean = false
+  ): TypedTag[String] = {
     val docClass       = HTML.`class` := "Documentation"
     val astHeadCls     = HTML.`class` := "ASTHead"
     val astHTML        = createHTMLFromAST(ast)
@@ -372,11 +393,19 @@ object DocParserHTMLGenerator {
         if (doc.tags.html.mkString.contains("DEPRECATED")) {
           content = HTML.div(strikeoutStyle)(doc.htmlWoTags)
         }
-        HTML.div(docClass)(
-          astName,
-          content,
-          doc.tags.html
-        )
+        if (isInOtherDoc) {
+          HTML.div(docClass)(
+            astName,
+            content,
+            doc.tags.html
+          )
+        } else {
+          HTML.div(docClass)(
+            doc.tags.html,
+            astName,
+            content
+          )
+        }
     }
   }
 
@@ -508,7 +537,7 @@ object DocParserHTMLGenerator {
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
         val cls     = HTML.`class` := "DefDoc"
-        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
+        val docHtml = DocumentedToHtml(doc.ast, doc.doc, true)
         HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
       case x :: rest =>
         x match {
