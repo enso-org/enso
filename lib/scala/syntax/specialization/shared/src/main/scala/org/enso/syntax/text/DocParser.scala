@@ -181,11 +181,12 @@ object DocParserRunner {
 
   /** Creates Docs from comments found in parsed data
     *
-    * @param comment - comment found in AST
-    * @return - Documentation
+    * @param comment - Comment found in AST.
+    * @param offset - Offset of the first line.
+    * @return - Documentation.
     */
-  def createDocFromComment(comment: AST.Comment): Doc = {
-    val in = comment.lines.mkString("\n")
+  def createDocFromComment(offset: Int, comment: AST.Comment): Doc = {
+    val in = " " * offset + comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 
@@ -247,7 +248,7 @@ object DocParserRunner {
     ast: AST,
     off: Int
   ): Line[Some[AST.Documented]] = {
-    val doc        = createDocFromComment(comment)
+    val doc        = createDocFromComment(off, comment)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)
   }
@@ -277,7 +278,7 @@ object DocParserHTMLGenerator {
           val file = onHTMLRendering(documented)
           allDocs += file.code.toString() + generateHTMLForEveryDocumented(
             documented
-          ) + HTML.br
+          ) + HTML.hr + HTML.br
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
