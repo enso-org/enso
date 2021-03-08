@@ -1,3 +1,32 @@
+# Next Release
+
+<br/>![New Learning Resources](/docs/assets/tags/new_learning_resources.svg)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+- [Not adding spurious imports][1209]. Fixed cases when IDE was adding
+  unnecessary library imports when selecting hints from node searcher. This
+  makes the generated textual code easier to read and reduces likelihood of
+  accidental name collision.
+
+#### EnsoGL (rendering engine)
+
+#### Enso Compiler
+
+If you're interested in the enhancements and fixes made to the Enso compiler,
+you can find their release notes
+[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1209]: https://github.com/enso-org/ide/pull/1209
+
+<br/>
+
 # Enso 2.0.0-alpha.2 (2020-03-04)
 
 This is a release focused on bug-fixing, stability, and performance. It improves
