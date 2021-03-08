@@ -195,12 +195,12 @@ pub struct NotReferentName(String);
 
 // === Definition ===
 
-#[derive(Clone,Debug,Display,Shrinkwrap,PartialEq,Eq,Hash)]
 /// The name segment is a string that starts with an upper-cased character.
 ///
 /// It is used for naming modules, module path segments and projects.
 ///
 /// This value corresponds to contents of the `Cons` AST shape.
+#[derive(Clone,Debug,Display,Shrinkwrap,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct ReferentName(String);
 
 impl ReferentName {
@@ -242,6 +242,12 @@ impl AsRef<str> for ReferentName {
 impl From<ReferentName> for String {
     fn from(name:ReferentName) -> Self {
         name.0
+    }
+}
+
+impl From<&ReferentName> for String {
+    fn from(name:&ReferentName) -> Self {
+        name.0.clone()
     }
 }
 
