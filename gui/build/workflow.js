@@ -400,8 +400,10 @@ let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 're
 
 /// Make a full build if one of the following conditions is true:
 /// 1. There was a `FLAG_FORCE_CI_BUILD` flag set in the commit message (see its docs for more info).
-/// 2. It was a pull request to 'develop', 'unstable', or 'stable'.
-let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
+/// 2. It was a pull request to the 'unstable', or the 'stable' branch.
+/// 3. It was a commit to the 'develop' branch.
+/// Otherwise, perform a simplified (faster) build only.
+let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
 
 let workflow = {
     name : "GUI CI",
