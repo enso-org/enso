@@ -44,9 +44,6 @@ public abstract class HostMethodCallNode extends Node {
      * org.enso.interpreter.runtime.data.text.Text} and dispatching natively.
      */
     CONVERT_TO_TEXT,
-
-    CONVERT_TO_LONG,
-    CONVERT_TO_DOUBLE,
     /** The method call should be handled by dispatching through the {@code Any} type. */
     NOT_SUPPORTED
   }
@@ -80,14 +77,6 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.READ_ARRAY_ELEMENT;
     } else if (library.isString(_this)) {
       return PolyglotCallType.CONVERT_TO_TEXT;
-    } else if (library.isNumber(_this)) {
-      if (library.fitsInLong(_this)) {
-        return PolyglotCallType.CONVERT_TO_LONG;
-      } else if (library.fitsInDouble(_this)) {
-        return PolyglotCallType.CONVERT_TO_DOUBLE;
-      } else {
-        return PolyglotCallType.NOT_SUPPORTED;
-      }
     } else {
       return PolyglotCallType.NOT_SUPPORTED;
     }
