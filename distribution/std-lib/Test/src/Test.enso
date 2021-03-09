@@ -49,6 +49,11 @@ type Verbs
 
     be subject argument = this.equal subject argument
 
+    contain subject argument =
+        if subject.contains argument then Success else
+            msg = subject.to_text + " did not contain " + argument.to_text + "."
+            here.fail msg
+
 Any.should verb argument = verb Verbs this argument
 
 ## Fail a test with the given message.

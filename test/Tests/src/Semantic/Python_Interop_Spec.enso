@@ -54,6 +54,9 @@ foreign python make_int = """
 foreign python make_double = """
     return 10.5
 
+foreign python does_not_parse = """
+    if? cxcc 531 6
+
 spec =
     pending = if Polyglot.is_language_installed "python" then Nothing else """
         Can't run Python tests, Python is not installed.
@@ -112,4 +115,8 @@ spec =
             value = My_Type 7 2
             result = value.do_catch
             result . should_equal 7
+
+        Test.specify "should properly handle parse errors" <|
+            err = Panic.recover here.does_not_parse . catch
+            err.cause.args.at 0 . should .contain 'invalid syntax'
 
