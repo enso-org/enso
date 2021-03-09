@@ -1,0 +1,369 @@
+from Base import all
+from Database import all
+from Database.Connection.Connection import Sql_Error
+import Test
+
+spec prefix connection pending=Nothing =
+    make_table name column_names column_typenames = Panic.recover <|
+        # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
+        cols = column_names.zip column_typenames name-> typ->
+            name + " " + typ
+        sql = "CREATE TABLE " + name + " (" + (cols.join ", ") + ")"
+        Panic.rethrow <| connection.execute_update sql
+        Panic.rethrow <| connection.access_table name
+    t1 = make_table "T1" ["A", "B", "C"] ["INT", "INT", "INT"]
+    t1.insert [1, 2, 3]
+    t1.insert [4, 5, 6]
+    Test.group prefix+"Basic Table Access" pending=pending <|
+        Test.specify "should allow to materialize tables and columns into local memory" <|
+            df = t1.to_dataframe
+            a = t1.at 'A' . to_dataframe
+            df.at 'A' . to_vector . should_equal [1, 4]
+            a.to_vector . should_equal [1, 4]
+        Test.specify "should allow to materialize columns directly into a Vector" <|
+            v = t1.at 'A' . to_vector
+            v . should_equal [1, 4]
+        Test.specify "should preserve indexes when materializing tables" <|
+            # TODO add multi indexes when implemented
+            df = t1.set_index 'A' . to_dataframe
+            df.at 'B' . to_vector . should_equal [2, 5]
+            df.columns.map .name . should_equal ['B', 'C']
+            ix = df.index
+            ix.name . should_equal 'A'
+            ix.to_vector . should_equal [1, 4]
+        Test.specify "should preserve indexes when materializing columns" <|
+            # TODO add multi indexes when implemented
+            b = t1.set_index 'A' . at 'B'
+            col = b . to_dataframe
+            col.to_vector . should_equal [2, 5]
+
+            ix = col.index
+            ix.name . should_equal 'A'
+            ix.to_vector . should_equal [1, 4]
+
+            ix2 = b.to_table.index
+            ix2.name . should_equal 'A'
+            ix2.to_vector . should_equal [1, 4]
+        Test.specify "should work correctly when there are no columns" <|
+            empty = t1.select []
+            empty.to_dataframe.columns.length . should_equal 0
+            empty.to_dataframe.row_count . should_equal empty.row_count
+        Test.specify "should handle bigger result sets" <|
+            table = make_table "Big" ["A", "B", "C"] ["INT", "REAL", "VARCHAR"]
+            n = 1000
+            0.up_to n . each ix->
+                table.insert [ix, ix * 3.1415926, ix.to_text]
+            materialized = table.to_dataframe
+            materialized.row_count . should_equal n
+
+    Test.group prefix+"Mapping Operations" pending=pending <|
+        t2 = make_table "T2" ["x", "y", "b"] ["INT", "INT", "BOOLEAN"]
+        t2.insert [1, 2, False]
+        t2.insert [4, 3, False]
+        t2.insert [5, 5, True]
+        t2.insert [Nothing, Nothing, Nothing]
+        x = t2.at "x"
+        y = t2.at "y"
+        b = t2.at "b"
+        Test.specify "should allow combining columns with supported operations" <|
+            (x + y).to_vector . should_equal [3, 7, 10, Nothing]
+            (x - y).to_vector . should_equal [-1, 1, 0, Nothing]
+            (x * y).to_vector . should_equal [2, 12, 25, Nothing]
+            (x / y).to_vector . should_equal [0, 1, 1, Nothing]
+            (x == y).to_vector . should_equal [False, False, True, Nothing]
+            (x != y).to_vector . should_equal [True, True, False, Nothing]
+            (x < y).to_vector . should_equal [True, False, False, Nothing]
+            (x <= y).to_vector . should_equal [True, False, True, Nothing]
+            (x > y).to_vector . should_equal (x <= y).not.to_vector
+            (x >= y).to_vector . should_equal (x < y).not.to_vector
+            (((x < y) || (x == y)) == (x <= y)).to_vector . should_equal [True, True, True, Nothing]
+            (b || b.not).to_vector . should_equal [True, True, True, Nothing]
+
+        Test.specify "should allow casting constants to be applied to the whole column" <|
+            (x + 100).to_vector . should_equal [101, 104, 105, Nothing]
+            (x * 10).to_vector . should_equal [10, 40, 50, Nothing]
+            (x / 2).to_vector . should_equal [0, 2, 2, Nothing]
+            (x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
+            (x == 4).to_vector . should_equal [False, True, False, Nothing]
+            (x < 1000).to_vector . should_equal [True, True, True, Nothing]
+            (b || False).to_vector . should_equal [False, False, True, Nothing]
+            (b || True).to_vector . should_equal [True, True, True, True]
+            (b && False).to_vector . should_equal [False, False, False, False]
+            (x + Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+            x.is_missing.to_vector . should_equal [False, False, False, True]
+            (x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+        t3 = make_table "T3" ["s1", "s2"] ["VARCHAR", "VARCHAR"]
+        t3.insert ["foobar",  "foo"]
+        t3.insert ["bar",     "ar" ]
+        t3.insert ["baz",     "a"  ]
+        t3.insert [Nothing, Nothing]
+        s1 = t3.at "s1"
+        s2 = t3.at "s2"
+        Test.specify "should handle Text operations" <|
+            s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
+            s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
+            s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
+            s1.starts_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+            s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
+            s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
+            s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
+            s1.contains Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+            s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
+            s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
+            s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
+            s1.ends_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
+
+    Test.group prefix+"Masking Tables" pending=pending <|
+        Test.specify "should allow to select rows from a table or column based on an expression" <|
+            t2 = t1.where (t1.at "A" == 1)
+            df = t2.to_dataframe
+            df.at "A" . to_vector . should_equal [1]
+            df.at "B" . to_vector . should_equal [2]
+            df.at "C" . to_vector . should_equal [3]
+            t2.at "A" . to_vector . should_equal [1]
+            t2.at "B" . to_vector . should_equal [2]
+            t2.at "C" . to_vector . should_equal [3]
+
+    Test.group prefix+"Joining Tables" pending=pending <|
+        a = make_table "TA" ["x", "y"] ["INTEGER", "VARCHAR"]
+        a.insert [0, "foo"]
+        a.insert [1, "bar"]
+        a.insert [7, "baz"]
+        a.insert [3, "spam"]
+        a.insert [6, "eggs"]
+        b = make_table "TB" ["w", "z"] ["INTEGER", "VARCHAR"]
+        b.insert [6, "foo"]
+        b.insert [3, "foo"]
+        b.insert [5, "bar"]
+        b.insert [5, "spam"]
+        b.insert [3, "bar"]
+        b.insert [3, "eggs"]
+        ## The tests below use `sort`, because the SQL backend is not guaranteed
+           to return the rows in any particular order. This is the `sort` from
+           the Dataframes library, so it is independent of the library under
+           testing here.
+        Test.specify "should allow joining tables index-on-index" <|
+            r_1 = a.set_index 'x' . join (b.set_index 'w') . to_dataframe . sort by=['y', 'z']
+            r_1.at 'y' . to_vector . should_equal ['bar', 'baz', 'eggs', 'foo', 'spam', 'spam', 'spam']
+            r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, 'foo', Nothing, 'bar', 'eggs', 'foo']
+
+            r_2 = a.set_index 'y' . join (b.set_index 'z') drop_unmatched=True . to_dataframe . sort by=['x', 'w']
+            r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
+            r_2.at 'w' . to_vector . should_equal [3, 6, 3, 5, 5, 3]
+
+        Test.specify "should allow joining tables column-on-index" <|
+            r_1 = a.join (b.set_index 'w') on='x' . to_dataframe . sort by=['y', 'z']
+            r_1.at 'y' . to_vector . should_equal ['bar', 'baz', 'eggs', 'foo', 'spam', 'spam', 'spam']
+            r_1.at 'z' . to_vector . should_equal [Nothing, Nothing, 'foo', Nothing, 'bar', 'eggs', 'foo']
+            r_2 = a.join (b.set_index 'z') drop_unmatched=True on='y' . to_dataframe . sort by=['x', 'w']
+            r_2.at 'x' . to_vector . should_equal [0, 0, 1, 1, 3, 6]
+            r_2.at 'w' . to_vector . should_equal [3, 6, 3, 5, 5, 3]
+
+        Test.specify "should allow self-joins and append suffixes to disambiguate column names" <|
+            r_1 = a.join (a.set_index 'x') on='x' . to_dataframe . sort by='x'
+            r_1.columns.map .name . should_equal ['x', 'y_left', 'y_right']
+            r_1.at 'x' . should_equal [0, 1, 3, 6, 7]
+            expected_y = ['foo', 'bar', 'spam', 'eggs', 'baz']
+            r_1.at 'y_left' . should_equal expected_y
+            r_1.at 'y_right' . should_equal expected_y
+
+            r_2 = a.set_index 'x' . join (a.set_index 'x') left_suffix='_old' right_suffix='_new'
+            r_2.columns.map .name . should_equal ['y_old', 'y_new']
+
+    Test.group prefix+"Missing Values" pending=pending <|
+        t4 = make_table "T4" ["A", "B", "C"] ["INT", "BOOLEAN", "VARCHAR"]
+        t4.insert [0, True, ""]
+        t4.insert [1, Nothing, "foo"]
+        t4.insert [Nothing, True, "bar"]
+        t4.insert [42, False, Nothing]
+        t4.insert [Nothing, Nothing, Nothing]
+        Test.specify "fill_missing should replace nulls" <|
+            t4.at 'A' . fill_missing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
+            t4.at 'B' . fill_missing False . to_vector . should_equal [True, False, True, False, False]
+            t4.at 'C' . fill_missing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
+
+        Test.specify "should correctly be counted" <|
+            t4.row_count . should_equal 5
+            col = t4.at 'A'
+            col.length . should_equal 5
+            col.count . should_equal 3
+            col.count_missing . should_equal 2
+
+        Test.specify "drop_missing should drop missing rows in a Column" <|
+            col = t4.at 'A'
+            col.drop_missing.to_vector . should_equal [0, 1, 42]
+
+        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
+            d = t4.drop_missing_rows.to_dataframe
+            d.at 'A' . to_vector . should_equal [0]
+            d.at 'B' . to_vector . should_equal [True]
+            d.at 'C' . to_vector . should_equal [""]
+
+        Test.specify "drop_missing_columns should drop columns that contain at least one missing row in a Table" <|
+            t5 = make_table "T5" ["A", "B"] ["INT", "BOOLEAN", "VARCHAR"]
+            t5.insert [1, True, "foo"]
+            t5.insert [2, False, Nothing]
+            t5.insert [3, Nothing, "aaa"]
+
+            r = t5.drop_missing_columns
+            r.columns.map .name . should_equal ["A"]
+            r.at "A" . to_vector . should_equal [1, 2, 3]
+
+            empty = t4.drop_missing_columns
+            empty.columns.length . should_equal 0
+            empty.to_dataframe.columns.length . should_equal 0
+
+    Test.group prefix+"Aggregation" pending=pending <|
+        t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DECIMAL', 'INTEGER']
+        t.insert ["foo",  0.4,     10]
+        t.insert ["bar",  3.5,     20]
+        t.insert ["foo",  Nothing, 30]
+        t.insert ["baz",  6.7,     40]
+        t.insert ["foo",  Nothing, 50]
+        t.insert ["bar",  97,      60]
+        t.insert ["quux", Nothing, 70]
+        agg = t.group by='name'
+        ## A helper which makes sure that the groups are ordered according to the index, using the Table library
+        determinize col =
+            df = col.to_dataframe.to_table
+            df.sort by=df.index . at col.name
+
+        Test.specify "should allow counting group sizes" <|
+            determinize agg.count . to_vector . should_equal [2, 1, 3, 1]
+
+        Test.specify "should allow aggregating columns with basic arithmetic aggregators" <|
+            determinize (agg.at 'price' . mean) . to_vector . should_equal [50.25, 6.7, 0.4, Nothing]
+            determinize (agg.at 'price' . min) . to_vector . should_equal [3.5, 6.7, 0.4, Nothing]
+            determinize (agg.at 'price' . max) . to_vector . should_equal [97, 6.7, 0.4, Nothing]
+
+    Test.group prefix+"Column-wide statistics" pending=pending <|
+        Test.specify 'should allow computing basic column-wide stats' <|
+            t7 = make_table "T7" ['price'] ['DECIMAL']
+            price = t7.at 'price'
+            [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing] . each x->
+                t7.insert [x]
+
+            price.sum.should_equal 107.6
+            price.min.should_equal 0.4
+            price.max.should_equal 97
+            price.mean.should_equal 26.9
+
+    Test.group prefix+"Sorting" pending=pending <|
+        df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DECIMAL', 'DECIMAL']
+        df.insert [1,'shoes',20,3.0,37.2]
+        df.insert [2,'trousers',10,Nothing,42.1]
+        df.insert [3,'dress',20,7.3,64.1]
+        df.insert [4,'skirt',10,3.0,87.4]
+        df.insert [5,'blouse',30,2.2,13.5]
+        df.insert [6,'t-shirt',30,Nothing,64.2]
+
+        Test.specify "should allow sorting by a single column name" <|
+            r_1 = df.sort by="Quantity"
+            r_1.at 'Id' . to_vector . should_equal [2,4,1,3,5,6]
+
+            r_2 = df.sort by="Rating" missing_last=False
+            r_2.at 'Id' . to_vector . should_equal [2,6,5,1,4,3]
+
+            r_3 = df.sort by="Rating" missing_last=False order=Sort_Order.Descending
+            r_3.at 'Id' . to_vector . should_equal [2,6,3,1,4,5]
+
+        Test.specify 'should allow sorting by multiple column names' <|
+            r_1 = df.sort by=['Quantity', 'Rating']
+            r_1.at 'Id' . to_vector . should_equal [4,2,1,3,5,6]
+
+            r_2 = df.sort by=['Rating', 'Quantity'] missing_last=False order=Sort_Order.Descending
+            r_2.at 'Id' . to_vector . should_equal [6,2,3,1,4,5]
+
+        Test.specify 'should allow sorting by external columns' <|
+            quality_ratio = df.at 'Rating' / df.at 'Price'
+
+            r_1 = df.sort by=quality_ratio
+            r_1.at 'Id' . to_vector . should_equal [4,1,3,5,2,6]
+
+            r_2 = df.sort by=['Quantity', quality_ratio]
+            r_2.at 'Id' . to_vector . should_equal [4,2,1,3,5,6]
+
+        Test.specify 'should allow sorting with specific by-column rules' <|
+            r_1 = df.sort by=['Quantity', (Order_Rule 'Price' order=Sort_Order.Descending)]
+            r_1.at 'Id' . to_vector . should_equal [4,2,3,1,6,5]
+
+        Test.specify 'should return dataflow error when passed a non-existent column' <|
+            r = df.sort by='foobar'
+            r.should_fail_with No_Such_Column_Error
+
+        Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
+            df = make_table "T8" ['ord', 'ints', 'reals', 'bools', 'texts'] ['INTEGER', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'VARCHAR']
+            r = df.sort by='ord'
+            df.insert [0, 1, 1.3, False, "foo"]
+            df.insert [3, 2, 4.6, False, "foo"]
+            df.insert [2, 3, 3.2, True, "bar"]
+            df.insert [4, 4, 5.2, True, "baz"]
+            df.insert [1, 5, 1.6, False, "spam"]
+
+            ints = [1, 2, 3, 4, 5]
+            reals = [1.3, 4.6, 3.2, 5.2, 1.6]
+            bools = [False, False, True, True, False]
+            texts = ["foo", "foo", "bar", "baz", "spam"]
+
+            r.at 'ints' . to_vector . should_equal [1, 5, 3, 2, 4]
+            df.at 'ints' . to_vector . should_equal ints
+
+            r.at 'reals' . to_vector . should_equal [1.3, 1.6, 3.2, 4.6, 5.2]
+            df.at 'reals' . to_vector . should_equal reals
+
+            r.at 'bools' . to_vector . should_equal [False, False, True, False, True]
+            df.at 'bools' . to_vector . should_equal bools
+
+            r.at 'texts' . to_vector . should_equal ['foo', 'spam', 'bar', 'foo', 'baz']
+            df.at 'texts' . to_vector . should_equal texts
+
+        Test.specify 'should sort columns with specified ordering and missing placement' <|
+            c = df.at 'Rating'
+
+            r_1 = c.sort
+            r_1.to_vector.should_equal [2.2, 3.0, 3.0, 7.3, Nothing, Nothing]
+
+            r_2 = c.sort order=Sort_Order.Descending
+            r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
+
+            r_3 = c.sort order=Sort_Order.Descending missing_last=False
+            r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
+
+    Test.group prefix+"Info" pending=pending <|
+        Test.specify "should return Table information" <|
+            t = make_table "T9" ["strs", "ints", "bools"] ["VARCHAR", "INTEGER", "BOOLEAN"]
+            t.insert ["a", Nothing, False]
+            t.insert ["abc", Nothing, Nothing]
+            t.insert ["def", 42, True]
+            i = t.info
+            i.index . to_vector . should_equal ["strs", "ints", "bools"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN"]
+
+sqlite_specific_spec connection =
+    Test.group "[SQLite] Error Handling" <|
+        Test.specify "should wrap errors" <|
+            connection.execute_query "foobar" . should_fail_with Sql_Error
+            connection.execute_update "foobar" . should_fail_with Sql_Error
+
+            action = connection.execute_query "SELECT A FROM undefined_table"
+            action . should_fail_with Sql_Error
+            action.catch.to_text . should_equal "[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)"
+
+sqlite_spec =
+    Enso_Project.data.create_directory
+    file = Enso_Project.data / "sqlite_test.db"
+    file.delete_if_exists
+    connection = Database.open_sqlite_file file
+    here.spec "[SQLite] " connection
+    here.sqlite_specific_spec connection
+    connection.close
+    file.delete
+
+postgres_spec =
+    # TODO [RW] use env vars to read tmp DB config
+    connection = Error.throw "PostgreSQL test database is not configured"
+    here.spec "[PostgreSQL] " connection pending="PostgreSQL test database is not configured."

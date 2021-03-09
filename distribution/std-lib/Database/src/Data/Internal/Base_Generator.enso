@@ -1,6 +1,7 @@
 from Base import all
 import Database.Data.Sql
 import Database.Data.Internal.IR
+from Database.Data.Sql import Sql_Type
 
 type Internal_Dialect
     ## PRIVATE
@@ -12,8 +13,13 @@ type Internal_Dialect
          implementations; each implementation is a function which takes SQL
          builders for the arguments and should return a builder yielding the
          whole operation.
+       - wrap_identifier: a function that converts an arbitrary supported
+         identifier name in such a way that it can be used in the query; that
+         usually consists of wrapping the name in quotes and escaping any quotes
+         within it.
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
-    type Internal_Dialect operation_map
+       #                       (identifier_wrapper : Text -> Sql.Builder)
+    type Internal_Dialect operation_map wrap_identifier
 
     ## PRIVATE
 
@@ -22,7 +28,7 @@ type Internal_Dialect
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
     extend_with mappings =
         new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
-        Internal_Dialect new_map
+        Internal_Dialect new_map this.wrap_identifier
 
 ## PRIVATE
 
@@ -76,8 +82,18 @@ make_function name =
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
-        if arguments.not_empty then Error.throw "No arguments were expected" else
+        if arguments.not_empty then Error.throw <| Illegal_State_Error "No arguments were expected" else
             Sql.code code
+
+## PRIVATE
+
+   Wraps the identifier name in quotes and escapes any quotes within the name
+   with double-quote. This is the simplest way of escaping identifiers that
+   should work across most dialects.
+wrap_in_quotes : Text -> Sql.Builder
+wrap_in_quotes identifier =
+    escaped = identifier.replace '"' '""'
+    Sql.code '"'+escaped+'"'
 
 ## PRIVATE
 
@@ -95,19 +111,30 @@ base_dialect =
     agg = [["COUNT", fun "COUNT"], ["MAX", fun "MAX"], ["MIN", fun "MIN"], ["AVG", fun "AVG"], ["SUM", fun "SUM"], ["COUNT_ROWS", here.make_constant "COUNT(*)"]]
     nulls = [["ISNULL", here.make_right_unary_op "IS NULL"], ["FILLNULL", fun "COALESCE"]]
     base_map = Map.from_vector (arith + logic + compare + agg + nulls)
-    Internal_Dialect base_map
+    Internal_Dialect base_map here.wrap_in_quotes
 
 ## PRIVATE
 
    Builds code for an expression.
 generate_expression : Internal_Dialect -> IR.Expression -> Sql.Builder
 generate_expression dialect expr = case expr of
-    IR.Column origin name -> Sql.code origin+"."+name
-    IR.Constant value -> Sql.interpolation value
+    IR.Column origin name ->
+        dot = Sql.code '.'
+        dialect.wrap_identifier origin ++ dot ++ dialect.wrap_identifier name
+    IR.Constant sql_type value -> Sql.interpolation sql_type value
     IR.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw "Operation "+op+" is not supported.")
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Illegal_State_Error "Operation "+op+" is not supported.")
         parsed_args = arguments.map (here.generate_expression dialect)
         op parsed_args
+
+## PRIVATE
+
+   Adds an alias for the expression, applicable for expressions that represent
+   columns or sub-queries.
+alias : Internal_Dialect -> Text -> Sql.Builder
+alias dialect name =
+    wrapped = dialect.wrap_identifier name
+    Sql.code " AS " ++ wrapped
 
 ## PRIVATE
 
@@ -115,7 +142,7 @@ generate_expression dialect expr = case expr of
 generate_from_part : Internal_Dialect -> From_Spec -> Sql.Builder
 generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
-        Sql.code name . alias as_name
+        dialect.wrap_identifier name ++ here.alias dialect as_name
     IR.Join kind left_spec right_spec on ->
         left = here.generate_from_part dialect left_spec
         right = here.generate_from_part dialect right_spec
@@ -128,7 +155,7 @@ generate_from_part dialect from_spec = case from_spec of
         left ++ (Sql.code " "+prefix+" ") ++ right ++ ons
     IR.Sub_Query columns context as_name ->
         sub = here.generate_query dialect (IR.Select columns context)
-        sub.paren.alias as_name
+        sub.paren ++ here.alias dialect as_name
 
 ## PRIVATE
 
@@ -144,22 +171,39 @@ generate_order dialect order_description =
     (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
 
 ## PRIVATE
+generate_select_context : Internal_Dialect -> IR.Context -> Sql.Builder
+generate_select_context dialect ctx =
+    gen_exprs exprs = exprs.map (here.generate_expression dialect)
+    from_part = here.generate_from_part dialect ctx.from_spec
+    where_part = (Sql.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
+    group_part = (Sql.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+    limit_part = case ctx.limit of
+        Nothing -> Sql.empty
+        Integer -> Sql.code " LIMIT "+ctx.limit.to_text
+
+    orders = ctx.orders.map (here.generate_order dialect)
+    order_part = (Sql.join ", " orders) . prefix_if_present " ORDER BY "
+    (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
+
+## PRIVATE
+generate_insert_query dialect table_name pairs =
+    names = Sql.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
+    values = Sql.join ", " <| pairs.map (.second >> here.generate_expression dialect)
+    into = dialect.wrap_identifier table_name
+
+    Sql.code "INSERT INTO " ++ into ++ Sql.code " (" ++ names ++ Sql.code ") VALUES (" ++ values ++ Sql.code ")"
+
+## PRIVATE
 
    Builds code for a whole query.
-generate_query : Internal_Dialect -> Query -> Sql.Builder
+generate_query : Internal_Dialect -> IR.Query -> Sql.Builder
 generate_query dialect query = case query of
     IR.Select columns ctx ->
-        gen_exprs exprs = exprs.map (here.generate_expression dialect)
-        gen_column pair = (here.generate_expression dialect pair.second).alias pair.first
-
+        gen_column pair = (here.generate_expression dialect pair.second) ++ here.alias dialect pair.first
         cols = Sql.join ", " (columns.map gen_column)
-
-        from_part = here.generate_from_part dialect ctx.from_spec
-        where_part = (Sql.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
-        group_part = (Sql.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
-
-        orders = ctx.orders.map (here.generate_order dialect)
-        order_part = (Sql.join ", " orders) . prefix_if_present " ORDER BY "
-
-        (Sql.code "SELECT ") ++ cols ++ (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part
-    _ -> Error.throw "Unsupported query type."
+        (Sql.code "SELECT ") ++ cols ++ here.generate_select_context dialect ctx
+    IR.Select_All ctx ->
+        (Sql.code "SELECT * ") ++ here.generate_select_context dialect ctx
+    IR.Insert table_name pairs ->
+        here.generate_insert_query dialect table_name pairs
+    _ -> Error.throw <| Illegal_State_Error "Unsupported query type."

@@ -3,14 +3,10 @@ package org.enso.interpreter.node.expression.builtin.error;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.TruffleStackTraceElement;
-import com.oracle.truffle.api.dsl.CachedContext;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.ArrayList;
 import java.util.Collections;
-import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 
@@ -38,7 +34,9 @@ public class GetStackTraceTextNode extends Node {
       for (int i = fullStack.size() - 1; i >= 0; i--) {
         var elem = fullStack.get(i);
         if (isInit) {
-          if (elem.getLocation().getRootNode().getLanguageInfo() != null) {
+          if (elem.getLocation() != null
+              && elem.getLocation().getRootNode() != null
+              && elem.getLocation().getRootNode().getLanguageInfo() != null) {
             isInit = false;
           }
         }
@@ -56,6 +54,15 @@ public class GetStackTraceTextNode extends Node {
       boolean first = true;
       for (var errorFrame : stack) {
         if (errorFrame.getLocation() == null) {
+          if (errorFrame.getTarget() != null && errorFrame.getTarget().getRootNode() != null) {
+            var name = errorFrame.getTarget().getRootNode().getName();
+            if (first) {
+              first = false;
+            } else {
+              sb.append('\n');
+            }
+            sb.append("        at <Unknown Location> related to " + name);
+          }
           continue;
         }
         var rootNode = errorFrame.getLocation().getRootNode();

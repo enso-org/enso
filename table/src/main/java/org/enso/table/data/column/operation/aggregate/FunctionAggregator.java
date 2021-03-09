@@ -38,7 +38,7 @@ public class FunctionAggregator extends Aggregator {
   public void nextGroup(IntStream positions) {
     List<Object> items = getItems(positions);
     Object result = aggregateFunction.apply(items);
-    builder.append(result);
+    builder.appendNoGrow(result);
   }
 
   private List<Object> getItems(IntStream positions) {

@@ -1,11 +1,15 @@
 from Base import all
 import Database.Data.Internal.Helpers
 import Database.Data.Internal.IR
+from Database.Data.Sql import Sql_Type
 import Database.Data.Table
+from Database.Data.Table import Integrity_Error
+import Table.Data.Column as Materialized_Column
 
 type Column
 
     ## UNSTABLE
+       PRIVATE
 
        Represents a single column backed by a database.
 
@@ -16,8 +20,30 @@ type Column
        they must both have the same filtering, grouping etc. rules applied to be
        able to be combined.
     # type Column (name : Text) (connection : Connection)
-    #             (expression : IR.Expression) (context : IR.Context)
-    type Column name connection expression context
+    #             (sql_type : Sql_Type) (expression : IR.Expression)
+    #             (context : IR.Context)
+    type Column name connection sql_type expression context
+
+    ## UNSTABLE
+
+       Returns a text containing an ASCII-art table displaying this data.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+         - format_terminal: whether ANSI-terminal formatting should be used
+    display : Integer -> Boolean -> Text
+    display show_rows=10 format_terminal=False =
+        this.to_table.display show_rows format_terminal
+
+    ## UNSTABLE
+
+       Prints an ASCII-art table with this data to the standard output.
+
+       Arguments:
+         - show_rows: the number of initial rows that should be displayed.
+    print show_rows=10 =
+        IO.println (this.display show_rows format_terminal=True)
+        IO.println ''
 
     ## UNSTABLE
 
@@ -30,20 +56,130 @@ type Column
        Converts this column into a single-column table.
     to_table : Table.Table
     to_table =
-        cols = [[this.name, this.expression]]
-        Table.Table this.name this.connection cols this.context
+        Table.Table this.name this.connection [this.as_internal] this.context
+
+    ## UNSTABLE
+
+       Returns a materialized dataframe containing rows of this table.
+
+       Currently the SQL decimal type is mapped to a floating-point
+       representation which is not exact. While operations in the database
+       itself may (or may not, depending on the database engine) be done with
+       exact precision, the materialized values may loose precision, so extra
+       care is needed when working with decimal computations that need to be
+       exact.
+
+       Arguments:
+       - max_rows: specifies a maximum amount of rows to fetch; if not set, all
+         available rows are fetched.
+    to_dataframe : (Nothing | Integer) -> Materialized_Column.Column
+    to_dataframe max_rows=Nothing =
+        df = this.to_table.to_dataframe max_rows
+        df.at this.name
 
     ## UNSTABLE
 
        Returns a vector containing all the elements in this column.
+
+       Currently the SQL decimal type is mapped to a floating-point
+       representation which is not exact. While operations in the database
+       itself may (or may not, depending on the database engine) be done with
+       exact precision, the materialized values may loose precision, so extra
+       care is needed when working with decimal computations that need to be
+       exact.
     to_vector : Vector
-    to_vector = this.to_table.to_dataframe.at this.name . to_vector
+    to_vector =
+        ## We remove the index to avoid fetching index data that will not be
+           used anyway when constructing the raw Vector.
+        without_ix = this.to_table.set_index []
+        df = without_ix . to_dataframe
+        raw_column = df.at this.name
+        raw_column.to_vector
 
     ## UNSTABLE
 
        Returns an Sql statement that will be used for materializing this column.
     to_sql : Sql.Statement
     to_sql = this.to_table.to_sql
+
+    ## PRIVATE
+
+       Creates a binary operation with given kind and operand.
+       If not specified, the `new_type` is the same as the current one.
+       `operand_type` is only relevant if the operand is not a column, it
+       defaults to the current type if not provided.
+    make_binary_op : Text -> Text -> (Column | Any) -> (Sql_Type | Nothing) -> (Sql_Type | Nothing) -> Column
+    make_binary_op op_kind operand new_type=Nothing operand_type=Nothing =
+        actual_new_type = if new_type.is_nothing then this.sql_type else new_type
+        case operand of
+            Column _ _ _ other_expr _ ->
+                case Helpers.check_integrity this operand of
+                    False ->
+                        Error.throw <| Illegal_State_Error "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
+                    True ->
+                        new_expr = IR.Operation op_kind [this.expression, other_expr]
+                        Column this.name this.connection actual_new_type new_expr this.context
+            _ ->
+                actual_operand_type = if operand_type.is_nothing then this.sql_type else operand_type
+                other = IR.make_constant actual_operand_type operand
+                new_expr = IR.Operation op_kind [this.expression, other]
+                Column this.name this.connection actual_new_type new_expr this.context
+
+    ## PRIVATE
+
+       Helper for implementing unary operators.
+    make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
+    make_unary_op op_kind new_type=Nothing =
+        actual_new_type = if new_type.is_nothing then this.sql_type else new_type
+        new_expr = IR.Operation op_kind [this.expression]
+        Column this.name this.connection actual_new_type new_expr this.context
+
+    ## UNSTABLE
+
+       Sums the values in this column.
+    sum : Any
+    sum = this.compute_aggregate "SUM"
+
+    ## UNSTABLE
+
+       Computes the maximum element of this column.
+    max : Any
+    max = this.compute_aggregate "MAX"
+
+    ## UNSTABLE
+
+       Computes the minimum element of this column.
+    min : Any
+    min = this.compute_aggregate "MIN"
+
+    ## UNSTABLE
+
+       Computes the mean of non-missing elements of this column.
+    mean : Any
+    mean = this.compute_aggregate "AVG"
+
+    ## PRIVATE
+    compute_aggregate op_name =
+        agg = here.make_aggregate this op_name
+        agg.to_vector . at 0
+
+    ## UNSTABLE
+
+       Returns the length of this column.
+    length : Integer
+    length = this.to_table.row_count
+
+    ## UNSTABLE
+
+       Returns the number of missing items in this column.
+    count_missing : Integer
+    count_missing = this.where this.is_missing . length
+
+    ## UNSTABLE
+
+       Returns the number of non-null items in this column.
+    count : Integer
+    count = this.where this.is_missing.not . length
 
     ## UNSTABLE
 
@@ -52,7 +188,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     == : Column | Any -> Column
-    == other = this.make_binary_op "=" other
+    == other = this.make_binary_op "=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -61,7 +197,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     != : Column | Any -> Column
-    != other = this.make_binary_op "!=" other
+    != other = this.make_binary_op "!=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -70,7 +206,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     >= : Column | Any -> Column
-    >= other = this.make_binary_op ">=" other
+    >= other = this.make_binary_op ">=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -79,7 +215,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     <= : Column | Any -> Column
-    <= other = this.make_binary_op "<=" other
+    <= other = this.make_binary_op "<=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -88,7 +224,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     > : Column | Any -> Column
-    > other = this.make_binary_op ">" other
+    > other = this.make_binary_op ">" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -97,7 +233,7 @@ type Column
        If `other` is a column, the comparison is performed pairwise between
        corresponding elements of `this` and `other`.
     < : Column | Any -> Column
-    < other = this.make_binary_op "<" other
+    < other = this.make_binary_op "<" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -164,7 +300,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
     is_missing : Column
-    is_missing = this.make_unary_op "ISNULL"
+    is_missing = this.make_unary_op "ISNULL" new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -186,12 +322,11 @@ type Column
     where filter =
         case Helpers.check_integrity this filter of
             False ->
-                # TODO [RW] more descriptive errors
-                Error.throw "Filtering over a column with differing context."
+                Error.throw (Integrity_Error "Column "+filter.name)
             True ->
                 new_filters = this.context.where_filters + [filter.expression]
                 new_ctx = this.context.set_where_filters new_filters
-                Column this.name this.connection this.expression new_ctx
+                Column this.name this.connection this.sql_type this.expression new_ctx
 
     ## UNSTABLE
 
@@ -204,7 +339,35 @@ type Column
        Returns the same column with changed name.
     rename : Text -> Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
-        True -> Column new_name this.connection this.expression this.context
+        True ->
+            is_used_in_index = this.context.meta_index.exists i-> i.name == new_name
+            case is_used_in_index of
+                True -> Error.throw <| Illegal_State_Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                False ->
+                    Column new_name this.connection this.sql_type this.expression this.context
+
+    ## UNSTABLE
+
+       Sorts the column according to the specified rules.
+
+       Arguments:
+         - order: specifies the default sort order for this operation.
+         - missing_last: specifies the default placement of missing values when
+           compared to non-missing ones. Note thet this argument is independent
+           from `order`, i.e. missing values will always be sorted according to
+           this rule, ignoring the ascending / descending setting.
+
+       > Example
+         Sorting `column` in ascending order.
+             column.sort
+
+       > Example
+         Sorting `column` in descending order, placing missing values at the
+         top of the resulting column.
+             column.sort order=Sort_Order.Descending missing_last=False
+    sort : Sort_Order -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
+    sort order=Sort_Order.Ascending missing_last=True =
+        this.to_table.sort by=this order=order missing_last=missing_last . at this.name
 
     ## UNSTABLE
 
@@ -212,7 +375,7 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     starts_with : Column | Text -> Column
-    starts_with other = this.make_binary_op "starts_with" other
+    starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -220,7 +383,7 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     ends_with : Column | Text -> Column
-    ends_with other = this.make_binary_op "ends_with" other
+    ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
@@ -228,33 +391,11 @@ type Column
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
     contains : Column | Text -> Column
-    contains other = this.make_binary_op "contains" other
+    contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
 
     ## PRIVATE
-
-       Helper for implementing binary operators.
-    make_binary_op : Text -> Text -> (Column | Any) -> Column
-    make_binary_op op_kind operand =
-        case operand of
-            Column _ _ other_expr _ ->
-                case Helpers.check_integrity this operand of
-                    False ->
-                        Error.throw "Cannot compare columns coming from different contexts. Only columns of a single table can be compared."
-                    True ->
-                        new_expr = IR.Operation op_kind [this.expression, other_expr]
-                        Column this.name this.connection new_expr this.context
-            _ ->
-                other = IR.make_constant operand
-                new_expr = IR.Operation op_kind [this.expression, other]
-                Column this.name this.connection new_expr this.context
-
-    ## PRIVATE
-
-       Helper for implementing unary operators.
-    make_unary_op : Text -> Text -> Column
-    make_unary_op op_kind =
-        new_expr = IR.Operation op_kind [this.expression]
-        Column this.name this.connection new_expr this.context
+    as_internal : IR.Internal_Column
+    as_internal = IR.Internal_Column this.name this.sql_type this.expression
 
 type Aggregate_Column
     ## UNSTABLE
@@ -262,8 +403,9 @@ type Aggregate_Column
        Wraps a column grouped by its index. Allows performing aggregation operations
        on the contained values.
        # type Aggregate_Column (name : Text) (connection : Connection)
-       #                       (expression : IR.Expression) (context : IR.Context)
-    type Aggregate_Column name connection expression context
+       #                       (sql_type : Sql_Type) (expression : IR.Expression)
+       #                       (context : IR.Context)
+    type Aggregate_Column name connection sql_type expression context
 
     ## UNSTABLE
 
@@ -274,7 +416,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
-        this.make_aggregate "SUM" name_suffix
+        here.make_aggregate this "SUM" name_suffix
 
     ## UNSTABLE
 
@@ -285,7 +427,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
-        this.make_aggregate "MAX" name_suffix
+        here.make_aggregate this "MAX" name_suffix
 
     ## UNSTABLE
 
@@ -296,7 +438,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
-        this.make_aggregate "MIN" name_suffix
+        here.make_aggregate this "MIN" name_suffix
 
     ## UNSTABLE
 
@@ -307,7 +449,7 @@ type Aggregate_Column
                         name to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
-        this.make_aggregate "COUNT" name_suffix
+        here.make_aggregate this "COUNT" name_suffix new_type=Sql_Type.integer
 
     ## UNSTABLE
 
@@ -318,14 +460,16 @@ type Aggregate_Column
                         name to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
-        this.make_aggregate "AVG" name_suffix
+        here.make_aggregate this "AVG" name_suffix
 
-    ## PRIVATE
+## PRIVATE
 
-       A helper method for creating an aggregated column by applying some
-       operation.
-    make_aggregate operation name_suffix =
-        new_name = this.name + name_suffix
-        expr = IR.Operation operation [this.expression]
-        case Helpers.ensure_name_is_sane new_name of
-                True -> Column new_name this.connection expr this.context
+   A helper method for creating an aggregated column by applying some
+   operation.
+make_aggregate column operation name_suffix="_agg" new_type=Nothing =
+    actual_new_type = if new_type.is_nothing then column.sql_type else new_type
+    expr = IR.Operation operation [column.expression]
+    case Helpers.ensure_name_is_sane name_suffix of
+        True ->
+            new_name = column.name + name_suffix
+            Column new_name column.connection actual_new_type expr column.context

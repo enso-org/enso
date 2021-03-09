@@ -19,7 +19,7 @@ Spec.is_fail = this.behaviors.any .is_fail
 Suite.is_fail = this.specs.any .is_fail
 
 ## PRIVATE
-type Finished_With_Error err
+type Finished_With_Error err stack_trace_text
 
 ## PRIVATE
 type Matched_On_Error err
@@ -169,15 +169,16 @@ specify label ~behavior pending=Nothing =
 ## PRIVATE
 run_spec ~behavior =
     recovery = Panic.recover <|
-        behavior.catch err-> Panic.throw (Finished_With_Error err)
+        result = behavior
+        result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->
         case ex of
             Failure _ -> ex
-            Finished_With_Error x -> 
-                Failure ("An unexpected error was returned: " + x.to_text + '\n' + maybeExc.get_stack_trace_text)
+            Finished_With_Error err stack_trace_text ->
+                Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
     result
 
