@@ -13,6 +13,7 @@ import Tests.Semantic.Names_Spec
 import Tests.Semantic.Java_Interop_Spec
 import Tests.Semantic.Js_Interop_Spec
 import Tests.Semantic.Python_Interop_Spec
+import Tests.Semantic.R_Interop_Spec
 
 import Tests.Data.Interval_Spec
 import Tests.Data.Json_Spec
@@ -63,6 +64,7 @@ main = Test.Suite.runMain <|
     Ordering_Spec.spec
     Process_Spec.spec
     Python_Interop_Spec.spec
+    R_Interop_Spec.spec
     Range_Spec.spec
     Text_Spec.spec
     Time_Spec.spec

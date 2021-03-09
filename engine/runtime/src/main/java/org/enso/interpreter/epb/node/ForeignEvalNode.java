@@ -4,6 +4,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.TruffleLanguage.ContextReference;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -25,6 +26,9 @@ public abstract class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
   private @Child ContextRewrapNode rewrapNode = ContextRewrapNodeGen.create();
+  private @Child ContextRewrapExceptionNode rewrapExceptionNode =
+      ContextRewrapExceptionNodeGen.create();
+  private @CompilerDirectives.CompilationFinal AbstractTruffleException parseError;
   private final String[] argNames;
 
   ForeignEvalNode(EpbLanguage language, EpbParser.Result code, List<String> arguments) {
@@ -51,11 +55,15 @@ public abstract class ForeignEvalNode extends RootNode {
       VirtualFrame frame,
       @CachedContext(EpbLanguage.class) ContextReference<EpbContext> contextRef) {
     ensureParsed(contextRef);
-    return foreign.execute(frame.getArguments());
+    if (foreign != null) {
+      return foreign.execute(frame.getArguments());
+    } else {
+      throw parseError;
+    }
   }
 
   private void ensureParsed(ContextReference<EpbContext> ctxRef) {
-    if (foreign == null) {
+    if (foreign == null && parseError == null) {
       getLock().lock();
       try {
         if (foreign == null) {
@@ -66,6 +74,9 @@ public abstract class ForeignEvalNode extends RootNode {
               break;
             case PY:
               parsePy(ctxRef);
+              break;
+            case R:
+              parseR(ctxRef);
               break;
             default:
               throw new IllegalStateException("Unsupported language resulted from EPB parsing");
@@ -91,9 +102,16 @@ public abstract class ForeignEvalNode extends RootNode {
               + code.getForeignSource()
               + "\n};poly_enso_eval";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+
       CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNode.build(argNames.length, fn));
+    } catch (Throwable e) {
+      if (InteropLibrary.getUncached().isException(e)) {
+        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+      } else {
+        throw e;
+      }
     } finally {
       inner.leave(this, p);
     }
@@ -124,6 +142,35 @@ public abstract class ForeignEvalNode extends RootNode {
       Object fn = ctxRef.get().getEnv().importSymbol("poly_enso_py_eval");
       Object contextWrapped = rewrapNode.execute(fn, inner, outer);
       foreign = insert(PyForeignNodeGen.create(contextWrapped));
+    } catch (Throwable e) {
+      if (InteropLibrary.getUncached().isException(e)) {
+        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+      } else {
+        throw e;
+      }
+    } finally {
+      inner.leave(this, p);
+    }
+  }
+
+  private void parseR(ContextReference<EpbContext> ctxRef) {
+    EpbContext context = ctxRef.get();
+    GuardedTruffleContext outer = context.getCurrentContext();
+    GuardedTruffleContext inner = context.getInnerContext();
+    Object p = inner.enter(this);
+    try {
+      String args = String.join(",", argNames);
+      String wrappedSrc = "function(" + args + "){\n" + code.getForeignSource() + "\n}";
+      Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
+      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      Object fn = rewrapNode.execute(ct.call(), inner, outer);
+      foreign = insert(RForeignNodeGen.create(fn));
+    } catch (Throwable e) {
+      if (InteropLibrary.getUncached().isException(e)) {
+        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+      } else {
+        throw e;
+      }
     } finally {
       inner.leave(this, p);
     }
