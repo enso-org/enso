@@ -117,7 +117,9 @@ public abstract class InvokeMethodNode extends BaseNode {
         "!methods.hasFunctionalDispatch(_this)",
         "!methods.hasSpecialDispatch(_this)",
         "polyglotCallType != NOT_SUPPORTED",
-        "polyglotCallType != CONVERT_TO_TEXT"
+        "polyglotCallType != CONVERT_TO_TEXT",
+        "polyglotCallType != CONVERT_TO_LONG",
+        "polyglotCallType != CONVERT_TO_DOUBLE"
       })
   Stateful doPolyglot(
       VirtualFrame frame,
@@ -163,6 +165,64 @@ public abstract class InvokeMethodNode extends BaseNode {
       Text txt = Text.create(str);
       Function function = textDispatch.getFunctionalDispatch(txt, symbol);
       arguments[0] = txt;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_LONG"
+      })
+  Stateful doConvertLong(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary longDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      long lng = interop.asLong(_this);
+      Function function = longDispatch.getFunctionalDispatch(lng, symbol);
+      arguments[0] = lng;
+      return invokeFunctionNode.execute(function, frame, state, arguments);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
+    } catch (MethodDispatchLibrary.NoSuchMethodException e) {
+      throw new PanicException(
+          ctx.get().getBuiltins().error().makeNoSuchMethodError(_this, symbol), this);
+    }
+  }
+
+  @Specialization(
+      guards = {
+        "!methods.hasFunctionalDispatch(_this)",
+        "!methods.hasSpecialDispatch(_this)",
+        "getPolyglotCallType(_this, symbol.getName(), interop) == CONVERT_TO_DOUBLE"
+      })
+  Stateful doConvertDouble(
+      VirtualFrame frame,
+      Object state,
+      UnresolvedSymbol symbol,
+      Object _this,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") MethodDispatchLibrary methods,
+      @CachedLibrary(limit = "1") MethodDispatchLibrary doubleDispatch,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
+    try {
+      double dbl = interop.asDouble(_this);
+      Function function = doubleDispatch.getFunctionalDispatch(dbl, symbol);
+      arguments[0] = dbl;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException("Impossible, _this is guaranteed to be a string.");
