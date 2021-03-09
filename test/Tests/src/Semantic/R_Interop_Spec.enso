@@ -44,7 +44,7 @@ foreign r make_double = """
     10.5
 
 spec = Test.group "Polyglot R" <|
-    Test.specify "should allow declaring module-level methods in JS" <|
+    Test.specify "should allow declaring module-level methods in R" <|
         here.my_method 1 2 . should_equal 3
 
     Test.specify "should allow mutual calling of instance-level methods" <|
