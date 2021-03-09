@@ -16,6 +16,8 @@ polyglot java import java.sql.Types
 polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import java.lang.Class
+polyglot java import org.postgresql.Driver as PSQL
 
 type Connection
 
@@ -221,6 +223,12 @@ type Unsupported_Dialect url
    password.
 create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> Connection
 create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors <|
+    ver = Panic.recover <| PSQL.getVersion
+    IO.println ver
+    k1 = Panic.recover <| Class.forName "org.sqlite.JDBC"
+    k2 = Panic.recover <| Class.forName "org.postgresql.Driver"
+    IO.println k1
+    IO.println k2
     dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
     java_connection = case user.is_nothing && password.is_nothing of
         True ->
