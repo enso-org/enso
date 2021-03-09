@@ -8,13 +8,16 @@ from Database.Connection.Connection import all
 
    Currently only SQLite databases are supported.
 
+   The exact URL depends on the database engine.
+   For SQLite it has format `sqlite:/path/to/database/file`.
+
    Arguments:
-   - url: the URL to connect to, starting with `jdbc:...`.
+   - url: the URL to connect to.
    - user: (optional) an username for authentication.
    - password: (optional) a password for authentication.
 connect : Text -> Nothing | Text -> Nothing | Text -> Connection ! Sql_Error
 connect url user=Nothing password=Nothing =
-    Connection.create_jdbc_connection url user password
+    Connection.create_jdbc_connection "jdbc:"+url user password
 
 ## UNSTABLE
 
@@ -26,5 +29,5 @@ connect url user=Nothing password=Nothing =
    - file: the path to the database.
 open_sqlite_file : File -> Connection ! Sql_Error
 open_sqlite_file file =
-    url = "jdbc:sqlite:" + file.absolute.path
+    url = "sqlite:" + file.absolute.path
     here.connect url
