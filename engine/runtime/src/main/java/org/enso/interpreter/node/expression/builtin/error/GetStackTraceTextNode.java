@@ -53,17 +53,15 @@ public class GetStackTraceTextNode extends Node {
 
       boolean first = true;
       for (var errorFrame : stack) {
-        if (first) {
-          first = false;
-        } else {
-          sb.append('\n');
-        }
         if (errorFrame.getLocation() == null) {
           if (errorFrame.getTarget() != null && errorFrame.getTarget().getRootNode() != null) {
             var name = errorFrame.getTarget().getRootNode().getName();
+            if (first) {
+              first = false;
+            } else {
+              sb.append('\n');
+            }
             sb.append("        at <Unknown Location> related to " + name);
-          } else {
-            sb.append("        at <Unknown Location>");
           }
           continue;
         }
@@ -88,6 +86,11 @@ public class GetStackTraceTextNode extends Node {
                       + sourceLoc.getEndColumn())
                   : (sourceLoc.getStartLine() + "-" + sourceLoc.getEndLine());
           src = ident + ":" + loc;
+        }
+        if (first) {
+          first = false;
+        } else {
+          sb.append('\n');
         }
         sb.append("        at <" + langId + "> " + fName + "(" + src + ")");
       }
