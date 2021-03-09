@@ -16,7 +16,7 @@ polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
-type JDBC_Connection
+type Connection
 
     ## PRIVATE
 
@@ -27,7 +27,7 @@ type JDBC_Connection
        Arguments:
        - java_connection: the resource managing the underlying JDBC connection.
        - dialect: the dialect associated with the database we are connected to.
-    type JDBC_Connection connection_resource dialect
+    type Connection connection_resource dialect
 
     ## UNSTABLE
 
@@ -81,8 +81,9 @@ type JDBC_Connection
 
     ## ADVANCED
 
-       Executes a raw update query and returns the amount of affected rows (or 0
-       if not applicable).
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
 
        Arguments:
        - query: either raw SQL code as Text or an instance of Sql.Statement
@@ -205,22 +206,22 @@ type Builder
 
 ## An error indicating that a supported dialect could not be deduced for the
    provided URL.
-type UnsupportedDialect url
+type Unsupported_Dialect url
 
 ## PRIVATE
 
    Creates a JDBC connection based on a URL and optionally username and
    password.
-create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> JDBC_Connection
+create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> Connection
 create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors <|
-    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> UnsupportedDialect url)
+    dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
     java_connection = case user.is_nothing && password.is_nothing of
         True ->
             DriverManager.getConnection url
         False ->
             DriverManager.getConnection url user password
     resource = Managed_Resource.register java_connection here.close_connection
-    JDBC_Connection resource dialect
+    Connection resource dialect
 
 ## PRIVATE
 

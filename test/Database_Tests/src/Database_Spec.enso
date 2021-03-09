@@ -3,8 +3,8 @@ from Database import all
 from Database.Connection.Connection import Sql_Error
 import Test
 
-spec connection =
-    make_table name column_names column_typenames =
+spec prefix connection pending=Nothing =
+    make_table name column_names column_typenames = Panic.recover <|
         # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
         cols = column_names.zip column_typenames name-> typ->
             name + " " + typ
@@ -14,7 +14,7 @@ spec connection =
     t1 = make_table "T1" ["A", "B", "C"] ["INT", "INT", "INT"]
     t1.insert [1, 2, 3]
     t1.insert [4, 5, 6]
-    Test.group "Basic Table Access" <|
+    Test.group prefix+"Basic Table Access" pending=pending <|
         Test.specify "should allow to materialize tables and columns into local memory" <|
             df = t1.to_dataframe
             a = t1.at 'A' . to_dataframe
@@ -56,7 +56,7 @@ spec connection =
             materialized = table.to_dataframe
             materialized.row_count . should_equal n
 
-    Test.group "Mapping Operations" <|
+    Test.group prefix+"Mapping Operations" pending=pending <|
         t2 = make_table "T2" ["x", "y", "b"] ["INT", "INT", "BOOLEAN"]
         t2.insert [1, 2, False]
         t2.insert [4, 3, False]
@@ -116,7 +116,7 @@ spec connection =
             s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
             s1.ends_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
-    Test.group "Masking Tables" <|
+    Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = t1.where (t1.at "A" == 1)
             df = t2.to_dataframe
@@ -127,7 +127,7 @@ spec connection =
             t2.at "B" . to_vector . should_equal [2]
             t2.at "C" . to_vector . should_equal [3]
 
-    Test.group "Joining Tables" <|
+    Test.group prefix+"Joining Tables" pending=pending <|
         a = make_table "TA" ["x", "y"] ["INTEGER", "VARCHAR"]
         a.insert [0, "foo"]
         a.insert [1, "bar"]
@@ -173,38 +173,36 @@ spec connection =
             r_2 = a.set_index 'x' . join (a.set_index 'x') left_suffix='_old' right_suffix='_new'
             r_2.columns.map .name . should_equal ['y_old', 'y_new']
 
-    t4 = make_table "T4" ["A", "B", "C"] ["INT", "BOOLEAN", "VARCHAR"]
-    t4.insert [0, True, ""]
-    t4.insert [1, Nothing, "foo"]
-    t4.insert [Nothing, True, "bar"]
-    t4.insert [42, False, Nothing]
-    t4.insert [Nothing, Nothing, Nothing]
-    Test.group "Filling Missing Values" <|
-        Test.specify "should replace nulls" <|
+    Test.group prefix+"Missing Values" pending=pending <|
+        t4 = make_table "T4" ["A", "B", "C"] ["INT", "BOOLEAN", "VARCHAR"]
+        t4.insert [0, True, ""]
+        t4.insert [1, Nothing, "foo"]
+        t4.insert [Nothing, True, "bar"]
+        t4.insert [42, False, Nothing]
+        t4.insert [Nothing, Nothing, Nothing]
+        Test.specify "fill_missing should replace nulls" <|
             t4.at 'A' . fill_missing 10 . to_vector . should_equal [0, 1, 10, 42, 10]
             t4.at 'B' . fill_missing False . to_vector . should_equal [True, False, True, False, False]
             t4.at 'C' . fill_missing "NA" . to_vector . should_equal ["", "foo", "bar", "NA", "NA"]
 
-    Test.group "Counting Values" <|
-        Test.specify "should count missing and non-missing values" <|
+        Test.specify "should correctly be counted" <|
             t4.row_count . should_equal 5
             col = t4.at 'A'
             col.length . should_equal 5
             col.count . should_equal 3
             col.count_missing . should_equal 2
 
-    Test.group "Dropping Missing Values" <|
-        Test.specify "should drop missing rows in a Column" <|
+        Test.specify "drop_missing should drop missing rows in a Column" <|
             col = t4.at 'A'
             col.drop_missing.to_vector . should_equal [0, 1, 42]
 
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
+        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             d = t4.drop_missing_rows.to_dataframe
             d.at 'A' . to_vector . should_equal [0]
             d.at 'B' . to_vector . should_equal [True]
             d.at 'C' . to_vector . should_equal [""]
 
-        Test.specify "should drop columns that contain at least one missing row in a Table" <|
+        Test.specify "drop_missing_columns should drop columns that contain at least one missing row in a Table" <|
             t5 = make_table "T5" ["A", "B"] ["INT", "BOOLEAN", "VARCHAR"]
             t5.insert [1, True, "foo"]
             t5.insert [2, False, Nothing]
@@ -218,7 +216,7 @@ spec connection =
             empty.columns.length . should_equal 0
             empty.to_dataframe.columns.length . should_equal 0
 
-    Test.group "Aggregation" <|
+    Test.group prefix+"Aggregation" pending=pending <|
         t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DECIMAL', 'INTEGER']
         t.insert ["foo",  0.4,     10]
         t.insert ["bar",  3.5,     20]
@@ -241,7 +239,7 @@ spec connection =
             determinize (agg.at 'price' . min) . to_vector . should_equal [3.5, 6.7, 0.4, Nothing]
             determinize (agg.at 'price' . max) . to_vector . should_equal [97, 6.7, 0.4, Nothing]
 
-    Test.group "Column-wide statistics" <|
+    Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
             t7 = make_table "T7" ['price'] ['DECIMAL']
             price = t7.at 'price'
@@ -253,7 +251,7 @@ spec connection =
             price.max.should_equal 97
             price.mean.should_equal 26.9
 
-    Test.group "Sorting" <|
+    Test.group prefix+"Sorting" pending=pending <|
         df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DECIMAL', 'DECIMAL']
         df.insert [1,'shoes',20,3.0,37.2]
         df.insert [2,'trousers',10,Nothing,42.1]
@@ -346,15 +344,16 @@ sqlite_specific_spec connection =
             action.catch.to_text . should_equal "[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)"
 
 sqlite_spec =
-    file = File.new "target/sqlite_test.db"
+    Enso_Project.data.create_directory
+    file = Enso_Project.data / "sqlite_test.db"
     file.delete_if_exists
     connection = Database.open_sqlite_file file
-    here.spec connection
+    here.spec "[SQLite] " connection
     here.sqlite_specific_spec connection
     connection.close
     file.delete
 
 postgres_spec =
     # TODO [RW] use env vars to read tmp DB config
-    IO.println "PostgreSQL test database is not configured, skipping."
-    Nothing
+    connection = Error.throw "PostgreSQL test database is not configured"
+    here.spec "[PostgreSQL] " connection pending="PostgreSQL test database is not configured."

@@ -49,7 +49,8 @@ type Table
        Converts this table to a JSON structure.
     to_json : Json
     to_json = case this.internal_columns.is_empty of
-        True -> "Table: no columns".to_json
+        True ->
+            Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
         False -> this.to_sql.to_json
 
     ## UNSTABLE
@@ -287,9 +288,8 @@ type Table
         case my_index.length == other_index.length of
             False -> Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
             True ->
-                ## TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
-                   so it may be worth optimizing that here (#1515)
-
+                # TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
+                # so it may be worth optimizing that here (#1515)
                 new_table_name = this.name + "_" + other.name
                 aliases = case this.name == other.name of
                     True -> [this.name+left_suffix, other.name+right_suffix]
@@ -439,8 +439,8 @@ type Table
     info : Table
     info =
         cols = this.columns
-        ## TODO [RW] the counts could be fetched in a single query instead
-        ## TODO [RW] we could try rendering the storage type to human-readable typenames (currently it is numeric typeids)
+        # TODO [RW] the counts could be fetched in a single query instead
+        # TODO [RW] we could try rendering the storage type to human-readable typenames (currently it is numeric typeids)
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["SQL Type", cols.map .sql_type]]
 
     ## PRIVATE

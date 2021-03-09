@@ -17,7 +17,7 @@ spec =
         tables = Map.from_vector [table1, table2, table3]
         Fake_Test_Connection.make Dialect.sqlite tables
     t1 = test_connection.access_table "T1"
-    Test.group "JSON serialization" <|
+    Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = t1.where (t1.at "A" == 42) . to_json
             part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
@@ -30,7 +30,7 @@ spec =
             q2 = t1.at "A" . to_json
             q2.should_equal (Json.from_pairs [["query", Json.Array [Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]])
 
-    Test.group "Basic Select" <|
+    Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
             t1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
             t2 = t1.select ["C", "B", "undefined"]
@@ -51,11 +51,12 @@ spec =
 
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select []
-            empty.to_json . should_equal "Table: no columns".to_json
+            json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
+            empty.to_json . should_equal json
             empty.columns.length . should_equal 0
             empty.to_sql . should_fail_with Illegal_State_Error
 
-    Test.group "Building Expressions" <|
+    Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
             a = t1.at "A"
             b = t1.at "B"
@@ -79,7 +80,7 @@ spec =
             starts.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (? || \'%\')) AS "B" FROM "T1" AS "T1"', [["pref", str]]]
             contains.to_sql.prepare . should_equal ['SELECT ("T1"."B" LIKE (\'%\' || ? || \'%\')) AS "B" FROM "T1" AS "T1"', [["inf", str]]]
 
-    Test.group "Masking Tables and Columns" <|
+    Test.group "[Codegen] Masking Tables and Columns" <|
         Test.specify "should allow filtering table rows based on a boolean expression" <|
             t2 = t1.where (t1.at "A" == 42)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
@@ -88,7 +89,7 @@ spec =
             c2 = (t1.at "B").where (t1.at "A" == t1.at "C")
             c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
 
-    Test.group "Joining Tables" <|
+    Test.group "[Codegen] Joining Tables" <|
         t2 = test_connection.access_table "T2"
         t3 = test_connection.access_table "T3"
         Test.specify "should allow joining tables index-on-index" <|
@@ -121,21 +122,20 @@ spec =
             r1 = t1.join (t1.set_index 'A') on='B'
             r1.to_sql.prepare . should_equal ['SELECT "T1_left"."A" AS "A", "T1_left"."B" AS "B_left", "T1_left"."C" AS "C_left", "T1_right"."B" AS "B_right", "T1_right"."C" AS "C_right" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_left" LEFT JOIN (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_right" ON ("T1_left"."B" = "T1_right"."A")', []]
 
-    Test.group "Filling Missing Values" <|
-        Test.specify "should allow to replace missing values in a column with a constant" <|
+    Test.group "[Codegen] Handling Missing Values" <|
+        Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
             c = t1.at "A" . fill_missing "not-applicable"
             c.to_sql.prepare . should_equal ['SELECT COALESCE("T1"."A", ?) AS "A" FROM "T1" AS "T1"', [["not-applicable", int]]]
 
-    Test.group "Dropping Missing Values" <|
-        Test.specify "should drop missing rows in a Column" <|
+        Test.specify "drop_missing should drop missing rows in a Column" <|
             col = t1.at "A" . drop_missing
             col.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL))', []]
 
-        Test.specify "should drop rows that contain at least one missing column in a Table" <|
+        Test.specify "drop_missing_rows should drop rows that contain at least one missing column in a Table" <|
             t2 = t1.drop_missing_rows
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
 
-    Test.group "Aggregation" <|
+    Test.group "[Codegen] Aggregation" <|
         agg = t1.group by='A'
 
         Test.specify "should allow counting group sizes" <|
@@ -151,7 +151,7 @@ spec =
             agg = t1.group by=['A','B']
             agg.count.to_sql.prepare . should_equal ['SELECT COUNT(*) AS "count" FROM "T1" AS "T1" GROUP BY "T1"."A", "T1"."B"', []]
 
-    Test.group "Sorting" <|
+    Test.group "[Codegen] Sorting" <|
         Test.specify "should allow sorting by a single column name" <|
             r1 = t1.sort by="A" . at "B"
             r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC NULLS LAST', []]
