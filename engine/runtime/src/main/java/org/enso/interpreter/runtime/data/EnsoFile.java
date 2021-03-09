@@ -58,6 +58,10 @@ public class EnsoFile {
     return this.truffleFile.isDirectory();
   }
 
+  public void createDirectories() throws IOException {
+    this.truffleFile.createDirectories();
+  }
+
   public boolean isRegularFile() {
     return this.truffleFile.isRegularFile();
   }
