@@ -47,12 +47,7 @@ spec connection =
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select []
             empty.to_dataframe.columns.length . should_equal 0
-
-            ## TODO [RW, MK] do we want this to hold? this would require special
-               support from Table, namely creating tables with a non-empty
-               default index and no columns and reporting rowCount based on that
-               index if there are no columns
-            # empty.to_dataframe.row_count . should_equal empty.row_count
+            empty.to_dataframe.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
             table = make_table "Big" ["A", "B", "C"] ["INT", "REAL", "VARCHAR"]
             n = 1000

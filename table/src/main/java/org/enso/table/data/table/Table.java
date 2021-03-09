@@ -40,7 +40,7 @@ public class Table {
   /** @return the number of rows in this table */
   public int rowCount() {
     if (columns == null || columns.length == 0) {
-      return 0;
+      return index.size();
     } else {
       return columns[0].getSize();
     }

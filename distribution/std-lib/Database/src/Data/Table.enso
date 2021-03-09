@@ -1,6 +1,7 @@
 from Base import all
 import Table.Data.Table as Materialized_Table
 import Table.Data.Column as Materialized_Column
+import Table.Internal.Java_Exports
 from Table.Data.Table import No_Such_Column_Error
 from Database.Data.Column as Column_Module import all
 from Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
@@ -398,8 +399,8 @@ type Table
                 preprocessed = this.reset_index.limit max_rows
                 case preprocessed.internal_columns.is_empty of
                     True ->
-                        ## TODO we could try making the default index have the same length as the amount of rows in the surrounding context, but I'm not sure if it is worth it
-                        Materialized_Table.new []
+                        internal_table = Java_Exports.make_table_without_columns this.row_count
+                        Materialized_Table.Table internal_table
                     False ->
                         sql = preprocessed.to_sql
                         expected_types = preprocessed.internal_columns.map .sql_type
