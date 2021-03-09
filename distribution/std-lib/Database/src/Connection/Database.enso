@@ -17,7 +17,8 @@ from Database.Connection.Connection import all
    - password: (optional) a password for authentication.
 connect : Text -> Nothing | Text -> Nothing | Text -> Connection ! Sql_Error
 connect url user=Nothing password=Nothing =
-    Connection.create_jdbc_connection "jdbc:"+url user password
+    full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
+    Connection.create_jdbc_connection full_url user password
 
 ## UNSTABLE
 

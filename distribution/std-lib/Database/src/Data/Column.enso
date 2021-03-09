@@ -62,6 +62,13 @@ type Column
 
        Returns a materialized dataframe containing rows of this table.
 
+       Currently the SQL decimal type is mapped to a floating-point
+       representation which is not exact. While operations in the database
+       itself may (or may not, depending on the database engine) be done with
+       exact precision, the materialized values may loose precision, so extra
+       care is needed when working with decimal computations that need to be
+       exact.
+
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
@@ -73,6 +80,13 @@ type Column
     ## UNSTABLE
 
        Returns a vector containing all the elements in this column.
+
+       Currently the SQL decimal type is mapped to a floating-point
+       representation which is not exact. While operations in the database
+       itself may (or may not, depending on the database engine) be done with
+       exact precision, the materialized values may loose precision, so extra
+       care is needed when working with decimal computations that need to be
+       exact.
     to_vector : Vector
     to_vector =
         ## We remove the index to avoid fetching index data that will not be

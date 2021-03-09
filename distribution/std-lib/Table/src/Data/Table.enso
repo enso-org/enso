@@ -171,7 +171,7 @@ type Table
     info : Table
     info =
         cols = this.columns
-        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.

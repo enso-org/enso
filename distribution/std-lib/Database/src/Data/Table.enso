@@ -10,6 +10,8 @@ import Database.Data.Internal.IR
 from Database.Data.Internal.IR import Internal_Column
 import Database.Data.Sql
 
+polyglot java import java.sql.JDBCType
+
 ## Represents a column-oriented table data structure backed by a database.
 type Table
     ## PRIVATE
@@ -388,6 +390,13 @@ type Table
 
        Returns a materialized dataframe containing rows of this table.
 
+       Currently the SQL decimal type is mapped to a floating-point
+       representation which is not exact. While operations in the database
+       itself may (or may not, depending on the database engine) be done with
+       exact precision, the materialized values may loose precision, so extra
+       care is needed when working with decimal computations that need to be
+       exact.
+
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
@@ -438,10 +447,15 @@ type Table
        of each column.
     info : Table
     info =
-        cols = this.columns
-        # TODO [RW] the counts could be fetched in a single query instead
-        # TODO [RW] we could try rendering the storage type to human-readable typenames (currently it is numeric typeids)
-        Materialized_Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["SQL Type", cols.map .sql_type]]
+        cols = this.internal_columns
+        count_columns = cols.map c-> IR.Internal_Column c.name Sql.Sql_Type.integer (IR.Operation "COUNT" [c.expression])
+        count_table = this.updated_columns count_columns . to_dataframe
+        counts = count_table.columns.map c-> c.at 0
+        column_type_as_text col =
+            id = col.sql_type.typeid
+            JDBCType.valueOf id . getName
+        types = cols.map column_type_as_text
+        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
 
     ## PRIVATE
 

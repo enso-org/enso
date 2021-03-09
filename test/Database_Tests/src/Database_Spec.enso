@@ -332,9 +332,19 @@ spec prefix connection pending=Nothing =
             r_3 = c.sort order=Sort_Order.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
+    Test.group prefix+"Info" pending=pending <|
+        Test.specify "should return Table information" <|
+            t = make_table "T9" ["strs", "ints", "bools"] ["VARCHAR", "INTEGER", "BOOLEAN"]
+            t.insert ["a", Nothing, False]
+            t.insert ["abc", Nothing, Nothing]
+            t.insert ["def", 42, True]
+            i = t.info
+            i.index . to_vector . should_equal ["strs", "ints", "bools"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN"]
 
 sqlite_specific_spec connection =
-    Test.group "Error Handling" <|
+    Test.group "[SQLite] Error Handling" <|
         Test.specify "should wrap errors" <|
             connection.execute_query "foobar" . should_fail_with Sql_Error
             connection.execute_update "foobar" . should_fail_with Sql_Error
