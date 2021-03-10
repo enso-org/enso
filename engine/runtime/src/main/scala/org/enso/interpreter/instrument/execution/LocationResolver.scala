@@ -84,6 +84,12 @@ object LocationResolver {
   def getExpressionId(ir: IR): Option[ExpressionId] =
     ir.getExternalId.map(ExpressionId(ir.getId, _))
 
+  /** Find the expression by its location.
+    *
+    * @param ir the `IR` to get the expression from
+    * @param location the expression location
+    * @return the expression with the given location
+    */
   def findByLocation(ir: IR, location: Location): Option[IR] =
     ir.preorder.find(_.location.map(_.location).contains(location))
 

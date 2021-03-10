@@ -4,13 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.*;
-import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
@@ -24,6 +17,10 @@ import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
+
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -245,10 +242,10 @@ public class Context {
    * @return the relevant module, if exists.
    */
   public Optional<Module> findModuleByExpressionId(UUID expressionId) {
-    return getTopScope()
-        .getModules()
-        .stream()
-        .filter(module -> module.getIr().preorder().exists(ir -> ir.getId() == expressionId))
+    return getTopScope().getModules().stream()
+        .filter(
+            module ->
+                module.getIr().preorder().exists(ir -> ir.getExternalId().contains(expressionId)))
         .findFirst();
   }
 
@@ -336,6 +333,4 @@ public class Context {
   public boolean isCachingDisabled() {
     return isCachingDisabled;
   }
-
-
 }

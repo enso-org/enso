@@ -11,6 +11,6 @@ public class ModuleNotFoundForExpressionIdException extends ModuleNotFoundExcept
    * @param expressionId the expression identifier.
    */
   public ModuleNotFoundForExpressionIdException(UUID expressionId) {
-    super("Module containing expression " + expressionId + " not found.");
+    super("containing expression " + expressionId);
   }
 }

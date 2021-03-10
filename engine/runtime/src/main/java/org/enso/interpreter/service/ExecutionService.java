@@ -114,13 +114,7 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
-    org.enso.interpreter.DebugLogger.log.info(
-        "name="
-            + call.getFunction().getName()
-            + "; callTargetName="
-            + call.getFunction().getCallTarget().getRootNode().getName());
-
-    LocationFilter locationFilter = LocationFilter.addExcludingFunctions(module.getIr(), src);
+    LocationFilter locationFilter = LocationFilter.create(module.getIr(), src);
 
     EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
@@ -170,7 +164,6 @@ public class ExecutionService {
           ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
     Module module =
         context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
-    org.enso.interpreter.DebugLogger.log.info("findModule " + moduleName + " = " + module.getName());
     FunctionCallInstrumentationNode.FunctionCall call =
         prepareFunctionCall(module, consName, methodName);
     execute(

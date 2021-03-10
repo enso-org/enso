@@ -482,17 +482,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback) {
-    SourceSectionFilter.Builder filter =
+    SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
-            .tagIs(IdentifiedTag.class);
-
-    filter.indexIn(locationFilter.getInclude());
-    filter.indexNotIn(locationFilter.getExclude());
+            .tagIs(IdentifiedTag.class)
+            .sourceSectionEquals(locationFilter.getSections())
+            .build();
 
     return env.getInstrumenter()
         .attachExecutionEventListener(
-            filter.build(),
+            filter,
             new IdExecutionEventListener(
                 entryCallTarget,
                 cache,

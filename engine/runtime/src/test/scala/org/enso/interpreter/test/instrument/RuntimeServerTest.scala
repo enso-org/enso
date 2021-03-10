@@ -2292,13 +2292,10 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val fExpr   = metadata.addItem(32, 5)
+    // f expression
+    metadata.addItem(32, 5)
     val fApp    = metadata.addItem(62, 8)
     val mainRes = metadata.addItem(50, 21)
-
-    println(s"fExpr=$fExpr")
-    println(s"fApp=$fApp")
-    println(s"res=$mainRes")
 
     val code =
       """from Builtins import all
@@ -2357,17 +2354,12 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val fExpr    = metadata.addItem(43, 5)
+    // f expression
+    metadata.addItem(43, 5)
     val aExpr    = metadata.addItem(57, 1)
     val fApp     = metadata.addItem(75, 3)
     val mainRes  = metadata.addItem(63, 16)
     val mainExpr = metadata.addItem(32, 47)
-
-    println(s"fExpr=$fExpr")
-    println(s"aExpr=$aExpr")
-    println(s"fApp=$fApp")
-    println(s"mainRes=$mainRes")
-    println(s"mainExpr=$mainExpr")
 
     val code =
       """from Builtins import all
@@ -2422,17 +2414,12 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val aExpr   = metadata.addItem(41, 14)
-    val lam     = metadata.addItem(42, 10)
-    val lamExpr = metadata.addItem(47, 5)
+    val aExpr = metadata.addItem(41, 14)
+    val lam   = metadata.addItem(42, 10)
+    // lambda expression
+    metadata.addItem(47, 5)
     val lamArg  = metadata.addItem(54, 1)
     val mainRes = metadata.addItem(60, 12)
-
-    println(s"a=$aExpr")
-    println(s"lam=$lam")
-    println(s"lamExpr=$lamExpr")
-    println(s"lamArg=$lamArg")
-    println(s"res=$mainRes")
 
     val code =
       """from Builtins import all
@@ -2470,11 +2457,10 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, Constants.INTEGER),
       TestMessages.update(contextId, lam, Constants.FUNCTION),
-      TestMessages.update(contextId, lamExpr, Constants.INTEGER),
       TestMessages.update(contextId, lamArg, Constants.INTEGER),
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
       context.executionComplete(contextId)
