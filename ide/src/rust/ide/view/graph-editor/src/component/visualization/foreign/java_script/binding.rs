@@ -2,7 +2,8 @@
 
 use crate::prelude::*;
 
-use super::PreprocessorCallback;
+use crate::component::visualization::foreign::java_script::PreprocessorCallback;
+use crate::component::visualization::instance::PreprocessorConfiguration;
 
 use ensogl::display::DomSymbol;
 use fmt::Formatter;
@@ -30,6 +31,7 @@ extern "C" {
     fn __Visualization__() -> JsValue;
 
     #[allow(unsafe_code)]
+    #[wasm_bindgen(extends = js_sys::Object)]
     pub type Visualization;
 
     #[allow(unsafe_code)]
@@ -37,8 +39,8 @@ extern "C" {
     fn new(init:JsConsArgs) -> Visualization;
 
     #[allow(unsafe_code)]
-    #[wasm_bindgen(method)]
-    fn setPreprocessor(this:&Visualization, code:String);
+    #[wasm_bindgen(catch, js_name = __emitPreprocessorChange__, method)]
+    pub fn emitPreprocessorChange(this:&Visualization) -> Result<(),JsValue>;
 }
 
 /// Provides reference to the visualizations JavaScript base class.
@@ -85,8 +87,9 @@ impl JsConsArgs {
     }
 
     /// Helper method to emit an preprocessor change event from the visualisation.
-    pub fn emit_preprocessor_change(&self, code:String){
-        let closure = &self.set_preprocessor;
-        (*closure)(code);
+    pub fn emit_preprocessor_change(&self, code:Option<String>, module:Option<String>){
+        let closure             = &self.set_preprocessor;
+        let preprocessor_config = PreprocessorConfiguration::from_options(code,module);
+        (*closure)(preprocessor_config);
     }
 }

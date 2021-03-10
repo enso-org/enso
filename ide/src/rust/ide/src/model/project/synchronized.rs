@@ -209,6 +209,7 @@ impl Project {
             use enso_protocol::binary::Notification;
             match event {
                 Event::Notification(Notification::VisualizationUpdate {context,data}) => {
+                    debug!(logger, "Visualization binary data: {String::from_utf8_lossy(data.as_ref())}");
                     let data = VisualizationUpdateData::new(data);
                     if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
                         let result = execution_contexts.dispatch_visualization_update(context,data);

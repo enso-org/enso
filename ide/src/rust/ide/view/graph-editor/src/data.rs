@@ -16,6 +16,9 @@ pub mod enso {
 
         /// The Enso type representation. Can be a complex type, like `String|Int`.
         Type,
+
+        /// The Enso module represented as qualified path, like `Project.Data.Vector`.
+        Module,
     }
 
     impl Type {
@@ -23,10 +26,5 @@ pub mod enso {
         pub fn any() -> Self {
             "Any".into()
         }
-    }
-
-    /// Builtin library name. For internal usage only.
-    pub fn builtin_library() -> LibraryName {
-        "builtin".into()
     }
 }

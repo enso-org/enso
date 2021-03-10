@@ -53,13 +53,13 @@ impl BubbleChartModel {
     fn receive_data(&self, data:&Data) -> Result<(),DataError> {
         let data_inner = match data {
             Data::Json {content} => content,
-            _ => todo!() // FIXME
+            _                    => return Err(DataError::BinaryNotSupported),
         };
         let data_inner:&serde_json::Value = data_inner;
         let data_inner: Rc<Vec<Vector3<f32>>> = if let Ok(result) = serde_json::from_value(data_inner.clone()) {
             result
         } else {
-            return Err(DataError::InvalidDataType)
+            return Err(DataError::InvalidJsonText)
         };
 
         // Avoid re-creating views, if we have already created some before.

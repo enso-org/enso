@@ -18,12 +18,12 @@ const buttonsHeight = 25
 /**
  * A d3.js ScatterPlot visualization.
  *
- * To zoom use scrollwheel
- * To select click and swipe with LMB
- * To deselect click outside of selection with LMB
- * To pan click and swipe with RMB
- * To zoom out click "Fit all" or use key combination "ctrl/cmd+a"
- * To zoom into selection click appropriate button or use key combination "ctrl/cmd+z"
+ * To zoom use scroll wheel.
+ * To select click and swipe with LMB.
+ * To deselect click outside of selection with LMB.
+ * To pan click and swipe with RMB.
+ * To zoom out click "Fit all" or use key combination "ctrl/cmd+a".
+ * To zoom into selection click appropriate button or use key combination "ctrl/cmd+z".
  *
  * Data format (json):
  * {

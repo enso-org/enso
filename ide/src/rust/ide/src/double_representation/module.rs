@@ -153,10 +153,18 @@ impl QualifiedName {
         QualifiedName {project_name,id}
     }
 
+    /// Create a qualified name for the project's main module.
+    ///
+    /// It is special, as its name consists only from the project name, unlike other modules'
+    /// qualified names.
+    pub fn new_main(project_name:ReferentName) -> QualifiedName {
+        Self::new(project_name, Id::new(std::iter::empty()))
+    }
+
     /// Constructs a qualified name from its text representation.
     ///
     /// Fails, if the text is not a valid module's qualified name.
-    pub fn from_text(text:impl Str) -> FallibleResult<Self> {
+    pub fn from_text(text:impl AsRef<str>) -> FallibleResult<Self> {
         use ast::opr::predefined::ACCESS;
 
         let text     = text.as_ref();

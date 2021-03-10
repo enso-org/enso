@@ -20,6 +20,84 @@ pub const DEFAULT_VISUALIZATION_EXPRESSION:&str = "x -> x.to_default_visualizati
 
 
 
+// ====================
+// === Preprocessor ===
+// ====================
+
+// === ContextModule ===
+
+/// Designation of the module to be used as a context for preprocessor evaluation.
+#[derive(Clone,CloneRef,Debug)]
+pub enum ContextModule {
+    /// Current project's `Main` module.
+    ProjectMain,
+    /// Specific module of known name.
+    Specific(enso::Module)
+}
+
+impl Default for ContextModule {
+    fn default() -> Self {
+        ContextModule::ProjectMain
+    }
+}
+
+impl ContextModule {
+    /// Create a context from optional string with module's type.
+    ///
+    /// If there is no explicit module's type provided, the default (project's main) will be used.
+    pub fn new(module_type:impl Into<enso::Module>) -> Self {
+        Self::Specific(module_type.into())
+    }
+}
+
+
+// === PreprocessorConfiguration ===
+
+/// Information on how the preprocessor should be set up for the visualization.
+#[derive(Clone,CloneRef,Debug)]
+pub struct PreprocessorConfiguration {
+    /// The code of the preprocessor. Should be a lambda that transforms node value into whatever
+    /// that visualizations expect.
+    pub code   : enso::Code,
+    /// The module that provides context for `code` evaluation.
+    pub module : ContextModule,
+}
+
+impl PreprocessorConfiguration {
+    /// Like `new` but arguments are optional. If `None` is given, default value will be used.
+    pub fn from_options
+    (code:Option<impl Into<enso::Code>>, module:Option<impl Into<enso::Module>>) -> Self {
+        let mut ret = Self::default();
+        if let Some(code) = code {
+            ret.code = code.into()
+        }
+        if let Some(module) = module {
+            ret.module = ContextModule::Specific(module.into())
+        }
+        ret
+    }
+
+    /// Create a configuration that runs the given code in the context of the given module.
+    pub fn new
+    (code:impl Into<enso::Code>, module:impl Into<enso::Module>) -> PreprocessorConfiguration {
+        PreprocessorConfiguration {
+            module : ContextModule::Specific(module.into()),
+            code   : code.into(),
+        }
+    }
+}
+
+impl Default for PreprocessorConfiguration {
+    fn default() -> Self {
+        Self {
+            code   : DEFAULT_VISUALIZATION_EXPRESSION.into(),
+            module : default(),
+        }
+    }
+}
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -48,7 +126,7 @@ pub struct Frp {
     #[shrinkwrap(main_field)]
     pub inputs                 : FrpInputs,
 
-    pub on_preprocessor_change : frp::Sampler<enso::Code>,
+    pub on_preprocessor_change : frp::Sampler<PreprocessorConfiguration>,
     pub on_data_receive_error  : frp::Stream<Option<DataError>>,
     pub is_active              : frp::Stream<bool>,
 
@@ -59,7 +137,7 @@ pub struct Frp {
     /// a function called on the Engine side before sending data to IDE, allowing us to do some
     /// compression or filtering for the best performance. See also _Lazy Visualization_ section
     /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-    pub preprocessor_change   : frp::Source<enso::Code>,
+    pub preprocessor_change   : frp::Source<PreprocessorConfiguration>,
 }
 
 impl FrpInputs {
@@ -85,7 +163,7 @@ impl Frp {
             def data_receive_error  = source();
             is_active              <- bool(&inputs.deactivate,&inputs.activate);
         };
-        preprocessor_change.emit(enso::Code::new(DEFAULT_VISUALIZATION_EXPRESSION));
+        preprocessor_change.emit(PreprocessorConfiguration::default());
         let on_data_receive_error  = data_receive_error.clone_ref().into();
         Self {on_preprocessor_change,on_data_receive_error,is_active,preprocessor_change,inputs
             ,data_receive_error}
