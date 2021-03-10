@@ -1,16 +1,17 @@
 from Standard.Base import all
-
-import Standard.Test
-
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
+import Standard.Database.Data.Internal.Base_Generator
+import Standard.Test
+import Database_Tests.Helpers.Environment
 
 spec prefix connection pending=Nothing =
     make_table name column_names column_typenames = Panic.recover <|
+        quote x = '"' + x + '"'
         # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
         cols = column_names.zip column_typenames name-> typ->
-            name + " " + typ
-        sql = "CREATE TABLE " + name + " (" + (cols.join ", ") + ")"
+            quote name + " " + typ
+        sql = "CREATE TABLE " + quote name + " (" + (cols.join ", ") + ")"
         Panic.rethrow <| connection.execute_update sql
         Panic.rethrow <| connection.access_table name
     t1 = make_table "T1" ["A", "B", "C"] ["INT", "INT", "INT"]
@@ -366,6 +367,16 @@ sqlite_spec =
     file.delete
 
 postgres_spec =
-    # TODO [RW] use env vars to read tmp DB config
-    connection = Error.throw "PostgreSQL test database is not configured"
-    here.spec "[PostgreSQL] " connection pending="PostgreSQL test database is not configured."
+    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
+    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
+    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+    go connection pending=Nothing =
+        here.spec "[PostgreSQL] " connection pending
+    case db_name.is_nothing of
+        True ->
+            connection = Error.throw "PostgreSQL test database is not configured"
+            go connection pending="PostgreSQL test database is not configured."
+        False ->
+            url = "postgresql:" + db_name
+            connection = Database.connect url user=db_user password=db_password
+            go connection

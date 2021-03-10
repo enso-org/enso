@@ -223,7 +223,6 @@ type Unsupported_Dialect url
    password.
 create_jdbc_connection : Text -> Vector -> Connection
 create_jdbc_connection url properties = here.wrap_sql_errors <|
-    IO.println <| Vector.Vector JDBCProxy.getDrivers
     java_props = Properties.new
     properties.each pair->
         java_props.setProperty pair.first pair.second
