@@ -11,13 +11,30 @@ public class BoolBuilder extends TypedBuilder {
   int size = 0;
 
   @Override
-  public void append(Object o) {
+  public void appendNoGrow(Object o) {
     if (o == null) {
       isNa.set(size);
     } else {
       if ((Boolean) o) {
         vals.set(size);
       }
+    }
+    size++;
+  }
+
+  @Override
+  public void append(Object o) {
+    appendNoGrow(o);
+  }
+
+  /**
+   * Append a new boolean to this builder.
+   *
+   * @param data the boolean to append
+   */
+  public void appendBoolean(boolean data) {
+    if (data) {
+      vals.set(size);
     }
     size++;
   }
@@ -36,6 +53,11 @@ public class BoolBuilder extends TypedBuilder {
   @Override
   public int getCurrentSize() {
     return size;
+  }
+
+  @Override
+  public int getCurrentCapacity() {
+    return vals.size();
   }
 
   @Override

@@ -1,6 +1,7 @@
 package org.enso.interpreter.epb.runtime;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Exclusive;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.ExceptionType;
@@ -899,7 +900,7 @@ public class PolyglotProxy implements TruffleObject {
   Object getExceptionMessage(
       @CachedLibrary("this.delegate") InteropLibrary errors,
       @CachedLibrary("this") InteropLibrary node,
-      @Cached ContextRewrapNode contextRewrapNode)
+      @Cached @Exclusive ContextRewrapNode contextRewrapNode)
       throws UnsupportedMessageException {
     Object p = enterOrigin(node);
     try {

@@ -1,2 +1,7 @@
 Enso
 Copyright 2020 - 2021 New Byte Order sp. z o. o.
+
+'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the std-lib-Database.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.34.0`.
+

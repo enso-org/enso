@@ -25,10 +25,12 @@ type Expression
        be interpolated when building the query.
 
        Arguments:
+       - sql_type: The SQL type that this object is going to be serialized to.
+         It is usually inferred from the expression's context.
        - value: the value to be interpolated; it should be a simple Number, Text
          or other types that are serializable for JDBC.
-    # type Constant (value : Any)
-    type Constant value
+    # type Constant (sql_type : Sql.Sql_Type) (value : Any)
+    type Constant sql_type value
 
     ## PRIVATE
 
@@ -43,6 +45,16 @@ type Expression
          different operations support different amounts of arguments.
     # type Operation (kind : Text) (expressions : Vector Expression)
     type Operation kind expressions
+
+type Internal_Column
+    ## PRIVATE
+
+       An internal column structure.
+    type Internal_Column name sql_type expression
+
+    ## PRIVATE
+    rename : Text -> Internal_Column
+    rename new_name = Internal_Column new_name this.sql_type this.expression
 
 ## PRIVATE
 
@@ -68,40 +80,49 @@ type Context
        - groups: a list of grouping expressions, for each entry a GROUP BY is
          added, the resulting query can then directly include only the
          grouped-by columns or aggregate expressions.
-       - meta_index: a piece of meta-data which specifies default columns for
-         joining or grouping.
+       - meta_index: a list of internal columns to use for joining or grouping.
+       - limit: an optional maximum number of elements that the equery should
+         return.
        # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
        #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
-       #              (groups : Vector Expression) (meta_index : Vector Expression)
-    type Context from_spec where_filters orders groups meta_index
+       #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
+       #              (limit : Nothing | Integer)
+    type Context from_spec where_filters orders groups meta_index limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `meta_index`.
-    set_index : Vector Text -> Context
+    set_index : Vector Internal_Column -> Context
     set_index new_index =
-        Context this.from_spec this.where_filters this.orders this.groups new_index
+        Context this.from_spec this.where_filters this.orders this.groups new_index this.limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `where_filters`.
     set_where_filters : Vector Expression -> Context
     set_where_filters new_filters =
-        Context this.from_spec new_filters this.orders this.groups this.meta_index
+        Context this.from_spec new_filters this.orders this.groups this.meta_index this.limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `orders`.
        # set_orders : Vector [Expression, Order_Direction] -> Context
     set_orders new_orders =
-        Context this.from_spec this.where_filters new_orders this.groups this.meta_index
+        Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `groups`.
     set_groups : Vector Expression -> Context
     set_groups new_groups =
-        Context this.from_spec this.where_filters this.orders new_groups this.meta_index
+        Context this.from_spec this.where_filters this.orders new_groups this.meta_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `limit`.
+    set_limit : (Nothing | Integer) -> Context
+    set_limit new_limit =
+       Context this.from_spec this.where_filters this.orders this.groups this.meta_index new_limit
 
 ## PRIVATE
 
@@ -241,21 +262,34 @@ type Query
     # type Select (expressions : [Text, Expression]) (context : Context)
     type Select columns context
 
+    ## PRIVATE
+
+       A Select SQL query that gets all columns in a table.
+    type Select_All context
+
+    ## PRIVATE
+
+       An Insert SQL query that inserts a single row to the table.
+
+       Arguments:
+       - table_name: name of the table to insert to.
+       - pairs: a list of pairs consisting of a column name and and expression.
+    type Insert table_name pairs
+
 ## PRIVATE
 
    Creates a query context that just fetches data from a table, without any
    additional processing.
 make_ctx_from : Text -> Context
 make_ctx_from table_name =
-    Context (From_Table table_name table_name) [] [] [] []
+    Context (From_Table table_name table_name) [] [] [] [] Nothing
 
 ## PRIVATE
 
    Creates an expression which is a simple constant to be interpolated.
-make_constant : Any -> Expression
-make_constant x =
-    # TODO [RW] may add some sanitization, like checking if the value type is supported
-    Constant x
+make_constant : Sql.Sql_Type -> Any -> Expression
+make_constant sql_type x =
+    Constant sql_type x
 
 ## PRIVATE
 
@@ -265,6 +299,15 @@ substitute_origin : Text -> Text -> Expression
 substitute_origin old_origin new_origin expr = case expr of
     Column origin name ->
         if origin == old_origin then Column new_origin name else expr
-    Constant _ -> expr
+    Constant _ _ -> expr
     Operation kind exprs ->
         Operation kind (exprs.map (here.substitute_origin old_origin new_origin))
+
+## PRIVATE
+
+   Lifts a function mapping expressions into a function mapping internal columns
+   which applies the original function to their expressions, leaving other
+   fields as-is.
+lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
+lift_expression_map f col =
+    Internal_Column col.name col.sql_type (f col.expression)
