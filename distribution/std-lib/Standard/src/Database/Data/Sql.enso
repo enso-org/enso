@@ -24,6 +24,10 @@ type Sql_Type
     decimal : Sql_Type
     decimal = Sql_Type Types.DECIMAL
 
+    ## The SQL type representing a general numeric type.
+    numeric : Sql_Type
+    numeric = Sql_Type Types.NUMERIC
+
     ## PRIVATE
 
        Returns True if this type represents an integer. It only handles the

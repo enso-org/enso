@@ -159,7 +159,8 @@ create_builder sql_type =
     initial_size = 10
     if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
         if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
-            is_double =  sql_type.is_definitely_double || sql_type==Sql_Type.decimal
+            ## TODO [RW, MK] do we want to cast BigDecimal from the DB to floats?
+            is_double =  sql_type.is_definitely_double || sql_type==Sql_Type.decimal || sql_type==Sql_Type.numeric
             if is_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
                 Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
 
