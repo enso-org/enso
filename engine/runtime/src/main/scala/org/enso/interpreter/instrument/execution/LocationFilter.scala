@@ -77,11 +77,22 @@ object LocationFilter {
     @scala.annotation.tailrec
     def go(queue: mutable.Queue[IR]): Unit = {
       if (queue.nonEmpty) {
-        val element = queue.dequeue()
-        builder ++= getLocation(element)
+        val element  = queue.dequeue()
+        val location = getLocation(element)
 
-        if (shouldInstrument(element)) {
-          queue ++= element.children
+        element match {
+          case IR.Expression.Binding(_, function: IR.Function, _, _, _)
+              if isSynthetic(function) =>
+            builder ++= getLocation(function)
+          case IR.Expression.Binding(_, block: IR.Expression.Block, _, _, _) =>
+            builder ++= getLocation(block)
+          case function: IR.Function =>
+            if (!isSynthetic(function)) {
+              builder ++= location
+            }
+          case _ =>
+            builder ++= location
+            queue ++= element.children
         }
 
         go(queue)
@@ -91,11 +102,10 @@ object LocationFilter {
     go(mutable.Queue(expression))
   }
 
-  private def shouldInstrument(ir: IR): Boolean =
-    ir match {
-      case _: IR.Function => false
-      case _              => true
-    }
+  private def isSynthetic(function: IR.Function): Boolean = {
+    val irLocation = getLocation(function)
+    irLocation.isDefined && irLocation == getLocation(function.body)
+  }
 
   private def toSection(source: Source, location: Location): SourceSection =
     source.createSection(location.start, location.length)
