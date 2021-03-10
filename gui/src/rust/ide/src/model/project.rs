@@ -24,6 +24,7 @@ use uuid::Uuid;
 #[automock]
 pub trait API:Debug {
     /// Project's name
+    // TODO [mwu] This should return Rc<ReferentName>.
     fn name(&self) -> ImString;
 
     /// Get Language Server JSON-RPC Connection for this project.
@@ -66,6 +67,23 @@ pub trait API:Debug {
     fn qualified_module_name
     (&self, path:&model::module::Path) -> crate::model::module::QualifiedName {
         path.qualified_module_name(self.name().deref())
+    }
+
+    /// Get qualified name of the project's `Main` module.
+    ///
+    /// This module is special, as it needs to be referred by the project name itself.
+    fn main_module(&self) -> FallibleResult<model::module::QualifiedName> {
+        let main = std::iter::once(crate::ide::INITIAL_MODULE_NAME);
+        model::module::QualifiedName::from_segments(self.name(),main)
+
+        // TODO [mwu] The code below likely should be preferred but does not work
+        //            because language server does not support using project name
+        //            for project's main module in some contexts.
+        //            This is tracked by: https://github.com/enso-org/enso/issues/1543
+        // use model::module::QualifiedName;
+        // ReferentName::try_from(self.name().as_str())
+        //     .map(QualifiedName::new_main)
+        //     .map_err(Into::into)
     }
 }
 

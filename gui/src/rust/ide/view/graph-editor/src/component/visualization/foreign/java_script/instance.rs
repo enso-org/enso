@@ -10,6 +10,7 @@
 use crate::prelude::*;
 
 use crate::component::visualization::*;
+use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::visualization::java_script::binding::JsConsArgs;
 use crate::component::visualization::java_script::method;
 use crate::component::visualization;
@@ -76,7 +77,7 @@ pub type Result<T> = result::Result<T, Error>;
 // =====================
 
 /// Helper type for the callback used to set the preprocessor code.
-pub trait PreprocessorCallback = Fn(String);
+pub trait PreprocessorCallback = Fn(PreprocessorConfiguration);
 
 /// Internal helper type to store the preprocessor callback.
 type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>>>;
@@ -91,7 +92,8 @@ pub struct InstanceModel {
     pub logger              : Logger,
         on_data_received    : Rc<Option<js_sys::Function>>,
         set_size            : Rc<Option<js_sys::Function>>,
-        object              : Rc<js_sys::Object>,
+        #[derivative(Debug="ignore")]
+        object              : Rc<java_script::binding::Visualization>,
         #[derivative(Debug="ignore")]
         preprocessor_change : PreprocessorCallbackCell,
 }
@@ -131,16 +133,16 @@ impl InstanceModel {
     () -> (PreprocessorCallbackCell,impl PreprocessorCallback) {
         let closure_cell      = PreprocessorCallbackCell::default();
         let weak_closure_cell = Rc::downgrade(&closure_cell);
-        let closure = move |s:String| {
+        let closure = move |preprocessor_config| {
             if let Some(callback) = weak_closure_cell.upgrade() {
-                callback.borrow().map_ref(|f|f(s));
+                callback.borrow().map_ref(|f|f(preprocessor_config));
             }
         };
         (closure_cell,closure)
     }
 
     fn instantiate_class_with_args(class:&JsValue, args:JsConsArgs)
-    -> result::Result<js_sys::Object,Error> {
+    -> result::Result<java_script::binding::Visualization,Error> {
         let js_new  = js_sys::Function::new_with_args("cls,arg", "return new cls(arg)");
         let context = JsValue::NULL;
         let object  = js_new.call2(&context,&class,&args.into())
@@ -148,7 +150,7 @@ impl InstanceModel {
         if !object.is_object() {
             return Err(Error::ValueIsNotAnObject { object } )
         }
-        let object:js_sys::Object = object.into();
+        let object:java_script::binding::Visualization = object.into();
         Ok(object)
     }
 
@@ -159,9 +161,9 @@ impl InstanceModel {
         let (preprocessor_change,closure) = Self::preprocessor_change_callback();
         let init_data                     = JsConsArgs::new(root_node.clone_ref(), closure);
         let object                        = Self::instantiate_class_with_args(class,init_data)?;
-        let on_data_received              = get_method(&object,method::ON_DATA_RECEIVED).ok();
+        let on_data_received              = get_method(object.as_ref(),method::ON_DATA_RECEIVED).ok();
         let on_data_received              = Rc::new(on_data_received);
-        let set_size                      = get_method(&object,method::SET_SIZE).ok();
+        let set_size                      = get_method(&object.as_ref(),method::SET_SIZE).ok();
         let set_size                      = Rc::new(set_size);
         let object                        = Rc::new(object);
         Ok(InstanceModel{object,on_data_received,set_size,root_node,logger,preprocessor_change})
@@ -180,20 +182,25 @@ impl InstanceModel {
         self.root_node.set_size(size);
     }
 
-   fn receive_data(&self, data:&Data) -> result::Result<(),DataError> {
-        let data_json = match data {
-           Data::Json {content} => content,
-           _ => todo!() // FIXME
-        };
-        let data_json:&serde_json::Value = data_json.deref();
-        let data_js   = match JsValue::from_serde(data_json) {
-            Ok(value) => value,
-            Err(_)    => return Err(DataError::InvalidDataType),
-        };
-        self.try_call1(&self.on_data_received, &data_js)
-            .map_err(|_| DataError::InternalComputationError)?;
-        Ok(())
-   }
+    fn receive_data(&self, data:&Data) -> result::Result<(),DataError> {
+         let data_json = match data {
+            Data::Json {content} => content,
+            _                    => return Err(DataError::BinaryNotSupported),
+         };
+         let data_json:&serde_json::Value = data_json.deref();
+         let data_js   = match JsValue::from_serde(data_json) {
+             Ok(value) => value,
+             Err(_)    => return Err(DataError::InvalidDataType),
+         };
+         self.try_call1(&self.on_data_received, &data_js)
+             .map_err(|_| DataError::InternalComputationError)?;
+         Ok(())
+    }
+
+    /// Prompt visualization JS object to emit preprocessor change with its currently desired state.
+    pub fn update_preprocessor(&self) -> result::Result<(),JsValue> {
+        self.object.emitPreprocessorChange()
+    }
 
     /// Helper method to call methods on the wrapped javascript object.
     fn try_call1(&self, method:&Option<js_sys::Function>, arg:&JsValue)
@@ -231,7 +238,7 @@ impl Instance {
         let frp     = visualization::instance::Frp::new(&network);
         let model   = InstanceModel::from_class(class,scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
-        Ok(Instance{model,frp,network}.init_frp(&scene).inti_preprocessor_change_callback())
+        Ok(Instance{model,frp,network}.init_frp(&scene).init_preprocessor_change_callback())
     }
 
     fn init_frp(self, scene:&Scene) -> Self {
@@ -250,12 +257,20 @@ impl Instance {
         self
     }
 
-    fn inti_preprocessor_change_callback(self) -> Self {
+    fn init_preprocessor_change_callback(self) -> Self {
         // FIXME Does it leak memory? To be checked.
-        let change   = &self.frp.preprocessor_change;
-        let callback = f!((s:String) change.emit(&s.into()));
+        let change   = self.frp.preprocessor_change.clone_ref();
+        let callback = move |preprocessor_config| {
+            change.emit(preprocessor_config)
+        };
         let callback = Box::new(callback);
         self.model.preprocessor_change.borrow_mut().replace(callback);
+        if let Err(js_error) = self.model.update_preprocessor() {
+            use enso_frp::web::js_to_string;
+            let logger = self.model.logger.clone();
+            error!(logger,"Failed to trigger initial preprocessor update from JS: \
+            {js_to_string(js_error)}");
+        }
         self
     }
 

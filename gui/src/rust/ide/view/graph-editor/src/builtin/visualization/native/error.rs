@@ -2,9 +2,11 @@
 
 use crate::prelude::*;
 
+pub use crate::component::node::error::Kind;
+
 use crate::component::visualization::*;
 use crate::component::visualization;
-use crate::data::enso;
+use crate::SharedHashMap;
 
 use enso_frp as frp;
 use ensogl::data::color;
@@ -28,22 +30,32 @@ use serde::Serialize;
 const PADDING_TEXT:f32 = 10.0;
 /// The Error Visualization preprocessor. See also _Lazy Visualization_ section
 /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-pub const PREPROCESSOR:&str = r#"x ->
-    result = Ref.new "{ message: \"\"}"
+pub const PREPROCESSOR_CODE:&str = r#"
+x ->
+    result = Builtins.Ref.new "{ message: \"\"}"
     x.catch err->
         message = err.to_display_text
-        Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
-    Ref.get result
+        Builtins.Ref.put result ("{ \"kind\": \"Dataflow\", \"message\": " + message.to_json.to_text + "}")
+    Builtins.Ref.get result
 "#;
 
+/// The context module for the `PREPROCESSOR_CODE`. See there.
+pub const PREPROCESSOR_MODULE:&str = "Base.Main";
 
+/// Get preprocessor configuration for error visualization.
+pub fn preprocessor() -> instance::PreprocessorConfiguration {
+    instance::PreprocessorConfiguration::new(PREPROCESSOR_CODE,PREPROCESSOR_MODULE)
+}
+
+/// Get metadata description for error visualization.
+pub fn metadata() -> Metadata {
+    let preprocessor = preprocessor();
+    Metadata {preprocessor}
+}
 
 // =============
 // === Input ===
 // =============
-
-pub use crate::component::node::error::Kind;
-use crate::SharedHashMap;
 
 /// The input for Error Visualization.
 #[allow(missing_docs)]
@@ -108,8 +120,7 @@ impl Error {
             });
         }
 
-        frp.preprocessor_change.emit(enso::Code::from(PREPROCESSOR));
-
+        frp.preprocessor_change.emit(preprocessor());
         self
     }
 
@@ -183,14 +194,14 @@ impl Model {
     }
 
     fn receive_data(&self, data:&Data) -> Result<(),DataError> {
-        iprintln!("Receive data {data:?}");
-        if let Data::Json {content} = data {
-            let input_result = serde_json::from_value(content.deref().clone());
-            let input:Input  = input_result.map_err(|_| DataError::InvalidDataType)?;
-            self.set_data(&input);
-            Ok(())
-        } else {
-            Err(DataError::InvalidDataType)
+        match data {
+            Data::Json {content} => {
+                let input_result = serde_json::from_value(content.deref().clone());
+                let input:Input  = input_result.map_err(|_| DataError::InvalidDataType)?;
+                self.set_data(&input);
+                Ok(())
+            }
+            Data::Binary => Err(DataError::BinaryNotSupported)
         }
     }
 

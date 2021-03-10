@@ -14,6 +14,11 @@
   unnecessary library imports when selecting hints from node searcher. This
   makes the generated textual code easier to read and reduces likelihood of
   accidental name collision.
+- [Visualizations can define context for preprocessor evaluation][1291]. Users
+  can now decide what module's context should be used for visualization
+  preprocessor. This allows providing visualization with standard library
+  functionalities or defining utilities that are shared between multiple
+  visualizations.
 
 #### EnsoGL (rendering engine)
 
@@ -24,6 +29,7 @@ you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
 [1209]: https://github.com/enso-org/ide/pull/1209
+[1291]: https://github.com/enso-org/ide/pull/1291
 
 <br/>
 

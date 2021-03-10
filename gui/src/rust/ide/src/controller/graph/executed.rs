@@ -141,8 +141,8 @@ impl Handle {
     /// Modify preprocessor code in visualization. See also
     /// [`model::ExecutionContext::modify_visualization`].
     pub async fn set_visualization_preprocessor
-    (&self, id:VisualizationId, code:String) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id,Some(code),None).await
+    (&self, id:VisualizationId, code:String, module:model::module::QualifiedName) -> FallibleResult {
+        self.execution_ctx.modify_visualization(id,Some(code),Some(module)).await
     }
 
     /// Subscribe to updates about changes in this executed graph.

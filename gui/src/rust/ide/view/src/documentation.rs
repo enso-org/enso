@@ -205,7 +205,8 @@ impl Model {
                     return Err(visualization::DataError::InternalComputationError);
                 }
             }
-            _ => return Err(visualization::DataError::InvalidDataType),
+            visualization::Data::Binary =>
+                return Err(visualization::DataError::BinaryNotSupported),
         };
         self.display_doc(&string, InputFormat::Docstring);
         Ok(())

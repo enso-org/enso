@@ -8,6 +8,7 @@ tags: [product]
 # Visualization Workflow
 
 ## Purpose of visualizations
+
 Visualizations have two main purposes:
 
 - **Display results of nodes**  
@@ -27,14 +28,14 @@ Visualizations have two main purposes:
   used to interactively generate a table of numbers. Image visualizations can
   behave like an image editor, etc.
 
-
 ## Visualization Display Forms
+
 Visualizations can be displayed in the following ways:
 
-- **Attached to nodes** 
-  In this mode, visualizations display the most recent result of the node. They
-  behave like an integrated part of the node. Whenever you move the node, the
-  visualization moves as well. This mode can be toggled by tapping the spacebar.
+- **Attached to nodes** In this mode, visualizations display the most recent
+  result of the node. They behave like an integrated part of the node. Whenever
+  you move the node, the visualization moves as well. This mode can be toggled
+  by tapping the spacebar.
 
 - **Fullscreen**  
   Visualization attached to node can grow (animate) to ocupy full IDE visual
@@ -47,9 +48,9 @@ Visualizations can be displayed in the following ways:
 - **Detached**  
   Visualizations attached to nodes can be detached, scaled, and placed freely
   across the visual canvas (we might introduce a special place where you can put
-  such visualizations). This is useful when defining dashboards or reports.
-  We also plan to provide a notebook-like experience where you can write text
-  mixed with visualizations (including widgets for an interactive experience). 
+  such visualizations). This is useful when defining dashboards or reports. We
+  also plan to provide a notebook-like experience where you can write text mixed
+  with visualizations (including widgets for an interactive experience).
 
 - **Widgets**  
   In this mode visualizations behave like nodes but do not display expressions.
@@ -65,8 +66,8 @@ Visualizations can be displayed in the following ways:
   user clicks the map to define locations, the data could be a string literal
   containing locations encoded in JSON.
 
-
 ### Choosing a Visualization Type.
+
 When a new data is provided to a visualization, the visualization registry
 searches for all visualizations that match it (see visualization registry to
 learn more). For example, when a data of type `[Int]` (list of ints) is
@@ -78,6 +79,7 @@ visualization has a drop-down menu allowinh the user switching to another
 visualization type.
 
 ### Active Visualizations
+
 When visualizations are displayed on the stage, they are not active by default,
 which means, they do not capture keyboard shortcuts. Visualization becomes
 active when user clicks it. Visualizations are deactivated by clicking in the
@@ -87,8 +89,8 @@ border (to be defined). Active visualizations capture all keyboard shortcuts,
 but the space bar presses. Fullscreen visualizations are considered active by
 default.
 
-
 ## HTML and Native Visualizations
+
 There are two main types of visualizations - Html and Native. The later uses the
 BaseGL shape API to draw on the screen. We prefer the later as it integrates
 tightly with our framework and allows for much better performance. However,
@@ -105,33 +107,37 @@ and bottom HTML layer. The HTML visualizations are created and displayed on the
 bottom layer by default. Whenever an HTML visualization gets active, it should
 be moved to the top layer.
 
-
 ## Visualization Registry
+
 Visualizations are user-defined. Enso ships with a set of predefined
 visualizations, but they are in no way different than user-defined, they are
 just defined for you. Visualizations can be defined either as HTML or native
-visualization and can be defined in JS or WASM (or any language that compiles
-to one of these). Visualizations are stored on disk on the server-side and are
+visualization and can be defined in JS or WASM (or any language that compiles to
+one of these). Visualizations are stored on disk on the server-side and are
 provided to the GUI by the server. Users can upload their custom visualizations
 as well. Each visualization is registered in the visualization map. The map maps
 an Enso type to a set of visualizations defined for that type. The type might be
 very generic, like `[a]` (which in Enso terms means list of any elements).
 
-### Defining a Visualization
-Visualizations is planned to be defined both with Enso and JavaScript but, for
-now, only JavaScript visualizations are supported.
+## Defining a Visualization
 
-Because IDE lacks support for editing any other file besides `Main.enso`, the
-user has to create it outside of IDE in the `visualization` folder of the Enso
-project, as demonstrated bellow.
+Currently only JavaScript visualizations can be defined. Support for native
+visualizations is planned.
 
-#### Custom Visualization Example
+### Defining a JavaScript Visualization
+
+JavaScript visualizations are defined by placing `*.js` files in the
+`visualization` subfolder in the project's root directory. As IDE currently
+allows only editing `Main.enso` file, users have to create `.js` file manually,
+editing it outside IDE.
+
+## Custom JavaScript Visualization Example
 
 Every visualization must reside in the `visualization` folder of the user's
 project. For instance:
 
 ```
-└─ ProjectName
+└─ Project_Name
    ├─ src
    │  └─ Main.enso
    └─ visualization
@@ -139,48 +145,48 @@ project. For instance:
 ```
 
 Visualizations can be defined as a JavaScript function which returns a class of
-a shape specified below. Consider the following definition:
+a shape specified below. Consider the following sample definition:
 
 ```javascript
-console.log("Hi, this definition is being registered now!")
+console.log("Hi, this definition is being registered now!");
 
 return class BubbleVisualization extends Visualization {
-    static inputType = "Any"
+  static inputType = "Any";
 
-    onDataReceived(data) {
-        const xmlns = "http://www.w3.org/2000/svg";
-        while (this.dom.firstChild) {
-            this.dom.removeChild(this.dom.lastChild);
-        }
-        const width   = this.dom.getAttributeNS(null, "width");
-        const height  = this.dom.getAttributeNS(null, "height");
-        const svgElem = document.createElementNS(xmlns, "svg");
-        svgElem.setAttributeNS(null, "id"     , "vis-svg");
-        svgElem.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height);
-        svgElem.setAttributeNS(null, "width"  , "100%");
-        svgElem.setAttributeNS(null, "height" , "100%");
-        this.dom.appendChild(svgElem);
-        data.forEach(data => {
-            const bubble = document.createElementNS(xmlns,"circle");
-            bubble.setAttributeNS(null,"stroke", "black");
-            bubble.setAttributeNS(null,"fill"  , "red");
-            bubble.setAttributeNS(null,"r"     , data[2]);
-            bubble.setAttributeNS(null,"cx"    , data[0]);
-            bubble.setAttributeNS(null,"cy"    , data[1]);
-            svgElem.appendChild(bubble);
-        });
+  onDataReceived(data) {
+    const xmlns = "http://www.w3.org/2000/svg";
+    while (this.dom.firstChild) {
+      this.dom.removeChild(this.dom.lastChild);
     }
+    const width = this.dom.getAttributeNS(null, "width");
+    const height = this.dom.getAttributeNS(null, "height");
+    const svgElem = document.createElementNS(xmlns, "svg");
+    svgElem.setAttributeNS(null, "id", "vis-svg");
+    svgElem.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height);
+    svgElem.setAttributeNS(null, "width", "100%");
+    svgElem.setAttributeNS(null, "height", "100%");
+    this.dom.appendChild(svgElem);
+    data.forEach((data) => {
+      const bubble = document.createElementNS(xmlns, "circle");
+      bubble.setAttributeNS(null, "stroke", "black");
+      bubble.setAttributeNS(null, "fill", "red");
+      bubble.setAttributeNS(null, "r", data[2]);
+      bubble.setAttributeNS(null, "cx", data[0]);
+      bubble.setAttributeNS(null, "cy", data[1]);
+      svgElem.appendChild(bubble);
+    });
+  }
 
-    setSize(size) {
-        this.dom.setAttributeNS(null, "width", size[0]);
-        this.dom.setAttributeNS(null, "height", size[1]);
-    }
-}
+  setSize(size) {
+    this.dom.setAttributeNS(null, "width", size[0]);
+    this.dom.setAttributeNS(null, "height", size[1]);
+  }
+};
 ```
 
 In particular:
 
-- [Required] **Source code**
+- ### [Required] Source code
 
   Visualization definition has to be a valid body of JavaScript function which
   returns a class definition. Instances of that class will be considered
@@ -188,20 +194,37 @@ In particular:
   state across visualizations of the same type, but you are highly advised not
   to do so.
 
-- [Required] **`Visualization` superclass**
-  
+- ### [Required] `Visualization` superclass
+
   The class returned by the definition function should extend the predefined
   `Visualization` class. Classes which do not extend it, will not be registered
   as visualizations. The superclass defines a default constructor and a set of
   utilities:
-  - The `setPreprocessor(code)` a method allowing setting an Enso code 
-    which will be evaluated on the server-side before sending data to 
-    visualization. See also [Lazy visualizations](#lazy-visualizations) section.
-  - The `dom` field, which will be initialized in the constructor to the DOM
-    symbol used to host the visualization content. You are free to modify the
-    DOM element, including adding other elements as its children.
 
-- [Optional] **Field `label`**
+  - #### Method `setPreprocessorCode(code)`
+    Set an Enso code which will be evaluated on the server-side before sending
+    data to visualization. If not called, a default unspecified code is used
+    that will provide some JSON representation of the value. See
+    [Lazy visualizations](#lazy-visualizations) section for details.
+  - #### Method `setPreprocessorModule(module)`
+    Define in which module's context the preprocessor code should be evaluated.
+    If not called, the `Main` module of the project that defines visualization
+    will be used. See [Lazy visualizations](#lazy-visualizations) section for
+    details.
+  - #### Method `setPreprocessor(code,mode)`
+    Set both code and its module context at once. If both need to be updated,
+    using this method can save an update processing and needless evaluation.
+    Note that using both `setPreprocessorCode` and `setPreprocessorModule` from
+    the visualization's custom constructor will not cause any unnecessary
+    updates, as the preprocessor is applied only after visualization is fully
+    constructed. See [Lazy visualizations](#lazy-visualizations) section for
+    details.
+  - #### Field `dom`
+    It is initialized in the constructor to the DOM symbol used to host the
+    visualization content. Users are free to modify the DOM element, including
+    adding other elements as its children.
+
+- ### [Optional] Field `label`
 
   The static field `label` is an user-facing name used to identify the
   visualization. You are not allowed to define several visualizations of the
@@ -209,16 +232,16 @@ In particular:
   will be inferred from the class name by splitting the camel-case name into
   chunks and converting them to lowercase string.
 
-- [Optional] **Field `inputType`**
+- ### [Optional] Field `inputType`
 
   The static field `inputType` is used to determine which Enso data types this
   visualization can be used for. Its value should be a valid Enso type, like
-  "String | Int". In case the field is an empty string or it is missing, it will
-  default to "Any", which is a type containing all other types. It is a rare
-  case when you want to define a visualization which is able to work with just
-  any data type, so you are highly advised to provide the type definition.
+  `"String | Int"`. In case the field is an empty string or it is missing, it
+  will default to `"Any"`, which is a type containing all other types. It is a
+  rare case when you want to define a visualization which is able to work with
+  just any data type, so you are highly advised to provide the type definition.
 
-- [Optional] **Field `inputFormat`**
+- ### [Optional] Field `inputFormat`
 
   The static field `inputFormat` is used to determine what format the data
   should be provided to the `onDataReceived` function. Currently, the only valid
@@ -226,29 +249,30 @@ In particular:
   In the later case, it is up to the visualization author to manage the binary
   stream received from the server.
 
-- [Optional] **Constructor**
+- ### [Optional] Constructor
 
   The visualization will be instantiated by providing the constructor with a
   configuration object. The shape of the configuration object is not part of the
   public API and can change between releases of this library. You have to pass
   it unchanged to the superclass constructor.
 
-- [Optional] **Function `onDataReceived`**
+- ### [Optional] Function `onDataReceived`
 
   The `onDataReceived(data)` method is called on every new data chunk received
   from the server. Note that the visualization will receive the "full data" if
   you are not using the `setPreprocessor` method.
 
-- [Optional] **Function `setSize`**
+- ### [Optional] Function `setSize`
 
   The `setSize(size)` method is called on every size change of the
   visualization. You should not draw outside of the provided area, however, if
   you do so, it will be clipped to the provided area automatically. The `size`
   parameter contains two fields `width` and `height` expressed in pixels.
 
-### Sending Data to Visualizations
+## Sending Data to Visualizations
 
-#### Lazy Visualizations
+### Lazy Visualizations
+
 Very important information is how visualization architecture works to make them
 interactive and fast. Whenever new data is computed by the compiler and
 visualization is attached to it, it is sent to GUI to be displayed. However,
@@ -258,28 +282,27 @@ This code is part of the visualization definition and is stored server-side.
 Visualizations are allowed to change the code at runtime (in JavaScript
 visualization you may use the `setPreprocessor` method). This code defines an
 Enso function, which will be run by the compiler on data the visualization is
-attached to. Only the results of this code will be sent to the GUI. In the case 
-of the JSON input format, the result of the call should be a valid JSON string. 
-The code will be evaluated in the context of the `Main` module in the 
-project where visualization is defined - you may use any symbol defined or 
-imported in that module.
+attached to. Only the results of this code will be sent to the GUI. In the case
+of the JSON input format, the result of the call should be a valid JSON string.
+The code will be evaluated in the context of the `Main` module in the project
+where visualization is defined - you may use any symbol defined or imported in
+that module.
 
-For example, imagine you want to display a heatmap of 10 million points on 
-a map, and these points change rapidly. Sending such an amount of information 
-via WebSocket could be too much, and you (as the visualization author) might 
-decide that the visualization image should be generated on the server, and your
+For example, imagine you want to display a heatmap of 10 million points on a
+map, and these points change rapidly. Sending such an amount of information via
+WebSocket could be too much, and you (as the visualization author) might decide
+that the visualization image should be generated on the server, and your
 visualization is meant only to display the resulting image. In such a scenario,
-you can define in your visualization an Enso function which will compute the
-the image on the server!
+you can define in your visualization an Enso function which will compute the the
+image on the server!
 
+### Binary and Text (JSON) Formats
 
-
-#### Binary and Text (JSON) Formats
 Each visualization can choose whether it supports either binary or JSON input.
 The input format defaults to JSON. The data from the server is always sent to
 GUI in a binary channel, however, when JSON format is selected, it is first
-converted to JSON representation on the server side. We can assume that all
-Enso data types have defined conversion to JSON by default. If the visualization
+converted to JSON representation on the server side. We can assume that all Enso
+data types have defined conversion to JSON by default. If the visualization
 input is defined as JSON input, the binary stream will be converted to JSON by
 the GUI engine before passing to visualization. It is up to the visualization
-author to handle the textual or binary form. 
+author to handle the textual or binary form.
