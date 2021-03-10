@@ -1,0 +1,36 @@
+from Base import all
+from Database import all
+from Database.Connection.Connection import Sql_Error
+import Database_Tests.Helpers.Environment
+import Database_Tests.Common_Spec
+import Test
+
+postgres_specific_spec connection pending =
+    Test.group "[PostgreSQL] Info" pending=pending <|
+        Test.specify "should return Table information" <|
+            connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "decimals" DECIMAL)'
+            t = connection.access_table "Tinfo"
+            t.insert ["a", Nothing, False, 1.2]
+            t.insert ["abc", Nothing, Nothing, 1.3]
+            t.insert ["def", 42, True, 1.4]
+            i = t.info
+            i.index . to_vector . should_equal ["strs", "ints", "bools", "decimals"]
+            i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BIT", "NUMERIC"]
+        connection.execute_update 'DROP TABLE "Tinfo"'
+
+spec =
+    db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
+    db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
+    db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
+    go connection pending=Nothing =
+        Common_Spec.spec "[PostgreSQL] " connection pending
+        here.postgres_specific_spec connection pending
+    case db_name.is_nothing of
+        True ->
+            connection = Error.throw "PostgreSQL test database is not configured"
+            go connection pending="PostgreSQL test database is not configured."
+        False ->
+            url = "postgresql:" + db_name
+            connection = Database.connect url user=db_user password=db_password
+            go connection
