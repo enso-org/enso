@@ -29,6 +29,10 @@ class FileOutputPrinter(
   override def print(message: WSLogMessage): Unit = {
     val lines = renderer.render(message)
     writer.println(lines)
+    // TODO [RW] we may consider making flushing configurable as it is mostly
+    //  useful for debugging crashes, whereas for usual usecases buffering could
+    //  give slightly better performance
+    writer.flush()
   }
 
   /** @inheritdoc */
