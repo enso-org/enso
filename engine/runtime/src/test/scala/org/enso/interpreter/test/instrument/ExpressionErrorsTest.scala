@@ -180,10 +180,11 @@ class ExpressionErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    val fooBodyId  = metadata.addItem(21, 5)
-    val xId        = metadata.addItem(35, 9)
-    val yId        = metadata.addItem(53, 8)
-    val mainResId  = metadata.addItem(66, 7)
+    // foo body id
+    metadata.addItem(21, 5)
+    val xId       = metadata.addItem(35, 9)
+    val yId       = metadata.addItem(53, 8)
+    val mainResId = metadata.addItem(66, 7)
 
     val code =
       """main =
@@ -221,7 +222,7 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(9) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExecutionUpdate(
@@ -246,23 +247,7 @@ class ExpressionErrorsTest
       ),
       Update.panic(
         contextId,
-        fooBodyId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
         yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        fooBodyId,
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: Variable `undefined` is not defined.",
           Seq(xId)
@@ -354,10 +339,11 @@ class ExpressionErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    val fooBodyId  = metadata.addItem(61, 5)
-    val xId        = metadata.addItem(75, 19)
-    val yId        = metadata.addItem(103, 8)
-    val mainResId  = metadata.addItem(116, 7)
+    // foo body id
+    metadata.addItem(61, 5)
+    val xId       = metadata.addItem(75, 19)
+    val yId       = metadata.addItem(103, 8)
+    val mainResId = metadata.addItem(116, 7)
 
     val code =
       """from Builtins import all
@@ -399,16 +385,11 @@ class ExpressionErrorsTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
         xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        fooBodyId,
         Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
