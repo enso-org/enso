@@ -221,7 +221,7 @@ jobs:
       - name: Configure PostgreSQL for the Database tests
         uses: harmon758/postgresql-action@v1
         with:
-          postgresql version: 'latest'
+          postgresql version: "latest"
           postgresql db: ${{ env.ENSO_DATABASE_TEST_DB_NAME }}
           postgresql user: ${{ env.ENSO_DATABASE_TEST_DB_USER }}
           postgresql password: ${{ env.ENSO_DATABASE_TEST_DB_PASSWORD }}
