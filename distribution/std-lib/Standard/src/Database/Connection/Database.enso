@@ -16,10 +16,17 @@ from Standard.Database.Connection.Connection import all
    - url: the URL to connect to.
    - user: (optional) an username for authentication.
    - password: (optional) a password for authentication.
-connect : Text -> Nothing | Text -> Nothing | Text -> Connection ! Sql_Error
-connect url user=Nothing password=Nothing =
+   - custom_properties: (optional) a vector of key-value Text pairs which can
+     set any other properties that can be used to configure the connection or
+     for authentication. Supported properties depend on the database engine that
+     the connection is made to.
+connect : Text -> Nothing | Text -> Nothing | Text -> Vector -> Connection ! Sql_Error
+connect url user=Nothing password=Nothing custom_properties=[] =
     full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
-    Connection.create_jdbc_connection full_url user password
+    user_prop = if user.is_nothing then [] else [["user", user]]
+    pass_prop = if user.is_nothing then [] else [["password", password]]
+    properties = user_prop + pass_prop + custom_properties
+    Connection.create_jdbc_connection full_url properties
 
 ## UNSTABLE
 

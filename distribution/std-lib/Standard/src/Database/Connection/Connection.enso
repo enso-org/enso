@@ -9,16 +9,15 @@ import Standard.Table.Internal.Java_Exports
 
 from Standard.Database.Data.Sql import Sql_Type
 
+polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.ArrayList
+polyglot java import java.util.Properties
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
-polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
-polyglot java import java.lang.Class
-polyglot java import org.postgresql.Driver as PSQL
-polyglot java import org.enso.database.PostgresWrapper
+polyglot java import org.enso.database.JDBCProxy
 
 type Connection
 
@@ -222,19 +221,14 @@ type Unsupported_Dialect url
 
    Creates a JDBC connection based on a URL and optionally username and
    password.
-create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> Connection
-create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors <|
-    IO.println PSQL.isRegistered
-    #PSQL.register
-    DriverManager.registerDriver PostgresWrapper.new
-    IO.println <| Panic.recover <| Vector.Vector DriverManager.drivers.toArray
-    IO.println PSQL.getVersion
+create_jdbc_connection : Text -> Vector -> Connection
+create_jdbc_connection url properties = here.wrap_sql_errors <|
+    IO.println <| Vector.Vector JDBCProxy.getDrivers
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
     dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
-    java_connection = case user.is_nothing && password.is_nothing of
-        True ->
-            DriverManager.getConnection url
-        False ->
-            DriverManager.getConnection url user password
+    java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection here.close_connection
     Connection resource dialect
 
