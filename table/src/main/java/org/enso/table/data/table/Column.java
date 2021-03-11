@@ -33,6 +33,16 @@ public class Column {
   }
 
   /**
+   * Creates a new column.
+   *
+   * @param name the column name
+   * @param storage the underlying storage
+   */
+  public Column(String name, Storage storage) {
+    this(name, new DefaultIndex(storage.size()), storage);
+  }
+
+  /**
    * Converts this column to a single-column table.
    *
    * @return a table containing only this column
@@ -109,7 +119,7 @@ public class Column {
   public static Column fromItems(String name, List<Object> items) {
     InferredBuilder builder = new InferredBuilder(items.size());
     for (Object item : items) {
-      builder.append(item);
+      builder.appendNoGrow(item);
     }
     return new Column(name, new DefaultIndex(items.size()), builder.seal());
   }

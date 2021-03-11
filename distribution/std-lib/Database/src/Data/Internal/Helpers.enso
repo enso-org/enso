@@ -42,7 +42,7 @@ type Unsupported_Name_Error text
    external names shown to the user, but as a temporary solution we only allow
    Sql-safe names for columns.
 
-   # TODO [RW] better name handling in Tables
+   # TODO [RW] better name handling in Tables (#1513)
 ensure_name_is_sane : Text -> Boolean ! Unsupported_Name_Error
 ensure_name_is_sane name =
     is_safe =

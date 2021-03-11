@@ -95,3 +95,7 @@ sqlite =
     my_mappings = [["starts_with", starts_with], ["contains", contains], ["ends_with", ends_with]]
     dialect = Base_Generator.base_dialect . extend_with my_mappings
     Dialect "sqlite" (query -> Base_Generator.generate_query dialect query . build)
+
+## PRIVATE
+supported_dialects : Vector Dialect
+supported_dialects = [here.postgresql, here.sqlite]

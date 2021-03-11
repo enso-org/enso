@@ -39,19 +39,43 @@ trait ServiceWithActorSystem extends Service {
     import scala.jdk.CollectionConverters._
     val loggers: java.lang.Iterable[String] =
       Seq("akka.event.Logging$StandardOutLogger").asJava
-    val config = ConfigFactory
-      .empty()
-      .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
-      .withValue(
-        "akka.logging-filter",
-        ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
+    val config = {
+      val baseConfig = ConfigFactory
+        .empty()
+        .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
+        .withValue(
+          "akka.logging-filter",
+          ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
+        )
+        .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
+        .withValue(
+          "akka.coordinated-shutdown.run-by-actor-system-terminate",
+          ConfigValueFactory.fromAnyRef("off")
+        )
+        .withValue("akka.daemonic", ConfigValueFactory.fromAnyRef("on"))
+        .withValue(
+          "akka.http.server.websocket.periodic-keep-alive-mode",
+          ConfigValueFactory.fromAnyRef("ping")
+        )
+        .withValue(
+          "akka.http.server.websocket.periodic-keep-alive-max-idle",
+          ConfigValueFactory.fromAnyRef("30 seconds")
+        )
+
+      val timeouts = Seq(
+        "akka.http.server.idle-timeout",
+        "akka.http.client.idle-timeout",
+        "akka.http.host-connection-pool.client.idle-timeout",
+        "akka.http.host-connection-pool.idle-timeout"
       )
-      .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
-      .withValue(
-        "akka.coordinated-shutdown.run-by-actor-system-terminate",
-        ConfigValueFactory.fromAnyRef("off")
-      )
-      .withValue("akka.daemonic", ConfigValueFactory.fromAnyRef("on"))
+      val configWithTimeouts = timeouts.foldLeft(baseConfig) {
+        case (config, key) =>
+          config.withValue(key, ConfigValueFactory.fromAnyRef("120 seconds"))
+      }
+
+      configWithTimeouts
+    }
+
     ActorSystem(
       name,
       config,

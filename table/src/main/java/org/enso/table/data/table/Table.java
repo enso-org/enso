@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.enso.table.data.column.builder.object.InferredBuilder;
-import org.enso.table.data.column.builder.string.StorageBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
@@ -39,9 +38,9 @@ public class Table {
   }
 
   /** @return the number of rows in this table */
-  public int nrows() {
+  public int rowCount() {
     if (columns == null || columns.length == 0) {
-      return 0;
+      return index.size();
     } else {
       return columns[0].getSize();
     }
@@ -82,7 +81,7 @@ public class Table {
     BoolStorage storage = (BoolStorage) maskCol.getStorage();
     var mask = BoolStorage.toMask(storage);
     var localStorageMask = new BitSet();
-    localStorageMask.set(0, nrows());
+    localStorageMask.set(0, rowCount());
     mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
@@ -194,7 +193,7 @@ public class Table {
       // The tables have exactly the same indexes, so they may be just be concatenated horizontally
       return hconcat(other, lsuffix, rsuffix);
     }
-    int s = nrows();
+    int s = rowCount();
     List<Integer>[] matches = new List[s];
     if (on == null) {
       for (int i = 0; i < s; i++) {
@@ -289,8 +288,8 @@ public class Table {
   public Table concat(Table other) {
     Index newIndex = concatIndexes(index, other.index);
     List<Column> newColumns = new ArrayList<>();
-    int leftLen = nrows();
-    int rightLen = other.nrows();
+    int leftLen = rowCount();
+    int rightLen = other.rowCount();
     for (Column c : columns) {
       Column match = other.getColumnByName(c.getName());
       Storage storage =
@@ -314,10 +313,10 @@ public class Table {
   private Storage concatStorages(Storage left, Storage right) {
     InferredBuilder builder = new InferredBuilder(left.size() + right.size());
     for (int i = 0; i < left.size(); i++) {
-      builder.append(left.getItemBoxed(i));
+      builder.appendNoGrow(left.getItemBoxed(i));
     }
     for (int j = 0; j < right.size(); j++) {
-      builder.append(right.getItemBoxed(j));
+      builder.appendNoGrow(right.getItemBoxed(j));
     }
     return builder.seal();
   }
@@ -328,7 +327,7 @@ public class Table {
       builder.appendNulls(nullCount);
     }
     for (int i = 0; i < storage.size(); i++) {
-      builder.append(storage.getItemBoxed(i));
+      builder.appendNoGrow(storage.getItemBoxed(i));
     }
     if (!start) {
       builder.appendNulls(nullCount);
@@ -342,10 +341,10 @@ public class Table {
     } else {
       InferredBuilder builder = new InferredBuilder(left.size() + right.size());
       for (int i = 0; i < left.size(); i++) {
-        builder.append(left.iloc(i));
+        builder.appendNoGrow(left.iloc(i));
       }
       for (int j = 0; j < right.size(); j++) {
-        builder.append(right.iloc(j));
+        builder.appendNoGrow(right.iloc(j));
       }
       Storage storage = builder.seal();
       return HashIndex.fromStorage(left.getName(), storage);

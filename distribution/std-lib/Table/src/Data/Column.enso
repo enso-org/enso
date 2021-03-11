@@ -25,7 +25,7 @@ type Column
             row = if storage.isNa num then "Nothing" else
                 here.get_item_string storage num
             [index.ilocString num, row]
-        table = Table.print_table [index.getName, col_name] items format_terminal
+        table = Table.print_table [index.getName, col_name] items 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -357,7 +357,7 @@ type Column
        > Example
          Sorting `column` in descending order, placing missing values at the
          top of the resulting column.
-             table.sort order=Sort_Order.Descending missing_last=False
+             column.sort order=Sort_Order.Descending missing_last=False
 
        > Sorting `column` in ascending order, using a custom comparator
          function.

@@ -8,7 +8,7 @@ import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint
 }
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
+import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
 /** Utility class for creating Graal polyglot contexts.
@@ -34,9 +34,7 @@ class ContextFactory {
     strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
-      // TODO: Remove EPB from this list when https://github.com/oracle/graal/pull/3139 is merged
-      // and available in our Graal release.
-      .newBuilder(LanguageInfo.ID, "js", "epb")
+      .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)

@@ -19,10 +19,9 @@ polyglot java import java.util.Objects
 
 spec =
     is_ci = System.getenv "CI" == "true"
-    if is_ci then here.spec_impl else Nothing
-
-spec_impl =
-    Test.group "Http" <|
+    pending = if is_ci then Nothing else """
+        The HTTP tests only run when the `CI` environment variable is set to true
+    Test.group "Http" pending=pending <|
         Test.specify "should create HTTP client with timeout setting" <|
             http = Http.new (timeout = 30.seconds)
             http.timeout.should_equal 30.seconds

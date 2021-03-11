@@ -25,13 +25,13 @@ type Table
         index =  this.java_table.getIndex
         col_names = [index.getName] + cols.map .getName
         col_vals = cols.map .getStorage
-        num_rows = this.java_table.nrows
+        num_rows = this.row_count
         display_rows = Math.min num_rows show_rows
         rows = Vector.new display_rows row_num->
             cols = col_vals.map col->
                 if col.isNa row_num then "Nothing" else Column.get_item_string col row_num
             [index.ilocString row_num] + cols
-        table = here.print_table col_names rows format_terminal
+        table = here.print_table col_names rows 1 format_terminal
         if num_rows - display_rows <= 0 then table else
             missing = '\n\u2026 and ' + (num_rows - display_rows).to_text + ' hidden rows.'
             table + missing
@@ -61,12 +61,12 @@ type Table
     to_default_visualization_data : Text
     to_default_visualization_data =
         max_size = 10
-        nrows = ['number_of_rows', this.nrows]
+        row_count = ['number_of_rows', this.row_count]
         cols = this.columns.map c->
             name = c.name
             items = c.to_vector.take_start max_size
             Json.from_pairs [['name', name], ['data', items]]
-        Json.from_pairs [nrows, ['columns', cols]] . to_text
+        Json.from_pairs [row_count, ['columns', cols]] . to_text
 
     ## Returns the column with the given name.
     at : Text -> Column ! No_Such_Column_Error
@@ -161,8 +161,8 @@ type Table
         Table (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the amount of rows in this table.
-    nrows : Integer
-    nrows = this.java_table.nrows
+    row_count : Integer
+    row_count = this.java_table.rowCount
 
     ## Returns a Table describing this table's contents.
 
@@ -171,7 +171,7 @@ type Table
     info : Table
     info =
         cols = this.columns
-        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
+        here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
@@ -380,6 +380,9 @@ join tables =
     tables.reduce .join
 
 ## PRIVATE
+
+   Ensures that the `txt` has at least `len` characters by appending spaces at
+   the end.
 pad txt len =
     true_len = txt.characters.length
     txt + (" ".repeat (len - true_len))
@@ -392,7 +395,19 @@ ansi_bold enabled txt =
         _ -> if enabled then '\e[1m' + txt + '\e[m' else txt
 
 ## PRIVATE
-print_table header rows format_term =
+
+   A helper function for creating an ASCII-art representation of tabular data.
+
+   Arguments:
+   - header: vector of names of columns in the table.
+   - rows: a vector of rows, where each row is a vector that contains a text
+     representation of each cell
+   - indices_count: the number specifying how many columns should be treated as
+     indices; this will make them in bold font if `format_term` is enabled.
+   - format_term: a boolean flag, specifying whether to use ANSI escape codes
+     for rich formatting in the terminal.
+print_table : Vector Text -> (Vector (Vector Text)) -> Integer -> Boolean -> Text
+print_table header rows indices_count format_term =
     content_lengths = Vector.new header.length i->
         max_row = 0.up_to rows.length . fold 0 a-> j-> Math.max a (rows.at j . at i . characters . length)
         Math.max max_row (header.at i . characters . length)
@@ -400,7 +415,8 @@ print_table header rows format_term =
     divider = content_lengths . map (l -> "-".repeat l+2) . join '+'
     row_lines = rows.map r->
         x = r.zip content_lengths here.pad
-        with_bold_ix = [here.ansi_bold format_term (x.at 0)] + x.drop_start 1
+        ixes = x.take_start indices_count . map (here.ansi_bold format_term)
+        with_bold_ix = ixes + x.drop_start indices_count
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'

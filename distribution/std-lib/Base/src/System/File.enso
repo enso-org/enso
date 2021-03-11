@@ -231,6 +231,12 @@ type File
     is_directory : Boolean
     is_directory = this.prim_file.isDirectory
 
+    ## Creates the directory represented by this file if it did not exist.
+
+       It also creates parent directories if they did not exist.
+    create_directory : Nothing
+    create_directory = this.prim_file.createDirectories
+
     ## Checks whether the file exists and is a regular file.
     is_regular_file : Boolean
     is_regular_file = this.prim_file.isRegularFile
