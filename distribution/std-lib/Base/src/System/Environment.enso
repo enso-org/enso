@@ -2,8 +2,10 @@ from Base import all
 
 polyglot java import java.lang.System
 
-# TODO [RW] maybe this could be moved to std-lib?
-## PRIVATE
+## UNSTABLE
+
+   Returns a value of a specified environment variable or Nothing if such
+   variable is not defined.
 get : Text -> Text | Nothing
 get key =
     System.getenv key
