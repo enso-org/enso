@@ -43,7 +43,7 @@ fill length ~item =
      In the following example we'll read items from the standard input,
      until the string "end" is entered by the user and then return a vector
      containing all items.
-         from Base import all
+         from Standard.Base import all
 
          main =
               builder = Vector.new_builder
@@ -533,7 +533,7 @@ type Vector
      In the following example we'll read items from the standard input,
      until the string "end" is entered by the user and then return a vector
      containing all items.
-         from Base import all
+         from Standard.Base import all
 
          main =
               builder = Vector.new_builder

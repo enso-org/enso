@@ -188,16 +188,22 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     * process the same source file multiple times.
     *
     * @param qualifiedName the qualified name of the module
+    * @param loc the location of the import
     * @return the scope containing all definitions in the requested module
     */
-  def processImport(qualifiedName: String): ModuleScope = {
+  def processImport(
+    qualifiedName: String,
+    loc: Option[IR.IdentifiedLocation],
+    source: Source
+  ): ModuleScope = {
     val module = context.getTopScope
       .getModule(qualifiedName)
       .toScala
       .getOrElse {
+        val locStr = fileLocationFromSection(loc, source)
         throw new CompilerError(
-          s"Attempted to import the module $qualifiedName during code " +
-          s"generation."
+          s"Attempted to import the unresolved module $qualifiedName " +
+          s"during code generation. Defined at $locStr."
         )
       }
     if (
@@ -425,7 +431,17 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     diagnostic: IR.Diagnostic,
     source: Source
   ): String = {
-    val srcLocation = diagnostic.location
+    fileLocationFromSection(
+      diagnostic.location,
+      source
+    ) + ": " + diagnostic.message
+  }
+
+  private def fileLocationFromSection(
+    loc: Option[IR.IdentifiedLocation],
+    source: Source
+  ): String = {
+    val srcLocation = loc
       .map { loc =>
         val section =
           source.createSection(loc.location.start, loc.location.length)
@@ -437,7 +453,7 @@ class Compiler(val context: Context, private val builtins: Builtins) {
         "[" + locStr + "]"
       }
       .getOrElse("")
-    source.getName + srcLocation + ": " + diagnostic.message
+    source.getName + srcLocation
   }
 
   /** Generates code for the truffle interpreter.

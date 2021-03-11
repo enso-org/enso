@@ -147,7 +147,7 @@ class StdlibRuntimeServerTest
     val metadata = new Metadata
 
     val code =
-      """from Base import all
+      """from Standard.Base import all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")

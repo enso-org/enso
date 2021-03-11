@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Builtins import Array
+from Builtins import Array
 
 ## PRIVATE
 
