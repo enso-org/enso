@@ -31,8 +31,8 @@ found in
 [`distribution/std-lib/Standard/src/`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
 `Base` is intended to be imported unqualified at the top of the file:
-`from Standard.Base import all`. Items not included in this unqualified import are
-considered to be more specialist or internal, and should be intentionally
+`from Standard.Base import all`. Items not included in this unqualified import
+are considered to be more specialist or internal, and should be intentionally
 imported by users.
 
 ### Builtins
