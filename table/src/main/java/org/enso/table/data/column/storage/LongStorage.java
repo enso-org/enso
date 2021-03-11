@@ -142,10 +142,10 @@ public class LongStorage extends NumericStorage {
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
-        builder.appendRaw(rawArg);
+        builder.appendRawNoGrow(rawArg);
       } else {
         double coerced = data[i];
-        builder.appendRaw(Double.doubleToRawLongBits(coerced));
+        builder.appendRawNoGrow(Double.doubleToRawLongBits(coerced));
       }
     }
     return builder.seal();
@@ -155,9 +155,9 @@ public class LongStorage extends NumericStorage {
     final var builder = NumericBuilder.createLongBuilder(size());
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
-        builder.appendRaw(arg);
+        builder.appendRawNoGrow(arg);
       } else {
-        builder.appendRaw(data[i]);
+        builder.appendRawNoGrow(data[i]);
       }
     }
     return builder.seal();

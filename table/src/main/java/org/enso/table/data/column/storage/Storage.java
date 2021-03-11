@@ -108,9 +108,9 @@ public abstract class Storage {
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.append(null);
+        builder.appendNoGrow(null);
       } else {
-        builder.append(function.apply(it, argument));
+        builder.appendNoGrow(function.apply(it, argument));
       }
     }
     return builder.seal();
@@ -162,9 +162,9 @@ public abstract class Storage {
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.append(null);
+        builder.appendNoGrow(null);
       } else {
-        builder.append(function.apply(it));
+        builder.appendNoGrow(function.apply(it));
       }
     }
     return builder.seal();
@@ -187,9 +187,9 @@ public abstract class Storage {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
       if (it1 == null || it2 == null) {
-        builder.append(null);
+        builder.appendNoGrow(null);
       } else {
-        builder.append(function.apply(it1, it2));
+        builder.appendNoGrow(function.apply(it1, it2));
       }
     }
     return builder.seal();
@@ -209,9 +209,9 @@ public abstract class Storage {
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
       if (it == null) {
-        builder.append(arg);
+        builder.appendNoGrow(arg);
       } else {
-        builder.append(it);
+        builder.appendNoGrow(it);
       }
     }
     return builder.seal();

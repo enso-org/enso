@@ -1,22 +1,20 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.Arrays;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.Storage;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder {
-  private final Object[] data;
-  private final int size;
+  private Object[] data;
   private int currentSize = 0;
 
   public ObjectBuilder(int size) {
-    this.size = size;
     this.data = new Object[size];
   }
 
-  public ObjectBuilder(Object[] data, int size) {
+  public ObjectBuilder(Object[] data) {
     this.data = data;
-    this.size = size;
   }
 
   @Override
@@ -40,7 +38,15 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
+  public void appendNoGrow(Object o) {
+    data[currentSize++] = o;
+  }
+
+  @Override
   public void append(Object o) {
+    if (currentSize + 1 > data.length) {
+      grow();
+    }
     data[currentSize++] = o;
   }
 
@@ -55,8 +61,13 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   @Override
+  public int getCurrentCapacity() {
+    return data.length;
+  }
+
+  @Override
   public Storage seal() {
-    return new ObjectStorage(data, size);
+    return new ObjectStorage(data, currentSize);
   }
 
   public Object[] getData() {
@@ -64,6 +75,19 @@ public class ObjectBuilder extends TypedBuilder {
   }
 
   public void setCurrentSize(int currentSize) {
+    if (currentSize > data.length) grow(currentSize);
     this.currentSize = currentSize;
+  }
+
+  private void grow() {
+    if (data.length > 1) {
+      grow(data.length * 3 / 2);
+    } else {
+      grow(3);
+    }
+  }
+
+  private void grow(int desiredCapacity) {
+    this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }

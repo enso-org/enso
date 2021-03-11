@@ -92,9 +92,9 @@ public class DoubleStorage extends NumericStorage {
     long rawArg = Double.doubleToRawLongBits(arg);
     for (int i = 0; i < size(); i++) {
       if (isMissing.get(i)) {
-        builder.appendRaw(rawArg);
+        builder.appendRawNoGrow(rawArg);
       } else {
-        builder.appendRaw(data[i]);
+        builder.appendRawNoGrow(data[i]);
       }
     }
     return builder.seal();

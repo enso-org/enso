@@ -19,7 +19,7 @@ Spec.is_fail = this.behaviors.any .is_fail
 Suite.is_fail = this.specs.any .is_fail
 
 ## PRIVATE
-type Finished_With_Error err
+type Finished_With_Error err stack_trace_text
 
 ## PRIVATE
 type Matched_On_Error err
@@ -28,12 +28,12 @@ type Matched_On_Error err
 type Assertion
     type Success
     type Failure message
-    type Pending
+    type Pending reason
 
     is_fail = case this of
         Success -> False
         Failure _ -> True
-        Pending -> False
+        Pending _ -> False
 
 type Verbs
     type Verbs
@@ -48,6 +48,11 @@ type Verbs
             here.fail msg
 
     be subject argument = this.equal subject argument
+
+    contain subject argument =
+        if subject.contains argument then Success else
+            msg = subject.to_text + " did not contain " + argument.to_text + "."
+            here.fail msg
 
 Any.should verb argument = verb Verbs this argument
 
@@ -116,8 +121,9 @@ Spec.print_report =
             Failure msg ->
                 IO.print_err ("    - [FAILED] " + behavior.name)
                 IO.print_err ("        Reason: " + msg)
-            Pending ->
+            Pending reason ->
                 IO.print_err ("    - [PENDING] " + behavior.name)
+                IO.print_err ("        Reason: " + reason)
 
 ## Creates a new test group, desribing properties of the object
    described by `this`.
@@ -129,14 +135,19 @@ Spec.print_report =
                      2+3 . should_equal 5
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
-group name ~behaviors =
-    r = State.run Spec (Spec name  Nil) <|
-        behaviors
-        State.get Spec
-    r.print_report
-    suite = State.get Suite
-    new_suite = Suite (Cons r suite.specs)
-    State.put Suite new_suite
+group name ~behaviors pending=Nothing =
+    case pending of
+        Nothing ->
+            r = State.run Spec (Spec name  Nil) <|
+                behaviors
+                State.get Spec
+            r.print_report
+            suite = State.get Suite
+            new_suite = Suite (Cons r suite.specs)
+            State.put Suite new_suite
+        reason ->
+            IO.print_err ("[PENDING] " + name)
+            IO.print_err ("    Reason: " + reason)
 
 ## Specifies a single behavior, described by `this`.
 
@@ -147,8 +158,10 @@ group name ~behaviors =
                      2+3 . should_equal 5
                  it "should define multiplication" <|
                      2*3 . should_equal 6
-specify label ~behavior pending=False =
-    result = if pending then Pending else here.run_spec behavior
+specify label ~behavior pending=Nothing =
+    result = case pending of
+        Nothing -> here.run_spec behavior
+        reason -> Pending reason
     spec = State.get Spec
     new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
     State.put Spec new_spec
@@ -156,15 +169,16 @@ specify label ~behavior pending=False =
 ## PRIVATE
 run_spec ~behavior =
     recovery = Panic.recover <|
-        behavior.catch err-> Panic.throw (Finished_With_Error err)
+        result = behavior
+        result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
         Nothing
     maybeExc = case recovery of
         _ -> Success
     result = maybeExc.catch ex->
         case ex of
             Failure _ -> ex
-            Finished_With_Error x -> 
-                Failure ("An unexpected error was returned: " + x.to_text + '\n' + maybeExc.get_stack_trace_text)
+            Finished_With_Error err stack_trace_text ->
+                Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
     result
 

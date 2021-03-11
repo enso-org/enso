@@ -10,7 +10,9 @@ public class EpbParser {
 
   /** Lists all the languages supported in polyglot eval. */
   public enum ForeignLanguage {
-    JS("js", "js");
+    JS("js", "js"),
+    PY("python", "python"),
+    R("R", "r");
 
     private final String truffleId;
     private final String syntacticTag;

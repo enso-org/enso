@@ -1,20 +1,19 @@
 package org.enso.interpreter.epb.node;
 
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.runtime.data.Array;
 
 /** A node responsible for performing foreign JS calls. */
+@NodeField(name = "foreignFunction", type = Object.class)
+@NodeField(name = "arity", type = int.class)
 public abstract class JsForeignNode extends ForeignFunctionCallNode {
 
-  final Object jsFun;
-  private final int argsCount;
+  abstract int getArity();
 
-  JsForeignNode(int argsCount, Object jsFun) {
-    this.argsCount = argsCount;
-    this.jsFun = jsFun;
-  }
+  abstract Object getForeignFunction();
 
   /**
    * Creates a new instance of this node.
@@ -25,15 +24,17 @@ public abstract class JsForeignNode extends ForeignFunctionCallNode {
    * @return a node able to call the JS function with given arguments
    */
   public static JsForeignNode build(int argumentsCount, Object jsFunction) {
-    return JsForeignNodeGen.create(argumentsCount, jsFunction);
+    return JsForeignNodeGen.create(jsFunction, argumentsCount);
   }
 
   @Specialization
-  Object doExecute(Object[] arguments, @CachedLibrary("jsFun") InteropLibrary interopLibrary) {
-    Object[] positionalArgs = new Object[argsCount - 1];
-    if (argsCount - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, argsCount - 1);
+  Object doExecute(
+      Object[] arguments, @CachedLibrary("foreignFunction") InteropLibrary interopLibrary) {
+    Object[] positionalArgs = new Object[getArity() - 1];
+    if (getArity() - 1 >= 0) System.arraycopy(arguments, 1, positionalArgs, 0, getArity() - 1);
     try {
-      return interopLibrary.invokeMember(jsFun, "apply", arguments[0], new Array(positionalArgs));
+      return interopLibrary.invokeMember(
+          getForeignFunction(), "apply", arguments[0], new Array(positionalArgs));
     } catch (UnsupportedMessageException
         | UnknownIdentifierException
         | ArityException

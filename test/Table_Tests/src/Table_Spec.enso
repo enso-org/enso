@@ -319,7 +319,7 @@ spec =
             c = ["objs", [1, "a", "c", Any]]
             r = Table.new [a, b, c]
             i = r.info
-            i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
+            i.index . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 

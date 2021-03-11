@@ -32,7 +32,7 @@ public abstract class PolyglotErrorToDisplayTextNode extends Node {
       Object cause = _this.getFields()[0];
       String rep;
       if (exceptions.hasExceptionMessage(cause)) {
-        rep = strings.asString(exceptions.getExceptionCause(cause));
+        rep = strings.asString(exceptions.getExceptionMessage(cause));
       } else {
         rep = displayTypeNode.execute(cause);
       }
