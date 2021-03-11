@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+from Standard.Database.Connection.Connection import all
+
+# TODO [RW] finalize Postgres support
+## UNSTABLE
+
+   Tries to connect to the database under a provided URL.
+
+   Currently only SQLite databases are supported.
+
+   The exact URL depends on the database engine.
+   For SQLite it has format `sqlite:/path/to/database/file`.
+
+   Arguments:
+   - url: the URL to connect to.
+   - user: (optional) an username for authentication.
+   - password: (optional) a password for authentication.
+connect : Text -> Nothing | Text -> Nothing | Text -> Connection ! Sql_Error
+connect url user=Nothing password=Nothing =
+    full_url = if url.starts_with "jdbc:" then url else "jdbc:"+url
+    Connection.create_jdbc_connection full_url user password
+
+## UNSTABLE
+
+   Connects to an SQLite database in a file on the filesystem.
+
+   It is an alternative to `connect` that resolves a path to the database file.
+
+   Arguments:
+   - file: the path to the database.
+open_sqlite_file : File -> Connection ! Sql_Error
+open_sqlite_file file =
+    url = "sqlite:" + file.absolute.path
+    here.connect url

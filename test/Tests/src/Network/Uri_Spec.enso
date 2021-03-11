@@ -1,7 +1,7 @@
-from Base import all
+from Standard.Base import all
 
-import Test
-import Base.Network.Uri
+import Standard.Base.Network.Uri
+import Standard.Test
 
 spec =
     Test.group "Uri" <|

@@ -1,5 +1,0 @@
-from Base import all
-
-## A pair of elements.
-type Pair
-    type Pair first second

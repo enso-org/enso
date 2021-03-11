@@ -1,12 +1,12 @@
-from Base import all
+from Standard.Base import all
 
-import Test
-import Base.Network.Http.Form
-import Base.Network.Http.Header
-import Base.Network.Http.Method
-import Base.Network.Http.Request
-import Base.Network.Http.Request.Body as Request_Body
-import Base.Network.Uri
+import Standard.Base.Network.Http.Form
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Method
+import Standard.Base.Network.Http.Request
+import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Uri
+import Standard.Test
 
 spec =
     test_uri = Uri.parse "https://httpbin.org/post"

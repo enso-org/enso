@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+from Standard.Base.Data.Noise.Generator import all
+
+## Generate noise based on the input number.
+
+   The output of the noise generator will depend on the input and the range over
+   which the noise is being generated.
+
+   By default, this uses a seeded deterministic generator that will always
+   return the same input for the same output. In addition, it will, by default,
+   generate values in the exclusive range 0 to 1.
+
+   > Example
+     Deterministically perturb the input number 1.
+         1.noise
+Number.noise : Interval -> Generator -> Any
+Number.noise (interval = Interval.exclusive 0 1) gen=Deterministic_Random =
+    gen.step this interval

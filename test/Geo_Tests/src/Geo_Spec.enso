@@ -1,8 +1,8 @@
-from Base import all
-from Table import Table
+from Standard.Base import all
+from Standard.Table import Table
 
-import Geo
-import Test
+import Standard.Geo
+import Standard.Test
 
 spec =
     Test.group "Geo Points" <|

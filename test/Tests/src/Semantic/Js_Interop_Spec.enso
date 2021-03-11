@@ -1,5 +1,6 @@
-from Base import all
-import Test
+from Standard.Base import all
+
+import Standard.Test
 
 foreign js my_method a b = """
     return a + b;

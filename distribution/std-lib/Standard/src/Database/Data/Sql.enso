@@ -1,0 +1,253 @@
+from Standard.Base import all
+
+import Standard.Database.Data.Internal.Vector_Builder
+
+polyglot java import java.sql.Types
+
+## Represents an internal SQL data-type.
+type Sql_Type
+    ## Represents an internal SQL data-type.
+
+       Arguments:
+       - typeid: a numerical type id, as defined in `java.sql.Types`.
+    type Sql_Type typeid
+
+    ## The SQL representation of `Boolean` type.
+    boolean : Sql_Type
+    boolean = Sql_Type Types.BOOLEAN
+
+    ## The SQL representation of `Integer` type.
+    integer : Sql_Type
+    integer = Sql_Type Types.INTEGER
+
+    ## The SQL type representing decimal numbers.
+    decimal : Sql_Type
+    decimal = Sql_Type Types.DECIMAL
+
+    ## PRIVATE
+
+       Returns True if this type represents an integer. It only handles the
+       standard types so it may return false negatives for non-standard ones.
+    is_definitely_integer : Boolean
+    is_definitely_integer =
+        [Types.INTEGER, Types.SMALLINT, Types.TINYINT].contains this.typeid
+
+    ## PRIVATE
+
+       Returns True if this type represents a boolean. It only handles the
+       standard types so it may return false negatives for non-standard ones.
+    is_definitely_boolean : Boolean
+    is_definitely_boolean =
+        this.typeid == Types.BOOLEAN
+
+    ## PRIVATE
+
+       Returns True if this type represents a floating point number. It only
+       handles the standard types so it may return false negatives for
+       non-standard ones.
+    is_definitely_double : Boolean
+    is_definitely_double =
+        [Types.FLOAT, Types.DOUBLE, Types.REAL].contains this.typeid
+
+## UNSTABLE
+
+   A fragment of a SQL query.
+   It can either be a Sql_Code_Part that represents raw SQL code or
+   Sql_Interpolation which represents an object that will be interpolated into
+   the query.
+type Sql_Fragment
+    ## UNSTABLE
+
+       A SQL fragment that represents raw SQL code.
+       # type Sql_Code_Part (code : Text)
+    type Sql_Code_Part code
+    ## UNSTABLE
+
+       A SQL fragment that represents an object which will be interpolated into
+       the query.
+       # type Sql_Interpolation (sql_type : Sql_Type) (object : Any)
+    type Sql_Interpolation sql_type object
+
+type Statement
+    ## UNSTABLE
+
+       Represents a built SQL statement.
+
+       The statement consists of SQL code with parameters and values that will be
+       interpolated for these parameters.
+       # type Statement (internal_fragments : Vector Sql_Fragment)
+    type Statement internal_fragments
+
+    ## UNSTABLE
+
+       A vector of code fragments.
+       Consists of two types of values:
+       - Sql_Code_Part, representing parts of raw SQL code and
+       - Sql_Interpolation, representing objects that will be interpolated in
+         between the SQL code.
+    fragments : Vector Sql_Fragment
+    fragments = this.internal_fragments
+
+    ## UNSAFE
+       UNSTABLE
+       ADVANCED
+
+       This function returns a raw Sql string for the query, manually handling
+       the interpolation that is normally handled by the database engine itself.
+
+       It should be used EXTREMELY carefully - the returned Sql code should
+       always be read by a human to ensure that it does what is expected before
+       executing it in any REPLs or other database interfaces.
+
+       It should NEVER be used in production code.
+    unsafe_to_raw_sql : Text
+    unsafe_to_raw_sql =
+        strings = this.internal_fragments . map <| case _ of
+            Sql_Code_Part code -> code
+            # TODO at some point we may try more sophisticated serialization based on data type
+            Sql_Interpolation _ obj -> case obj of
+                Number -> obj.to_text
+                _ -> "'" + obj.to_text.replace "'" "''" + "'"
+        strings.join ""
+
+    ## UNSTABLE
+
+       Returns a pair consisting of the SQL code with holes for values and
+       a list for values that should be substituted.
+       # prepare : [Text, Vector Any]
+    prepare =
+        to_code fragment = case fragment of
+            Sql_Code_Part code -> code
+            Sql_Interpolation _ _ -> "?"
+        to_subst fragment = case fragment of
+            Sql_Code_Part _ -> []
+            Sql_Interpolation typ obj -> [[obj, typ]]
+        sql = this.fragments.map to_code . join ""
+        substitutions = this.fragments.flat_map to_subst
+        [sql, substitutions]
+
+    ## UNSTABLE
+
+       Returns a JSON representation of the statement.
+    to_json : Json
+    to_json =
+        jsonify fragment = case fragment of
+            Sql_Code_Part code -> Json.from_pairs [["sql_code", code]]
+            Sql_Interpolation (Sql_Type typeid) obj ->
+                inner = Json.from_pairs [["value", obj.to_json], ["typeid", typeid]]
+                Json.from_pairs [["sql_interpolation", inner]]
+        fragments = Json.Array (this.internal_fragments.map jsonify)
+        Json.from_pairs [["query", fragments]]
+
+type Builder
+    ## UNSTABLE
+
+       A Builder for SQL queries.
+
+       It can be used to concatenate parts of SQL code in O(1) time and at the end
+       build the actual query in linear time.
+    # type Builder (fragments : Vector_Builder.Vector_Builder Sql_Fragment)
+    type Builder fragments
+
+    ## UNSTABLE
+
+       Concatenates two code fragments.
+    ++ : Builder -> Builder
+    ++ other = Builder (this.fragments ++ other.fragments)
+
+    ## UNSTABLE
+
+       Checks if the builder represents an empty code fragment.
+    is_empty : Boolean
+    is_empty = this.fragments.is_empty
+
+    ## UNSTABLE
+
+       Builds a SQL statement.
+    build : Statement
+    build =
+        fragments = here.optimize_fragments this.fragments.build
+        Statement fragments
+
+    ## UNSTABLE
+
+       Wraps the code fragment in parentheses.
+    paren : Builder
+    paren =
+        l = here.code "("
+        r = here.code ")"
+        l ++ this ++ r
+
+    ## UNSTABLE
+
+       If the fragment is non empty, prepends the specified prefix to it.
+       Empty fragments are unaffected.
+    prefix_if_present : Text | Builder -> Builder
+    prefix_if_present prefix =
+        pref = case prefix of
+            Builder _ -> prefix
+            _ -> here.code prefix
+        if this.is_empty then this else pref++this
+
+## UNSTABLE
+
+   Creates a Builder representing and empty code fragment.
+empty : Builder
+empty = Builder (Vector_Builder.empty)
+
+## UNSTABLE
+
+   Creates a Builder representing a code fragment containing the specified raw
+   code.
+code : Text -> Builder
+code text =
+    vec = if text.is_empty then [] else [Sql_Code_Part text]
+    Builder (Vector_Builder.from_vector vec)
+
+## UNSTABLE
+
+   Creates a Builder representing an interpolation of the given object.
+interpolation : Sql_Type -> Any -> Builder
+interpolation sql_type object = Builder (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
+
+## UNSTABLE
+
+   Joins a vector of code fragments with the provided separator.
+join : Builder | Text -> Vector Builder -> Builder
+join separator statements =
+    sep = case separator of
+        Builder _ -> separator
+        _ -> here.code separator
+
+    if statements.length == 0 then here.empty else
+        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
+
+## UNSTABLE
+
+   Merges neighboring code fragments to create a more compact representation of
+   the same code.
+optimize_fragments : Vector Sql_Fragment -> Vector Sql_Fragment
+optimize_fragments fragments =
+    builder = Vector.new_builder
+    go elem =
+        last_part = State.get Sql_Code_Part
+        case elem of
+            Sql_Code_Part code ->
+                new_part = case last_part of
+                    Nothing -> Sql_Code_Part code
+                    Sql_Code_Part other -> Sql_Code_Part other+code
+                State.put Sql_Code_Part new_part
+            Sql_Interpolation _ _ ->
+                case last_part of
+                    Nothing -> Nothing
+                    Sql_Code_Part _ ->
+                        builder.append last_part
+                        State.put Sql_Code_Part Nothing
+                builder.append elem
+    State.run Sql_Code_Part Nothing <|
+        fragments.each go
+        last_part = State.get Sql_Code_Part
+        case last_part of
+            Nothing -> Nothing
+            Sql_Code_Part _ -> builder.append last_part
+    builder.to_vector

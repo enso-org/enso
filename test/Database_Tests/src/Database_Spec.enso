@@ -1,7 +1,9 @@
-from Base import all
-from Database import all
-from Database.Connection.Connection import Sql_Error
-import Test
+from Standard.Base import all
+
+import Standard.Test
+
+from Standard.Database import all
+from Standard.Database.Connection.Connection import Sql_Error
 
 spec prefix connection pending=Nothing =
     make_table name column_names column_typenames = Panic.recover <|
