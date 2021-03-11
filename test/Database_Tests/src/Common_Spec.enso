@@ -217,7 +217,7 @@ spec prefix connection pending=Nothing =
             empty.to_dataframe.columns.length . should_equal 0
 
     Test.group prefix+"Aggregation" pending=pending <|
-        t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DECIMAL', 'INTEGER']
+        t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DOUBLE PRECISION', 'INTEGER']
         t.insert ["foo",  0.4,     10]
         t.insert ["bar",  3.5,     20]
         t.insert ["foo",  Nothing, 30]
@@ -241,7 +241,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
-            t7 = make_table "T7" ['price'] ['DECIMAL']
+            t7 = make_table "T7" ['price'] ['DOUBLE PRECISION']
             price = t7.at 'price'
             [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing] . each x->
                 t7.insert [x]
@@ -252,7 +252,7 @@ spec prefix connection pending=Nothing =
             price.mean.should_equal 26.9
 
     Test.group prefix+"Sorting" pending=pending <|
-        df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DECIMAL', 'DECIMAL']
+        df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DOUBLE PRECISION', 'DOUBLE PRECISION']
         df.insert [1,'shoes',20,3.0,37.2]
         df.insert [2,'trousers',10,Nothing,42.1]
         df.insert [3,'dress',20,7.3,64.1]
@@ -295,7 +295,7 @@ spec prefix connection pending=Nothing =
             r.should_fail_with No_Such_Column_Error
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
-            df = make_table "T8" ['ord', 'ints', 'reals', 'bools', 'texts'] ['INTEGER', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'VARCHAR']
+            df = make_table "T8" ['ord', 'ints', 'reals', 'bools', 'texts'] ['INTEGER', 'INTEGER', 'DOUBLE PRECISION', 'BOOLEAN', 'VARCHAR']
             r = df.sort by='ord'
             df.insert [0, 1, 1.3, False, "foo"]
             df.insert [3, 2, 4.6, False, "foo"]

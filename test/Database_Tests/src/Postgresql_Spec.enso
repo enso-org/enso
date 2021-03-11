@@ -7,17 +7,28 @@ import Test
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
         Test.specify "should return Table information" <|
-            connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "decimals" DECIMAL)'
+            connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
             t = connection.access_table "Tinfo"
             t.insert ["a", Nothing, False, 1.2]
             t.insert ["abc", Nothing, Nothing, 1.3]
             t.insert ["def", 42, True, 1.4]
             i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools", "decimals"]
+            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BIT", "NUMERIC"]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BIT", "REAL"]
         connection.execute_update 'DROP TABLE "Tinfo"'
-
+    Test.group "[PostgreSQL] Materialization" pending=pending <|
+        Test.specify "should return DECIMAL columns as BigDecimal" <|
+            connection.execute_update 'CREATE TABLE "TBigDecimal" ("decimals" DECIMAL)'
+            t = connection.access_table "TBigDecimal"
+            t.insert [1.0]
+            t.insert [0.25]
+            v = t.at "decimals" . to_vector
+            element = v.at 0
+            element.getClass.getSimpleName . should_equal "BigDecimal"
+            fp = t.at "decimals" . to_dataframe . map .doubleValue
+            fp . to_vector . should_equal [1.0, 0.25]
+        connection.execute_update 'DROP TABLE "TBigDecimal"'
 spec =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
     db_host = Environment.get "ENSO_DATABASE_TEST_HOST"
