@@ -5,7 +5,6 @@ import java.util.UUID
 import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.PackageManager
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
@@ -39,7 +38,9 @@ import org.enso.projectmanager.model.ProjectKind.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
-  NameContainsForbiddenCharacter
+  NameContainsForbiddenCharacter,
+  NameShouldBeUpperSnakeCase,
+  NameShouldStartWithCapitalLetter
 }
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
@@ -129,19 +130,18 @@ class ProjectService[
   /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
-    name: String
+    newPackage: String
   ): F[ProjectServiceFailure, Unit] = {
     for {
-      _          <- log.debug(s"Renaming project $projectId to $name.")
-      _          <- validateName(name)
+      _          <- log.debug(s"Renaming project $projectId to $newPackage.")
+      _          <- validateName(newPackage)
       _          <- checkIfProjectExists(projectId)
-      _          <- checkIfNameExists(name)
+      _          <- checkIfNameExists(newPackage)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
-      _          <- repo.rename(projectId, name).mapError(toServiceFailure)
-      _          <- renameProjectDirOrRegisterShutdownHook(projectId, name)
-      newPackage = PackageManager.Default.normalizeName(name)
-      _ <- refactorProjectName(projectId, oldPackage, newPackage)
-      _ <- log.info(s"Project $projectId renamed.")
+      _          <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
+      _          <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
+      _          <- refactorProjectName(projectId, oldPackage, newPackage)
+      _          <- log.info(s"Project $projectId renamed.")
     } yield ()
   }
 
@@ -368,6 +368,14 @@ class ProjectService[
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(
             s"Project name contains forbidden characters: ${chars.mkString(",")}"
+          )
+        case NameShouldStartWithCapitalLetter =>
+          ProjectServiceFailure.ValidationFailure(
+            "Project name should start with a capital letter"
+          )
+        case NameShouldBeUpperSnakeCase(validName) =>
+          ProjectServiceFailure.ValidationFailure(
+            s"Project name should be in upper snake case: $validName"
           )
       }
 

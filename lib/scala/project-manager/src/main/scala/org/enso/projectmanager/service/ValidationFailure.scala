@@ -10,6 +10,8 @@ object ValidationFailure {
     */
   case object EmptyName extends ValidationFailure
 
+  case object NameShouldStartWithCapitalLetter extends ValidationFailure
+
   /** Signals that a project name contains forbidden characters.
     *
     * @param characters a forbidden characters in the provided project name
@@ -17,4 +19,6 @@ object ValidationFailure {
   case class NameContainsForbiddenCharacter(characters: Set[Char])
       extends ValidationFailure
 
+  case class NameShouldBeUpperSnakeCase(validName: String)
+      extends ValidationFailure
 }

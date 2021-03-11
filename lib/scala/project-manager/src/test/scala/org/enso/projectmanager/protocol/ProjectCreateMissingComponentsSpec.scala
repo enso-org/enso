@@ -22,7 +22,7 @@ class ProjectCreateMissingComponentsSpec
           "method": "project/create",
           "id": 1,
           "params": {
-            "name": "testproj",
+            "name": "Testproj",
             "missingComponentAction": $missingComponentAction,
             "version": $version
           }

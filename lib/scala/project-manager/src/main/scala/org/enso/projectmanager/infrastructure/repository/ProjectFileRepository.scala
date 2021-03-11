@@ -48,7 +48,7 @@ class ProjectFileRepository[
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
-    getAll().map(_.exists(_.name == PackageManager.Default.normalizeName(name)))
+    getAll().map(_.exists(_.name == name))
 
   /** @inheritdoc */
   override def find(
@@ -165,11 +165,10 @@ class ProjectFileRepository[
 
   private def renamePackage(
     projectPath: File,
-    name: String
+    newName: String
   ): F[ProjectRepositoryFailure, Unit] =
     getPackage(projectPath)
       .flatMap { projectPackage =>
-        val newName = PackageManager.Default.normalizeName(name)
         Sync[F]
           .blockingOp { projectPackage.rename(newName) }
           .map(_ => ())
