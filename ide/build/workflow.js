@@ -409,7 +409,7 @@ let workflow = {
     name : "GUI CI",
     on: {
         push: {
-            branches: ['unstable','stable']
+            branches: ['develop','unstable','stable']
         },
         pull_request: {}
     },
