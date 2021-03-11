@@ -37,7 +37,7 @@ class StdlibRuntimeServerTest
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val stdlib: File =
-      Paths.get("../../distribution/std-lib/Base").toFile.getAbsoluteFile
+      Paths.get("../../distribution/std-lib/Standard").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "0.0.1")
