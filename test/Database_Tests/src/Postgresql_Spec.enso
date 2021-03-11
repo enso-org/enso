@@ -21,6 +21,7 @@ postgres_specific_spec connection pending =
 
 spec =
     db_name = Environment.get "ENSO_DATABASE_TEST_DB_NAME"
+    db_host = Environment.get "ENSO_DATABASE_TEST_HOST"
     db_user = Environment.get "ENSO_DATABASE_TEST_DB_USER"
     db_password = Environment.get "ENSO_DATABASE_TEST_DB_PASSWORD"
     go connection pending=Nothing =
@@ -28,9 +29,12 @@ spec =
         here.postgres_specific_spec connection pending
     case db_name.is_nothing of
         True ->
-            connection = Error.throw "PostgreSQL test database is not configured"
-            go connection pending="PostgreSQL test database is not configured."
+            message = "PostgreSQL test database is not configured. See README.md for instructions."
+            connection = Error.throw message
+            go connection pending=message
         False ->
-            url = "postgresql:" + db_name
+            url = case db_host.is_nothing of
+                True -> "postgresql:" + db_name
+                False -> "postgresql://" + db_host + "/" + db_name
             connection = Database.connect url user=db_user password=db_password
             go connection
