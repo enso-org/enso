@@ -17,6 +17,11 @@ object NameValidation {
     toUpperSnakeCase(onlyAlphanumeric)
   }
 
+  /** Validate the project name.
+    *
+    * @param name the project name to validate
+    * @return either a validation error or a project name if it's valid
+    */
   def validateName(name: String): Either[InvalidNameError, String] =
     if (name.isEmpty) {
       Left(InvalidNameError.Empty)
