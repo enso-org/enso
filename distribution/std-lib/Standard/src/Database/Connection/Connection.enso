@@ -56,13 +56,6 @@ type Connection
 
        Executes a raw query and returns the result as an in-memory Table.
 
-       Currently the SQL decimal type is mapped to a floating-point
-       representation which is not exact. While operations in the database
-       itself may (or may not, depending on the database engine) be done with
-       exact precision, the materialized values may loose precision, so extra
-       care is needed when working with decimal computations that need to be
-       exact.
-
        Arguments:
        - query: either raw SQL code as Text or an instance of Sql.Statement
          representing the query to execute.
@@ -152,8 +145,6 @@ type Connection
 
    Creates a builder for a column based on a provided SQL type, trying to infer
    the best type for the builder.
-
-   WARNING: Currently it coerces decimals into floating point numbers.
 create_builder : Sql_Type -> Builder
 create_builder sql_type =
     initial_size = 10
