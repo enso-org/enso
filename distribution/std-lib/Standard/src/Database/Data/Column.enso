@@ -376,6 +376,9 @@ type Column
        Checks for each element of the column if it starts with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     starts_with : Column | Text -> Column
     starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
@@ -384,6 +387,9 @@ type Column
        Checks for each element of the column if it ends with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     ends_with : Column | Text -> Column
     ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
@@ -392,6 +398,9 @@ type Column
        Checks for each element of the column if it contains `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     contains : Column | Text -> Column
     contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
 

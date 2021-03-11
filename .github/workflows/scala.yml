@@ -213,6 +213,7 @@ jobs:
 
       - name: Prepare configuration for the Database tests
         shell: bash
+        if: runner.os == 'Linux'
         run: |
           echo "ENSO_DATABASE_TEST_DB_NAME=enso_test_db" >> $GITHUB_ENV
           echo "ENSO_DATABASE_TEST_DB_USER=enso_test_user" >> $GITHUB_ENV
@@ -220,6 +221,7 @@ jobs:
       # TODO [RW] which Postgres version shall we use? latest, old ones?
       - name: Configure PostgreSQL for the Database tests
         uses: harmon758/postgresql-action@v1
+        if: runner.os == 'Linux'
         with:
           postgresql version: "latest"
           postgresql db: ${{ env.ENSO_DATABASE_TEST_DB_NAME }}

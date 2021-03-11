@@ -107,18 +107,14 @@ spec prefix connection pending=Nothing =
             s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
             s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
             s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
-            # TODO [RW, MK] resolve how to handle this incosistency - document that behaviour is undefined of disallow Nothing as argument altogether
-            # s1.starts_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
             s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
             s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
             s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
-            # s1.contains Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
             s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
             s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
             s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
-            # s1.ends_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
     Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
