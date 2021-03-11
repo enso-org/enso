@@ -11,6 +11,8 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.type.Types.Pair;
+import org.enso.interpreter.runtime.util.ShadowedPackage;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
@@ -42,6 +44,7 @@ public class Context {
   private final boolean isCachingDisabled;
   private final Builtins builtins;
   private final String home;
+  private final List<ShadowedPackage> shadowedPackages;
 
   /**
    * Creates a new Enso context.
@@ -60,6 +63,7 @@ public class Context {
     this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.home = home;
+    this.shadowedPackages = new ArrayList<>();
 
     builtins = new Builtins(this);
 
@@ -80,13 +84,26 @@ public class Context {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
-    packages.addAll(
-        packagePaths.stream()
-            .map(packageManager::fromDirectory)
-            .map(ScalaConversions::asJava)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toList()));
+
+    // Add user packages one-by-one, shadowing previously added packages. It assumes that the
+    // standard library packages will not clash. In the future, we should be able to disambiguate
+    // packages that clash.
+    for (var packagePath : packagePaths) {
+      var asPackage = ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
+      if (asPackage.isPresent()) {
+        var pkg = asPackage.get();
+        var nameExists =
+            packages.stream().filter(p -> p.config().name().equals(pkg.name())).findFirst();
+        nameExists.ifPresent(
+            truffleFilePackage -> {
+              shadowedPackages.add(
+                  new ShadowedPackage(
+                      truffleFilePackage.root().getPath(), pkg.root().getPath(), pkg.name()));
+              packages.remove(truffleFilePackage);
+            });
+        packages.add(pkg);
+      }
+    }
 
     packages.forEach(
         pkg -> {
@@ -332,5 +349,10 @@ public class Context {
   /** @return whether inline caches should be disabled for this context. */
   public boolean isCachingDisabled() {
     return isCachingDisabled;
+  }
+
+  /** @return the list of shadowed packages */
+  public List<ShadowedPackage> getShadowedPackages() {
+    return shadowedPackages;
   }
 }
