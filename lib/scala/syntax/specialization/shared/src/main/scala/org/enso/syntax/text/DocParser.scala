@@ -464,19 +464,13 @@ object DocParserHTMLGenerator {
     args: List[AST],
     body: AST.Block
   ): astHtmlRepr = {
-    val firstLine          = Line(Option(body.firstLine.elem), body.firstLine.off)
-    val constructorsHeader = HTML.h2(`class` := "constr")("Constructors")
-    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
-    val allLines           = firstLine :: body.lines
-    val generatedCode      = renderHTMLOnLine(allLines)
-    val typesList =
-      generatedCode.filter(_.toString().contains("class=\"DefTitle\""))
-    val infixList =
-      generatedCode.filter(_.toString().contains("class=\"Infix\""))
+    // TODO: move all the atoms there, and collect all methods here.
+//    val constructorsHeader = HTML.h2(`class` := "constr")("Atoms")
+//    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
     val head    = createDefTitle(name, args)
     val clsBody = HTML.`class` := "DefBody"
     val lines =
-      HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
+      HTML.div(clsBody)
     val cls = HTML.`class` := "Def"
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
