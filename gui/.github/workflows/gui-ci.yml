@@ -7,6 +7,7 @@ name: GUI CI
 'on':
   push:
     branches:
+      - develop
       - unstable
       - stable
   pull_request: {}
