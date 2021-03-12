@@ -12,7 +12,7 @@ class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
           "method": "project/create",
           "id": 1,
           "params": {
-            "name": "testproj",
+            "name": "Testproj",
             "missingComponentAction": "Install"
           }
         }

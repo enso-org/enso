@@ -6,6 +6,7 @@ import cats.Show
 
 import scala.jdk.CollectionConverters._
 import org.enso.filesystem.FileSystem
+import org.enso.pkg.validation.NameValidation
 
 import scala.io.Source
 import scala.util.{Failure, Try, Using}
@@ -202,7 +203,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     maintainers: List[Contact] = List()
   ): Package[F] = {
     val config = Config(
-      name         = normalizeName(name),
+      name         = NameValidation.normalizeName(name),
       version      = version,
       ensoVersion  = ensoVersion,
       license      = "",
@@ -281,57 +282,6 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     existing.getOrElse(create(root, generateName(root)))
   }
 
-  /** Checks if a character is allowed in a project name.
-    *
-    * @param char the char to validate
-    * @return `true` if it's allowed, `false` otherwise
-    */
-  private def isAllowedNameCharacter(char: Char): Boolean = {
-    char.isLetterOrDigit || char == '_'
-  }
-
-  /** Takes a name containing letters, digits, and `_` characters and makes it
-    * a proper `Upper_Snake_Case` name.
-    *
-    * @param string the input string
-    * @return the transformed string
-    */
-  private def toUpperSnakeCase(string: String): String = {
-    val beginMarker = '#'
-    val chars       = string.toList
-    val charPairs   = (beginMarker :: chars).zip(chars)
-    charPairs
-      .map { case (previous, current) =>
-        if (previous == beginMarker) {
-          current.toString
-        } else if (previous.isLower && current.isUpper) {
-          s"_$current"
-        } else if (previous.isLetter && current.isDigit) {
-          s"_$current"
-        } else if (previous == '_' && current == '_') {
-          ""
-        } else if (previous.isDigit && current.isLetter) {
-          s"_${current.toUpper}"
-        } else {
-          current.toString
-        }
-      }
-      .mkString("")
-  }
-
-  /** Transforms the given string into a valid package name (i.e. a CamelCased identifier).
-    *
-    * @param name the original name.
-    * @return the transformed name conforming to the specification.
-    */
-  def normalizeName(name: String): String = {
-    val startingWithLetter =
-      if (name.length == 0 || !name(0).isLetter) "Project_" ++ name else name
-    val startingWithUppercase = startingWithLetter.capitalize
-    val onlyAlphanumeric      = startingWithUppercase.filter(isAllowedNameCharacter)
-    toUpperSnakeCase(onlyAlphanumeric)
-  }
-
   /** Generates a name for the package, by normalizing the last segment of its root path.
     *
     * @param file the root location of the package.
@@ -339,32 +289,32 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     */
   def generateName(file: F): String = {
     val dirname = file.getName
-    normalizeName(dirname)
+    NameValidation.normalizeName(dirname)
   }
 }
 
 object PackageManager {
   val Default = new PackageManager[File]()(FileSystem.Default)
 
-  /** A general exception indicating that a package cannot be loaded.
-    */
+  /** A general exception indicating that a package cannot be loaded. */
   class PackageLoadingException(message: String, cause: Throwable)
       extends RuntimeException(message, cause) {
 
-    /** @inheritdoc
-      */
+    /** @inheritdoc */
     override def toString: String = message
   }
 
-  /** The error indicating that the requested package does not exist.
-    */
+  /** The error indicating that the requested package does not exist. */
   case class PackageNotFound()
       extends PackageLoadingException(s"The package file does not exist.", null)
 
-  /** The error indicating that the package exists, but cannot be loaded.
-    */
+  /** The error indicating that the package exists, but cannot be loaded. */
   case class PackageLoadingFailure(message: String, cause: Throwable)
       extends PackageLoadingException(message, cause)
+
+  /** The error indicating that the project name is invalid. */
+  case class InvalidNameException(message: String)
+      extends RuntimeException(message)
 }
 
 /** A companion object for static methods on the [[Package]] class.

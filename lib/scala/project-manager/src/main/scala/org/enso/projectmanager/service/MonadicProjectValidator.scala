@@ -2,22 +2,12 @@ package org.enso.projectmanager.service
 
 import cats.MonadError
 import cats.implicits._
-import org.enso.projectmanager.service.ValidationFailure.{
-  EmptyName,
-  NameContainsForbiddenCharacter
-}
+import org.enso.pkg.validation.{InvalidNameError, NameValidation}
 
-/** MTL implementation of the project validator.
-  */
+/** MTL implementation of the project validator. */
 class MonadicProjectValidator[F[_, _]](implicit
   M: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) extends ProjectValidator[F] {
-
-  import M._
-
-  private val validCharSpec: Char => Boolean = { char =>
-    char.isLetterOrDigit || char == '_' || char == '-'
-  }
 
   /** Validates a project name.
     *
@@ -25,19 +15,24 @@ class MonadicProjectValidator[F[_, _]](implicit
     * @return either validation failure or success
     */
   override def validateName(name: String): F[ValidationFailure, Unit] =
-    checkIfNonEmptyName(name) *> checkCharacters(name)
-
-  private def checkIfNonEmptyName(name: String): F[ValidationFailure, Unit] =
-    if (name.trim.isEmpty) {
-      raiseError(EmptyName)
-    } else {
-      unit
+    M.fromEither {
+      NameValidation
+        .validateName(name)
+        .leftMap(toValidationFailure)
+        .map(_ => ())
     }
 
-  private def checkCharacters(name: String): F[ValidationFailure, Unit] = {
-    val forbiddenChars = name.toCharArray.filterNot(validCharSpec).toSet
-    if (forbiddenChars.isEmpty) unit
-    else raiseError(NameContainsForbiddenCharacter(forbiddenChars))
-  }
+  /** Convert project name error to validation error. */
+  private def toValidationFailure(error: InvalidNameError): ValidationFailure =
+    error match {
+      case InvalidNameError.Empty =>
+        ValidationFailure.EmptyName
+      case InvalidNameError.ShouldStartWithCapitalLetter =>
+        ValidationFailure.NameShouldStartWithCapitalLetter
+      case InvalidNameError.ContainsInvalidCharacters(invalidCharacters) =>
+        ValidationFailure.NameContainsForbiddenCharacter(invalidCharacters)
+      case InvalidNameError.ShouldBeUpperSnakeCase(validName) =>
+        ValidationFailure.NameShouldBeUpperSnakeCase(validName)
+    }
 
 }
