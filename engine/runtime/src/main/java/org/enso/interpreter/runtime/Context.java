@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
@@ -85,38 +86,40 @@ public class Context {
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
-    packages = new ArrayList<>();
     HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
+    packages = new ArrayList<>();
 
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      packages.addAll(homeManager.loadStdLib().collect(Collectors.toList()));
+      packageMap.putAll(
+          homeManager.loadStdLib().collect(Collectors.toMap((Package::name), Function.identity())));
     }
 
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
-
     List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
 
     // Add user packages one-by-one, shadowing previously added packages. It assumes that the
     // standard library packages will not clash. In the future, we should be able to disambiguate
     // packages that clash.
     for (var packagePath : packagePaths) {
-      var asPackage = ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
+      Optional<Package<TruffleFile>> asPackage =
+          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
       if (asPackage.isPresent()) {
-        var pkg = asPackage.get();
-        var nameExists =
-            packages.stream().filter(p -> p.config().name().equals(pkg.name())).findFirst();
-        nameExists.ifPresent(
-            truffleFilePackage -> {
-              shadowedPackages.add(
-                  new ShadowedPackage(
-                      truffleFilePackage.root().getPath(), pkg.root().getPath(), pkg.name()));
-              packages.remove(truffleFilePackage);
-            });
-        packages.add(pkg);
+        Package<TruffleFile> pkg = asPackage.get();
+        boolean nameExists = packageMap.containsKey(pkg.name());
+
+        if (nameExists) {
+          shadowedPackages.add(
+              new ShadowedPackage(
+                  packageMap.get(pkg.name()).root().getPath(), pkg.root().getPath(), pkg.name()));
+          packageMap.remove(pkg.name());
+        }
+        packageMap.put(pkg.name(), pkg);
       }
     }
+
+    packages.addAll(packageMap.values());
 
     packages.forEach(
         pkg -> {
