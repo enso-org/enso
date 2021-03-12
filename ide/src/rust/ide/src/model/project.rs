@@ -10,6 +10,7 @@ use crate::prelude::*;
 
 use enso_protocol::binary;
 use enso_protocol::language_server;
+use flo_stream::Subscriber;
 use mockall::automock;
 use parser::Parser;
 use uuid::Uuid;
@@ -85,6 +86,9 @@ pub trait API:Debug {
         //     .map(QualifiedName::new_main)
         //     .map_err(Into::into)
     }
+
+    /// Subscribe for notifications about project-level events.
+    fn subscribe(&self) -> Subscriber<Notification>;
 }
 
 impl Debug for MockAPI {
@@ -97,6 +101,34 @@ impl Debug for MockAPI {
 pub type Project      = Rc<dyn API>;
 /// Project Model which synchronizes all changes with Language Server.
 pub type Synchronized = synchronized::Project;
+
+
+
+// ====================
+// === Notification ===
+// ====================
+
+/// Notification emitted by the project model.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum Notification {
+    /// One of the backend connections has been lost.
+    ConnectionLost(BackendConnection)
+}
+
+/// Denotes one of backend connections used by a project.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum BackendConnection {
+    /// The text connection used to transfer JSON messages.
+    LanguageServerJson,
+    /// The binary conneection used to transfer FlatBuffers messages.
+    LanguageServerBinary,
+}
+
+
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 pub mod test {

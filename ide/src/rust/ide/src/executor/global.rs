@@ -60,6 +60,17 @@ pub fn spawn(f:impl Future<Output=()> + 'static) {
         unwrapped.spawn_local(f).expect(error_msg);
     });
 }
+/// Process stream elements while object under `weak` handle exists.
+///
+/// Like [`utils::channel::process_stream_with_handle`] but automatically spawns the processor.
+pub fn spawn_stream_handler<Weak,Stream,Function,Ret>(weak:Weak, stream:Stream, handler:Function)
+where Stream   : StreamExt + Unpin + 'static,
+      Weak     : WeakElement + 'static,
+      Function : FnMut(Stream::Item,Weak::Strong) -> Ret + 'static,
+      Ret      : Future<Output=()> + 'static {
+    let handler = utils::channel::process_stream_with_handle(stream,weak,handler);
+    spawn(handler);
+}
 
 // Note [Global Executor Safety]
 // =============================

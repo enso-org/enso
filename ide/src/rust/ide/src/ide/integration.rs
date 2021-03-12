@@ -31,7 +31,6 @@ use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::EdgeEndpoint;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
-use utils::channel::process_stream_with_handle;
 use utils::iter::split_by_predicate;
 
 
@@ -340,39 +339,56 @@ impl Integration {
         }
 
 
-        Self::connect_frp_to_graph_controller_notifications(&model,handle_graph_notification.trigger);
-        Self::connect_frp_text_controller_notifications(&model,handle_text_notification.trigger);
-        Self {model,network}
+        let ret = Self {model,network};
+        ret.connect_frp_to_graph_controller_notifications(handle_graph_notification.trigger);
+        ret.connect_frp_text_controller_notifications(handle_text_notification.trigger);
+        ret.setup_handling_project_notifications();
+        ret
+    }
+
+    fn spawn_sync_stream_handler<Stream,Function>(&self, stream:Stream, handler:Function)
+    where Stream   : StreamExt + Unpin + 'static,
+          Function : Fn(Stream::Item,Rc<Model>) + 'static {
+        let model = Rc::downgrade(&self.model);
+        executor::global::spawn_stream_handler(model,stream,move |item,model| {
+            handler(item,model);
+            futures::future::ready(())
+        })
+    }
+
+    fn setup_handling_project_notifications(&self) {
+        let stream     = self.model.project.subscribe();
+        let logger     = self.model.logger.clone_ref();
+        let status_bar = self.model.view.status_bar().clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_| {
+            info!(logger,"Processing notification {notification:?}");
+            let message = match notification {
+                model::project::Notification::ConnectionLost(_) =>
+                    crate::BACKEND_DISCONNECTED_MESSAGE,
+            };
+            let message = ide_view::status_bar::event::Label::from(message);
+            status_bar.add_event(message);
+        })
     }
 
     fn connect_frp_to_graph_controller_notifications
-    ( model        : &Rc<Model>
-    , frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>
-    ) {
-        let stream  = model.graph.subscribe();
-        let weak    = Rc::downgrade(model);
-        let logger  = model.logger.clone_ref();
-        let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
+    (&self, frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>) {
+        let stream = self.model.graph.subscribe();
+        let logger = self.model.logger.clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_model| {
             info!(logger,"Processing notification {notification:?}");
             frp_endpoint.emit(&Some(notification));
-            futures::future::ready(())
-        });
-        executor::global::spawn(handler);
+        })
     }
 
     fn connect_frp_text_controller_notifications
-    ( model        : &Rc<Model>
-    , frp_endpoint : frp::Source<Option<controller::text::Notification>>
-    ) {
-        let stream  = model.text.subscribe();
-        let weak    = Rc::downgrade(model);
-        let logger  = model.logger.clone_ref();
-        let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
+    (&self, frp_endpoint : frp::Source<Option<controller::text::Notification>>) {
+        let stream  = self.model.text.subscribe();
+        let logger  = self.model.logger.clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_model| {
             info!(logger,"Processing notification {notification:?}");
             frp_endpoint.emit(&Some(notification));
-            futures::future::ready(())
         });
-        executor::global::spawn(handler);
     }
 
     /// Convert a function being a method of GraphEditorIntegratedWithControllerModel to a closure
