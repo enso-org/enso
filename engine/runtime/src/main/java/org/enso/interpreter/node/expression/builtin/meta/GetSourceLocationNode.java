@@ -54,7 +54,6 @@ public class GetSourceLocationNode extends Node {
         };
 
     var result = Truffle.getRuntime().iterateFrames(visitor);
-    if (result == null) return UNKNOWN;
-    return result;
+    return result == null ? UNKNOWN : result;
   }
 }
