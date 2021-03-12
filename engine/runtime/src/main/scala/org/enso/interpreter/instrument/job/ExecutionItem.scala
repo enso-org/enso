@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import java.util.UUID
+
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
@@ -38,8 +40,11 @@ object ExecutionItem {
 
   /** The call data captured during the program execution.
     *
+    * @param expressionId the expression identifier
     * @param callData the fucntion call data
     */
-  case class CallData(callData: FunctionCallInstrumentationNode.FunctionCall)
-      extends ExecutionItem
+  case class CallData(
+    expressionId: UUID,
+    callData: FunctionCallInstrumentationNode.FunctionCall
+  ) extends ExecutionItem
 }
