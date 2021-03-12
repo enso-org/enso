@@ -28,6 +28,9 @@
 - [Fix issue with multiple instances of the IDE running.][1314]. This fixes an
   issue where multiple instances of the IDE (or even other applications) could
   lead to the IDE not working.
+- [Disable area selection][1318]. The area selection was visible despite being
+  non-functional. To avoid confusion, area selection has been disabled until it
+  is [correctly implemented][479].
 
 #### EnsoGL (rendering engine)
 
@@ -37,10 +40,12 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
+[479]: https://github.com/enso-org/ide/issues/479
 [1209]: https://github.com/enso-org/ide/pull/1209
 [1291]: https://github.com/enso-org/ide/pull/1291
 [1314]: https://github.com/enso-org/ide/pull/1314
 [1316]: https://github.com/enso-org/ide/pull/1316
+[1318]: https://github.com/enso-org/ide/pull/1318
 
 <br/>
 
