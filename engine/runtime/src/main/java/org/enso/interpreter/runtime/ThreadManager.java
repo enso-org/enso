@@ -51,15 +51,15 @@ public class ThreadManager {
     if (safepoint) {
       CompilerDirectives.transferToInterpreter();
       safepointPhaser.arriveAndAwaitAdvance();
-      if (Thread.interrupted()) {
-        throw new ThreadInterruptedException();
-      }
+      // TODO[MK]: Make this conditional on the interrupt flag when
+      // https://github.com/oracle/graal/issues/3273 is resolved.
+      throw new ThreadInterruptedException();
     }
   }
 
   /**
    * Forces all threads managed by this system to halt at the next safepoint (i.e. a {@link #poll()}
-   * call) and throw an exception if they were interrupted.
+   * call) and throw a {@link ThreadInterruptedException}.
    *
    * <p>This method is blocking, does not return until the last managed thread reports at a
    * safepoint.
@@ -67,7 +67,7 @@ public class ThreadManager {
    * <p>This method may not be called from a thread that is itself managed by this system, as doing
    * so may result in a deadlock.
    */
-  public void checkInterrupts() {
+  public void interruptThreads() {
     lock.lock();
     try {
       enter();

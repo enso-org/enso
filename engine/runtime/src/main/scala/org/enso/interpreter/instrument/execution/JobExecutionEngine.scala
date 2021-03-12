@@ -91,7 +91,7 @@ class JobExecutionEngine(
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }
     runtimeContext.executionService.getContext.getThreadManager
-      .checkInterrupts()
+      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -104,7 +104,7 @@ class JobExecutionEngine(
       }
     }
     runtimeContext.executionService.getContext.getThreadManager
-      .checkInterrupts()
+      .interruptThreads()
   }
 
   /** @inheritdoc */
@@ -112,7 +112,7 @@ class JobExecutionEngine(
     val allJobs = runningJobsRef.get()
     allJobs.foreach(_.future.cancel(true))
     runtimeContext.executionService.getContext.getThreadManager
-      .checkInterrupts()
+      .interruptThreads()
     jobExecutor.shutdownNow()
   }
 
