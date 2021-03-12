@@ -30,12 +30,12 @@ class ProjectOpenMissingComponentsSpec
     val blackhole = system.actorOf(blackholeProps)
     val ordinaryAction = projectService.createUserProject(
       blackhole,
-      "proj1",
+      "Proj_1",
       ordinaryVersion,
       MissingComponentAction.Fail
     )
     ordinaryProject = Runtime.default.unsafeRun(ordinaryAction)
-    val brokenName = "projbroken"
+    val brokenName = "Projbroken"
     val brokenAction = projectService.createUserProject(
       blackhole,
       brokenName,
