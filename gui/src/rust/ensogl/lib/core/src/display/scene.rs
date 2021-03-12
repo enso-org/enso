@@ -335,7 +335,7 @@ impl Mouse {
         let on_move         = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
                 let shape       = scene_frp.shape.value();
-                let pixel_ratio = shape.pixel_ratio as i32;
+                let pixel_ratio = shape.pixel_ratio;
                 let screen_x    = event.client_x();
                 let screen_y    = event.client_y();
 
@@ -343,7 +343,7 @@ impl Mouse {
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {
                     last_position.set(new_pos);
-                    let new_canvas_position = new_pos * pixel_ratio;
+                    let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
                     position.set(new_canvas_position);
                     let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
                     frp.position.emit(position);
