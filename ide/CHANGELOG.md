@@ -25,9 +25,12 @@
   preprocessor. This allows providing visualization with standard library
   functionalities or defining utilities that are shared between multiple
   visualizations.
-- [Fix issue with multiple instances of the IDE running.][1314]. This fixes an
+- [Fix issue with multiple instances of the IDE running.][1314] This fixes an
   issue where multiple instances of the IDE (or even other applications) could
   lead to the IDE not working.
+- [Allow JS to log arbitrary objects.][1313] Previously using `console.log` in a
+  visualisation or during development woudl crash the IDE. Now it correctly logs
+  the string representation of the object.
 - [Fix mouse cursor offset on systems with fractional display scaling][1064].
   Instead of there being an offset between visible cursor and cursor selection
   this works now with any display scaling.
@@ -47,6 +50,7 @@ you can find their release notes
 [1209]: https://github.com/enso-org/ide/pull/1209
 [1291]: https://github.com/enso-org/ide/pull/1291
 [1314]: https://github.com/enso-org/ide/pull/1314
+[1313]: https://github.com/enso-org/ide/pull/1313
 [1064]: https://github.com/enso-org/ide/pull/1064
 [1316]: https://github.com/enso-org/ide/pull/1316
 [1318]: https://github.com/enso-org/ide/pull/1318
