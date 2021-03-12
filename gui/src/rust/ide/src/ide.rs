@@ -22,6 +22,10 @@ pub use initializer::Initializer;
 // === Constants ===
 // =================
 
+/// Text that shows up in the statusbar when any of the backend connections is lost.
+pub const BACKEND_DISCONNECTED_MESSAGE:&str =
+    "Connection to the backend has been lost. Please try restarting IDE.";
+
 /// The name of the module initially opened in the project view.
 ///
 /// Currently this name is hardcoded in the engine services and is populated for each project

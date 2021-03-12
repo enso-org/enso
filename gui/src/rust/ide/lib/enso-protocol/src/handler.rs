@@ -120,12 +120,18 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     pub fn process_event(&mut self, event:TransportEvent) {
         debug!(self.logger, "Processing incoming transport event", || {
             debug!(self.logger, "Transport event contents: {event:?}.");
-            let disposition = (self.processor)(event);
-            debug!(self.logger, "Disposition: {disposition:?}");
-            match disposition {
-                Disposition::HandleReply {id,reply} => self.process_reply(id,reply),
-                Disposition::EmitEvent {event} => self.emit_event(event),
-                Disposition::Ignore => {}
+            match event {
+                TransportEvent::TextMessage(_) | TransportEvent::BinaryMessage(_) => {
+                    let disposition = (self.processor)(event);
+                    debug!(self.logger, "Disposition: {disposition:?}");
+                    match disposition {
+                        Disposition::HandleReply {id,reply} => self.process_reply(id,reply),
+                        Disposition::EmitEvent   {event}    => self.emit_event(event),
+                        Disposition::Ignore => {}
+                    }
+                }
+                TransportEvent::Opened => {}
+                TransportEvent::Closed => { self.emit_event(Event::Closed) }
             }
         });
     }
@@ -254,3 +260,33 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
         self.state.borrow_mut().event_stream()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use json_rpc::test_util::transport::mock::MockTransport;
+    use utils::test::future::FutureTestExt;
+    use utils::test::stream::StreamTestExt;
+
+    #[test]
+    fn test_closed_socked_event_passing() {
+        let logger        =  Logger::new("RPC_Handler_Test");
+        let mut transport = MockTransport::new();
+        let processor     = |msg| panic!("Must never be called in this test, but got {:?}!",msg);
+        let handler       = Handler::<i32,(),()>::new(transport.clone_ref(),logger,processor);
+        let mut runner    = handler.runner().boxed_local();
+        let mut events    = handler.event_stream().boxed_local();
+        events.expect_pending();
+        transport.mock_connection_closed();
+        events.expect_pending();
+
+        // Process events.
+        runner.expect_pending();
+
+        let event = events.expect_next();
+        assert!(matches!(event, Event::Closed), "Event was: {:?}", event);
+        events.expect_pending();
+    }
+}
+

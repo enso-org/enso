@@ -6,6 +6,12 @@
 
 #### Visual Environment
 
+- [Statusbar reports connectivity issues][1316]. IDE maintains a connection to
+  the Language Server. If this connection is lost, any unsaved and further work
+  will be lost. In this build we added notification in statusbar to signalize
+  that the connection was lost and IDE must be restarted. In future IDE will try
+  to automatically reconnect.
+
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
 #### Visual Environment
@@ -34,6 +40,7 @@ you can find their release notes
 [1209]: https://github.com/enso-org/ide/pull/1209
 [1291]: https://github.com/enso-org/ide/pull/1291
 [1314]: https://github.com/enso-org/ide/pull/1314
+[1316]: https://github.com/enso-org/ide/pull/1316
 
 <br/>
 
