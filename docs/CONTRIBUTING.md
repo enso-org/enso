@@ -349,6 +349,14 @@ The Database tests will by default only test the SQLite backend, to test other
 backends see [`test/Database_Tests/README.md`](../test/Database_Tests/README.md)
 for information on how to configure them.
 
+The Base tests rely in a few places on the system language. On Linux you can set
+the `LANG` environment variable to `C` to make sure that the language is
+configured correctly and run the tests as following:
+
+```bash
+LANG=C enso --run test/Tests
+```
+
 #### Passing Debug Options
 
 GraalVM provides some useful debugging options, including the ability to output

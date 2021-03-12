@@ -1,12 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.FrameInstance;
+import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Meta",
@@ -22,30 +22,39 @@ public class GetSourceLocationNode extends Node {
   private static final String UNKNOWN = "Unknown Location";
 
   @TruffleBoundary
-  private String renderSourceLocation(long framesToSkip) {
-    long ix = framesToSkip + 1;
-    if (ix > Integer.MAX_VALUE) throw new IllegalArgumentException("Too large offset.");
-    var throwable = new PanicException(Text.create("Nothing"), getRootNode());
-    throwable.fillInStackTrace();
-    try {
-      var truffleStack = TruffleStackTrace.getStackTrace(throwable);
-      if (ix >= truffleStack.size()) return UNKNOWN;
-      var frame = truffleStack.get((int) ix);
-      var location = frame.getLocation();
-      var sourceLoc = location.getEncapsulatingSourceSection();
-      var path = sourceLoc.getSource().getPath();
-      var ident = (path != null) ? path : sourceLoc.getSource().getName();
-      var loc =
-          (sourceLoc.getStartLine() == sourceLoc.getEndLine())
-              ? (sourceLoc.getStartLine()
-              + ":"
-              + sourceLoc.getStartColumn()
-              + "-"
-              + sourceLoc.getEndColumn())
-              : (sourceLoc.getStartLine() + "-" + sourceLoc.getEndLine());
-      return ident + ":" + loc;
-    } catch (NullPointerException e) {
-      return UNKNOWN;
-    }
+  private String renderSourceLocation(final long framesToSkip) {
+    var visitor =
+        new FrameInstanceVisitor<String>() {
+          long offset = framesToSkip + 1;
+
+          @Override
+          public String visitFrame(FrameInstance frameInstance) {
+            if (offset == 0) {
+              var node = frameInstance.getCallNode();
+              if (node == null) return UNKNOWN;
+              var section = node.getEncapsulatingSourceSection();
+              if (section == null) return UNKNOWN;
+              var source = section.getSource();
+              var path = source.getPath();
+              var ident = (path != null) ? path : source.getName();
+              var loc =
+                  (section.getStartLine() == section.getEndLine())
+                      ? (section.getStartLine()
+                          + ":"
+                          + section.getStartColumn()
+                          + "-"
+                          + section.getEndColumn())
+                      : (section.getStartLine() + "-" + section.getEndLine());
+              return ident + ":" + loc;
+            } else {
+              offset--;
+              return null;
+            }
+          }
+        };
+
+    var result = Truffle.getRuntime().iterateFrames(visitor);
+    if (result == null) return UNKNOWN;
+    return result;
   }
 }
