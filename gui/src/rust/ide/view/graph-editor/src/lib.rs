@@ -2137,18 +2137,16 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Cursor Selection ===
     frp::extend! { network
-
-    mouse_on_down_position <- mouse.position.sample(&mouse.down_primary);
-    selection_size_down    <- mouse.position.map2(&mouse_on_down_position,|m,n|{m-n});
-    selection_size         <- selection_size_down.gate(&touch.background.is_down);
-
     on_press_style   <- mouse.down_primary . constant(cursor::Style::new_press());
     on_release_style <- mouse.up_primary . constant(cursor::Style::default());
 
-
-    cursor_selection_start <- selection_size.map(|p| cursor::Style::new_with_all_fields_default().press().box_selection(Vector2::new(p.x,p.y)));
-    cursor_selection_end   <- mouse.up_primary . constant(cursor::Style::default());
-    cursor_selection       <- any (cursor_selection_start, cursor_selection_end);
+    // FIXME [mwu] Restore when implementing https://github.com/enso-org/ide/issues/479
+    // mouse_on_down_position <- mouse.position.sample(&mouse.down_primary);
+    // selection_size_down    <- mouse.position.map2(&mouse_on_down_position,|m,n|{m-n});
+    // selection_size         <- selection_size_down.gate(&touch.background.is_down);
+    // cursor_selection_start <- selection_size.map(|p| cursor::Style::new_with_all_fields_default().press().box_selection(Vector2::new(p.x,p.y)));
+    // cursor_selection_end   <- mouse.up_primary . constant(cursor::Style::default());
+    // cursor_selection       <- any (cursor_selection_start, cursor_selection_end);
 
     cursor_press     <- any (on_press_style, on_release_style);
 
@@ -2950,7 +2948,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     pointer_style <- all
         [ pointer_on_drag
-        , cursor_selection
+        // FIXME [mwu] Restore when implementing https://github.com/enso-org/ide/issues/479
+        // , cursor_selection
         , cursor_press
         , node_pointer_style
         , cursor_style_edge_drag
