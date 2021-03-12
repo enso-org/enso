@@ -250,14 +250,19 @@ class LogRouter {
             this.handleError(...args)
         } else if (name == 'log') {
             let firstArg = args[0]
-            if (firstArg !== undefined && firstArg.startsWith("%c")) {
-                let firstArgBody = firstArg.slice(2);
-                let bodyStartIndex = firstArgBody.indexOf("%c");
-                if (bodyStartIndex !== -1) {
-                    let body = firstArgBody.slice(bodyStartIndex + 3);
-                    let is_error = body.startsWith("[E]");
-                    if (is_error) {
-                        this.handleError(body)
+            if (firstArg !== undefined) {
+                if (!(typeof firstArg === 'string' || firstArg instanceof String)) {
+                    firstArg = firstArg.toString()
+                }
+                if (firstArg.startsWith('%c')) {
+                    let firstArgBody = firstArg.slice(2)
+                    let bodyStartIndex = firstArgBody.indexOf('%c')
+                    if (bodyStartIndex !== -1) {
+                        let body = firstArgBody.slice(bodyStartIndex + 3)
+                        let is_error = body.startsWith('[E]')
+                        if (is_error) {
+                            this.handleError(body)
+                        }
                     }
                 }
             }
