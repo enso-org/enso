@@ -455,10 +455,12 @@ Suite.is_fail = this.specs.any is_fail
             vec![
                 Token::line(
                     vec![
-                        Token::variable("from", 0),
-                        Token::referent("Base", 1),
-                        Token::variable("import", 1),
-                        Token::variable("all", 1),
+                        Token::variable("from",0),
+                        Token::referent("Standard",1),
+                        Token::operator(".",0),
+                        Token::referent("Base",0),
+                        Token::variable("import",1),
+                        Token::variable("all",1),
                     ],
                     0,
                     token::LineEnding::LF
