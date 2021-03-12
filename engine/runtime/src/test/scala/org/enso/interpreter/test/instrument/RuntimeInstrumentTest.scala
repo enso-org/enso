@@ -12,8 +12,6 @@ import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.editing.model
-import org.enso.text.editing.model.TextEdit
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -22,7 +20,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class ExpressionErrorsTest
+class RuntimeInstrumentTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
@@ -120,53 +118,6 @@ class ExpressionErrorsTest
       Api.Response(Api.ExecutionComplete(contextId))
   }
 
-  object Update {
-
-    def panic(
-      contextId: UUID,
-      expressionId: UUID,
-      payload: Api.ExpressionUpdate.Payload
-    ): Api.Response =
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              expressionId,
-              Some(Constants.PANIC),
-              None,
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              payload
-            )
-          )
-        )
-      )
-
-    def panic(
-      contextId: UUID,
-      expressionId: UUID,
-      methodPointer: Api.MethodPointer,
-      payload: Api.ExpressionUpdate.Payload
-    ): Api.Response =
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              expressionId,
-              Some(Constants.PANIC),
-              Some(methodPointer),
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              payload
-            )
-          )
-        )
-      )
-
-  }
-
   def contentsVersion(content: String): ContentVersion =
     Sha3_224VersionCalculator.evalVersion(content)
 
@@ -175,24 +126,15 @@ class ExpressionErrorsTest
     val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
-  it should "return panic sentinels in method body" in {
+  it should "instrument simple expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    // foo body id
-    metadata.addItem(21, 5)
-    val xId       = metadata.addItem(35, 9)
-    val yId       = metadata.addItem(53, 8)
-    val mainResId = metadata.addItem(66, 7)
 
-    val code =
-      """main =
-        |    foo a b = a + b
-        |    x = undefined
-        |    y = foo x 42
-        |    foo y 1
-        |""".stripMargin.linesIterator.mkString("\n")
+    val metadata = new Metadata
+    val mainBody = metadata.addItem(7, 2)
+
+    val code     = "main = 42"
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -218,507 +160,205 @@ class ExpressionErrorsTest
             Api.MethodPointer(moduleName, "Test.Main", "main"),
             None,
             Vector()
-          )
-        )
-      )
-    )
-    context.receive(6) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Variable `undefined` is not defined.",
-              Some(mainFile),
-              Some(model.Range(model.Position(2, 8), model.Position(2, 17))),
-              Some(xId)
-            )
-          )
-        )
-      ),
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "return panic sentinels in method calls" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val mainBodyId = metadata.addItem(28, 12)
-
-    val code =
-      """foo a b = a + b + x
-        |
-        |main = here.foo 1 2
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Variable `x` is not defined.",
-              Some(mainFile),
-              Some(model.Range(model.Position(0, 18), model.Position(0, 19))),
-              None
-            )
-          )
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainBodyId,
-        Api.MethodPointer("Test.Main", "Test.Main", "foo"),
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `x` is not defined.",
-          Seq(mainBodyId)
-        )
-      ),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "return dataflow errors in method body" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    // foo body id
-    metadata.addItem(61, 5)
-    val xId       = metadata.addItem(75, 19)
-    val yId       = metadata.addItem(103, 8)
-    val mainResId = metadata.addItem(116, 7)
-
-    val code =
-      """from Builtins import all
-        |
-        |type MyError
-        |
-        |main =
-        |    foo a b = a + b
-        |    x = Error.throw MyError
-        |    y = foo x 42
-        |    foo y 1
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      context.executionComplete(contextId)
-    )
-  }
-
-  it should "return panic sentinels continuing execution" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val xId        = metadata.addItem(41, 9)
-    val yId        = metadata.addItem(59, 2)
-    val mainResId  = metadata.addItem(66, 12)
-
-    val code =
-      """from Builtins import all
-        |
-        |main =
-        |    x = undefined
-        |    y = 42
-        |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(6) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.warning(
-              "Unused variable x.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 4), model.Position(3, 5)))
-            ),
-            Api.ExecutionResult.Diagnostic.error(
-              "Variable `undefined` is not defined.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 8), model.Position(3, 17))),
-              Some(xId)
-            )
-          )
-        )
-      ),
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `undefined` is not defined.",
-          Seq(xId)
-        )
-      ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual Seq("42")
-  }
-
-  it should "return dataflow errors continuing execution" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 2)
-    val mainResId  = metadata.addItem(90, 12)
-
-    val code =
-      """from Builtins import all
-        |
-        |type MyError
-        |
-        |main =
-        |    x = Error.throw MyError
-        |    y = 42
-        |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(6) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.warning(
-              "Unused variable x.",
-              Some(mainFile),
-              Some(model.Range(model.Position(5, 4), model.Position(5, 5)))
-            )
-          )
-        )
-      ),
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual Seq("42")
-  }
-
-  it should "continue execution after dataflow errors" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 5)
-    val mainResId  = metadata.addItem(93, 12)
-
-    val code =
-      """from Builtins import all
-        |
-        |type MyError
-        |
-        |main =
-        |    x = Error.throw MyError
-        |    y = x - 1
-        |    IO.println y
-        |""".stripMargin.linesIterator.mkString("\n")
-    val contents = metadata.appendToCode(code)
-    val mainFile = context.writeMain(contents)
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // Open the new file
-    context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
-    )
-    context.receiveNone shouldEqual None
-
-    // push main
-    context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
-            None,
-            Vector()
-          )
-        )
-      )
-    )
-    context.receive(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual Seq("(Error: MyError)")
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(5, 8), model.Position(5, 27)),
-              "1234567890123456789"
-            )
           )
         )
       )
     )
     context.receive(3) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, mainBody, Constants.INTEGER),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List("1234567890123456788")
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(5, 8), model.Position(5, 27)),
-              "1000000000000.div 0"
-            )
-          )
-        )
-      )
-    )
-    context.receive(3) should contain theSameElementsAs Seq(
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual List(
-      "(Error: (Arithmetic_Error 'Cannot divide by zero.'))"
-    )
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(5, 8), model.Position(5, 27)),
-              "1000000000000.div 2"
-            )
-          )
-        )
-      )
-    )
-    context.receive(3) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual List("499999999999")
   }
 
-  it should "not send updates when dataflow error changes" in {
+  it should "instrument default hello world example" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val xId        = metadata.addItem(70, 20)
-    val yId        = metadata.addItem(99, 5)
-    val mainResId  = metadata.addItem(109, 12)
+
+    val metadata = new Metadata
+    val mainBody = metadata.addItem(33, 14)
 
     val code =
       """from Builtins import all
         |
-        |type MyError1
-        |type MyError2
+        |main = "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, mainBody, Constants.TEXT),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "instrument expressions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata    = new Metadata
+    val mainBody    = metadata.addItem(32, 52)
+    val xExpr       = metadata.addItem(41, 2)
+    val yExpr       = metadata.addItem(52, 5)
+    val zExpr       = metadata.addItem(66, 1)
+    val mainResExpr = metadata.addItem(72, 12)
+
+    val code =
+      """from Builtins import all
         |
         |main =
-        |    x = Error.throw MyError1
-        |    y = x - 1
+        |    x = 42
+        |    y = x + 1
+        |    z = y
+        |    IO.println z
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, Constants.INTEGER),
+      TestMessages.update(contextId, yExpr, Constants.INTEGER),
+      TestMessages.update(contextId, zExpr, Constants.INTEGER),
+      TestMessages.update(contextId, mainResExpr, Constants.NOTHING),
+      TestMessages.update(contextId, mainBody, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "instrument sub-expressions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata     = new Metadata
+    val mainBody     = metadata.addItem(32, 42)
+    val xExpr        = metadata.addItem(41, 2)
+    val yExpr        = metadata.addItem(52, 5)
+    val mainResExpr  = metadata.addItem(62, 12)
+    val mainRes1Expr = metadata.addItem(73, 1)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x = 42
+        |    y = x + 1
         |    IO.println y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, Constants.INTEGER),
+      TestMessages.update(contextId, yExpr, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes1Expr, Constants.INTEGER),
+      TestMessages.update(contextId, mainResExpr, Constants.NOTHING),
+      TestMessages.update(contextId, mainBody, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "instrument binding of a lambda" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata = new Metadata
+    val mainBody = metadata.addItem(32, 28)
+    val fExpr    = metadata.addItem(41, 10)
+    // f body
+    metadata.addItem(46, 5)
+    val mainResExpr = metadata.addItem(56, 4)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    f = x -> x + 1
+        |    f 42
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -751,59 +391,90 @@ class ExpressionErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.error(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.error(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
-      ),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
+      TestMessages.update(contextId, fExpr, Constants.FUNCTION),
+      TestMessages.update(contextId, mainResExpr, Constants.INTEGER),
+      TestMessages.update(contextId, mainBody, Constants.INTEGER),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual Seq("(Error: MyError1)")
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(6, 20), model.Position(6, 28)),
-              "MyError2"
-            )
-          )
-        )
-      )
-    )
-    context.receive(1) should contain theSameElementsAs Seq(
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual List("(Error: MyError2)")
   }
 
-  it should "continue execution after thrown panics" in {
+  it should "instrument binding of sugared lambda" in {
+    pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
-    val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 5)
-    val mainResId  = metadata.addItem(93, 12)
+
+    val metadata    = new Metadata
+    val fExpr       = metadata.addItem(41, 5)
+    val xExpr       = metadata.addItem(55, 4)
+    val mainResExpr = metadata.addItem(64, 1)
 
     val code =
       """from Builtins import all
         |
-        |type MyError
+        |main =
+        |    f = _ + 1
+        |    x = f 42
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, fExpr, Constants.FUNCTION),
+      TestMessages.update(contextId, xExpr, Constants.INTEGER),
+      TestMessages.update(contextId, mainResExpr, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument the body of a method" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    // f expression
+    metadata.addItem(32, 5)
+    val xExpr    = metadata.addItem(54, 8)
+    val mainRes  = metadata.addItem(67, 1)
+    val mainExpr = metadata.addItem(45, 23)
+
+    val code =
+      """from Builtins import all
+        |
+        |f x = x + 1
         |
         |main =
-        |    x = Panic.throw MyError
-        |    y = x - 1
-        |    IO.println y
+        |    x = here.f 1
+        |    x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -836,73 +507,39 @@ class ExpressionErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError",
-          Seq(xId)
-        )
-      ),
+      TestMessages
+        .update(
+          contextId,
+          xExpr,
+          Constants.INTEGER,
+          Api.MethodPointer("Test.Main", "Test.Main", "f")
+        ),
+      TestMessages.update(contextId, mainRes, Constants.INTEGER),
+      TestMessages.update(contextId, mainExpr, Constants.INTEGER),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual Seq()
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(5, 8), model.Position(5, 27)),
-              "1234567890123456789"
-            )
-          )
-        )
-      )
-    )
-    context.receive(4) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual List("1234567890123456788")
   }
 
-  it should "continue execution after panics in expressions" in {
+  it should "not instrument the body of a function" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(41, 7)
-    val yId        = metadata.addItem(57, 5)
-    val mainResId  = metadata.addItem(67, 12)
+
+    // f expression
+    metadata.addItem(43, 5)
+    val aExpr    = metadata.addItem(57, 1)
+    val fApp     = metadata.addItem(75, 3)
+    val mainRes  = metadata.addItem(63, 16)
+    val mainExpr = metadata.addItem(32, 47)
 
     val code =
       """from Builtins import all
         |
         |main =
-        |    x = 1 + foo
-        |    y = x - 1
-        |    IO.println y
+        |    f x = x + 1
+        |    a = 1
+        |    IO.println (f a)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -935,90 +572,91 @@ class ExpressionErrorsTest
     )
     context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionUpdate(
-          contextId,
-          Seq(
-            Api.ExecutionResult.Diagnostic.error(
-              "Variable `foo` is not defined.",
-              Some(mainFile),
-              Some(model.Range(model.Position(3, 12), model.Position(3, 15))),
-              None
-            )
-          )
-        )
-      ),
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "Compile error: Variable `foo` is not defined.",
-          Seq(xId)
-        )
-      ),
+      TestMessages.update(contextId, aExpr, Constants.INTEGER),
+      TestMessages.update(contextId, fApp, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      TestMessages.update(contextId, mainExpr, Constants.NOTHING),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual Seq()
-
-    // Modify the file
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(3, 12), model.Position(3, 15)),
-              "101"
-            )
-          )
-        )
-      )
-    )
-    context.receive(4) should contain theSameElementsAs Seq(
-      TestMessages.update(contextId, xId, Constants.INTEGER),
-      TestMessages.update(contextId, yId, Constants.INTEGER),
-      TestMessages.update(contextId, mainResId, Constants.NOTHING),
-      context.executionComplete(contextId)
-    )
-    context.consumeOut shouldEqual List("101")
-
   }
 
-  it should "send updates when panic changes" in {
+  it should "not instrument the body of a lambda" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(70, 20)
-    val yId        = metadata.addItem(99, 5)
-    val mainResId  = metadata.addItem(109, 12)
+
+    val aExpr = metadata.addItem(41, 14)
+    val lam   = metadata.addItem(42, 10)
+    // lambda expression
+    metadata.addItem(47, 5)
+    val lamArg  = metadata.addItem(54, 1)
+    val mainRes = metadata.addItem(60, 12)
 
     val code =
       """from Builtins import all
         |
-        |type MyError1
-        |type MyError2
+        |main =
+        |    a = (x -> x + 1) 1
+        |    IO.println a
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, aExpr, Constants.INTEGER),
+      TestMessages.update(contextId, lam, Constants.FUNCTION),
+      TestMessages.update(contextId, lamArg, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument the body of a sugared lambda" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val aExpr = metadata.addItem(41, 9)
+    // lambda
+    metadata.addItem(42, 5)
+    val lamArg  = metadata.addItem(49, 1)
+    val mainRes = metadata.addItem(55, 12)
+
+    val code =
+      """from Builtins import all
         |
         |main =
-        |    x = Panic.throw MyError1
-        |    y = x - 1
-        |    IO.println y
+        |    a = (_ + 1) 1
+        |    IO.println a
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1051,76 +689,194 @@ class ExpressionErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError1",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError1",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError1",
-          Seq(xId)
-        )
-      ),
+      TestMessages.update(contextId, aExpr, Constants.INTEGER),
+      TestMessages.update(contextId, lamArg, Constants.INTEGER),
+      TestMessages.update(contextId, mainRes, Constants.NOTHING),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual Seq()
+    context.consumeOut shouldEqual List("2")
+  }
 
-    // Modify the file
+  it should "not instrument functions in block expressions" in {
+    pending
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val xExpr = metadata.addItem(40, 33)
+    // function body
+    metadata.addItem(55, 5)
+    // x result
+    metadata.addItem(69, 4)
+    val mainRes = metadata.addItem(78, 1)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x =
+        |        f x = x + 1
+        |        f 42
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
     context.send(
       Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(6, 20), model.Position(6, 28)),
-              "MyError2"
-            )
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
           )
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
-      Update.panic(
-        contextId,
-        xId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError2",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        yId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError2",
-          Seq(xId)
-        )
-      ),
-      Update.panic(
-        contextId,
-        mainResId,
-        Api.ExpressionUpdate.Payload.Panic(
-          "MyError2",
-          Seq(xId)
-        )
-      ),
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, Constants.THUNK),
+      TestMessages.update(contextId, mainRes, Constants.THUNK),
       context.executionComplete(contextId)
     )
-    context.consumeOut shouldEqual List()
+  }
+
+  it should "not instrument lambdas in block expressions" in {
+    pending
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val xExpr = metadata.addItem(40, 36)
+    // lambda
+    metadata.addItem(53, 10)
+    // lambda body
+    metadata.addItem(58, 5)
+    // x result
+    metadata.addItem(72, 4)
+    val mainRes = metadata.addItem(81, 1)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x =
+        |        f = x -> x + 1
+        |        f 42
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, Constants.THUNK),
+      TestMessages.update(contextId, mainRes, Constants.THUNK),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument sugared lambdas in block expressions" in {
+    pending
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val xExpr = metadata.addItem(40, 31)
+    // lambda
+    metadata.addItem(53, 5)
+    // x result
+    metadata.addItem(67, 4)
+    val mainRes = metadata.addItem(76, 1)
+
+    val code =
+      """from Builtins import all
+        |
+        |main =
+        |    x =
+        |        f = _ + 1
+        |        f 42
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, xExpr, Constants.THUNK),
+      TestMessages.update(contextId, mainRes, Constants.THUNK),
+      context.executionComplete(contextId)
+    )
   }
 
 }

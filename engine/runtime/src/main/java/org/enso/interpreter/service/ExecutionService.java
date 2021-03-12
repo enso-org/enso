@@ -10,6 +10,7 @@ import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.Context;
@@ -20,7 +21,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.interpreter.service.error.*;
-import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -88,6 +88,7 @@ public class ExecutionService {
   /**
    * Executes a function with given arguments, represented as runtime language-level objects.
    *
+   * @param module the module where the call is defined
    * @param call the call metadata.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
@@ -98,6 +99,7 @@ public class ExecutionService {
    * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
+      Module module,
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
@@ -112,11 +114,12 @@ public class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+    LocationFilter locationFilter = LocationFilter.create(module.getIr(), src);
+
     EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
             call.getFunction().getCallTarget(),
-            src.getCharIndex(),
-            src.getCharLength(),
+            locationFilter,
             cache,
             methodCallsCache,
             nextExecutionItem,
@@ -164,6 +167,7 @@ public class ExecutionService {
     FunctionCallInstrumentationNode.FunctionCall call =
         prepareFunctionCall(module, consName, methodName);
     execute(
+        module,
         call,
         cache,
         methodCallsCache,

@@ -34,6 +34,7 @@ import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.service.error.{
   ConstructorNotFoundException,
   MethodNotFoundException,
+  ModuleNotFoundForExpressionIdException,
   ServiceException
 }
 import org.enso.polyglot.LanguageInfo
@@ -90,8 +91,18 @@ trait ProgramExecutionSupport {
           onCachedCallback,
           onExceptionalCallback
         )
-      case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
+      case ExecutionFrame(
+            ExecutionItem.CallData(expressionId, callData),
+            cache
+          ) =>
+        val module =
+          ctx.executionService.getContext
+            .findModuleByExpressionId(expressionId)
+            .orElseThrow(() =>
+              new ModuleNotFoundForExpressionIdException(expressionId)
+            )
         ctx.executionService.execute(
+          module,
           callData,
           cache,
           methodCallsCache,
@@ -127,7 +138,10 @@ trait ProgramExecutionSupport {
         enterables.get(item.expressionId) match {
           case Some(call) =>
             executeProgram(
-              ExecutionFrame(ExecutionItem.CallData(call), item.cache),
+              ExecutionFrame(
+                ExecutionItem.CallData(item.expressionId, call),
+                item.cache
+              ),
               tail,
               onCachedMethodCallCallback,
               onComputedCallback,
@@ -237,7 +251,7 @@ trait ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Api.ExecutionResult = {
     val itemName = item match {
       case ExecutionItem.Method(_, _, function) => function
-      case ExecutionItem.CallData(call)         => call.getFunction.getName
+      case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
     executionUpdate match {
