@@ -51,6 +51,7 @@ public class ThreadManager {
     if (safepoint) {
       CompilerDirectives.transferToInterpreter();
       safepointPhaser.arriveAndAwaitAdvance();
+      safepoint = false;
       // TODO[MK]: Make this conditional on the interrupt flag when
       // https://github.com/oracle/graal/issues/3273 is resolved.
       throw new ThreadInterruptedException();
