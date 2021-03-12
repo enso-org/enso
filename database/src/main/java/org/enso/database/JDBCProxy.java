@@ -5,7 +5,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-/** A helper class for accessing the JDBC components. */
+/**
+ * A helper class for accessing the JDBC components.
+ *
+ * <p>This class is necessary because the JDBC depends on the caller's classloader to determine
+ * which drivers are available and so if it is called directly from Enso it does not see the correct
+ * classloaders, thus not detecting the proper drivers.
+ */
 public class JDBCProxy {
   /**
    * A helper method that lists registered JDBC drivers.

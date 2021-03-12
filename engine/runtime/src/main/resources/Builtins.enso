@@ -726,10 +726,10 @@ type Meta
        the call.
 
        Arguments:
-       - skip_frames: how many frames on the stack to skip. Called with 0 will
-         return exact location of the call.
+       - frames_to_skip: how many frames on the stack to skip. Called with 0
+         will return exact location of the call.
    get_source_location : Integer -> Text
-   get_source_location skip_frames = @Builtin_Method "Meta.get_source_location"
+   get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
 
 ## Utilities for working with primitive arrays.
 type Array
