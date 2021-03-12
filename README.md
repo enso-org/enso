@@ -120,7 +120,7 @@ a single language.
 <ul><ul>
     <b>Watch Tutorials</b><br/>
     <ul>
-        <li><a href="https://www.youtube.com/watch?v=zT-WgFPEYGE&t=5s&ab_channel=Enso">Enso 101</a></li>
+        <li><a href="https://www.youtube.com/watch?v=AwtAklcLrkU&ab_channel=Enso">Enso 101</a></li>
         <li><a href="https://www.youtube.com/watch?v=XReCQMZUmuE&ab_channel=Enso">Trams Visualization</a></li>
         <li><a href="https://www.youtube.com/playlist?list=PLk8NuufOVK01GhaObYr1_gqeASlkj2um0">... other tutorials</a></li>
     </ul>
