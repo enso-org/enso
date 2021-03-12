@@ -28,6 +28,9 @@
 - [Fix issue with multiple instances of the IDE running.][1314]. This fixes an
   issue where multiple instances of the IDE (or even other applications) could
   lead to the IDE not working.
+- [Fix mouse cursor offset on systems with fractional display scaling][1064].
+  Instead of there being an offset between visible cursor and cursor selection
+  this works now with any display scaling.
 - [Disable area selection][1318]. The area selection was visible despite being
   non-functional. To avoid confusion, area selection has been disabled until it
   is [correctly implemented][479].
@@ -44,6 +47,7 @@ you can find their release notes
 [1209]: https://github.com/enso-org/ide/pull/1209
 [1291]: https://github.com/enso-org/ide/pull/1291
 [1314]: https://github.com/enso-org/ide/pull/1314
+[1064]: https://github.com/enso-org/ide/pull/1064
 [1316]: https://github.com/enso-org/ide/pull/1316
 [1318]: https://github.com/enso-org/ide/pull/1318
 
