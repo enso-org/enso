@@ -48,14 +48,14 @@ class ProjectManagementApiSpec
           """)
     }
 
-    "validate project name" in {
+    "validate project name for forbidden characters" in {
       val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "enso-test-project4/#$$%^@!"
+                "name": "Enso-test-roject4/#$$%^@!"
               }
             }
           """)
@@ -64,7 +64,51 @@ class ProjectManagementApiSpec
           "id":1,
           "error":{
             "code":4001,
-            "message":"Project name contains forbidden characters: %,!,@,#,$$,^,/"
+            "message":"Project name contains forbidden characters: -,/,#,$$,%,^,@,!"
+            }
+          }
+          """)
+    }
+
+    "validate project name should start with a capital letter" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 1,
+              "params": {
+                "name": "enso-test-project"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":1,
+          "error":{
+            "code":4001,
+            "message":"Project name should start with a capital letter"
+            }
+          }
+          """)
+    }
+
+    "validate project name should be in upper snake case" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 1,
+              "params": {
+                "name": "EnsoTestProject"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":1,
+          "error":{
+            "code":4001,
+            "message":"Project name should be in upper snake case: Enso_Test_Project"
             }
           }
           """)
@@ -77,7 +121,7 @@ class ProjectManagementApiSpec
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "foo"
+                "name": "Foo"
               }
             }
           """)
@@ -95,7 +139,7 @@ class ProjectManagementApiSpec
               "method": "project/create",
               "id": 2,
               "params": {
-                "name": "foo"
+                "name": "Foo"
               }
             }
           """)
@@ -112,7 +156,7 @@ class ProjectManagementApiSpec
     }
 
     "create project structure" in {
-      val projectName = "foo"
+      val projectName = "Foo"
 
       implicit val client = new WsTestClient(address)
 
@@ -135,7 +179,7 @@ class ProjectManagementApiSpec
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "foo",
+                "name": "Foo",
                 "version": "0.0.1"
               }
             }
@@ -152,7 +196,7 @@ class ProjectManagementApiSpec
     }
 
     "create a project dir with a suffix if a directory is taken" in {
-      val projectName           = "foo"
+      val projectName           = "Foo"
       val projectDir            = new File(userProjectDir, projectName)
       val projectDirWithSuffix1 = new File(userProjectDir, projectName + "_1")
       val projectDirWithSuffix2 = new File(userProjectDir, projectName + "_2")
@@ -197,7 +241,7 @@ class ProjectManagementApiSpec
     "fail when project is running" taggedAs Flaky in {
       //given
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject("foo")
+      val projectId       = createProject("Foo")
       openProject(projectId)
       //when
       client.send(json"""
@@ -228,7 +272,7 @@ class ProjectManagementApiSpec
 
     "remove project structure" in {
       //given
-      val projectName     = "to-remove"
+      val projectName     = "To_Remove"
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
       val projectDir      = new File(userProjectDir, projectName)
@@ -284,7 +328,7 @@ class ProjectManagementApiSpec
 
     "start the Language Server if not running" taggedAs Flaky in {
       //given
-      val projectName     = "to-remove"
+      val projectName     = "To_Remove"
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
       //when
@@ -318,7 +362,7 @@ class ProjectManagementApiSpec
 
     "not start new Language Server if one is running" taggedAs Flaky in {
       val client1   = new WsTestClient(address)
-      val projectId = createProject("foo")(client1)
+      val projectId = createProject("Foo")(client1)
       //when
       val socket1 = openProject(projectId)(client1)
       val client2 = new WsTestClient(address)
@@ -351,7 +395,7 @@ class ProjectManagementApiSpec
 
     "start the Language Server after moving the directory" taggedAs Flaky in {
       //given
-      val projectName     = "foo"
+      val projectName     = "Foo"
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
 
@@ -432,7 +476,7 @@ class ProjectManagementApiSpec
     "close project when the requester is the only client" taggedAs Flaky in {
       //given
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject("foo")
+      val projectId       = createProject("Foo")
       val socket          = openProject(projectId)
       val languageServerClient =
         new WsTestClient(s"ws://${socket.host}:${socket.port}")
@@ -464,11 +508,11 @@ class ProjectManagementApiSpec
     "return a list sorted by creation time if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
       //given
-      val fooId = createProject("foo")
+      val fooId = createProject("Foo")
       testClock.moveTimeForward()
-      val barId = createProject("bar")
+      val barId = createProject("Bar")
       testClock.moveTimeForward()
-      val bazId = createProject("baz")
+      val bazId = createProject("Baz")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -514,8 +558,8 @@ class ProjectManagementApiSpec
     "returned sorted list of recently opened projects" in {
       implicit val client = new WsTestClient(address)
       //given
-      val fooId = createProject("foo")
-      val barId = createProject("bar")
+      val fooId = createProject("Foo")
+      val barId = createProject("Bar")
       testClock.moveTimeForward()
       openProject(fooId)
       val fooOpenTime = testClock.currentTime
@@ -523,7 +567,7 @@ class ProjectManagementApiSpec
       openProject(barId)
       val barOpenTime = testClock.currentTime
       testClock.moveTimeForward()
-      val bazId = createProject("baz")
+      val bazId = createProject("Baz")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -578,7 +622,8 @@ class ProjectManagementApiSpec
     "rename a project and move project dir" in {
       implicit val client = new WsTestClient(address)
       //given
-      val projectId = createProject("foo")
+      val newProjectName = "Bar"
+      val projectId      = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -586,7 +631,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": $projectId,
-                "name": "bar"
+                "name": $newProjectName
               }
             }
           """)
@@ -598,7 +643,7 @@ class ProjectManagementApiSpec
             "result": null
           }
           """)
-      val projectDir  = new File(userProjectDir, "bar")
+      val projectDir  = new File(userProjectDir, newProjectName)
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)
       val lines       = buffer.getLines()
@@ -609,8 +654,8 @@ class ProjectManagementApiSpec
     }
 
     "create a project dir with a suffix if a directory is taken" taggedAs Flaky in {
-      val oldProjectName  = "foobar"
-      val newProjectName  = "foo"
+      val oldProjectName  = "Foobar"
+      val newProjectName  = "Foo"
       implicit val client = new WsTestClient(address)
       //given
       val projectId         = createProject(oldProjectName)
@@ -648,8 +693,10 @@ class ProjectManagementApiSpec
     "reply with an error when the project with the same name exists" in {
       //given
       implicit val client   = new WsTestClient(address)
-      val projectId         = createProject("foo")
-      val existingProjectId = createProject("bar")
+      val oldProjectName    = "Foo"
+      val newProjectName    = "Bar"
+      val projectId         = createProject(oldProjectName)
+      val existingProjectId = createProject(newProjectName)
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -657,7 +704,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": $projectId,
-                "name": "bar"
+                "name": $newProjectName
               }
             }
           """)
@@ -687,7 +734,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": ${UUID.randomUUID()},
-                "name": "bar"
+                "name": "Bar"
               }
             }
           """)
@@ -706,7 +753,7 @@ class ProjectManagementApiSpec
     "check if project name is not empty" in {
       //given
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject("foo")
+      val projectId       = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -729,10 +776,10 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "validate project name" in {
+    "validate project name for forbidden characters" in {
       //given
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject("foo")
+      val projectId       = createProject("Foo")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -740,7 +787,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": $projectId,
-                "name": "luna-test-project4/#$$%^@!"
+                "name": "Enso-test-project4/#$$%^@!"
               }
             }
           """)
@@ -750,7 +797,65 @@ class ProjectManagementApiSpec
           "id":0,
           "error":{
             "code":4001,
-            "message":"Project name contains forbidden characters: %,!,@,#,$$,^,/"
+            "message":"Project name contains forbidden characters: -,/,#,$$,%,^,@,!"
+            }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
+    }
+
+    "validate project name should start with a capital letter" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("Foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "enso-test-project"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":0,
+          "error":{
+            "code":4001,
+            "message":"Project name should start with a capital letter"
+            }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
+    }
+
+    "validate project name should be in upper snake case" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("Foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "EnsoTestProject"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":0,
+          "error":{
+            "code":4001,
+            "message":"Project name should be in upper snake case: Enso_Test_Project"
             }
           }
           """)
