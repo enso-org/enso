@@ -428,7 +428,7 @@ polyglot java import org.enso.base.Text_Utils
 #[test]
 fn some_stdlib() {
     let input = make_unix_line_endings(
-r#"from Base import all
+r#"from Standard.Base import all
 
 ## The top-level entry point for a test suite.
 type Suite specs
