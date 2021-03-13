@@ -22,7 +22,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class ExpressionErrorsTest
+class RuntimeErrorsTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {

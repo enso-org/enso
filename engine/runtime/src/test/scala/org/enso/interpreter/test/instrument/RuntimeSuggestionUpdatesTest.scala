@@ -21,7 +21,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class SuggestionUpdatesTest
+class RuntimeSuggestionUpdatesTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {

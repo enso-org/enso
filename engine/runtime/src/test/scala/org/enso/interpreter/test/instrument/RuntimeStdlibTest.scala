@@ -18,7 +18,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class StdlibRuntimeServerTest
+class RuntimeStdlibTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
