@@ -41,6 +41,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.acquireWriteCompilationLock()
+
     try {
       val compilationResult = ensureCompiledFiles(files)
       ctx.contextManager.getAll.values.foreach { stack =>
@@ -96,7 +97,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         val cacheInvalidationCommands =
           buildCacheInvalidationCommands(changeset, module.getLiteralSource)
         runInvalidationCommands(cacheInvalidationCommands)
-        analyzeModule(module, changeset)
+        if (ctx.executionService.getContext.isSuggestionsEnabled) {
+          analyzeModule(module, changeset)
+        }
         runCompilationDiagnostics(module)
       }
       .getOrElse(CompilationStatus.Failure)
@@ -125,7 +128,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             )
             CompilationStatus.Failure
           case Right(module) =>
-            analyzeModuleInScope(module)
+            if (ctx.executionService.getContext.isSuggestionsEnabled) {
+              analyzeModuleInScope(module)
+            }
             runCompilationDiagnostics(module)
         }
       }

@@ -30,7 +30,7 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
   public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
-      interpreterOptionName(".sequentialCommandExecution");
+      interpreterOptionName("sequentialCommandExecution");
   public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
       new OptionKey<>(false);
   public static final OptionDescriptor INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR =
@@ -39,6 +39,11 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
           .build();
 
+  public static final String ENABLE_SUGGESTIONS = optionName("enableSuggestions");
+  public static final OptionKey<Boolean> ENABLE_SUGGESTIONS_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor ENABLE_SUGGESTIONS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_SUGGESTIONS_KEY, ENABLE_SUGGESTIONS).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
@@ -46,7 +51,8 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
-              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
+              ENABLE_SUGGESTIONS_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.
