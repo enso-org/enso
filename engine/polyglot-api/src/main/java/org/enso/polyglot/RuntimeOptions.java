@@ -39,10 +39,15 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
           .build();
 
-  public static final String ENABLE_SUGGESTIONS = optionName("enableSuggestions");
-  public static final OptionKey<Boolean> ENABLE_SUGGESTIONS_KEY = new OptionKey<>(true);
-  private static final OptionDescriptor ENABLE_SUGGESTIONS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(ENABLE_SUGGESTIONS_KEY, ENABLE_SUGGESTIONS).build();
+  public static final String ENABLE_PROJECT_SUGGESTIONS = optionName("enableProjectSuggestions");
+  public static final OptionKey<Boolean> ENABLE_PROJECT_SUGGESTIONS_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_PROJECT_SUGGESTIONS_KEY, ENABLE_PROJECT_SUGGESTIONS).build();
+
+  public static final String ENABLE_GLOBAL_SUGGESTIONS = optionName("enableGlobalSuggestions");
+  public static final OptionKey<Boolean> ENABLE_GLOBAL_SUGGESTIONS_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_GLOBAL_SUGGESTIONS_KEY, ENABLE_GLOBAL_SUGGESTIONS).build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -52,7 +57,8 @@ public class RuntimeOptions {
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
-              ENABLE_SUGGESTIONS_DESCRIPTOR));
+              ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
+              ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

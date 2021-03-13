@@ -97,7 +97,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         val cacheInvalidationCommands =
           buildCacheInvalidationCommands(changeset, module.getLiteralSource)
         runInvalidationCommands(cacheInvalidationCommands)
-        if (ctx.executionService.getContext.isSuggestionsEnabled) {
+        if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
           analyzeModule(module, changeset)
         }
         runCompilationDiagnostics(module)
@@ -128,7 +128,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             )
             CompilationStatus.Failure
           case Right(module) =>
-            if (ctx.executionService.getContext.isSuggestionsEnabled) {
+            if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
               analyzeModuleInScope(module)
             }
             runCompilationDiagnostics(module)

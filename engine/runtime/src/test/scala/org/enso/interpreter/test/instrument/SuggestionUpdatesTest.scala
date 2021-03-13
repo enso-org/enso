@@ -46,6 +46,7 @@ class SuggestionUpdatesTest
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
+        .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -570,7 +571,8 @@ class SuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument("this", "Test.Main", false, false, None),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
                     Constants.ANY,
@@ -630,7 +632,8 @@ class SuggestionUpdatesTest
                     List(
                       Suggestion
                         .Argument("this", "Test.Main", false, false, None),
-                      Suggestion.Argument("x", Constants.ANY, false, false, None)
+                      Suggestion
+                        .Argument("x", Constants.ANY, false, false, None)
                     ),
                     "Test.Main",
                     Constants.ANY,
@@ -644,7 +647,8 @@ class SuggestionUpdatesTest
                           .Modify(1, Some("a"), None, None, None, None),
                         Api.SuggestionArgumentAction.Add(
                           2,
-                          Suggestion.Argument("b", Constants.ANY, false, false, None)
+                          Suggestion
+                            .Argument("b", Constants.ANY, false, false, None)
                         )
                       )
                     ),
