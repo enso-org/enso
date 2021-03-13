@@ -668,4 +668,152 @@ class SuggestionUpdatesTest
     context.consumeOut shouldEqual List("51")
   }
 
+  it should "index overloaded functions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val contents =
+      """from Builtins import all
+        |
+        |main =
+        |    x = 15.overloaded 1
+        |    "foo".overloaded 2
+        |    10.overloaded x
+        |    Nothing
+        |
+        |Text.overloaded arg = arg + 1
+        |Number.overloaded arg = arg + 2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val version  = contentsVersion(contents)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file    = mainFile,
+          version = version,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    Seq(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector(
+                  Tree.Node(
+                    Api.SuggestionUpdate(
+                      Suggestion.Local(
+                        None,
+                        moduleName,
+                        "x",
+                        Constants.ANY,
+                        Suggestion.Scope(
+                          Suggestion.Position(2, 6),
+                          Suggestion.Position(7, 0)
+                        )
+                      ),
+                      Api.SuggestionAction.Add()
+                    ),
+                    Vector()
+                  )
+                )
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "overloaded",
+                    Seq(
+                      Suggestion.Argument(
+                        "this",
+                        Constants.TEXT,
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion
+                        .Argument("arg", Constants.ANY, false, false, None)
+                    ),
+                    Constants.TEXT,
+                    Constants.ANY,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "overloaded",
+                    Seq(
+                      Suggestion.Argument(
+                        "this",
+                        Constants.NUMBER,
+                        false,
+                        false,
+                        None
+                      ),
+                      Suggestion
+                        .Argument("arg", Constants.ANY, false, false, None)
+                    ),
+                    Constants.NUMBER,
+                    Constants.ANY,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
 }
