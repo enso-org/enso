@@ -1,5 +1,7 @@
 package org.enso.image.data;
 
+import org.enso.opencv.OpenCV;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -8,6 +10,11 @@ import org.opencv.imgcodecs.Imgcodecs;
 import java.util.Base64;
 
 public class Matrix {
+
+  static {
+    OpenCV.loadShared();
+    System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+  }
 
   // type depth constants
   public static final int CV_8U = CvType.CV_8U,

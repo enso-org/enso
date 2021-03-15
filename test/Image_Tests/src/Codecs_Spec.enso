@@ -7,10 +7,6 @@ import Image.Codecs
 
 polyglot java import java.lang.System as Java_System
 
-spec =
-    is_ci = Java_System.getenv "CI" == "true"
-    if is_ci then here.spec_impl else Test.group "Codecs (skipped)"
-
 fetch addr file =
     case Process.run_command "curl" [addr, "--silent", "--output", file.path] of
         Exit_Code.Exit_Success ->
@@ -18,10 +14,13 @@ fetch addr file =
         Exit_Code.Exit_Failure code ->
             Test.fail ("Failed to fetch test image. Exit code: " + code.to_text)
 
-spec_impl =
-    rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
-    rgba_file = here.fetch rgba_addr (Enso_Project.root / "rgba.png")
-    Test.group "Codecs" <|
+spec =
+    is_ci = Java_System.getenv "CI" == "true"
+    pending = if is_ci then Nothing else """
+        The Codecs spec only run when the `CI` environment variable is set to true
+    Test.group "Codecs" pending=pending <|
+        rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+        rgba_file = here.fetch rgba_addr (Enso_Project.root / "rgba.png")
         Test.specify "should read color image" <|
             img = Codecs.read rgba_file
             img.rows.should_equal 160

@@ -196,8 +196,8 @@ spec = Test.group "Vectors" <|
         [1, 2, 3].flat_map (_ -> []) . should_equal []
         [1, 2, 3].flat_map (_ -> [0, 1]) . should_equal [0, 1, 0, 1, 0, 1]
         [1, 2, 3].flat_map (_ -> [0, [1]]) . should_equal [0, [1], 0, [1], 0, [1]]
-        [0, 1, 0].flat_map (i -> if i == 1 then [1, 1] else i) . should_equal [0, 1, 1, 0]
-        [0, 0, 0].flat_map (i -> i) . should_equal [0, 0, 0]
+        [0, 1, 0].flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
+        [0, 0, 0].flat_map (i -> [i]) . should_equal [0, 0, 0]
     Test.specify "should prepend elements" <|
         [2, 3].prepend 1 . should_equal [1, 2, 3]
     Test.specify "should append elements" <|

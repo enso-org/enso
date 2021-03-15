@@ -257,28 +257,6 @@ type Vector
     map_with_index : (Int -> Any -> Any) -> Vector
     map_with_index function = here.new this.length i-> function i (this.at i)
 
-    ## Applies a function to each element of the vector, returning the vector of
-       results.
-
-       > Example
-         Replace elements of the vector wiht `[1, 0]`, flattening the result.
-             [1, 2, 3] . flat_map (_ -> [1, 0]) == [1, 0, 1, 0, 1, 0]
-       > Example
-         Replace `1` with `[1, 1]`, ignoring zeroes.
-             [0, 1, 0] . flat_map (i -> if i == 1 then [1, 1] else i) == [0, 1, 1, 0]
-       > Example
-         Return existing vector when mapping an element to itself.
-             [1, 2, 3] . flat_map (i -> i) === [1, 2, 3]
-    flat_map : (Any -> Vector) -> Vector
-    flat_map function =
-        append builder elem =
-            res = function elem
-            case res of
-                Vector _ -> res.each builder.append
-                _ -> builder.append res
-            builder
-        this.fold Builder.new append . to_vector
-
     ## Applies a function to each element of the vector.
 
        Unlike `map`, this method does not return the individual results,
