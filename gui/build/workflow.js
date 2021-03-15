@@ -403,7 +403,7 @@ let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 're
 /// 2. It was a pull request to the 'unstable', or the 'stable' branch.
 /// 3. It was a commit to the 'develop' branch.
 /// Otherwise, perform a simplified (faster) build only.
-let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
+let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
 
 let workflow = {
     name : "GUI CI",
