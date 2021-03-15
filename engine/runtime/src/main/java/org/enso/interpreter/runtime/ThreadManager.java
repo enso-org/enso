@@ -6,6 +6,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,6 +24,7 @@ public class ThreadManager {
   private final ReentrantLock lock = new ReentrantLock();
 
   private volatile boolean safepoint = false;
+  private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
 
   /**
    * Registers the current thread as running guest code.
@@ -35,6 +37,7 @@ public class ThreadManager {
    */
   public void enter() {
     safepointPhaser.register();
+    interruptFlags.put(Thread.currentThread(), false);
   }
 
   /**
@@ -44,6 +47,7 @@ public class ThreadManager {
    */
   public void leave() {
     safepointPhaser.arriveAndDeregister();
+    interruptFlags.remove(Thread.currentThread());
   }
 
   /** Called from the interpreter to periodically perform a safepoint check. */
@@ -51,10 +55,10 @@ public class ThreadManager {
     if (safepoint) {
       CompilerDirectives.transferToInterpreter();
       safepointPhaser.arriveAndAwaitAdvance();
-      safepoint = false;
-      // TODO[MK]: Make this conditional on the interrupt flag when
-      // https://github.com/oracle/graal/issues/3273 is resolved.
-      throw new ThreadInterruptedException();
+      if (interruptFlags.get(Thread.currentThread())) {
+        interruptFlags.put(Thread.currentThread(), false);
+        throw new ThreadInterruptedException();
+      }
     }
   }
 
@@ -71,6 +75,7 @@ public class ThreadManager {
   public void interruptThreads() {
     lock.lock();
     try {
+      interruptFlags.replaceAll((t, b) -> true);
       enter();
       try {
         safepoint = true;
