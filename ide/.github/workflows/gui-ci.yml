@@ -247,8 +247,8 @@ jobs:
         if: startsWith(matrix.os,'macos')
     if: >-
       !(contains(github.event.head_commit.message,'[ci build]') || github.ref ==
-      'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'
-      || github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
+      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
       'refs/heads/stable')
   build:
     name: Build
@@ -376,8 +376,8 @@ jobs:
         if: startsWith(matrix.os,'ubuntu')
     if: >-
       contains(github.event.head_commit.message,'[ci build]') || github.ref ==
-      'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'
-      || github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
+      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
       'refs/heads/stable'
   release_to_github:
     name: GitHub Release
