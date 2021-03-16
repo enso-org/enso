@@ -51,7 +51,7 @@ class StdlibRuntimeServerTest
           RuntimeOptions.PACKAGES_PATH,
           toPackagesPath(pkg.root.getAbsolutePath, stdlib.toString)
         )
-        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
@@ -183,7 +183,7 @@ class StdlibRuntimeServerTest
     val response =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 30
+        timeout = 60
       )
     response should contain(
       Api.Response(requestId, Api.PushContextResponse(contextId))
