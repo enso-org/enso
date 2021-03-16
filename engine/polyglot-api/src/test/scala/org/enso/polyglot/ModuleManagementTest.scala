@@ -171,7 +171,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         |import Test.Main
         |
         |bar = Main.foo + 1
-        |""".stripMargin,
+        |""".stripMargin.replace("\r\n", "\n"),
       "X2"
     )
     val exception =
