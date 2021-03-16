@@ -306,6 +306,13 @@ type Table
     concat other =
         Table (this.java_table.concat other.java_table)
 
+    ## UNSTABLE
+
+       Returns a table truncated to at most `max_rows` rows.
+    take_start : Integer -> Table
+    take_start max_rows =
+        Table (this.java_table.slice 0 max_rows)
+
 ## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign
 

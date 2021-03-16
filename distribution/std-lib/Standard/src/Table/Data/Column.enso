@@ -378,6 +378,13 @@ type Column
         new_col = this.java_column.applyMask mask
         Column new_col
 
+    ## UNSTABLE
+
+       Returns a column truncated to at most `max_rows` rows.
+    take_start : Integer -> Column
+    take_start max_rows =
+        Column (this.java_column.slice 0 max_rows)
+
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
 from_vector name items = Column (Java_Column.fromItems name items.to_array)
