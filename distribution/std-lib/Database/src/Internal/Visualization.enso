@@ -1,0 +1,25 @@
+from Base import all
+
+import Table.Data.Table as Dataframe_Table
+import Table.Data.Column as Dataframe_Column
+import Database.Data.Table as Database_Table
+import Database.Data.Column as Database_Column
+
+max_rows = 1000
+
+## PRIVATE
+prepare_visualization x = case x of
+    Dataframe_Table.Table _ -> here.make_json x
+    Dataframe_Column.Column _ -> here.make_json x.to_table
+    Database_Table.Table _ _ _ _ ->
+        here.make_json <| x.to_dataframe here.max_rows
+    Database_Column.Column _ _ _ _ _ ->
+        here.make_json <| x.to_table.to_dataframe here.max_rows
+    _ -> x . to_json . to_text
+
+## PRIVATE
+make_json dataframe =
+    header = ["header", x.columns.map .name]
+    data   = ["data",   x.columns.map .to_vector . map (x -> x.take_start 2000) ]
+    pairs  = [header,data]
+    Json.from_pairs pairs . to_text
