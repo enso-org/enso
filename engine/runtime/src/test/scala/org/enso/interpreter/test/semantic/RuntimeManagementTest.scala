@@ -51,8 +51,7 @@ class RuntimeManagementTest extends InterpreterTest {
           reportedCount += consumeOut.length
         }
         val expectedOut = List.fill(n)("Interrupted.")
-        threads.foreach(_.interrupt())
-        langCtx.getThreadManager.checkInterrupts()
+        langCtx.getThreadManager.interruptThreads()
         threads.foreach(_.join())
         consumeOut shouldEqual expectedOut
         threads.forall(!_.isAlive) shouldBe true
