@@ -1,9 +1,9 @@
-from Base import all
+from Standard.Base import all
 
-import Table.Data.Table as Dataframe_Table
-import Table.Data.Column as Dataframe_Column
-import Database.Data.Table as Database_Table
-import Database.Data.Column as Database_Column
+import Standard.Table.Data.Table as Dataframe_Table
+import Standard.Table.Data.Column as Dataframe_Column
+import Standard.Database.Data.Table as Database_Table
+import Standard.Database.Data.Column as Database_Column
 
 max_rows = 1000
 
