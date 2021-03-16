@@ -6,6 +6,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,6 +24,7 @@ public class ThreadManager {
   private final ReentrantLock lock = new ReentrantLock();
 
   private volatile boolean safepoint = false;
+  private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
 
   /**
    * Registers the current thread as running guest code.
@@ -35,6 +37,7 @@ public class ThreadManager {
    */
   public void enter() {
     safepointPhaser.register();
+    interruptFlags.put(Thread.currentThread(), false);
   }
 
   /**
@@ -44,6 +47,7 @@ public class ThreadManager {
    */
   public void leave() {
     safepointPhaser.arriveAndDeregister();
+    interruptFlags.remove(Thread.currentThread());
   }
 
   /** Called from the interpreter to periodically perform a safepoint check. */
@@ -51,7 +55,8 @@ public class ThreadManager {
     if (safepoint) {
       CompilerDirectives.transferToInterpreter();
       safepointPhaser.arriveAndAwaitAdvance();
-      if (Thread.interrupted()) {
+      if (interruptFlags.get(Thread.currentThread())) {
+        interruptFlags.put(Thread.currentThread(), false);
         throw new ThreadInterruptedException();
       }
     }
@@ -59,7 +64,7 @@ public class ThreadManager {
 
   /**
    * Forces all threads managed by this system to halt at the next safepoint (i.e. a {@link #poll()}
-   * call) and throw an exception if they were interrupted.
+   * call) and throw a {@link ThreadInterruptedException}.
    *
    * <p>This method is blocking, does not return until the last managed thread reports at a
    * safepoint.
@@ -67,9 +72,10 @@ public class ThreadManager {
    * <p>This method may not be called from a thread that is itself managed by this system, as doing
    * so may result in a deadlock.
    */
-  public void checkInterrupts() {
+  public void interruptThreads() {
     lock.lock();
     try {
+      interruptFlags.replaceAll((t, b) -> true);
       enter();
       try {
         safepoint = true;

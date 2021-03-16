@@ -44,7 +44,7 @@ public class HashIndex extends Index {
 
   @Override
   public String ilocString(int loc) {
-    return iloc(loc).toString();
+    return String.valueOf(iloc(loc));
   }
 
   @Override
