@@ -51,7 +51,7 @@ class StdlibRuntimeServerTest
           RuntimeOptions.PACKAGES_PATH,
           toPackagesPath(pkg.root.getAbsolutePath, stdlib.toString)
         )
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
