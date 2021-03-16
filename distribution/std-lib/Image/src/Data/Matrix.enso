@@ -1,5 +1,4 @@
 from Base import all
-import Image.Data.Color
 import Image.Data.Matrix.Internal
 import Image.Data.Pixel
 
@@ -29,51 +28,34 @@ type Matrix
     get row column =
         if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error row) else
             if (column < 0) || (column >= this.columns) then Error.throw (Index_Out_Of_Bounds_Error column) else
-                arr = this.opencv_mat.get row column
+                arr = Java_Matrix.get this.opencv_mat row column
                 Vector.Vector arr
 
-    map : (Pixel -> Pixel) -> Matrix
-    map f =
-        new_mat = this.copy
-        new_mat.each f
-        new_mat
+    reshape : Integer -> Integer -> Matrix
+    reshape rows channels=Nothing =
+        case channels of
+            Nothing -> Matrix (this.opencv_mat.reshape this.channels rows)
+            _ -> Matrix (this.opencv_mat.reshape channels rows)
 
-    each : (Pixel -> Pixel) -> Nothing
-    each f =
-        0.up_to this.opencv_mat.rows . each row->
-            0.up_to this.opencv_mat.cols . each col->
-                colors_array = this.opencv_mat.get row col
-                pixel = f (Pixel.Pixel row col (Color.from_array colors_array))
-                case pixel.color of
-                    Color.Channels_1 c1 -> this.opencv_mat.put pixel.row pixel.col c1
-                    Color.Channels_2 c1 c2 -> this.opencv_mat.put pixel.row pixel.col c1 c2
-                    Color.Channels_3 c1 c2 c3 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3
-                    Color.Channels_4 c1 c2 c3 c4 -> this.opencv_mat.put pixel.row pixel.col c1 c2 c3 c4
-
-    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
-    + : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
+    ## Calculates the per-element sum of a matrix and a scalar.
+    + : (Number | Vector) -> Matrix
     + value =
-        Panic.recover (Internal.core_op this.opencv_mat value (Core.add _ _ _)) . catch Internal.core_op_handler
+        Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element difference between two matrices or matrix and
-       a scalar.
-    - : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
-    - value = Panic.recover (Internal.core_op this.opencv_mat value (Core.subtract _ _ _)) . catch Internal.core_op_handler
+    ## Calculates the per-element difference between a matrix and a scalar.
+    - : (Number | Vector) -> Matrix
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element scaled product of two matrices or a matrix and
-       a scalar.
-    * : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
-    * value = Panic.recover (Internal.core_op this.opencv_mat value (Core.multiply _ _ _)) . catch Internal.core_op_handler
+    ## Calculates the per-element product of a matrix and a scalar.
+    * : (Number | Vector) -> Matrix
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
 
-    ## Performs per-element division of two matrices or a matrix and a scalar.
-    / : (Number | Vector | Color | Matrix) -> Matrix ! Color.Unsupported_Channels_Number
-    / value = Panic.recover (Internal.core_op this.opencv_mat value (Core.divide _ _ _)) . catch Internal.core_op_handler
+    ## Performs per-element division of a matrix and a scalar.
+    / : (Number | Vector) -> Matrix
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the sum of the elements.
-    sum : Color
-    sum =
-        scalar = Core.sumElems this.opencv_mat
-        Color.from_array scalar.val
+    == : Matrix -> Boolean
+    == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
     to_vector : Vector
     to_vector =
@@ -84,3 +66,19 @@ type Matrix
     to_json =
         base64 = Java_Matrix.to_base64 this.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+
+zeros : Integer -> Integer -> Integer -> Matrix
+zeros rows columns channels=1 =
+    Matrix (Java_Matrix.zeros rows columns channels)
+
+ones : Integer -> Integer -> Integer -> Matrix
+ones rows columns channels=1 =
+    Matrix (Java_Matrix.ones rows columns channels)
+
+eye : Integer -> Integer -> Integer -> Matrix
+eye rows columns channels=1 =
+    Matrix (Java_Matrix.eye rows columns channels)
+
+from_vector : Vector -> Integer -> Integer -> Matrix
+from_vector values rows=1 channels=1 =
+    Matrix (Java_Matrix.from_vector values.to_array channels rows)

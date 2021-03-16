@@ -14,25 +14,14 @@ create rows cols mat_type values =
     Matrix.Matrix opencv_mat
 
 ## PRIVATE
-core_op mat value op =
-    new_mat = Java_Matrix.zeros mat
+core_op mat value function =
+    new_mat = Java_Matrix.create mat
     scalar = case value of
         Vector.Vector arr ->
-            Color_Internal.to_scalar (Color.from_array arr) . catch (Panic.throw _)
-        Color.Channels_1 c1 ->
-            Scalar.new c1
-        Color.Channels_2 c1 c2 ->
-            Scalar.new c1 c2
-        Color.Channels_3 c1 c2 c3 ->
-            Scalar.new c1 c2 c3
-        Color.Channels_4 c1 c2 c3 c4 ->
-            Scalar.new c1 c2 c3 c4
-        Matrix.Matrix m ->
-            m
+            Scalar.new arr
         _ ->
-            v = Vector.fill mat.channels value
-            Scalar.new v.to_array
-    op mat scalar new_mat
+            Scalar.all value
+    function mat scalar new_mat
     Matrix.Matrix new_mat
 
 ## PRIVATE

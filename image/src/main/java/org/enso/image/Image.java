@@ -2,6 +2,7 @@ package org.enso.image;
 
 import org.enso.opencv.OpenCV;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -30,16 +31,18 @@ public class Image {
   }
 
   public static Mat read(String path, int flags) throws ReadFailedException {
-    Mat mat;
+    Mat input;
     if (flags == READ_FLAG_EMPTY) {
-      mat = Imgcodecs.imread(path);
+      input = Imgcodecs.imread(path);
     } else {
-      mat = Imgcodecs.imread(path, flags);
+      input = Imgcodecs.imread(path, flags);
     }
-    if (mat.empty()) {
+
+    if (input.empty()) {
       throw new ReadFailedException(path);
     }
-    return mat;
+
+    return input;
   }
 
   public static void write(String path, Mat image, MatOfInt flags) throws WriteFailedException {
@@ -49,9 +52,14 @@ public class Image {
     } else {
       result = Imgcodecs.imwrite(path, image, flags);
     }
+
     if (!result) {
       throw new WriteFailedException(path);
     }
+  }
+
+  public static Double normalize(byte pixelValue) {
+    return ((int) pixelValue + 128) / 255.0;
   }
 
 }
