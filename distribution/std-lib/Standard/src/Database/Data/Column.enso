@@ -64,13 +64,6 @@ type Column
 
        Returns a materialized dataframe containing rows of this table.
 
-       Currently the SQL decimal type is mapped to a floating-point
-       representation which is not exact. While operations in the database
-       itself may (or may not, depending on the database engine) be done with
-       exact precision, the materialized values may loose precision, so extra
-       care is needed when working with decimal computations that need to be
-       exact.
-
        Arguments:
        - max_rows: specifies a maximum amount of rows to fetch; if not set, all
          available rows are fetched.
@@ -82,13 +75,6 @@ type Column
     ## UNSTABLE
 
        Returns a vector containing all the elements in this column.
-
-       Currently the SQL decimal type is mapped to a floating-point
-       representation which is not exact. While operations in the database
-       itself may (or may not, depending on the database engine) be done with
-       exact precision, the materialized values may loose precision, so extra
-       care is needed when working with decimal computations that need to be
-       exact.
     to_vector : Vector
     to_vector =
         ## We remove the index to avoid fetching index data that will not be
@@ -376,6 +362,9 @@ type Column
        Checks for each element of the column if it starts with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     starts_with : Column | Text -> Column
     starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
@@ -384,6 +373,9 @@ type Column
        Checks for each element of the column if it ends with `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     ends_with : Column | Text -> Column
     ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
@@ -392,6 +384,9 @@ type Column
        Checks for each element of the column if it contains `other`.
        If `other` is a column, the operation is performed pairwise between
        corresponding elements of `this` and `other`.
+
+       If the argument is a missing value (a Nothing or a column with missing
+       values), the behaviour on these missing values is vendor specific.
     contains : Column | Text -> Column
     contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
 

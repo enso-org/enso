@@ -1,10 +1,11 @@
 from Standard.Base import all
 
-import Database_Tests.Codegen_Spec
-import Database_Tests.Database_Spec
 import Standard.Test
+import Database_Tests.Codegen_Spec
+import Database_Tests.Sqlite_Spec
+import Database_Tests.Postgresql_Spec
 
 main = Test.Suite.runMain <|
     Codegen_Spec.spec
-    Database_Spec.sqlite_spec
-    Database_Spec.postgres_spec
+    Sqlite_Spec.spec
+    Postgresql_Spec.spec

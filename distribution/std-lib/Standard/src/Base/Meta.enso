@@ -130,3 +130,20 @@ meta value = if Builtins.Meta.is_atom value then Atom value else
    This is a power-user feature, that is only useful for certain optimizations.
 is_same_object : Any -> Any -> Boolean
 is_same_object value_1 value_2 = Builtins.Meta.is_same_object value_1 value_2
+
+## PRIVATE
+
+   Returns a Text representing the source location of a stack frame above
+   the call.
+
+   Arguments:
+   - skip_frames: how many frames on the stack to skip.
+
+   If the function is called with 0 it will return the location of that call.
+   Note that not only function calls, but also things like pattern matching add
+   frames to the stack and there is no guarantee that the amount of frames that
+   need to be skipped will not change between versions, so this method should be
+   used carefully.
+get_source_location : Integer -> Text
+get_source_location skip_frames =
+    Builtins.Meta.get_source_location skip_frames+1
