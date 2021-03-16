@@ -171,11 +171,14 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         |import Test.Main
         |
         |bar = Main.foo + 1
-        |""".stripMargin,
+        |""".stripMargin.replace("\r\n", "\n"),
       "X2"
     )
     val exception =
       the[PolyglotException] thrownBy mod2.getAssociatedConstructor
-    exception.getMessage shouldEqual "Module_Does_Not_Exist"
+    exception.getMessage shouldEqual "org.enso.compiler.exception." +
+    "CompilerError: Compiler Internal Error: Attempted to import the " +
+    "unresolved module Test.Main during code generation. Defined at " +
+    "X2[2:1-2:16]."
   }
 }

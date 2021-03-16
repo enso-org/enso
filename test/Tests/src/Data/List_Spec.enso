@@ -1,6 +1,6 @@
-import Test
+from Standard.Base import all
 
-from Base import all
+import Standard.Test
 
 spec = Test.group "List" <|
     l = Cons 1 <| Cons 2 <| Cons 3 <| Nil

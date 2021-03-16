@@ -14,15 +14,15 @@ import org.enso.compiler.phase.{
   ImportResolver
 }
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.error.PanicException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
+import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -188,20 +188,24 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     * process the same source file multiple times.
     *
     * @param qualifiedName the qualified name of the module
+    * @param loc the location of the import
     * @return the scope containing all definitions in the requested module
     */
-  def processImport(qualifiedName: String): ModuleScope = {
+  def processImport(
+    qualifiedName: String,
+    loc: Option[IR.IdentifiedLocation],
+    source: Source
+  ): ModuleScope = {
     val module = context.getTopScope
       .getModule(qualifiedName)
       .toScala
-      .getOrElse(
-        throw new PanicException(
-          context.getBuiltins
-            .error()
-            .makeModuleDoesNotExistError(qualifiedName),
-          null
+      .getOrElse {
+        val locStr = fileLocationFromSection(loc, source)
+        throw new CompilerError(
+          s"Attempted to import the unresolved module $qualifiedName " +
+          s"during code generation. Defined at $locStr."
         )
-      )
+      }
     if (
       !module.getCompilationStage.isAtLeast(
         Module.CompilationStage.AFTER_RUNTIME_STUBS
@@ -318,6 +322,12 @@ class Compiler(val context: Context, private val builtins: Builtins) {
   def runErrorHandling(
     modules: List[Module]
   ): Unit = {
+    val shadowed = context.getShadowedPackages.asScala
+    if (shadowed.nonEmpty) {
+      context.getOut.println("Modules were shadowed during loading:")
+    }
+    shadowed.foreach(s => context.getOut.println(s.toString))
+
     if (context.isStrictErrors) {
       val diagnostics = modules.map { module =>
         val errors = GatherDiagnostics
@@ -421,7 +431,17 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     diagnostic: IR.Diagnostic,
     source: Source
   ): String = {
-    val srcLocation = diagnostic.location
+    fileLocationFromSection(
+      diagnostic.location,
+      source
+    ) + ": " + diagnostic.message
+  }
+
+  private def fileLocationFromSection(
+    loc: Option[IR.IdentifiedLocation],
+    source: Source
+  ): String = {
+    val srcLocation = loc
       .map { loc =>
         val section =
           source.createSection(loc.location.start, loc.location.length)
@@ -433,7 +453,7 @@ class Compiler(val context: Context, private val builtins: Builtins) {
         "[" + locStr + "]"
       }
       .getOrElse("")
-    source.getName + srcLocation + ": " + diagnostic.message
+    source.getName + srcLocation
   }
 
   /** Generates code for the truffle interpreter.

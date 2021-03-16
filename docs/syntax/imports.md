@@ -46,7 +46,7 @@ Unqualified imports are broken up into three main categories:
    module name, followed by an optional rename part (using the `as` keyword),
    then the keywords `import all`. For example:
    ```
-   from Base.Data.List as Builtin_List import all
+   from Standard.Base.Data.List as Builtin_List import all
    ```
 2. **Restricted Imports:** These import a specified set of names for use as
    automatically resolved referent names. They consist of the keyword `from`,
@@ -54,7 +54,7 @@ Unqualified imports are broken up into three main categories:
    word `import` followed by a coma-separated list of referent names to be
    imported. For example:
    ```
-   from Base.Data.List import Cons, Nil
+   from Standard.Base.Data.List import Cons, Nil
    ```
 3. **Hiding Imports:** These are the inverse of restricted imports, and import
    _all_ symbosl other than the named ones. They consist of the `from` keyword,
@@ -62,7 +62,7 @@ Unqualified imports are broken up into three main categories:
    words `import all hiding`, followed by a coma-separated list of referent
    names to be excluded from the import. For example:
    ```
-   from Base.Data.List import all hiding Cons, Nil
+   from Standard.Base.Data.List import all hiding Cons, Nil
    ```
 
 Imports in Enso _may_ introduce ambiguous symbols, but this is not an error
@@ -92,7 +92,7 @@ Unqualified exports are broken up into three main categories:
    module name, followed by an optional rename part (using the `as` keyword),
    then the keywords `export all`. For example:
    ```
-   from Base.Data.List as Builtin_List export all
+   from Standard.Base.Data.List as Builtin_List export all
    ```
 2. **Restricted Exports:** These export a specified set of names, behaving as
    though they were redefined in the current scope. They consist of the keyword
@@ -100,7 +100,7 @@ Unqualified exports are broken up into three main categories:
    the word `export` followed by a coma-separated list of names to be exported.
    For example:
    ```
-   from Base.Data.List export Cons, Nil, from_vector
+   from Standard.Base.Data.List export Cons, Nil, from_vector
    ```
 3. **Hiding Exports:** These are the inverse of restricted exports, and export
    _all_ symbols other than the named ones. They consist of the `from` keyword,
@@ -108,7 +108,7 @@ Unqualified exports are broken up into three main categories:
    words `export all hiding`, followed by a coma-separated list of names to be
    excluded from the export. For example:
    ```
-   from Base.Data.List export all hiding from_vector, Nil
+   from Standard.Base.Data.List export all hiding from_vector, Nil
    ```
 
 In essence, an export allows the user to "paste" the contents of the module

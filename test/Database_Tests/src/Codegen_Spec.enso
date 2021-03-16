@@ -1,10 +1,12 @@
-from Base import all
-from Database import all
-from Table import No_Such_Column_Error, Order_Rule
-import Database.Data.Dialect
-from Database.Data.Sql import Sql_Type
-import Test
+from Standard.Base import all
+
 import Database_Tests.Helpers.Fake_Test_Connection
+import Standard.Database.Data.Dialect
+import Standard.Test
+
+from Standard.Database import all
+from Standard.Database.Data.Sql import Sql_Type
+from Standard.Table import No_Such_Column_Error, Order_Rule
 
 spec =
     int = Sql_Type.integer

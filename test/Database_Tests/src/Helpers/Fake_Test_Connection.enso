@@ -1,5 +1,6 @@
-from Base import all
-import Database.Data.Table as Database_Table
+from Standard.Base import all
+
+import Standard.Database.Data.Table as Database_Table
 
 type Fake_Test_Connection
     # type Fake_Test_Connection (tables : Map Text (Vector [Text, Sql_Type]))

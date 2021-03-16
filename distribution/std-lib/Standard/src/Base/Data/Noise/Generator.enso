@@ -1,0 +1,46 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Interval.Bound
+import Standard.Base.Error.Extensions
+
+polyglot java import java.lang.Long
+polyglot java import java.util.Random
+
+## The interface for the noise generator abstraction.
+
+   To be a valid generator, it must provide the `step` method as described
+   below.
+type Generator
+    type Generator
+
+    ## Step the generator to produce the next value..
+
+       The parameters are as follows:
+       - The input number, which is intended for use as a seed.
+       - A range for output values, which should range over the chosen output
+         type.
+
+       The return type may be chosen freely by the generator implementation, as
+       it usually depends on the generator and its intended use.
+    step : Number -> Interval -> Any
+    step _ _ = Unimplemented "Only intended to demonstrate an interface."
+
+## A noise generator that implements a seeded deterministic random peterbation
+   of the input.
+
+   It produces what is commonly termed "white" noise, where any value in the
+   range has an equal chance of occurring.
+type Deterministic_Random
+    type Deterministic_Random
+
+    ## Step the generator to produce the next value.
+    step : Number -> Interval -> Number
+    step input interval =
+        max_long = Long.MAX_VALUE
+        seed = input.floor % max_long
+        gen = Random.new seed
+        value_range = (interval.end.n - interval.start.n).abs
+        offset = (interval.start.n)
+        gen.nextDouble
+        val = gen.nextDouble
+        (val * value_range) + offset

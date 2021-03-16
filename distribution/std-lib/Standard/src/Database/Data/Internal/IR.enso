@@ -1,0 +1,313 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   The internal representation of an SQL expression which can be a column
+   reference, an interpolated constant or an operation that combines other
+   expressions.
+type Expression
+    ## PRIVATE
+
+       The internal representation of an SQL expression that gets a value from a
+       column.
+
+       Arguments:
+       - origin: the name of the entity (table or sub-query) that this column
+         originates from, it corresponds to the `alias` field in `from_spec`.
+       - name: the name of the column directly in the table or its alias in a
+         sub-query.
+       # type Column (origin : Text) (name : Text)
+    type Column origin name
+
+    ## PRIVATE
+
+       The internal representation of an SQL expression which is a constant to
+       be interpolated when building the query.
+
+       Arguments:
+       - sql_type: The SQL type that this object is going to be serialized to.
+         It is usually inferred from the expression's context.
+       - value: the value to be interpolated; it should be a simple Number, Text
+         or other types that are serializable for JDBC.
+    # type Constant (sql_type : Sql.Sql_Type) (value : Any)
+    type Constant sql_type value
+
+    ## PRIVATE
+
+       The internal representation of an SQL expression built from an operation
+       and sub-expressions.
+
+       Arguments:
+       - kind: the name of the operation, these can be both functions or infix
+         operators, the actual implementation is determined by a specific
+         dialect.
+       - expression: a list of expressions which are arguments to the operation;
+         different operations support different amounts of arguments.
+    # type Operation (kind : Text) (expressions : Vector Expression)
+    type Operation kind expressions
+
+type Internal_Column
+    ## PRIVATE
+
+       An internal column structure.
+    type Internal_Column name sql_type expression
+
+    ## PRIVATE
+    rename : Text -> Internal_Column
+    rename new_name = Internal_Column new_name this.sql_type this.expression
+
+## PRIVATE
+
+   A context associated with an SQL query.
+type Context
+
+    ## PRIVATE
+
+       A context associated with an SQL query.
+
+       The expressions can only be computed in a context which specifies from where
+       their columns come and set filters and other settings for processing the
+       query.
+
+        Arguments:
+       - from_spec: the sources for the query, see `From_Spec` for more
+         details.
+       - where_filters: a list of expressions for filtering - only the rows
+         for which these expressions evaluate to true are included in the
+         result.
+       - orders: a list of ordering expressions, for each entry an ORDER BY
+         clause is added.
+       - groups: a list of grouping expressions, for each entry a GROUP BY is
+         added, the resulting query can then directly include only the
+         grouped-by columns or aggregate expressions.
+       - meta_index: a list of internal columns to use for joining or grouping.
+       - limit: an optional maximum number of elements that the equery should
+         return.
+       # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
+       #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
+       #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
+       #              (limit : Nothing | Integer)
+    type Context from_spec where_filters orders groups meta_index limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `meta_index`.
+    set_index : Vector Internal_Column -> Context
+    set_index new_index =
+        Context this.from_spec this.where_filters this.orders this.groups new_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `where_filters`.
+    set_where_filters : Vector Expression -> Context
+    set_where_filters new_filters =
+        Context this.from_spec new_filters this.orders this.groups this.meta_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `orders`.
+       # set_orders : Vector [Expression, Order_Direction] -> Context
+    set_orders new_orders =
+        Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `groups`.
+    set_groups : Vector Expression -> Context
+    set_groups new_groups =
+        Context this.from_spec this.where_filters this.orders new_groups this.meta_index this.limit
+
+    ## PRIVATE
+
+       Returns a copy of the context with changed `limit`.
+    set_limit : (Nothing | Integer) -> Context
+    set_limit new_limit =
+       Context this.from_spec this.where_filters this.orders this.groups this.meta_index new_limit
+
+## PRIVATE
+
+   Used as part of the context, specifies the sources of the query.
+type From_Spec
+    ## PRIVATE
+
+       A query source that takes data directly from a table in the
+       database.
+
+       Arguments:
+       - table_name: the full name identifying the table in the database.
+       - alias: the name upon which the table can be referred to in other
+         parts of the query, this is especially useful for example in
+         self-joins, allowing to differentiate between different instances of
+         the same table.
+       # type From_Table (table_name : Text) (alias : Text)
+    type From_Table table_name alias
+
+    ## PRIVATE
+
+       A query source that performs a join operation on two sources.
+
+       Arguments:
+       - kind: the kind of the join.
+       - left_spec: the left data source to be joined
+       - right_spec: the right data source to be joined
+       - on: a list of expressions that will be used as join conditions, these
+         are usually be equalities between expressions from the left and right
+         sources.
+       # type Join (kind : Join_Kind) (left_spec : From_Spec)
+       #           (right_spec : From_Spec) (on : Vector Expression)
+    type Join kind left_spec right_spec on
+
+    ## PRIVATE
+
+       A query source consisting of a sub-query.
+
+       Arguments:
+       - columns: a list of pairs; each first element is the alias for the
+         column created in the sub-query and the second element is the
+         expression to be computed.
+       - context: the context for the sub-query.
+       - alias: the name upon which the results of this sub-query can be
+         referred to in other parts of the query.
+    # type Sub_Query (columns : Vector [Text, Expression])
+    #               (context : Context) (alias : Text)
+    type Sub_Query columns context alias
+
+## PRIVATE
+
+   The kind of the join operation.
+type Join_Kind
+    ## PRIVATE
+
+       Inner join.
+
+       The result will contain only rows that had a match in both left and right
+       source.
+    type Join_Inner
+
+    ## PRIVATE
+
+       Left join.
+
+       The result will contain all rows from the left source. Some of them may
+       be duplicated if they have multiple matches on the right. If a row from
+       the left source has no match on the right, it will be present exactly
+       once in the result and the fields corresponding to the right source will
+       be set to NULL.
+    type Join_Left
+
+    ## PRIVATE
+
+       Right join.
+
+       The result will contain all rows from the right source. Some of them may
+       be duplicated if they have multiple matches on the left. If a row from
+       the right source has no match on the left, it will be present exactly
+       once in the result and the fields corresponding to the left source will
+       be set to NULL.
+    type Join_Right
+
+    ## PRIVATE
+
+       Cross join.
+
+       The result will contain a cross product of rows from the left source with
+       the right source. Its `on` list should be empty, instead `where_filters`
+       in the query can be used to filter the results.
+    type Join_Cross
+
+## PRIVATE
+
+   Specifies the direction of the ordering.
+type Order_Direction
+
+    ## PRIVATE
+
+       Orders elements in ascending order.
+    type Ascending
+
+    ## PRIVATE
+
+       Orders elements in descending order.
+    type Descending
+
+## PRIVATE
+
+   Specifies how null values should be handled within the ordering.
+type Nulls_Order
+
+    ## PRIVATE
+
+       Null values are included before any other values in the ordering.
+    type Nulls_First
+
+    ## PRIVATE
+
+       Null values are included after all other values in the ordering.
+    type Nulls_Last
+
+## PRIVATE
+
+   Describes a full SQL query.
+type Query
+
+    ## PRIVATE
+
+       A Select SQL query.
+
+       Arguments:
+       - expressions: list of pairs specifying the columns to materialize; each
+         is a pair whose first element is the name of the materialized column
+         and the second element is the expression to compute.
+       - context: the query context, see `Context` for more detail.
+    # type Select (expressions : [Text, Expression]) (context : Context)
+    type Select columns context
+
+    ## PRIVATE
+
+       A Select SQL query that gets all columns in a table.
+    type Select_All context
+
+    ## PRIVATE
+
+       An Insert SQL query that inserts a single row to the table.
+
+       Arguments:
+       - table_name: name of the table to insert to.
+       - pairs: a list of pairs consisting of a column name and and expression.
+    type Insert table_name pairs
+
+## PRIVATE
+
+   Creates a query context that just fetches data from a table, without any
+   additional processing.
+make_ctx_from : Text -> Context
+make_ctx_from table_name =
+    Context (From_Table table_name table_name) [] [] [] [] Nothing
+
+## PRIVATE
+
+   Creates an expression which is a simple constant to be interpolated.
+make_constant : Sql.Sql_Type -> Any -> Expression
+make_constant sql_type x =
+    Constant sql_type x
+
+## PRIVATE
+
+   A helper function to subsitute names tables inside of expressions. It is used
+   for example when renaming a table during a join.
+substitute_origin : Text -> Text -> Expression
+substitute_origin old_origin new_origin expr = case expr of
+    Column origin name ->
+        if origin == old_origin then Column new_origin name else expr
+    Constant _ _ -> expr
+    Operation kind exprs ->
+        Operation kind (exprs.map (here.substitute_origin old_origin new_origin))
+
+## PRIVATE
+
+   Lifts a function mapping expressions into a function mapping internal columns
+   which applies the original function to their expressions, leaving other
+   fields as-is.
+lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
+lift_expression_map f col =
+    Internal_Column col.name col.sql_type (f col.expression)

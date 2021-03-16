@@ -1,6 +1,8 @@
-from Base import all
+from Standard.Base import all
+
+import Standard.Test.Bench
+
 from Builtins import Prim_Text_Helper
-import Test.Bench
 
 polyglot java import java.lang.StringBuilder
 
