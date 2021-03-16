@@ -75,4 +75,5 @@ spec = Test.group "Meta-Value Manipulation" <|
         Meta.is_a err Text . should_be_false
     Test.specify "should allow to get the source location of a frame" <|
         src = Meta.get_source_location 0
-        src.ends_with "Meta_Spec.enso:76:15-40" . should_be_true
+        loc = "Meta_Spec.enso:77:15-40"
+        src.take_last loc.length . should_equal loc

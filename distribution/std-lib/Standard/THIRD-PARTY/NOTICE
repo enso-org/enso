@@ -1,6 +1,11 @@
 Enso
 Copyright 2020 - 2021 New Byte Order sp. z o. o.
 
+'univocity-parsers', licensed under the Apache 2, is distributed with the Standard.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.univocity.univocity-parsers-2.9.0`.
+
+
 'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the Standard.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.34.0`.
@@ -11,7 +16,12 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.ibm.icu.icu4j-67.1`.
 
 
-'univocity-parsers', licensed under the Apache 2, is distributed with the Standard.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.univocity.univocity-parsers-2.9.0`.
+'checker-qual', licensed under the The MIT License, is distributed with the Standard.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.5.0`.
+
+
+'postgresql', licensed under the BSD-2-Clause, is distributed with the Standard.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.postgresql.postgresql-42.2.19`.
 
