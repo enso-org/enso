@@ -326,6 +326,37 @@ Running the tests for the JVM enso components is as simple as running
 `sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
 can run the WASM tests for the rust components by using `./run --test-wasm`.
 
+#### Testing Enso Libraries
+
+To test the libraries that are shipped with Enso you need to first build the
+engine, the easiest way to do so is to run `sbt buildEngineDistribution`. That
+will create a distribution in the directory `built-distribution`. The engine
+runner that can be used for running the tests is located at
+`built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
+(or `enso.bat` for Windows).
+
+To run the tests you can run the following commands (where `enso` refers to the
+built runner executable as explained above):
+
+```bash
+enso --run test/Tests # for the Base library
+enso --run test/Geo_Tests
+enso --run test/Table_Tests
+enso --run test/Database_Tests
+```
+
+The Database tests will by default only test the SQLite backend, to test other
+backends see [`test/Database_Tests/README.md`](../test/Database_Tests/README.md)
+for information on how to configure them.
+
+The Base tests rely in a few places on the system language. On Linux you can set
+the `LANG` environment variable to `C` to make sure that the language is
+configured correctly and run the tests as following:
+
+```bash
+LANG=C enso --run test/Tests
+```
+
 #### Passing Debug Options
 
 GraalVM provides some useful debugging options, including the ability to output

@@ -720,6 +720,17 @@ type Meta
     new_atom : Atom_Constructor -> Array -> Atom
     new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
+    ## PRIVATE
+
+       Returns a Text representing the source location of a stack frame above
+       the call.
+
+       Arguments:
+       - frames_to_skip: how many frames on the stack to skip. Called with 0
+         will return exact location of the call.
+   get_source_location : Integer -> Text
+   get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
+
 ## Utilities for working with primitive arrays.
 type Array
 

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.System.Platform
 
 import Standard.Test
 
@@ -73,3 +74,11 @@ spec = Test.group "Meta-Value Manipulation" <|
         err.is_a Text . should_be_false
         Meta.is_an err Error . should_be_true
         Meta.is_a err Text . should_be_false
+
+    location_pending = case Platform.os of
+        Platform.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
+        _ -> Nothing
+    Test.specify "should allow to get the source location of a frame" pending=location_pending <|
+        src = Meta.get_source_location 0
+        loc = "Meta_Spec.enso:82:15-40"
+        src.take_last loc.length . should_equal loc

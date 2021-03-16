@@ -9,13 +9,15 @@ import Standard.Table.Internal.Java_Exports
 
 from Standard.Database.Data.Sql import Sql_Type
 
+polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.util.ArrayList
+polyglot java import java.util.Properties
 polyglot java import java.sql.DriverManager
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.Types
-polyglot java import java.lang.UnsupportedOperationException
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.database.JDBCProxy
 
 type Connection
 
@@ -53,13 +55,6 @@ type Connection
     ## ADVANCED
 
        Executes a raw query and returns the result as an in-memory Table.
-
-       Currently the SQL decimal type is mapped to a floating-point
-       representation which is not exact. While operations in the database
-       itself may (or may not, depending on the database engine) be done with
-       exact precision, the materialized values may loose precision, so extra
-       care is needed when working with decimal computations that need to be
-       exact.
 
        Arguments:
        - query: either raw SQL code as Text or an instance of Sql.Statement
@@ -150,15 +145,12 @@ type Connection
 
    Creates a builder for a column based on a provided SQL type, trying to infer
    the best type for the builder.
-
-   WARNING: Currently it coerces decimals into floating point numbers.
 create_builder : Sql_Type -> Builder
 create_builder sql_type =
     initial_size = 10
     if sql_type.is_definitely_boolean then Builder_Boolean (Java_Exports.make_bool_builder) else
         if sql_type.is_definitely_integer then Builder_Long (Java_Exports.make_long_builder initial_size) else
-            is_double =  sql_type.is_definitely_double || sql_type==Sql_Type.decimal
-            if is_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
+            if sql_type.is_definitely_double then Builder_Double (Java_Exports.make_double_builder initial_size) else
                 Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
 
 type Builder
@@ -219,14 +211,13 @@ type Unsupported_Dialect url
 
    Creates a JDBC connection based on a URL and optionally username and
    password.
-create_jdbc_connection : Text -> Nothing | Text -> Nothing | Text -> Connection
-create_jdbc_connection url user=Nothing password=Nothing = here.wrap_sql_errors <|
+create_jdbc_connection : Text -> Vector -> Connection
+create_jdbc_connection url properties = here.wrap_sql_errors <|
+    java_props = Properties.new
+    properties.each pair->
+        java_props.setProperty pair.first pair.second
     dialect = Dialect.supported_dialects.find (d -> url.starts_with "jdbc:"+d.name) . map_error (_ -> Unsupported_Dialect url)
-    java_connection = case user.is_nothing && password.is_nothing of
-        True ->
-            DriverManager.getConnection url
-        False ->
-            DriverManager.getConnection url user password
+    java_connection = JDBCProxy.getConnection url java_props
     resource = Managed_Resource.register java_connection here.close_connection
     Connection resource dialect
 

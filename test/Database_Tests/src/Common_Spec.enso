@@ -1,18 +1,19 @@
 from Standard.Base import all
-
-import Standard.Test
-
 from Standard.Database import all
-from Standard.Database.Connection.Connection import Sql_Error
+import Standard.Test
 
 spec prefix connection pending=Nothing =
     make_table name column_names column_typenames = Panic.recover <|
+        quote x = '"' + x + '"'
         # TODO this is a hack with no sanitization, just for testing; it should be removed when proper create table is supported by the library
         cols = column_names.zip column_typenames name-> typ->
-            name + " " + typ
-        sql = "CREATE TABLE " + name + " (" + (cols.join ", ") + ")"
+            quote name + " " + typ
+        sql = "CREATE TABLE " + quote name + " (" + (cols.join ", ") + ")"
         Panic.rethrow <| connection.execute_update sql
         Panic.rethrow <| connection.access_table name
+    clean_table name = Panic.recover <|
+        sql = 'DROP TABLE "' + name + '"'
+        Panic.rethrow <| connection.execute_update sql
     t1 = make_table "T1" ["A", "B", "C"] ["INT", "INT", "INT"]
     t1.insert [1, 2, 3]
     t1.insert [4, 5, 6]
@@ -106,17 +107,14 @@ spec prefix connection pending=Nothing =
             s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
             s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
             s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
-            s1.starts_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
             s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
             s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
             s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
-            s1.contains Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
             s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
             s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
             s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
-            s1.ends_with Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
 
     Test.group prefix+"Masking Tables" pending=pending <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
@@ -219,7 +217,7 @@ spec prefix connection pending=Nothing =
             empty.to_dataframe.columns.length . should_equal 0
 
     Test.group prefix+"Aggregation" pending=pending <|
-        t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DECIMAL', 'INTEGER']
+        t = make_table "T6" ['name', 'price', 'quantity'] ['VARCHAR', 'DOUBLE PRECISION', 'INTEGER']
         t.insert ["foo",  0.4,     10]
         t.insert ["bar",  3.5,     20]
         t.insert ["foo",  Nothing, 30]
@@ -243,7 +241,7 @@ spec prefix connection pending=Nothing =
 
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
-            t7 = make_table "T7" ['price'] ['DECIMAL']
+            t7 = make_table "T7" ['price'] ['DOUBLE PRECISION']
             price = t7.at 'price'
             [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing] . each x->
                 t7.insert [x]
@@ -254,7 +252,7 @@ spec prefix connection pending=Nothing =
             price.mean.should_equal 26.9
 
     Test.group prefix+"Sorting" pending=pending <|
-        df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DECIMAL', 'DECIMAL']
+        df = make_table "clothes" ['Id', 'Name', 'Quantity', 'Rating', 'Price'] ['INTEGER', 'VARCHAR', 'INTEGER', 'DOUBLE PRECISION', 'DOUBLE PRECISION']
         df.insert [1,'shoes',20,3.0,37.2]
         df.insert [2,'trousers',10,Nothing,42.1]
         df.insert [3,'dress',20,7.3,64.1]
@@ -297,7 +295,7 @@ spec prefix connection pending=Nothing =
             r.should_fail_with No_Such_Column_Error
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
-            df = make_table "T8" ['ord', 'ints', 'reals', 'bools', 'texts'] ['INTEGER', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'VARCHAR']
+            df = make_table "T8" ['ord', 'ints', 'reals', 'bools', 'texts'] ['INTEGER', 'INTEGER', 'DOUBLE PRECISION', 'BOOLEAN', 'VARCHAR']
             r = df.sort by='ord'
             df.insert [0, 1, 1.3, False, "foo"]
             df.insert [3, 2, 4.6, False, "foo"]
@@ -334,38 +332,5 @@ spec prefix connection pending=Nothing =
             r_3 = c.sort order=Sort_Order.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
-    Test.group prefix+"Info" pending=pending <|
-        Test.specify "should return Table information" <|
-            t = make_table "T9" ["strs", "ints", "bools"] ["VARCHAR", "INTEGER", "BOOLEAN"]
-            t.insert ["a", Nothing, False]
-            t.insert ["abc", Nothing, Nothing]
-            t.insert ["def", 42, True]
-            i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools"]
-            i.at "Items Count" . to_vector . should_equal [3, 1, 2]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN"]
-
-sqlite_specific_spec connection =
-    Test.group "[SQLite] Error Handling" <|
-        Test.specify "should wrap errors" <|
-            connection.execute_query "foobar" . should_fail_with Sql_Error
-            connection.execute_update "foobar" . should_fail_with Sql_Error
-
-            action = connection.execute_query "SELECT A FROM undefined_table"
-            action . should_fail_with Sql_Error
-            action.catch.to_text . should_equal "[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)"
-
-sqlite_spec =
-    Enso_Project.data.create_directory
-    file = Enso_Project.data / "sqlite_test.db"
-    file.delete_if_exists
-    connection = Database.open_sqlite_file file
-    here.spec "[SQLite] " connection
-    here.sqlite_specific_spec connection
-    connection.close
-    file.delete
-
-postgres_spec =
-    # TODO [RW] use env vars to read tmp DB config
-    connection = Error.throw "PostgreSQL test database is not configured"
-    here.spec "[PostgreSQL] " connection pending="PostgreSQL test database is not configured."
+    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes"]
+    tables.each clean_table

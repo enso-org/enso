@@ -50,5 +50,6 @@ public class Meta {
         meta, "get_polyglot_language", GetPolyglotLanguageMethodGen.makeFunction(language));
 
     scope.registerMethod(meta, "is_same_object", IsSameObjectMethodGen.makeFunction(language));
+    scope.registerMethod(meta, "get_source_location", GetSourceLocationMethodGen.makeFunction(language));
   }
 }
