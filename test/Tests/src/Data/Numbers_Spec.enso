@@ -1,6 +1,6 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 
 Integer.is_even = this % 2 == 0
 Decimal.get_fun_factor = "Wow, " + this.to_text + " is such a fun number!"

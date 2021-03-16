@@ -1,8 +1,8 @@
-from Base import all
-import Test
+from Standard.Base import all
 
-import Base.Data.Text.Split_Kind
-import Base.Data.Locale
+import Standard.Base.Data.Locale
+import Standard.Base.Data.Text.Split_Kind
+import Standard.Test
 
 type Auto a
 

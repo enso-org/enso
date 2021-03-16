@@ -1,0 +1,214 @@
+from Standard.Base import all
+
+## The top-level entry point for a test suite.
+type Suite specs
+
+## PRIVATE
+type Spec name behaviors
+
+## PRIVATE
+type Behavior name result
+
+## PRIVATE
+Behavior.is_fail = this.result.is_fail
+
+## PRIVATE
+Spec.is_fail = this.behaviors.any .is_fail
+
+## PRIVATE
+Suite.is_fail = this.specs.any .is_fail
+
+## PRIVATE
+type Finished_With_Error err stack_trace_text
+
+## PRIVATE
+type Matched_On_Error err
+
+## PRIVATE
+type Assertion
+    type Success
+    type Failure message
+    type Pending reason
+
+    is_fail = case this of
+        Success -> False
+        Failure _ -> True
+        Pending _ -> False
+
+type Verbs
+    type Verbs
+
+    start_with subject argument =
+        if subject.starts_with argument then Success else
+            here.fail (subject.to_text + " did not start with " + argument.to_text))
+
+    equal subject argument =
+        if subject == argument then Success else
+            msg = subject.to_text + " did not equal " + argument.to_text + "."
+            here.fail msg
+
+    be subject argument = this.equal subject argument
+
+    contain subject argument =
+        if subject.contains argument then Success else
+            msg = subject.to_text + " did not contain " + argument.to_text + "."
+            here.fail msg
+
+Any.should verb argument = verb Verbs this argument
+
+## Fail a test with the given message.
+fail message = Panic.throw (Failure message)
+
+## Expect a function to fail with the provided dataflow error.
+Any.should_fail_with matcher =
+    here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
+
+## Expect a function to fail with the provided dataflow error.
+Error.should_fail_with matcher =
+    caught = this.catch x->x
+    if caught.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + caught.to_text + " returned.")
+
+## Expect a function to fail with the provided panic.
+expect_panic_with ~action matcher =
+    res = Panic.recover action
+    case res of
+        _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
+    err = res.catch x->x
+    if err.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + err.to_text + " thrown.")
+
+## Asserts that `this` value is equal to the expected value.
+Any.should_equal that = case this == that of
+    True -> Success
+    False ->
+        msg = this.to_text + " did not equal " + that.to_text + "."
+        Panic.throw (Failure msg)
+
+## Asserts that `this` value is equal to the expected value.
+Error.should_equal _ = Panic.throw (Matched_On_Error this)
+
+## Asserts that `this` is within `epsilon` from `that`.
+Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
+    True -> Success
+    False ->
+        msg = this.to_text + " did not equal " + that.to_text + "."
+        Panic.throw (Failure msg)
+
+## Asserts that the given `Boolean` is `True`
+Boolean.should_be_true = case this of
+    True -> Success
+    False -> Panic.throw (Failure "Expected False to be True.")
+
+## Asserts that the given `Boolean` is `True`.
+Error.should_be_true = Panic.throw (Matched_On_Error this)
+
+## Asserts that the given `Boolean` is `False`
+Boolean.should_be_false = case this of
+    True -> Panic.throw (Failure "Expected True to be False.")
+    False -> Success
+
+## Asserts that the given `Boolean` is `False`
+Error.should_be_false = Panic.throw (Matched_On_Error this)
+
+## PRIVATE
+Spec.print_report =
+    IO.print_err (this.name + ":")
+    this.behaviors.reverse.each behavior->
+        case behavior.result of
+            Success ->
+                IO.print_err ("    - " + behavior.name)
+            Failure msg ->
+                IO.print_err ("    - [FAILED] " + behavior.name)
+                IO.print_err ("        Reason: " + msg)
+            Pending reason ->
+                IO.print_err ("    - [PENDING] " + behavior.name)
+                IO.print_err ("        Reason: " + reason)
+
+## Creates a new test group, desribing properties of the object
+   described by `this`.
+
+   > Example
+         Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
+                     2+3 . should_equal 5
+                 Test.specify "should define multiplication" <|
+                     2*3 . should_equal 6
+group name ~behaviors pending=Nothing =
+    case pending of
+        Nothing ->
+            r = State.run Spec (Spec name  Nil) <|
+                behaviors
+                State.get Spec
+            r.print_report
+            suite = State.get Suite
+            new_suite = Suite (Cons r suite.specs)
+            State.put Suite new_suite
+        reason ->
+            IO.print_err ("[PENDING] " + name)
+            IO.print_err ("    Reason: " + reason)
+
+## Specifies a single behavior, described by `this`.
+
+   > Example
+         Suite.run <|
+             describe "Number" <|
+                 it "should define addition" <|
+                     2+3 . should_equal 5
+                 it "should define multiplication" <|
+                     2*3 . should_equal 6
+specify label ~behavior pending=Nothing =
+    result = case pending of
+        Nothing -> here.run_spec behavior
+        reason -> Pending reason
+    spec = State.get Spec
+    new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
+    State.put Spec new_spec
+
+## PRIVATE
+run_spec ~behavior =
+    recovery = Panic.recover <|
+        result = behavior
+        result.catch err-> Panic.throw (Finished_With_Error err result.get_stack_trace_text)
+        Nothing
+    maybeExc = case recovery of
+        _ -> Success
+    result = maybeExc.catch ex->
+        case ex of
+            Failure _ -> ex
+            Finished_With_Error err stack_trace_text ->
+                Failure ("An unexpected error was returned: " + err.to_text + '\n' + stack_trace_text)
+            _ -> Failure ("An unexpected panic was thrown: " + ex.to_text + '\n' + maybeExc.get_stack_trace_text)
+    result
+
+## Creates a new test group, desribing properties of the object
+   described by `this`.
+
+   > Example
+         Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
+                     2+3 . should_equal 5
+                 Test.specify "should define multiplication" <|
+                     2*3 . should_equal 6
+Suite.run ~specs =
+    r = State.run Suite (Suite Nil) <|
+        specs
+        State.get Suite
+    r
+
+## Creates a new test group, desribing properties of the object
+   described by `this`.
+
+   > Example
+         Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
+                     2+3 . should_equal 5
+                 Test.specify "should define multiplication" <|
+                     2*3 . should_equal 6
+Suite.runMain ~specs =
+    r = this.run specs
+    code = if r.is_fail then 1 else 0
+    System.exit code

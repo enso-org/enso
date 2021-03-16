@@ -1,0 +1,68 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.Http_Utils
+
+type Header
+
+    type Header name value
+
+    ## Header equality.
+    == : Header -> Boolean
+    == that = (this.name.equals_ignore_case that.name) && this.value==that.value
+
+## Create a new Header.
+new : Text -> Text -> Header
+new name value = Header name value
+
+# Accept
+
+## Create "Accept" header.
+accept : Text -> Header
+accept value = Header "Accept" value
+
+## Header "Accept: */*".
+accept_all : Header
+accept_all = here.accept "*/*"
+
+# Authorization
+
+## Create "Authorization" header.
+authorization : Text -> Header
+authorization value = Header "Authorization" value
+
+## Create HTTP basic auth header.
+
+   > Example
+     Create basic auth header.
+         Header.authorization_basic "user" "pass"
+authorization_basic : Text -> Text -> Header
+authorization_basic user pass =
+    here.authorization (Http_Utils.header_basic_auth user pass)
+
+# Content-Type
+
+## Create "Content-Type" header.
+content_type : Text -> Header
+content_type value = Header "Content-Type" value
+
+## Header "Content-Type: application/json".
+application_json : Header
+application_json = here.content_type "application/json"
+
+## Header "Content-Type: application/octet-stream".
+application_octet_stream : Header
+application_octet_stream = here.content_type "application/octet-stream"
+
+## Header "Content-Type: application/x-www-form-urlencoded".
+application_x_www_form_urlencoded : Header
+application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
+
+## Header "Content-Type: multipart/form-data".
+multipart_form_data : Text -> Header
+multipart_form_data (boundary = "") =
+    if boundary == "" then here.content_type "multipart/form-data" else
+        here.content_type ("multipart/form-data; boundary=" + boundary)
+
+## Header "Content-Type: text/plain".
+text_plain : Header
+text_plain = here.content_type "text/plain"

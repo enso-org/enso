@@ -1,6 +1,6 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 
 type Author name year_of_birth
 type Book title author

@@ -1,7 +1,8 @@
-from Base import all
-import Test
+from Standard.Base import all
+
 import Database_Tests.Codegen_Spec
 import Database_Tests.Database_Spec
+import Standard.Test
 
 main = Test.Suite.runMain <|
     Codegen_Spec.spec

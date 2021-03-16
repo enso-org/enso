@@ -1,0 +1,183 @@
+from Standard.Base import all hiding Number, Boolean, Array
+
+from Standard.Base.Data.Json import all
+
+polyglot java import org.enso.base.json.Parser
+polyglot java import org.enso.base.json.Printer
+
+## A JSON parser event consumer, passed to the Java parser backend.
+
+   Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
+type Consumer
+    type Consumer child_consumer value
+
+    ## Helper for handling "value emitted" events.
+    on_value v = case Ref.get this.child_consumer of
+        Nil -> Ref.put this.value v
+        cons -> cons.on_value v
+
+    ## Closes the child consumer and either sets the current consumer to its
+       parent, or takes its returned value as the final result of parsing.
+    seal_child =
+        child = Ref.get this.child_consumer
+        val = child.seal
+        case child.parent of
+            Nil ->
+                Ref.put this.value val
+            p ->
+                Ref.put this.child_consumer p
+                p.on_value val
+
+    ## Consumes the `start_object` event.
+    on_start_object =
+        parent = Ref.get this.child_consumer
+        Ref.put this.child_consumer (here.mk_object_consumer parent)
+
+    ## Consumes the `key` event.
+    on_key k = Ref.get this.child_consumer . on_key k
+
+    ## Consumes the `end_object` event.
+    on_end_object = this.seal_child
+
+    ## Consumes the `start_array` event.
+    on_start_array =
+        parent = Ref.get this.child_consumer
+        Ref.put this.child_consumer (here.mk_array_consumer parent)
+
+    ## Consumes the `end_array` event.
+    on_end_array = this.seal_child
+
+    ## Consumes the `long` event.
+    on_long n = this.on_value (Number n)
+
+    ## Consumes the `double` event.
+    on_double n = this.on_value (Number n)
+
+    ## Consumes the `string` event.
+    on_string s = this.on_value (String s)
+
+    ## Consumes the `true` event.
+    on_true = this.on_value (Boolean True)
+
+    ## Consumes the `false` event.
+    on_false = this.on_value (Boolean False)
+
+    ## Consumes the `null` event.
+    on_null = this.on_value Null
+
+## A child consumer, used to process events inside arrays.
+type Array_Consumer
+    type Array_Consumer builder parent
+
+    ## Consumes a value.
+    on_value v = this.builder.append v
+
+    ## Returns the final value built by this consumer.
+    seal =
+        vec = this.builder.to_vector
+        Array vec
+
+## A child consumer, used to process events inside objects.
+type Object_Consumer
+    type Object_Consumer last_key map parent
+
+    ## Consumes a key.
+    on_key k = Ref.put this.last_key k
+
+    ## Consumes a value.
+    on_value v =
+        k = Ref.get this.last_key
+        m = Ref.get this.map
+        new_m = m.insert k v
+        Ref.put this.map new_m
+
+    ## Returns the final value built by this consumer.
+    seal =
+        m = Ref.get this.map
+        Object m
+
+## Creates a new object consumer with the given parent.
+mk_object_consumer parent =
+    k = Ref.new ""
+    m = Ref.new Map.empty
+    Object_Consumer k m parent
+
+## Creates a new array consumer with the given parent.
+mk_array_consumer parent =
+    bldr = Vector.new_builder
+    Array_Consumer bldr parent
+
+## Creates a new top-level consumer.
+mk_consumer =
+    child = Ref.new Nil
+    val = Ref.new Nothing
+    Consumer child val
+
+## Helper method for printing JSON values to Text.
+render_helper builder json = case json of
+    Object fields ->
+        r = Ref.new ""
+        render_key_value acc key value =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" value
+            acc + separator + (Printer.json_escape key) + ":" + val
+        arr = fields.fold_with_key "" render_key_value
+        builder + "{" + arr + "}"
+    Array items ->
+        r = Ref.new ""
+        render_array_element acc element =
+            separator = Ref.get r
+            Ref.put r ","
+            val = here.render_helper "" element
+            acc + separator + val
+        arr = items.fold "" render_array_element
+        builder + "[" + arr + "]"
+    String value ->
+        builder + (Printer.json_escape value)
+    Number value ->
+        builder + value.to_text
+    Boolean value ->
+        val = if value then "true" else "false"
+        builder + val
+    Null ->
+        builder + "null"
+
+## Helper method for converting JSON objects into arbitrary types.
+
+   See `Json.into` for semantics documentation.
+into_helper fmt json = case fmt of
+    Base.Vector.Vector field -> case json of
+        Array items -> items.map (here.into_helper field)
+        _ -> Panic.throw (Type_Mismatch_Error json fmt)
+    Base.Boolean -> case json of
+        Boolean v -> v
+        _ -> Panic.throw (Type_Mismatch_Error json fmt)
+    Base.Number -> case json of
+        Number v -> v
+        _ -> Panic.throw (Type_Mismatch_Error json fmt)
+    Base.Text -> case json of
+        String v -> v
+        _ -> Panic.throw (Type_Mismatch_Error json fmt)
+    _ ->
+        m = Meta.meta fmt
+        case m of
+            Meta.Atom _ -> case json of
+                Object json_fields ->
+                    cons = Meta.Constructor m.constructor
+                    fnames = cons.fields
+                    ffmts = m.fields
+                    field_values = fnames.zip ffmts n-> inner_fmt->
+                        fjson = json_fields . get n . catch _->
+                            Panic.throw (Missing_Field_Error json fmt n)
+                        here.into_helper inner_fmt fjson
+                    cons.new field_values
+                _ -> Panic.throw (Type_Mismatch_Error json fmt)
+            _ -> Panic.throw (Type_Mismatch_Error json fmt)
+
+## Helper used to parse text into a JSON value.
+parse_helper : Text -> Json
+parse_helper json_text =
+    consumer = here.mk_consumer
+    Parser.parse json_text consumer
+    Ref.get consumer.value

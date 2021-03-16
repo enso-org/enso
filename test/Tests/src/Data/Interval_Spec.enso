@@ -1,6 +1,6 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 
 spec =
     Test.group "Bound" <|

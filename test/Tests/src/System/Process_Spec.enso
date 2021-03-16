@@ -1,8 +1,10 @@
-from Base import all
-import Base.System.Process
-from Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
-import Base.System.Platform
-import Test
+from Standard.Base import all
+
+import Standard.Base.System.Platform
+import Standard.Base.System.Process
+import Standard.Test
+
+from Standard.Base.System.Process.Exit_Code import Exit_Success, Exit_Failure
 
 spec = Test.group "Process" <|
     Test.specify "should call simple command" <|

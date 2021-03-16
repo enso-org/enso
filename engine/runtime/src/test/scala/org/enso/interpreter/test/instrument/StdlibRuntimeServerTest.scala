@@ -37,7 +37,7 @@ class StdlibRuntimeServerTest
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val stdlib: File =
-      Paths.get("../../distribution/std-lib/Base").toFile.getAbsoluteFile
+      Paths.get("../../distribution/std-lib/Standard").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "0.0.1")
@@ -147,7 +147,7 @@ class StdlibRuntimeServerTest
     val metadata = new Metadata
 
     val code =
-      """from Base import all
+      """from Standard.Base import all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -183,7 +183,7 @@ class StdlibRuntimeServerTest
     val response =
       context.receiveAllUntil(
         context.executionComplete(contextId),
-        timeout = 30
+        timeout = 60
       )
     response should contain(
       Api.Response(requestId, Api.PushContextResponse(contextId))

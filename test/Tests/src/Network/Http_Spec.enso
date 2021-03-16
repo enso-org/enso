@@ -1,18 +1,18 @@
-from Base import all
+from Standard.Base import all
 
-import Base.Data.Json
-import Test
-import Base.Network.Http
-import Base.Network.Http.Form
-import Base.Network.Http.Header
-import Base.Network.Http.Request
-import Base.Network.Http.Request.Body as Request_Body
-import Base.Network.Http.Status_Code
-import Base.Network.Http.Version
-import Base.Network.Proxy
-import Base.Network.Uri
-import Base.System.File
-import Base.Data.Time.Duration
+import Standard.Base.Data.Json
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Network.Http
+import Standard.Base.Network.Http.Form
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Request
+import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Http.Status_Code
+import Standard.Base.Network.Http.Version
+import Standard.Base.Network.Proxy
+import Standard.Base.Network.Uri
+import Standard.Base.System.File
+import Standard.Test
 
 polyglot java import java.lang.System
 polyglot java import java.util.Objects

@@ -1,0 +1,45 @@
+from Standard.Base import all
+
+reverse_list = list ->
+    go = list -> acc -> case list of
+        Cons h t -> @Tail_Call go t (Cons h acc)
+        Nil -> acc
+    res = go list Nil
+    res
+
+sum_list = list ->
+    go = list -> acc -> case list of
+        Cons a b -> @Tail_Call go b (acc + a)
+        Nil -> acc
+
+    res = go list 0
+    res
+
+avg_list = list -> here.sum_list list / here.len_list list
+
+len_list = list ->
+    go = list -> acc -> case list of
+        Cons _ b -> @Tail_Call go b (acc + 1)
+        Nil -> acc
+    res = go list 0
+    res
+
+Number.times = act ->
+    go = results -> number -> if number == 0 then results else
+        @Tail_Call go (Cons (act number) results) number-1
+    res = here.reverse_list (go Nil this)
+    res
+
+measure = ~act -> label -> iter_size -> num_iters ->
+    single_call = _ ->
+        x1 = System.nano_time
+        Runtime.no_inline act
+        x2 = System.nano_time
+        x2 - x1
+    iteration = it_num ->
+        act_it_num = num_iters - it_num
+        res = iter_size.times single_call
+        avg = here.avg_list res
+        fmt = (avg / 1000000).format "%.2f"
+        IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
+    num_iters.times iteration

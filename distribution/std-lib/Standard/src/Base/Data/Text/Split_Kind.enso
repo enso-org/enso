@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+## The type of split for splitting text.
+type Split_Kind
+    ## Split on unicode whitespace.
+    type Whitespace
+    ## Split into lines.
+    type Lines
+    ## Split into words.
+    type Words
+    ## Split on a literal.
+    Text
+

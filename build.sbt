@@ -67,20 +67,10 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`project-manager`)
   ),
   Distribution(
-    "std-lib-Base",
-    file("distribution/std-lib/Base/THIRD-PARTY"),
+    "Standard",
+    file("distribution/std-lib/Standard/THIRD-PARTY"),
     Distribution.sbtProjects(`std-bits`)
   ),
-  Distribution(
-    "std-lib-Table",
-    file("distribution/std-lib/Table/THIRD-PARTY"),
-    Distribution.sbtProjects(table)
-  ),
-  Distribution(
-    "std-lib-Database",
-    file("distribution/std-lib/Database/THIRD-PARTY"),
-    Distribution.sbtProjects(database)
-  )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
@@ -384,7 +374,7 @@ val declineVersion          = "1.2.0"
 val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "29.0-jre"
-val jlineVersion            = "3.15.0"
+val jlineVersion            = "3.19.0"
 val kindProjectorVersion    = "0.11.3"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
@@ -1035,8 +1025,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-bits` / Compile / packageBin)
-      .dependsOn(table / Compile / packageBin)
-      .dependsOn(database / Compile / packageBin)
       .value
   )
   .settings(
@@ -1255,67 +1243,25 @@ lazy val `locking-test-helper` = project
   )
 
 val `std-lib-root`           = file("distribution/std-lib/")
-val `std-lib-polyglot-root`  = `std-lib-root` / "Base" / "polyglot" / "java"
-val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
-val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
+val `standard-polyglot-root` = `std-lib-root` / "Standard" / "polyglot" / "java"
 
 lazy val `std-bits` = project
   .in(file("std-bits"))
   .settings(
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      `std-lib-polyglot-root` / "std-bits.jar",
+      `standard-polyglot-root` / "std-bits.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu" % "icu4j" % icuVersion
+      "com.ibm.icu"   % "icu4j"             % icuVersion,
+      "com.univocity" % "univocity-parsers" % "2.9.0",
+      "org.xerial"    % "sqlite-jdbc"       % "3.34.0"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
         .copyDependencies(
-          `std-lib-polyglot-root`,
+          `standard-polyglot-root`,
           Some("std-bits.jar"),
-          ignoreScalaLibrary = true
-        )
-        .value
-      result
-    }.value
-  )
-
-lazy val table = project
-  .in(file("table"))
-  .settings(
-    autoScalaLibrary := false,
-    Compile / packageBin / artifactPath :=
-      `table-polyglot-root` / "table.jar",
-    libraryDependencies ++= Seq(
-      "com.univocity" % "univocity-parsers" % "2.9.0"
-    ),
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      val _ = StdBits
-        .copyDependencies(
-          `table-polyglot-root`,
-          Some("table.jar"),
-          ignoreScalaLibrary = true
-        )
-        .value
-      result
-    }.value
-  )
-
-lazy val database = project
-  .in(file("database"))
-  .settings(
-    autoScalaLibrary := false,
-    libraryDependencies ++= Seq(
-      "org.xerial" % "sqlite-jdbc" % "3.34.0"
-    ),
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      val _ = StdBits
-        .copyDependencies(
-          `database-polyglot-root`,
-          None,
           ignoreScalaLibrary = true
         )
         .value
