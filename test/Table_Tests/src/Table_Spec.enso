@@ -511,6 +511,7 @@ spec =
             t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
 
             t_1.take_start 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
+            t_1.at 'col' . take_start 10 . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take_start 2
             t_2.index.to_vector . should_equal (t_1.index.to_vector . take_start 2)

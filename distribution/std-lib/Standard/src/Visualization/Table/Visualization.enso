@@ -8,17 +8,25 @@ import Standard.Database.Data.Column as Database_Column
 # TODO add an initial offset to fully support lazy visualizations
 ## PRIVATE
 prepare_visualization x max_rows = case x of
-    Dataframe_Table.Table _ -> here.make_json x
-    Dataframe_Column.Column _ -> here.make_json x.to_table
+    Dataframe_Table.Table _ ->
+        dataframe = x.take_start max_rows
+        all_rows_count = x.row_count
+        here.make_json dataframe all_rows_count
+    Dataframe_Column.Column _ ->
+        here.prepare_visualization x.to_table max_rows
     Database_Table.Table _ _ _ _ ->
-        here.make_json <| x.to_dataframe max_rows
+        dataframe = x.to_dataframe max_rows
+        all_rows_count = x.row_count
+        here.make_json dataframe all_rows_count
     Database_Column.Column _ _ _ _ _ ->
-        here.make_json <| x.to_table.to_dataframe max_rows
+        here.prepare_visualization x.to_table max_rows
     _ -> x . to_json . to_text
 
 ## PRIVATE
 make_json dataframe all_rows_count =
-    header = ["header", dataframe.columns.map .name]
-    data   = ["data",   dataframe.columns.map .to_vector . map (x -> x.take_start 2000) ]
-    pairs  = [header,data]
+    columns  = dataframe.columns
+    header   = ["header", columns.map .name]
+    data     = ["data",   columns.map .to_vector]
+    all_rows = ["all_rows_count", all_rows_count]
+    pairs    = [header, data, all_rows]
     Json.from_pairs pairs . to_text

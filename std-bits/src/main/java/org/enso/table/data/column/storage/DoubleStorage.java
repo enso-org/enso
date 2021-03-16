@@ -259,7 +259,7 @@ public class DoubleStorage extends NumericStorage {
 
   @Override
   public DoubleStorage slice(int offset, int limit) {
-    int newSize = Math.min(data.length - offset, limit);
+    int newSize = Math.min(size - offset, limit);
     long[] newData = new long[newSize];
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
