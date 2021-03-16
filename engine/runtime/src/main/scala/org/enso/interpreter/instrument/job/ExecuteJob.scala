@@ -19,7 +19,13 @@ class ExecuteJob(
   stack: List[InstrumentFrame],
   updatedVisualisations: Seq[UUID],
   sendMethodCallUpdates: Boolean
-) extends Job[Unit](List(contextId), true, true)
+) extends Job[Unit](
+      List(contextId),
+      isCancellable = true,
+      // TODO[MK]: make this interruptible when https://github.com/oracle/graal/issues/3273
+      // is resolved
+      mayInterruptIfRunning = false
+    )
     with ProgramExecutionSupport {
 
   def this(exe: Executable) =

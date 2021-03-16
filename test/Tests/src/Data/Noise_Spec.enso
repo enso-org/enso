@@ -1,6 +1,6 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 
 type My_Generator
 My_Generator.step _ _ = 1

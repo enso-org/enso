@@ -1,0 +1,582 @@
+from Standard.Base import all
+from Builtins import Array
+
+## Creates a new vector of the given length, initializing elements using
+   the provided constructor function.
+
+   The constructor function is called with the consecutive indices
+   (0-based) of the vector elements.
+
+   > Example
+     To create a vector containing the numbers 1 through 50:
+         Vector.new 50 (ix -> ix + 1)
+
+   > Example
+     To create a copy of the given vector (`my_vec`):
+         Vector.new my_vec.length (ix -> my_vec.at ix)
+new : Number -> (Number -> Any) -> Vector
+new length constructor =
+    arr = Array.new length
+    0.up_to length . each ix-> arr.set_at ix (constructor ix)
+    Vector arr
+
+## Creates a new vector of the given length, filling the elements with
+   the provided constant.
+
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
+fill : Number -> Any -> Vector
+fill length ~item =
+    arr = Array.new length
+    0.up_to length . each ix-> arr.set_at ix item
+    Vector arr
+
+## Creates a new vector builder instance.
+
+   A vector builder is a mutable data structure, that allows for gathering
+   a number of elements and then converting them into a vector. This is
+   particularly useful when the number of elements is not known upfront.
+
+   > Example
+     In the following example we'll read items from the standard input,
+     until the string "end" is entered by the user and then return a vector
+     containing all items.
+         from Standard.Base import all
+
+         main =
+              builder = Vector.new_builder
+              do_read =
+                  item = IO.readln
+                  if item == "end" then Nothing else
+                      builder.append item
+                      do_read
+              do_read
+              vec = builder.to_vector
+              IO.println vec
+new_builder : Builder
+new_builder = Builder.new
+
+## Converts a polyglot value representing an array into a vector. This is
+   useful when wrapping polyglot APIs for further use in Enso.
+from_polyglot_array : Any -> Vector.Vector
+from_polyglot_array arr = here.new arr.length (arr.at _)
+
+## The basic, immutable, vector type.
+
+   A vector allows to store an arbitrary number of elements, in linear memory.
+   It is the recommended data structure for most applications.
+
+   > Example
+     A vector containing the elements `1`, `2`, and `3`, in this order is:
+         [1, 2, 3]
+
+   > Example
+     A vector containing 50 elements, each being the number `42`, can be
+     created by:
+         Vector.fill length=50 item=42
+type Vector
+    type Vector to_array
+
+    ## Returns the number of elements stored in this vector.
+
+       > Example
+         Checking the length of a vector.
+             [1, 2, 3, 4].length == 4
+    length : Number
+    length = Polyglot.get_array_size this.to_array
+
+    ## Gets an element from the vector at a specified index (0-based).
+
+       > Example
+         To get the second element of the vector `[1, 2, 3]`, use:
+             [1, 2, 3].at 1
+    at : Number -> Any
+    at index = this.to_array.at index
+
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with next elements of the vector.
+
+       In general, the result of
+           [l0, l1, ..., ln] . fold init f
+       is the same as
+           f (...(f (f init l0) l1)...) ln
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         vector:
+             [0, 1, 2] . fold 0 (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold initial function =
+        arr = this.to_array
+        f = acc -> ix -> function acc (arr.at ix)
+        0.up_to this.length . fold initial f
+
+    ## Combines all the elements of a non-empty vector using a binary operation.
+       If the vector is empty, it throws Nothing.
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         vector:
+             [0, 1, 2] . reduce (+)
+    reduce : (Any -> Any -> Any) -> Any ! Nothing
+    reduce function =
+        case this.not_empty of
+            True -> this.tail.fold this.head function
+            False -> Error.throw Nothing
+
+    ## Checks whether a predicate holds for at least one element of this vector.
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Checking if any element of the list is larger than 3.
+             [1,2,3,4,5].exists (> 3)
+    exists : (Any -> Boolean) -> Boolean
+    exists predicate =
+        len = this.length
+        go idx found = if found || (idx >= len) then found else
+            @Tail_Call go idx+1 (predicate (this.at idx))
+        go 0 False
+
+    ## Returns the first element of the vector that satisfies the predicate or
+       If no elements of the vector satisfy the predicate, it throws nothing.
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Finding a first element of the list that is larger than 3.
+             [1,2,3,4,5].find (> 3)
+    find : (Any -> Boolean) -> Any ! Nothing
+    find predicate =
+        len = this.length
+        go idx =
+            if (idx >= len) then Error.throw Nothing else
+                elem = this.at idx
+                if (predicate elem) then elem else
+                    @Tail_Call go idx+1
+        go 0
+
+
+    ## Checks whether a predicate holds for at least one element of this vector.
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Checking if any element of the list is larger than 3.
+             [1,2,3,4,5].any (> 3)
+    any : (Any -> Boolean) -> Boolean
+    any predicate = this.exists predicate
+
+    ## Checks whether a predicate holds for all elements in this vector.
+
+       > Example
+         Check if all elements in the vector are less than zero.
+             [-1, 1, 5, 8].all (< 0)
+    all : (Any -> Boolean) -> Boolean
+    all predicate = this.fold True (l -> r -> l && predicate r)
+
+    ## Checks whether this vector contains a given value as an element.
+
+       > Example
+         Checking if the vector contains the number 72.
+             [1, 383, 72, 301].contains 72
+    contains : Any -> Boolean
+    contains elem = this.exists ix-> ix == elem
+
+    ## Checks if this vector is empty.
+
+       > Example
+         Checking for emptiness.
+             [].is_empty == True
+             [1].is_empty == False
+    is_empty : Boolean
+    is_empty = this.length == 0
+
+    ## Checks if this vector is not empty.
+
+       > Example
+         Checking for non-emptiness.
+             [].not_empty == False
+             [1].not_empty == True
+    not_empty : Boolean
+    not_empty = this.is_empty.not
+
+    ## Selects all elements of this vector which satisfy a predicate.
+
+       A predicate is a function that takes an element from the vector and
+       returns a boolean value.
+
+       > Example
+         Selecting all elements that are greater than 3.
+             [1, 2, 3, 4, 5].filter (> 3)
+    filter : (Any -> Boolean) -> Vector
+    filter predicate =
+        check acc ix = if predicate ix then acc + [ix] else acc
+        this.fold [] check
+
+    ## Applies a function to each element of the vector, returning the vector of
+       results.
+
+       > Example
+         In the following example, we add `1` to each element of the vector:
+             [1, 2, 3] . map +1
+         The result of running the code above is:
+             [2, 3, 4]
+    map : (Any -> Any) -> Vector
+    map function =
+        here.new this.length i-> function (this.at i)
+
+    ## Applies a function to each element of the vector, returning the vector
+       that contains all results concatenated.
+
+       > Example
+         In the following example, we replace each number `n` with itself
+         repeated `n` times:
+            [0, 1, 2] . flat_map (n -> Vector.fill n n)
+         The result of running the code above is:
+            [1, 2, 2]
+    flat_map : (Any -> Vector) -> Vector
+    flat_map function =
+        mapped = this.map function
+        length = mapped.fold 0 acc-> elem-> acc + elem.length
+        arr = Array.new length
+        mapped.fold 0 i-> vec->
+            vec.map_with_index j-> elem-> arr.set_at i+j elem
+            i + vec.length
+        Vector arr
+
+    ## Applies a function to each element of the vector, returning the vector
+       of results.
+
+       The function is called with both the element index as well as the
+       element itself.
+    map_with_index : (Int -> Any -> Any) -> Vector
+    map_with_index function = here.new this.length i-> function i (this.at i)
+
+    ## Applies a function to each element of the vector.
+
+       Unlike `map`, this method does not return the individual results,
+       therefore it is only useful for side-effecting computations.
+
+       > Example
+         In the following example, we're printing each element of the vector
+         to the standard output:
+             [1, 2, 3, 4, 5] . each IO.println
+    each : (Any -> Any) -> Nothing
+    each f =
+        this.map f
+        Nothing
+
+    ## Reverses the vector, returning a vector with the same elements, but in
+       the opposite order.
+    reverse : Vector
+    reverse = here.new this.length (i -> this.at (this.length - (1 + i)))
+
+    ## Generates a human-readable text representation of the vector.
+
+       > Example
+         Converting a vector of numbers to text.
+             [1, 2, 3].to_text == "[1, 2, 3]"
+    to_text : Text
+    to_text =
+        if this.length == 0 then "[]" else
+            if this.length == 1 then "[" + (this.at 0 . to_text) + "]" else
+                folder = str -> ix -> str + ", " + (this.at ix).to_text
+                tail_elems = 1.up_to this.length . fold "" folder
+                "[" + (this.at 0 . to_text) + tail_elems + "]"
+
+    ## Checks whether this vector is equal to `that`. Two vectors are considered
+       equal, when they have the same length and their items are pairwise equal.
+
+       > Example
+         Comparing two vectors for equality (this case is false).
+             [1, 2, 3] == [2, 3, 4
+    == : Vector -> Boolean
+    == that =
+        eq_at i = this.at i == that.at i
+        if this.length == that.length then 0.up_to this.length . all eq_at else False
+
+    ## Concatenates two vectors, resulting in a new vector, containing all the
+       elements of `this`, followed by all the elements of `that`.
+
+       > Example
+         Concatenating two single-element vectors.
+             [1] + [2] == [1, 2]
+    + : Vector -> Vector
+    + that =
+        this_len = this.length
+        arr = Array.new (this_len + that.length)
+        0.up_to this_len . each i->
+            arr.set_at i (this.at i)
+        this.length.up_to arr.length . each i->
+            arr.set_at i (that.at i-this_len)
+        Vector arr
+
+    ## When `this` is a vector of text values, concatenates all the values by
+       interspersing them with `separator`.
+
+       > Example
+         The following code returns "foo, bar, baz"
+             ["foo", "bar", "baz"].join ", "
+    join : String -> Text
+    join separator =
+        if this.length == 0 then "" else
+            if this.length == 1 then this.at 0 else
+                this.at 0 + (1.up_to this.length . fold "" acc-> i-> acc + separator + this.at i)
+
+    ## Creates a new vector with the first `count` elements in `this` removed.
+
+       > Example
+         The following code returns [2, 3, 4, 5]
+             [1, 2, 3, 4, 5].drop_start 1
+    drop_start : Integer -> Vector
+    drop_start count = if count >= this.length then here.new 0 (x -> x) else
+        here.new (this.length - count) (i -> this.at i+count)
+
+    ## Creates a new vector with the last `count` elements in `this` removed.
+
+       > Example
+         The following code returns [1, 2, 3]
+             [1, 2, 3, 4, 5].drop_end 2
+    drop_end : Integer -> Vector
+    drop_end count = if count >= this.length then here.new 0 (x -> x) else
+        this.take_start (this.length - count)
+
+    ## Creates a new vector, consisting of the first `count` elements on the
+       left of `this`.
+
+       > Example
+         The following code returns [1, 2]
+             [1, 2, 3, 4, 5].take_start 2
+    take_start : Integer -> Vector
+    take_start count = if count >= this.length then this else
+        here.new count this.at
+
+    ## Creates a new vector, consisting of the last `count` elements on the
+       right of `this`.
+
+       > Example
+         The following code returns [3, 4, 5]
+             [1, 2, 3, 4, 5].take_end 3
+    take_end : Integer -> Vector
+    take_end count = if count >= this.length then this else
+        this.drop_start (this.length - count)
+
+    ## Performs a pair-wise operation passed in `function` on consecutive
+       elements of `this` and `that`.
+       The result of this function is a vector of length being the shorter of
+       `this` and `that`, containing results of calling `function`.
+
+       > Example
+         To pairwise-sum two vectors:
+             zip [1, 2, 3] [4, 5, 6] (+) == [5, 7, 9]
+         When the `function` is not provided, it defaults to creating a pair
+         of both elements:
+             zip [1, 2, 3] [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
+    zip : Vector -> (Any -> Any -> Any) -> Vector
+    zip that function=[_,_] =
+        len = Math.min this.length that.length
+        here.new len i-> function (this.at i) (that.at i)
+
+    ## Vector to JSON conversion.
+    to_json : Json.Array
+    to_json = Json.Array (this.map .to_json)
+
+    ## Get the first element from the vector.
+
+       > Example
+         The following code returns 1.
+             [1, 2, 3, 4].head
+       > Example
+         Empty vectors return `Nothing`.
+             [].head == Nothing
+    head : Any ! Nothing
+    head = if this.length >= 1 then this.at 0 else Error.throw Nothing
+
+    ## Get all elements in the vector except the first.
+
+       > Example
+         The following code returns [2, 3, 4].
+             [1, 2, 3, 4].tail
+
+       > Example
+         Empty vectors return `Nothing`.
+             [].tail == Nothing
+    tail : Vector ! Nothing
+    tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
+
+    ## Get the all elements in the vector except the last.
+
+       > Example
+         The following code returns [1, 2, 3].
+             [1, 2, 3, 4].init
+
+       > Example
+         Empty vectors return `Nothing`.
+             [].init == Nothing
+    init : Vector ! Nothing
+    init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
+
+    ## Get the last element of the vector.
+
+       > Example
+         The following code returns 4.
+             [1, 2, 3, 4].last
+
+       > Example
+         Empty vectors return `Nothing`.
+             [].last == Nothing
+    last : Vector ! Nothing
+    last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
+
+    ## Get the first element from the vector.
+
+       > Example
+         The following code returns 1.
+             [1, 2, 3, 4].first
+
+       > Example
+         Empty vectors return `Nothing`.
+             [].first == Nothing
+    first : Vector ! Nothing
+    first = this.head
+
+    ## Get the second element from the vector.
+       Useful when tuples are implemented as vectors.
+
+       > Example
+         The following code returns 2.
+             [1, 2, 3, 4].second
+    second : Vector ! Nothing
+    second = if this.length >= 2 then this.at 1 else Error.throw Nothing
+
+    ## Get all elements in the vector except the first.
+
+       > Example
+         The following code returns [2, 3, 4].
+             [1, 2, 3, 4].rest
+
+       > Example
+         Empty vectors return `Nothing`.
+             [].rest == Nothing
+    rest : Vector ! Nothing
+    rest = this.tail
+
+    ## Sort the Vector.
+
+       Arguments:
+       - `on`: A projection from the element type to the value of that element
+         being sorted on.
+       - `by`: A function that compares the result of applying `on` to two
+         elements, returning an Ordering to compare them.
+       - `order`: The order in which the vector elements are sorted.
+
+       By default, elements are sorted in ascending order, using the comparator
+       `compare_to`. A custom comparator may be passed to the sort function.
+
+       This is a stable sort, meaning that items that compare the same will not
+       have their order changed by the sorting process.
+
+       The complexities for this sort are:
+       - *Worst-Case Time:* `O(n * log n)`
+       - *Best-Case Time:* `O(n)`
+       - *Average Time:* `O(n * log n)`
+       - *Worst-Case Space:* `O(n)` additional
+
+       ? Implementation Note
+         The sort implementation is based upon an adaptive, iterative mergesort
+         that requires far fewer than `n * log(n)` comparisons when the vector
+         is partially sorted. When the vector is randomly ordered, the
+         performance is equivalent to a standard mergesort.
+
+         It takes equal advantage of ascending and descending runs in the array,
+         making it much simpler to merge two or more sorted arrays: simply
+         concatenate them and sort.
+
+       > Example
+         Sorting a vector of numbers.
+             [5, 2, 3, 45, 15].sort == [2, 3, 5, 15, 45]
+
+       > Example
+         Sorting a vector of `Pair`s on the first element, descending.
+             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+    sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
+        ## Prepare the destination array that will underlie the vector. We do
+           not want to sort in place on the original vector, as `sort` is not
+           intended to be mutable.
+        new_vec_arr = Array.new this.length
+        Array.copy this.to_array 0 new_vec_arr 0 this.length
+
+        ## As we want to account for both custom projections and custom
+           comparisons we need to construct a comparator for internal use that
+           does both.
+        comp_ascending l r  = by (on l) (on r)
+        comp_descending l r = by (on r) (on l)
+        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
+
+        new_vec_arr.sort compare
+
+        Vector new_vec_arr
+
+## A builder type for Enso vectors.
+
+   A vector builder is a mutable data structure, that allows to gather a
+   number of elements and then convert them to a vector. This is
+   particularly useful when the number of elements is not known upfront.
+
+   > Example
+     In the following example we'll read items from the standard input,
+     until the string "end" is entered by the user and then return a vector
+     containing all items.
+         from Standard.Base import all
+
+         main =
+              builder = Vector.new_builder
+              do_read =
+                  item = IO.readln
+                  if item == "end" then Nothing else
+                      builder.append item
+                      do_read
+              do_read
+              vec = builder.to_vector
+              IO.println vec
+type Builder
+    type Builder to_array length
+
+    ## Creates a new builder.
+    new = Builder (Array.new 1) 0
+
+    ## Returns the current capacity (i.e. the size of the underlying storage)
+       of this builder.
+    capacity = this.to_array.length
+
+    ## Appends a new element into this builder.
+    append : Any -> Nothing
+    append item = case this.capacity > this.length of
+        True ->
+            this.to_array.set_at this.length item
+            Unsafe.set_atom_field this 1 (this.length + 1)
+        False ->
+            old_array = this.to_array
+            new_array = Array.new old_array.length*2
+            0.up_to this.length . each i->
+                new_array.set_at i (old_array.at i)
+                Nothing
+            Unsafe.set_atom_field this 0 new_array
+            this.append item
+            Nothing
+
+    ## Converts this builder to a vector containing all the appended elements.
+    to_vector : Vector
+    to_vector =
+        old_array = this.to_array
+        new_array = Array.new this.length
+        0.up_to this.length . each i->
+            new_array.set_at i (old_array.at i)
+            Nothing
+        Vector new_array

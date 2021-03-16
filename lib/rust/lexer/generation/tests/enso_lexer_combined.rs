@@ -428,7 +428,7 @@ polyglot java import org.enso.base.Text_Utils
 #[test]
 fn some_stdlib() {
     let input = make_unix_line_endings(
-r#"from Base import all
+r#"from Standard.Base import all
 
 ## The top-level entry point for a test suite.
 type Suite specs
@@ -455,10 +455,12 @@ Suite.is_fail = this.specs.any is_fail
             vec![
                 Token::line(
                     vec![
-                        Token::variable("from", 0),
-                        Token::referent("Base", 1),
-                        Token::variable("import", 1),
-                        Token::variable("all", 1),
+                        Token::variable("from",0),
+                        Token::referent("Standard",1),
+                        Token::operator(".",0),
+                        Token::referent("Base",0),
+                        Token::variable("import",1),
+                        Token::variable("all",1),
                     ],
                     0,
                     token::LineEnding::LF

@@ -1,7 +1,8 @@
-from Base import all
-from Table import all
-import Table.Data.Storage
-import Test
+from Standard.Base import all
+from Standard.Table import all
+
+import Standard.Table.Data.Storage
+import Standard.Test
 
 type My x y
 

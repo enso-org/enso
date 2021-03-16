@@ -1,4 +1,4 @@
-from Base import all
+from Standard.Base import all
 
 import Tests.Data.Time.Duration_Spec
 import Tests.Data.Time.Time_Of_Day_Spec

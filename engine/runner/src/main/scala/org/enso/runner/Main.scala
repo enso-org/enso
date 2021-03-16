@@ -403,7 +403,7 @@ object Main {
   private def runRepl(projectPath: Option[String], logLevel: LogLevel): Unit = {
     val mainMethodName = "internal_repl_entry_point___"
     val dummySourceToTriggerRepl =
-      s"""from Base import all
+      s"""from Standard.Base import all
          |
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin

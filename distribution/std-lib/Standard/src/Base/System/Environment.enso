@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+polyglot java import java.lang.System
+
+## UNSTABLE
+
+   Returns a value of a specified environment variable or Nothing if such
+   variable is not defined.
+get : Text -> Text | Nothing
+get key =
+    System.getenv key

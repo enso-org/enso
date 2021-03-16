@@ -1,12 +1,13 @@
-from Base import all
-import Test
+from Standard.Base import all
 
-polyglot java import java.lang.Long
-polyglot java import java.lang.Integer
+import Standard.Test
+
 polyglot java import java.lang.Float
+polyglot java import java.lang.Integer
+polyglot java import java.lang.Long
 polyglot java import java.lang.String
-polyglot java import java.util.ArrayList
 polyglot java import java.lang.StringBuilder as Java_String_Builder
+polyglot java import java.util.ArrayList
 
 spec = Test.group "Java FFI" <|
     Test.specify "should call methods imported from Java" <|

@@ -1,6 +1,6 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 import Tests.Semantic.Import_Loop.B
 
 spec = Test.group "Looping Imports" <|

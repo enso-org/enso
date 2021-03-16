@@ -1,0 +1,22 @@
+from Standard.Base import all
+
+## The HTTP request body.
+type Body
+
+    ## Empty request body.
+    type Empty
+
+    ## Request body with text.
+    type Text text
+
+    ## Request body with JSON.
+    type Json json
+
+    ## Request body with form data.
+    type Form form
+
+    ## Request body with file data.
+    type File file
+
+    ## Request body with binary.
+    type Bytes bytes

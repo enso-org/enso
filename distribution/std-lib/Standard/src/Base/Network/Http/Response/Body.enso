@@ -1,0 +1,23 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Json
+import Standard.Base.System.File
+
+type Body
+
+    ## Response body
+    type Body bytes
+
+    ## Convert response body to Text.
+    to_text : Text
+    to_text = Text.from_utf_8 this.bytes
+
+    ## Convert response body to Json.
+    to_json : Json
+    to_json = Json.parse this.to_text
+
+    ## Write response body to a File.
+    to_file : File -> File
+    to_file path =
+        path.write_bytes this.bytes
+        path

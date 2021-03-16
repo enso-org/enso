@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+from Builtins import System
+
+type Os
+    type Linux
+    type MacOS
+    type Windows
+    type Unknown
+
+## PRIVATE
+   Create an Os object from text.
+from_text: Text -> Os
+from_text os =
+    if os == "linux" then Linux else
+        if os == "macos" then MacOS else
+            if os == "windows" then Windows else Unknown
+
+## Return the type of operating system.
+
+   > Example
+     Return the OS type:
+         Platform.os
+os : Os
+os = here.from_text System.os

@@ -1,0 +1,67 @@
+from Standard.Base import all
+
+polyglot java import java.time.ZoneId
+polyglot java import java.time.ZoneOffset
+
+type Zone
+
+    ## A type representing a time zone.
+
+       A time zone can be eiter offset-based like "-06:00" or id-based like
+       "Europe/Paris".
+    type Zone internal_zone_id
+
+    ## Get the unique timezone ID.
+    zone_id : Text
+    zone_id = this.internal_zone_id . getId
+
+    ## A Zone to Json conversion
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
+
+## This method parses the ID producing a `Zone`.
+
+   > Example
+     Get Central European Time.
+         Zone.parse "CET"
+
+   > Example
+     Get Moscow time.
+         Zone.parse "Europe/Moscow"
+
+   > Example
+     Get time zone -06:00.
+         Zone.parse "-06:00"
+
+   > Example
+     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+         Zone.parse "+03:02:01"
+parse : Text -> Zone
+parse text = Zone (ZoneId.of text)
+
+## The system default timezone.
+system : Zone
+system = Zone ZoneId.systemDefault
+
+## The system default timezone.
+local : Zone
+local = here.system
+
+## UTC time zone.
+utc : Zone
+utc = here.parse "UTC"
+
+## Obtains an instance of `Zone` using an offset in hours, minutes and seconds.
+
+   - the timezone offset in hours, from -18 to +18
+   - the timezone offset in minutes, from 0 to ±59, sign matches hours and
+     seconds
+   - the timezone offset in seconds, from 0 to ±59, sign matches hours and
+     minutes
+
+   > Example
+     Get time zone 1 hour 1 minute and 50 seconds of Greenwich/UTC.
+         Zone.new 1 1 50
+new : Integer -> Integer -> Integer -> Zone
+new (hours = 0) (minutes = 0) (seconds = 0) =
+    Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
