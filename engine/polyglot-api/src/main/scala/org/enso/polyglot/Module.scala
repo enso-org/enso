@@ -27,8 +27,12 @@ class Module(private val value: Value) {
     * @param name the name of the method
     * @return the runtime representation of the method
     */
-  def getMethod(constructor: Value, name: String): Function =
-    new Function(value.invokeMember(GET_METHOD, constructor, name))
+  def getMethod(constructor: Value, name: String): Option[Function] = {
+    val newVal = value.invokeMember(GET_METHOD, constructor, name);
+    if (newVal.isNull) { None }  else {
+      Some(new Function(newVal))
+    }
+  }
 
   /** Evaluates an arbitrary expression as if it were placed in a function
     * body inside this module.

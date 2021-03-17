@@ -15,6 +15,7 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.Map;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
@@ -405,7 +406,11 @@ public class Module implements TruffleObject {
       ModuleScope scope = module.compileScope(context);
       switch (member) {
         case MethodNames.Module.GET_METHOD:
-          return getMethod(scope, arguments);
+          var result = getMethod(scope, arguments);
+          if (result == null) {
+            return context.getBuiltins().nothing().newInstance();
+          }
+          return result;
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:
