@@ -1,66 +1,72 @@
 package org.enso.image.data;
 
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
+import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Histogram {
 
-  public static final int BINS = 128;
+  private static final int BINS = 256;
+  private static final int MAX_VALUE = 256;
 
-  private final long[] data;
-  private final int channels;
+  private final int[] data;
+  private final int channel;
 
-  public Histogram(long[] data, int channels) {
+  /**
+   * Create the histogram.
+   *
+   * @param data the array of bins.
+   * @param channel the analyzed channel.
+   */
+  public Histogram(int[] data, int channel) {
     this.data = data;
-    this.channels = channels;
+    this.channel = channel;
   }
 
-  public static Histogram create(Mat image) {
-    byte[] data = new byte[(int) image.total() * image.channels()];
-    image.get(0, 0, data);
-    long[] hist = new long[BINS * image.channels()];
-    int divisor = getDivisor(image.elemSize1());
-    int offset = getOffset(image.elemSize1());
+  /**
+   * Calculate a histogram of the image channel.
+   *
+   * @param image the input image.
+   * @param channel the channel to analyze
+   * @return the calculated histogram.
+   */
+  public static Histogram calculate(Mat image, int channel) {
+    Mat histogram = new Mat();
+    MatOfFloat valuesRange = new MatOfFloat(0, MAX_VALUE);
+    List<Mat> images = new ArrayList<>();
+    Core.split(image, images);
 
-    for (int y = 0; y < image.rows(); y++) {
-      for (int x = 0; x < image.cols(); x++) {
-        for (int c = 0; c < image.channels(); c++) {
-          double pixelValue = data[(y * image.cols() + x) * image.channels() + c];
-          hist[((int) pixelValue + offset) / divisor * image.channels() + c] += 1;
-        }
-      }
+    Imgproc.calcHist(
+        images,
+        new MatOfInt(channel),
+        new Mat(),
+        histogram,
+        new MatOfInt(BINS),
+        valuesRange);
+    Core.normalize(histogram, histogram, 0, MAX_VALUE, Core.NORM_MINMAX);
+
+    float[] histogramData = new float[(int) histogram.total() * histogram.channels()];
+    histogram.get(0, 0, histogramData);
+    int[] binData = new int[histogramData.length];
+    for (int i = 0; i < binData.length; i++) {
+      binData[i] = Math.round(histogramData[i]);
     }
 
-    return new Histogram(hist, image.channels());
+    return new Histogram(binData, channel);
   }
 
-  public int get_channels() {
-    return channels;
-  }
-
-  public long[] get_data() {
-    return data;
-  }
-
-  public long[] get_data(int channel) {
-    return get_channel_data(data, channels, channel);
-  }
-
-  public static long[] get_channel_data(long[] hist, int channels, int index) {
-    if (index >= channels) {
-      return new long[0];
-    }
-    long[] channel = new long[BINS];
-    for (int i = 0; i < BINS; i++) {
-      channel[i] = hist[i * channels + index];
-    }
+  /** @return the channel number. */
+  public int get_channel() {
     return channel;
   }
 
-  private static int getDivisor(long elemSize) {
-    return (int) Math.pow(2, elemSize * 8) / BINS;
-  }
-
-  private static int getOffset(long elemSize) {
-    return (int) Math.pow(2, elemSize * 8) / 2;
+  /** @return the histogram data. */
+  public int[] get_data() {
+    return data;
   }
 }

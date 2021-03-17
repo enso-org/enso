@@ -1,15 +1,16 @@
 from Standard.Base import all
-import Standard.Image.Data.Histogram.Internal
 
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 
 type Histogram
 
-    type Histogram channels data
+    type Histogram channel data
 
-    channel : Integer -> Histogram
-    channel index =
-        data = Java_Histogram.get_channel_data this.data.to_array this.channels index
-        Histogram 1 data
+    to_json : Json
+    to_json =
+        bins = Json.from_pairs [["bins", this.data]]
+        Json.from_pairs [["data", bins]]
 
-from_java hist = Internal.from_java hist
+calculate image channel =
+    hist = Java_Histogram.calculate image.opencv_mat channel
+    Histogram channel (Vector.Vector hist.get_data)

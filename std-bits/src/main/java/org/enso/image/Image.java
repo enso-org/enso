@@ -37,7 +37,6 @@ public class Image {
    * @param path the file path to read from.
    * @param flags the read flags.
    * @return the matrix holding the image data.
-   * @throws ReadFailedException
    */
   public static Mat read(String path, int flags) throws ReadFailedException {
     Mat input;
@@ -60,7 +59,6 @@ public class Image {
    * @param path the file path to write to.
    * @param image the matrix representing the image.
    * @param flags the write flags.
-   * @throws WriteFailedException
    */
   public static void write(String path, Mat image, MatOfInt flags) throws WriteFailedException {
     boolean result;

@@ -1,5 +1,0 @@
-from Standard.Base import all
-import Standard.Image.Data.Histogram
-
-from_java hist =
-    Histogram.Histogram hist.get_channels (Vector.Vector hist.get_data)

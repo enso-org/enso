@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Image.Data.Matrix.Internal
+import Standard.Image.Data.Histogram
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 
@@ -62,6 +63,9 @@ type Matrix
     to_json =
         base64 = Java_Matrix.to_base64 this.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+
+    histogram : Integer -> Histogram
+    histogram channel = Histogram.calculate this channel
 
 zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =
