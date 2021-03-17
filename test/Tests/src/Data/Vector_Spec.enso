@@ -171,5 +171,8 @@ spec = Test.group "Vectors" <|
         [1].map fail . map .catch . should_equal [My_Error 1]
     Test.specify "should be able to be efficiently converted to a visualisation" <|
         vec = Vector.fill 1000 0
-        text = vec.to_default_visualisation_data
-        IO.println text
+        text = vec.to_default_visualization_data
+        json = Json.parse text
+        as_vec = json.into (Vector.Vector Number)
+        as_vec.should_equal <| Vector.fill 100 0
+

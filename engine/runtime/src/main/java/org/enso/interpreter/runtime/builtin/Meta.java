@@ -18,6 +18,7 @@ public class Meta {
     AtomConstructor meta = new AtomConstructor("Meta", scope).initializeFields();
     scope.registerConstructor(meta);
 
+    scope.registerMethod(meta, "display_type", DisplayTypeMethodGen.makeFunction(language));
     scope.registerMethod(
         meta, "is_unresolved_symbol", IsUnresolvedSymbolMethodGen.makeFunction(language));
     scope.registerMethod(

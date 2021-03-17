@@ -147,3 +147,10 @@ is_same_object value_1 value_2 = Builtins.Meta.is_same_object value_1 value_2
 get_source_location : Integer -> Text
 get_source_location skip_frames =
     Builtins.Meta.get_source_location skip_frames+1
+
+## Displays the type of the provided value as text.
+
+   Arguments:
+   - value: The value for which to display the type.
+display_type : Any -> Text
+display_type value = Builtins.Meta.display_type value
