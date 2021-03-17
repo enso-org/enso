@@ -1,6 +1,6 @@
 package org.enso.image;
 
-import org.enso.opencv.OpenCV;
+import org.enso.image.opencv.OpenCV;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;

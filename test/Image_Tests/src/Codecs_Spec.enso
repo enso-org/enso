@@ -1,9 +1,9 @@
-from Base import all
-import Base.System.Process
-import Base.System.Process.Exit_Code
-import Test
+from Standard.Base import all
+import Standard.Base.System.Process
+import Standard.Base.System.Process.Exit_Code
+import Standard.Test
 
-import Image.Codecs
+import Standard.Image.Codecs
 
 polyglot java import java.lang.System as Java_System
 

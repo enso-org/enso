@@ -1,5 +1,5 @@
-from Base import all
-import Test
+from Standard.Base import all
+import Standard.Test
 
 import Image_Tests.Codecs_Spec
 import Image_Tests.Data.Matrix_Spec

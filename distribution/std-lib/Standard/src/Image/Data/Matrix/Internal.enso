@@ -1,5 +1,5 @@
-from Base import all
-import Image.Data.Matrix
+from Standard.Base import all
+import Standard.Image.Data.Matrix
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 polyglot java import org.opencv.core.Mat

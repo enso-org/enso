@@ -1,6 +1,6 @@
 // Copied from https://github.com/openpnp/opencv/blob/v4.5.1-0/src/main/java/nu/pattern/OpenCV.java
 // to allow library loading on GraalVM.
-package org.enso.opencv;
+package org.enso.image.opencv;
 
 import org.opencv.core.Core;
 

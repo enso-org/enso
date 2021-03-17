@@ -1,7 +1,7 @@
-from Base import all
-import Base.System.File
-import Image.Data.Matrix
-import Image.Codecs.Internal
+from Standard.Base import all
+import Standard.Base.System.File
+import Standard.Image.Data.Matrix
+import Standard.Image.Codecs.Internal
 
 polyglot java import org.enso.image.Image as Java_Image
 

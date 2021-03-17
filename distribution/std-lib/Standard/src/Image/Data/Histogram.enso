@@ -1,5 +1,5 @@
-from Base import all
-import Image.Data.Histogram.Internal
+from Standard.Base import all
+import Standard.Image.Data.Histogram.Internal
 
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 
