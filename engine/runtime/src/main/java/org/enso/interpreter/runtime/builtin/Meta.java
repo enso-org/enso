@@ -53,5 +53,6 @@ public class Meta {
     scope.registerMethod(meta, "is_same_object", IsSameObjectMethodGen.makeFunction(language));
     scope.registerMethod(
         meta, "get_source_location", GetSourceLocationMethodGen.makeFunction(language));
+    scope.registerMethod(meta, "get_qualified_type_name", GetQualifiedTypeNameMethodGen.makeFunction(language));
   }
 }

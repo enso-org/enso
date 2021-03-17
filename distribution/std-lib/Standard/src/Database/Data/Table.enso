@@ -446,10 +446,7 @@ type Table
         count_columns = cols.map c-> IR.Internal_Column c.name Sql.Sql_Type.integer (IR.Operation "COUNT" [c.expression])
         count_table = this.updated_columns count_columns . to_dataframe
         counts = count_table.columns.map c-> c.at 0
-        column_type_as_text col =
-            id = col.sql_type.typeid
-            JDBCType.valueOf id . getName
-        types = cols.map column_type_as_text
+        types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
 
     ## PRIVATE

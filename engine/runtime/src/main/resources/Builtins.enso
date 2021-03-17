@@ -739,6 +739,15 @@ type Meta
     type_to_display_text : Any -> Text
     type_to_display_text value = @Builtin_Method "Meta.display_type"
 
+    ## PRIVATE
+
+       Returns the fully qualified type name of the given value.
+
+       Arguments:
+       - value: the value to get the type of.
+   get_qualified_type_name : Any -> Text
+   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
+
 ## Utilities for working with primitive arrays.
 type Array
 

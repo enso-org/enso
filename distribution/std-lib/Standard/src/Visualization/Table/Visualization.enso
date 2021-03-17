@@ -4,10 +4,11 @@ import Standard.Table.Data.Table as Dataframe_Table
 import Standard.Table.Data.Column as Dataframe_Column
 import Standard.Database.Data.Table as Database_Table
 import Standard.Database.Data.Column as Database_Column
+import Standard.Visualization.Helpers
 
 # TODO add an initial offset to fully support lazy visualizations
 ## PRIVATE
-prepare_visualization x max_rows = case x of
+prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     Dataframe_Table.Table _ ->
         dataframe = x.take_start max_rows
         all_rows_count = x.row_count
