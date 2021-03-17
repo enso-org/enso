@@ -15,6 +15,7 @@ import Tests.Semantic.Js_Interop_Spec
 import Tests.Semantic.Python_Interop_Spec
 import Tests.Semantic.R_Interop_Spec
 
+import Tests.Data.Array_Spec
 import Tests.Data.Interval_Spec
 import Tests.Data.Json_Spec
 import Tests.Data.List_Spec
@@ -40,6 +41,7 @@ import Tests.System.Process_Spec
 
 main = Test.Suite.runMain <|
     Any_Spec.spec
+    Array_Spec.spec
     Case_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec

@@ -523,6 +523,13 @@ type Vector
 
         Vector new_vec_arr
 
+    ## Transform the vector into text for displaying as part of its default
+       visualization.
+    to_default_visualization_data : Text
+    to_default_visualization_data =
+        json = this.take_start 100 . to_json
+        json.to_text
+
 ## A builder type for Enso vectors.
 
    A vector builder is a mutable data structure, that allows to gather a

@@ -216,7 +216,7 @@ class CodeLocationsTest extends InterpreterTest {
 
       val mod    = interpreterContext.executionContext.evalModule(code, "Test")
       val tpe    = mod.getAssociatedConstructor
-      val method = mod.getMethod(tpe, "foo")
+      val method = mod.getMethod(tpe, "foo").get
       method.value.invokeMember(
         MethodNames.Function.GET_SOURCE_START
       ) shouldEqual 1

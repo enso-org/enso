@@ -81,6 +81,10 @@ type Json
    Check the `message` field for detailed information on the specific failure.
 type Parse_Error message
 
+## Converts the error to a display representation.
+Parse_Error.to_display_text : Text
+Parse_Error.to_display_text = "Parse error in parsing JSON: " + this.message.to_text + "."
+
 ## Gets the value associated with the given key in this object. Returns
    `Nothing` if the associated key is not defined.
 Object.get : Text -> Json | Nothing
@@ -109,6 +113,15 @@ type Marshalling_Error
        This can occure when trying to reinterpret a JSON object into an atom,
        when the JSON does not contain all the fields required by the atom.
     type Missing_Field_Error json field format
+
+    to_display_text : Text
+    to_display_text = case this of
+        Type_Mismatch_Error json format ->
+            json_text = Meta.type_to_display_text json
+            format_text = Meta.type_to_display_text format
+            "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
+        Missing_Field_Error _ field _ ->
+            "Missing field in Json: the field `" + field.to_text "` was missing in the json."
 
 ## Generically converts an atom into a JSON object.
 

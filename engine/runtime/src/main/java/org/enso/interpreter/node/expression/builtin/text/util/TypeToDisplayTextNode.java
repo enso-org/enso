@@ -13,6 +13,15 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public abstract class TypeToDisplayTextNode extends Node {
   public abstract String execute(Object o);
 
+  /**
+   * Create a node that can display types as text.
+   *
+   * @return a new type display node
+   */
+  public static TypeToDisplayTextNode build() {
+    return TypeToDisplayTextNodeGen.create();
+  }
+
   @Specialization
   @CompilerDirectives.TruffleBoundary
   String doDisplay(

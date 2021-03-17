@@ -15,6 +15,7 @@ import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.Map;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
@@ -404,8 +405,11 @@ public class Module implements TruffleObject {
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       ModuleScope scope = module.compileScope(context);
       switch (member) {
+        case MethodNames.Module.GET_NAME:
+          return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
-          return getMethod(scope, arguments);
+          Function result = getMethod(scope, arguments);
+          return result == null ? context.getBuiltins().nothing().newInstance() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:

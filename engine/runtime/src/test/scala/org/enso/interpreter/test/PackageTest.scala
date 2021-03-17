@@ -32,7 +32,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       val topScope        = executionContext.getTopScope
       val mainModuleScope = topScope.getModule(mainModule.toString)
       val assocCons       = mainModuleScope.getAssociatedConstructor
-      val mainFun         = mainModuleScope.getMethod(assocCons, "main")
+      val mainFun         = mainModuleScope.getMethod(assocCons, "main").get
       mainFun.execute(assocCons)
     }
   }
