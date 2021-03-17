@@ -13,7 +13,7 @@ create rows cols mat_type values =
 
 ## PRIVATE
 core_op mat value function =
-    new_mat = Java_Matrix.create mat
+    new_mat = Java_Matrix.zeros mat
     scalar = case value of
         Vector.Vector arr ->
             Scalar.new arr

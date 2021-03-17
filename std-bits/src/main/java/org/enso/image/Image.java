@@ -2,7 +2,6 @@ package org.enso.image;
 
 import org.enso.image.opencv.OpenCV;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -16,6 +15,7 @@ public class Image {
     System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
   }
 
+  /** An error occurred when reading a file. */
   public static class ReadFailedException extends Exception {
 
     public ReadFailedException(String path) {
@@ -23,6 +23,7 @@ public class Image {
     }
   }
 
+  /** An error occurred when writing a file */
   public static class WriteFailedException extends Exception {
 
     public WriteFailedException(String path) {
@@ -30,6 +31,14 @@ public class Image {
     }
   }
 
+  /**
+   * Read an image from the file.
+   *
+   * @param path the file path to read from.
+   * @param flags the read flags.
+   * @return the matrix holding the image data.
+   * @throws ReadFailedException
+   */
   public static Mat read(String path, int flags) throws ReadFailedException {
     Mat input;
     if (flags == READ_FLAG_EMPTY) {
@@ -45,6 +54,14 @@ public class Image {
     return input;
   }
 
+  /**
+   * Write an image to the file.
+   *
+   * @param path the file path to write to.
+   * @param image the matrix representing the image.
+   * @param flags the write flags.
+   * @throws WriteFailedException
+   */
   public static void write(String path, Mat image, MatOfInt flags) throws WriteFailedException {
     boolean result;
     if (flags.empty()) {
@@ -56,10 +73,6 @@ public class Image {
     if (!result) {
       throw new WriteFailedException(path);
     }
-  }
-
-  public static Double normalize(byte pixelValue) {
-    return ((int) pixelValue + 128) / 255.0;
   }
 
 }
