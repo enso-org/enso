@@ -1,10 +1,7 @@
 from Base import all
 import Image.Data.Matrix.Internal
-import Image.Data.Pixel
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
-polyglot java import org.opencv.core.Core
-polyglot java import org.opencv.core.Scalar
 
 type Index_Out_Of_Bounds_Error index
 
@@ -39,20 +36,19 @@ type Matrix
 
     ## Calculates the per-element sum of a matrix and a scalar.
     + : (Number | Vector) -> Matrix
-    + value =
-        Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
+    + value = Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)
 
     ## Calculates the per-element difference between a matrix and a scalar.
     - : (Number | Vector) -> Matrix
-    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
+    - value = Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)
 
     ## Calculates the per-element product of a matrix and a scalar.
     * : (Number | Vector) -> Matrix
-    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
+    * value = Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)
 
     ## Performs per-element division of a matrix and a scalar.
     / : (Number | Vector) -> Matrix
-    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
+    / value = Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)
 
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat

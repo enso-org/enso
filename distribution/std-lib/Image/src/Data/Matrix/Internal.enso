@@ -1,6 +1,4 @@
 from Base import all
-import Image.Data.Color
-import Image.Data.Color.Internal as Color_Internal
 import Image.Data.Matrix
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
@@ -23,8 +21,3 @@ core_op mat value function =
             Scalar.all value
     function mat scalar new_mat
     Matrix.Matrix new_mat
-
-## PRIVATE
-core_op_handler error = case error of
-    Color.Unsupported_Channels_Number _ -> Error.throw error
-    _ -> Panic.throw error

@@ -2,10 +2,8 @@ from Base import all
 import Test
 
 import Image_Tests.Codecs_Spec
-import Image_Tests.Data.Color_Spec
 import Image_Tests.Data.Matrix_Spec
 
 main = Test.Suite.runMain <|
     Codecs_Spec.spec
-    Color_Spec.spec
     Matrix_Spec.spec
