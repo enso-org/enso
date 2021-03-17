@@ -347,6 +347,24 @@ public class Context {
     return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
   }
 
+  /**
+   * Checks whether the suggestions indexing is enabled for project files.
+   *
+   * @return true if project-level suggestion indexing is enabled.
+   */
+  public boolean isProjectSuggestionsEnabled() {
+    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS_KEY);
+  }
+
+  /**
+   * Checks whether the suggestion indexing is enabled for external libraries.
+   *
+   * @return true if the suggestions indexing is enabled for external libraries.
+   */
+  public boolean isGlobalSuggestionsEnabled() {
+    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS_KEY);
+  }
+
   /** Creates a new thread that has access to the current language context. */
   public Thread createThread(Runnable runnable) {
     return environment.createThread(runnable);

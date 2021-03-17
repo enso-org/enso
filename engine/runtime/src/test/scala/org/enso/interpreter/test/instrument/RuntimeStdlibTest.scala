@@ -18,7 +18,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
-class StdlibRuntimeServerTest
+class RuntimeStdlibTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
@@ -116,11 +116,12 @@ class StdlibRuntimeServerTest
       msg: Api.Response,
       timeout: Long
     ): List[Api.Response] = {
-      Iterator
+      val receivedUntil = Iterator
         .continually(receive(timeout))
-        .takeWhile(received => received.isDefined && received != Some(msg))
+        .takeWhile(received => received.isDefined && !received.contains(msg))
         .flatten
         .toList
+      receivedUntil :+ msg
     }
 
     def consumeOut: List[String] = {
@@ -185,17 +186,27 @@ class StdlibRuntimeServerTest
         context.executionComplete(contextId),
         timeout = 60
       )
-    response should contain(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+    response should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
     )
-    val collected = response.collect {
+    val suggestions = response.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, xs)
           ) =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
-    collected.isEmpty shouldBe false
+    suggestions.isEmpty shouldBe false
+
+    val builtinsSuggestions = response.collect {
+      case Api.Response(
+            None,
+            Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
+          ) if file.getPath.contains("Builtins") =>
+        (xs.nonEmpty || as.nonEmpty) shouldBe true
+    }
+    builtinsSuggestions.length shouldBe 1
 
     context.consumeOut shouldEqual List("Hello World!")
   }
