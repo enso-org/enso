@@ -159,7 +159,7 @@ trait InterpreterRunner {
       interpreterContext.executionContext.evalModule(code, "Test")
     )
     val assocCons    = module.getAssociatedConstructor
-    val mainFunction = module.getMethod(assocCons, "main")
+    val mainFunction = module.getMethod(assocCons, "main").get
     MainMethod(assocCons, mainFunction)
   }
 
