@@ -1,6 +1,7 @@
 
 use crate::prelude::*;
 
+use crate::tooltip;
 use crate::Type;
 use crate::component::node;
 use crate::component::type_coloring;
@@ -370,6 +371,7 @@ ensogl::define_endpoints! {
         tp       (Option<Type>),
         on_hover (bool),
         on_press (),
+        tooltip  (tooltip::Style),
     }
 }
 
@@ -443,6 +445,13 @@ impl Model {
             color_tgt <- frp.tp.map(f!([styles](t) type_coloring::compute_for_selection(t.as_ref(),&styles)));
             color.target <+ color_tgt;
             eval color.value ((t) shape.set_color(t.into()));
+
+            on_hover  <- frp.on_hover.on_true();
+            non_hover <- frp.on_hover.on_false();
+            frp.source.tooltip <+ frp.tp.sample(&on_hover).unwrap().map(|tp| {
+                tooltip::Style::set_label(tp.to_string())
+            });
+            frp.source.tooltip <+ non_hover.constant(tooltip::Style::unset_label());
         }
 
         opacity.target.emit(PORT_OPACITY_NOT_HOVERED);

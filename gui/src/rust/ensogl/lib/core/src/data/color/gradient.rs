@@ -56,7 +56,7 @@ impl<Color> LinearGradient<Color> {
 }
 
 impls! { [Color] From<&LinearGradient<Color>> for Glsl
-where [Color:Copy + RefInto<Glsl>] {
+where [Color:RefInto<Glsl>] {
     |t| {
         let args = t.control_points.iter().map(|control_point| {
             let offset = control_point.offset.glsl();
@@ -82,7 +82,7 @@ pub const DEFAULT_DISTANCE_GRADIENT_MAX_DISTANCE : f32 = 10.0;
 /// A gradient which transforms a linear gradient to a gradient along the signed distance field.
 /// The slope parameter modifies how fast the gradient values are changed, allowing for nice,
 /// smooth transitions.
-#[derive(Copy,Clone,Debug)]
+#[derive(Clone,Debug)]
 pub struct SdfSampler<Gradient> {
     /// The distance from the shape border at which the gradient should start.
     pub min_distance : f32,

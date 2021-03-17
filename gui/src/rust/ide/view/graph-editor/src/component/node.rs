@@ -18,9 +18,10 @@ pub use expression::Expression;
 
 use crate::prelude::*;
 
+use crate::Type;
 use crate::builtin::visualization::native as builtin_visualization;
 use crate::component::visualization;
-use crate::Type;
+use crate::tooltip;
 
 use enso_frp as frp;
 use enso_frp;
@@ -264,6 +265,7 @@ ensogl::define_endpoints! {
         hover                 (bool),
         error                 (Option<Error>),
         visualization_enabled (bool),
+        tooltip               (tooltip::Style),
     }
 }
 
@@ -610,9 +612,11 @@ impl Node {
                 model.main_area.bg_color.set(color::Rgba::from(c).into())
             );
 
+            frp.source.tooltip <+ model.output.frp.tooltip;
 
             // === VCS Handling ===
             model.vcs_indicator.frp.set_status <+ frp.set_vcs_status;
+
         }
 
         frp.set_error.emit(None);
