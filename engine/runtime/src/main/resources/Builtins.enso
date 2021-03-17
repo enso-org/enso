@@ -736,8 +736,8 @@ type Meta
 
        Arguments:
        - value: The value whose type should be printed.
-    type_to_display_text : Any -> Text
-    type_to_display_text value = @Builtin_Method "Meta.display_type"
+    get_simple_type_name : Any -> Text
+    get_simple_type_name value = @Builtin_Method "Meta.display_type"
 
     ## PRIVATE
 

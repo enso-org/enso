@@ -152,8 +152,8 @@ get_source_location skip_frames =
 
    Arguments:
    - value: The value for which to display the type.
-type_to_display_text : Any -> Text
-type_to_display_text value = Builtins.Meta.type_to_display_text value
+get_simple_type_name : Any -> Text
+get_simple_type_name value = Builtins.Meta.get_simple_type_name value
 
 ## PRIVATE
 
