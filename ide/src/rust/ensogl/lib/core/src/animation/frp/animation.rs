@@ -1,5 +1,7 @@
 //! FRP bindings to the animation engine.
 
+pub mod hysteretic;
+
 use crate::prelude::*;
 
 use crate::animation::physics::inertia;

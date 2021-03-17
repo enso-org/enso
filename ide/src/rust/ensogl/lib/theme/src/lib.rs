@@ -156,6 +156,10 @@ impl Default for Theme {
 define_themes! { [light:0, dark:1]
     application {
         background = Lcha(0.96,0.014,0.18,1.0) , Lcha(0.13,0.014,0.18,1.0);
+        tooltip {
+            hide_delay_duration_ms = 150.0, 150.0;
+            show_delay_duration_ms = 150.0, 150.0;
+        }
     }
     code {
         syntax {
@@ -270,6 +274,24 @@ define_themes! { [light:0, dark:1]
         dimming {
             lightness_factor = 1.1 , 1.1;
             chroma_factor    = 0.2 , 0.2;
+        }
+    }
+    component {
+        label {
+            background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
+            shadow     = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
+            shadow {
+                fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
+                exponent = 2.0 , 2.0;
+                size     = 10.0, 10.0;
+            }
+            text         = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            text {
+                offset = 10.0, 10.0;
+                size   = 12.0, 12.0;
+            }
+            padding = 15.0, 15.0;
+            height  = 36.0, 36.0;
         }
     }
 }

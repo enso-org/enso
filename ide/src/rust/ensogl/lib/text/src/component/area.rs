@@ -446,8 +446,8 @@ pub const LINE_HEIGHT : f32 = 14.0;
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Area {
-    data    : AreaModel,
-    pub frp : Frp,
+    data    : Rc<AreaModel>,
+    pub frp : Rc<Frp>,
 }
 
 impl Deref for Area {
@@ -460,8 +460,8 @@ impl Deref for Area {
 impl Area {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let frp  = Frp::new();
-        let data = AreaModel::new(app,&frp.output);
+        let frp  = Rc::new(Frp::new());
+        let data = Rc::new(AreaModel::new(app,&frp.output));
         Self {data,frp} . init()
     }
 

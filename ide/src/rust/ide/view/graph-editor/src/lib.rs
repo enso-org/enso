@@ -35,10 +35,13 @@ pub mod builtin;
 pub mod data;
 
 use crate::component::node;
-use crate::component::visualization;
+use crate::component::tooltip::Placement;
+use crate::component::tooltip::Tooltip;
 use crate::component::visualization::instance::PreprocessorConfiguration;
-use crate::component::visualization::MockDataGenerator3D;
+use crate::component::tooltip;
 use crate::component::type_coloring;
+use crate::component::visualization::MockDataGenerator3D;
+use crate::component::visualization;
 
 use enso_args::ARGS;
 use enso_frp as frp;
@@ -1008,10 +1011,11 @@ impl GraphEditorModelWithNetwork {
     #[allow(clippy::too_many_arguments)]
     fn new_node
     ( &self
-    , pointer_style : &frp::Source<cursor::Style>
-    , output_press  : &frp::Source<EdgeEndpoint>
-    , input_press   : &frp::Source<EdgeEndpoint>
-    , output        : &FrpEndpoints
+    , pointer_style  : &frp::Source<cursor::Style>
+    , tooltip_update : &frp::Source<tooltip::Style>
+    , output_press   : &frp::Source<EdgeEndpoint>
+    , input_press    : &frp::Source<EdgeEndpoint>
+    , output         : &FrpEndpoints
     ) -> NodeId {
         let view    = component::Node::new(&self.app,self.vis_registry.clone_ref());
         let node    = Node::new(view);
@@ -1029,6 +1033,7 @@ impl GraphEditorModelWithNetwork {
 
             node.set_output_expression_visibility <+ self.frp.nodes_labels_visible;
 
+            eval node.frp.tooltip ((tooltip) tooltip_update.emit(tooltip));
             eval node.model.input.frp.pointer_style ((style) pointer_style.emit(style));
             eval node.model.output.frp.on_port_press ([output_press](crumbs){
                 let target = EdgeEndpoint::new(node_id,crumbs.clone());
@@ -1209,11 +1214,14 @@ pub struct GraphEditorModel {
     pub nodes          : Nodes,
     pub edges          : Edges,
     pub vis_registry   : visualization::Registry,
+    // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
+    //  currently work, however, because the `Application` lives in enso-core, and the tooltip
+    //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
+    tooltip            : Tooltip,
     touch_state        : TouchState,
     visualisations     : Visualisations,
     frp                : FrpEndpoints,
     navigator          : Navigator,
-
 }
 
 
@@ -1238,9 +1246,11 @@ impl GraphEditorModel {
         let app            = app.clone_ref();
         let frp            = frp.output.clone_ref();
         let navigator      = Navigator::new(&scene,&scene.camera());
+        let tooltip        = Tooltip::new(&app);
+
         Self {
             logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,
-            vis_registry,visualisations,navigator
+            vis_registry,visualisations,navigator,tooltip,
         }.init()
     }
 
@@ -1252,6 +1262,9 @@ impl GraphEditorModel {
                            else                        { MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET };
         self.breadcrumbs.set_position_x(x_offset);
         self.breadcrumbs.set_position_y(-5.0);
+
+        self.tooltip.frp.set_placement(Placement::Bottom);
+        self.scene().add_child(&self.tooltip);
         self
     }
 
@@ -2235,6 +2248,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
 
     node_pointer_style <- source::<cursor::Style>();
+    node_tooltip       <- source::<tooltip::Style>();
 
     let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
     let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
@@ -2360,8 +2374,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node <- any (inputs.add_node,add_node_at_cursor);
-    new_node <- add_node.map(f_!([model,node_pointer_style,out] {
-        model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,&out)
+    new_node <- add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
+        model.new_node(&node_pointer_style,
+        &node_tooltip,
+        &node_output_touch.down,&node_input_touch.down,&out)
     }));
     out.source.node_added <+ new_node;
 
@@ -2961,7 +2977,15 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
-    // let frp = Frp::deprecated_new(network.clone(),out); // fixme clone
+
+    // ===============
+    // === Tooltip ===
+    // ===============
+
+    frp::extend! { network
+        eval cursor.frp.scene_position ((pos)  model.tooltip.frp.set_location(pos.xy()) );
+        eval node_tooltip ((tooltip_update) model.tooltip.frp.set_style(tooltip_update) );
+    }
 
     GraphEditor {model,frp}
 }

@@ -5,8 +5,7 @@ use ensogl::display::traits::*;
 
 use enso_frp as frp;
 use enso_frp;
-use ensogl::Animation;
-use ensogl::Easing;
+use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
@@ -16,9 +15,10 @@ use ensogl_theme as theme;
 use span_tree;
 
 use crate::Type;
-use crate::component::node;
-use crate::component::node::output::port;
 use crate::component::node::input;
+use crate::component::node::output::port;
+use crate::component::node;
+use crate::tooltip;
 
 
 
@@ -134,6 +134,7 @@ ensogl::define_endpoints! {
         on_port_type_change  (Crumbs,Option<Type>),
         port_size_multiplier (f32),
         body_hover           (bool),
+        tooltip              (tooltip::Style),
     }
 }
 
@@ -304,6 +305,7 @@ impl Model {
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
                     port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
                     self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                    self.frp.source.tooltip <+ port_frp.tooltip;
                 }
 
                 self.ports.add_child(&port_shape);
@@ -381,48 +383,22 @@ impl Area {
         let frp         = Frp::new();
         let model       = Rc::new(Model::new(logger,app,&frp));
         let network     = &frp.network;
-        let port_size   = Animation::<f32>::new(network);
         let label_color = color::Animation::new(network);
-        let show_delay  = Easing::new(network);
-        let hide_delay  = Easing::new(network);
-        show_delay.set_duration(SHOW_DELAY_DURATION_MS);
-        hide_delay.set_duration(HIDE_DELAY_DURATION_MS);
+
+        let hysteretic_transition = HystereticAnimation::new(
+            &network,SHOW_DELAY_DURATION_MS,HIDE_DELAY_DURATION_MS);
 
         frp::extend! { network
 
             // === Ports Show / Hide ===
 
-            during_transition <- any_mut();
+            on_hover_out <- frp.on_port_hover.map(|t| t.is_off()).on_true();
+            on_hover_in  <- frp.on_port_hover.map(|t| t.is_on()).on_true();
 
-            on_hover_out                 <- frp.on_port_hover.map(|t| t.is_off()).on_true();
-            on_hover_out_during_show     <- on_hover_out.gate(&during_transition);
-            on_hover_out_not_during_show <- on_hover_out.gate_not(&during_transition);
+            hysteretic_transition.to_start <+ on_hover_in;
+            hysteretic_transition.to_end   <+ on_hover_out;
 
-            on_hover_in                  <- frp.on_port_hover.map(|t| t.is_on()).on_true();
-            on_hover_in_during_show      <- on_hover_in.gate(&during_transition);
-            on_hover_in_not_during_show  <- on_hover_in.gate_not(&during_transition);
-
-            show_delay.target <+ on_hover_in_not_during_show.constant(1.0);
-            hide_delay.target <+ on_hover_out_not_during_show.constant(1.0);
-
-            show_delay.stop_and_rewind <+ on_hover_out.constant(0.0);
-            hide_delay.stop_and_rewind <+ on_hover_in.constant(0.0);
-
-            on_hide_start <- hide_delay.on_end.map(|t| t.is_normal()).on_true();
-            on_show_start <- show_delay.on_end.map(|t| t.is_normal()).on_true();
-
-            on_show_end <- port_size.value.map(|t| (t - 1.0).abs() < std::f32::EPSILON).on_true();
-            on_hide_end <- port_size.value.map(|t| t.abs() < std::f32::EPSILON).on_true();
-
-            port_size.target <+ on_show_start.constant(1.0);
-            port_size.target <+ on_hide_start.constant(0.0);
-            port_size.target <+ on_hover_out_during_show.constant(0.0);
-            port_size.target <+ on_hover_in_during_show.constant(1.0);
-
-            during_transition <+ bool(&on_show_end,&on_show_start);
-            during_transition <+ bool(&on_hide_end,&on_hide_start);
-
-            frp.source.port_size_multiplier <+ port_size.value;
+            frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
 
 
