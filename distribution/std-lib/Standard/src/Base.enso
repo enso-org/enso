@@ -1,4 +1,5 @@
 import Standard.Base.Data.Any.Extensions
+import Standard.Base.Data.Array.Extensions
 import Standard.Base.Data.Interval
 import Standard.Base.Data.Json
 import Standard.Base.Data.List
@@ -34,6 +35,7 @@ export Standard.Base.Meta
 export Standard.Base.System.File
 
 from Standard.Base.Data.Any.Extensions export all
+from Standard.Base.Data.Array.Extensions export all
 from Standard.Base.Data.List export Nil, Cons
 from Standard.Base.Data.Number.Extensions export all hiding Math, String, Double
 from Standard.Base.Data.Noise export all hiding Noise

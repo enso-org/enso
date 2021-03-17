@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+import Standard.Test
+
+spec = Test.group "Arrays" <|
+    Test.specify "should be able to be converted to a visualization rep" <|
+        arr = Vector.fill 1000 0 . to_array
+        text = arr.to_default_visualization_data
+        json = Json.parse text
+        as_vec = json.into (Vector.Vector Number)
+        as_vec.should_equal <| Vector.fill 100 0
+

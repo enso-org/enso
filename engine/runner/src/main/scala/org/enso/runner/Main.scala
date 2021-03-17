@@ -1,8 +1,5 @@
 package org.enso.runner
 
-import java.io.File
-import java.util.UUID
-
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
@@ -12,8 +9,11 @@ import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
-import org.graalvm.polyglot.{PolyglotException, Value}
+import org.graalvm.polyglot.PolyglotException
 
+import java.io.File
+import java.util.UUID
+import scala.Console.err
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
@@ -382,11 +382,18 @@ object Main {
     mainModule: Module,
     rootPkgPath: Option[File],
     mainMethodName: String = "main"
-  ): Value = {
+  ): Unit = {
     val mainCons = mainModule.getAssociatedConstructor
     val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
     try {
-      mainFun.execute(mainCons.newInstance())
+      mainFun match {
+        case Some(main) => main.execute(mainCons.newInstance())
+        case None =>
+          err.println(
+            s"The module ${mainModule.getName} does not contain a `main` " +
+            s"function. It could not be run."
+          )
+      }
     } catch {
       case e: PolyglotException =>
         printPolyglotException(e, rootPkgPath)

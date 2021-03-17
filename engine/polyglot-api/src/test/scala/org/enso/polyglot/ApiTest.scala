@@ -16,7 +16,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |""".stripMargin
     val module                = executionContext.evalModule(code, "Test")
     val associatedConstructor = module.getAssociatedConstructor
-    val barFunction           = module.getMethod(associatedConstructor, "bar")
+    val barFunction           = module.getMethod(associatedConstructor, "bar").get
     val result = barFunction.execute(
       associatedConstructor.newInstance(),
       10L.asInstanceOf[AnyRef]
@@ -39,7 +39,7 @@ class ApiTest extends AnyFlatSpec with Matchers {
         |""".stripMargin
     val module     = executionContext.evalModule(code, "Test")
     val vectorCons = module.getConstructor("Vector")
-    val squareNorm = module.getMethod(vectorCons, "squareNorm")
+    val squareNorm = module.getMethod(vectorCons, "squareNorm").get
     val testVector = vectorCons.newInstance(
       1L.asInstanceOf[AnyRef],
       2L.asInstanceOf[AnyRef],

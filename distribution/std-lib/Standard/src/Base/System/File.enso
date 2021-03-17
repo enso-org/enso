@@ -300,7 +300,7 @@ new path = File (Prim_Io.get_file path)
 
    > Example
      Read the `data.csv` file in the project directory.
-         File.open (Enso_Project.data / "data.csv")
+         File.read (Enso_Project.data / "data.csv")
 read : Text -> Text
 read path = (here.new path).read
 

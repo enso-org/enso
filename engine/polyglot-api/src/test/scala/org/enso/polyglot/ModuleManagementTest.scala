@@ -44,7 +44,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val mainModule = ctx.executionContext.getTopScope.getModule("Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun1   = mainModule.getMethod(assocCons, "main")
+    val mainFun1   = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute(assocCons).asLong() shouldEqual 12345L
 
@@ -53,7 +53,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |""".stripMargin)
 
     mainModule.reparse()
-    val mainFun2 = mainModule.getMethod(assocCons, "main")
+    val mainFun2 = mainModule.getMethod(assocCons, "main").get
     mainFun2.execute(assocCons).asLong() shouldEqual 4567L
   }
 
@@ -66,20 +66,20 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val mainModule = ctx.executionContext.getTopScope.getModule("Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun1   = mainModule.getMethod(assocCons, "main")
+    val mainFun1   = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute(assocCons).asLong() shouldEqual 123L
 
     mainModule.setSource("""
                            |main = 456
                            |""".stripMargin)
-    val mainFun2 = mainModule.getMethod(assocCons, "main")
+    val mainFun2 = mainModule.getMethod(assocCons, "main").get
     mainFun2.execute(assocCons).asLong() shouldEqual 456L
 
     mainModule.setSource("""
                            |main = 789
                            |""".stripMargin)
-    val mainFun3 = mainModule.getMethod(assocCons, "main")
+    val mainFun3 = mainModule.getMethod(assocCons, "main").get
     mainFun3.execute(assocCons).asLong() shouldEqual 789L
 
     ctx.writeMain("""
@@ -87,7 +87,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |""".stripMargin)
 
     mainModule.setSourceFile(ctx.pkg.mainFile.getAbsolutePath)
-    val mainFun4 = mainModule.getMethod(assocCons, "main")
+    val mainFun4 = mainModule.getMethod(assocCons, "main").get
     mainFun4.execute(assocCons).asLong() shouldEqual 987L
   }
 
@@ -111,7 +111,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val mainModule = topScope.getModule("Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main")
+    val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute(assocCons).asLong shouldEqual 11L
   }
 
@@ -141,7 +141,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val mainModule = topScope.getModule("Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun    = mainModule.getMethod(assocCons, "main")
+    val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute(assocCons).asLong shouldEqual 21L
   }
 
@@ -161,7 +161,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
       "X"
     )
     val mod1AssocCons = mod1.getAssociatedConstructor
-    val mod1Main      = mod1.getMethod(mod1AssocCons, "bar")
+    val mod1Main      = mod1.getMethod(mod1AssocCons, "bar").get
     mod1Main.execute(mod1AssocCons).asLong shouldEqual 124
 
     ctx.executionContext.getTopScope.unregisterModule("Test.Main")

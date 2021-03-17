@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+## Transform the array into text for displaying as part of its default
+   visualization.
+Array.to_default_visualization_data : Text
+Array.to_default_visualization_data = 
+    Vector.Vector this . to_default_visualization_data
+

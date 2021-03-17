@@ -224,7 +224,7 @@ type Error
     catch_primitive : (Error -> Any) -> Any
     catch_primitive handler = @Builtin_Method "Any.catch"
 
-    ## PRIVATE 
+    ## PRIVATE
        UNSTABLE
 
        Returns a textual representation of the stack trace attached to an error.
@@ -728,8 +728,16 @@ type Meta
        Arguments:
        - frames_to_skip: how many frames on the stack to skip. Called with 0
          will return exact location of the call.
-   get_source_location : Integer -> Text
-   get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
+    get_source_location : Integer -> Text
+    get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
+
+    ## Pretty-prints the type of the provided value using the interpreter's
+       internal logic for printing types.
+
+       Arguments:
+       - value: The value whose type should be printed.
+    type_to_display_text : Any -> Text
+    type_to_display_text value = @Builtin_Method "Meta.display_type"
 
 ## Utilities for working with primitive arrays.
 type Array
