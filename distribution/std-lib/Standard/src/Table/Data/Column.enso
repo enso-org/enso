@@ -222,10 +222,10 @@ type Column
     count = this.length - this.count_missing
 
     ## Returns the index of this column, as a column (indexed by itself).
-       Returns `Nothing` if there is no index set.
-    index : Column | Nothing
+       Throws `No_Index_Set_Error` if there is no index set.
+    index : Column ! Table.No_Index_Set_Error
     index = case this.java_column.getIndex.toColumn of
-        Nothing -> Nothing
+        Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
 
     ## Returns the item contained in this column at the given index.

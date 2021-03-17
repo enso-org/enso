@@ -459,6 +459,14 @@ type Aggregate_Column
     mean name_suffix='_mean' =
         here.make_aggregate this "AVG" name_suffix
 
+    ## PRIVATE
+
+       Helper that returns the underlying column from before grouping.
+    ungrouped : Column
+    ungrouped =
+        new_ctx = this.context.set_groups []
+        Column this.name this.connection this.sql_type this.expression new_ctx
+
 ## PRIVATE
 
    A helper method for creating an aggregated column by applying some
