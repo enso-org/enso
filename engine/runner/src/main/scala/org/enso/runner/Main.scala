@@ -390,8 +390,8 @@ object Main {
         case Some(main) => main.execute(mainCons.newInstance())
         case None =>
           err.println(
-            "Your module does not contain a `main` function. It could not " +
-            "be run."
+            s"The module ${mainModule.getName} does not contain a `main` " +
+            s"function. It could not be run."
           )
       }
     } catch {

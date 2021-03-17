@@ -9,12 +9,17 @@ import org.graalvm.polyglot.Value
 class Module(private val value: Value) {
   import MethodNames.Module._
 
+  /** @return the name of the module
+    */
+  def getName: String = value.invokeMember(GET_NAME).asString()
+
   /** @return the associated type of this module
     */
   def getAssociatedConstructor: Value =
     value.invokeMember(GET_ASSOCIATED_CONSTRUCTOR)
 
-  /** Gets a constructor definition by name
+  /** Gets a constructor definition by name.
+   *
     * @param name the constructor name
     * @return the polyglot representation of the constructor.
     */
@@ -29,13 +34,15 @@ class Module(private val value: Value) {
     */
   def getMethod(constructor: Value, name: String): Option[Function] = {
     val newVal = value.invokeMember(GET_METHOD, constructor, name);
-    if (newVal.isNull) { None }  else {
+    if (newVal.isNull) { None }
+    else {
       Some(new Function(newVal))
     }
   }
 
   /** Evaluates an arbitrary expression as if it were placed in a function
     * body inside this module.
+   *
     * @param code the expression to evaluate
     * @return the return value of the expression
     */

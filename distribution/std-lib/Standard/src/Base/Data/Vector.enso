@@ -527,7 +527,7 @@ type Vector
        visualization.
     to_default_visualization_data : Text
     to_default_visualization_data =
-        json = this.take_start 100 |> .to_json
+        json = this.take_start 100 . to_json
         json.to_text
 
 ## A builder type for Enso vectors.

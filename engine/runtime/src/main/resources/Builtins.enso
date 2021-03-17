@@ -736,8 +736,8 @@ type Meta
 
        Arguments:
        - value: The value whose type should be printed.
-    display_type : Any -> Text
-    display_type value = @Builtin_Method "Meta.display_type"
+    type_to_display_text : Any -> Text
+    type_to_display_text value = @Builtin_Method "Meta.display_type"
 
 ## Utilities for working with primitive arrays.
 type Array

@@ -405,12 +405,11 @@ public class Module implements TruffleObject {
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       ModuleScope scope = module.compileScope(context);
       switch (member) {
+        case MethodNames.Module.GET_NAME:
+          return module.getName().toString();
         case MethodNames.Module.GET_METHOD:
-          var result = getMethod(scope, arguments);
-          if (result == null) {
-            return context.getBuiltins().nothing().newInstance();
-          }
-          return result;
+          Function result = getMethod(scope, arguments);
+          return result == null ? context.getBuiltins().nothing().newInstance() : result;
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:
