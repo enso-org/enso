@@ -523,6 +523,9 @@ type Vector
 
         Vector new_vec_arr
 
+    to_default_visualisation_data : Text
+    to_default_visualisation_data = 
+
 ## A builder type for Enso vectors.
 
    A vector builder is a mutable data structure, that allows to gather a

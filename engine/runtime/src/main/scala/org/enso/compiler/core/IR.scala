@@ -1,16 +1,15 @@
 package org.enso.compiler.core
 
-import java.util.UUID
-
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
-import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
+import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{AST, Debug, Location}
 
+import java.util.UUID
 import scala.annotation.unused
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -5337,7 +5336,10 @@ object IR {
   // === Errors ===============================================================
 
   /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Expression with Diagnostic {
+  sealed trait Error
+      extends Expression
+      with IR.Module.Scope.Definition
+      with Diagnostic {
     override def mapExpressions(fn: Expression => Expression):      Error
     override def setLocation(location: Option[IdentifiedLocation]): Error
     override def duplicate(

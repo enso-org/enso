@@ -209,4 +209,42 @@ class ComplexTypeTest extends CompilerTest {
         .name shouldEqual "bad_trailing_sig"
     }
   }
+
+  "Invalid complex types" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val ir =
+      """
+        |type Foo
+        |    Bar
+        |    type Baz
+        |
+        |    g a = this + a
+        |
+        |    f a =
+        |""".stripMargin.preprocessModule.desugar
+
+    "have their types translated untouched" in {
+      ir.bindings.head shouldBe a[Definition.Atom]
+      val atom = ir.bindings.head.asInstanceOf[Definition.Atom]
+      atom.name.name shouldEqual "Baz"
+    }
+
+    "have their errors translated untouched" in {
+      ir.bindings.last shouldBe an[IR.Error.Syntax]
+      val err = ir.bindings.last.asInstanceOf[IR.Error.Syntax]
+      err.reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
+    }
+
+    "have their valid methods desugared" in {
+      ir.bindings(1) shouldBe a[Definition.Method.Binding]
+      ir.bindings(2) shouldBe a[Definition.Method.Binding]
+      val methodOnBar = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
+      val methodOnBaz = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
+      methodOnBar.typeName.name shouldEqual "Bar"
+      methodOnBar.methodName.name shouldEqual "g"
+      methodOnBaz.typeName.name shouldEqual "Baz"
+      methodOnBaz.methodName.name shouldEqual "g"
+    }
+  }
 }

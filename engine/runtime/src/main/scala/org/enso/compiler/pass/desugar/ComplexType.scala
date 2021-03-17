@@ -169,6 +169,7 @@ case object ComplexType extends IRPass {
         matchSignaturesAndGenerate(name, binding)
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
+      case err: IR.Error => Seq(err)
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")
     }
