@@ -5,6 +5,8 @@
 //! * [visualization documentation](https://dev.enso.org/docs/ide/product/visualizations.html).
 // FIXME: Can we simplify the above definition so its more minimal, yet functional?
 
+mod function;
+use function::Function;
 
 use crate::prelude::*;
 
@@ -62,7 +64,8 @@ impl Definition {
         let source       = source.as_ref();
         let source       = source;
         let context      = JsValue::NULL;
-        let function     = js_sys::Function::new_with_args(binding::JS_CLASS_NAME,&source);
+        let function     = Function::new_with_args(binding::JS_CLASS_NAME,&source)
+                               .map_err(Error::InvalidFunction)?;
         let js_class     = binding::js_class();
         let class        = function.call1(&context,&js_class).map_err(Error::InvalidFunction)?;
 
