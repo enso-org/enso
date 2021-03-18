@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.aggregate.Aggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -166,5 +165,10 @@ public class Column {
     Index newIndex = index.applyMask(mask);
     Storage newStorage = storage.applyMask(mask);
     return new Column(name, newIndex, newStorage);
+  }
+
+  /** @return a copy of the Column containing a slice of the original data */
+  public Column slice(int offset, int limit) {
+    return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
   }
 }

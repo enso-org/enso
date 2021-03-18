@@ -165,13 +165,22 @@ type Table
             turned_into_index.not
         this.updated_context new_ctx . updated_columns new_cols
 
-    ## Returns the index (or indexes) of this table, as a column (indexed by itself).
-       Returns `Nothing` if there is no index set.
-    index : Column | Vector Column | Nothing
+    ## UNSTABLE
+
+       Returns the (possibly empty) list of indices for this table.
+    indices : Vector Column
+    indices =
+        this.context.meta_index.map this.make_column
+
+    ## UNSTABLE
+
+       Returns the index (or indexes) of this table, as a column (indexed by itself).
+       Throws `No_Index_Set_Error` if there is no index set.
+    index : Column | Vector Column ! Materialized_Table.No_Index_Set_Error
     index =
-        ixes = this.context.meta_index.map this.make_column
-        len = this.context.meta_index.length
-        if len == 0 then Nothing else
+        ixes = this.indices
+        len = ixes.length
+        if len == 0 then Error.throw Materialized_Table.No_Index_Set_Error else
             if len == 1 then ixes.at 0 else ixes
 
     ## UNSTABLE
@@ -446,10 +455,7 @@ type Table
         count_columns = cols.map c-> IR.Internal_Column c.name Sql.Sql_Type.integer (IR.Operation "COUNT" [c.expression])
         count_table = this.updated_columns count_columns . to_dataframe
         counts = count_table.columns.map c-> c.at 0
-        column_type_as_text col =
-            id = col.sql_type.typeid
-            JDBCType.valueOf id . getName
-        types = cols.map column_type_as_text
+        types = cols.map c-> c.sql_type.name
         Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
 
     ## PRIVATE
@@ -539,6 +545,14 @@ type Aggregate_Table
        # make_column : Internal_Column -> Aggregate_Column
     make_column internal =
         Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
+
+    ## PRIVATE
+
+       Helper that returns the underlying table from before grouping.
+    ungrouped : Table
+    ungrouped =
+        new_ctx = this.context.set_groups []
+        Table this.name this.connection this.internal_columns new_ctx
 
 type Integrity_Error
     ## UNSTABLE

@@ -15,17 +15,22 @@ sqlite_specific_spec connection =
             action . should_fail_with Sql_Error
             action.catch.to_text . should_equal "[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)"
 
-    Test.group "[SQLite] Info" <|
+    Test.group "[SQLite] Metadata" <|
+        connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+        t = connection.access_table "Tinfo"
+        t.insert ["a", Nothing, False, 1.2]
+        t.insert ["abc", Nothing, Nothing, 1.3]
+        t.insert ["def", 42, True, 1.4]
         Test.specify "should return Table information" <|
-            connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "decimals" DECIMAL)'
-            t = connection.access_table "Tinfo"
-            t.insert ["a", Nothing, False, 1.2]
-            t.insert ["abc", Nothing, Nothing, 1.3]
-            t.insert ["def", 42, True, 1.4]
             i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools", "decimals"]
+            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
-            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "DECIMAL"]
+            i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "REAL"]
+        Test.specify "should infer standard types correctly" <|
+            t.at "strs" . sql_type . is_definitely_text . should_be_true
+            t.at "ints" . sql_type . is_definitely_integer . should_be_true
+            t.at "bools" . sql_type . is_definitely_boolean . should_be_true
+            t.at "reals" . sql_type . is_definitely_double . should_be_true
         connection.execute_update 'DROP TABLE "Tinfo"'
 
 spec =

@@ -370,4 +370,13 @@ public class LongStorage extends NumericStorage {
             });
     return ops;
   }
+
+  @Override
+  public LongStorage slice(int offset, int limit) {
+    int newSize = Math.min(size - offset, limit);
+    long[] newData = new long[newSize];
+    System.arraycopy(data, offset, newData, 0, newSize);
+    BitSet newMask = isMissing.get(offset, offset + limit);
+    return new LongStorage(newData, newSize, newMask);
+  }
 }

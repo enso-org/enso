@@ -73,4 +73,9 @@ public class DefaultIndex extends Index {
   public Index applyMask(OrderMask mask) {
     return this;
   }
+
+  @Override
+  public DefaultIndex slice(int offset, int limit) {
+    return new DefaultIndex(Math.min(size, limit));
+  }
 }

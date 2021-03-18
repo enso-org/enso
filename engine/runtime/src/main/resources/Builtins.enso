@@ -731,13 +731,24 @@ type Meta
     get_source_location : Integer -> Text
     get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
 
-    ## Pretty-prints the type of the provided value using the interpreter's
+    ## PRIVATE
+
+       Pretty-prints the type of the provided value using the interpreter's
        internal logic for printing types.
 
        Arguments:
        - value: The value whose type should be printed.
-    type_to_display_text : Any -> Text
-    type_to_display_text value = @Builtin_Method "Meta.display_type"
+    get_simple_type_name : Any -> Text
+    get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
+
+    ## PRIVATE
+
+       Returns the fully qualified type name of the given value.
+
+       Arguments:
+       - value: the value to get the type of.
+   get_qualified_type_name : Any -> Text
+   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
 
 ## Utilities for working with primitive arrays.
 type Array

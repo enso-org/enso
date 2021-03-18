@@ -252,6 +252,9 @@ public abstract class Storage {
    */
   public abstract Comparator<Object> getDefaultComparator();
 
+  /** @return a copy of the storage containing a slice of the original data */
+  public abstract Storage slice(int offset, int limit);
+
   public List<Object> toList() {
     return new StorageListView(this);
   }

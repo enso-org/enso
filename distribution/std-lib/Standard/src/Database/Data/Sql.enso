@@ -10,23 +10,28 @@ type Sql_Type
 
        Arguments:
        - typeid: a numerical type id, as defined in `java.sql.Types`.
-    type Sql_Type typeid
+       - name: a database-specific type name, used for pretty printing.
+    type Sql_Type typeid name
 
     ## The SQL representation of `Boolean` type.
     boolean : Sql_Type
-    boolean = Sql_Type Types.BOOLEAN
+    boolean = Sql_Type Types.BOOLEAN "BOOLEAN"
 
     ## The SQL representation of `Integer` type.
     integer : Sql_Type
-    integer = Sql_Type Types.INTEGER
+    integer = Sql_Type Types.INTEGER "INTEGER"
 
     ## The SQL type representing decimal numbers.
     decimal : Sql_Type
-    decimal = Sql_Type Types.DECIMAL
+    decimal = Sql_Type Types.DECIMAL "DECIMAL"
 
     ## The SQL type representing a general numeric type.
     numeric : Sql_Type
-    numeric = Sql_Type Types.NUMERIC
+    numeric = Sql_Type Types.NUMERIC "NUMERIC"
+
+    ## The SQL type representing one of the suppported textual types.
+    varchar : Sql_Type
+    varchar = Sql_Type Types.VARCHAR "VARCHAR"
 
     ## PRIVATE
 
@@ -42,7 +47,7 @@ type Sql_Type
        standard types so it may return false negatives for non-standard ones.
     is_definitely_boolean : Boolean
     is_definitely_boolean =
-        this.typeid == Types.BOOLEAN
+        [Types.BOOLEAN, Types.BIT].contains this.typeid
 
     ## PRIVATE
 
@@ -52,6 +57,12 @@ type Sql_Type
     is_definitely_double : Boolean
     is_definitely_double =
         [Types.FLOAT, Types.DOUBLE, Types.REAL].contains this.typeid
+
+    ## PRIVATE
+       Returns True if this type represents a Text.
+    is_definitely_text : Boolean
+    is_definitely_text =
+       [Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR, Types.LONGNVARCHAR].contains this.typeid
 
 ## UNSTABLE
 
@@ -137,8 +148,8 @@ type Statement
     to_json =
         jsonify fragment = case fragment of
             Sql_Code_Part code -> Json.from_pairs [["sql_code", code]]
-            Sql_Interpolation (Sql_Type typeid) obj ->
-                inner = Json.from_pairs [["value", obj.to_json], ["typeid", typeid]]
+            Sql_Interpolation typ obj ->
+                inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
                 Json.from_pairs [["sql_interpolation", inner]]
         fragments = Json.Array (this.internal_fragments.map jsonify)
         Json.from_pairs [["query", fragments]]

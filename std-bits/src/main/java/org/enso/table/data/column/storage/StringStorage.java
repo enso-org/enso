@@ -138,4 +138,10 @@ public class StringStorage extends ObjectStorage {
         });
     return t;
   }
+
+  @Override
+  public StringStorage slice(int offset, int limit) {
+    ObjectStorage storage = super.slice(offset, limit);
+    return new StringStorage(storage.getData(), storage.size());
+  }
 }
