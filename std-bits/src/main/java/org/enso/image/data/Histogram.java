@@ -9,6 +9,9 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A histogram calculated for a single channel of an image.
+ */
 public class Histogram {
 
   private static final int BINS = 256;
