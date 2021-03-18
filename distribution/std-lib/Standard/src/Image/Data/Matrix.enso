@@ -9,20 +9,26 @@ type Index_Out_Of_Bounds_Error index
 
 type Matrix
 
+    ## The matrix data type.
+
+       Each value of the matrix is represented with an array of
+       channels. In contrast to an Image data type, Matrix values are
+       not normalized.
     type Matrix opencv_mat
 
+    ## Return the number of matrix rows.
     rows : Integer
     rows = this.opencv_mat.rows
 
+    ## Return the number of matrix columns.
     columns : Integer
     columns = this.opencv_mat.cols
 
+    ## Return the number of matrix channels.
     channels : Integer
     channels = this.opencv_mat.channels
 
-    copy : Matrix
-    copy = Matrix this.opencv_mat.clone
-
+    ## Get the matrix value at specified row and column.
     get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
     get row column =
         if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error row) else
@@ -30,6 +36,11 @@ type Matrix
                 arr = Java_Matrix.get this.opencv_mat row column
                 Vector.Vector arr
 
+    ## Reshape the matrix specifying new number of rows and channels.
+
+       > Example
+         Reshape the matrix to a new shape of 3 rows and 1 column, with 1 channel.
+             Matrix.from_vector [0, 0, 0] . reshape rows=3 channels=1
     reshape : Integer -> Integer -> Matrix
     reshape rows channels=Nothing =
         case channels of
@@ -37,21 +48,54 @@ type Matrix
             _ -> Matrix (this.opencv_mat.reshape channels rows)
 
     ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+
+       > Example
+         Add 1 to each channel of the matrix.
+             m + 1
+         Add 100 to the first channel of the matrix.
+             m + [100] == m + [100, 0, 0]
     + : (Number | Matrix | Vector) -> Matrix
     + value = Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)
 
     ## Calculates the per-element difference of two matrices or of a matrix and a scalar.
+
+       > Example
+         Subtract 10 from each channel of the matrix.
+             m - 10
+         Subtract 2 from second channel of the matrix.
+             m - [0, 2] == m - [0, 2, 0, 0]
+         Subtract two matrices:
+             m - m
     - : (Number | Matrix | Vector) -> Matrix
     - value = Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)
 
     ## Calculates the per-element product of two matrices or a matrix and a scalar.
+
+       > Example
+         Multiply each channel of the matrix by 2.
+             m * 2
+         Multiply first channel of the matrix by 2, and second channel by 4.
+             m * [2, 4, 1, 1]
+         Multiply first channel of the matrix by 2, and zero the rest of the channels.
+             m * [2]
+         Multiply two matrices.
+             m * m
     * : (Number | Matrix | Vector) -> Matrix
     * value = Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)
 
     ## Performs per-element division of two matrices or a matrix and a scalar.
+
+        > Example
+          Divide each channel of the matrix by 2.
+              m / 2
+          Divide first channel of the matrix by 2, and second channel by 4.
+              m / [2, 4, 1, 1]
+          Divide two matrices.
+              m / m
     / : (Number | Matrix | Vector) -> Matrix
     / value = Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)
 
+    ## Check the equality of two matrices.
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
@@ -69,18 +113,38 @@ type Matrix
     to_json : Json
     to_json = Json.String this.opencv_mat.to_text
 
+## Create the matrix with all elements - zeros.
+
+   > Example
+     Create a matrix.
+         Matrix.zeros 2 2 . to_vector == [0, 0, 0, 0]
 zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =
     Matrix (Java_Matrix.zeros rows columns channels)
 
+## Create the matrix with all elements - ones.
+
+   > Example
+     Create a matrix.
+         Matrix.ones 2 2 channels=2 . to_vector == [1, 1, 1, 1, 1, 1, 1, 1]
 ones : Integer -> Integer -> Integer -> Matrix
 ones rows columns channels=1 =
     Matrix (Java_Matrix.ones rows columns channels)
 
+## Create an identity matrix containing ones on a main diagonal.
+
+   > Example
+     Create a matrix.
+         Matrix.eye 2 2 channels=1 . to_vector == [1, 0, 0, 1]
 eye : Integer -> Integer -> Integer -> Matrix
 eye rows columns channels=1 =
     Matrix (Java_Matrix.eye rows columns channels)
 
+## Create a matrix from the vector.
+
+   > Example
+     Create a matrix.
+         Matrix.from_vecor [1, 1, 0, 0] . to_vector == [1, 1, 0, 0]
 from_vector : Vector -> Integer -> Integer -> Matrix
 from_vector values rows=1 channels=1 =
     Matrix (Java_Matrix.from_vector values.to_array channels rows)

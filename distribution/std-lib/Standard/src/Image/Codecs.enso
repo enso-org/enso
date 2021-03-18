@@ -43,6 +43,17 @@ type Write_Flag
        compression is used.
     type Write_Webp_Quality value
 
+## Read the image from a file.
+
+   The functon reads images in BGR format, or BGRA if the `Read_Alpha_Channel` flag is specified.
+
+   > Example
+     Read the image.
+         Codecs.read "image.png"
+     Read the image with alpha channel.
+         Codecs.read "image.png" Codecs.Read_Alpha_Channel
+     Read the image and convert it to grayscale.
+         Codecs.read "image.png" Codecs.Read_Grayscale
 read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.Io_Error
 read location flags=[] =
     path = case location of
@@ -58,6 +69,15 @@ read location flags=[] =
             Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read ' + path))
             err -> Panic.throw err
 
+## Write the image to a file.
+
+   > Example
+     Write the image with applying png compression.
+         Codecs.write image
+     Write the image with applying png compression.
+         Codecs.write image (Codecs.Write_Png_Compression 9)
+     Write the image with applying several flags.
+         Codecs.write image [Codecs.Write_Jpeg_Quality 40, Codecs.Write_Jpeg_Progressive]
 write : (Text | File) -> Image -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
 write location image flags=[] =
     path = case location of

@@ -5,12 +5,16 @@ polyglot java import org.opencv.core.MatOfInt
 polyglot java import org.opencv.imgcodecs.Imgcodecs
 
 ## PRIVATE
+
+   Convert read flag to OpenCV.
 read_flag_to_integer flag = case flag of
     Codecs.Read_Alpha_Channel -> Imgcodecs.IMREAD_UNCHANGED
     Codecs.Read_Grayscale -> Imgcodecs.IMREAD_GRAYSCALE
     Codecs.Read_Gdal -> Imgcodecs.IMREAD_LOAD_GDAL
 
 ## PRIVATE
+
+   Convert write flag to OpenCV.
 write_flag_to_vector flag = case flag of
     Codecs.Write_Jpeg_Quality value -> [Imgcodecs.IMWRITE_JPEG_QUALITY, value]
     Codecs.Write_Jpeg_Progressive -> [Imgcodecs.IMWRITE_JPEG_PROGRESSIVE, 1]
@@ -21,5 +25,7 @@ write_flag_to_vector flag = case flag of
     Codecs.Write_Webp_Quality value -> [Imgcodecs.IMWRITE_WEBP_QUALITY, value]
 
 ## PRIVATE
+
+   Create an OpenCV matrix holding the flag values.
 write_flags_to_mat flags =
     MatOfInt.new (flags.flat_map here.write_flag_to_vector . to_array)

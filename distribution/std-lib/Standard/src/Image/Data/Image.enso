@@ -7,20 +7,26 @@ polyglot java import org.enso.image.data.Image as Java_Image
 
 type Image
 
+    ## The image data type.
+
+       The image is represented with a matrix of rows x columns. Each
+       pixel is represented with a vector of 1 to 4 values (channels).
+       Pixel values are normalized in a range [0.0 .. 1.0].
     type Image opencv_mat
 
+    ## Return the number of image rows.
     rows : Integer
     rows = this.opencv_mat.rows
 
+    ## Return the number of image columns.
     columns : Integer
     columns = this.opencv_mat.cols
 
+    ## Return the number of image channels.
     channels : Integer
     channels = this.opencv_mat.channels
 
-    copy : Image
-    copy = Image this.opencv_mat.clone
-
+    ## Get the pixel value indexed by row and column.
     get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
     get row column =
         if (row < 0) || (row >= this.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error row) else
@@ -29,37 +35,77 @@ type Image
                 Vector.Vector arr
 
     ## Calculates the per-element sum of an image and a scalar.
+
+       > Example
+         Add the constant to an image. Operation will add 0.1 to each channel of the image.
+             image + 0.1
+         Add 0.1 to the first channel of the image.
+             image + [0.1]
+             image + [0.1, 0, 0]
     + : (Number | Vector) -> Image
     + value = Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)
 
     ## Calculates the per-element difference between an image and a scalar.
+
+       > Example
+         Subtract 0.5 from each channel of the image.
+             image - 0.5
+         Subtract 0.5 from second channel of the image.
+             image - [0, 0.5] == image - [0, 0.5, 0, 0]
     - : (Number | Vector) -> Image
     - value = Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)
 
     ## Calculates the per-element product of an image and a scalar.
+
+       > Example
+         Multiply each channel of the image by 2.
+             image * 2
+         Multiply first channel of the image by 2, and second channel by 4.
+             image * [2, 4, 1, 1]
+         Multiply first channel of the image by 2, and zero the rest of the channels.
+             image * [2]
     * : (Number | Vector) -> Image
     * value = Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)
 
     ## Performs per-element division of an image and a scalar.
+
+        > Example
+          Divide each channel of the image by 2.
+              image / 2
+          Divide first channel of the image by 2, and second channel by 4.
+              image / [2, 4, 1, 1]
+          Divide first channel of the image by 2, and zero the rest of the channels.
+              image / [2]
     / : (Number | Vector) -> Image
     / value = Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)
 
+    ## Check equality of two images.
     == : Image -> Boolean
     == that = Java_Image.is_equals this.opencv_mat that.opencv_mat
 
+    ## Convert the image to a vector.
     to_vector : Vector
     to_vector =
         arr = Java_Image.to_vector this.opencv_mat
         Vector.Vector arr
 
+    ## Convert the image to Json.
     to_json : Json
     to_json =
         base64 = Java_Image.to_base64 this.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
+    ## Create a histogram for the specified channel.
     histogram : Integer -> Histogram
     histogram channel = Histogram.calculate this channel
 
+## Create an image from the array of values.
+
+   The function expects the array of normalized values in a range of [0.0 .. 1.1].
+
+   > Example
+     Create an image from the vector.
+         Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
 from_vector : Vector -> Integer -> Integer -> Image
 from_vector data rows=1 channels=1 =
     Image (Java_Image.from_vector data.to_array rows channels)
