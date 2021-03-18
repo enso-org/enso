@@ -93,20 +93,25 @@ Error.should_equal _ = Panic.throw (Matched_On_Error this)
 Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
     True -> Success
     False ->
-        msg = this.to_text + " did not equal " + that.to_text + "."
+        loc = Meta.get_source_location 2
+        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
         Panic.throw (Failure msg)
 
 ## Asserts that the given `Boolean` is `True`
 Boolean.should_be_true = case this of
     True -> Success
-    False -> Panic.throw (Failure "Expected False to be True.")
+    False ->
+        loc = Meta.get_source_location 2
+        Panic.throw (Failure "Expected False to be True (at "+loc+").")
 
 ## Asserts that the given `Boolean` is `True`.
 Error.should_be_true = Panic.throw (Matched_On_Error this)
 
 ## Asserts that the given `Boolean` is `False`
 Boolean.should_be_false = case this of
-    True -> Panic.throw (Failure "Expected True to be False.")
+    True ->
+        loc = Meta.get_source_location 2
+        Panic.throw (Failure "Expected True to be False (at "+loc+").")
     False -> Success
 
 ## Asserts that the given `Boolean` is `False`

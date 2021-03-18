@@ -53,7 +53,7 @@ public class AggregateColumn {
     return new Column(column.getName() + outSuffix, uniqueIndex, aggregator.seal());
   }
 
-  /** @return the underlying (ungroupped) column. */
+  /** @return the underlying (ungrouped) column. */
   public Column getColumn() {
     return column;
   }

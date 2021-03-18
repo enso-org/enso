@@ -93,4 +93,10 @@ public class HashIndex extends Index {
   public int size() {
     return items.size();
   }
+
+  @Override
+  public HashIndex slice(int offset, int limit) {
+    var newStorage = items.slice(offset, limit);
+    return new HashIndex(name, newStorage, newStorage.size());
+  }
 }

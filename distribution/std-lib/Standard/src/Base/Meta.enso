@@ -148,9 +148,20 @@ get_source_location : Integer -> Text
 get_source_location skip_frames =
     Builtins.Meta.get_source_location skip_frames+1
 
-## Displays the type of the provided value as text.
+## PRIVATE
+
+   Displays the type of the provided value as text.
 
    Arguments:
    - value: The value for which to display the type.
-type_to_display_text : Any -> Text
-type_to_display_text value = Builtins.Meta.type_to_display_text value
+get_simple_type_name : Any -> Text
+get_simple_type_name value = Builtins.Meta.get_simple_type_name value
+
+## PRIVATE
+
+   Returns the fully qualified type name of the given value.
+
+   Arguments:
+   - value: the value to get the type of.
+get_qualified_type_name : Any -> Text
+get_qualified_type_name value = Builtins.Meta.get_qualified_type_name value
