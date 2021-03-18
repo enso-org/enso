@@ -40,6 +40,9 @@
 - [Disable area selection][1318]. The area selection was visible despite being
   non-functional. To avoid confusion, area selection has been disabled until it
   is [correctly implemented][479].
+- [Handle syntax errors in custom-defined visualizations][#1341]. The IDE is now
+  able to run properly, even if some of the custom-defined visualisations inside
+  a project contain syntax errors.
 
 #### EnsoGL (rendering engine)
 
