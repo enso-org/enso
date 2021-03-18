@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.Comparator;
-
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -306,5 +305,15 @@ public class BoolStorage extends Storage {
   @Override
   public Comparator getDefaultComparator() {
     return Comparator.naturalOrder();
+  }
+
+  @Override
+  public BoolStorage slice(int offset, int limit) {
+    int newSize = Math.min(size - offset, limit);
+    return new BoolStorage(
+        values.get(offset, offset + limit),
+        isMissing.get(offset, offset + limit),
+        newSize,
+        negated);
   }
 }

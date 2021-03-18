@@ -82,3 +82,9 @@ spec = Test.group "Meta-Value Manipulation" <|
         src = Meta.get_source_location 0
         loc = "Meta_Spec.enso:82:15-40"
         src.take_last loc.length . should_equal loc
+
+    Test.specify "should allow to get qualified type names of values" <|
+        x = 42
+        y = My_Type 1 2 3
+        Meta.get_qualified_type_name x . should_equal "Builtins.Main.Integer"
+        Meta.get_qualified_type_name y . should_equal "Tests.Semantic.Meta_Spec.My_Type"

@@ -83,4 +83,7 @@ public abstract class Index {
 
   /** @return the number of elements in this index. */
   public abstract int size();
+
+  /** @return a copy of the index containing a slice of the original data */
+  public abstract Index slice(int offset, int limit);
 }

@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+## PRIVATE
+recover_errors ~body =
+    result = Panic.recover body
+    result.catch err->
+        Json.from_pairs [["error", err.to_display_text]] . to_text
+

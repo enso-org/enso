@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Comparator;
 
@@ -144,5 +145,13 @@ public class ObjectStorage extends Storage {
           }
         });
     return ops;
+  }
+
+  @Override
+  public ObjectStorage slice(int offset, int limit) {
+    int newSize = Math.min(size - offset, limit);
+    Object[] newData = new Object[newSize];
+    System.arraycopy(data, offset, newData, 0, newSize);
+    return new ObjectStorage(newData, newSize);
   }
 }

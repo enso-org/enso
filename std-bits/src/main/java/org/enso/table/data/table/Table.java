@@ -376,4 +376,13 @@ public class Table {
     Table t = by == null ? this : indexFromColumn(by);
     return new AggregateTable(t);
   }
+
+  /** @return a copy of the Column containing a slice of the original data */
+  public Table slice(int offset, int limit) {
+    Column[] newColumns = new Column[columns.length];
+    for (int i = 0; i < columns.length; i++) {
+      newColumns[i] = columns[i].slice(offset, limit);
+    }
+    return new Table(newColumns, index.slice(offset, limit));
+  }
 }

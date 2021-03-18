@@ -12,6 +12,9 @@ polyglot java import org.enso.table.operations.OrderBuilder
 ## An error returned when a non-existent column is being looked up.
 type No_Such_Column_Error column_name
 
+## An error returned when getting an index but no index is set for that table.
+type No_Index_Set_Error
+
 ## Represents a column-oriented table data structure.
 type Table
     type Table java_table
@@ -108,10 +111,10 @@ type Table
         Table (this.java_table.indexFromColumn index)
 
     ## Returns the index of this table, as a column (indexed by itself).
-       Returns `Nothing` if there is no index set.
-    index : Column.Column | Nothing
+       Throws `No_Index_Set_Error` if there is no index set.
+    index : Column.Column ! No_Index_Set_Error
     index = case this.java_table.getIndex.toColumn of
-        Nothing -> Nothing
+        Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
     ## Selects a subset of columns from this table by name.
@@ -305,6 +308,13 @@ type Table
        corresponding to the missing column.
     concat other =
         Table (this.java_table.concat other.java_table)
+
+    ## UNSTABLE
+
+       Returns a table truncated to at most `max_rows` rows.
+    take_start : Integer -> Table
+    take_start max_rows =
+        Table (this.java_table.slice 0 max_rows)
 
 ## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign

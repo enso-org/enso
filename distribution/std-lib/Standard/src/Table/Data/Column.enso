@@ -222,10 +222,10 @@ type Column
     count = this.length - this.count_missing
 
     ## Returns the index of this column, as a column (indexed by itself).
-       Returns `Nothing` if there is no index set.
-    index : Column | Nothing
+       Throws `No_Index_Set_Error` if there is no index set.
+    index : Column ! Table.No_Index_Set_Error
     index = case this.java_column.getIndex.toColumn of
-        Nothing -> Nothing
+        Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
 
     ## Returns the item contained in this column at the given index.
@@ -377,6 +377,13 @@ type Column
         mask = OrderBuilder.buildOrderMask [rule].to_array fallback_cmp
         new_col = this.java_column.applyMask mask
         Column new_col
+
+    ## UNSTABLE
+
+       Returns a column truncated to at most `max_rows` rows.
+    take_start : Integer -> Column
+    take_start max_rows =
+        Column (this.java_column.slice 0 max_rows)
 
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
