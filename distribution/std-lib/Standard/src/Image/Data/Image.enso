@@ -1,0 +1,65 @@
+from Standard.Base import all
+import Standard.Image.Data.Histogram
+import Standard.Image.Data.Image.Internal
+import Standard.Image.Data.Matrix
+
+polyglot java import org.enso.image.data.Image as Java_Image
+
+type Image
+
+    type Image opencv_mat
+
+    rows : Integer
+    rows = this.opencv_mat.rows
+
+    columns : Integer
+    columns = this.opencv_mat.cols
+
+    channels : Integer
+    channels = this.opencv_mat.channels
+
+    copy : Image
+    copy = Image this.opencv_mat.clone
+
+    get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
+    get row column =
+        if (row < 0) || (row >= this.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error row) else
+            if (column < 0) || (column >= this.columns) then Error.throw (Matrix.Index_Out_Of_Bounds_Error column) else
+                arr = Java_Image.get this.opencv_mat row column
+                Vector.Vector arr
+
+    ## Calculates the per-element sum of an image and a scalar.
+    + : (Number | Vector) -> Image
+    + value = Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)
+
+    ## Calculates the per-element difference between an image and a scalar.
+    - : (Number | Vector) -> Image
+    - value = Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)
+
+    ## Calculates the per-element product of an image and a scalar.
+    * : (Number | Vector) -> Image
+    * value = Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)
+
+    ## Performs per-element division of an image and a scalar.
+    / : (Number | Vector) -> Image
+    / value = Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)
+
+    == : Image -> Boolean
+    == that = Java_Image.is_equals this.opencv_mat that.opencv_mat
+
+    to_vector : Vector
+    to_vector =
+        arr = Java_Image.to_vector this.opencv_mat
+        Vector.Vector arr
+
+    to_json : Json
+    to_json =
+        base64 = Java_Image.to_base64 this.opencv_mat
+        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+
+    histogram : Integer -> Histogram
+    histogram channel = Histogram.calculate this channel
+
+from_vector : Vector -> Integer -> Integer -> Image
+from_vector data rows=1 channels=1 =
+    Image (Java_Image.from_vector data.to_array rows channels)

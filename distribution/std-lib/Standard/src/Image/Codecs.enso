@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.System.File
-import Standard.Image.Data.Matrix
+import Standard.Image.Data.Image
 import Standard.Image.Codecs.Internal
 
-polyglot java import org.enso.image.Image as Java_Image
+polyglot java import org.enso.image.Codecs as Java_Codecs
 
 type Read_Flag
 
@@ -43,22 +43,22 @@ type Write_Flag
        compression is used.
     type Write_Webp_Quality value
 
-read : (Text | File) -> (Read_Flag | Vector) -> Matrix ! File.Io_Error
+read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.Io_Error
 read location flags=[] =
     path = case location of
         File.File _ -> location.path
         _ -> location
     read_flags = case flags of
         Vector.Vector _ ->
-            if flags.is_empty then Java_Image.READ_FLAG_EMPTY else
+            if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                 flags.map Internal.read_flag_to_integer . reduce (_.bit_or _)
         _ -> Internal.read_flag_to_integer flags
-    Panic.recover (Matrix.Matrix (Java_Image.read path read_flags)) . catch e->
+    Panic.recover (Image.Image (Java_Codecs.read path read_flags)) . catch e->
         case e of
             Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read ' + path))
             err -> Panic.throw err
 
-write : (Text | File) -> Matrix -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
+write : (Text | File) -> Image -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
 write location image flags=[] =
     path = case location of
         File.File _ -> location.path
@@ -67,7 +67,7 @@ write location image flags=[] =
         Vector.Vector _ -> flags
         _ -> [flags]
     int_flags = Internal.write_flags_to_mat write_flags
-    Panic.recover (Java_Image.write path image.opencv_mat int_flags) . catch e->
+    Panic.recover (Java_Codecs.write path image.opencv_mat int_flags) . catch e->
         case e of
             Polyglot_Error _ -> Panic.throw (File.Io_Error ('Faled to write ' + path))
             err -> Panic.throw err

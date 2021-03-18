@@ -1,0 +1,232 @@
+from Standard.Base import all
+import Standard.Test
+import Standard.Image.Data.Image
+import Standard.Image.Data.Matrix
+
+spec =
+    Test.group "Image channels 1" <|
+        zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x]) rows=3 channels=1
+        ones = Image.from_vector (Vector.fill 9 1 . flat_map x->[x]) rows=3 channels=1
+        eye = Image.from_vector ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map x->[x]) rows=3 channels=1
+
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 0)
+            ones.to_vector . should_equal (Vector.fill 9 1)
+            eye.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map x->[x])
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1]
+            eye.get 1 0 . should_equal [0]
+            eye.get 1 1 . should_equal [1]
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should add scalar" <|
+            zeros+1 . should_equal ones
+            ones+1 . should_equal ones
+            eye+1 . should_equal ones
+            eye+0 . should_equal eye
+            zeros+0.8 . should_equal (Image.from_vector (Vector.fill 9 0.8) channels=1 rows=3)
+        Test.specify "should add vector" <|
+            zeros+[1] . should_equal ones
+            ones+[1, 1] . should_equal ones
+            eye+[0, 0] . should_equal eye
+            eye+[] . should_equal eye
+
+        Test.specify "should subtract scalar" <|
+            ones-1 . should_equal zeros
+            zeros-1 . should_equal zeros
+            ones-1 . should_equal zeros
+        Test.specify "should subtract vector" <|
+            zeros-[1] . should_equal zeros
+            ones-[1, 1] . should_equal zeros
+            eye-[0, 0] . should_equal eye
+            eye-[] . should_equal eye
+
+        Test.specify "should multiply scalar" <|
+            ones*2 . should_equal ones
+            zeros*2 . should_equal zeros
+            eye*0 . should_equal zeros
+            eye*1 . should_equal eye
+        Test.specify "should multiply vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[1, 1] . should_equal ones
+            eye*[0, 0] . should_equal zeros
+            eye*[] . should_equal zeros
+
+        Test.specify "should divide scalar" <|
+            zeros/2 . should_equal zeros
+            ones/5 . should_equal (Image.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
+        Test.specify "should divide vector" <|
+            zeros/[2] . should_equal zeros
+            ones/[5, 5] . should_equal (Image.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
+            eye/[] . should_equal zeros
+
+    Test.group "Image channels 2" <|
+        zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x]) rows=3 channels=2
+        ones = Image.from_vector (Vector.fill 9 1 . flat_map x->[x,x]) rows=3 channels=2
+        eye = Image.from_vector ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map x->[x,0]) rows=3 channels=2
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9*2 0)
+            ones.to_vector . should_equal (Vector.fill 9*2 1)
+            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1, 0]
+            eye.get 1 0 . should_equal [0, 0]
+            eye.get 1 1 . should_equal [1, 0]
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should add scalar" <|
+            zeros+1 . should_equal ones
+            ones+1 . should_equal ones
+            eye+1 . should_equal ones
+            eye+0 . should_equal eye
+            zeros+0.8 . should_equal (Image.from_vector (Vector.fill 9*2 0.8) channels=2 rows=3)
+        Test.specify "should add vector" <|
+            zeros+[1] . should_equal ones
+            ones+[1, 1] . should_equal ones
+            eye+[0, 0] . should_equal eye
+            eye+[] . should_equal eye
+
+        Test.specify "should subtract scalar" <|
+            ones-1 . should_equal zeros
+            zeros-1 . should_equal zeros
+            ones-1 . should_equal zeros
+        Test.specify "should subtract vector" <|
+            zeros-[1] . should_equal zeros
+            ones-[1, 1] . should_equal zeros
+            eye-[0, 0] . should_equal eye
+            eye-[] . should_equal eye
+
+        Test.specify "should multiply scalar" <|
+            ones*2 . should_equal ones
+            zeros*2 . should_equal zeros
+            eye*0 . should_equal zeros
+            eye*1 . should_equal eye
+        Test.specify "should multiply vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[1, 1] . should_equal ones
+            eye*[0, 0] . should_equal zeros
+            eye*[] . should_equal zeros
+
+        Test.specify "should divide scalar" <|
+            zeros/2 . should_equal zeros
+            ones/5 . should_equal (Image.from_vector (Vector.fill 9*2 0.2) channels=2 rows=3)
+        Test.specify "should divide vector" <|
+            zeros/[2] . should_equal zeros
+            ones/[5, 5] . should_equal (Image.from_vector (Vector.fill 9*2 0.2) channels=2 rows=3)
+            eye/[] . should_equal zeros
+
+    Test.group "Image channels 3" <|
+        zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x,x]) rows=3 channels=3
+        ones = Image.from_vector (Vector.fill 9 1 . flat_map x->[x,x,x]) rows=3 channels=3
+        eye = Image.from_vector ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map x->[x,0,0]) rows=3 channels=3
+
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9*3 0)
+            ones.to_vector . should_equal (Vector.fill 9*3 1)
+            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1, 0, 0]
+            eye.get 1 0 . should_equal [0, 0, 0]
+            eye.get 1 1 . should_equal [1, 0, 0]
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should add scalar" <|
+            zeros+1 . should_equal ones
+            ones+1 . should_equal ones
+            eye+1 . should_equal ones
+            eye+0 . should_equal eye
+            zeros+0.8 . should_equal (Image.from_vector (Vector.fill 9*3 0.8) channels=3 rows=3)
+        Test.specify "should add vector" <|
+            zeros+[1] . should_equal ones
+            ones+[1, 1] . should_equal ones
+            eye+[0, 0] . should_equal eye
+            eye+[] . should_equal eye
+
+        Test.specify "should subtract scalar" <|
+            ones-1 . should_equal zeros
+            zeros-1 . should_equal zeros
+            ones-1 . should_equal zeros
+        Test.specify "should subtract vector" <|
+            zeros-[1] . should_equal zeros
+            ones-[1, 1, 1] . should_equal zeros
+            eye-[0, 0] . should_equal eye
+            eye-[] . should_equal eye
+
+        Test.specify "should multiply scalar" <|
+            ones*2 . should_equal ones
+            zeros*2 . should_equal zeros
+            eye*0 . should_equal zeros
+            eye*1 . should_equal eye
+        Test.specify "should multiply vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[1, 1] . should_equal ones
+            eye*[0, 0] . should_equal zeros
+            eye*[] . should_equal zeros
+
+        Test.specify "should divide scalar" <|
+            zeros/2 . should_equal zeros
+            ones/5 . should_equal (Image.from_vector (Vector.fill 9*3 0.2) channels=3 rows=3)
+        Test.specify "should divide vector" <|
+            zeros/[2] . should_equal zeros
+            ones/[5, 5] . should_equal (Image.from_vector (Vector.fill 9*3 0.2) channels=3 rows=3)
+            eye/[] . should_equal zeros
+
+    Test.group "Image channels 4" <|
+        zeros = Image.from_vector (Vector.fill 9 0 . flat_map x->[x,x,x,x]) rows=3 channels=4
+        ones = Image.from_vector (Vector.fill 9 1 . flat_map x->[x,x,x,x]) rows=3 channels=4
+        eye = Image.from_vector ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map x->[x,0,0,0]) rows=3 channels=4
+
+        Test.specify "should convert to vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9*4 0)
+            ones.to_vector . should_equal (Vector.fill 9*4 1)
+            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+        Test.specify "should get value" <|
+            eye.get 0 0 . should_equal [1, 0, 0, 0]
+            eye.get 1 0 . should_equal [0, 0, 0, 0]
+            eye.get 1 1 . should_equal [1, 0, 0, 0]
+            Test.expect_panic_with (eye.get 10 10) Matrix.Index_Out_Of_Bounds_Error
+            Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should add scalar" <|
+            zeros+1 . should_equal ones
+            ones+1 . should_equal ones
+            eye+1 . should_equal ones
+            eye+0 . should_equal eye
+            zeros+0.8 . should_equal (Image.from_vector (Vector.fill 9*4 0.8) channels=4 rows=3)
+        Test.specify "should add vector" <|
+            zeros+[1] . should_equal ones
+            ones+[1, 1] . should_equal ones
+            eye+[0, 0] . should_equal eye
+            eye+[] . should_equal eye
+
+        Test.specify "should subtract scalar" <|
+            ones-1 . should_equal zeros
+            zeros-1 . should_equal zeros
+            ones-1 . should_equal zeros
+        Test.specify "should subtract vector" <|
+            zeros-[1] . should_equal zeros
+            ones-[1, 1, 1, 1] . should_equal zeros
+            eye-[0, 0] . should_equal eye
+            eye-[] . should_equal eye
+
+        Test.specify "should multiply scalar" <|
+            ones*2 . should_equal ones
+            zeros*2 . should_equal zeros
+            eye*0 . should_equal zeros
+            eye*1 . should_equal eye
+        Test.specify "should multiply vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[1, 1] . should_equal ones
+            eye*[0, 0] . should_equal zeros
+            eye*[] . should_equal zeros
+
+        Test.specify "should divide scalar" <|
+            zeros/2 . should_equal zeros
+            ones/5 . should_equal (Image.from_vector (Vector.fill 9*4 0.2) channels=4 rows=3)
+        Test.specify "should divide vector" <|
+            zeros/[2] . should_equal zeros
+            ones/[5, 5] . should_equal (Image.from_vector (Vector.fill 9*4 0.2) channels=4 rows=3)
+            eye/[] . should_equal zeros

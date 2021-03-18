@@ -1,6 +1,7 @@
 from Standard.Base import all
-import Standard.Image.Data.Matrix.Internal
 import Standard.Image.Data.Histogram
+import Standard.Image.Data.Image
+import Standard.Image.Data.Matrix.Internal
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 
@@ -35,37 +36,38 @@ type Matrix
             Nothing -> Matrix (this.opencv_mat.reshape this.channels rows)
             _ -> Matrix (this.opencv_mat.reshape channels rows)
 
-    ## Calculates the per-element sum of a matrix and a scalar.
-    + : (Number | Vector) -> Matrix
+    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+    + : (Number | Matrix | Vector) -> Matrix
     + value = Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)
 
-    ## Calculates the per-element difference between a matrix and a scalar.
-    - : (Number | Vector) -> Matrix
+    ## Calculates the per-element difference of two matrices or of a matrix and a scalar.
+    - : (Number | Matrix | Vector) -> Matrix
     - value = Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)
 
-    ## Calculates the per-element product of a matrix and a scalar.
-    * : (Number | Vector) -> Matrix
+    ## Calculates the per-element product of two matrices or a matrix and a scalar.
+    * : (Number | Matrix | Vector) -> Matrix
     * value = Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)
 
-    ## Performs per-element division of a matrix and a scalar.
-    / : (Number | Vector) -> Matrix
+    ## Performs per-element division of two matrices or a matrix and a scalar.
+    / : (Number | Matrix | Vector) -> Matrix
     / value = Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)
 
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
+    ## Convert this matrix to an image.
+    to_image : Image.Image
+    to_image = Image.Image (Image.from_vector this.to_vector this.rows this.channels)
+
+    ## Get the elemets of this matrix as a vector.
     to_vector : Vector
     to_vector =
         arr = Java_Matrix.to_vector this.opencv_mat
         Vector.Vector arr
 
+    ## Convert this matrix to Json.
     to_json : Json
-    to_json =
-        base64 = Java_Matrix.to_base64 this.opencv_mat
-        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
-
-    histogram : Integer -> Histogram
-    histogram channel = Histogram.calculate this channel
+    to_json = Json.String this.opencv_mat.to_text
 
 zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =

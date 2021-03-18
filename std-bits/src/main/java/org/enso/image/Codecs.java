@@ -6,7 +6,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
 
-public class Image {
+public class Codecs {
 
   public static final int READ_FLAG_EMPTY = -127;
 

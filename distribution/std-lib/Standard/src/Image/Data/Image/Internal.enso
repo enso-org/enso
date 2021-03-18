@@ -1,15 +1,10 @@
 from Standard.Base import all
+import Standard.Image.Data.Image
 import Standard.Image.Data.Matrix
 
-polyglot java import org.enso.image.data.Matrix as Java_Matrix
+polyglot java import org.enso.image.data.Image as Java_Image
 polyglot java import org.opencv.core.Mat
 polyglot java import org.opencv.core.Scalar
-
-## PRIVATE
-create rows cols mat_type values =
-    opencv_scalar = Scalar.new values.to_array
-    opencv_mat = Mat.new rows cols mat_type opencv_scalar
-    Matrix.Matrix opencv_mat
 
 ## PRIVATE
 core_op mat value function =
@@ -22,4 +17,4 @@ core_op mat value function =
         _ ->
             Scalar.all value
     function mat scalar result
-    Matrix.Matrix result
+    Image.Image result

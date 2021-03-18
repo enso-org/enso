@@ -2,13 +2,12 @@ from Standard.Base import all
 import Standard.Test
 import Standard.Image.Data.Matrix
 
-polyglot java import org.enso.image.data.Matrix as Java_Matrix
-
 spec =
     Test.group "Matrix channels 1" <|
         zeros = Matrix.zeros 3 3
         ones = Matrix.ones 3 3
         eye = Matrix.eye 3 3
+        twos = Matrix.from_vector [2, 2, 2, 2, 2, 2, 2, 2, 2] . reshape rows=3 channels=1
 
         Test.specify "should create from vector" <|
             Matrix.from_vector (Vector.fill 9 0) channels=1 rows=3 . should_equal zeros
@@ -31,62 +30,77 @@ spec =
 
         Test.specify "should add scalar" <|
             zeros+1 . should_equal ones
-            ones+1 . should_equal ones
-            eye+1 . should_equal ones
+            ones+1 . should_equal twos
             eye+0 . should_equal eye
             zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9 0.8) channels=1 rows=3)
         Test.specify "should add vector" <|
             zeros+[1] . should_equal ones
-            ones+[1, 1] . should_equal ones
+            ones+[1, 1] . should_equal twos
             eye+[0, 0] . should_equal eye
             eye+[] . should_equal eye
+        Test.specify "should add matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
 
         Test.specify "should subtract scalar" <|
             ones-1 . should_equal zeros
-            zeros-1 . should_equal zeros
-            ones-1 . should_equal zeros
+            twos-1 . should_equal ones
+            ones-0 . should_equal ones
         Test.specify "should subtract vector" <|
-            zeros-[1] . should_equal zeros
             ones-[1, 1] . should_equal zeros
+            twos-[1, 1] . should_equal ones
             eye-[0, 0] . should_equal eye
             eye-[] . should_equal eye
+        Test.specify "should subtract matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            eye-zeros . should_equal eye
 
         Test.specify "should multiply scalar" <|
-            ones*2 . should_equal ones
+            ones*2 . should_equal twos
             zeros*2 . should_equal zeros
             eye*0 . should_equal zeros
             eye*1 . should_equal eye
         Test.specify "should multiply vector" <|
             zeros*[2] . should_equal zeros
-            ones*[1, 1] . should_equal ones
+            ones*[2, 2] . should_equal twos
             eye*[0, 0] . should_equal zeros
             eye*[] . should_equal zeros
+        Test.specify "should multiply matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            eye*zeros . should_equal zeros
 
         Test.specify "should divide scalar" <|
             zeros/2 . should_equal zeros
+            twos/2 . should_equal ones
             ones/5 . should_equal (Matrix.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
         Test.specify "should divide vector" <|
             zeros/[2] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
             ones/[5, 5] . should_equal (Matrix.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
-            eye/[] . should_equal zeros
+        Test.specify "should divide matrix" <|
+            zeros/ones . should_equal zeros
+            twos/twos . should_equal ones
 
     Test.group "Matrix channels 2" <|
         zeros = Matrix.zeros 3 3 channels=2
         ones = Matrix.ones 3 3 channels=2
         eye = Matrix.eye 3 3 channels=2
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=2
 
         Test.specify "should create from vector" <|
-            Matrix.from_vector (Vector.fill 9*2 0) channels=2 rows=3 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*2 1) channels=2 rows=3 . should_equal ones
+            Matrix.from_vector zeros.to_vector rows=3 channels=2 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=2 . should_equal ones
 
         Test.specify "should reshape" <|
-            Matrix.from_vector (Vector.fill 9*2 0) . reshape rows=3 channels=2 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*2 1) . reshape rows=3 channels=2 . should_equal ones
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=2 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=2 . should_equal ones
 
         Test.specify "should convert to vector" <|
-            zeros.to_vector . should_equal (Vector.fill 9*2 0)
-            ones.to_vector . should_equal (Vector.fill 9*2 1)
-            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0] . flat_map x->x)
+            eye.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0]))
         Test.specify "should get value" <|
             eye.get 0 0 . should_equal [1, 0]
             eye.get 1 0 . should_equal [0, 0]
@@ -95,63 +109,81 @@ spec =
             Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
 
         Test.specify "should add scalar" <|
-            zeros+1 . should_equal ones
-            ones+1 . should_equal ones
-            eye+1 . should_equal ones
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*2 1) rows=3 channels=2)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=2)
             eye+0 . should_equal eye
-            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*2 0.8) channels=2 rows=3)
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*2 0.8) rows=3 channels=2)
         Test.specify "should add vector" <|
             zeros+[1] . should_equal ones
-            ones+[1, 1] . should_equal ones
+            zeros+[1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*2 1) rows=3 channels=2)
+            ones+[1, 0] . should_equal twos
             eye+[0, 0] . should_equal eye
             eye+[] . should_equal eye
+        Test.specify "should add matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
 
         Test.specify "should subtract scalar" <|
-            ones-1 . should_equal zeros
-            zeros-1 . should_equal zeros
-            ones-1 . should_equal zeros
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=2)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=2)
+            ones-0 . should_equal ones
         Test.specify "should subtract vector" <|
-            zeros-[1] . should_equal zeros
-            ones-[1, 1] . should_equal zeros
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
             eye-[0, 0] . should_equal eye
             eye-[] . should_equal eye
+        Test.specify "should subtract matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            eye-zeros . should_equal eye
 
         Test.specify "should multiply scalar" <|
-            ones*2 . should_equal ones
+            ones*2 . should_equal twos
             zeros*2 . should_equal zeros
             eye*0 . should_equal zeros
             eye*1 . should_equal eye
         Test.specify "should multiply vector" <|
             zeros*[2] . should_equal zeros
-            ones*[1, 1] . should_equal ones
+            ones*[2, 2] . should_equal twos
             eye*[0, 0] . should_equal zeros
             eye*[] . should_equal zeros
+        Test.specify "should multiply matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            eye*zeros . should_equal zeros
 
         Test.specify "should divide scalar" <|
             zeros/2 . should_equal zeros
-            ones/5 . should_equal (Matrix.from_vector (Vector.fill 9*2 0.2) channels=2 rows=3)
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=2)
         Test.specify "should divide vector" <|
-            zeros/[2] . should_equal zeros
-            ones/[5, 5] . should_equal (Matrix.from_vector (Vector.fill 9*2 0.2) channels=2 rows=3)
-            eye/[] . should_equal zeros
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=2)
+        Test.specify "should divide matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
 
     Test.group "Matrix channels 3" <|
         zeros = Matrix.zeros 3 3 channels=3
         ones = Matrix.ones 3 3 channels=3
         eye = Matrix.eye 3 3 channels=3
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=3
 
         Test.specify "should create from vector" <|
-            Matrix.from_vector (Vector.fill 9*3 0) rows=3 channels=3 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*3 1) rows=3 channels=3 . should_equal ones
+            Matrix.from_vector zeros.to_vector rows=3 channels=3 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=3 . should_equal ones
 
         Test.specify "should reshape" <|
-            Matrix.from_vector (Vector.fill 9*3 0) . reshape rows=3 channels=3 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*3 1) . reshape rows=3 channels=3 . should_equal ones
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=3 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=3 . should_equal ones
 
         Test.specify "should convert to vector" <|
-            zeros.to_vector . should_equal (Vector.fill 9*3 0)
-            ones.to_vector . should_equal (Vector.fill 9*3 1)
-            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0] . flat_map x->x)
+            eye.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0]))
         Test.specify "should get value" <|
             eye.get 0 0 . should_equal [1, 0, 0]
             eye.get 1 0 . should_equal [0, 0, 0]
@@ -160,63 +192,81 @@ spec =
             Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
 
         Test.specify "should add scalar" <|
-            zeros+1 . should_equal ones
-            ones+1 . should_equal ones
-            eye+1 . should_equal ones
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*3 1) rows=3 channels=3)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=3)
             eye+0 . should_equal eye
-            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*3 0.8) channels=3 rows=3)
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*3 0.8) rows=3 channels=3)
         Test.specify "should add vector" <|
             zeros+[1] . should_equal ones
-            ones+[1, 1] . should_equal ones
+            zeros+[1, 1, 1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*3 1) rows=3 channels=3)
+            ones+[1, 0] . should_equal twos
             eye+[0, 0] . should_equal eye
             eye+[] . should_equal eye
+        Test.specify "should add matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
 
         Test.specify "should subtract scalar" <|
-            ones-1 . should_equal zeros
-            zeros-1 . should_equal zeros
-            ones-1 . should_equal zeros
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=3)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=3)
+            ones-0 . should_equal ones
         Test.specify "should subtract vector" <|
-            zeros-[1] . should_equal zeros
-            ones-[1, 1, 1] . should_equal zeros
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
             eye-[0, 0] . should_equal eye
             eye-[] . should_equal eye
+        Test.specify "should subtract matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            eye-zeros . should_equal eye
 
         Test.specify "should multiply scalar" <|
-            ones*2 . should_equal ones
+            ones*2 . should_equal twos
             zeros*2 . should_equal zeros
             eye*0 . should_equal zeros
             eye*1 . should_equal eye
         Test.specify "should multiply vector" <|
             zeros*[2] . should_equal zeros
-            ones*[1, 1] . should_equal ones
+            ones*[2, 2] . should_equal twos
             eye*[0, 0] . should_equal zeros
             eye*[] . should_equal zeros
+        Test.specify "should multiply matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            eye*zeros . should_equal zeros
 
         Test.specify "should divide scalar" <|
             zeros/2 . should_equal zeros
-            ones/5 . should_equal (Matrix.from_vector (Vector.fill 9*3 0.2) channels=3 rows=3)
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=3)
         Test.specify "should divide vector" <|
-            zeros/[2] . should_equal zeros
-            ones/[5, 5] . should_equal (Matrix.from_vector (Vector.fill 9*3 0.2) channels=3 rows=3)
-            eye/[] . should_equal zeros
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=3)
+        Test.specify "should divide matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
 
     Test.group "Matrix channels 4" <|
         zeros = Matrix.zeros 3 3 channels=4
         ones = Matrix.ones 3 3 channels=4
         eye = Matrix.eye 3 3 channels=4
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=4
 
         Test.specify "should create from vector" <|
-            Matrix.from_vector (Vector.fill 9*4 0) rows=3 channels=4 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*4 1) rows=3 channels=4 . should_equal ones
+            Matrix.from_vector zeros.to_vector rows=3 channels=4 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=4 . should_equal ones
 
         Test.specify "should reshape" <|
-            Matrix.from_vector (Vector.fill 9*4 0) . reshape rows=3 channels=4 . should_equal zeros
-            Matrix.from_vector (Vector.fill 9*4 1) . reshape rows=3 channels=4 . should_equal ones
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=4 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=4 . should_equal ones
 
         Test.specify "should convert to vector" <|
-            zeros.to_vector . should_equal (Vector.fill 9*4 0)
-            ones.to_vector . should_equal (Vector.fill 9*4 1)
-            eye.to_vector . should_equal [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0, 0] . flat_map x->x)
+            eye.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0, 0]))
         Test.specify "should get value" <|
             eye.get 0 0 . should_equal [1, 0, 0, 0]
             eye.get 1 0 . should_equal [0, 0, 0, 0]
@@ -225,42 +275,59 @@ spec =
             Test.expect_panic_with (eye.get -1 -1) Matrix.Index_Out_Of_Bounds_Error
 
         Test.specify "should add scalar" <|
-            zeros+1 . should_equal ones
-            ones+1 . should_equal ones
-            eye+1 . should_equal ones
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*4 1) rows=3 channels=4)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=4)
             eye+0 . should_equal eye
-            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*4 0.8) channels=4 rows=3)
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*4 0.8) rows=3 channels=4)
         Test.specify "should add vector" <|
             zeros+[1] . should_equal ones
-            ones+[1, 1] . should_equal ones
+            zeros+[1, 1, 1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*4 1) rows=3 channels=4)
+            ones+[1, 0] . should_equal twos
             eye+[0, 0] . should_equal eye
             eye+[] . should_equal eye
+        Test.specify "should add matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
 
         Test.specify "should subtract scalar" <|
-            ones-1 . should_equal zeros
-            zeros-1 . should_equal zeros
-            ones-1 . should_equal zeros
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=4)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=4)
+            ones-0 . should_equal ones
         Test.specify "should subtract vector" <|
-            zeros-[1] . should_equal zeros
-            ones-[1, 1, 1, 1] . should_equal zeros
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
             eye-[0, 0] . should_equal eye
             eye-[] . should_equal eye
+        Test.specify "should subtract matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            eye-zeros . should_equal eye
 
         Test.specify "should multiply scalar" <|
-            ones*2 . should_equal ones
+            ones*2 . should_equal twos
             zeros*2 . should_equal zeros
             eye*0 . should_equal zeros
             eye*1 . should_equal eye
         Test.specify "should multiply vector" <|
             zeros*[2] . should_equal zeros
-            ones*[1, 1] . should_equal ones
+            ones*[2, 2] . should_equal twos
             eye*[0, 0] . should_equal zeros
             eye*[] . should_equal zeros
+        Test.specify "should multiply matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            eye*zeros . should_equal zeros
 
         Test.specify "should divide scalar" <|
             zeros/2 . should_equal zeros
-            ones/5 . should_equal (Matrix.from_vector (Vector.fill 9*4 0.2) channels=4 rows=3)
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=4)
         Test.specify "should divide vector" <|
-            zeros/[2] . should_equal zeros
-            ones/[5, 5] . should_equal (Matrix.from_vector (Vector.fill 9*4 0.2) channels=4 rows=3)
-            eye/[] . should_equal zeros
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=4)
+        Test.specify "should divide matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
