@@ -113,6 +113,13 @@ public class Matrix {
     return data;
   }
 
+  /**
+   * Per-element addition of two matrices.
+   *
+   * @param mat1 the first matrix to add.
+   * @param mat2 the second matrix to add.
+   * @param dst the matrix holding the result of the operation.
+   */
   public static void add(Mat mat1, Mat mat2, Mat dst) {
     Core.add(mat1, mat2, dst);
   }
@@ -128,6 +135,13 @@ public class Matrix {
     Core.add(mat, scalar, dst);
   }
 
+  /**
+   * Per-element subtraction of two matrices.
+   *
+   * @param mat1 the first matrix to subtract from.
+   * @param mat2 the second matrix to subtract.
+   * @param dst the matrix holding the result of the operation.
+   */
   public static void subtract(Mat mat1, Mat mat2, Mat dst) {
     Core.subtract(mat1, mat2, dst);
   }
@@ -142,6 +156,13 @@ public class Matrix {
     Core.subtract(mat, scalar, dst);
   }
 
+  /**
+   * Per-element multiplication of two matrices.
+   *
+   * @param mat1 the first matrix to multiply.
+   * @param mat2 the second matrix to multiply.
+   * @param dst the matrix holding the result of the operation.
+   */
   public static void multiply(Mat mat1, Mat mat2, Mat dst) {
     Core.multiply(mat1, mat2, dst);
   }
@@ -156,6 +177,13 @@ public class Matrix {
     Core.multiply(mat, scalar, dst);
   }
 
+  /**
+   * Per-element division of two matrices.
+   *
+   * @param mat1 the dividend matrix.
+   * @param mat2 the divisor matrix.
+   * @param dst the matrix holding the result of the operation.
+   */
   public static void divide(Mat mat1, Mat mat2, Mat dst) {
     Core.divide(mat1, mat2, dst);
   }

@@ -398,28 +398,6 @@ type Vector
         len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
 
-    ## Performs a pair-wise operation passed in `function` on consecutive
-       elements of `this` and `that`. The `function` is applied only when the
-       corresponding element exists in `that` vector.
-       The result of this function is a vector of `this` length.
-       > Example
-         To pairwise-sum two vectors:
-             [1, 2, 3].zip_1 [4, 5, 6] (+) == [5, 7, 9]
-       > Example
-         To pairwise-sum two vectors, when `this` is longer:
-             [1, 2, 3, 4].zip_1 [4, 5, 6] (+) == [5, 7, 9, 4]
-       > Example
-         To pairwise-sum two vectors, when `that` is longer:
-             [1, 2, 3].zip_1 [4, 5, 6, 7] (+) == [5, 7, 9]
-       > Example
-         To pairwise-sum two vectors, when `that` is empty:
-             [1, 2, 3].zip_1 [] (+) == [1, 2, 3]
-    zip_1 : Vector -> (Any -> Any -> Any) -> Vector
-    zip_1 that function=[_, _] =
-        that_len = that.length
-        here.new this.length i->
-           if that_len <= i then this.at i else function (this.at i) (that.at i)
-
     ## Extend `this` vector to the length of `n` appending elements `elem` to
        the end. If the new length `n` is less than existing length, `this`
        vector is returned.
