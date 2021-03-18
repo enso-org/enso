@@ -45,7 +45,10 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
         here.prepare_visualization x.ungrouped max_rows
     Database_Column.Aggregate_Column _ _ _ _ _ ->
         here.prepare_visualization x.ungrouped.to_table max_rows
-    _ -> x . to_json . to_text
+
+    # Anything else will be visualized with the JSON or matrix visualization
+    _ ->
+        Json.from_pairs [["json", x]] . to_text
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
