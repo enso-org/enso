@@ -731,13 +731,15 @@ type Meta
     get_source_location : Integer -> Text
     get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
 
-    ## Pretty-prints the type of the provided value using the interpreter's
+    ## PRIVATE
+
+       Pretty-prints the type of the provided value using the interpreter's
        internal logic for printing types.
 
        Arguments:
        - value: The value whose type should be printed.
     get_simple_type_name : Any -> Text
-    get_simple_type_name value = @Builtin_Method "Meta.display_type"
+    get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
 
     ## PRIVATE
 

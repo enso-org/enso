@@ -148,7 +148,9 @@ get_source_location : Integer -> Text
 get_source_location skip_frames =
     Builtins.Meta.get_source_location skip_frames+1
 
-## Displays the type of the provided value as text.
+## PRIVATE
+
+   Displays the type of the provided value as text.
 
    Arguments:
    - value: The value for which to display the type.
