@@ -32,7 +32,7 @@
   issue where multiple instances of the IDE (or even other applications) could
   lead to the IDE not working.
 - [Allow JS to log arbitrary objects.][1313] Previously using `console.log` in a
-  visualisation or during development woudl crash the IDE. Now it correctly logs
+  visualisation or during development would crash the IDE. Now it correctly logs
   the string representation of the object.
 - [Fix mouse cursor offset on systems with fractional display scaling][1064].
   Instead of there being an offset between visible cursor and cursor selection
@@ -43,6 +43,8 @@
 - [Handle syntax errors in custom-defined visualizations][#1341]. The IDE is now
   able to run properly, even if some of the custom-defined visualisations inside
   a project contain syntax errors.
+- [Users can opt out of anonymous data gathering.][1328] This can be done with
+  the `--no-data-gathering` command-line flag during the startup of the IDE.
 
 #### EnsoGL (rendering engine)
 
