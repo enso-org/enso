@@ -164,9 +164,9 @@ ones rows columns channels=1 =
    > Example
      Create a matrix.
          Matrix.eye 2 2 channels=1 . to_vector == [1, 0, 0, 1]
-eye : Integer -> Integer -> Integer -> Matrix
-eye rows columns channels=1 =
-    Matrix (Java_Matrix.eye rows columns channels)
+identity : Integer -> Integer -> Integer -> Matrix
+identity rows columns channels=1 =
+    Matrix (Java_Matrix.identity rows columns channels)
 
 ## Create a matrix from the provided vector.
 

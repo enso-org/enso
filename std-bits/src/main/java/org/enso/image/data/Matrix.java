@@ -53,7 +53,7 @@ public class Matrix {
    * @param channels the number of channels.
    * @return the identity matrix.
    */
-  public static Mat eye(int rows, int cols, int channels) {
+  public static Mat identity(int rows, int cols, int channels) {
     return Mat.eye(rows, cols, CvType.CV_64FC(channels));
   }
 
