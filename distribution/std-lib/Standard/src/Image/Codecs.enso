@@ -47,7 +47,7 @@ type Write_Flag
 
 ## Read an image from a file.
 
-   The functon reads images in BGR format, or BGRA if the
+   The functon reads images in RGB format, or RGBA if the
    `Read_Alpha_Channel` flag is specified.
 
    > Example

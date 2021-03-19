@@ -41,12 +41,15 @@ spec =
             img.columns.should_equal 320
             img.channels.should_equal 4
 
-        Test.specify "should write a PNG file with compression" <|
-            out_file = Enso_Project.root / "out.png"
-            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3)
         Test.specify "should write a PNG file with alpha channel" <|
             out_file = Enso_Project.root / "out_alpha.png"
             Codecs.read rgba_file Codecs.Read_Alpha_Channel . write out_file
+        Test.specify "should write a grayscale PNG file" <|
+            out_file = Enso_Project.root / "out_gray.png"
+            Codecs.read rgba_file Codecs.Read_Grayscale . write out_file
+        Test.specify "should write a PNG file with compression" <|
+            out_file = Enso_Project.root / "out.png"
+            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3)
         Test.specify "should write a JPEG file with compression" <|
             out_file = Enso_Project.root / "out.jpeg"
             flags = [Codecs.Write_Jpeg_Quality 75, Codecs.Write_Jpeg_Optimize, Codecs.Write_Jpeg_Progressive]

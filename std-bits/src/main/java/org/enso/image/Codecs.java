@@ -5,6 +5,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 public class Codecs {
 
@@ -48,6 +49,15 @@ public class Codecs {
 
     if (input.empty()) {
       throw new ReadFailedException(path);
+    }
+
+    switch (input.channels()) {
+      case 3:
+        Imgproc.cvtColor(input, input, Imgproc.COLOR_BGR2RGB);
+        break;
+      case 4:
+        Imgproc.cvtColor(input, input, Imgproc.COLOR_BGRA2RGBA);
+        break;
     }
 
     return input;
