@@ -171,7 +171,7 @@ public class Image {
   }
 
   /**
-   * Denormalized the value into a byte range.
+   * Denormalize the value into a byte range.
    *
    * <p>The following holds: {@code denormalize(normalize(value)) == value}.
    *

@@ -1,4 +1,5 @@
 from Standard.Base import all
+
 import Standard.Image.Data.Image
 import Standard.Image.Data.Matrix
 
@@ -7,6 +8,7 @@ polyglot java import org.opencv.core.Mat
 polyglot java import org.opencv.core.Scalar
 
 ## PRIVATE
+core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of

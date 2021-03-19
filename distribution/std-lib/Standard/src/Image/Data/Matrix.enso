@@ -1,11 +1,18 @@
 from Standard.Base import all
+
 import Standard.Image.Data.Histogram
 import Standard.Image.Data.Image
 import Standard.Image.Data.Matrix.Internal
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 
-type Index_Out_Of_Bounds_Error index
+type Matrix_Error
+
+    ## Indicates that a matrix has been accessed with an illegal index.
+    type Index_Out_Of_Bounds_Error index
+
+    to_display_text : Text
+    to_display_text = 'The index ' + this.index ' is out of bounds.'
 
 type Matrix
 
@@ -52,6 +59,8 @@ type Matrix
        > Example
          Add 1 to each channel of the matrix.
              m + 1
+
+       > Example
          Add 100 to the first channel of the matrix.
              m + [100] == m + [100, 0, 0]
     + : (Number | Matrix | Vector) -> Matrix
@@ -62,9 +71,13 @@ type Matrix
        > Example
          Subtract 10 from each channel of the matrix.
              m - 10
+
+       > Example
          Subtract 2 from second channel of the matrix.
              m - [0, 2] == m - [0, 2, 0, 0]
-         Subtract two matrices:
+
+       > Example
+         Subtract two matrices.
              m - m
     - : (Number | Matrix | Vector) -> Matrix
     - value = Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)
@@ -74,10 +87,17 @@ type Matrix
        > Example
          Multiply each channel of the matrix by 2.
              m * 2
+
+       > Example
          Multiply first channel of the matrix by 2, and second channel by 4.
              m * [2, 4, 1, 1]
-         Multiply first channel of the matrix by 2, and zero the rest of the channels.
+
+       > Example
+         Multiply first channel of the matrix by 2, and zero the rest of the
+         channels.
              m * [2]
+
+       > Example
          Multiply two matrices.
              m * m
     * : (Number | Matrix | Vector) -> Matrix
@@ -88,14 +108,22 @@ type Matrix
         > Example
           Divide each channel of the matrix by 2.
               m / 2
+
+        > Example
           Divide first channel of the matrix by 2, and second channel by 4.
               m / [2, 4, 1, 1]
+
+        > Example
           Divide two matrices.
               m / m
     / : (Number | Matrix | Vector) -> Matrix
     / value = Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)
 
     ## Check the equality of two matrices.
+
+       ? Implementation Note
+         Two matrices considered equal when they have the same number of rows,
+         columns and channels, and have the same values.
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
@@ -113,7 +141,7 @@ type Matrix
     to_json : Json
     to_json = Json.String this.opencv_mat.to_text
 
-## Create the matrix with all elements - zeros.
+## Create a matrix with all elements set to zero.
 
    > Example
      Create a matrix.
@@ -122,7 +150,7 @@ zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =
     Matrix (Java_Matrix.zeros rows columns channels)
 
-## Create the matrix with all elements - ones.
+## Create a matrix with all elements set to one.
 
    > Example
      Create a matrix.
@@ -140,11 +168,11 @@ eye : Integer -> Integer -> Integer -> Matrix
 eye rows columns channels=1 =
     Matrix (Java_Matrix.eye rows columns channels)
 
-## Create a matrix from the vector.
+## Create a matrix from the provided vector.
 
    > Example
      Create a matrix.
-         Matrix.from_vecor [1, 1, 0, 0] . to_vector == [1, 1, 0, 0]
+         Matrix.from_vector [1, 1, 0, 0] . to_vector == [1, 1, 0, 0]
 from_vector : Vector -> Integer -> Integer -> Matrix
 from_vector values rows=1 channels=1 =
     Matrix (Java_Matrix.from_vector values.to_array channels rows)

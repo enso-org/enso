@@ -1,9 +1,10 @@
 from Standard.Base import all
+
+import Standard.Base.System.File
 import Standard.Base.System.Process
 import Standard.Base.System.Process.Exit_Code
-import Standard.Test
-
 import Standard.Image.Codecs
+import Standard.Test
 
 polyglot java import java.lang.System as Java_System
 
@@ -21,18 +22,32 @@ spec =
     Test.group "Codecs" pending=pending <|
         rgba_addr = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
         rgba_file = here.fetch rgba_addr (Enso_Project.root / "rgba.png")
-        Test.specify "should read color image" <|
+
+        Test.specify "should return error when read failed" <|
+            Codecs.read (Enso_Project.root / 'no_such_file.png') . should_fail_with File.Io_Error
+        Test.specify "should read a color image" <|
             img = Codecs.read rgba_file
             img.rows.should_equal 160
             img.columns.should_equal 320
             img.channels.should_equal 3
-        Test.specify "should read image as grayscale" <|
+        Test.specify "should read an image as grayscale" <|
             img = Codecs.read rgba_file Codecs.Read_Grayscale
             img.rows.should_equal 160
             img.columns.should_equal 320
             img.channels.should_equal 1
-        Test.specify "should read alpha channel" <|
+        Test.specify "should read animage with an alpha channel" <|
             img = Codecs.read rgba_file Codecs.Read_Alpha_Channel
             img.rows.should_equal 160
             img.columns.should_equal 320
             img.channels.should_equal 4
+
+        Test.specify "should write a PNG file with compression" <|
+            out_file = Enso_Project.root / "out.png"
+            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3)
+        Test.specify "should write a PNG file with alpha channel" <|
+            out_file = Enso_Project.root / "out_alpha.png"
+            Codecs.read rgba_file Codecs.Read_Alpha_Channel . write out_file
+        Test.specify "should write a JPEG file with compression" <|
+            out_file = Enso_Project.root / "out.jpeg"
+            flags = [Codecs.Write_Jpeg_Quality 75, Codecs.Write_Jpeg_Optimize, Codecs.Write_Jpeg_Progressive]
+            Codecs.read rgba_file . write out_file flags
