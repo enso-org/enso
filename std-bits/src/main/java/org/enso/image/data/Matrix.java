@@ -191,7 +191,7 @@ public class Matrix {
   /**
    * Divite each element of the matrix by the scalar.
    *
-   * @param mat the matrix
+   * @param mat the matrix.
    * @param scalar the scalar to divide on.
    * @param dst the matrix holding the result of the operation.
    */
@@ -200,15 +200,17 @@ public class Matrix {
   }
 
   /**
-   * Normalize the matrix into a range of [0.0 .. 1.0] so that the minimum value of the matrix
-   * becomes 0.0 and the maximum value of the matrix becomes 1.0.
+   * Normalize the matrix into a range of [alpha .. beta] so that the minimum value of the matrix
+   * becomes alpha and the maximum value of the matrix becomes beta.
    *
-   * @param mat the matrix to normalize
+   * @param mat the matrix to normalize.
+   * @param alpha the minimum value of the range.
+   * @param beta the maximum value of the range.
    * @return the normalized matrix.
    */
-  public static Mat normalize(Mat mat) {
+  public static Mat normalize(Mat mat, double alpha, double beta) {
     Mat dst = new Mat();
-    Core.normalize(mat, dst, 0.0, 1.0, Core.NORM_MINMAX);
+    Core.normalize(mat, dst, alpha, beta, Core.NORM_MINMAX);
     return dst;
   }
 }

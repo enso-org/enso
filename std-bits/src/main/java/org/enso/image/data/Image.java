@@ -204,7 +204,7 @@ public class Image {
    * @param value the value to normalize.
    * @return return the normalized value in the range of [0.0 .. 1.0].
    */
-  public static double normalize(byte value) {
+  private static double normalize(byte value) {
     return (value & 0xff) / MAX_UNSIGNED_BYTE;
   }
 
