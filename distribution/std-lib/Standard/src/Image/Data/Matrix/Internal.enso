@@ -14,8 +14,14 @@ core_op mat value function =
         Vector.Vector arr ->
             Scalar.new arr
         Matrix.Matrix m ->
-            m
+            if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix.Dimensions_Not_Equal
         _ ->
             Scalar.all value
     function mat scalar result
     Matrix.Matrix result
+
+## PRIVATE
+core_op_handler error =
+    case error of
+        Matrix.Dimensions_Not_Equal -> Error.throw error
+        _ -> Panic.throw error

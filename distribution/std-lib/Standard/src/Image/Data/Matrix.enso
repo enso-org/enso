@@ -61,6 +61,16 @@ type Matrix
 
     ## Calculates the per-element sum of two matrices or a matrix and a scalar.
 
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each value's channel of the matrix.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each value of the matrix.
+         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this matrix.
+
        > Example
          Add 1 to each channel of the matrix.
              m + 1
@@ -68,10 +78,24 @@ type Matrix
        > Example
          Add 100 to the first channel of the matrix.
              m + [100] == m + [100, 0, 0]
-    + : (Number | Matrix | Vector) -> Matrix
-    + value = Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)
+
+       > Example
+         Add two matrices.
+             m + m
+    + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
 
     ## Calculates the per-element difference of two matrices or of a matrix and a scalar.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each value's channel of the matrix.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each value of the matrix.
+         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this matrix.
 
        > Example
          Subtract 10 from each channel of the matrix.
@@ -84,10 +108,20 @@ type Matrix
        > Example
          Subtract two matrices.
              m - m
-    - : (Number | Matrix | Vector) -> Matrix
-    - value = Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)
+    - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
 
     ## Calculates the per-element product of two matrices or a matrix and a scalar.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each value's channel of the matrix.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each value of the matrix.
+         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this matrix.
 
        > Example
          Multiply each channel of the matrix by 2.
@@ -105,10 +139,20 @@ type Matrix
        > Example
          Multiply two matrices.
              m * m
-    * : (Number | Matrix | Vector) -> Matrix
-    * value = Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)
+    * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
 
     ## Performs per-element division of two matrices or a matrix and a scalar.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each value's channel of the matrix.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each value of the matrix.
+         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this matrix.
 
         > Example
           Divide each channel of the matrix by 2.
@@ -121,8 +165,8 @@ type Matrix
         > Example
           Divide two matrices.
               m / m
-    / : (Number | Matrix | Vector) -> Matrix
-    / value = Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)
+    / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
 
     ## Check the equality of two matrices.
 
