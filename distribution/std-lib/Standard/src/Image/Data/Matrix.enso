@@ -11,8 +11,13 @@ type Matrix_Error
     ## Indicates that a matrix has been accessed with an illegal index.
     type Index_Out_Of_Bounds_Error index
 
+    ## Indicates that operation has failed.
+    type Dimensions_Not_Equal
+
     to_display_text : Text
-    to_display_text = 'The index ' + this.index ' is out of bounds.'
+    to_display_text = case this of
+        Index_Out_Of_Bounds_Error index -> 'The index ' + index ' is out of bounds.'
+        Dimensions_Not_Equal -> 'Dimensions are not equal.'
 
 type Matrix
 

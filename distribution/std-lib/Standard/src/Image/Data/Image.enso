@@ -37,7 +37,18 @@ type Image
                 arr = Java_Image.get this.opencv_mat row column
                 Vector.Vector arr
 
-    ## Calculates the per-element sum of an image and a scalar.
+    ## Calculates the per-element sum of an image and a scalar or a matrix.
+       Matrix should have the same dimensions as the image.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each pixel's channel of the image.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each pixel of the image.
+         Matrix value should have the same dimensions (rows, columns and channels) as this image,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this image.
 
        > Example
          Add the constant to an image. Operation will add 0.1 to each channel of the image.
@@ -46,10 +57,25 @@ type Image
        > Example
          Add 0.1 to the first channel of the image.
              image + [0.1] == image + [0.1, 0, 0]
-    + : (Number | Vector) -> Image
-    + value = Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)
 
-    ## Calculates the per-element difference between an image and a scalar.
+       > Example
+         Add a matrix to the image.
+             image + (Matrix.identity rows=image.rows channels=image.channels)
+    + : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)) . catch Internal.core_op_handler
+
+    ## Calculates the per-element difference between an image and a scalar or a matrix.
+       Matrix should have the same dimensions as the image.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each pixel's channel of the image.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each pixel of the image.
+         Matrix value should have the same dimensions (rows, columns and channels) as this image,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this image.
 
        > Example
          Subtract 0.5 from each channel of the image.
@@ -58,10 +84,25 @@ type Image
        > Example
          Subtract 0.5 from second channel of the image.
              image - [0, 0.5] == image - [0, 0.5, 0, 0]
-    - : (Number | Vector) -> Image
-    - value = Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)
 
-    ## Calculates the per-element product of an image and a scalar.
+       > Example
+         Subtract a matrix from the image.
+             image - (Matrix.identity rows=image.rows channels=image.channels)
+    - : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)) . catch Internal.core_op_handler
+
+    ## Calculates the per-element product of an image and a scalar or a matrix.
+       Matrix should have the same dimensions as the image.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each pixel's channel of the image.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each pixel of the image.
+         Matrix value should have the same dimensions (rows, columns and channels) as this image,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this image.
 
        > Example
          Multiply each channel of the image by 2.
@@ -74,10 +115,25 @@ type Image
        > Example
          Multiply first channel of the image by 2, and zero the rest of the channels.
              image * [2]
-    * : (Number | Vector) -> Image
-    * value = Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)
 
-    ## Performs per-element division of an image and a scalar.
+       > Example
+         Multiply a matrix and the image.
+             image * (Matrix.identity rows=image.rows channels=image.channels)
+    * : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)) . catch Internal.core_op_handler
+
+    ## Performs per-element division of an image and a scalar or a matrix.
+       Matrix should have the same dimensions as the image.
+
+       Arguments:
+       - `value`: A value can be a number, a vector of numbers or a matrix.
+         Number value is applied to each pixel's channel of the image.
+         Vector value is padded with zeros to match the number of channels, and then applied to
+         each pixel of the image.
+         Matrix value should have the same dimensions (rows, columns and channels) as this image,
+         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
+         element-wise, e.g each element of matrix is applied to the appropriate element
+         (the element with the same row and column) of this image.
 
        > Example
          Divide each channel of the image by 2.
@@ -90,8 +146,12 @@ type Image
        > Example
          Divide first channel of the image by 2, and zero the rest of the channels.
              image / [2]
-    / : (Number | Vector) -> Image
-    / value = Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)
+
+       > Example
+         Divide the image by a matrix.
+             image / (Matrix.identity rows=image.rows channels=image.channels)
+    / : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
+    / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)) . catch Internal.core_op_handler
 
     ## Check the equality of two images.
 
@@ -116,6 +176,10 @@ type Image
     to_json =
         base64 = Java_Image.to_base64 this.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+
+    ## Convert the image to a Matrix.
+    to_matrix : Matrix
+    to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
 
     ## Create a histogram for the specified channel.
     histogram : Integer -> Histogram

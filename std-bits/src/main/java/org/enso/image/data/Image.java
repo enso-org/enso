@@ -93,7 +93,19 @@ public class Image {
   }
 
   /**
-   * Add the scalar to each elemet of the image.
+   * Per-element addition of an image and a matrix.
+   *
+   * @param mat1 the image.
+   * @param mat2 the matrix to add.
+   * @param dst the matrix holding the result of the operation.
+   */
+  public static void add(Mat mat1, Mat mat2, Mat dst) {
+    denormalize(mat2, dst);
+    Core.add(mat1, dst, dst);
+  }
+
+  /**
+   * Add the scalar to each element of the image.
    *
    * @param mat the image.
    * @param scalar the scalar to add.
@@ -104,14 +116,38 @@ public class Image {
   }
 
   /**
+   * Per-element subtraction of an image and a matrix.
+   *
+   * @param mat1 the image to subtract from.
+   * @param mat2 the matrix to subtract.
+   * @param dst the matrix holding the result of the operation.
+   */
+  public static void subtract(Mat mat1, Mat mat2, Mat dst) {
+    denormalize(mat2, dst);
+    Core.subtract(mat1, dst, dst);
+  }
+
+  /**
    * Subtract the scalar from each element of the image.
    *
-   * @param mat the matrix.
+   * @param mat the image.
    * @param scalar the scalar to subtract.
    * @param dst the matrix holding the result of the operation.
    */
   public static void subtract(Mat mat, Scalar scalar, Mat dst) {
     Core.subtract(mat, denormalize(scalar), dst);
+  }
+
+  /**
+   * Per-element multiplication of an image and a matrix.
+   *
+   * @param mat1 the image.
+   * @param mat2 the matrix to multiply.
+   * @param dst the matrix holding the result of the operation.
+   */
+  public static void multiply(Mat mat1, Mat mat2, Mat dst) {
+    mat2.convertTo(dst, CvType.CV_8UC(mat2.channels()));
+    Core.multiply(mat1, dst, dst);
   }
 
   /**
@@ -123,6 +159,18 @@ public class Image {
    */
   public static void multiply(Mat mat, Scalar scalar, Mat dst) {
     Core.multiply(mat, scalar, dst);
+  }
+
+  /**
+   * Per-element division of an image and a matrix.
+   *
+   * @param mat1 the dividend image.
+   * @param mat2 the divisor matrix.
+   * @param dst the matrih holding the result of the operation.
+   */
+  public static void divide(Mat mat1, Mat mat2, Mat dst) {
+    mat2.convertTo(dst, CvType.CV_8UC(mat2.channels()));
+    Core.divide(mat1, dst, dst);
   }
 
   /**
@@ -156,8 +204,18 @@ public class Image {
    * @param value the value to normalize.
    * @return return the normalized value in the range of [0.0 .. 1.0].
    */
-  private static double normalize(byte value) {
+  public static double normalize(byte value) {
     return (value & 0xff) / MAX_UNSIGNED_BYTE;
+  }
+
+  /**
+   * Denormalize the values of a matrix into the byte range.
+   *
+   * @param mat the normalized matrix.
+   * @param dst the matrix holding the result of the operation.
+   */
+  private static void denormalize(Mat mat, Mat dst) {
+    mat.convertTo(dst, CvType.CV_8UC(mat.channels()), MAX_UNSIGNED_BYTE);
   }
 
   /**
