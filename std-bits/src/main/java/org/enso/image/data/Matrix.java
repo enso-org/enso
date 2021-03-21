@@ -198,4 +198,17 @@ public class Matrix {
   public static void divide(Mat mat, Scalar scalar, Mat dst) {
     Core.divide(mat, scalar, dst);
   }
+
+  /**
+   * Normalize the matrix into a range of [0.0 .. 1.0] so that the minimum value of the matrix
+   * becomes 0.0 and the maximum value of the matrix becomes 1.0.
+   *
+   * @param mat the matrix to normalize
+   * @return the normalized matrix.
+   */
+  public static Mat normalize(Mat mat) {
+    Mat dst = new Mat();
+    Core.normalize(mat, dst, 0.0, 1.0, Core.NORM_MINMAX);
+    return dst;
+  }
 }

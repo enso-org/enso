@@ -14,7 +14,7 @@ spec =
             Matrix.from_vector (Vector.fill 9 0) channels=1 rows=3 . should_equal zeros
             Matrix.from_vector (Vector.fill 9 1) channels=1 rows=3 . should_equal ones
 
-        Test.specify "should be able to reshape a vector" <|
+        Test.specify "should be able to reshape" <|
             Matrix.from_vector (Vector.fill 9 0) . reshape rows=3 . should_equal zeros
             Matrix.from_vector (Vector.fill 9 1) . reshape rows=3 channels=1 . should_equal ones
 
@@ -22,6 +22,13 @@ spec =
             zeros.to_vector . should_equal (Vector.fill 9 0)
             ones.to_vector . should_equal (Vector.fill 9 1)
             identity.to_vector . should_equal [1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal zeros
+            identity.normalize . should_equal identity
+            (Matrix.from_vector [0, 1, 2, 3, 4] channels=1).normalize . should_equal (Matrix.from_vector [0.0, 0.25, 0.5, 0.75, 1.0] channels=1)
+
         Test.specify "should allow getting the value at a specified location" <|
             identity.get 0 0 . should_equal [1]
             identity.get 1 0 . should_equal [0]
@@ -94,7 +101,7 @@ spec =
             Matrix.from_vector zeros.to_vector rows=3 channels=2 . should_equal zeros
             Matrix.from_vector ones.to_vector rows=3 channels=2 . should_equal ones
 
-        Test.specify "should be able to reshape a vector" <|
+        Test.specify "should be able to reshape" <|
             Matrix.from_vector zeros.to_vector . reshape rows=3 channels=2 . should_equal zeros
             Matrix.from_vector ones.to_vector . reshape rows=3 channels=2 . should_equal ones
 
@@ -102,6 +109,12 @@ spec =
             zeros.to_vector . should_equal (Vector.fill 9 [0, 0] . flat_map x->x)
             ones.to_vector . should_equal (Vector.fill 9 [1, 0] . flat_map x->x)
             identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
         Test.specify "should allow getting the value at a specified location" <|
             identity.get 0 0 . should_equal [1, 0]
             identity.get 1 0 . should_equal [0, 0]
@@ -177,7 +190,7 @@ spec =
             Matrix.from_vector zeros.to_vector rows=3 channels=3 . should_equal zeros
             Matrix.from_vector ones.to_vector rows=3 channels=3 . should_equal ones
 
-        Test.specify "should be able to reshape a vector" <|
+        Test.specify "should be able to reshape" <|
             Matrix.from_vector zeros.to_vector . reshape rows=3 channels=3 . should_equal zeros
             Matrix.from_vector ones.to_vector . reshape rows=3 channels=3 . should_equal ones
 
@@ -185,6 +198,12 @@ spec =
             zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0] . flat_map x->x)
             ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0] . flat_map x->x)
             identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
         Test.specify "should allow getting the value at a specified location" <|
             identity.get 0 0 . should_equal [1, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0]
@@ -260,7 +279,7 @@ spec =
             Matrix.from_vector zeros.to_vector rows=3 channels=4 . should_equal zeros
             Matrix.from_vector ones.to_vector rows=3 channels=4 . should_equal ones
 
-        Test.specify "should be able to reshape a vector" <|
+        Test.specify "should be able to reshape" <|
             Matrix.from_vector zeros.to_vector . reshape rows=3 channels=4 . should_equal zeros
             Matrix.from_vector ones.to_vector . reshape rows=3 channels=4 . should_equal ones
 
@@ -268,6 +287,12 @@ spec =
             zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0, 0] . flat_map x->x)
             ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0, 0] . flat_map x->x)
             identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
         Test.specify "should allow getting the value at a specified location" <|
             identity.get 0 0 . should_equal [1, 0, 0, 0]
             identity.get 1 0 . should_equal [0, 0, 0, 0]

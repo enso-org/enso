@@ -132,6 +132,23 @@ type Matrix
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
+    ## Normalize the matrix into a range of [0.0 .. 1.0] so that the minimum value
+       of the matrix becomes 0.0 and the maximum value of the matrix becomes 1.0.
+
+       > Example
+         Normalize a matrix from vector.
+             (Matrix.from_vector [0, 1, 2, 3, 4]).normalize == (Matrix.from_vector [0.0, 0.25, 0.5, 0.75, 1.0])
+
+       > Example
+         Normalize a matrix of ones.
+             (Matrix.ones 2 3).normalize == Matrix.zeros 2 3
+
+       > Example
+         Normalize an identity matrix.
+             (Matrix.identity 3 3).normalize == Matrix.identity 3 3
+    normalize : Matrix
+    normalize = Matrix (Java_Matrix.normalize this.opencv_mat)
+
     ## Convert this matrix to an image.
     to_image : Image.Image
     to_image = Image.Image (Image.from_vector this.to_vector this.rows this.channels)
