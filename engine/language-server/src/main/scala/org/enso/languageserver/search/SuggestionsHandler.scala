@@ -215,6 +215,12 @@ final class SuggestionsHandler(
         }
         .pipeTo(sender())
 
+    // TODO [AA] New message and message handler in the polyglot-api that contains these subsumption
+    //  relationships.
+    // TODO [AA] Initialize this in `ResourcesInitialization`.
+    // TODO [AA] What should this data look like?
+    // TODO [AA] The primary consideration here is about the `selfType`.
+
     case Completion(path, pos, selfType, returnType, tags) =>
       getModuleName(projectName, path)
         .fold(
