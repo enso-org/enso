@@ -369,9 +369,9 @@ let server     = null
 let mainWindow = null
 let origin     = null
 
-async function main() {
+async function main(args) {
     runBackend()
-    console.log("Starting the IDE.")
+    console.log("Starting the IDE service.")
     if(args.server !== false) {
         let serverCfg      = Object.assign({},args)
         serverCfg.dir      = root
@@ -379,13 +379,16 @@ async function main() {
         server             = await Server.create(serverCfg)
         origin             = `http://localhost:${server.port}`
     }
-    mainWindow = createWindow()
-    mainWindow.on("close", (evt) => {
-       if (hideInsteadOfQuit) {
-           evt.preventDefault()
-           mainWindow.hide()
-       }
-   })
+    if(args.window !== false) {
+        console.log("Starting the IDE client.")
+        mainWindow = createWindow()
+        mainWindow.on("close", (evt) => {
+            if (hideInsteadOfQuit) {
+                evt.preventDefault()
+                mainWindow.hide()
+            }
+        })
+    }
 }
 
 function urlParamsFromObject(obj) {
@@ -515,9 +518,7 @@ Electron.app.on('ready', () => {
     } else if (args.info) {
         printDebugInfo()
     } else {
-        if(args.window !== false) {
-            main()
-        }
+        main(args)
     }
 })
 
