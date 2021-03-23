@@ -16,7 +16,7 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessorModule('Table.Main')
+        this.setPreprocessorModule('Standard.Table')
         this.setPreprocessorCode(`
         x -> case x of
             Table.Table _ ->
