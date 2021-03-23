@@ -55,8 +55,8 @@ spec =
             Codecs.read rgba_file Codecs.Read_Grayscale . write out_file
         Test.specify "should write a PNG file with compression" <|
             out_file = Enso_Project.root / "out.png"
-            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3)
+            Codecs.read rgba_file . write out_file (Codecs.Write_Png_Compression 3) . should_equal Nothing
         Test.specify "should write a JPEG file with compression" <|
             out_file = Enso_Project.root / "out.jpeg"
             flags = [Codecs.Write_Jpeg_Quality 75, Codecs.Write_Jpeg_Optimize, Codecs.Write_Jpeg_Progressive]
-            Codecs.read rgba_file . write out_file flags
+            Codecs.read rgba_file . write out_file flags . should_equal Nothing
