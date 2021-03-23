@@ -173,6 +173,25 @@ spec prefix connection pending=Nothing =
             r_2 = a.set_index 'x' . join (a.set_index 'x') left_suffix='_old' right_suffix='_new'
             r_2.columns.map .name . should_equal ['y_old', 'y_new']
 
+        Test.specify "should correctly handle multi-joins" <|
+            ta = make_table "M_TA" ["id", "name"] ["INTEGER", "VARCHAR"]
+            tb = make_table "M_TB" ["id", "name"] ["INTEGER", "VARCHAR"]
+            tc = make_table "M_TC" ["id_a", "id_b"] ["INTEGER", "VARCHAR"]
+            ta.insert [0, "Foo"]
+            ta.insert [1, "Hmm"]
+            tb.insert [2, "Bar"]
+            tb.insert [0, "Hmm"]
+            tc.insert [0, 2]
+            tc.insert [1, 0]
+            ta_2 = ta.set_index "id"
+            tb_2 = tb.set_index "id"
+            res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
+            sel = res.select ["name_a", "name_b"]
+            IO.println sel.to_sql.prepare.first
+            df = sel.to_dataframe
+            df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
+            df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
+
     Test.group prefix+"Missing Values" pending=pending <|
         t4 = make_table "T4" ["A", "B", "C"] ["INT", "BOOLEAN", "VARCHAR"]
         t4.insert [0, True, ""]
@@ -332,5 +351,5 @@ spec prefix connection pending=Nothing =
             r_3 = c.sort order=Sort_Order.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
-    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes"]
+    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes", "M_TA", "M_TB", "M_TC"]
     tables.each clean_table
