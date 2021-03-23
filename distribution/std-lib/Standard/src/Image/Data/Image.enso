@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Base.System.File
-import Standard.Image.Codecs
 import Standard.Image.Data.Image.Internal
 import Standard.Image.Data.Matrix
 
@@ -201,27 +200,6 @@ type Image
     ## Convert the image to a Matrix.
     to_matrix : Matrix
     to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
-
-    ## Write the image to a file.
-
-       Arguments:
-       - `location`: the location to write the image.
-       - `flags`: the write flags.
-
-       > Example
-         Write the image with applying png compression.
-             image.write path
-
-       > Example
-         Write the image with applying png compression.
-             Codecs.write path (Codecs.Write_Png_Compression 9)
-
-       > Example
-         Write the image with applying several flags.
-             Codecs.write path [Codecs.Write_Jpeg_Quality 40, Codecs.Write_Jpeg_Progressive]
-    write : (Text | File) -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
-    write location flags=[] =
-        Codecs.write location this flags
 
 ## Create an image from the array of values.
 

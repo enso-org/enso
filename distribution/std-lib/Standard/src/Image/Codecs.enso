@@ -49,6 +49,10 @@ type Write_Flag
    The functon reads images in RGB format, or RGBA if the
    `Read_Alpha_Channel` flag is specified.
 
+   Arguments:
+   - `location`: the file to read.
+   - `flags`: the read flags.
+
    > Example
      Read the image.
          Codecs.read "image.png"
@@ -88,8 +92,8 @@ read location flags=[] =
    > Example
      Write the image with applying several flags.
          Codecs.write path image [Codecs.Write_Jpeg_Quality 40, Codecs.Write_Jpeg_Progressive]
-write : (Text | File) -> Image -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
-write location image flags=[] =
+Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
+Image.Image.write location flags=[] =
     path = case location of
         File.File _ -> location.path
         _ -> location
@@ -97,7 +101,7 @@ write location image flags=[] =
         Vector.Vector _ -> flags
         _ -> [flags]
     int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
-    Panic.recover (Java_Codecs.write path image.opencv_mat int_flags) . catch e->
+    Panic.recover (Java_Codecs.write path this.opencv_mat int_flags) . catch e->
         case e of
             Polyglot_Error _ -> Panic.throw (File.Io_Error ('Failed to write to the file at ' + path + '.'))
             err -> Panic.throw err
