@@ -25,8 +25,11 @@ use ensogl::system::web::platform::Platform;
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
 const PROJECT_MANAGER_TIMEOUT_SEC     : u64  = 2 * 60 * 60;
-const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.6";
-const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.6";
+const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.8";
+
+// Usually it is a good idea to synchronize this version with the bundled Engine version in
+// src/js/lib/project-manager/src/build.ts. See also https://github.com/enso-org/ide/issues/1359
+const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.8";
 
 
 
