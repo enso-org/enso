@@ -657,6 +657,9 @@ impl Searcher {
         };
         let intended_method = self.intended_method();
 
+        // We add the required imports before we create the node/edit its content. This way, we
+        // avoid an intermediate state where imports would already be in use but not yet available.
+        self.add_required_imports()?;
         let id = match *self.mode {
             Mode::NewNode {position} => {
                 let mut new_node           = NewNodeInfo::new_pushed_back(expression);
@@ -676,7 +679,6 @@ impl Searcher {
                 node_id
             }
         };
-        self.add_required_imports()?;
         Ok(id)
     }
 
