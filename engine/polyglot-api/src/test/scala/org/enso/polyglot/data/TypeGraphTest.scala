@@ -62,7 +62,5 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
         "Builtins.Main.Any"
       )
     }
-
   }
-
 }

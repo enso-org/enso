@@ -54,6 +54,9 @@ object CommandFactory {
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"
         )
+
+      case _: Api.GetTypeGraphRequest =>
+        new GetTypeGraphCommand(request.requestId)
     }
 
 }

@@ -2,6 +2,7 @@ package org.enso.languageserver.search
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.pipe
+import akka.pattern.ask
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
@@ -26,6 +27,7 @@ import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
+import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
@@ -98,6 +100,8 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
 
+    runtimeConnector.ask(Api.GetTypeGraphRequest())(timeout, self).pipeTo(self)
+
     config.contentRoots.foreach { case (_, contentRoot) =>
       PackageManager.Default
         .fromDirectory(contentRoot)
@@ -122,23 +126,29 @@ final class SuggestionsHandler(
           Some(InitializedEvent.SuggestionsRepoInitialized)
         )
       )
+    case Api.GetTypeGraphResponse(g) =>
+      tryInitialize(init.copy(typeGraph = Some(g)))
     case _ => stash()
   }
 
-  def initialized(projectName: String, clients: Set[ClientId]): Receive = {
+  def initialized(
+    projectName: String,
+    graph: TypeGraph,
+    clients: Set[ClientId]
+  ): Receive = {
     case AcquireCapability(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       sender() ! CapabilityAcquired
-      context.become(initialized(projectName, clients + client.clientId))
+      context.become(initialized(projectName, graph, clients + client.clientId))
 
     case ReleaseCapability(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       sender() ! CapabilityReleased
-      context.become(initialized(projectName, clients - client.clientId))
+      context.become(initialized(projectName, graph, clients - client.clientId))
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       val isVersionChanged =
@@ -214,12 +224,6 @@ final class SuggestionsHandler(
           )
         }
         .pipeTo(sender())
-
-    // TODO [AA] New message and message handler in the polyglot-api that contains these subsumption
-    //  relationships.
-    // TODO [AA] Initialize this in `ResourcesInitialization`.
-    // TODO [AA] What should this data look like?
-    // TODO [AA] The primary consideration here is about the `selfType`.
 
     case Completion(path, pos, selfType, returnType, tags) =>
       getModuleName(projectName, path)
@@ -301,7 +305,7 @@ final class SuggestionsHandler(
         .pipeTo(self)
 
     case ProjectNameUpdated(name) =>
-      context.become(initialized(name, clients))
+      context.become(initialized(name, graph, clients))
   }
 
   /** Transition the initialization process.
@@ -309,10 +313,11 @@ final class SuggestionsHandler(
     * @param state current initialization state
     */
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
-    state.initialized.fold(context.become(initializing(state))) { name =>
-      log.debug("Initialized")
-      context.become(initialized(name, Set()))
-      unstashAll()
+    state.initialized.fold(context.become(initializing(state))) {
+      case (name, graph) =>
+        log.debug("Initialized")
+        context.become(initialized(name, graph, Set()))
+        unstashAll()
     }
   }
 
@@ -449,21 +454,25 @@ object SuggestionsHandler {
     *
     * @param project the project name
     * @param suggestions the initialization event of the suggestions repo
+    * @param typeGraph the Enso type hierarchy
     */
   private case class Initialization(
-    project: Option[String]                                               = None,
-    suggestions: Option[InitializedEvent.SuggestionsRepoInitialized.type] = None
+    project: Option[String] = None,
+    suggestions: Option[InitializedEvent.SuggestionsRepoInitialized.type] =
+      None,
+    typeGraph: Option[TypeGraph] = None
   ) {
 
     /** Check if all the components are initialized.
       *
       * @return the project name
       */
-    def initialized: Option[String] =
+    def initialized: Option[(String, TypeGraph)] =
       for {
-        _    <- suggestions
-        name <- project
-      } yield name
+        _     <- suggestions
+        name  <- project
+        graph <- typeGraph
+      } yield (name, graph)
   }
 
   /** Creates a configuration object used to create a [[SuggestionsHandler]].
