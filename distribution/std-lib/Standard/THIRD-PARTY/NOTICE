@@ -21,6 +21,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.checkerframework.checker-qual-3.5.0`.
 
 
+'opencv', licensed under the BSD License, is distributed with the Standard.
+The license file can be found at `licenses/BSD-3-Clause`.
+Copyright notices related to this dependency can be found in the directory `org.openpnp.opencv-4.5.1-0`.
+
+
 'postgresql', licensed under the BSD-2-Clause, is distributed with the Standard.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.postgresql.postgresql-42.2.19`.

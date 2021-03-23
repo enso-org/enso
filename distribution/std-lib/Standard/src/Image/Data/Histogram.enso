@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+import Standard.Image.Data.Image
+
+polyglot java import org.enso.image.data.Histogram as Java_Histogram
+
+
+## UNSTABLE
+type Histogram
+
+    ## UNSTABLE
+
+       The histogram of a single image channel.
+    type Histogram channel data
+
+    ## UNSTABLE
+
+       Convert histogram data to Json.
+    to_json : Json
+    to_json =
+        bins = Json.from_pairs [["bins", this.data]]
+        Json.from_pairs [["data", bins]]
+
+## UNSTABLE
+
+   Create a histogram for the specified channel of the image.
+
+   Arguments:
+   `channel`: the channel number.
+
+   > Example
+     Create a histogram.
+         Image.from_vector [0] . histogram 0
+Image.Image.histogram : Integer -> Histogram
+Image.Image.histogram channel =
+    hist = Java_Histogram.calculate this.opencv_mat channel
+    Histogram channel (Vector.Vector hist.get_data)

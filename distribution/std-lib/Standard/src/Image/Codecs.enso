@@ -1,0 +1,133 @@
+from Standard.Base import all
+
+import Standard.Base.System.File
+import Standard.Image.Codecs.Internal
+import Standard.Image.Data.Image
+
+polyglot java import org.enso.image.Codecs as Java_Codecs
+
+## UNSTABLE
+type Read_Flag
+
+    ## UNSTABLE
+
+       Read the image with its alpha channel, otherwise the channel gets cropped.
+    type Read_Alpha_Channel
+
+    ## UNSTABLE
+
+       Always convert the image to a single channel grayscale image.
+    type Read_Grayscale
+
+    ## UNSTABLE
+
+       Use Geographic Data Abstraction Library (GDAL) driver to load images in
+       geospatial raster data formats.
+    type Read_Gdal
+
+## UNSTABLE
+type Write_Flag
+
+    ## UNSTABLE
+
+       For a JPEG, this can be a quality from 0 to 100 (the higher, the better).
+    type Write_Jpeg_Quality value=95
+
+    ## UNSTABLE
+
+       Enable progressive JPEG compression format. Disabled by default.
+    type Write_Jpeg_Progressive
+
+    ## UNSTABLE
+
+       Enable optimized JPEG encoding algorithms. Disabled by default.
+    type Write_Jpeg_Optimize
+
+    ## UNSTABLE
+
+       Separate luma quality level, 0 - 100.
+    type Write_Jpeg_Luma_Quality value=0
+
+    ## UNSTABLE
+
+       Separate chroma quality level, 0 - 100.
+    type Write_Jpeg_Chroma_Quality value=0
+
+    ## UNSTABLE
+
+       For PNG, it can be the compression level from 0 to 9. A higher value
+       means a smaller size and longer compression time.
+    type Write_Png_Compression value=3
+
+    ## UNSTABLE
+
+       For WEBP, this is a quality from 1 to 100 (the higher, the better).
+       By default (without any parameter) and for quality above 100 the lossless
+       compression is used.
+    type Write_Webp_Quality value=101
+
+## UNSTABLE
+
+   Read an image from a file.
+
+   The functon reads images in RGB format, or RGBA if the
+   `Read_Alpha_Channel` flag is specified.
+
+   Arguments:
+   - `location`: the file to read.
+   - `flags`: the read flags.
+
+   > Example
+     Read the image.
+         Codecs.read "image.png"
+
+   > Example
+     Read the image with alpha channel.
+         Codecs.read "image.png" Codecs.Read_Alpha_Channel
+
+   > Example
+     Read the image and convert it to grayscale.
+         Codecs.read "image.png" Codecs.Read_Grayscale
+read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.Io_Error
+read location flags=[] =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    read_flags = case flags of
+        Vector.Vector _ ->
+            if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
+                flags.map .to_integer . reduce (_.bit_or _)
+        _ -> flags.to_integer
+    Panic.recover (Image.Image (Java_Codecs.read path read_flags)) . catch e->
+        case e of
+            Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read the file at ' + path + '.'))
+            err -> Panic.throw err
+
+## UNSTABLE
+
+   Write an image to a file.
+
+   > Example
+     Write the image with applying png compression.
+         Codecs.write path image
+
+   > Example
+     Write the image with applying png compression.
+         Codecs.write path image (Codecs.Write_Png_Compression 9)
+
+   > Example
+     Write the image with applying several flags.
+         Codecs.write path image [Codecs.Write_Jpeg_Quality 40, Codecs.Write_Jpeg_Progressive]
+Image.Image.write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.Io_Error
+Image.Image.write location flags=[] =
+    path = case location of
+        File.File _ -> location.path
+        _ -> location
+    write_flags = case flags of
+        Vector.Vector _ -> flags
+        _ -> [flags]
+    int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
+    Panic.recover (Java_Codecs.write path this.opencv_mat int_flags) . catch e->
+        case e of
+            Polyglot_Error _ -> Panic.throw (File.Io_Error ('Failed to write to the file at ' + path + '.'))
+            err -> Panic.throw err
