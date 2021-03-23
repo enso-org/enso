@@ -21,7 +21,6 @@ type Read_Flag
 type Write_Flag
 
     ## For a JPEG, this can be a quality from 0 to 100 (the higher, the better).
-       The default value is 95.
     type Write_Jpeg_Quality value=95
 
     ## Enable progressive JPEG compression format. Disabled by default.
@@ -30,20 +29,20 @@ type Write_Flag
     ## Enable optimized JPEG encoding algorithms. Disabled by default.
     type Write_Jpeg_Optimize
 
-    ## Separate luma quality level, 0 - 100, default is 0 - don't use.
+    ## Separate luma quality level, 0 - 100.
     type Write_Jpeg_Luma_Quality value=0
 
-    ## Separate chroma quality level, 0 - 100, default is 0 - don't use.
+    ## Separate chroma quality level, 0 - 100.
     type Write_Jpeg_Chroma_Quality value=0
 
     ## For PNG, it can be the compression level from 0 to 9. A higher value
-       means a smaller size and longer compression time. Default value is 3.
+       means a smaller size and longer compression time.
     type Write_Png_Compression value=3
 
     ## For WEBP, this is a quality from 1 to 100 (the higher, the better).
        By default (without any parameter) and for quality above 100 the lossless
        compression is used.
-    type Write_Webp_Quality value
+    type Write_Webp_Quality value=101
 
 ## Read an image from a file.
 
@@ -97,7 +96,7 @@ write location image flags=[] =
     write_flags = case flags of
         Vector.Vector _ -> flags
         _ -> [flags]
-    int_flags = Internal.mat_of_int (write_flags.flat_map .to_vector)
+    int_flags = Internal.mat_of_int (write_flags.flat_map x-> [x.to_integer, x.value])
     Panic.recover (Java_Codecs.write path image.opencv_mat int_flags) . catch e->
         case e of
             Polyglot_Error _ -> Panic.throw (File.Io_Error ('Failed to write to the file at ' + path + '.'))
