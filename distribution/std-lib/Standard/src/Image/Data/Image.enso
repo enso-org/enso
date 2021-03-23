@@ -6,28 +6,39 @@ import Standard.Image.Data.Matrix
 
 polyglot java import org.enso.image.data.Image as Java_Image
 
+## UNSTABLE
 type Image
 
-    ## The image data type.
+    ## UNSTABLE
+
+       The image data type.
 
        The image is represented with a matrix of rows x columns. Each
        pixel is represented with a vector of 1 to 4 values (channels).
        Pixel values are normalized in a range [0.0 .. 1.0].
     type Image opencv_mat
 
-    ## Return the number of image rows.
+    ## UNSTABLE
+
+       Return the number of image rows.
     rows : Integer
     rows = this.opencv_mat.rows
 
-    ## Return the number of image columns.
+    ## UNSTABLE
+
+       Return the number of image columns.
     columns : Integer
     columns = this.opencv_mat.cols
 
-    ## Return the number of image channels.
+    ## UNSTABLE
+
+       Return the number of image channels.
     channels : Integer
     channels = this.opencv_mat.channels
 
-    ## Get the pixel value indexed by row and column.
+    ## UNSTABLE
+
+       Get the pixel value indexed by row and column.
 
        Arguments:
        - `row`: the row index.
@@ -47,7 +58,9 @@ type Image
                 arr = Java_Image.get this.opencv_mat row column
                 Vector.Vector arr
 
-    ## Calculates the per-element sum of an image and a scalar or a matrix.
+    ## UNSTABLE
+
+       Calculates the per-element sum of an image and a scalar or a matrix.
        Matrix should have the same dimensions as the image.
 
        Arguments:
@@ -77,7 +90,9 @@ type Image
     + : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
     + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.add _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element difference between an image and a scalar or a matrix.
+    ## UNSTABLE
+
+       Calculates the per-element difference between an image and a scalar or a matrix.
        Matrix should have the same dimensions as the image.
 
        Arguments:
@@ -105,7 +120,9 @@ type Image
     - : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
     - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.subtract _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element product of an image and a scalar or a matrix.
+    ## UNSTABLE
+
+       Calculates the per-element product of an image and a scalar or a matrix.
        Matrix should have the same dimensions as the image.
 
        Arguments:
@@ -138,7 +155,9 @@ type Image
     * : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
     * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.multiply _ _ _)) . catch Internal.core_op_handler
 
-    ## Performs per-element division of an image and a scalar or a matrix.
+    ## UNSTABLE
+
+       Performs per-element division of an image and a scalar or a matrix.
        Matrix should have the same dimensions as the image.
 
        Arguments:
@@ -170,7 +189,9 @@ type Image
     / : (Number | Vector | Matrix) -> Image ! Matrix.Dimensions_Not_Equal
     / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Image.divide _ _ _)) . catch Internal.core_op_handler
 
-    ## Check the equality of two images.
+    ## UNSTABLE
+
+       Check the equality of two images.
 
        Arguments:
        - `that`: the matrix to compare with.
@@ -185,23 +206,31 @@ type Image
     == : Image -> Boolean
     == that = Java_Image.is_equals this.opencv_mat that.opencv_mat
 
-    ## Convert the image to a vector.
+    ## UNSTABLE
+
+       Convert the image to a vector.
     to_vector : Vector
     to_vector =
         arr = Java_Image.to_vector this.opencv_mat
         Vector.Vector arr
 
-    ## Convert the image to Json.
+    ## UNSTABLE
+
+       Convert the image to Json.
     to_json : Json
     to_json =
         base64 = Java_Image.to_base64 this.opencv_mat
         Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
-    ## Convert the image to a Matrix.
+    ## UNSTABLE
+
+       Convert the image to a Matrix.
     to_matrix : Matrix
     to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
 
-## Create an image from the array of values.
+## UNSTABLE
+
+   Create an image from the array of values.
 
    Arguments:
    - `values`: the vector of numbers.

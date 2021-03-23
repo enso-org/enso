@@ -6,45 +6,69 @@ import Standard.Image.Data.Image
 
 polyglot java import org.enso.image.Codecs as Java_Codecs
 
+## UNSTABLE
 type Read_Flag
 
-    ## Read the image with its alpha channel, otherwise the channel gets cropped.
+    ## UNSTABLE
+
+       Read the image with its alpha channel, otherwise the channel gets cropped.
     type Read_Alpha_Channel
 
-    ## Always convert the image to a single channel grayscale image.
+    ## UNSTABLE
+
+       Always convert the image to a single channel grayscale image.
     type Read_Grayscale
 
-    ## Use Geographic Data Abstraction Library (GDAL) driver to load images in
+    ## UNSTABLE
+
+       Use Geographic Data Abstraction Library (GDAL) driver to load images in
        geospatial raster data formats.
     type Read_Gdal
 
+## UNSTABLE
 type Write_Flag
 
-    ## For a JPEG, this can be a quality from 0 to 100 (the higher, the better).
+    ## UNSTABLE
+
+       For a JPEG, this can be a quality from 0 to 100 (the higher, the better).
     type Write_Jpeg_Quality value=95
 
-    ## Enable progressive JPEG compression format. Disabled by default.
+    ## UNSTABLE
+
+       Enable progressive JPEG compression format. Disabled by default.
     type Write_Jpeg_Progressive
 
-    ## Enable optimized JPEG encoding algorithms. Disabled by default.
+    ## UNSTABLE
+
+       Enable optimized JPEG encoding algorithms. Disabled by default.
     type Write_Jpeg_Optimize
 
-    ## Separate luma quality level, 0 - 100.
+    ## UNSTABLE
+
+       Separate luma quality level, 0 - 100.
     type Write_Jpeg_Luma_Quality value=0
 
-    ## Separate chroma quality level, 0 - 100.
+    ## UNSTABLE
+
+       Separate chroma quality level, 0 - 100.
     type Write_Jpeg_Chroma_Quality value=0
 
-    ## For PNG, it can be the compression level from 0 to 9. A higher value
+    ## UNSTABLE
+
+       For PNG, it can be the compression level from 0 to 9. A higher value
        means a smaller size and longer compression time.
     type Write_Png_Compression value=3
 
-    ## For WEBP, this is a quality from 1 to 100 (the higher, the better).
+    ## UNSTABLE
+
+       For WEBP, this is a quality from 1 to 100 (the higher, the better).
        By default (without any parameter) and for quality above 100 the lossless
        compression is used.
     type Write_Webp_Quality value=101
 
-## Read an image from a file.
+## UNSTABLE
+
+   Read an image from a file.
 
    The functon reads images in RGB format, or RGBA if the
    `Read_Alpha_Channel` flag is specified.
@@ -79,7 +103,9 @@ read location flags=[] =
             Polyglot_Error _ -> Error.throw (File.Io_Error ('Failed to read the file at ' + path + '.'))
             err -> Panic.throw err
 
-## Write an image to a file.
+## UNSTABLE
+
+   Write an image to a file.
 
    > Example
      Write the image with applying png compression.

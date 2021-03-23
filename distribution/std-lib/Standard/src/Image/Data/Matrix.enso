@@ -6,12 +6,17 @@ import Standard.Image.Data.Matrix.Internal
 
 polyglot java import org.enso.image.data.Matrix as Java_Matrix
 
+## UNSTABLE
 type Matrix_Error
 
-    ## Indicates that a matrix has been accessed with an illegal index.
+    ## UNSTABLE
+
+       Indicates that a matrix has been accessed with an illegal index.
     type Index_Out_Of_Bounds_Error rows columns index
 
-    ## Indicates that operation has failed.
+    ## UNSTABLE
+
+       Indicates that operation has failed.
     type Dimensions_Not_Equal
 
     to_display_text : Text
@@ -21,20 +26,27 @@ type Matrix_Error
         Dimensions_Not_Equal ->
             'Dimensions are not equal.'
 
+## UNSTABLE
 type Matrix
 
-    ## The matrix data type.
+    ## UNSTABLE
+
+       The matrix data type.
 
        Each value of the matrix is represented with an array of
        channels. In contrast to an Image data type, Matrix values are
        not normalized.
     type Matrix opencv_mat
 
-    ## Return the number of matrix rows.
+    ## UNSTABLE
+
+       Return the number of matrix rows.
     rows : Integer
     rows = this.opencv_mat.rows
 
-    ## Return the number of matrix columns.
+    ## UNSTABLE
+
+       Return the number of matrix columns.
     columns : Integer
     columns = this.opencv_mat.cols
 
@@ -42,7 +54,9 @@ type Matrix
     channels : Integer
     channels = this.opencv_mat.channels
 
-    ## Get the matrix value at the specified row and column.
+    ## UNSTABLE
+
+       Get the matrix value at the specified row and column.
 
        Arguments:
        - `row`: the row index.
@@ -62,7 +76,9 @@ type Matrix
                 arr = Java_Matrix.get this.opencv_mat row column
                 Vector.Vector arr
 
-    ## Reshape the matrix specifying new number of rows and channels.
+    ## UNSTABLE
+
+       Reshape the matrix specifying new number of rows and channels.
 
        Arguments:
        - `rows`: the new number of rows.
@@ -77,7 +93,9 @@ type Matrix
             Nothing -> Matrix (this.opencv_mat.reshape this.channels rows)
             _ -> Matrix (this.opencv_mat.reshape channels rows)
 
-    ## Calculates the per-element sum of two matrices or a matrix and a scalar.
+    ## UNSTABLE
+
+       Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
        - `value`: A value can be a number, a vector of numbers, or a matrix. The
@@ -104,7 +122,9 @@ type Matrix
     + : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
     + value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.add _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element difference of two matrices or of a matrix and a scalar.
+    ## UNSTABLE
+
+       Calculates the per-element difference of two matrices or of a matrix and a scalar.
 
        Arguments:
        - `value`: A value can be a number, a vector of numbers, or a matrix. The
@@ -131,7 +151,9 @@ type Matrix
     - : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
     - value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.subtract _ _ _)) . catch Internal.core_op_handler
 
-    ## Calculates the per-element product of two matrices or a matrix and a scalar.
+    ## UNSTABLE
+
+       Calculates the per-element product of two matrices or a matrix and a scalar.
 
        Arguments:
        - `value`: A value can be a number, a vector of numbers, or a matrix. The
@@ -163,7 +185,9 @@ type Matrix
     * : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
     * value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.multiply _ _ _)) . catch Internal.core_op_handler
 
-    ## Performs per-element division of two matrices or a matrix and a scalar.
+    ## UNSTABLE
+
+       Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
        - `value`: A value can be a number, a vector of numbers, or a matrix. The
@@ -190,7 +214,9 @@ type Matrix
     / : (Number | Vector | Matrix) -> Matrix ! Dimensions_Not_Equal
     / value = Panic.recover (Internal.core_op this.opencv_mat value (Java_Matrix.divide _ _ _)) . catch Internal.core_op_handler
 
-    ## Check the equality of two matrices.
+    ## UNSTABLE
+
+       Check the equality of two matrices.
 
        Arguments:
        - `that`: the matrix to compare with.
@@ -201,7 +227,9 @@ type Matrix
     == : Matrix -> Boolean
     == that = Java_Matrix.is_equals this.opencv_mat that.opencv_mat
 
-    ## Normalize the matrix into a range of [min_value .. max_value] so that the
+    ## UNSTABLE
+
+       Normalize the matrix into a range of [min_value .. max_value] so that the
        minimum value of the matrix becomes `min_value` and the maximum value of
        the matrix becomes `max_value`.
 
@@ -224,21 +252,29 @@ type Matrix
     normalize min_value=0.0 max_value=1.0 =
         Matrix (Java_Matrix.normalize this.opencv_mat min_value max_value)
 
-    ## Convert this matrix to an image.
+    ## UNSTABLE
+
+       Convert this matrix to an image.
     to_image : Image.Image
     to_image = Image.Image (Image.from_vector this.normalize.to_vector this.rows this.channels)
 
-    ## Get the elemets of this matrix as a vector.
+    ## UNSTABLE
+
+       Get the elemets of this matrix as a vector.
     to_vector : Vector
     to_vector =
         arr = Java_Matrix.to_vector this.opencv_mat
         Vector.Vector arr
 
-    ## Convert this matrix to Json.
+    ## UNSTABLE
+
+       Convert this matrix to Json.
     to_json : Json
     to_json = Json.String this.opencv_mat.to_text
 
-## Create a matrix with all elements set to zero.
+## UNSTABLE
+
+   Create a matrix with all elements set to zero.
 
    Arguments:
    - `rows`: the number of rows in the resulting matrix.
@@ -252,7 +288,9 @@ zeros : Integer -> Integer -> Integer -> Matrix
 zeros rows columns channels=1 =
     Matrix (Java_Matrix.zeros rows columns channels)
 
-## Create a matrix with all elements set to one.
+## UNSTABLE
+
+   Create a matrix with all elements set to one.
 
    Arguments:
    - `rows`: the number of rows in the resulting matrix.
@@ -266,7 +304,9 @@ ones : Integer -> Integer -> Integer -> Matrix
 ones rows columns channels=1 =
     Matrix (Java_Matrix.ones rows columns channels)
 
-## Create an identity matrix containing ones on a main diagonal.
+## UNSTABLE
+
+   Create an identity matrix containing ones on a main diagonal.
 
    Arguments:
    - `rows`: the number of rows in the resulting matrix.
@@ -280,7 +320,9 @@ identity : Integer -> Integer -> Integer -> Matrix
 identity rows columns channels=1 =
     Matrix (Java_Matrix.identity rows columns channels)
 
-## Create a matrix from the provided vector.
+## UNSTABLE
+
+   Create a matrix from the provided vector.
 
    Arguments:
    - `values`: the vector of numbers.

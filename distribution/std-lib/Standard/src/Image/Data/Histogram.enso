@@ -4,17 +4,26 @@ import Standard.Image.Data.Image
 
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 
+
+## UNSTABLE
 type Histogram
 
+    ## UNSTABLE
+
+       The histogram of a single image channel.
     type Histogram channel data
 
-    ## Convert histogram data to Json.
+    ## UNSTABLE
+
+       Convert histogram data to Json.
     to_json : Json
     to_json =
         bins = Json.from_pairs [["bins", this.data]]
         Json.from_pairs [["data", bins]]
 
-## Create a histogram for the specified channel of the image.
+## UNSTABLE
+
+   Create a histogram for the specified channel of the image.
 
    Arguments:
    `channel`: the channel number.
