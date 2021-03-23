@@ -1,0 +1,100 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Column import Column
+
+import Standard.Table.Data.Table
+import Standard.Visualization.Helpers
+
+## PRIVATE
+   
+   Represents a recognized point data field for a scatter plot visualization.
+type PointData 
+    ## PRIVATE
+    type PointData
+    ## PRIVATE
+    type X
+    ## PRIVATE
+    type Y
+    ## PRIVATE
+    type Color
+    ## PRIVATE
+    type Shape
+    ## PRIVATE
+    type Label
+    ## PRIVATE
+    type Size
+
+    ## PRIVATE
+       Returns all recognized point data fields.
+    all_fields = [X,Y,Color,Shape,Label,Size]
+
+    ## PRIVATE
+    recognized_names = [X,Y,Color,Shape,Label,Size].map _.name
+
+    ## PRIVATE
+    is_recognized column = this.recognized_names.contains column.name
+
+    ## PRIVATE
+    name       = this.to_text.to_lower_case
+
+    ## PRIVATE
+    fallback_column table = case this of
+        X -> table.index.catch (_-> this.iota table.row_count)
+        Y ->
+            x_column         = X.lookup table
+            candidates       = table.all_columns
+            is_good_enough c = c.is_numeric && c.name != x_column.name
+            is_good c        = is_good_enough c && (this.is_recognized c).not
+
+            candidates.find is_good . catch (_-> candidates.find is_good_enough)
+        _ -> Error.throw Nothing
+
+    ## PRIVATE
+       Returns a vector of subsequent integers beginning from 0.
+    iota : Number -> Vector
+    iota count = 
+        # FIXME [mwu]: Adjust once https://github.com/enso-org/enso/issues/1439
+        #              is addressed.
+        range = 0.up_to <| count + 1
+        Column.from_vector this.name range.to_vector
+
+    ## PRIVATE
+    lookup table = 
+        named = table.at this.name
+        named.catch (_-> this.fallback_column table . rename this.name)
+
+## PRIVATE
+data_from_table : Table -> Object
+data_from_table df = 
+    columns = PointData.all_fields.map (field-> field.lookup df) . filter (column-> column.is_error.not)
+    (0.up_to (df.row_count + 1)).to_vector.map <| row_n-> 
+        pairs = columns.map column->
+            value = column.at row_n . catch (_-> Nothing)
+            [column.name, value]
+        Json.from_pairs pairs
+
+## PRIVATE
+data_from_vector : Vector -> Object
+data_from_vector vec = 
+        vec.map_with_index <| i-> elem-> 
+            Json.from_pairs [[X.name,i],[Y.name,elem]]
+
+
+## PRIVATE
+
+   Default preprocessor for the scatterplot visualization.
+   
+   Generates JSON text describing the scatterplot visualization.
+   
+   Arguments:
+   - value: the value to be visualized.
+process_to_json_text : Any -> Text
+process_to_json_text value = 
+    data = case value of
+        Table.Table _   -> here.data_from_table  value
+        Vector.Vector _ -> here.data_from_vector value
+        _               -> here.data_from_vector value.to_vector
+
+    points = Json.from_pairs [['labels', 'visible']]
+    ret    = Json.from_pairs [['data',data], ['points',points]]
+    ret.to_text

@@ -1,0 +1,30 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Column import Column
+
+import Standard.Table.Data.Table
+import Standard.Visualization.Helpers
+
+
+## PRIVATE
+
+   Default preprocessor for the histogram visualization.
+
+   Generates JSON text describing the histogram visualization.
+
+   Arguments:
+   - value: the value to be visualized.
+process_to_json_text : Any -> Text
+process_to_json_text value = 
+    values = case value of
+        Table.Table _   -> 
+            value_col = value.at 'value' 
+            col       = value_col.catch (_-> value.columns.find _.is_numeric)
+            col.to_vector.catch (_-> [])
+            
+        Vector.Vector _ -> value
+        _               -> value.to_vector
+    
+    data = Json.from_pairs [['values', values]]
+    ret  = Json.from_pairs [["data", data]]
+    ret.to_text

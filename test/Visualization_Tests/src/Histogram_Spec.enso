@@ -1,0 +1,43 @@
+from Standard.Base import all
+
+from Standard.Table.Data.Table import Table
+from Standard.Table.Data.Column import Column
+import Standard.Test
+import Standard.Visualization.Histogram
+
+import Visualization_Tests
+
+spec = 
+    expect value expected_values =
+        text          = Histogram.process_to_json_text value
+        json          = Json.parse text
+        expected_json = Json.from_pairs [['values', expected_values]]
+        json.should_equal expected_json
+
+    Test.group "Histogram Visualization" <|
+    
+        Test.specify "deals with an empty table" <|
+            table  = Table.from_rows [] []
+            expect table []
+
+        Test.specify "plots first column if none recognized" <|
+            header = ['α', 'ω']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table [11,21]          
+
+        Test.specify "plots 'value' numeric column if present" <|
+            header = ['α', 'value']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table [10,20]
+        
+        Test.specify "plots vector" <|
+            vector = [1,2,3]
+            expect vector vector
+
+        Test.specify "plots range" <|
+            vector = 2.up_to 4
+            expect vector [2,3,4]
