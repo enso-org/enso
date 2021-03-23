@@ -42,7 +42,19 @@ type Matrix
     channels : Integer
     channels = this.opencv_mat.channels
 
-    ## Get the matrix value at specified row and column.
+    ## Get the matrix value at the specified row and column.
+
+       Arguments:
+       - `row`: the row index.
+       - `column`: the column index.
+
+       > Example
+         Get the value at the specified row and column.
+             Matrix.ones 2 3 . get 0 0 == [1]
+
+       > Example
+         Get the non-existend value.
+             Matrix.ones 2 3 . get 2 2 . catch x->x == Index_Out_Of_Bounds_Error 2 3 2
     get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
     get row column =
         if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error this.rows this.columns row) else
@@ -51,6 +63,10 @@ type Matrix
                 Vector.Vector arr
 
     ## Reshape the matrix specifying new number of rows and channels.
+
+       Arguments:
+       - `rows`: the new number of rows.
+       - `channels`: the new number of channels.
 
        > Example
          Reshape the matrix to a new shape of 3 rows and 1 column, with 1 channel.
@@ -176,6 +192,9 @@ type Matrix
 
     ## Check the equality of two matrices.
 
+       Arguments:
+       - `that`: the matrix to compare with.
+
        ? Implementation Note
          Two matrices considered equal when they have the same number of rows,
          columns and channels, and have the same values.
@@ -185,6 +204,10 @@ type Matrix
     ## Normalize the matrix into a range of [min_value .. max_value] so that the
        minimum value of the matrix becomes `min_value` and the maximum value of
        the matrix becomes `max_value`.
+
+       Arguments:
+       - `min_value`: the minimum value in the resulting normalized range.
+       - `max_value`: the maximum value in the resulting normalized range.
 
        > Example
          Normalize a matrix from vector.
@@ -217,6 +240,11 @@ type Matrix
 
 ## Create a matrix with all elements set to zero.
 
+   Arguments:
+   - `rows`: the number of rows in the resulting matrix.
+   - `columns`: the number of columns in the resulitng matrix.
+   - `channels`: the number of channels in the resulting matrix.
+
    > Example
      Create a matrix.
          Matrix.zeros 2 2 . to_vector == [0, 0, 0, 0]
@@ -225,6 +253,11 @@ zeros rows columns channels=1 =
     Matrix (Java_Matrix.zeros rows columns channels)
 
 ## Create a matrix with all elements set to one.
+
+   Arguments:
+   - `rows`: the number of rows in the resulting matrix.
+   - `columns`: the number of columns in the resulitng matrix.
+   - `channels`: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.
@@ -235,6 +268,11 @@ ones rows columns channels=1 =
 
 ## Create an identity matrix containing ones on a main diagonal.
 
+   Arguments:
+   - `rows`: the number of rows in the resulting matrix.
+   - `columns`: the number of columns in the resulitng matrix.
+   - `channels`: the number of channels in the resulting matrix.
+
    > Example
      Create a matrix.
          Matrix.eye 2 2 channels=1 . to_vector == [1, 0, 0, 1]
@@ -243,6 +281,11 @@ identity rows columns channels=1 =
     Matrix (Java_Matrix.identity rows columns channels)
 
 ## Create a matrix from the provided vector.
+
+   Arguments:
+   - `values`: the vector of numbers.
+   - `rows`: the number of rows in the resulting matrix.
+   - `channels`: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.

@@ -29,6 +29,18 @@ type Image
     channels = this.opencv_mat.channels
 
     ## Get the pixel value indexed by row and column.
+
+       Arguments:
+       - `row`: the row index.
+       - `column`: the column index.
+
+       > Example
+         Get the value at the specified row and column.
+             Image.from_vector [0] . get 0 0 == [0]
+
+       > Example
+         Get the non-existend value.
+             Image.from_vector [0] . get 1 1 . catch x->x == Matrix.Index_Out_Of_Bounds_Error 1 1 1
     get : Integer -> Integer -> Vector ! Matrix.Index_Out_Of_Bounds_Error
     get row column =
         if (row < 0) || (row >= this.rows) then Error.throw (Matrix.Index_Out_Of_Bounds_Error this.rows this.columns row) else
@@ -161,6 +173,9 @@ type Image
 
     ## Check the equality of two images.
 
+       Arguments:
+       - `that`: the matrix to compare with.
+
        ? Implementation Note
          Two images considered equal when they have the same number of rows,
          columns and channels, and have the same pixel values.
@@ -189,6 +204,10 @@ type Image
 
     ## Write the image to a file.
 
+       Arguments:
+       - `location`: the text of file location where to write the image.
+       - `flags`: the write flags.
+
        > Example
          Write the image with applying png compression.
              image.write path
@@ -206,11 +225,16 @@ type Image
 
 ## Create an image from the array of values.
 
+   Arguments:
+   - `values`: the vector of numbers.
+   - `rows`: the number of rows in the resulting image.
+   - `channels`: the number of channels in the resulting image.
+
    The function expects the array of normalized values in a range of [0.0 .. 1.0].
 
    > Example
      Create an image from the vector.
          Image.from_vector [0, 0, 0, 0, 0, 0] rows=2 channels=1
 from_vector : Vector -> Integer -> Integer -> Image
-from_vector data rows=1 channels=1 =
-    Image (Java_Image.from_vector data.to_array rows channels)
+from_vector values rows=1 channels=1 =
+    Image (Java_Image.from_vector values.to_array rows channels)
