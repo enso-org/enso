@@ -1254,6 +1254,7 @@ lazy val `std-bits` = project
     libraryDependencies ++= Seq(
       "com.ibm.icu"    % "icu4j"             % icuVersion,
       "com.univocity"  % "univocity-parsers" % "2.9.0",
+      "org.openpnp"    % "opencv"            % "4.5.1-0",
       "org.xerial"     % "sqlite-jdbc"       % "3.34.0",
       "org.postgresql" % "postgresql"        % "42.2.19"
     ),

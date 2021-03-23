@@ -316,6 +316,28 @@ type Vector
             arr.set_at i (that.at i-this_len)
         Vector arr
 
+    ## Add `element` to the beginning of `this` vector.
+
+       Arguments:
+       - `element`: An element to add to this vector.
+
+       > Example
+         Add one element in front:
+         [2, 3].prepend 1 == [1, 2, 3]
+    prepend : Any -> Vector
+    prepend element = [element] + this
+
+    ## Add `element` to the end of `this` vector.
+
+       Arguments:
+       - `element`: An element to add to this vector.
+
+       > Example
+         Add one element to the end:
+         [1, 2].append 3 == [1, 2, 3]
+    append : Any -> Vector
+    append element = this + [element]
+
     ## When `this` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
 
@@ -373,14 +395,29 @@ type Vector
 
        > Example
          To pairwise-sum two vectors:
-             zip [1, 2, 3] [4, 5, 6] (+) == [5, 7, 9]
+             [1, 2, 3].zip [4, 5, 6] (+) == [5, 7, 9]
          When the `function` is not provided, it defaults to creating a pair
          of both elements:
-             zip [1, 2, 3] [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
+             [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector -> (Any -> Any -> Any) -> Vector
     zip that function=[_,_] =
         len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
+
+    ## Extend `this` vector to the length of `n` appending elements `elem` to
+       the end. If the new length `n` is less than existing length, `this`
+       vector is returned.
+
+       > Example
+         Extending vector to the length of 5 returns `[1, 2, 3, 0, 0]`
+         [1, 2, 3].pad 5 0
+       > Example
+         Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
+         [1, 2, 3, 4, 5].pad 5 0
+    pad : Integer -> Any -> Vector
+    pad n elem =
+        if this.length >= n then this else
+            this + (here.fill n-this.length elem)
 
     ## Vector to JSON conversion.
     to_json : Json.Array

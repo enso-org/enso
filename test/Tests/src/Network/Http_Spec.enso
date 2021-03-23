@@ -15,7 +15,6 @@ import Standard.Base.System.File
 import Standard.Test
 
 polyglot java import java.lang.System
-polyglot java import java.util.Objects
 
 spec =
     is_ci = System.getenv "CI" == "true"

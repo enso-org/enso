@@ -27,6 +27,7 @@ sections of this document are linked below:
   - [Getting Set Up \(JVM\)](#getting-set-up-jvm)
   - [Getting Set Up \(Documentation\)](#getting-set-up-documentation)
   - [Building Enso](#building-enso)
+  - [Testing Enso](#testing-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
 - [Documentation](#documentation)
@@ -320,43 +321,6 @@ Then, you can build the launcher using:
 sbt launcher/buildNativeImage
 ```
 
-#### Testing Enso
-
-Running the tests for the JVM enso components is as simple as running
-`sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
-can run the WASM tests for the rust components by using `./run --test-wasm`.
-
-#### Testing Enso Libraries
-
-To test the libraries that are shipped with Enso you need to first build the
-engine, the easiest way to do so is to run `sbt buildEngineDistribution`. That
-will create a distribution in the directory `built-distribution`. The engine
-runner that can be used for running the tests is located at
-`built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
-(or `enso.bat` for Windows).
-
-To run the tests you can run the following commands (where `enso` refers to the
-built runner executable as explained above):
-
-```bash
-enso --run test/Tests # for the Base library
-enso --run test/Geo_Tests
-enso --run test/Table_Tests
-enso --run test/Database_Tests
-```
-
-The Database tests will by default only test the SQLite backend, to test other
-backends see [`test/Database_Tests/README.md`](../test/Database_Tests/README.md)
-for information on how to configure them.
-
-The Base tests rely in a few places on the system language. On Linux you can set
-the `LANG` environment variable to `C` to make sure that the language is
-configured correctly and run the tests as following:
-
-```bash
-LANG=C enso --run test/Tests
-```
-
 #### Passing Debug Options
 
 GraalVM provides some useful debugging options, including the ability to output
@@ -515,6 +479,63 @@ filing an issue with us.
 If your problem was not listed above, please
 [file a bug report](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
 in our issue tracker and we will get back to you as soon as possible.
+
+### Testing Enso
+
+Running the tests for the JVM enso components is as simple as running
+`sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
+can run the WASM tests for the rust components by using `./run --test-wasm`.
+
+#### Testing Enso Libraries
+
+To test the libraries that are shipped with Enso you need to first build the
+engine, the easiest way to do so is to run `sbt buildEngineDistribution`. That
+will create a distribution in the directory `built-distribution`. The engine
+runner that can be used for running the tests is located at
+`built-distribution/enso-engine-<VERSION>-linux-amd64/enso-<VERSION>/bin/enso`
+(or `enso.bat` for Windows).
+
+To run the tests you can run the following commands (where `enso` refers to the
+built runner executable as explained above):
+
+```bash
+enso --run test/Tests # for the Base library
+enso --run test/Geo_Tests
+enso --run test/Table_Tests
+enso --run test/Database_Tests
+```
+
+The Database tests will by default only test the SQLite backend, to test other
+backends see [`test/Database_Tests/README.md`](../test/Database_Tests/README.md)
+for information on how to configure them.
+
+The Base tests rely in a few places on the system language. On Linux you can set
+the `LANG` environment variable to `C` to make sure that the language is
+configured correctly and run the tests as following:
+
+```bash
+LANG=C enso --run test/Tests
+```
+
+#### Test Dependencies
+
+Some test suites require extra setup and enabled only on CI. To replicate the CI
+environment you should install and run extra services:
+
+```bash
+# Httpbin
+go get -v github.com/ahmetb/go-httpbin/cmd/httpbin
+$(go env GOPATH)/bin/httpbin -host :8080
+```
+
+To run all the stdlib test suites, set `CI=true` environment variable:
+
+```bash
+env CI=true enso --run test/Tests/
+```
+
+For more details about the CI setup, you can check the
+`.github/workflows/scala.yml` GitHub workflow.
 
 ### Running Enso
 

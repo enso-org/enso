@@ -1,0 +1,413 @@
+from Standard.Base import all
+
+import Standard.Image.Data.Matrix
+import Standard.Test
+
+spec =
+    Test.group "Matrix_Error" <|
+        Test.specify "should display errors" <|
+            (Matrix.Index_Out_Of_Bounds_Error 2 3 4).to_display_text . should_equal '''
+                For a matrix with dimensions 2x3, the index 4 is out of bounds.
+            Matrix.Dimensions_Not_Equal.to_display_text . should_equal '''
+                Dimensions are not equal.
+    Test.group "Matrix with 1 channel" <|
+        zeros = Matrix.zeros 3 3
+        ones = Matrix.ones 3 3
+        identity = Matrix.identity 3 3
+        twos = Matrix.from_vector [2, 2, 2, 2, 2, 2, 2, 2, 2] . reshape rows=3 channels=1
+
+        Test.specify "should create from a vector" <|
+            Matrix.from_vector (Vector.fill 9 0) channels=1 rows=3 . should_equal zeros
+            Matrix.from_vector (Vector.fill 9 1) channels=1 rows=3 . should_equal ones
+
+        Test.specify "should be able to reshape" <|
+            Matrix.from_vector (Vector.fill 9 0) . reshape rows=3 . should_equal zeros
+            Matrix.from_vector (Vector.fill 9 1) . reshape rows=3 channels=1 . should_equal ones
+
+        Test.specify "should be able to convert to a vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 0)
+            ones.to_vector . should_equal (Vector.fill 9 1)
+            identity.to_vector . should_equal [1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal zeros
+            identity.normalize . should_equal identity
+            (Matrix.from_vector [0, 1, 2, 3, 4] channels=1).normalize . should_equal (Matrix.from_vector [0.0, 0.25, 0.5, 0.75, 1.0] channels=1)
+
+        Test.specify "should allow getting the value at a specified location" <|
+            identity.get 0 0 . should_equal [1]
+            identity.get 1 0 . should_equal [0]
+            identity.get 1 1 . should_equal [1]
+            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to add a scalar" <|
+            zeros+1 . should_equal ones
+            ones+1 . should_equal twos
+            identity+0 . should_equal identity
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9 0.8) channels=1 rows=3)
+        Test.specify "should be able to add a vector" <|
+            zeros+[1] . should_equal ones
+            ones+[1, 1] . should_equal twos
+            identity+[0, 0] . should_equal identity
+            identity+[] . should_equal identity
+        Test.specify "should be able to add a matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
+        Test.specify "should fail to add a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to subtract a scalar" <|
+            ones-1 . should_equal zeros
+            twos-1 . should_equal ones
+            ones-0 . should_equal ones
+        Test.specify "should be able to subtract a vector" <|
+            ones-[1, 1] . should_equal zeros
+            twos-[1, 1] . should_equal ones
+            identity-[0, 0] . should_equal identity
+            identity-[] . should_equal identity
+        Test.specify "should be able to subtract a matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            identity-zeros . should_equal identity
+        Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to multiply by a scalar" <|
+            ones*2 . should_equal twos
+            zeros*2 . should_equal zeros
+            identity*0 . should_equal zeros
+            identity*1 . should_equal identity
+        Test.specify "should be able to multiply by a vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[2, 2] . should_equal twos
+            identity*[0, 0] . should_equal zeros
+            identity*[] . should_equal zeros
+        Test.specify "should be able to multiply by a matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            identity*zeros . should_equal zeros
+        Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to divide by a scalar" <|
+            zeros/2 . should_equal zeros
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
+        Test.specify "should be able to divide by a vector" <|
+            zeros/[2] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5] . should_equal (Matrix.from_vector (Vector.fill 9 0.2) channels=1 rows=3)
+        Test.specify "should be able to divide by a matrix" <|
+            zeros/ones . should_equal zeros
+            twos/twos . should_equal ones
+        Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+
+    Test.group "Matrix with 2 channels" <|
+        zeros = Matrix.zeros 3 3 channels=2
+        ones = Matrix.ones 3 3 channels=2
+        identity = Matrix.identity 3 3 channels=2
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=2
+
+        Test.specify "should create from a vector" <|
+            Matrix.from_vector zeros.to_vector rows=3 channels=2 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=2 . should_equal ones
+
+        Test.specify "should be able to reshape" <|
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=2 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=2 . should_equal ones
+
+        Test.specify "should be able to convert to a vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0] . flat_map x->x)
+            identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
+        Test.specify "should allow getting the value at a specified location" <|
+            identity.get 0 0 . should_equal [1, 0]
+            identity.get 1 0 . should_equal [0, 0]
+            identity.get 1 1 . should_equal [1, 0]
+            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to add a scalar" <|
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*2 1) rows=3 channels=2)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=2)
+            identity+0 . should_equal identity
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*2 0.8) rows=3 channels=2)
+        Test.specify "should be able to add a vector" <|
+            zeros+[1] . should_equal ones
+            zeros+[1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*2 1) rows=3 channels=2)
+            ones+[1, 0] . should_equal twos
+            identity+[0, 0] . should_equal identity
+            identity+[] . should_equal identity
+        Test.specify "should be able to add a matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
+        Test.specify "should fail to add a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to subtract a scalar" <|
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=2)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=2)
+            ones-0 . should_equal ones
+        Test.specify "should be able to subtract a vector" <|
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
+            identity-[0, 0] . should_equal identity
+            identity-[] . should_equal identity
+        Test.specify "should be able to subtract a matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            identity-zeros . should_equal identity
+        Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to multiply by a scalar" <|
+            ones*2 . should_equal twos
+            zeros*2 . should_equal zeros
+            identity*0 . should_equal zeros
+            identity*1 . should_equal identity
+        Test.specify "should be able to multiply by a vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[2, 2] . should_equal twos
+            identity*[0, 0] . should_equal zeros
+            identity*[] . should_equal zeros
+        Test.specify "should be able to multiply by a matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            identity*zeros . should_equal zeros
+        Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to divide by a scalar" <|
+            zeros/2 . should_equal zeros
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=2)
+        Test.specify "should be able to divide by a vector" <|
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=2)
+        Test.specify "should be able to divide by a matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
+        Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+
+    Test.group "Matrix with 3 channels" <|
+        zeros = Matrix.zeros 3 3 channels=3
+        ones = Matrix.ones 3 3 channels=3
+        identity = Matrix.identity 3 3 channels=3
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=3
+
+        Test.specify "should create from a vector" <|
+            Matrix.from_vector zeros.to_vector rows=3 channels=3 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=3 . should_equal ones
+
+        Test.specify "should be able to reshape" <|
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=3 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=3 . should_equal ones
+
+        Test.specify "should be able to convert to a vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0] . flat_map x->x)
+            identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
+        Test.specify "should allow getting the value at a specified location" <|
+            identity.get 0 0 . should_equal [1, 0, 0]
+            identity.get 1 0 . should_equal [0, 0, 0]
+            identity.get 1 1 . should_equal [1, 0, 0]
+            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to add a scalar" <|
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*3 1) rows=3 channels=3)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=3)
+            identity+0 . should_equal identity
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*3 0.8) rows=3 channels=3)
+        Test.specify "should be able to add a vector" <|
+            zeros+[1] . should_equal ones
+            zeros+[1, 1, 1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*3 1) rows=3 channels=3)
+            ones+[1, 0] . should_equal twos
+            identity+[0, 0] . should_equal identity
+            identity+[] . should_equal identity
+        Test.specify "should be able to add a matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
+        Test.specify "should fail to add a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to subtract a scalar" <|
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=3)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=3)
+            ones-0 . should_equal ones
+        Test.specify "should be able to subtract a vector" <|
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
+            identity-[0, 0] . should_equal identity
+            identity-[] . should_equal identity
+        Test.specify "should be able to subtract a matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            identity-zeros . should_equal identity
+        Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to multiply by a scalar" <|
+            ones*2 . should_equal twos
+            zeros*2 . should_equal zeros
+            identity*0 . should_equal zeros
+            identity*1 . should_equal identity
+        Test.specify "should be able to multiply by a vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[2, 2] . should_equal twos
+            identity*[0, 0] . should_equal zeros
+            identity*[] . should_equal zeros
+        Test.specify "should be able to multiply by a matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            identity*zeros . should_equal zeros
+        Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to divide by a scalar" <|
+            zeros/2 . should_equal zeros
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=3)
+        Test.specify "should be able to divide by a vector" <|
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=3)
+        Test.specify "should be able to divide by a matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
+        Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
+
+    Test.group "Matrix with 4 channels" <|
+        zeros = Matrix.zeros 3 3 channels=4
+        ones = Matrix.ones 3 3 channels=4
+        identity = Matrix.identity 3 3 channels=4
+        twos = Matrix.from_vector (ones.to_vector . map (_*2)) . reshape rows=3 channels=4
+
+        Test.specify "should create from a vector" <|
+            Matrix.from_vector zeros.to_vector rows=3 channels=4 . should_equal zeros
+            Matrix.from_vector ones.to_vector rows=3 channels=4 . should_equal ones
+
+        Test.specify "should be able to reshape" <|
+            Matrix.from_vector zeros.to_vector . reshape rows=3 channels=4 . should_equal zeros
+            Matrix.from_vector ones.to_vector . reshape rows=3 channels=4 . should_equal ones
+
+        Test.specify "should be able to convert to a vector" <|
+            zeros.to_vector . should_equal (Vector.fill 9 [0, 0, 0, 0] . flat_map x->x)
+            ones.to_vector . should_equal (Vector.fill 9 [1, 0, 0, 0] . flat_map x->x)
+            identity.to_vector . should_equal ([1, 0, 0, 0, 1, 0, 0, 0, 1] . flat_map (x -> [x, 0, 0, 0]))
+
+        Test.specify "should allow normalizing values" <|
+            zeros.normalize . should_equal zeros
+            ones.normalize . should_equal ones
+            identity.normalize . should_equal identity
+
+        Test.specify "should allow getting the value at a specified location" <|
+            identity.get 0 0 . should_equal [1, 0, 0, 0]
+            identity.get 1 0 . should_equal [0, 0, 0, 0]
+            identity.get 1 1 . should_equal [1, 0, 0, 0]
+            identity.get 10 10 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+            identity.get -1 -1 . should_fail_with Matrix.Index_Out_Of_Bounds_Error
+
+        Test.specify "should be able to add a scalar" <|
+            zeros+1 . should_equal (Matrix.from_vector (Vector.fill 9*4 1) rows=3 channels=4)
+            ones+1 . should_equal (Matrix.from_vector (ones.to_vector . map (+1)) rows=3 channels=4)
+            identity+0 . should_equal identity
+            zeros+0.8 . should_equal (Matrix.from_vector (Vector.fill 9*4 0.8) rows=3 channels=4)
+        Test.specify "should be able to add a vector" <|
+            zeros+[1] . should_equal ones
+            zeros+[1, 1, 1, 1] . should_equal (Matrix.from_vector (Vector.fill 9*4 1) rows=3 channels=4)
+            ones+[1, 0] . should_equal twos
+            identity+[0, 0] . should_equal identity
+            identity+[] . should_equal identity
+        Test.specify "should be able to add a matrix" <|
+            zeros+ones . should_equal ones
+            ones+ones . should_equal twos
+        Test.specify "should fail to add a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros+o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to subtract a scalar" <|
+            ones-1 . should_equal (Matrix.from_vector (ones.to_vector . map (_ - 1)) rows=3 channels=4)
+            twos-1 . should_equal (Matrix.from_vector (twos.to_vector . map (_ - 1)) rows=3 channels=4)
+            ones-0 . should_equal ones
+        Test.specify "should be able to subtract a vector" <|
+            ones-[1, 0] . should_equal zeros
+            twos-[1, 0] . should_equal ones
+            identity-[0, 0] . should_equal identity
+            identity-[] . should_equal identity
+        Test.specify "should be able to subtract a matrix" <|
+            ones-ones . should_equal zeros
+            twos-ones . should_equal ones
+            identity-zeros . should_equal identity
+        Test.specify "should fail to subtract a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros-o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to multiply by a scalar" <|
+            ones*2 . should_equal twos
+            zeros*2 . should_equal zeros
+            identity*0 . should_equal zeros
+            identity*1 . should_equal identity
+        Test.specify "should be able to multiply by a vector" <|
+            zeros*[2] . should_equal zeros
+            ones*[2, 2] . should_equal twos
+            identity*[0, 0] . should_equal zeros
+            identity*[] . should_equal zeros
+        Test.specify "should be able to multiply by a matrix" <|
+            zeros*ones . should_equal zeros
+            ones*twos . should_equal twos
+            identity*zeros . should_equal zeros
+        Test.specify "should fail to multiply by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros*o . should_fail_with Matrix.Dimensions_Not_Equal
+
+        Test.specify "should be able to divide by a scalar" <|
+            zeros/2 . should_equal zeros
+            twos/2 . should_equal ones
+            ones/5 . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=4)
+        Test.specify "should be able to divide by a vector" <|
+            zeros/[2, 1, 1, 1] . should_equal zeros
+            twos/[2, 2, 2, 2] . should_equal ones
+            ones/[5, 5, 5, 5] . should_equal (Matrix.from_vector (ones.to_vector . map (_ / 5)) rows=3 channels=4)
+        Test.specify "should be able to divide by a matrix" <|
+            all_ones = ones.to_vector . map (_ -> 1)
+            all_twos = twos.to_vector . map (_ -> 2)
+            zeros/all_ones . should_equal zeros
+            twos/all_twos . should_equal ones
+        Test.specify "should fail to divide by a matrix with mismatched dimensions" <|
+            o = Matrix.ones 2 3
+            zeros/o . should_fail_with Matrix.Dimensions_Not_Equal
