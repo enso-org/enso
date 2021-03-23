@@ -8,6 +8,8 @@ spec =
         Test.specify "should display errors" <|
             (Matrix.Index_Out_Of_Bounds_Error 2 3 4).to_display_text . should_equal '''
                 For a matrix with dimensions 2x3, the index 4 is out of bounds.
+            Matrix.Dimensions_Not_Equal.to_display_text . should_equal '''
+                Dimensions are not equal.
     Test.group "Matrix with 1 channel" <|
         zeros = Matrix.zeros 3 3
         ones = Matrix.ones 3 3

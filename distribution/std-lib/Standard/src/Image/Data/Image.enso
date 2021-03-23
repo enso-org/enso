@@ -205,7 +205,7 @@ type Image
     ## Write the image to a file.
 
        Arguments:
-       - `location`: the text of file location where to write the image.
+       - `location`: the location to write the image.
        - `flags`: the write flags.
 
        > Example
