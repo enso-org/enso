@@ -15,7 +15,7 @@ type Histogram
         Json.from_pairs [["data", bins]]
 
 ## Create a histogram for a specified channel from the image.
-calculate : Image -> Integer -> Histogram
-calculate image channel =
-    hist = Java_Histogram.calculate image.opencv_mat channel
+Image.Image.histogram : Integer -> Histogram
+Image.Image.histogram channel =
+    hist = Java_Histogram.calculate this.opencv_mat channel
     Histogram channel (Vector.Vector hist.get_data)

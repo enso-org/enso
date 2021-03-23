@@ -2,7 +2,6 @@ from Standard.Base import all
 
 import Standard.Base.System.File
 import Standard.Image.Codecs
-import Standard.Image.Data.Histogram
 import Standard.Image.Data.Image.Internal
 import Standard.Image.Data.Matrix
 
@@ -180,10 +179,6 @@ type Image
     ## Convert the image to a Matrix.
     to_matrix : Matrix
     to_matrix = Matrix.from_vector this.to_vector this.rows this.channels
-
-    ## Create a histogram for the specified channel.
-    histogram : Integer -> Histogram
-    histogram channel = Histogram.calculate this channel
 
     ## Write the image to a file.
 
