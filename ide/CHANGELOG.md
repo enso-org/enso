@@ -40,6 +40,8 @@
 - [Disable area selection][1318]. The area selection was visible despite being
   non-functional. To avoid confusion, area selection has been disabled until it
   is [correctly implemented][479].
+- [Fix error after adding a node][1332]. Sometimes, after picking a suggestion
+  the inserted node was annotated with "The name could not be found" error.
 - [Handle syntax errors in custom-defined visualizations][1341]. The IDE is now
   able to run properly, even if some of the custom-defined visualisations inside
   a project contain syntax errors.
@@ -69,6 +71,8 @@ you can find their release notes
 [1064]: https://github.com/enso-org/ide/pull/1064
 [1316]: https://github.com/enso-org/ide/pull/1316
 [1318]: https://github.com/enso-org/ide/pull/1318
+[1332]: https://github.com/enso-org/ide/pull/1332
+[1341]: https://github.com/enso-org/ide/pull/1341
 [1328]: https://github.com/enso-org/ide/pull/1328
 [1341]: https://github.com/enso-org/ide/pull/1341
 [1348]: https://github.com/enso-org/ide/pull/1348
