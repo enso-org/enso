@@ -6,18 +6,7 @@ import Visualization_Tests.Helpers_Spec
 import Visualization_Tests.Histogram_Spec
 import Visualization_Tests.Scatter_Plot_Spec
 
-parse_to_single_field json_text field = 
-    json = Json.parse json_text
-    json.fields.keys.should_equal [field]
-    json.get field
-
-# expect_single_data_field_text json_text field_expected_json_text = 
-#     field     = here.parse_to_single_field json_text 'data'
-#     json_text = field.to_json.to_text
-#     json_text.should_equal field_expected_json_text
-
 main = Test.Suite.runMain <|
-    # Helpers_Spec.spec 
+    Helpers_Spec.spec 
     Histogram_Spec.spec 
     Scatter_Plot_Spec.spec 
-

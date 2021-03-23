@@ -5,6 +5,12 @@ import Standard.Table.Data.Storage
 import Standard.Table.Data.Table
 
 ## PRIVATE
+Any.catch_ ~val = this.catch (_-> val)
+
+## PRIVATE
+Error.catch_ ~val = this.catch (_-> val)
+
+## PRIVATE
 recover_errors ~body =
     result = Panic.recover body
     result.catch err->

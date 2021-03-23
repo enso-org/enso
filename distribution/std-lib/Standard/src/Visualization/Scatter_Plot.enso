@@ -6,6 +6,19 @@ import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
 
 ## PRIVATE
+    Name of the index column that may be generated to plot against.
+index_name = 'index'
+
+## PRIVATE
+data_field = 'data'
+
+## PRIVATE
+axis_field = 'axis'
+
+## PRIVATE
+label_field = 'label'
+
+## PRIVATE
    
    Represents a recognized point data field for a scatter plot visualization.
 type PointData 
@@ -29,7 +42,7 @@ type PointData
     all_fields = [X,Y,Color,Shape,Label,Size]
 
     ## PRIVATE
-    recognized_names = [X,Y,Color,Shape,Label,Size].map _.name
+    recognized_names = this.all_fields.map _.name
 
     ## PRIVATE
     is_recognized column = this.recognized_names.contains column.name
@@ -39,14 +52,14 @@ type PointData
 
     ## PRIVATE
     fallback_column table = case this of
-        X -> table.index.catch (_-> this.iota table.row_count)
+        X -> table.index.catch_ <| this.iota table.row_count
         Y ->
             x_column         = X.lookup table
             candidates       = table.all_columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
             is_good c        = is_good_enough c && (this.is_recognized c).not
 
-            candidates.find is_good . catch (_-> candidates.find is_good_enough)
+            candidates.find is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw Nothing
 
     ## PRIVATE
@@ -56,22 +69,43 @@ type PointData
         # FIXME [mwu]: Adjust once https://github.com/enso-org/enso/issues/1439
         #              is addressed.
         range = 0.up_to <| count + 1
-        Column.from_vector this.name range.to_vector
+        Column.from_vector here.index_name range.to_vector
 
     ## PRIVATE
+    lookup : Table -> Column
     lookup table = 
         named = table.at this.name
-        named.catch (_-> this.fallback_column table . rename this.name)
+        named.catch_ <| this.fallback_column table
 
 ## PRIVATE
+    Generates JSON that describes points data.
 data_from_table : Table -> Object
-data_from_table df = 
-    columns = PointData.all_fields.map (field-> field.lookup df) . filter (column-> column.is_error.not)
+data_from_table df =
+    # IO.println <| "data from table: " + df.to_text
+    get_point_data field = field.lookup df . rename field.name
+    is_valid column = column.is_error.not
+    columns = PointData.all_fields.map get_point_data . filter is_valid
     (0.up_to (df.row_count + 1)).to_vector.map <| row_n-> 
         pairs = columns.map column->
-            value = column.at row_n . catch (_-> Nothing)
+            value = column.at row_n . catch_ Nothing
             [column.name, value]
         Json.from_pairs pairs
+
+## PRIVATE
+    Generates JSON that describes plot axes.
+axes_from_table : Table -> Object
+axes_from_table table =
+    describe_axis field = 
+        col_name = field.lookup table . name
+        label    = Json.from_pairs [[here.label_field, col_name]]
+        [field.name, label]
+    x_axis = describe_axis X
+    y_axis = describe_axis Y
+    is_valid axis_pair =
+        label = axis_pair.at 1
+        label.is_error.not && (table.all_columns.length > 0)
+    axes_obj = Json.from_pairs <| [x_axis, y_axis].filter is_valid
+    if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
 data_from_vector : Vector -> Object
@@ -79,6 +113,19 @@ data_from_vector vec =
         vec.map_with_index <| i-> elem-> 
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
+## PRIVATE
+json_from_table table = 
+    data = here.data_from_table table
+    # IO.println <| "data: " + data.to_text
+    axes = here.axes_from_table table
+    # IO.println <| "axes: " + axes.to_text
+    Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
+
+## PRIVATE
+json_from_vector vec = 
+    data = [here.data_field,here.data_from_vector vec]
+    axes = [here.axis_field,Nothing]
+    Json.from_pairs [data,axes]
 
 ## PRIVATE
 
@@ -90,11 +137,10 @@ data_from_vector vec =
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value = 
-    data = case value of
-        Table.Table _   -> here.data_from_table  value
-        Vector.Vector _ -> here.data_from_vector value
-        _               -> here.data_from_vector value.to_vector
+    json = case value of
+        Column.Column _ -> here.json_from_table  value.to_table
+        Table.Table _   -> here.json_from_table  value
+        Vector.Vector _ -> here.json_from_vector value
+        _               -> here.json_from_vector value.to_vector
 
-    points = Json.from_pairs [['labels', 'visible']]
-    ret    = Json.from_pairs [['data',data], ['points',points]]
-    ret.to_text
+    json.to_text
