@@ -9,15 +9,17 @@ polyglot java import org.enso.image.data.Matrix as Java_Matrix
 type Matrix_Error
 
     ## Indicates that a matrix has been accessed with an illegal index.
-    type Index_Out_Of_Bounds_Error index
+    type Index_Out_Of_Bounds_Error rows columns index
 
     ## Indicates that operation has failed.
     type Dimensions_Not_Equal
 
     to_display_text : Text
     to_display_text = case this of
-        Index_Out_Of_Bounds_Error index -> 'The index ' + index ' is out of bounds.'
-        Dimensions_Not_Equal -> 'Dimensions are not equal.'
+        Index_Out_Of_Bounds_Error rows columns index ->
+            'For a matrix with dimensions ' + rows.to_text + 'x' + columns.to_text + ', the index ' + index.to_text + ' is out of bounds.'
+        Dimensions_Not_Equal ->
+            'Dimensions are not equal.'
 
 type Matrix
 
@@ -43,8 +45,8 @@ type Matrix
     ## Get the matrix value at specified row and column.
     get : Integer -> Integer -> Vector ! Index_Out_Of_Bounds_Error
     get row column =
-        if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error row) else
-            if (column < 0) || (column >= this.columns) then Error.throw (Index_Out_Of_Bounds_Error column) else
+        if (row < 0) || (row >= this.rows) then Error.throw (Index_Out_Of_Bounds_Error this.rows this.columns row) else
+            if (column < 0) || (column >= this.columns) then Error.throw (Index_Out_Of_Bounds_Error this.rows this.columns column) else
                 arr = Java_Matrix.get this.opencv_mat row column
                 Vector.Vector arr
 
@@ -62,14 +64,15 @@ type Matrix
     ## Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers or a matrix.
-         Number value is applied to each value's channel of the matrix.
-         Vector value is padded with zeros to match the number of channels, and then applied to
-         each value of the matrix.
-         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
-         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
-         element-wise, e.g each element of matrix is applied to the appropriate element
-         (the element with the same row and column) of this matrix.
+       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
 
        > Example
          Add 1 to each channel of the matrix.
@@ -88,14 +91,15 @@ type Matrix
     ## Calculates the per-element difference of two matrices or of a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers or a matrix.
-         Number value is applied to each value's channel of the matrix.
-         Vector value is padded with zeros to match the number of channels, and then applied to
-         each value of the matrix.
-         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
-         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
-         element-wise, e.g each element of matrix is applied to the appropriate element
-         (the element with the same row and column) of this matrix.
+       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
 
        > Example
          Subtract 10 from each channel of the matrix.
@@ -114,14 +118,15 @@ type Matrix
     ## Calculates the per-element product of two matrices or a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers or a matrix.
-         Number value is applied to each value's channel of the matrix.
-         Vector value is padded with zeros to match the number of channels, and then applied to
-         each value of the matrix.
-         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
-         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
-         element-wise, e.g each element of matrix is applied to the appropriate element
-         (the element with the same row and column) of this matrix.
+       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
 
        > Example
          Multiply each channel of the matrix by 2.
@@ -145,14 +150,15 @@ type Matrix
     ## Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers or a matrix.
-         Number value is applied to each value's channel of the matrix.
-         Vector value is padded with zeros to match the number of channels, and then applied to
-         each value of the matrix.
-         Matrix value should have the same dimensions (rows, columns and channels) as this matrix,
-         otherwise the operation results in a Dimensions_Not_Equal error. Matrix is applied
-         element-wise, e.g each element of matrix is applied to the appropriate element
-         (the element with the same row and column) of this matrix.
+       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+         number value is applied to each values's channel of the matrix. The
+         vector value is padded with zeros to match the number of channels and
+         then applied to each pixel of this matrix. The matrix value must have
+         the same dimensions (rows, columns, and channels) as this
+         matrix. Otherwise, the operation results in a `Dimensions_Not_Equal`
+         error. The matrix is applied element-wise, e.g., each matrix element is
+         combined with the appropriate value (the element with the same row and
+         column) of this matrix.
 
         > Example
           Divide each channel of the matrix by 2.
