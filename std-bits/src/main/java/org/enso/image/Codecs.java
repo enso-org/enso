@@ -71,11 +71,23 @@ public class Codecs {
    * @param flags the write flags.
    */
   public static void write(String path, Mat image, MatOfInt flags) throws WriteFailedException {
+    Mat output = new Mat();
+    switch (image.channels()) {
+      case 3:
+        Imgproc.cvtColor(image, output, Imgproc.COLOR_RGB2BGR);
+        break;
+      case 4:
+        Imgproc.cvtColor(image, output, Imgproc.COLOR_RGBA2BGRA);
+        break;
+      default:
+        output = image;
+    }
+
     boolean result;
     if (flags.empty()) {
-      result = Imgcodecs.imwrite(path, image);
+      result = Imgcodecs.imwrite(path, output);
     } else {
-      result = Imgcodecs.imwrite(path, image, flags);
+      result = Imgcodecs.imwrite(path, output, flags);
     }
 
     if (!result) {
