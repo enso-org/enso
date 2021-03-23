@@ -69,7 +69,10 @@ type Connection
             ncols = metadata.getColumnCount
             column_names = Vector.new ncols ix-> metadata.getColumnName ix+1
             column_types = if expected_types.is_nothing.not then expected_types else
-                Vector.new ncols (ix -> Sql_Type <| metadata.getColumnType ix+1)
+                Vector.new ncols ix->
+                    typeid = metadata.getColumnType ix+1
+                    name = metadata.getColumnTypeName ix+1
+                    Sql_Type typeid name
             column_builders = column_types.map typ->
                 here.create_builder typ
             go has_next = if has_next.not then Nothing else
@@ -137,8 +140,9 @@ type Connection
             ncols = metadata.getColumnCount
             resolve_column ix =
                 name = metadata.getColumnName ix+1
-                typ = metadata.getColumnType ix+1
-                [name, Sql_Type typ]
+                typeid = metadata.getColumnType ix+1
+                typename = metadata.getColumnTypeName ix+1
+                [name, Sql_Type typeid typename]
             Vector.new ncols resolve_column
 
 ## PRIVATE

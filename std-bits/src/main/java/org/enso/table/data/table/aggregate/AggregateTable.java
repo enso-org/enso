@@ -51,4 +51,9 @@ public class AggregateTable {
         .map(c -> new AggregateColumn(uniqueIndex, c))
         .toArray(AggregateColumn[]::new);
   }
+
+  /** @return the underlying (ungrouped) table. */
+  public Table getUnderlyingTable() {
+    return table;
+  }
 }

@@ -11,7 +11,7 @@ from Standard.Table import No_Such_Column_Error, Order_Rule
 spec =
     int = Sql_Type.integer
     bool = Sql_Type.boolean
-    str = Sql_Type 424242
+    str = Sql_Type.varchar
     test_connection =
         table1 = ["T1", [["A", int], ["B", str], ["C", bool]]]
         table2 = ["T2", [["D", int], ["E", int], ["F", bool]]]
@@ -23,7 +23,7 @@ spec =
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = t1.where (t1.at "A" == 42) . to_json
             part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
-            interp = Json.from_pairs [["value", 42], ["typeid", int.typeid]]
+            interp = Json.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
             part2 = Json.from_pairs [["sql_interpolation", interp]]
             part3 = Json.from_pairs [["sql_code", ")"]]
             expected = Json.from_pairs [["query", Json.Array [part1, part2, part3]]]

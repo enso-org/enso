@@ -1,3 +1,31 @@
+# Enso 0.2.8 (2021-03-19)
+
+## Interpreter/Runtime
+
+- Fixed miscellaneous crashes in the interpreter
+  ([#1588](https://github.com/enso-org/enso/pull/1588)).
+
+## Tooling
+
+- Fixed an issue where the documentation for builtins wasn't getting indexed
+  ([#1575](https://github.com/enso-org/enso/pull/1575)). The docs should now
+  show up in the searcher!
+
+## Libraries
+
+- Added support for visualising database tables to the `Database` library
+  ([#1582](https://github.com/enso-org/enso/pull/1582)).
+- Reworked the `Process` library to work better in the IDE
+  ([#1591](https://github.com/enso-org/enso/pull/1591)).
+- Added a proper visualisation for `Array` and improved the one for `Vector`
+  ([#1588](https://github.com/enso-org/enso/pull/1588)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-19)
+  for issues opened before the release date.
+
 # Enso 0.2.7 (2021-03-16)
 
 ## Interpreter/Runtime
@@ -49,6 +77,12 @@
   but support for further backends is planned).
 - Reorganized the standard library in order to support plans for its future
   evolution ([#1571](https://github.com/enso-org/enso/pull/1571)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-16)
+  for issues opened before the release date.
 
 # Enso 0.2.6 (2021-03-02)
 

@@ -117,8 +117,8 @@ type Marshalling_Error
     to_display_text : Text
     to_display_text = case this of
         Type_Mismatch_Error json format ->
-            json_text = Meta.type_to_display_text json
-            format_text = Meta.type_to_display_text format
+            json_text = Meta.get_simple_type_name json
+            format_text = Meta.get_simple_type_name format
             "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
         Missing_Field_Error _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."

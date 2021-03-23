@@ -3,45 +3,55 @@ import Standard.Base.System.Process.Exit_Code
 from Standard.Base.Data.Vector import Vector
 from Builtins import Array, System, True, False
 
-## The builder object that is used to create operating system processes.
-type Process_Builder command arguments stdin
+## UNSTABLE
 
-## The result of the process invocation.
-type Process_Result exit_code stdout stderr
+   The builder object that is used to create operating system processes.
+type Builder
+    type Builder command arguments=[] stdin=""
 
-## Call a system executable by name.
+    ## UNSTABLE
 
-   > Example
-     Call the `nproc` command:
-         Process.execute "nproc"
-     The result is printed to stdout:
-         8
-Process.execute : String -> Exit_Code
-Process.execute command =
-    result = System.create_process command (arguments = Array.empty) (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
-    Exit_Code.from_number result.exit_code
+       Sets the arguments that should be passed to the created process.
+    set_arguments : Vector.Vector Text -> Builder
+    set_arguments arguments = Builder this.command arguments this.stdin
 
-## Call a command with a list of arguments.
+    ## UNSTABLE
+
+       Sets the text that will be used to feed standard input to the created
+       process.
+    set_stdin : Text -> Builder
+    set_stdin stdin = Builder this.command this.arguments stdin
+
+    ## UNSTABLE
+
+       Create a process using a builder returning the result of execution.
+
+       > Example
+         Create a script redirecting the input to stdout:
+             builder = Process.builder "bash" ["-c", "read line; echo -n $line"] "test"
+             builder.create
+         The result is:
+             Process_Result Exit_Success "test" ""
+    create : Result
+    create =
+        result = System.create_process this.command this.arguments.to_array this.stdin redirect_in=False redirect_out=False redirect_err=False
+        Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
+
+## UNSTABLE
+
+   The result of the process invocation.
+type Result exit_code stdout stderr
+
+## UNSTABLE
+
+   Call a command with a list of arguments.
 
    > Example
      Call the `echo` command with arguments
-         Process.run_command "echo" ["-n", "Hello!"]
+         Process.run "echo" ["-n", "Hello!"]
      The result is printed to stdout:
          Hello!
-Process.run_command : String -> Vector.Vector -> Exit_Code
-Process.run_command command arguments =
-    result = System.create_process command arguments.to_array (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
+run : Text -> Vector.Vector Text -> Exit_Code
+run command arguments=[] =
+    result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
     Exit_Code.from_number result.exit_code
-
-## Create a process using a builder returning the result of execution.
-
-   > Example
-     Create a script redirecting the input to stdout:
-         builder = Process_Builder "bash" ["-c", "read line; echo -n $line"] "test"
-         Process.create_process builder
-     The result is:
-         Process_Result Exit_Success "test" ""
-Process.create : Process_Builder -> Process_Result
-Process.create b =
-    result = System.create_process b.command b.arguments.to_array b.stdin (redirectIn = False) (redirectOut = False) (redirectErr = False)
-    Process_Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
