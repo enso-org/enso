@@ -542,6 +542,43 @@ class SuggestionsHandlerSpec
         )
     }
 
+    "search entries based on supertypes of self" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val (_, Seq(_, _, _, _, anyMethodId, numberMethodId, integerMethodId)) =
+          Await.result(repo.insertAll(Suggestions.all), Timeout)
+
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(0, 0),
+          selfType   = Some("Integer"),
+          returnType = None,
+          tags       = None
+        )
+
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            7L,
+            Seq(anyMethodId, integerMethodId, numberMethodId).flatten
+          )
+        )
+    }
+
+    "search entries for any" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val (_, Seq(_, _, _, _, anyMethodId, _, _)) =
+          Await.result(repo.insertAll(Suggestions.all), Timeout)
+
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(0, 0),
+          selfType   = Some("Any"),
+          returnType = None,
+          tags       = None
+        )
+
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(anyMethodId).flatten))
+    }
+
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
         val (_, Seq(_, _, functionId, _, _, _, _)) =
@@ -597,6 +634,8 @@ class SuggestionsHandlerSpec
 
   def buildTestTypeGraph: TypeGraph = {
     val graph = TypeGraph("Any")
+    graph.insert("Number", "Any")
+    graph.insert("Integer", "Number")
 
     graph
   }
