@@ -50,6 +50,10 @@
   ignored.
 - [Users can opt out of anonymous data gathering.][1328] This can be done with
   the `--no-data-gathering` command-line flag during the startup of the IDE.
+- [Provide a theming API for JavaScript visualizations][1358]. It is now
+  possible to use the Enso theming engine while developing custom visualizations
+  in JavaScript. You can query it for all IDE colors, including the colors used
+  to represent types.
 - [You can now start the IDE service without window again.][1353] The command
   line arguyment `--no-window` now starts all the required backend services
   again, and prints the port on the command line, allowing you to open the IDE
