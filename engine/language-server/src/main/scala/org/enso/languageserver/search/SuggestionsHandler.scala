@@ -226,21 +226,43 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      getModuleName(projectName, path)
-        .fold(
-          Future.successful,
-          module =>
-            suggestionsRepo
-              .search(
-                Some(module),
-                selfType,
-                returnType,
-                tags.map(_.map(SuggestionKind.toSuggestion)),
-                Some(toPosition(pos))
+      selfType match {
+        case None =>
+          getModuleName(projectName, path)
+            .fold(
+              Future.successful,
+              module =>
+                suggestionsRepo
+                  .search(
+                    Some(module),
+                    selfType,
+                    returnType,
+                    tags.map(_.map(SuggestionKind.toSuggestion)),
+                    Some(toPosition(pos))
+                  )
+                  .map(CompletionResult.tupled)
+            )
+            .pipeTo(sender())
+        case Some(ty) =>
+          val searchTypes = (graph.getParents(ty) + ty).toList
+          getModuleName(projectName, path).fold(
+            Future.successful,
+            module => {
+              val results = searchTypes.map(ty =>
+                suggestionsRepo
+                  .search(
+                    Some(module),
+                    Some(ty),
+                    returnType,
+                    tags.map(_.map(SuggestionKind.toSuggestion)),
+                    Some(toPosition(pos))
+                  )
+                  .map(CompletionResult.tupled)
               )
-              .map(CompletionResult.tupled)
-        )
-        .pipeTo(sender())
+              Future.sequence(results)
+            }
+          ).pipeTo(sender())
+      }
 
     case Import(suggestionId) =>
       val action = for {
