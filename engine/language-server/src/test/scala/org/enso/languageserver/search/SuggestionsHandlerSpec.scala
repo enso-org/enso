@@ -6,7 +6,10 @@ import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.capability.CapabilityProtocol.{AcquireCapability, CapabilityAcquired}
+import org.enso.languageserver.capability.CapabilityProtocol.{
+  AcquireCapability,
+  CapabilityAcquired
+}
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
@@ -91,7 +94,10 @@ class SuggestionsHandlerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(4L, updates)
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              Suggestions.all.size.toLong,
+              updates
+            )
           )
         )
 
@@ -150,7 +156,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              8L,
+              Suggestions.all.size * 2L,
               updatesAdd ++ updatesRemove
             )
           )
@@ -339,6 +345,13 @@ class SuggestionsHandlerSpec
         )
         expectMsg(CapabilityAcquired)
 
+        val suggestions = Seq(
+          Suggestions.atom,
+          Suggestions.method,
+          Suggestions.function,
+          Suggestions.local
+        )
+
         val tree1 = Tree.Root(
           Vector(
             Tree.Node(
@@ -406,7 +419,7 @@ class SuggestionsHandlerSpec
           Tree.Root(Vector())
         )
 
-        val updates2 = Suggestions.all.zipWithIndex.map { case (_, ix) =>
+        val updates2 = suggestions.zipWithIndex.map { case (_, ix) =>
           SearchProtocol.SuggestionsDatabaseUpdate.Remove(ix + 1L)
         }
         router.expectMsg(
@@ -469,7 +482,9 @@ class SuggestionsHandlerSpec
           case Api.Request(_, msg) =>
             fail(s"Runtime connector receive unexpected message: $msg")
         }
-        connector.reply(Api.Response(Api.GetTypeGraphResponse(buildTestTypeGraph)))
+        connector.reply(
+          Api.Response(Api.GetTypeGraphResponse(buildTestTypeGraph))
+        )
 
         connector.expectMsgClass(classOf[Api.Request]) match {
           case Api.Request(_, Api.InvalidateModulesIndexRequest()) =>
