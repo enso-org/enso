@@ -510,15 +510,21 @@ class SuggestionsHandlerSpec
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            4L,
-            Seq(inserted(0).get, inserted(1).get)
+            7L,
+            Seq(
+              inserted(0).get,
+              inserted(6).get,
+              inserted(4).get,
+              inserted(5).get,
+              inserted(1).get
+            )
           )
         )
     }
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, methodId, _, _)) =
+        val (_, Seq(_, methodId, _, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -528,12 +534,12 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(methodId).flatten))
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(methodId).flatten))
     }
 
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, functionId, _)) =
+        val (_, Seq(_, _, functionId, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -543,12 +549,12 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(functionId).flatten))
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(functionId).flatten))
     }
 
     "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, localId)) =
+        val (_, Seq(_, _, _, localId, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -558,7 +564,7 @@ class SuggestionsHandlerSpec
           tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(localId).flatten))
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(localId).flatten))
     }
   }
 

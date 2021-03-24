@@ -56,7 +56,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   /** @inheritdoc */
   override def search(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -219,7 +219,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private def searchQuery(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -664,7 +664,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private def searchQueryBuilder(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]

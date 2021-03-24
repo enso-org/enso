@@ -19,6 +19,7 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol._
+import org.enso.languageserver.search.SuggestionsHandler.combineCompletionResults
 import org.enso.languageserver.search.handler.{
   ImportModuleHandler,
   InvalidateModulesIndexHandler
@@ -228,6 +229,7 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
+      val selfTypes = selfType.toList.flatMap(ty => graph.getParents(ty).toSeq)
       getModuleName(projectName, path)
         .fold(
           Future.successful,
@@ -235,7 +237,7 @@ final class SuggestionsHandler(
             suggestionsRepo
               .search(
                 Some(module),
-                selfType,
+                selfTypes,
                 returnType,
                 tags.map(_.map(SuggestionKind.toSuggestion)),
                 Some(toPosition(pos))
@@ -502,4 +504,12 @@ object SuggestionsHandler {
       )
     )
 
+  private def combineCompletionResults(
+    left: CompletionResult,
+    right: CompletionResult
+  ): CompletionResult = {
+    val newVersion = Math.max(left.currentVersion, right.currentVersion)
+    val results    = Set.from(left.results) ++ Set.from(right.results)
+    CompletionResult(newVersion, results.toSeq)
+  }
 }
