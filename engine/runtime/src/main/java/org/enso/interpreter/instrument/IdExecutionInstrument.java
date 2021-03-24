@@ -378,17 +378,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
         callsCache.setExecuted(nodeId);
       } else if (node instanceof ExpressionNode) {
+        boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
-        cache.offer(nodeId, result);
+
+        if (!isPanic) {
+          cache.offer(nodeId, result);
+        }
         String cachedType = cache.putType(nodeId, resultType);
         FunctionCallInfo call = calls.get(nodeId);
         FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
-        var profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+
         onComputedCallback.accept(
             new ExpressionValue(
                 nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
-        if (result instanceof PanicSentinel) {
+        if (isPanic) {
           throw context.createUnwind(result);
         }
       }
