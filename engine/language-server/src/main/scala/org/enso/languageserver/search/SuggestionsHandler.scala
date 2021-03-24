@@ -100,7 +100,9 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
 
-    runtimeConnector.ask(Api.GetTypeGraphRequest())(timeout, self).pipeTo(self)
+    runtimeConnector
+      .ask(Api.Request(Api.GetTypeGraphRequest()))(timeout, self)
+      .pipeTo(self)
 
     config.contentRoots.foreach { case (_, contentRoot) =>
       PackageManager.Default
@@ -226,43 +228,21 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      selfType match {
-        case None =>
-          getModuleName(projectName, path)
-            .fold(
-              Future.successful,
-              module =>
-                suggestionsRepo
-                  .search(
-                    Some(module),
-                    selfType,
-                    returnType,
-                    tags.map(_.map(SuggestionKind.toSuggestion)),
-                    Some(toPosition(pos))
-                  )
-                  .map(CompletionResult.tupled)
-            )
-            .pipeTo(sender())
-        case Some(ty) =>
-          val searchTypes = (graph.getParents(ty) + ty).toList
-          getModuleName(projectName, path).fold(
-            Future.successful,
-            module => {
-              val results = searchTypes.map(ty =>
-                suggestionsRepo
-                  .search(
-                    Some(module),
-                    Some(ty),
-                    returnType,
-                    tags.map(_.map(SuggestionKind.toSuggestion)),
-                    Some(toPosition(pos))
-                  )
-                  .map(CompletionResult.tupled)
+      getModuleName(projectName, path)
+        .fold(
+          Future.successful,
+          module =>
+            suggestionsRepo
+              .search(
+                Some(module),
+                selfType,
+                returnType,
+                tags.map(_.map(SuggestionKind.toSuggestion)),
+                Some(toPosition(pos))
               )
-              Future.sequence(results)
-            }
-          ).pipeTo(sender())
-      }
+              .map(CompletionResult.tupled)
+        )
+        .pipeTo(sender())
 
     case Import(suggestionId) =>
       val action = for {

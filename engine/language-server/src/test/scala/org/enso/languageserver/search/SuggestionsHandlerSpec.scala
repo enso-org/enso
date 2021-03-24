@@ -3,21 +3,17 @@ package org.enso.languageserver.search
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.capability.CapabilityProtocol.{
-  AcquireCapability,
-  CapabilityAcquired
-}
+import org.enso.languageserver.capability.CapabilityProtocol.{AcquireCapability, CapabilityAcquired}
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
@@ -469,6 +465,13 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.InvalidateSuggestionsDatabase
 
         connector.expectMsgClass(classOf[Api.Request]) match {
+          case Api.Request(_, Api.GetTypeGraphRequest()) =>
+          case Api.Request(_, msg) =>
+            fail(s"Runtime connector receive unexpected message: $msg")
+        }
+        connector.reply(Api.Response(Api.GetTypeGraphResponse(buildTestTypeGraph)))
+
+        connector.expectMsgClass(classOf[Api.Request]) match {
           case Api.Request(_, Api.InvalidateModulesIndexRequest()) =>
           case Api.Request(_, msg) =>
             fail(s"Runtime connector receive unexpected message: $msg")
@@ -562,7 +565,14 @@ class SuggestionsHandlerSpec
         )
       )
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
+    handler ! Api.GetTypeGraphResponse(buildTestTypeGraph)
     handler
+  }
+
+  def buildTestTypeGraph: TypeGraph = {
+    val graph = TypeGraph("Any")
+
+    graph
   }
 
   def newConfig(root: File): Config = {
