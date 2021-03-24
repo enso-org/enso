@@ -718,7 +718,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, None, None)
+        res <- repo.search(None, Seq(), None, None, None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -731,7 +731,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         id2 <- repo.insert(suggestion.method)
         id3 <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(Some("Test.Main"), None, None, None, None)
+        res <- repo.search(Some("Test.Main"), Seq(), None, None, None)
       } yield (id1, id2, id3, id4, res._2)
 
       val (id1, id2, id3, id4, res) = Await.result(action, Timeout)
@@ -744,7 +744,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(Some(""), None, None, None, None)
+        res <- repo.search(Some(""), Seq(), None, None, None)
       } yield (res._2, Seq(id1, id2))
 
       val (res, globals) = Await.result(action, Timeout)
@@ -757,7 +757,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, Some("Main"), None, None, None)
+        res <- repo.search(None, Seq("Main"), None, None, None)
       } yield (id2, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -770,7 +770,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.method)
         id3 <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, Some("MyType"), None, None)
+        res <- repo.search(None, Seq(), Some("MyType"), None, None)
       } yield (id3, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -784,7 +784,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, Some(kinds), None)
+        res <- repo.search(None, Seq(), None, Some(kinds), None)
       } yield (id1, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -797,7 +797,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, Some(Seq()), None)
+        res <- repo.search(None, Seq(), None, Some(Seq()), None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -811,7 +811,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
         res <-
-          repo.search(None, None, None, None, Some(Suggestion.Position(99, 42)))
+          repo.search(None, Seq(), None, None, Some(Suggestion.Position(99, 42)))
       } yield (id1, id2, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -825,7 +825,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         id3 <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
         res <-
-          repo.search(None, None, None, None, Some(Suggestion.Position(1, 5)))
+          repo.search(None, Seq(), None, None, Some(Suggestion.Position(1, 5)))
       } yield (id1, id2, id3, res._2)
 
       val (id1, id2, id3, res) = Await.result(action, Timeout)
@@ -839,7 +839,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           id2 <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.function)
           _   <- repo.insert(suggestion.local)
-          res <- repo.search(Some("Test.Main"), Some("Main"), None, None, None)
+          res <- repo.search(Some("Test.Main"), Seq("Main"), None, None, None)
         } yield (id2, res._2)
 
         val (id, res) = Await.result(action, Timeout)
@@ -854,7 +854,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           _   <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.function)
           id4 <- repo.insert(suggestion.local)
-          res <- repo.search(None, None, Some("MyType"), Some(kinds), None)
+          res <- repo.search(None, Seq(), Some("MyType"), Some(kinds), None)
         } yield (id4, res._2)
 
         val (id, res) = Await.result(action, Timeout)
@@ -870,7 +870,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           id4 <- repo.insert(suggestion.local)
           res <- repo.search(
             None,
-            None,
+            Seq(),
             Some("MyType"),
             None,
             Some(Suggestion.Position(42, 0))
@@ -890,7 +890,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.local)
         res <- repo.search(
           None,
-          None,
+          Seq(),
           None,
           Some(kinds),
           Some(Suggestion.Position(99, 1))
@@ -908,7 +908,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           _   <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.function)
           _   <- repo.insert(suggestion.local)
-          res <- repo.search(None, Some("Main"), Some("MyType"), None, None)
+          res <- repo.search(None, Seq("Main"), Some("MyType"), None, None)
         } yield res._2
 
         val res = Await.result(action, Timeout)
@@ -925,7 +925,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           id4 <- repo.insert(suggestion.local)
           res <- repo.search(
             Some("Test.Main"),
-            None,
+            Seq(),
             Some("MyType"),
             Some(kinds),
             None
@@ -946,7 +946,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           id4 <- repo.insert(suggestion.local)
           res <- repo.search(
             None,
-            None,
+            Seq(),
             Some("MyType"),
             Some(kinds),
             Some(Suggestion.Position(42, 0))
@@ -970,7 +970,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _ <- repo.insert(suggestion.local)
         res <- repo.search(
           Some("Test.Main"),
-          Some("Main"),
+          Seq("Main"),
           Some("MyType"),
           Some(kinds),
           Some(Suggestion.Position(42, 0))

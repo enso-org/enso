@@ -673,7 +673,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filter { row => row.selfType.inSet(selfTypes) }
+      .filterIf(selfTypes.nonEmpty) {row => row.selfType.inSet(selfTypes) }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
       }

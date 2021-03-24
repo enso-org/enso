@@ -1,8 +1,7 @@
 package org.enso.languageserver.search
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
-import akka.pattern.pipe
-import akka.pattern.ask
+import akka.pattern.{ask, pipe}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
@@ -19,7 +18,6 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol._
-import org.enso.languageserver.search.SuggestionsHandler.combineCompletionResults
 import org.enso.languageserver.search.handler.{
   ImportModuleHandler,
   InvalidateModulesIndexHandler
@@ -229,7 +227,8 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      val selfTypes = selfType.toList.flatMap(ty => graph.getParents(ty).toSeq)
+      val selfTypes =
+        selfType.toList.flatMap(ty => (graph.getParents(ty) + ty).toSeq)
       getModuleName(projectName, path)
         .fold(
           Future.successful,
@@ -503,13 +502,4 @@ object SuggestionsHandler {
         runtimeConnector
       )
     )
-
-  private def combineCompletionResults(
-    left: CompletionResult,
-    right: CompletionResult
-  ): CompletionResult = {
-    val newVersion = Math.max(left.currentVersion, right.currentVersion)
-    val results    = Set.from(left.results) ++ Set.from(right.results)
-    CompletionResult(newVersion, results.toSeq)
-  }
 }

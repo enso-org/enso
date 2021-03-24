@@ -524,7 +524,7 @@ class SuggestionsHandlerSpec
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, methodId, _, _, _, _, _)) =
+        val (_, Seq(_, methodId, _, _, methodOnAnyId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -534,7 +534,12 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-        expectMsg(SearchProtocol.CompletionResult(7L, Seq(methodId).flatten))
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            7L,
+            Seq(methodOnAnyId, methodId).flatten
+          )
+        )
     }
 
     "search entries by return type" taggedAs Retry in withDb {

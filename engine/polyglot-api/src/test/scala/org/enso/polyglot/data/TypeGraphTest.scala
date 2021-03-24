@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 class TypeGraphTest extends AnyWordSpec with Matchers {
 
   "The type graph" should {
-    "be able to insert parents" in {
+    "be able to insert links" in {
       val graph = new TypeGraph("Builtins.Main.Any")
       graph.insert("Builtins.Main.Number", "Builtins.Main.Any")
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")

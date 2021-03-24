@@ -18,6 +18,7 @@ import scala.collection.mutable
   *
   * @param defaultRootType the name of the root type of the type subsumption
   *                        hierarchy
+  * @param parentLinks the parent links for the types
   */
 case class TypeGraph(
   defaultRootType: String,
@@ -79,7 +80,7 @@ case class TypeGraph(
     })
   }
 }
-object TypeGraph{
+object TypeGraph {
   def fromJava(rootTypeName: String): TypeGraph =
     new TypeGraph(rootTypeName)
 }
