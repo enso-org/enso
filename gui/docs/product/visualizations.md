@@ -223,6 +223,19 @@ In particular:
     It is initialized in the constructor to the DOM symbol used to host the
     visualization content. Users are free to modify the DOM element, including
     adding other elements as its children.
+  - #### Field `theme`
+    The IDE's current color theme. Exposes the following methods.
+    - ##### Method `getColorForType`
+      Takes a qualified type name and returns the color that is used in the GUI to represent that
+      type.
+    - ##### Method `getForegroundColorForType`
+      Takes a qualified type name and returns the color that should be used for foreground elements
+      (e.g. text) that are shown on top of the background color returned by `getColorForType`.
+    - ##### Method `get`
+      Takes a style sheet path as string and returns the corresponding value from the theme. For
+      example, `get("graph_editor.node.error.panic")` returns the orange color that is used to mark
+      nodes in an error state.
+
 
 - ### [Optional] Field `label`
 

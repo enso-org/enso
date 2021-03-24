@@ -19,6 +19,7 @@ export class Visualization {
         this.__preprocessorModule__ = null
 
         this.dom = api.root()
+        this.theme = api.theme()
         this.__api__ = api
     }
 
