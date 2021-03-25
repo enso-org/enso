@@ -58,6 +58,8 @@
   line arguyment `--no-window` now starts all the required backend services
   again, and prints the port on the command line, allowing you to open the IDE
   with a browser of your choice.
+- [JS visualizations have consistent gestures with the IDE][1291]. Panning and
+  zooming now works just as expected on trackpad and mouse.
 
 #### EnsoGL (rendering engine)
 
@@ -72,6 +74,7 @@ you can find their release notes
 [1291]: https://github.com/enso-org/ide/pull/1291
 [1314]: https://github.com/enso-org/ide/pull/1314
 [1313]: https://github.com/enso-org/ide/pull/1313
+[1311]: https://github.com/enso-org/ide/pull/1311
 [1064]: https://github.com/enso-org/ide/pull/1064
 [1316]: https://github.com/enso-org/ide/pull/1316
 [1318]: https://github.com/enso-org/ide/pull/1318

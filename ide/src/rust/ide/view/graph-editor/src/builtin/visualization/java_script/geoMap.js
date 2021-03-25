@@ -33,9 +33,9 @@ const LIGHT_ACCENT_COLOR = [1, 234, 146]
 // === Script & Style Initialisation ===
 // =====================================
 
-loadScript('https://unpkg.com/deck.gl@8.3/dist.min.js')
-loadScript('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.js')
-loadStyle('https://api.tiles.mapbox.com/mapbox-gl-js/v1.6.1/mapbox-gl.css')
+loadScript('https://unpkg.com/deck.gl@8.4/dist.min.js')
+loadScript('https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.js')
+loadStyle('https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css')
 
 const mapboxStyle = `
 .mapboxgl-map {
@@ -64,6 +64,24 @@ function makeGenerator() {
 }
 
 const makeId = makeGenerator()
+
+/**
+ * Custom Map Controller, enabling us to redefine mouse gestures.
+ * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
+ */
+class MapController extends deck.MapController {
+    handleEvent(event) {
+        if (event.type === 'wheel') {
+            if (!event.srcEvent.ctrlKey) {
+                super.handleEvent(event)
+            } else {
+                super.handleEvent(event)
+            }
+        } else {
+            super.handleEvent(event)
+        }
+    }
+}
 
 // ============================
 // === MapViewVisualization ===
@@ -177,7 +195,7 @@ class GeoMapVisualization extends Visualization {
         this.zoom = ok(data.zoom) ? data.zoom : DEFAULT_MAP_ZOOM
         this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
         this.pitch = ok(data.pitch) ? data.pitch : 0
-        this.controller = ok(data.controller) ? data.controller : true
+        this.controller = ok(data.controller) ? data.controller : { type: MapController }
         this.showingLabels = ok(data.showingLabels) ? data.showingLabels : false
         return true
     }
