@@ -1,3 +1,5 @@
+/** ScatterPlot Visualization. */
+// TODO refactor this to avoid loading on startup. See issue #985 .
 loadScript('https://d3js.org/d3.v4.min.js')
 loadStyle('https://fontlibrary.org/face/dejavu-sans-mono')
 
@@ -6,14 +8,14 @@ let shortcuts = {
     showAll: e => (e.ctrlKey || e.metaKey) && event.key === 'a',
 }
 
-const label_style = 'font-family: DejaVuSansMonoBook; font-size: 10px;'
-const x_axis_label_width = 30
-const point_label_padding_x = 7
-const point_label_padding_y = 2
-const animation_duration = 1000
-const linear_scale = 'linear'
-const visilbe_points = 'visible'
-const buttonsHeight = 25
+const LABEL_STYLE = 'font-family: DejaVuSansMonoBook; font-size: 10px;'
+const X_AXIS_LABEL_WIDTH = 30
+const POINT_LABEL_PADDING_X = 7
+const POINT_LABEL_PADDING_Y = 2
+const ANIMATION_DURATION = 1000
+const LINEAR_SCALE = 'linear'
+const VISIBLE_POINTS = 'visible'
+const BUTTONS_HEIGHT = 25
 
 /**
  * A d3.js ScatterPlot visualization.
@@ -25,7 +27,7 @@ const buttonsHeight = 25
  * To zoom out click "Fit all" or use key combination "ctrl/cmd+a".
  * To zoom into selection click appropriate button or use key combination "ctrl/cmd+z".
  *
- * Data format (json):
+ * Data format (JSON):
  * {
  *  "axis":{
  *     "x":{"label":"x-axis label""scale":"linear"},
@@ -70,23 +72,23 @@ class ScatterPlot extends Visualization {
         let scaleAndAxis = this.createAxes(
             this.axis,
             extremesAndDeltas,
-            this.box_width,
-            this.box_height,
+            this.boxWidth,
+            this.boxHeight,
             svg,
             focus
         )
-        this.createLabels(this.axis, svg, this.box_width, this.margin, this.box_height)
+        this.createLabels(this.axis, svg, this.boxWidth, this.margin, this.boxHeight)
         let scatter = this.createScatter(
             svg,
-            this.box_width,
-            this.box_height,
+            this.boxWidth,
+            this.boxHeight,
             this.points,
             this.dataPoints,
             scaleAndAxis
         )
         let zoom = this.addPanAndZoom(
-            this.box_width,
-            this.box_height,
+            this.boxWidth,
+            this.boxHeight,
             svg,
             this.margin,
             scaleAndAxis,
@@ -97,24 +99,9 @@ class ScatterPlot extends Visualization {
         // TODO [MM]: In task specification buttons were on top of the visualization, but because
         //            the visualization selector obfuscated them, they're now on the bottom.
         //            This should be fixed in (#898).
-        this.createButtonFitAll(
-            scaleAndAxis,
-            scatter,
-            this.points,
-            extremesAndDeltas,
-            zoom,
-            this.box_width
-        )
+        this.createButtonFitAll(scatter, this.points, extremesAndDeltas, zoom, this.boxWidth)
         let selectedZoomBtn = this.createButtonScaleToPoints()
-        this.addBrushing(
-            this.box_width,
-            this.box_height,
-            scatter,
-            scaleAndAxis,
-            selectedZoomBtn,
-            this.points,
-            zoom
-        )
+        this.addBrushing(this.boxWidth, this.boxHeight, scatter, selectedZoomBtn, this.points, zoom)
     }
 
     canvasWidth() {
@@ -123,21 +110,21 @@ class ScatterPlot extends Visualization {
 
     canvasHeight() {
         let height = this.dom.getAttributeNS(null, 'height')
-        return height - buttonsHeight
+        return height - BUTTONS_HEIGHT
     }
 
     updateState(parsedData) {
         this.axis = parsedData.axis || {
-            x: { scale: linear_scale },
-            y: { scale: linear_scale },
+            x: { scale: LINEAR_SCALE },
+            y: { scale: LINEAR_SCALE },
         }
         this.focus = parsedData.focus
         this.points = parsedData.points || { labels: 'invisible' }
         this.dataPoints = this.extractValues(parsedData)
 
         this.margin = this.getMargins(this.axis)
-        this.box_width = this.canvasWidth() - this.margin.left - this.margin.right
-        this.box_height = this.canvasHeight() - this.margin.top - this.margin.bottom
+        this.boxWidth = this.canvasWidth() - this.margin.left - this.margin.right
+        this.boxHeight = this.canvasHeight() - this.margin.top - this.margin.bottom
     }
 
     extractValues(data) {
@@ -172,83 +159,145 @@ class ScatterPlot extends Visualization {
     /**
      * Adds panning and zooming functionality to the visualization.
      */
-    addPanAndZoom(box_width, box_height, svg, margin, scaleAndAxis, scatter, points) {
-        let zoomClass = 'zoom'
-        let minScale = 0.5
-        let maxScale = 20
+    addPanAndZoom(boxWidth, boxHeight, svg, margin, scaleAndAxis, scatter, points) {
+        const minScale = 0.5
+        const maxScale = 20
+        const rightButton = 2
+        const midButton = 1
+        const scrollWheel = 0
         const extent = [minScale, maxScale]
-        let zoom = d3
+        let startPos
+        const zoom = d3
             .zoom()
             .filter(function () {
-                let right_button = 2
-                let mid_button = 1
-                let scroll_wheel = 0
                 switch (d3.event.type) {
                     case 'mousedown':
-                        return d3.event.button === right_button || d3.event.button === mid_button
+                        return d3.event.button === rightButton || d3.event.button === midButton
                     case 'wheel':
-                        return d3.event.button === scroll_wheel
+                        return d3.event.button === scrollWheel
                     default:
                         return false
                 }
             })
+            .wheelDelta(function () {
+                const event = d3.event
+                const minDelta = 0.002
+                const medDelta = 0.05
+                const maxDelta = 1
+                const wheelSpeedMultiplier =
+                    event.deltaMode === 1 ? medDelta : event.deltaMode ? maxDelta : minDelta
+                return -event.deltaY * wheelSpeedMultiplier
+            })
             .scaleExtent(extent)
             .extent([
                 [0, 0],
-                [box_width, box_height],
+                [boxWidth, boxHeight],
             ])
-            .on(zoomClass, zoomed)
-        // .on("wheel.zoom", wheeled)
+            .on('zoom', zoomed)
+            .on('start', startZoom)
 
-        let zoomElem = scatter
+        const zoomElem = scatter
             .append('g')
-            .attr('class', zoomClass)
-            .attr('width', box_width)
-            .attr('height', box_height)
+            .attr('class', 'zoom')
+            .attr('width', boxWidth)
+            .attr('height', boxHeight)
             .style('fill', 'none')
             .style('pointer-events', 'all')
             .call(zoom)
+
+        let transformedScale = Object.assign({}, scaleAndAxis)
+        const self = this
 
         /**
          * Helper function called on pan/scroll.
          */
         function zoomed() {
-            let new_xScale = d3.event.transform.rescaleX(scaleAndAxis.xScale)
-            let new_yScale = d3.event.transform.rescaleY(scaleAndAxis.yScale)
+            if (d3.event.sourceEvent != null && d3.event.sourceEvent.buttons === rightButton) {
+                const rmbDivider = 5000.0
+                const zoomAmount = rmbZoomValue(d3.event.sourceEvent) / rmbDivider
+                const scale = Math.exp(zoomAmount)
+                const focus = startPos
+                const distanceScale = d3.zoomIdentity
+                    .translate(focus.x - self.margin.left, focus.y - self.margin.top)
+                    .scale(scale)
+                    .translate(-focus.x + self.margin.left, -focus.y + self.margin.top)
+                transformedScale.xScale = distanceScale.rescaleX(transformedScale.xScale)
+                transformedScale.yScale = distanceScale.rescaleY(transformedScale.yScale)
+            } else if (d3.event.sourceEvent != null && d3.event.sourceEvent.type === 'wheel') {
+                if (d3.event.sourceEvent.ctrlKey) {
+                    const pinchDivider = 100.0
+                    const zoomAmount = -d3.event.sourceEvent.deltaY / pinchDivider
+                    const scale = Math.exp(zoomAmount)
+                    const focus = startPos
+                    const distanceScale = d3.zoomIdentity
+                        .translate(focus.x - self.margin.left, focus.y - self.margin.top)
+                        .scale(scale)
+                        .translate(-focus.x + self.margin.left, -focus.y + self.margin.top)
+                    transformedScale.xScale = distanceScale.rescaleX(transformedScale.xScale)
+                    transformedScale.yScale = distanceScale.rescaleY(transformedScale.yScale)
+                } else {
+                    const distanceScale = d3.zoomIdentity.translate(
+                        -d3.event.sourceEvent.deltaX,
+                        -d3.event.sourceEvent.deltaY
+                    )
+                    transformedScale.xScale = distanceScale.rescaleX(transformedScale.xScale)
+                    transformedScale.yScale = distanceScale.rescaleY(transformedScale.yScale)
+                }
+            } else {
+                transformedScale.xScale = d3.event.transform.rescaleX(transformedScale.xScale)
+                transformedScale.yScale = d3.event.transform.rescaleY(transformedScale.yScale)
+            }
 
-            scaleAndAxis.xAxis.call(d3.axisBottom(new_xScale).ticks(box_width / x_axis_label_width))
-            scaleAndAxis.yAxis.call(d3.axisLeft(new_yScale))
+            scaleAndAxis.xAxis.call(
+                d3.axisBottom(transformedScale.xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH)
+            )
+            scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale))
             scatter
                 .selectAll('path')
                 .attr(
                     'transform',
-                    d => 'translate(' + new_xScale(d.x) + ',' + new_yScale(d.y) + ')'
+                    d =>
+                        'translate(' +
+                        transformedScale.xScale(d.x) +
+                        ',' +
+                        transformedScale.yScale(d.y) +
+                        ')'
                 )
 
-            if (points.labels === visilbe_points) {
+            if (points.labels === VISIBLE_POINTS) {
                 scatter
                     .selectAll('text')
-                    .attr('x', d => new_xScale(d.x) + point_label_padding_x)
-                    .attr('y', d => new_yScale(d.y) + point_label_padding_y)
+                    .attr('x', d => transformedScale.xScale(d.x) + POINT_LABEL_PADDING_X)
+                    .attr('y', d => transformedScale.yScale(d.y) + POINT_LABEL_PADDING_Y)
             }
         }
 
         /**
-         * Helper function called on pinch.
-         *
-         * May seem unintuitive at first, but here's the explanation of ctrl+wheel:
-         * https://medium.com/@auchenberg/detecting-multi-touch-trackpad-gestures-in-javascript-a2505babb10e
+         * Return the position of this event in local canvas coordinates.
          */
-        function wheeled() {
-            let current_transform = d3.zoomTransform(scatter)
-            let delta_multiplier = 0.01
-            if (d3.event.ctrlKey) {
-                current_transform.k = current_transform.k - d3.event.deltaY * delta_multiplier
-            }
-            scatter.attr('transform', current_transform)
+        function getPos(event) {
+            return { x: event.offsetX, y: event.offsetY }
         }
 
-        return { zoomElem, zoom }
+        /**
+         * Return the zoom value computed from the initial right-mouse-button event to the current
+         * right-mouse event.
+         */
+        function rmbZoomValue(event) {
+            const end = getPos(event)
+            const dX = end.x - startPos.x
+            const dY = end.y - startPos.y
+            return dX - dY
+        }
+
+        /**
+         * Helper function called when starting to pan/scroll.
+         */
+        function startZoom() {
+            startPos = getPos(d3.event.sourceEvent)
+        }
+
+        return { zoomElem, zoom, transformedScale }
     }
 
     /**
@@ -257,7 +306,7 @@ class ScatterPlot extends Visualization {
      * Brush is a tool which enables user to select points, and zoom into selection via
      * keyboard shortcut or button event.
      */
-    addBrushing(box_width, box_height, scatter, scaleAndAxis, selectedZoomBtn, points, zoom) {
+    addBrushing(boxWidth, boxHeight, scatter, selectedZoomBtn, points, zoom) {
         let extent
         let brushClass = 'brush'
 
@@ -265,7 +314,7 @@ class ScatterPlot extends Visualization {
             .brush()
             .extent([
                 [0, 0],
-                [box_width, box_height],
+                [boxWidth, boxHeight],
             ])
             .on('start ' + brushClass, updateChart)
 
@@ -282,15 +331,15 @@ class ScatterPlot extends Visualization {
          * Section "Brushing for zooming".
          */
         const zoomIn = () => {
-            let xMin = scaleAndAxis.xScale.invert(extent[0][0])
-            let xMax = scaleAndAxis.xScale.invert(extent[1][0])
-            let yMin = scaleAndAxis.yScale.invert(extent[1][1])
-            let yMax = scaleAndAxis.yScale.invert(extent[0][1])
+            let xMin = zoom.transformedScale.xScale.invert(extent[0][0])
+            let xMax = zoom.transformedScale.xScale.invert(extent[1][0])
+            let yMin = zoom.transformedScale.yScale.invert(extent[1][1])
+            let yMax = zoom.transformedScale.yScale.invert(extent[0][1])
 
-            scaleAndAxis.xScale.domain([xMin, xMax])
-            scaleAndAxis.yScale.domain([yMin, yMax])
+            zoom.transformedScale.xScale.domain([xMin, xMax])
+            zoom.transformedScale.yScale.domain([yMin, yMax])
 
-            self.zoomingHelper(scaleAndAxis, box_width, scatter, points)
+            self.zoomingHelper(zoom.transformedScale, boxWidth, scatter, points)
         }
 
         const zoomInKeyEvent = event => {
@@ -328,46 +377,46 @@ class ScatterPlot extends Visualization {
     /**
      * Helper function for zooming in after the scale has been updated.
      */
-    zoomingHelper(scaleAndAxis, box_width, scatter, points) {
+    zoomingHelper(scaleAndAxis, boxWidth, scatter, points) {
         scaleAndAxis.xAxis
             .transition()
-            .duration(animation_duration)
-            .call(d3.axisBottom(scaleAndAxis.xScale).ticks(box_width / x_axis_label_width))
+            .duration(ANIMATION_DURATION)
+            .call(d3.axisBottom(scaleAndAxis.xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH))
         scaleAndAxis.yAxis
             .transition()
-            .duration(animation_duration)
+            .duration(ANIMATION_DURATION)
             .call(d3.axisLeft(scaleAndAxis.yScale))
 
         scatter
             .selectAll('path')
             .transition()
-            .duration(animation_duration)
+            .duration(ANIMATION_DURATION)
             .attr(
                 'transform',
                 d => 'translate(' + scaleAndAxis.xScale(d.x) + ',' + scaleAndAxis.yScale(d.y) + ')'
             )
 
-        if (points.labels === visilbe_points) {
+        if (points.labels === VISIBLE_POINTS) {
             scatter
                 .selectAll('text')
                 .transition()
-                .duration(animation_duration)
-                .attr('x', d => scaleAndAxis.xScale(d.x) + point_label_padding_x)
-                .attr('y', d => scaleAndAxis.yScale(d.y) + point_label_padding_y)
+                .duration(ANIMATION_DURATION)
+                .attr('x', d => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
+                .attr('y', d => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
         }
     }
 
     /**
      * Creates a plot object and populates it with given data.
      */
-    createScatter(svg, box_width, box_height, points, dataPoints, scaleAndAxis) {
+    createScatter(svg, boxWidth, boxHeight, points, dataPoints, scaleAndAxis) {
         let clip = svg
             .append('defs')
             .append('svg:clipPath')
             .attr('id', 'clip')
             .append('svg:rect')
-            .attr('width', box_width)
-            .attr('height', box_height)
+            .attr('width', boxWidth)
+            .attr('height', boxHeight)
             .attr('x', 0)
             .attr('y', 0)
 
@@ -393,16 +442,16 @@ class ScatterPlot extends Visualization {
             .style('fill', d => '#' + (d.color || '000000'))
             .style('opacity', 0.5)
 
-        if (points.labels === visilbe_points) {
+        if (points.labels === VISIBLE_POINTS) {
             scatter
                 .selectAll('dataPoint')
                 .data(dataPoints)
                 .enter()
                 .append('text')
                 .text(d => d.label)
-                .attr('x', d => scaleAndAxis.xScale(d.x) + point_label_padding_x)
-                .attr('y', d => scaleAndAxis.yScale(d.y) + point_label_padding_y)
-                .attr('style', label_style)
+                .attr('x', d => scaleAndAxis.xScale(d.x) + POINT_LABEL_PADDING_X)
+                .attr('y', d => scaleAndAxis.yScale(d.y) + POINT_LABEL_PADDING_Y)
+                .attr('style', LABEL_STYLE)
                 .attr('fill', 'black')
         }
 
@@ -436,28 +485,28 @@ class ScatterPlot extends Visualization {
     /**
      * Creates labels on axes if they're defined.
      */
-    createLabels(axis, svg, box_width, margin, box_height) {
+    createLabels(axis, svg, boxWidth, margin, boxHeight) {
         let fontStyle = '10px DejaVuSansMonoBook'
         if (axis.x.label !== undefined) {
-            let padding_y = 20
+            let paddingY = 20
             svg.append('text')
                 .attr('text-anchor', 'end')
-                .attr('style', label_style)
+                .attr('style', LABEL_STYLE)
                 .attr('x', margin.left + this.getTextWidth(axis.x.label, fontStyle) / 2)
-                .attr('y', box_height + margin.top + padding_y)
+                .attr('y', boxHeight + margin.top + paddingY)
                 .text(axis.x.label)
         }
 
         if (axis.y.label !== undefined) {
-            let padding_y = 15
+            let paddingY = 15
             svg.append('text')
                 .attr('text-anchor', 'end')
-                .attr('style', label_style)
+                .attr('style', LABEL_STYLE)
                 .attr('transform', 'rotate(-90)')
-                .attr('y', -margin.left + padding_y)
+                .attr('y', -margin.left + paddingY)
                 .attr(
                     'x',
-                    -margin.top - box_height / 2 + this.getTextWidth(axis.y.label, fontStyle) / 2
+                    -margin.top - boxHeight / 2 + this.getTextWidth(axis.y.label, fontStyle) / 2
                 )
                 .text(axis.y.label)
         }
@@ -478,28 +527,28 @@ class ScatterPlot extends Visualization {
     /**
      * Creates plot's axes.
      */
-    createAxes(axis, extremesAndDeltas, box_width, box_height, svg, focus) {
-        let { domain_x, domain_y } = this.getDomains(extremesAndDeltas, focus)
+    createAxes(axis, extremesAndDeltas, boxWidth, boxHeight, svg, focus) {
+        let { domainX, domainY } = this.getDomains(extremesAndDeltas, focus)
 
         let xScale = d3.scaleLinear()
-        if (axis.x.scale !== linear_scale) {
+        if (axis.x.scale !== LINEAR_SCALE) {
             xScale = d3.scaleLog()
         }
 
-        xScale.domain(domain_x).range([0, box_width])
+        xScale.domain(domainX).range([0, boxWidth])
         let xAxis = svg
             .append('g')
-            .attr('transform', 'translate(0,' + box_height + ')')
-            .attr('style', label_style)
-            .call(d3.axisBottom(xScale).ticks(box_width / x_axis_label_width))
+            .attr('transform', 'translate(0,' + boxHeight + ')')
+            .attr('style', LABEL_STYLE)
+            .call(d3.axisBottom(xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH))
 
         let yScale = d3.scaleLinear()
-        if (axis.y.scale !== linear_scale) {
+        if (axis.y.scale !== LINEAR_SCALE) {
             yScale = d3.scaleLog()
         }
 
-        yScale.domain(domain_y).range([box_height, 0])
-        let yAxis = svg.append('g').attr('style', label_style).call(d3.axisLeft(yScale))
+        yScale.domain(domainY).range([boxHeight, 0])
+        let yAxis = svg.append('g').attr('style', LABEL_STYLE).call(d3.axisLeft(yScale))
         return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
     }
 
@@ -512,24 +561,24 @@ class ScatterPlot extends Visualization {
      * padding to make sure points will fit nicely on the chart.
      */
     getDomains(extremesAndDeltas, focus) {
-        let domain_x = [
+        let domainX = [
             extremesAndDeltas.xMin - extremesAndDeltas.paddingX,
             extremesAndDeltas.xMax + extremesAndDeltas.paddingX,
         ]
-        let domain_y = [
+        let domainY = [
             extremesAndDeltas.yMin - extremesAndDeltas.paddingY,
             extremesAndDeltas.yMax + extremesAndDeltas.paddingY,
         ]
 
         if (focus !== undefined) {
             if (focus.x !== undefined && focus.y !== undefined && focus.zoom !== undefined) {
-                let padding_x = extremesAndDeltas.dx * (1 / (2 * focus.zoom))
-                let padding_y = extremesAndDeltas.dy * (1 / (2 * focus.zoom))
-                domain_x = [focus.x - padding_x, focus.x + padding_x]
-                domain_y = [focus.y - padding_y, focus.y + padding_y]
+                let newPaddingX = extremesAndDeltas.dx * (1 / (2 * focus.zoom))
+                let newPaddingY = extremesAndDeltas.dy * (1 / (2 * focus.zoom))
+                domainX = [focus.x - newPaddingY, focus.x + newPaddingY]
+                domainY = [focus.y - newPaddingY, focus.y + newPaddingY]
             }
         }
-        return { domain_x, domain_y }
+        return { domainX, domainY }
     }
 
     /**
@@ -563,19 +612,10 @@ class ScatterPlot extends Visualization {
         let dx = xMax - xMin
         let dy = yMax - yMin
 
-        let padding_x = 0.1 * dx
-        let padding_y = 0.1 * dy
+        let paddingX = 0.1 * dx
+        let paddingY = 0.1 * dy
 
-        return {
-            xMin: xMin,
-            xMax: xMax,
-            yMin: yMin,
-            yMax: yMax,
-            paddingX: padding_x,
-            paddingY: padding_y,
-            dx: dx,
-            dy: dy,
-        }
+        return { xMin, xMax, yMin, yMax, paddingX, paddingY, dx, dy }
     }
 
     /**
@@ -676,7 +716,7 @@ class ScatterPlot extends Visualization {
     /**
      * Creates a button to fit all points on plot.
      */
-    createButtonFitAll(scaleAndAxis, scatter, points, extremesAndDeltas, zoom, box_width) {
+    createButtonFitAll(scatter, points, extremesAndDeltas, zoom, boxWidth) {
         const btn = this.createBtnHelper()
 
         let text = document.createTextNode('Fit all')
@@ -686,19 +726,19 @@ class ScatterPlot extends Visualization {
         const unzoom = () => {
             zoom.zoomElem.transition().duration(0).call(zoom.zoom.transform, d3.zoomIdentity)
 
-            let domain_x = [
+            let domainX = [
                 extremesAndDeltas.xMin - extremesAndDeltas.paddingX,
                 extremesAndDeltas.xMax + extremesAndDeltas.paddingX,
             ]
-            let domain_y = [
+            let domainY = [
                 extremesAndDeltas.yMin - extremesAndDeltas.paddingY,
                 extremesAndDeltas.yMax + extremesAndDeltas.paddingY,
             ]
 
-            scaleAndAxis.xScale.domain(domain_x)
-            scaleAndAxis.yScale.domain(domain_y)
+            zoom.transformedScale.xScale.domain(domainX)
+            zoom.transformedScale.yScale.domain(domainY)
 
-            self.zoomingHelper(scaleAndAxis, box_width, scatter, points)
+            self.zoomingHelper(zoom.transformedScale, boxWidth, scatter, points)
         }
 
         document.addEventListener('keydown', e => {
