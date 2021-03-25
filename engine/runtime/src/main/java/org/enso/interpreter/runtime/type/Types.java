@@ -17,6 +17,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.data.TypeGraph;
+import org.yaml.snakeyaml.scanner.Constant;
 
 /**
  * This class defines the interpreter-level type system for Enso.
@@ -48,6 +50,8 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
   PanicSentinel.class
 })
 public class Types {
+
+  private static TypeGraph typeHierarchy = buildTypeHierarchy();
 
   /**
    * A simple pair type
@@ -194,5 +198,31 @@ public class Types {
           arguments, "The second argument must be a " + cls2.getSimpleName() + ".");
     }
     return new Pair<>((A) arguments[0], (B) arguments[1]);
+  }
+
+  /** @return the language type hierarchy */
+  public static TypeGraph getTypeHierarchy() {
+    return typeHierarchy;
+  }
+
+  private static TypeGraph buildTypeHierarchy() {
+    TypeGraph graph = TypeGraph.fromJava(Constants.ANY);
+
+    graph.insert(Constants.ARRAY, Constants.ANY);
+    graph.insert(Constants.BOOLEAN, Constants.ANY);
+    graph.insert(Constants.DECIMAL, Constants.NUMBER);
+    graph.insert(Constants.ERROR, Constants.ANY);
+    graph.insert(Constants.FUNCTION, Constants.ANY);
+    graph.insert(Constants.INTEGER, Constants.NUMBER);
+    graph.insert(Constants.MANAGED_RESOURCE, Constants.ANY);
+    graph.insert(Constants.NOTHING, Constants.ANY);
+    graph.insert(Constants.PANIC, Constants.ANY);
+    graph.insert(Constants.REF, Constants.ANY);
+    graph.insert(Constants.TEXT, Constants.ANY);
+    graph.insertWithoutParent(Constants.PANIC);
+    graph.insertWithoutParent(Constants.THUNK);
+    graph.insertWithoutParent(Constants.UNRESOLVED_SYMBOL);
+
+    return graph;
   }
 }
