@@ -5,12 +5,15 @@ import Standard.Table.Data.Storage
 import Standard.Table.Data.Table
 
 ## PRIVATE
+Any.catch_: Any -> Any
 Any.catch_ ~val = this.catch (_-> val)
 
 ## PRIVATE
+Any.catch_ : Any -> Any
 Error.catch_ ~val = this.catch (_-> val)
 
 ## PRIVATE
+recover_errors : Any -> Any
 recover_errors ~body =
     result = Panic.recover body
     result.catch err->
@@ -19,19 +22,19 @@ recover_errors ~body =
 ## PRIVATE
 
    Returns all the columns in the table, including indices.
-   Index columns are placed after other columns.
+   Index columns are placed before other columns.
 Table.Table.all_columns : Vector
 Table.Table.all_columns =
-    index = this.index.catch (_-> [])
+    index = this.index.catch_ []
     index_columns = case index of
         Vector.Vector _ -> index
-        _               -> [this.index]
-    this.columns + index_columns
+        a               -> [a]
+    index_columns + this.columns
 
 
 ## PRIVATE
 
   Checks if the column stores numbers.
-Column.Column.is_numeric : Bool
+Column.Column.is_numeric : Boolean
 Column.Column.is_numeric =
     [Storage.Integer,Storage.Decimal].contains this.storage_type

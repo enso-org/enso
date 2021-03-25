@@ -7,19 +7,22 @@ import Standard.Visualization.Helpers
 
 ## PRIVATE
     Name of the index column that may be generated to plot against.
+index_name : Text
 index_name = 'index'
 
 ## PRIVATE
+data_field : Text
 data_field = 'data'
 
 ## PRIVATE
+axis_field : Text
 axis_field = 'axis'
 
 ## PRIVATE
+label_field : Text
 label_field = 'label'
 
 ## PRIVATE
-   
    Represents a recognized point data field for a scatter plot visualization.
 type PointData 
     ## PRIVATE
@@ -39,25 +42,30 @@ type PointData
 
     ## PRIVATE
        Returns all recognized point data fields.
+    all_fields : Vector
     all_fields = [X,Y,Color,Shape,Label,Size]
 
     ## PRIVATE
+    recognized_names : Vector
     recognized_names = this.all_fields.map _.name
 
     ## PRIVATE
+    is_recognized : Column -> Boolean
     is_recognized column = this.recognized_names.contains column.name
 
     ## PRIVATE
-    name       = this.to_text.to_lower_case
+    name : Text
+    name = this.to_text.to_lower_case
 
     ## PRIVATE
+    fallback_column : Table -> Column ! Nothing
     fallback_column table = case this of
         X -> table.index.catch_ <| this.iota table.row_count
         Y ->
-            x_column         = X.lookup table
-            candidates       = table.all_columns
+            x_column = X.lookup_in table
+            candidates = table.all_columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
-            is_good c        = is_good_enough c && (this.is_recognized c).not
+            is_good c = is_good_enough c && (this.is_recognized c).not
 
             candidates.find is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw Nothing
@@ -72,20 +80,19 @@ type PointData
         Column.from_vector here.index_name range.to_vector
 
     ## PRIVATE
-    lookup : Table -> Column
-    lookup table = 
+    lookup_in : Table -> Column
+    lookup_in table = 
         named = table.at this.name
         named.catch_ <| this.fallback_column table
 
 ## PRIVATE
     Generates JSON that describes points data.
-data_from_table : Table -> Object
-data_from_table df =
-    # IO.println <| "data from table: " + df.to_text
-    get_point_data field = field.lookup df . rename field.name
+Table.Table.point_data : Table -> Object
+Table.Table.point_data =
+    get_point_data field = field.lookup_in this . rename field.name
     is_valid column = column.is_error.not
     columns = PointData.all_fields.map get_point_data . filter is_valid
-    (0.up_to (df.row_count + 1)).to_vector.map <| row_n-> 
+    (0.up_to <| this.row_count + 1).to_vector.map <| row_n-> 
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
             [column.name, value]
@@ -93,39 +100,38 @@ data_from_table df =
 
 ## PRIVATE
     Generates JSON that describes plot axes.
-axes_from_table : Table -> Object
-axes_from_table table =
+Table.Table.axes : Table -> Object
+Table.Table.axes =
     describe_axis field = 
-        col_name = field.lookup table . name
-        label    = Json.from_pairs [[here.label_field, col_name]]
+        col_name = field.lookup_in this . name
+        label = Json.from_pairs [[here.label_field, col_name]]
         [field.name, label]
     x_axis = describe_axis X
     y_axis = describe_axis Y
     is_valid axis_pair =
         label = axis_pair.at 1
-        label.is_error.not && (table.all_columns.length > 0)
+        label.is_error.not && (this.all_columns.length > 0)
     axes_obj = Json.from_pairs <| [x_axis, y_axis].filter is_valid
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 
 ## PRIVATE
-data_from_vector : Vector -> Object
-data_from_vector vec = 
-        vec.map_with_index <| i-> elem-> 
+Vector.Vector.point_data : Vector -> Object
+Vector.Vector.point_data = 
+        this.map_with_index <| i-> elem-> 
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE
+
 json_from_table table = 
-    data = here.data_from_table table
-    # IO.println <| "data: " + data.to_text
-    axes = here.axes_from_table table
-    # IO.println <| "axes: " + axes.to_text
+    data = table.point_data
+    axes = table.axes
     Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
 
 ## PRIVATE
 json_from_vector vec = 
-    data = [here.data_field,here.data_from_vector vec]
-    axes = [here.axis_field,Nothing]
-    Json.from_pairs [data,axes]
+    data = [here.data_field, vec.point_data]
+    axes = [here.axis_field, Nothing]
+    Json.from_pairs [data, axes]
 
 ## PRIVATE
 

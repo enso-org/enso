@@ -7,15 +7,15 @@ import Standard.Visualization.Helpers
 
 ## PRIVATE
    Get first numeric column of the table.
-first_numeric : Table -> Column ! Nothing
-first_numeric table = table.columns.find _.is_numeric
+Table.Table.first_numeric : Table -> Column ! Nothing
+Table.Table.first_numeric = this.all_columns.find _.is_numeric
 
 ## PRIVATE
    Get the value column - the column that will be used to create histogram.
-value_column : Table -> Column ! Nothing
-value_column table = 
-    named_col = table.at 'value'
-    named_col.catch_ <| here.first_numeric table
+Table.Table.value_column : Table -> Column ! Nothing
+Table.Table.value_column = 
+    named_col = this.at 'value'
+    named_col.catch_ <| this.first_numeric
 
 ## PRIVATE
    Information that are placed in an update sent to a visualization.
@@ -25,7 +25,7 @@ type Update
 
     ## PRIVATE
        Generate JSON that can be consumed by the visualization.
-    from_table : Object
+    to_json : Object
     to_json = 
         data = ['data', Json.from_pairs [['values', this.values]]]
         axis = ['axis', Json.from_pairs [['x', Json.from_pairs [['label', this.label]]]]]
@@ -35,15 +35,15 @@ type Update
         Json.from_pairs ret_pairs
 
 ## PRIVATE
-from_table : Vector -> Update
+from_table : Table -> Update
 from_table table = 
-    col = here.value_column table
+    col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
     Update values label
 
 ## PRIVATE
-from_value : Vector -> Update
+from_vector : Vector -> Update
 from_vector vector = 
     Update vector Nothing
 
