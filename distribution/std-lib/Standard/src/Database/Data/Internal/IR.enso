@@ -124,6 +124,36 @@ type Context
     set_limit new_limit =
        Context this.from_spec this.where_filters this.orders this.groups this.meta_index new_limit
 
+    ## PRIVATE
+
+       'Lifts' this context into a subquery, so that the original context (with all filters etc.) is
+       encapsulated within the subquery and all external references passed as the second argument,
+       refer directly to that subquery.
+
+       It takes a list of lists of columns that should be included in that subquery (this can for
+       example the list of regular columns, the list of indices etc.)
+       It assumes that columns on these lists all have unique names.
+
+       It returns a new context and the lists transformed in such a way that each column corresponds
+       to one from the original list but it is valid in the new context.
+
+       This is useful as a preprocessing step between combining queries, for example in a join.
+    # as_subquery : Text -> Vector (Vector Internal_Column) -> [IR.Sub_Query, Vector (Vector Internal_Column)]
+    as_subquery alias column_lists =
+        rewrite_internal_column : Internal_Column -> Internal_Column
+        rewrite_internal_column column =
+            Internal_Column column.name column.sql_type (IR.Column alias column.name)
+
+        new_columns = column_lists.map columns->
+            columns.map rewrite_internal_column
+
+        encapsulated_columns = column_lists.flat_map columns->
+            columns.map column-> [column.name, column.expression]
+        new_from = IR.Sub_Query encapsulated_columns this alias
+
+        [new_from, new_columns]
+
+
 ## PRIVATE
 
    Used as part of the context, specifies the sources of the query.

@@ -48,6 +48,14 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     Database_Column.Aggregate_Column _ _ _ _ _ ->
         here.prepare_visualization x.ungrouped.to_table max_rows
 
+    # TODO [RW] Should we truncate Vectors?
+    # We also visualize Vectors and arrays
+    Vector.Vector _ ->
+        truncated = x.take_start max_rows
+        Json.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
+    Array ->
+        here.prepare_visualization (Vector.Vector x) max_rows
+
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->
         Json.from_pairs [["json", x]] . to_text
