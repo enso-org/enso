@@ -573,7 +573,10 @@ type Aggregate_Table
     ungrouped : Table
     ungrouped =
         new_ctx = this.context.set_groups []
-        Table this.name this.connection this.internal_columns new_ctx
+        new_cols = this.internal_columns.filter col->
+            turned_into_index = this.context.meta_index.exists i-> i.name == col.name
+            turned_into_index.not
+        Table this.name this.connection new_cols new_ctx
 
 type Integrity_Error
     ## UNSTABLE
