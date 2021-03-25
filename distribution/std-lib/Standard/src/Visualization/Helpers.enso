@@ -28,7 +28,7 @@ Table.Table.all_columns =
     index = this.index.catch_ []
     index_columns = case index of
         Vector.Vector _ -> index
-        a               -> [a]
+        a -> [a]
     index_columns + this.columns
 
 

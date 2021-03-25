@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table.Data.Column import Column
-
+import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
 
