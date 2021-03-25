@@ -86,6 +86,7 @@ impl Registry {
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
         self.try_add_java_script(builtin::visualization::java_script::table_visualization());
+        self.try_add_java_script(builtin::visualization::java_script::sql_visualization());
         self.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
     }
 
