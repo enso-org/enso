@@ -382,6 +382,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
 
+        // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
+        // like imports, and the invalidation mechanism can not always track those changes and
+        // appropriately invalidate all dependent expressions.
         if (!isPanic) {
           cache.offer(nodeId, result);
         }
@@ -416,7 +419,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        onReturnValue(context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(
+            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
       }
