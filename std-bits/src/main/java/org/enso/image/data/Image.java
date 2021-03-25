@@ -3,6 +3,7 @@ package org.enso.image.data;
 import org.enso.image.opencv.OpenCV;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.Base64;
 
@@ -54,9 +55,22 @@ public class Image {
    */
   public static String to_base64(Mat mat) {
     MatOfByte buf = new MatOfByte();
-    Imgcodecs.imencode(EXTENSION_PNG, mat, buf);
+    switch (mat.channels()) {
+      case 3:
+        Imgproc.cvtColor(mat, buf, Imgproc.COLOR_BGR2RGB);
+        Imgcodecs.imencode(EXTENSION_PNG, buf, buf);
+        break;
+      case 4:
+        Imgproc.cvtColor(mat, buf, Imgproc.COLOR_BGRA2RGBA);
+        Imgcodecs.imencode(EXTENSION_PNG, buf, buf);
+        break;
+      default:
+        Imgcodecs.imencode(EXTENSION_PNG, mat, buf);
+    }
+
     byte[] bufData = new byte[(int) buf.total() * buf.channels()];
     buf.get(0, 0, bufData);
+
     return Base64.getEncoder().encodeToString(bufData);
   }
 
