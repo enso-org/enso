@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Database_Tests.Helpers.Fake_Test_Connection
 import Standard.Database.Data.Dialect
+import Standard.Database.Data.Table as Table_Module
 import Standard.Test
 
 from Standard.Database import all
@@ -96,15 +97,19 @@ spec =
         t3 = test_connection.access_table "T3"
         Test.specify "should allow joining tables index-on-index" <|
             r1 = t1.set_index 'A' . join (t2.set_index 'D')
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM "T2" AS "T2") AS "T2" ON ("T1"."A" = "T2"."D")', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."A_1" = "T2"."D")', []]
 
         Test.specify "should allow joining tables column-on-index" <|
             r1 = t1.join (t2.set_index 'D') on='B' drop_unmatched=True
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1" INNER JOIN (SELECT "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM "T2" AS "T2") AS "T2" ON ("T1"."B" = "T2"."D")', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."B" AS "B_1" FROM "T1" AS "T1") AS "T1" INNER JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."B_1" = "T2"."D")', []]
 
         Test.specify "should append suffixes to disambiguate column names" <|
             r1 = t1.join (t3.set_index 'E') on='A'
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A_left", "T1"."B" AS "B", "T1"."C" AS "C", "T3"."A" AS "A_right", "T3"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T3"."E" AS "E", "T3"."A" AS "A", "T3"."F" AS "F" FROM "T3" AS "T3") AS "T3" ON ("T1"."A" = "T3"."E")', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A_left", "T1"."B" AS "B", "T1"."C" AS "C", "T3"."A" AS "A_right", "T3"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T3"."A" AS "A", "T3"."F" AS "F", "T3"."E" AS "E" FROM "T3" AS "T3") AS "T3" ON ("T1"."A_1" = "T3"."E")', []]
+
+            r2 = (t3.set_index 'E').join (t2.set_index 'F')
+            r2.index.name . should_equal "E_left"
+            r2.columns . map .name . should_equal ["A", "F", "D", "E_right"]
 
         Test.specify "should avoid duplicates when disambiguating column names" <|
             connection =
@@ -122,7 +127,7 @@ spec =
 
         Test.specify "should correctly handle self-joins" <|
             r1 = t1.join (t1.set_index 'A') on='B'
-            r1.to_sql.prepare . should_equal ['SELECT "T1_left"."A" AS "A", "T1_left"."B" AS "B_left", "T1_left"."C" AS "C_left", "T1_right"."B" AS "B_right", "T1_right"."C" AS "C_right" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_left" LEFT JOIN (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_right" ON ("T1_left"."B" = "T1_right"."A")', []]
+            r1.to_sql.prepare . should_equal ['SELECT "T1_left"."A" AS "A", "T1_left"."B" AS "B_left", "T1_left"."C" AS "C_left", "T1_right"."B" AS "B_right", "T1_right"."C" AS "C_right" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."B" AS "B_1" FROM "T1" AS "T1") AS "T1_left" LEFT JOIN (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A" FROM "T1" AS "T1") AS "T1_right" ON ("T1_left"."B_1" = "T1_right"."A")', []]
 
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
@@ -177,3 +182,17 @@ spec =
         Test.specify 'should return dataflow error when passed a non-existent column' <|
             r = t1.sort by='foobar'
             r.should_fail_with No_Such_Column_Error
+
+    Test.group "Helpers" <|
+        Test.specify "combine_names should combine lists of names" <|
+            v1 = ["A", "B"]
+            v2 = ["A", "C"]
+            combined = Table_Module.combine_names v1 v2 "_1" "_2"
+            combined.first . should_equal ["A_1", "B"]
+            combined.second . should_equal ["A_2", "C"]
+
+            Test.expect_panic_with (Table_Module.combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error
+        Test.specify "fresh_names should provide fresh names" <|
+            used_names = ["A", "A_1"]
+            preferred_names = ["A", "A", "B"]
+            Table_Module.fresh_names used_names preferred_names . should_equal ["A_2", "A_3", "B"]

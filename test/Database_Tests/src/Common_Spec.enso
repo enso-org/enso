@@ -165,13 +165,31 @@ spec prefix connection pending=Nothing =
         Test.specify "should allow self-joins and append suffixes to disambiguate column names" <|
             r_1 = a.join (a.set_index 'x') on='x' . to_dataframe . sort by='x'
             r_1.columns.map .name . should_equal ['x', 'y_left', 'y_right']
-            r_1.at 'x' . should_equal [0, 1, 3, 6, 7]
+            r_1.at 'x' . to_vector . should_equal [0, 1, 3, 6, 7]
             expected_y = ['foo', 'bar', 'spam', 'eggs', 'baz']
-            r_1.at 'y_left' . should_equal expected_y
-            r_1.at 'y_right' . should_equal expected_y
+            r_1.at 'y_left' . to_vector . should_equal expected_y
+            r_1.at 'y_right' . to_vector . should_equal expected_y
 
             r_2 = a.set_index 'x' . join (a.set_index 'x') left_suffix='_old' right_suffix='_new'
             r_2.columns.map .name . should_equal ['y_old', 'y_new']
+
+        Test.specify "should correctly handle multi-joins" <|
+            ta = make_table "M_TA" ["id", "name"] ["INTEGER", "VARCHAR"]
+            tb = make_table "M_TB" ["id", "name"] ["INTEGER", "VARCHAR"]
+            tc = make_table "M_TC" ["id_a", "id_b"] ["INTEGER", "INTEGER"]
+            ta.insert [0, "Foo"]
+            ta.insert [1, "Hmm"]
+            tb.insert [2, "Bar"]
+            tb.insert [0, "Hmm"]
+            tc.insert [0, 2]
+            tc.insert [1, 0]
+            ta_2 = ta.set_index "id"
+            tb_2 = tb.set_index "id"
+            res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
+            sel = res.select ["name_a", "name_b"]
+            df = sel.to_dataframe . sort by="name_a"
+            df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
+            df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
 
     Test.group prefix+"Missing Values" pending=pending <|
         t4 = make_table "T4" ["A", "B", "C"] ["INT", "BOOLEAN", "VARCHAR"]
@@ -332,5 +350,5 @@ spec prefix connection pending=Nothing =
             r_3 = c.sort order=Sort_Order.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
-    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes"]
+    tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "TA", "TB", "Big", "clothes", "M_TA", "M_TB", "M_TC"]
     tables.each clean_table

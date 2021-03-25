@@ -5,8 +5,12 @@ import Standard.Test
 import Visualization_Tests.Helpers_Spec
 import Visualization_Tests.Histogram_Spec
 import Visualization_Tests.Scatter_Plot_Spec
+import Visualization_Tests.Sql_Spec
+import Visualization_Tests.Table_Spec
 
 main = Test.Suite.runMain <|
-    Helpers_Spec.spec 
-    Histogram_Spec.spec 
-    Scatter_Plot_Spec.spec 
+    Helpers_Spec.spec
+    Histogram_Spec.spec
+    Scatter_Plot_Spec.spec
+    Sql_Spec.spec
+    Table_Spec.spec

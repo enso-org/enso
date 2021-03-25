@@ -156,9 +156,9 @@ type Table
     ## UNSTABLE
 
        Sets the index of this table, using the column with the provided name.
-    set_index : Text | Column | Vector (Text | Column) -> Table
+    set_index : Text | Column | Vector Text -> Table
     set_index index = Panic.recover <|
-        new_index = (Helpers.unify_vector_singleton index).map (this.resolve >> .as_internal)
+        new_index = (Helpers.unify_vector_singleton index).map (this.at >> .as_internal)
         new_ctx = this.context.set_index new_index
         new_cols = this.internal_columns.filter col->
             turned_into_index = new_index.exists i-> i.name == col.name
@@ -286,59 +286,79 @@ type Table
                         when there's a name conflict with a column of `other`.
          - right_suffix: a suffix that should be added to the columns of `other`
                          when there's a name conflict with a column of `this`.
-    join : Table -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
-    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = Panic.recover <|
-        Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
-        if left_suffix == right_suffix then
-            Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
-        kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
-        my_index : Vector Internal_Column
-        my_index = case on of
-            Nothing -> this.context.meta_index
-            _ ->
-                (Helpers.unify_vector_singleton on).map (this.resolve >> .as_internal)
-        other_index = other.context.meta_index
-        case my_index.length == other_index.length of
-            False -> Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
-            True ->
-                # TODO [RW] we may be able to avoid creating subqueries if there are no groups, orders or wheres,
-                # so it may be worth optimizing that here (#1515)
-                new_table_name = this.name + "_" + other.name
-                aliases = case this.name == other.name of
-                    True -> [this.name+left_suffix, other.name+right_suffix]
-                    False -> [this.name, other.name]
-                left_alias = aliases.first
-                right_alias = aliases.second
+    join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
+        Column _ _ _ _ _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
+        Table _ _ _ _ -> Panic.recover <|
+            Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
+            if left_suffix == right_suffix then
+                Panic.throw <| Illegal_State_Error "left_suffix must be different from right_suffix"
+            kind = if drop_unmatched then IR.Join_Inner else IR.Join_Left
 
-                left_subquery_cols = this.internal_columns_with_index.map c-> [c.name, c.expression]
-                right_subquery_cols = other.internal_columns_with_index.map c-> [c.name, c.expression]
-                left_query = IR.Sub_Query left_subquery_cols this.context left_alias
-                right_query = IR.Sub_Query right_subquery_cols other.context right_alias
+            # Prepare the left and right pairs of indices along which the join will be performed.
+            left_join_index : Vector Internal_Column
+            left_join_index = case on of
+                Nothing -> this.context.meta_index
+                _ ->
+                    (Helpers.unify_vector_singleton on).map (this.resolve >> .as_internal)
+            right_join_index = other.context.meta_index
+            if left_join_index.length != right_join_index.length then
+                Panic.throw <| Illegal_State_Error "Cannot join with multi-indexes of different lengths."
 
-                left_renamed_index = my_index.map <|
-                    IR.lift_expression_map (IR.substitute_origin this.name left_alias)
-                right_renamed_index = other_index.map <|
-                    IR.lift_expression_map (IR.substitute_origin other.name right_alias)
-                on_exprs = left_renamed_index.zip right_renamed_index l-> r->
-                    IR.Operation "=" [l.expression, r.expression]
+            # TODO [RW] We may be able to avoid creating subqueries if there are no groups, orders or wheres,
+            #  so it may be worth optimizing that here (#1515).
+            new_table_name = this.name + "_" + other.name
+            aliases = case this.name == other.name of
+                True -> [this.name+left_suffix, other.name+right_suffix]
+                False -> [this.name, other.name]
+            left_alias = aliases.first
+            right_alias = aliases.second
 
-                new_index = left_renamed_index
-                new_from = IR.Join kind left_query right_query on_exprs
-                new_limit = Nothing
-                new_ctx = IR.Context new_from [] [] [] new_index new_limit
+            # Ensure that the join indices (which are not directly visible to the user, but must be materialized in the sub-query)
+            # get a fresh set of names, so that they do not collide with other parts of the query.
+            left_used_names = this.internal_columns_with_index.map .name
+            left_join_index_fresh = here.freshen_columns left_used_names left_join_index
 
-                new_names = here.combine_names (this.internal_columns.map .name) (other.internal_columns.map .name) left_suffix right_suffix
-                left_names = new_names.first
-                right_names = new_names.second
+            # Create subqueries that encapsulate the original queries and provide needed columns.
+            # We only include the meta_index from the left table, because only this one will be kept in the result.
+            # The generated new sets of columns refer to the encapsulated expressions within the subquery and are
+            # valid in contexts whose from_spec is this subquery directly or it is a join containing this subquery.
+            # TODO [RW] Not all of these included columns are actually usable from the external context, so
+            #  in the future we may consider pruning some of them as additional optimization and simplification of the query.
+            left_config = this.context.as_subquery left_alias [this.internal_columns, this.context.meta_index, left_join_index_fresh]
+            right_config = other.context.as_subquery right_alias [other.internal_columns, right_join_index]
 
-                new_left_columns = this.internal_columns.zip left_names p-> new_name->
-                    Internal_Column new_name p.sql_type (IR.Column left_alias p.name)
-                new_right_columns = other.internal_columns.zip right_names p-> new_name->
-                    Internal_Column new_name p.sql_type (IR.Column right_alias p.name)
+            left_subquery = left_config.first
+            left_new_columns = left_config.second.at 0
+            left_new_meta_index = left_config.second.at 1
+            left_new_join_index = left_config.second.at 2
 
-                new_columns = new_left_columns + new_right_columns
+            right_subquery = right_config.first
+            right_new_columns = right_config.second.at 0
+            right_new_join_index = right_config.second.at 1
 
-                Table new_table_name this.connection new_columns new_ctx
+            # Generate new names for all columns (including the indices) that will be retained in the created Table.
+            left_names_before = (left_new_meta_index + left_new_columns).map .name
+            right_names_before = right_new_columns.map .name
+            new_names = here.combine_names left_names_before right_names_before left_suffix right_suffix
+            left_indices_count = left_new_meta_index.length
+            left_new_meta_index_names = new_names.first.take_start left_indices_count
+            left_new_columns_names = new_names.first.drop_start left_indices_count
+            right_new_columns_names = new_names.second
+
+            # Rename columns to the newly allocated names
+            new_index = here.rename_columns left_new_meta_index left_new_meta_index_names
+            left_renamed_columns = here.rename_columns left_new_columns left_new_columns_names
+            right_renamed_columns = here.rename_columns right_new_columns right_new_columns_names
+            new_columns = left_renamed_columns + right_renamed_columns
+
+            on_exprs = left_new_join_index.zip right_new_join_index l-> r->
+                IR.Operation "=" [l.expression, r.expression]
+            new_from = IR.Join kind left_subquery right_subquery on_exprs
+            new_limit = Nothing
+            new_ctx = IR.Context new_from [] [] [] new_index new_limit
+
+            Table new_table_name this.connection new_columns new_ctx
 
     ## UNSTABLE
 
@@ -483,6 +503,7 @@ type Table
     internal_columns_with_index =
         this.context.meta_index + this.internal_columns
 
+
     ## PRIVATE
 
        Inserts a new row to the table. It actually modifies the underlying table
@@ -552,7 +573,10 @@ type Aggregate_Table
     ungrouped : Table
     ungrouped =
         new_ctx = this.context.set_groups []
-        Table this.name this.connection this.internal_columns new_ctx
+        new_cols = this.internal_columns.filter col->
+            turned_into_index = this.context.meta_index.exists i-> i.name == col.name
+            turned_into_index.not
+        Table this.name this.connection new_cols new_ctx
 
 type Integrity_Error
     ## UNSTABLE
@@ -641,3 +665,38 @@ combine_names left_names right_names left_suffix right_suffix =
     new_left_names = left_pairs.map .second
     new_right_names = right_pairs.map .second
     [new_left_names, new_right_names]
+
+## PRIVATE
+
+   Transforms `preferred_names` names in such a way to not collide with `used_names`. If a name
+   from `preferred_names` does not collide with others, it is kept as is, otherwise numerical
+   suffixes are added.
+fresh_names : Vector Text -> Vector Text -> Vector Text
+fresh_names used_names preferred_names =
+   freshen currently_used name ix =
+       new_name = if ix == 0 then name else name+"_"+ix.to_text
+       case currently_used.contains new_name of
+           False -> new_name
+           True -> freshen currently_used name ix+1
+   res = preferred_names . fold [used_names, []] acc-> name->
+       used = acc.first
+       new_name = freshen used name 0
+       [used_names + [new_name], acc.second + [new_name]]
+   res.second
+
+## PRIVATE
+
+   Transforms the vector of columns, changing names of each column to the corresponding name from the second vector.
+rename_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
+rename_columns columns new_names =
+    columns.zip new_names col-> name->
+        col.rename name
+
+## PRIVATE
+
+   Ensures that the provided columns do not clash with the vector of names provided as first argument.
+   Original column names are kept if possible, but if they would clash, the columns are renamed.
+freshen_columns : Vector Text -> Vector Column -> Vector Column
+freshen_columns used_names columns =
+    fresh_names = here.fresh_names used_names (columns.map .name)
+    here.rename_columns columns fresh_names
