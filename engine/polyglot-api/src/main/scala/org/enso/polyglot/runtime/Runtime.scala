@@ -11,7 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.polyglot.Suggestion
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
@@ -188,6 +188,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ImportSuggestionResponse],
         name  = "importSuggestionResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.GetTypeGraphRequest],
+        name  = "getTypeGraphRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.GetTypeGraphResponse],
+        name  = "getTypeGraphResponse"
       )
     )
   )
@@ -1051,6 +1059,15 @@ object Runtime {
       symbol: String,
       exports: Seq[Export]
     ) extends ApiResponse
+
+    /** A request for the type hierarchy graph. */
+    case class GetTypeGraphRequest() extends ApiRequest
+
+    /** The result of the type graph request.
+      *
+      * @param graph the graph.
+      */
+    case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

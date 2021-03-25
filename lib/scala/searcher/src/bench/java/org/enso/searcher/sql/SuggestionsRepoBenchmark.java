@@ -1,5 +1,6 @@
 package org.enso.searcher.sql;
 
+import java.util.ArrayList;
 import org.enso.polyglot.Suggestion;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -17,6 +18,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
+
+import scala.jdk.CollectionConverters;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -69,35 +72,64 @@ public class SuggestionsRepoBenchmark {
 
   @Benchmark
   public Object searchBaseline() throws TimeoutException, InterruptedException {
-    return Await.result(repo.search(none(), none(), none(), none(), none()), TIMEOUT);
+    return Await.result(
+        repo.search(
+            none(),
+            CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
+            none(),
+            none(),
+            none()),
+        TIMEOUT);
   }
 
   @Benchmark
   public Object searchByReturnType() throws TimeoutException, InterruptedException {
     return Await.result(
-        repo.search(none(), none(), scala.Some.apply("MyType"), none(), none()), TIMEOUT);
+        repo.search(
+            none(),
+            CollectionConverters.ListHasAsScala(new ArrayList<String>()).asScala().toSeq(),
+            scala.Some.apply("MyType"),
+            none(),
+            none()),
+        TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfType() throws TimeoutException, InterruptedException {
+    var selfTypes = new ArrayList<String>();
+    selfTypes.add("MyType");
     return Await.result(
-        repo.search(none(), scala.Some.apply("MyType"), none(), none(), none()), TIMEOUT);
+        repo.search(
+            none(),
+            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
+            none(),
+            none(),
+            none()),
+        TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfReturnTypes() throws TimeoutException, InterruptedException {
+    var selfTypes = new ArrayList<String>();
+    selfTypes.add("SelfType");
     return Await.result(
         repo.search(
-            none(), scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), none(), none()),
+            none(),
+            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
+            scala.Some.apply("ReturnType"),
+            none(),
+            none()),
         TIMEOUT);
   }
 
   @Benchmark
   public Object searchByAll() throws TimeoutException, InterruptedException {
+    var selfTypes = new ArrayList<String>();
+    selfTypes.add("SelfType");
     return Await.result(
         repo.search(
             none(),
-            scala.Some.apply("SelfType"),
+            CollectionConverters.ListHasAsScala(selfTypes).asScala().toSeq(),
             scala.Some.apply("ReturnType"),
             scala.Some.apply(kinds),
             none()),

@@ -1,11 +1,12 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.{Constants, Types}
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
+import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -3706,4 +3707,13 @@ class RuntimeServerTest
     )
   }
 
+  it should "send the type graph" in {
+    val requestId                = UUID.randomUUID()
+    val expectedGraph: TypeGraph = Types.getTypeHierarchy
+
+    context.send(Api.Request(requestId, Api.GetTypeGraphRequest()))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.GetTypeGraphResponse(expectedGraph))
+    )
+  }
 }

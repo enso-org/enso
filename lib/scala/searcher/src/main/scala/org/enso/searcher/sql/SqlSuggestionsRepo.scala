@@ -56,7 +56,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   /** @inheritdoc */
   override def search(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -219,7 +219,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private def searchQuery(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -656,7 +656,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     * global symbols (atoms and method).
     *
     * @param module the module name search parameter
-    * @param selfType the selfType search parameter
+    * @param selfTypes the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
@@ -664,7 +664,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private def searchQueryBuilder(
     module: Option[String],
-    selfType: Option[String],
+    selfTypes: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -673,9 +673,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filterOpt(selfType) { case (row, value) =>
-        row.selfType === value
-      }
+      .filterIf(selfTypes.nonEmpty) {row => row.selfType.inSet(selfTypes) }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
       }
