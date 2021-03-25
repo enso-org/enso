@@ -26,11 +26,15 @@ class ModifyVisualisationCmd(
     ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    if (doesContextExist) {
+    val contextId = request.visualisationConfig.executionContextId
+    ctx.locking.acquireContextLock(contextId)
+    val result = if (doesContextExist) {
       modifyVisualisation()
     } else {
       replyWithContextNotExistError()
     }
+    ctx.locking.releaseContextLock(contextId)
+    result
   }
 
   private def modifyVisualisation()(implicit
