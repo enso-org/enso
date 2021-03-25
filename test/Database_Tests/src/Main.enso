@@ -4,10 +4,8 @@ import Standard.Test
 import Database_Tests.Codegen_Spec
 import Database_Tests.Sqlite_Spec
 import Database_Tests.Postgresql_Spec
-import Database_Tests.Visualization_Helpers_Spec
 
 main = Test.Suite.runMain <|
     Codegen_Spec.spec
     Sqlite_Spec.spec
     Postgresql_Spec.spec
-    Visualization_Helpers_Spec.spec

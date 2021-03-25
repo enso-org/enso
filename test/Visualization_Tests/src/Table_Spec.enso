@@ -1,0 +1,42 @@
+from Standard.Base import all
+
+from Standard.Database import all
+import Standard.Visualization.Table.Visualization as Visualization
+import Standard.Test
+
+type Foo
+    type Foo x
+    to_json : Json
+    to_json = Json.from_pairs [["x", this.x]]
+
+visualization_spec connection =
+    connection.execute_update 'CREATE TABLE "T" ("A" VARCHAR, "B" INTEGER, "C" INTEGER)'
+    t = connection.access_table "T"
+    t.insert ['a', 2, 3]
+    t.insert ['a', 2, 5]
+    t.insert ['a', 3, 6]
+    Test.group "Table Visualization" <|
+        Test.specify "should wrap internal errors" <|
+            Nothing
+
+        Test.specify "should visualize database tables" <|
+            Nothing
+
+        Test.specify "should handle Vectors" <|
+            vis = Visualization.prepare_visualization [1, 2, 3] 2
+            json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            vis . should_equal json.to_text
+
+        Test.specify "should handle other datatypes" <|
+            vis = Visualization.prepare_visualization (Foo 42) 2
+            json = Json.from_pairs [["json", (Foo 42)]]
+            vis . should_equal json.to_text
+
+spec =
+    Enso_Project.data.create_directory
+    file = Enso_Project.data / "sqlite_test.db"
+    file.delete_if_exists
+    connection = Database.open_sqlite_file file
+    here.visualization_spec connection
+    connection.close
+    file.delete
