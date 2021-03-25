@@ -1,0 +1,100 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Column
+import Standard.Table.Data.Table
+import Standard.Test
+import Standard.Visualization.Scatter_Plot
+
+import Visualization_Tests
+
+spec =
+    expect value axis_expected_text data_expected_text = 
+        text = Scatter_Plot.process_to_json_text value
+        json = Json.parse text
+        json.fields.keys.should_equal ['axis','data']
+
+        expected_axis_labels   = ['axis', Json.parse axis_expected_text]
+        expected_data_pair     = ['data', Json.parse data_expected_text]
+        expected_result        = Json.from_pairs [expected_axis_labels, expected_data_pair]
+        json.should_equal expected_result
+
+    index = Scatter_Plot.index_name
+    axis label = Json.from_pairs [['label',label]]
+    labels x y = Json.from_pairs [['x', axis x], ['y', axis y]] . to_text
+    no_labels  = 'null'
+
+    Test.group "Scatter Plot Visualization" <|
+    
+        Test.specify "deals with an empty table" <|
+            table  = Table.from_rows [] []
+            expect table 'null' '[]'
+    
+        Test.specify "plots first column if none recognized" <|
+            header = ['α', 'ω']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table (labels index 'α') '[{"x":0,"y":11},{"x":1,"y":21}]'
+    
+        Test.specify "plots 'y' against indices when no 'x' recognized" <|
+            header = ['α', 'y']
+            row_1 =  [11 , 10 ]
+            row_2 =  [21 , 20 ]
+            table = Table.from_rows header [row_1, row_2]
+            expect table (labels index 'y') '[{"x":0,"y":10},{"x":1,"y":20}]'
+            
+        Test.specify "recognizes all relevant columns" <|
+            header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
+            row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
+            table = Table.from_rows header [row_1]
+            expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            
+        Test.specify "uses first unrecognized numeric column as `y` fallback" <|
+            header = ['x' , 'size' , 'name'   , 'z' , 'ω']
+            row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
+            table = Table.from_rows header [row_1]
+            expect table (labels 'x' 'z') '[{"size":50,"x":11,"y":20}]'
+
+        Test.specify "provided only recognized columns" <|
+            header = ['x', 'y' , 'bar' , 'size']
+            row_1 =  [11 , 10  , 'aa'  , 40    ]
+            row_2 =  [21 , 20  , 'bb'  , 50    ]
+            table = Table.from_rows header [row_1, row_2]
+            expect table (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
+
+        Test.specify "used specified numeric index for x if missing 'x' column from table" <|
+            header = [ 'y' , 'foo', 'bar', 'baz' , 'size']
+            row_1 =  [ 10  , 'aa' , 12   , 14    , 40    ]
+            row_2 =  [ 20  , 'bb' , 13   , 15    , 50    ]
+            table = Table.from_rows header [row_1, row_2] . set_index 'baz'
+            # [TODO] mwu: When it is possible to set multiple index columns, test such case.
+            expect table (labels 'baz' 'y') '[{"size":40,"x":14,"y":10},{"size":50,"x":15,"y":20}]'
+          
+
+        Test.specify "prefers explicit 'x' to index and looks into indices for recognized fields" <|
+            header = [ 'x' , 'size']
+            row_1 =  [ 10  , 21  ]
+            row_2 =  [ 20  , 22  ]
+            table = Table.from_rows header [row_1, row_2] . set_index 'size'
+            # FIXME [mwu] Below the `size` field should be present. Depends on 
+            #             https://github.com/enso-org/enso/issues/1602
+            expect table (labels 'x' 'size') '[{"x":10,"y":21},{"x":20,"y":22}]'
+
+        Test.specify "used default index for `x` if none set" <|
+            header = [ 'y'  , 'bar' , 'size']
+            row_1 =  [ 10   , 'aa'  , 40    ]
+            row_2 =  [ 20   , 'bb'  , 50    ]
+            table = Table.from_rows header [row_1, row_2]
+            expect table (labels index 'y') '[{"size":40,"x":0,"y":10},{"size":50,"x":1,"y":20}]'
+
+        Test.specify "using indices for x if given a vector" <|
+            vector = [0,10,20]
+            expect vector no_labels '[{"x":0,"y":0},{"x":1,"y":10},{"x":2,"y":20}]'
+
+        Test.specify "using indices for x if given a column" <|
+            column = Column.from_vector 'some_col' [10,2,3]
+            expect column (labels 'index' 'some_col') '[{"x":0,"y":10},{"x":1,"y":2},{"x":2,"y":3}]'
+
+        Test.specify "using indices for x if given a range" <|
+            value = 2.up_to 4
+            expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'

@@ -1,0 +1,34 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+import Standard.Test
+import Standard.Visualization.Helpers
+
+import Visualization_Tests
+
+spec = 
+    Test.group "Table.all_columns" <|
+        Test.specify "works with empty table" <|
+            table  = Table.from_rows [] []
+            table.all_columns.map (_.name) . should_equal []
+
+        Test.specify "works when there is no index set" <|
+            header = ['a', 'b']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2]
+            table.all_columns.map (_.name) . should_equal ['a','b']
+
+        Test.specify "works when there is nothing but index" <|
+            header = ['a']
+            row_1  = [11 ]
+            row_2  = [21 ]
+            table  = Table.from_rows header [row_1, row_2]
+            table.all_columns.map (_.name) . should_equal ['a']
+
+        Test.specify "includes both normal and index columns" <|
+            header = ['a', 'b']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2] . set_index 'a'
+            table.all_columns.map (_.name) . should_equal ['a','b']
