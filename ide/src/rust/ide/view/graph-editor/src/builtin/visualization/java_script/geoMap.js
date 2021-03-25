@@ -127,7 +127,7 @@ class GeoMapVisualization extends Visualization {
                         columns = df.select ['label', 'latitude', 'longitude'] . columns
                         serialized = columns.map (c -> ['df_' + c.name, c.to_vector])
                         Json.from_pairs serialized . to_text
-                    _ -> df . to_json . to_text   
+                    _ -> df . to_json . to_text
             `)
     }
 

@@ -16,16 +16,8 @@ class TableVisualization extends Visualization {
 
     constructor(data) {
         super(data)
-        this.setPreprocessorModule('Standard.Table')
-        this.setPreprocessorCode(`
-        x -> case x of
-            Table.Table _ ->
-                header = ["header", x.columns.map .name]
-                data   = ["data",   x.columns.map .to_vector . map (x -> x.take_start 2000) ]
-                pairs  = [header,data]
-                Json.from_pairs pairs . to_text
-            _ -> x . to_json . to_text
-        `)
+        this.setPreprocessorModule('Standard.Visualization.Table.Visualization')
+        this.setPreprocessorCode(`x -> here.prepare_visualization x 1000`)
     }
 
     onDataReceived(data) {
@@ -132,9 +124,13 @@ class TableVisualization extends Visualization {
 
         function genGenericTable(data, level) {
             let result = ''
-            data.forEach((point, ix) => {
-                result += '<tr><th>' + ix + '</th>' + toTableCell(point, level) + '</tr>'
-            })
+            if (Array.isArray(data)) {
+                data.forEach((point, ix) => {
+                    result += '<tr><th>' + ix + '</th>' + toTableCell(point, level) + '</tr>'
+                })
+            } else {
+                result += '<tr>' + toTableCell(data, level) + '</tr>'
+            }
             return tableOf(result, level)
         }
 
@@ -174,50 +170,135 @@ class TableVisualization extends Visualization {
             }
         }
 
+        function genDataframe(parsedData) {
+            let result = ''
+            function addHeader(content) {
+                result += '<th>' + content + '</th>'
+            }
+            function addCell(content) {
+                result += '<td class="plaintext">' + content + '</td>'
+            }
+            result += '<tr>'
+            parsedData.indices_header.forEach(addHeader)
+            parsedData.header.forEach(addHeader)
+            result += '</tr>'
+            let rows = 0
+            if (parsedData.data.length > 0) {
+                rows = parsedData.data[0].length
+            } else if (parsedData.indices.length > 0) {
+                rows = parsedData.indices[0].length
+            }
+            for (let i = 0; i < rows; ++i) {
+                result += '<tr>'
+                parsedData.indices.forEach(ix => addHeader(ix[i]))
+                parsedData.data.forEach(col => addCell(col[i]))
+                result += '</tr>'
+            }
+            return tableOf(result, 0)
+        }
+
         while (this.dom.firstChild) {
             this.dom.removeChild(this.dom.lastChild)
         }
 
         const style_dark = `
         <style>
-        table {
+        table, .hiddenrows {
             font-family: DejaVuSansMonoBook, sans-serif;
             font-size: 12px;
         }
-        
+
+        table {
+            border-spacing: 1px;
+            padding: 1px;
+        }
+
+        table > tbody > tr:first-child > th:first-child,
+        table > tbody > tr:first-child > td:first-child {
+            border-top-left-radius: 9px;
+        }
+
+        table > tbody > tr:first-child > th:last-child,
+        table > tbody > tr:first-child > td:last-child {
+            border-top-right-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:first-child,
+        table > tbody > tr:last-child > td:first-child {
+            border-bottom-left-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:last-child,
+        table > tbody > tr:last-child > td:last-child {
+            border-bottom-right-radius: 9px;
+        }
+
         td {
             color: rgba(255, 255, 255, 0.9);
             padding: 0;
         }
-        
+
         td.plaintext,
         th {
             padding: 5px;
         }
-        
+
         th,
         td {
             border: 1px solid transparent;
             background-clip: padding-box;
         }
-        
-        th {
+
+        th, .hiddenrows {
             color: rgba(255, 255, 255, 0.7);
             font-weight: 400;
         }
-        
-        td,
-        th {
+
+        td {
             background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        th {
+            background-color: rgba(255, 255, 200, 0.1);
+        }
+
+        .hiddenrows {
+            margin-left: 5px;
+            margin-top: 5px;
         }
         </style>
         `
 
         const style_light = `
         <style>
-        table {
+        table, .hiddenrows {
             font-family: DejaVuSansMonoBook, sans-serif;
             font-size: 12px;
+        }
+
+        table {
+            border-spacing: 1px;
+            padding: 1px;
+        }
+
+        table > tbody > tr:first-child > th:first-child,
+        table > tbody > tr:first-child > td:first-child {
+            border-top-left-radius: 9px;
+        }
+
+        table > tbody > tr:first-child > th:last-child,
+        table > tbody > tr:first-child > td:last-child {
+            border-top-right-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:first-child,
+        table > tbody > tr:last-child > td:first-child {
+            border-bottom-left-radius: 9px;
+        }
+
+        table > tbody > tr:last-child > th:last-child,
+        table > tbody > tr:last-child > td:last-child {
+            border-bottom-right-radius: 9px;
         }
 
         td {
@@ -236,14 +317,22 @@ class TableVisualization extends Visualization {
             background-clip: padding-box;
         }
 
-        th {
+        th, .hiddenrows {
             color: rgba(0, 0, 0, 0.9);
             font-weight: 400;
         }
 
-        td,
-        th {
+        td {
             background-color: rgba(0, 0, 0, 0.025);
+        }
+
+        th {
+            background-color: rgba(30, 30, 20, 0.1);
+        }
+
+        .hiddenrows {
+            margin-left: 5px;
+            margin-top: 5px;
         }
         </style>`
 
@@ -255,8 +344,8 @@ class TableVisualization extends Visualization {
         tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         tabElem.setAttributeNS(null, 'width', '100%')
         tabElem.setAttributeNS(null, 'height', '100%')
-        const tblViewStyle = `width: ${width - 10}px;
-             height: ${height - 10}px;
+        const tblViewStyle = `width: ${width - 5}px;
+             height: ${height - 5}px;
              overflow: scroll;
              padding:2.5px;`
         tabElem.setAttributeNS(null, 'style', tblViewStyle)
@@ -271,8 +360,34 @@ class TableVisualization extends Visualization {
         if (document.getElementById('root').classList.contains('dark-theme')) {
             style = style_dark
         }
-        const table = genTable(parsedData.data || parsedData, 0, parsedData.header)
-        tabElem.innerHTML = style + table
+
+        if (parsedData.error !== undefined) {
+            tabElem.innerHTML = 'Error: ' + parsedData.error
+        } else if (parsedData.json !== undefined) {
+            const table = genTable(parsedData.json, 0, undefined)
+            tabElem.innerHTML = style + table
+        } else {
+            const table = genDataframe(parsedData)
+            let suffix = ''
+            const allRowsCount = parsedData.all_rows_count
+            if (allRowsCount !== undefined) {
+                const includedRowsCount = parsedData.data.length > 0 ? parsedData.data[0].length : 0
+                const hiddenCount = allRowsCount - includedRowsCount
+                if (hiddenCount > 0) {
+                    let rows = 'rows'
+                    if (hiddenCount == 1) {
+                        rows = 'row'
+                    }
+                    suffix =
+                        '<span class="hiddenrows">&#8230; and ' +
+                        hiddenCount +
+                        ' more ' +
+                        rows +
+                        '.</span>'
+                }
+            }
+            tabElem.innerHTML = style + table + suffix
+        }
     }
 
     setSize(size) {
