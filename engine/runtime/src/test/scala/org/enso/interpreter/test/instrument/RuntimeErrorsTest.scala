@@ -1125,4 +1125,107 @@ class RuntimeErrorsTest
     context.consumeOut shouldEqual List()
   }
 
+  it should "not cache panics" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val newline    = System.lineSeparator()
+
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(15, 20)
+    val mainResId  = metadata.addItem(40, 1)
+    val x1Id       = metadata.addItem(41, 20)
+    val mainRes1Id = metadata.addItem(66, 1)
+
+    val code =
+      """main =
+        |    x = IO.println "MyError"
+        |    x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.error(
+              "The name IO could not be found.",
+              Some(mainFile),
+              Some(model.Range(model.Position(1, 8), model.Position(1, 10))),
+              None
+            )
+          )
+        )
+      ),
+      Update.panic(
+        contextId,
+        xId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile error: The name IO could not be found.",
+          Seq(xId)
+        )
+      ),
+      Update.panic(
+        contextId,
+        mainResId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "Compile error: The name IO could not be found.",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 0), model.Position(0, 0)),
+              s"from Builtins import all$newline$newline"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      TestMessages.update(contextId, x1Id, Constants.NOTHING),
+      TestMessages.update(contextId, mainRes1Id, Constants.NOTHING),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("MyError")
+  }
+
 }
