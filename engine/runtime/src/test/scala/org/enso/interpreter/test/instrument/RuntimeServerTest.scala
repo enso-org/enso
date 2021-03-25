@@ -1581,14 +1581,14 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val xId     = metadata.addItem(41, 5)
-    val mainRes = metadata.addItem(51, 12)
+    val xId     = metadata.addItem(41, 10)
+    val mainRes = metadata.addItem(56, 12)
 
     val code =
       """from Builtins import all
         |
         |main =
-        |    x = _ + 1
+        |    x = a -> a + 1
         |    IO.println x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
