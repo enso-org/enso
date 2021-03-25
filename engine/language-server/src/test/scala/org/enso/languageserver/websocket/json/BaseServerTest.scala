@@ -30,6 +30,8 @@ import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.polyglot.data.TypeGraph
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.Sha3_224VersionCalculator
 
@@ -47,6 +49,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
+
+  val typeGraph: TypeGraph = {
+    val graph = TypeGraph("Any")
+    graph.insert("Number", "Any")
+    graph.insert("Integer", "Number")
+    graph
+  }
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
@@ -146,6 +155,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     // initialize
+    runtimeConnectorProbe.receiveN(1)
+    suggestionsHandler ! Api.GetTypeGraphResponse(typeGraph)
     Await.ready(initializationComponent.init(), timeout)
 
     new JsonConnectionControllerFactory(

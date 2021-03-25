@@ -378,17 +378,25 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
         callsCache.setExecuted(nodeId);
       } else if (node instanceof ExpressionNode) {
+        boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
-        cache.offer(nodeId, result);
+
+        // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
+        // like imports, and the invalidation mechanism can not always track those changes and
+        // appropriately invalidate all dependent expressions.
+        if (!isPanic) {
+          cache.offer(nodeId, result);
+        }
         String cachedType = cache.putType(nodeId, resultType);
         FunctionCallInfo call = calls.get(nodeId);
         FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
-        var profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+
         onComputedCallback.accept(
             new ExpressionValue(
                 nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
-        if (result instanceof PanicSentinel) {
+        if (isPanic) {
           throw context.createUnwind(result);
         }
       }
@@ -411,7 +419,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        onReturnValue(context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(
+            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
       }

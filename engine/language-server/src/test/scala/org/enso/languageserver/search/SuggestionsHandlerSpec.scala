@@ -3,7 +3,6 @@ package org.enso.languageserver.search
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -17,7 +16,7 @@ import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
@@ -95,7 +94,10 @@ class SuggestionsHandlerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(4L, updates)
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              Suggestions.all.size.toLong,
+              updates
+            )
           )
         )
 
@@ -154,7 +156,7 @@ class SuggestionsHandlerSpec
           DeliverToJsonController(
             clientId,
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
-              8L,
+              Suggestions.all.size * 2L,
               updatesAdd ++ updatesRemove
             )
           )
@@ -343,6 +345,13 @@ class SuggestionsHandlerSpec
         )
         expectMsg(CapabilityAcquired)
 
+        val suggestions = Seq(
+          Suggestions.atom,
+          Suggestions.method,
+          Suggestions.function,
+          Suggestions.local
+        )
+
         val tree1 = Tree.Root(
           Vector(
             Tree.Node(
@@ -410,7 +419,7 @@ class SuggestionsHandlerSpec
           Tree.Root(Vector())
         )
 
-        val updates2 = Suggestions.all.zipWithIndex.map { case (_, ix) =>
+        val updates2 = suggestions.zipWithIndex.map { case (_, ix) =>
           SearchProtocol.SuggestionsDatabaseUpdate.Remove(ix + 1L)
         }
         router.expectMsg(
@@ -469,6 +478,15 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.InvalidateSuggestionsDatabase
 
         connector.expectMsgClass(classOf[Api.Request]) match {
+          case Api.Request(_, Api.GetTypeGraphRequest()) =>
+          case Api.Request(_, msg) =>
+            fail(s"Runtime connector receive unexpected message: $msg")
+        }
+        connector.reply(
+          Api.Response(Api.GetTypeGraphResponse(buildTestTypeGraph))
+        )
+
+        connector.expectMsgClass(classOf[Api.Request]) match {
           case Api.Request(_, Api.InvalidateModulesIndexRequest()) =>
           case Api.Request(_, msg) =>
             fail(s"Runtime connector receive unexpected message: $msg")
@@ -492,15 +510,21 @@ class SuggestionsHandlerSpec
 
         expectMsg(
           SearchProtocol.CompletionResult(
-            4L,
-            Seq(inserted(0).get, inserted(1).get)
+            7L,
+            Seq(
+              inserted(0).get,
+              inserted(6).get,
+              inserted(4).get,
+              inserted(5).get,
+              inserted(1).get
+            )
           )
         )
     }
 
     "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, methodId, _, _)) =
+        val (_, Seq(_, methodId, _, _, methodOnAnyId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -510,12 +534,54 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(methodId).flatten))
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            7L,
+            Seq(methodOnAnyId, methodId).flatten
+          )
+        )
+    }
+
+    "search entries based on supertypes of self" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val (_, Seq(_, _, _, _, anyMethodId, numberMethodId, integerMethodId)) =
+          Await.result(repo.insertAll(Suggestions.all), Timeout)
+
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(0, 0),
+          selfType   = Some("Integer"),
+          returnType = None,
+          tags       = None
+        )
+
+        expectMsg(
+          SearchProtocol.CompletionResult(
+            7L,
+            Seq(anyMethodId, integerMethodId, numberMethodId).flatten
+          )
+        )
+    }
+
+    "search entries for any" taggedAs Retry in withDb {
+      (config, repo, _, _, handler) =>
+        val (_, Seq(_, _, _, _, anyMethodId, _, _)) =
+          Await.result(repo.insertAll(Suggestions.all), Timeout)
+
+        handler ! SearchProtocol.Completion(
+          file       = mkModulePath(config, "Main.enso"),
+          position   = Position(0, 0),
+          selfType   = Some("Any"),
+          returnType = None,
+          tags       = None
+        )
+
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(anyMethodId).flatten))
     }
 
     "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, functionId, _)) =
+        val (_, Seq(_, _, functionId, _, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -525,12 +591,12 @@ class SuggestionsHandlerSpec
           tags       = None
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(functionId).flatten))
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(functionId).flatten))
     }
 
     "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
-        val (_, Seq(_, _, _, localId)) =
+        val (_, Seq(_, _, _, localId, _, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Main.enso"),
@@ -540,7 +606,7 @@ class SuggestionsHandlerSpec
           tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
         )
 
-        expectMsg(SearchProtocol.CompletionResult(4L, Seq(localId).flatten))
+        expectMsg(SearchProtocol.CompletionResult(7L, Seq(localId).flatten))
     }
   }
 
@@ -562,7 +628,16 @@ class SuggestionsHandlerSpec
         )
       )
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
+    handler ! Api.GetTypeGraphResponse(buildTestTypeGraph)
     handler
+  }
+
+  def buildTestTypeGraph: TypeGraph = {
+    val graph = TypeGraph("Any")
+    graph.insert("Number", "Any")
+    graph.insert("Integer", "Number")
+
+    graph
   }
 
   def newConfig(root: File): Config = {
