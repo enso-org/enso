@@ -38,7 +38,7 @@ object ResourcesInitialization {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),
       new RepoInitialization(eventStream, suggestionsRepo, versionsRepo),
-      new TruffleContextInitialization(truffleContext)
+      new TruffleContextInitialization(eventStream, truffleContext)
     )
     new SequentialResourcesInitialization(resources)
   }

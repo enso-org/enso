@@ -478,15 +478,6 @@ class SuggestionsHandlerSpec
         handler ! SearchProtocol.InvalidateSuggestionsDatabase
 
         connector.expectMsgClass(classOf[Api.Request]) match {
-          case Api.Request(_, Api.GetTypeGraphRequest()) =>
-          case Api.Request(_, msg) =>
-            fail(s"Runtime connector receive unexpected message: $msg")
-        }
-        connector.reply(
-          Api.Response(Api.GetTypeGraphResponse(buildTestTypeGraph))
-        )
-
-        connector.expectMsgClass(classOf[Api.Request]) match {
           case Api.Request(_, Api.InvalidateModulesIndexRequest()) =>
           case Api.Request(_, msg) =>
             fail(s"Runtime connector receive unexpected message: $msg")
@@ -628,7 +619,12 @@ class SuggestionsHandlerSpec
         )
       )
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
-    handler ! Api.GetTypeGraphResponse(buildTestTypeGraph)
+    handler ! InitializedEvent.TruffleContextInitialized
+    runtimeConnector.receiveN(1)
+    handler ! Api.Response(
+      UUID.randomUUID(),
+      Api.GetTypeGraphResponse(buildTestTypeGraph)
+    )
     handler
   }
 
