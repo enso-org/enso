@@ -1,5 +1,7 @@
 package org.enso.languageserver.search
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -98,10 +100,8 @@ final class SuggestionsHandler(
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
-
-    runtimeConnector
-      .ask(Api.Request(Api.GetTypeGraphRequest()))(timeout, self)
-      .pipeTo(self)
+    context.system.eventStream
+      .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
     config.contentRoots.foreach { case (_, contentRoot) =>
       PackageManager.Default
@@ -119,16 +119,26 @@ final class SuggestionsHandler(
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
+
     case ProjectNameUpdated(name) =>
       tryInitialize(init.copy(project = Some(name)))
+
     case InitializedEvent.SuggestionsRepoInitialized =>
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
         )
       )
-    case Api.GetTypeGraphResponse(g) =>
+
+    case InitializedEvent.TruffleContextInitialized =>
+      val requestId = UUID.randomUUID()
+      runtimeConnector
+        .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
+        .pipeTo(self)
+
+    case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
       tryInitialize(init.copy(typeGraph = Some(g)))
+
     case _ => stash()
   }
 
