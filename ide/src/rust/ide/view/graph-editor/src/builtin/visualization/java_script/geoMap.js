@@ -108,9 +108,13 @@ class GeoMapVisualization extends Visualization {
         this.setPreprocessorCode(`
                 df -> case df of
                     Table.Table _ ->
-                        columns = df.select ['label', 'latitude', 'longitude'] . columns
-                        serialized = columns.map (c -> ['df_' + c.name, c.to_vector])
-                        Json.from_pairs serialized . to_text
+                        names = ['label', 'latitude', 'longitude']
+                        look_for name = 
+                            is_matching column = column.name.equals_ignore_case name
+                            ["df_" + name, df.columns.find is_matching . to_vector]
+                        valid_column pair = pair.at 1 . is_error . not
+                        pairs = names.map look_for . filter valid_column
+                        Json.from_pairs pairs . to_text
                     _ -> df . to_json . to_text
             `)
     }
