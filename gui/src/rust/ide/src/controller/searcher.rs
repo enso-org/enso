@@ -5,10 +5,12 @@ use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
+
 use crate::double_representation::graph::GraphInfo;
 use crate::double_representation::graph::LocationHint;
 use crate::double_representation::module::QualifiedName;
 use crate::double_representation::node::NodeInfo;
+use crate::double_representation::tp;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
@@ -33,6 +35,9 @@ pub use action::Action;
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES:bool = true;
 
+/// The special module used for mock `Enso_Project.data` entry.
+/// See also [`Searcher::add_enso_project_entries`].
+const ENSO_PROJECT_SPECIAL_MODULE:&str = "Standard.Base.Enso_Project";
 
 
 // ==============
@@ -734,12 +739,15 @@ impl Searcher {
 
 
     fn add_required_imports(&self) -> FallibleResult {
-        let data_borrowed = self.data.borrow();
-        let fragments     = data_borrowed.fragments_added_by_picking.iter();
-        let imports       = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
-        let mut module    = self.module();
-        let here          = self.module_qualified_name();
-        for mut import in imports {
+        let data_borrowed        = self.data.borrow();
+        let fragments            = data_borrowed.fragments_added_by_picking.iter();
+        let imports              = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
+        let mut module           = self.module();
+        let here                 = self.module_qualified_name();
+        // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
+        //     documentation.
+        let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
+        for mut import in without_enso_project {
             import.remove_main_module_segment();
             module.add_module_import(&here, &self.parser, &import);
         }
@@ -836,6 +844,7 @@ impl Searcher {
         let actions = action::List::new();
         if matches!(self.mode.deref(), Mode::NewNode{..}) && self.this_arg.is_none() {
             actions.extend(self.database.iterate_examples().map(Action::Example));
+            Self::add_enso_project_entries(&actions)?;
         }
         for response in completion_responses {
             let response = response?;
@@ -929,6 +938,27 @@ impl Searcher {
     /// Get the user action basing of current input (see `UserAction` docs).
     pub fn current_user_action(&self) -> UserAction {
         self.data.borrow().input.user_action()
+    }
+
+    /// Add to the action list the special mocked entry of `Enso_Project.data`.
+    ///
+    /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
+    //TODO[ao] this is a temporary workaround.
+    fn add_enso_project_entries(actions:&action::List) -> FallibleResult {
+        for method in &["data", "root"] {
+            let entry = model::suggestion_database::Entry {
+                name          : (*method).to_owned(),
+                kind          : model::suggestion_database::entry::Kind::Method,
+                module        : QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
+                arguments     : vec![],
+                return_type   : "Standard.Base.System.File.File".to_owned(),
+                documentation : None,
+                self_type     : Some(tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?),
+                scope         : model::suggestion_database::entry::Scope::Everywhere,
+            };
+            actions.extend(std::iter::once(Action::Suggestion(Rc::new(entry))));
+        }
+        Ok(())
     }
 }
 
@@ -1378,8 +1408,10 @@ pub mod test {
         searcher.reload_list();
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
-        let expected_list = vec![Action::Suggestion(entry1), Action::Suggestion(entry9)];
-        assert_eq!(searcher.actions().list().unwrap().to_action_vec(), expected_list);
+        let list = searcher.actions().list().unwrap().to_action_vec();
+        assert_eq!(list.len(), 4); // we include two mocked entries
+        assert_eq!(list[2], Action::Suggestion(entry1));
+        assert_eq!(list[3], Action::Suggestion(entry9));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
     }
