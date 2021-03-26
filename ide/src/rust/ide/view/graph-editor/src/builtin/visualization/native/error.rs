@@ -40,7 +40,7 @@ x ->
 "#;
 
 /// The context module for the `PREPROCESSOR_CODE`. See there.
-pub const PREPROCESSOR_MODULE:&str = "Base.Main";
+pub const PREPROCESSOR_MODULE:&str = "Standard.Base";
 
 /// Get preprocessor configuration for error visualization.
 pub fn preprocessor() -> instance::PreprocessorConfiguration {
