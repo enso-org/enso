@@ -65,24 +65,6 @@ function makeGenerator() {
 
 const makeId = makeGenerator()
 
-/**
- * Custom Map Controller, enabling us to redefine mouse gestures.
- * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
- */
-class MapController extends deck.MapController {
-    handleEvent(event) {
-        if (event.type === 'wheel') {
-            if (!event.srcEvent.ctrlKey) {
-                super.handleEvent(event)
-            } else {
-                super.handleEvent(event)
-            }
-        } else {
-            super.handleEvent(event)
-        }
-    }
-}
-
 // ============================
 // === MapViewVisualization ===
 // ============================
@@ -110,6 +92,8 @@ class MapController extends deck.MapController {
  * }
  *
  * Can also consume a dataframe that has the columns `latitude`, `longitude` and optionally `label`.
+ *
+ * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
  */
 class GeoMapVisualization extends Visualization {
     static inputType = 'Any'
@@ -195,7 +179,7 @@ class GeoMapVisualization extends Visualization {
         this.zoom = ok(data.zoom) ? data.zoom : DEFAULT_MAP_ZOOM
         this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
         this.pitch = ok(data.pitch) ? data.pitch : 0
-        this.controller = ok(data.controller) ? data.controller : { type: MapController }
+        this.controller = ok(data.controller) ? data.controller : true
         this.showingLabels = ok(data.showingLabels) ? data.showingLabels : false
         return true
     }

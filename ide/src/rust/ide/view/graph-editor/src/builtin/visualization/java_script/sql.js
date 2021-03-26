@@ -101,7 +101,7 @@ class SqlVisualization extends Visualization {
 
         let visHtml = visualizationStyle
         if (parsedData.error !== undefined) {
-            visHtml += parsedData.error
+            visHtml += '<pre class="sql">' + parsedData.error + '</pre>'
         } else {
             const params = parsedData.interpolations.map(param =>
                 renderInterpolationParameter(this.theme, param)
