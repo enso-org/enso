@@ -69,6 +69,9 @@
   example, having selected node with Table output and adding a new node with
   expression `at "x" == "y"` the selected node was applied to the right side of
   `==`: `at "x" == operator1."y"` instead of `operator1.at "x" == "y"`.
+- [Geo Map visualization recognizes columns regardless of their name letter
+  case][1392]. This allows visualizing tables with columns like `LONGITUDE` or
+  `Longitude`, where previously only `longitude` was recognized.
 
 #### EnsoGL (rendering engine)
 
@@ -94,6 +97,7 @@ you can find their release notes
 [1348]: https://github.com/enso-org/ide/pull/1348
 [1353]: https://github.com/enso-org/ide/pull/1353
 [1385]: https://github.com/enso-org/ide/pull/1385
+[1392]: https://github.com/enso-org/ide/pull/1392
 
 <br/>
 
