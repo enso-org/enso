@@ -16,6 +16,7 @@ import org.enso.languageserver.boot.resource.{
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -155,8 +156,12 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     // initialize
+    suggestionsHandler ! InitializedEvent.TruffleContextInitialized
     runtimeConnectorProbe.receiveN(1)
-    suggestionsHandler ! Api.GetTypeGraphResponse(typeGraph)
+    suggestionsHandler ! Api.Response(
+      UUID.randomUUID(),
+      Api.GetTypeGraphResponse(typeGraph)
+    )
     Await.ready(initializationComponent.init(), timeout)
 
     new JsonConnectionControllerFactory(
