@@ -296,13 +296,25 @@ type File
 new : Text -> File
 new path = File (Prim_Io.get_file path)
 
-## Open and read the file at `path`.
+## Open and read the file at the provided `path`.
+
+   Arguments:
+   - `path`: The path of the file to open and read the contents of. It will
+     accept a textual path or a file.
+
+   ? Module or Instance?
+     If you have a variable `file` of type `File`, we recommend calling the
+     `.read` method on it directly, rather than using `File.read file`. The
+     latter, however, will work.
 
    > Example
-     Read the `data.csv` file in the project directory.
-         File.read (Enso_Project.data / "data.csv")
-read : Text -> Text
-read path = (here.new path).read
+     Read the `data.csv` file in the project directory's `data` directory. You
+     will need to create the file `data.csv` manually in that directory.
+         File.read (Enso_Project.data / "data.csv").path
+read : (Text | File) -> Text
+read path = .read <| case path of
+    Text -> (here.new path)
+    File _ -> path
 
 ## Returns the current working directory (CWD) of the current program.
 current_directory : File
