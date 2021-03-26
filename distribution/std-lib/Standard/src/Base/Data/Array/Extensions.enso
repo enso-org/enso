@@ -2,7 +2,11 @@ from Standard.Base import all
 
 ## Transform the array into text for displaying as part of its default
    visualization.
+
+   > Example
+     Converting an array to its default visualization representation.
+         [1, 2, 3, 4].to_array.to_default_visualization_data
 Array.to_default_visualization_data : Text
-Array.to_default_visualization_data = 
+Array.to_default_visualization_data =
     Vector.Vector this . to_default_visualization_data
 

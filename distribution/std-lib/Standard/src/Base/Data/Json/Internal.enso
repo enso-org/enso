@@ -5,7 +5,9 @@ from Standard.Base.Data.Json import all
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
 
-## A JSON parser event consumer, passed to the Java parser backend.
+## PRIVATE
+
+   A JSON parser event consumer, passed to the Java parser backend.
 
    Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
 type Consumer
