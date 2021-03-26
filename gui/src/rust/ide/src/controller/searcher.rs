@@ -965,13 +965,13 @@ fn apply_this_argument(this_var:&str, ast:&Ast) -> Ast {
             opr: opr.into()
         };
         Ast::new(shape,None)
-    } else if let Some(mut infix_chain) = ast::opr::Chain::try_new(ast) {
-        if let Some(ref mut target) = &mut infix_chain.target {
-             target.arg = apply_this_argument(this_var,&target.arg);
+    } else if let Some(mut infix) = ast::opr::GeneralizedInfix::try_new(ast) {
+        if let Some(ref mut larg) = &mut infix.left {
+             larg.arg = apply_this_argument(this_var,&larg.arg);
         } else {
-            infix_chain.target = Some(ast::opr::ArgWithOffset {arg:Ast::var(this_var), offset:1});
+            infix.left = Some(ast::opr::ArgWithOffset {arg:Ast::var(this_var), offset:1});
         }
-        infix_chain.into_ast()
+        infix.into_ast()
     } else if let Some(mut prefix_chain) = ast::prefix::Chain::from_ast(ast) {
         prefix_chain.func = apply_this_argument(this_var, &prefix_chain.func);
         prefix_chain.into_ast()
@@ -1537,6 +1537,7 @@ pub mod test {
             , Case::new("+ 2 - 3", "foo + 2 - 3")
             , Case::new("+ bar baz", "foo + bar baz")
             , Case::new("map x-> x.characters.length", "foo.map x-> x.characters.length")
+            , Case::new("at 3 == y", "foo.at 3 == y")
             ];
 
         for case in &cases { case.run(); }
