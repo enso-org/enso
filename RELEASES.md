@@ -1,3 +1,30 @@
+# Enso 0.2.9 (2021-03-26)
+
+## Tooling
+
+- Fixed an issue where a panic would be improperly cached, resulting in no
+  updates being sent to the IDE
+  ([#1611](https://github.com/enso-org/enso/pull/1611)).
+- Added a feature to provide searcher suggestions for types compatible with the
+  type of `this` ([#1613](https://github.com/enso-org/enso/pull/1613)).
+
+## Libraries
+
+- Added a prototype of a library for working with images
+  ([#1450](https://github.com/enso-org/enso/pull/1450)).
+- Added histogram and scatter-plot visualisation support for the `Table` library
+  ([#1608](https://github.com/enso-org/enso/pull/1608)).
+- Fixed a bug in the implementation of `join` in the database library where it
+  would join on the wrong table when doing a multiple-join
+  ([#1614](https://github.com/enso-org/enso/pull/1614)).
+- Fixed an outdated example for the `File.read` function.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-26)
+  for issues opened before the release date.
+
 # Enso 0.2.8 (2021-03-19)
 
 ## Interpreter/Runtime
