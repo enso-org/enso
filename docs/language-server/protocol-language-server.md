@@ -3232,6 +3232,9 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 #### Result
 
+The identifiers in `results` are guaranteed to be ordered by the specificity of
+the type match.
+
 ```typescript
 {
   results: [SuggestionId];

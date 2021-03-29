@@ -34,11 +34,13 @@ trait SuggestionsRepo[F[_]] {
   /** Search suggestion by various parameters.
     *
     * @param module the module name search parameter
-    * @param selfType the self types to search for
+    * @param selfType the self types to search for, ordered by specificity with
+    *                 the most specific type first
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
-    * @return the current database version and the list of found suggestion ids
+    * @return the current database version and the list of found suggestion ids,
+    *         ranked by specificity
     */
   def search(
     module: Option[String],
