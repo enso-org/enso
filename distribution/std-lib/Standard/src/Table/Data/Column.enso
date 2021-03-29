@@ -238,7 +238,7 @@ type Column
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at index =
         valid_index = (index >= 0) && (index < this.length)
-        if valid_index.not then Error.Throw (Index_Out_Of_Bounds_Error index this.length) else
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
             storage = this.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
@@ -591,7 +591,7 @@ get_item_string column ix =
     if tp == Storage_Type_String then column.getItem ix else
         column.getItem ix . to_text
 
-## A type representing an out-of-bounds index in a column.
+## A type representing an error for an out-of-bounds index in a column.
 type Index_Out_Of_Bounds_Error index length
 
 ## Pretty-prints the index out of bounds error.
