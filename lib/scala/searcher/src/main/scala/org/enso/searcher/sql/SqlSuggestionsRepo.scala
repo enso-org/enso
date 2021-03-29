@@ -244,6 +244,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       }
     val query = for {
       resultsWithTypes <- searchAction
+      // This implementation should be revisited if it ever becomes a
+      // performance bottleneck. It may be possible to encode the same logic in
+      // the database query itself.
       results = resultsWithTypes
         .sortBy { case (_, ty) => typeSorterMap.getOrElse(ty, -1) }
         .map(_._1)
