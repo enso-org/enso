@@ -3,8 +3,6 @@ package org.enso.polyglot.data
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.immutable.ListSet
-
 class TypeGraphTest extends AnyWordSpec with Matchers {
 
   "The type graph" should {
@@ -21,13 +19,13 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getDirectParents("Builtins.Main.Decimal") shouldEqual ListSet(
+      graph.getDirectParents("Builtins.Main.Decimal") shouldEqual Set(
         "Builtins.Main.Number"
       )
-      graph.getDirectParents("Builtins.Main.Integer") shouldEqual ListSet(
+      graph.getDirectParents("Builtins.Main.Integer") shouldEqual Set(
         "Builtins.Main.Number"
       )
-      graph.getDirectParents("Builtins.Main.Number") shouldEqual ListSet(
+      graph.getDirectParents("Builtins.Main.Number") shouldEqual Set(
         "Builtins.Main.Any"
       )
       graph.getDirectParents("Builtins.Main.Any") shouldBe empty

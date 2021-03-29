@@ -257,7 +257,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to select the suggestion by id.
     *
-    * @param id the id of a uggestion
+    * @param id the id of a suggestion
     * @return return the suggestion
     */
   private def selectQuery(id: Long): DBIO[Option[Suggestion]] = {
