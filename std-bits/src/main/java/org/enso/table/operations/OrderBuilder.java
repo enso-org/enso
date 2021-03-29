@@ -1,12 +1,11 @@
 package org.enso.table.operations;
 
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.mask.OrderMask;
-import org.enso.table.data.table.Column;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.mask.OrderMask;
+import org.enso.table.data.table.Column;
 
 /** Builds an order mask resulting in sorting storages according to specified rules. */
 public class OrderBuilder {
@@ -80,8 +79,7 @@ public class OrderBuilder {
    *     used instead.
    * @param fallbackComparator a comparator that should be used for columns that do not define a
    *     natural ordering.
-   * @return and order mask that will result in sorting any storage according to the specified
-   *     rules.
+   * @return an order mask that will result in sorting any storage according to the specified rules.
    */
   public static OrderMask buildOrderMask(
       List<OrderRule> rules, Comparator<Object> fallbackComparator) {
@@ -94,6 +92,17 @@ public class OrderBuilder {
 
     int[] positions =
         IntStream.range(0, size).boxed().sorted(comparator).mapToInt(i -> i).toArray();
+    return new OrderMask(positions);
+  }
+
+  /**
+   * Builds an order mask based that will reverse the order of the data being masked.
+   *
+   * @param size the size of the data being masked
+   * @return an order mask that will result in reversing the data it is applied to
+   */
+  public static OrderMask buildReversedMask(int size) {
+    int[] positions = IntStream.range(0, size).map(i -> size - i - 1).toArray();
     return new OrderMask(positions);
   }
 }
