@@ -237,8 +237,7 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      val selfTypes =
-        selfType.toList.flatMap(ty => (graph.getParents(ty) + ty).toSeq)
+      val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       getModuleName(projectName, path)
         .fold(
           Future.successful,

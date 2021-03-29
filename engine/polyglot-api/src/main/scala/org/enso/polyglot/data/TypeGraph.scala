@@ -64,20 +64,24 @@ case class TypeGraph(
 
   /** Get all of the parents (transitively) of the provided typename.
     *
+    * The resultant types are ordered by specificity, with the more specific
+    * types coming before the less specific types.
+    *
     * @param typeName the fully-qualified type name for which to get the parents
-    * @return all parents of `typeName`
+    * @return all parents of `typeName`, ordered by specificity
     */
   @JsonIgnore
-  def getParents(typeName: String): Set[String] = {
+  def getParents(typeName: String): List[String] = {
     var seenNodes: Set[String] = Set()
 
-    val parents = getDirectParents(typeName)
-    parents ++ parents.flatMap(parent => {
+    val parents = List.from(getDirectParents(typeName))
+    val recur = parents ++ parents.flatMap(parent => {
       if (!seenNodes.contains(parent)) {
         seenNodes += parent
         getParents(parent)
       } else { Set() }
     })
+    recur.distinct
   }
 }
 object TypeGraph {
