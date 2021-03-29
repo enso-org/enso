@@ -3,7 +3,7 @@ from Standard.Base import all
 ## Checks if `this` is equal to `that.`
 
    Arguments:
-   - that: The object to compare `this` against.
+   - that: The object to compare `this` with.
 
    Two values are considered to be equal in Enso when they obey the following
    recursive properties:
@@ -12,10 +12,10 @@ from Standard.Base import all
      corresponding field in `that`.
 
    ! Implementing Your Own Equality
-     Equality in Enso is defined to allow comparison of any two values, no
-     matter if they are not directly comparable. When implementing equality for
-     your own types, keep in mind that it needs to work with any Enso value as
-     the `that` argument.
+     Equality in Enso is defined to allow comparison of any two values
+     (universal equality), no matter if they are not directly comparable. When
+     implementing equality for your own types, keep in mind that it needs to
+     work with any Enso value as the `that` argument.
 
    ? Generic Equality and Performance
      While the generic equality provided here will work for _all_ values in
@@ -57,11 +57,12 @@ Any.== that = if Meta.is_same_object this that then True else
    - The value of each field in `this` is equal (by this definition) to the
      corresponding field in `that`.
 
-   Values that are not equal do not satisfy these properties.
+   Values that are _not_ equal fail to satisfy one or more of these properties.
 
    ! Implementing Your Own Inequality
      We recommend that you do not implement your own inequality, instead relying
-     on the default definition.
+     on the default definition given here. If you do, please ensure that you
+     satisfy universal equality, as described in the documentation for `Any.==`.
 
    > Example
      Checking if 1 is not equal to 2.
@@ -105,8 +106,8 @@ Any.is_nothing = case this of
     Nothing -> True
     _ -> False
 
-## Executes the provided handler on a dataflow error, or forwards a non
-   error-value unchanged.
+## Executes the provided handler on a dataflow error, or forwards a non-error
+   value unchanged.
 
    Arguments:
    - handler: The function to call on this if it is an error value. By default
@@ -121,7 +122,7 @@ Any.catch (handler = x->x) = this.catch_primitive handler
 ## Transforms a dataflow error.
 
    Arguments:
-   - f: The function to transform the error.
+   - f: The function used to transform the error.
 
    If `this` is a non-error value it is returned unchanged. However, if `this`
    is an error, the error is transformed using the provided function
