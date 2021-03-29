@@ -3,6 +3,8 @@ package org.enso.polyglot.data
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.collection.immutable.ListSet
+
 class TypeGraphTest extends AnyWordSpec with Matchers {
 
   "The type graph" should {
@@ -19,13 +21,13 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getDirectParents("Builtins.Main.Decimal") shouldEqual Set(
+      graph.getDirectParents("Builtins.Main.Decimal") shouldEqual ListSet(
         "Builtins.Main.Number"
       )
-      graph.getDirectParents("Builtins.Main.Integer") shouldEqual Set(
+      graph.getDirectParents("Builtins.Main.Integer") shouldEqual ListSet(
         "Builtins.Main.Number"
       )
-      graph.getDirectParents("Builtins.Main.Number") shouldEqual Set(
+      graph.getDirectParents("Builtins.Main.Number") shouldEqual ListSet(
         "Builtins.Main.Any"
       )
       graph.getDirectParents("Builtins.Main.Any") shouldBe empty
@@ -37,15 +39,15 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getParents("Builtins.Main.Any") shouldEqual Set()
-      graph.getParents("Builtins.Main.Number") shouldEqual Set(
+      graph.getParents("Builtins.Main.Any") shouldEqual List()
+      graph.getParents("Builtins.Main.Number") shouldEqual List(
         "Builtins.Main.Any"
       )
-      graph.getParents("Builtins.Main.Integer") shouldEqual Set(
+      graph.getParents("Builtins.Main.Integer") shouldEqual List(
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
-      graph.getParents("Builtins.Main.Decimal") shouldEqual Set(
+      graph.getParents("Builtins.Main.Decimal") shouldEqual List(
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
@@ -57,8 +59,8 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getParents("My_User_Type") shouldEqual Set("Builtins.Main.Any")
-      graph.getParents("Standard.Base.Vector") shouldEqual Set(
+      graph.getParents("My_User_Type") shouldEqual List("Builtins.Main.Any")
+      graph.getParents("Standard.Base.Vector") shouldEqual List(
         "Builtins.Main.Any"
       )
     }
