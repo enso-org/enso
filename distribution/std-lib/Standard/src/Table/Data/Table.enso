@@ -81,7 +81,13 @@ type Table
 
     ## Selects only the rows of this table that correspond to `True` values in
        `indexes`.
+
        This is useful for filtering the rows by given predicate.
+
+       Arguments:
+       - indexes: The column to mask the table by. This column should contain
+         boolean values (`True` or `False`) that determine whether or not the
+         corresponding row is kept.
 
        > Example
          Select only the rows of `my_table` where the `"Status"` column has the
@@ -110,8 +116,10 @@ type Table
     set_index index =
         Table (this.java_table.indexFromColumn index)
 
-    ## Returns the index of this table, as a column (indexed by itself).
-       Throws `No_Index_Set_Error` if there is no index set.
+    ## Returns the index of this table, as a column that is indexed by itself.
+
+       Throws `No_Index_Set_Error` if there is no index set in the table it is
+       being called on.
     index : Column.Column ! No_Index_Set_Error
     index = case this.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
@@ -165,9 +173,13 @@ type Table
         index = this.java_table.getIndex
         Table (Java_Table.new (non_missing.map .java_column . to_array) index)
 
-    ## Returns the amount of rows in this table.
+    ## Returns the number of rows in this table.
     row_count : Integer
     row_count = this.java_table.rowCount
+
+    ## Returns the number of rows in this table.
+    length : Integer
+    length = this.row_count
 
     ## Returns a Table describing this table's contents.
 
@@ -181,7 +193,9 @@ type Table
     ## Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
 
-       If the `by` argument is not set, the index is used for grouping instead.
+       Arguments:
+       - by: The column in the table to perform grouping by. If this argument
+         is not set, the index is used for grouping instead.
 
        > Example
          Creates a simple table and computes aggregation statistics:
@@ -311,10 +325,69 @@ type Table
 
     ## UNSTABLE
 
-       Returns a table truncated to at most `max_rows` rows.
+       Returns a table containing the first `count` elements in this table.
+
+       Arguments:
+       - count: The number of elements to take from the start of this table.
+
+       If `this` has a number of rows in it less than `count`, the entire table
+       will be returned.
     take_start : Integer -> Table
-    take_start max_rows =
-        Table (this.java_table.slice 0 max_rows)
+    take_start count = Table (this.java_table.slice 0 count)
+
+    ## UNSTABLE
+
+       Returns a table containing the last `count` elements in this table.
+
+       Arguments:
+       - count: The number of elements to take from the end of this table.
+
+       If `this` has a number of rows in it less than `count`, the entire table
+       will be returned.
+    take_end : Integer -> Table
+    take_end count =
+        start_point = Math.max (this.row_count - count) 0
+        Table (this.java_table.slice start_point count)
+
+    ## UNSTABLE
+
+       Returns the first row in the table, if it exists.
+
+       If the table is empty, this method will return a dataflow error
+       containing `Nothing`.
+    first : Table ! Nothing
+    first =
+        table = this.take_start 1
+        if table.row_count != 1 then Error.throw Nothing else table
+
+    ## UNSTABLE
+
+       Returns the first row in the table, if it exists.
+
+       If the table is empty, this method will return a dataflow error
+       containing `Nothing`.
+    head : Table ! Nothing
+    head = this.first
+
+    ## UNSTABLE
+
+       Returns the last row in the table, if it exists.
+
+       If the table is empty, this method will return a dataflow error
+       containing `Nothing`.
+    last : Table ! Nothing
+    last =
+        table = this.take_end 1
+        if table.row_count != 1 then Error.throw Nothing else table
+
+    ## UNSTABLE
+
+       Returns a table containing the rows of `this` table with their order
+       reversed.
+    reverse : Table
+    reverse =
+        mask = OrderBuilder.buildReversedMask this.row_count
+        Table <| this.java_table.applyMask mask
 
 ## PRIVATE
 comparator_to_java cmp x y = cmp x y . to_sign
@@ -332,7 +405,8 @@ type Aggregate_Table
     values : Table
     values = this.columns . map (_.values name_suffix='') . reduce .join
 
-    ## Returns a column containing the number of elements in each group.
+    ## Returns a column containing the number of elements in each group of the
+       aggregate table.
     count : Column
     count = Column.Column this.java_table.count
 

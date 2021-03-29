@@ -1,0 +1,48 @@
+from Standard.Base import all
+from Standard.Table import all
+
+import Standard.Table.Data.Column
+import Standard.Test
+
+spec = Test.group "Columns" <|
+    test_column = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+    empty_column = Column.from_vector "Test" []
+
+    Test.specify "should allow getting specific elements" <|
+        test_column.at 0 . should_equal 1
+        test_column.at 2 . should_equal 5
+        test_column.at 5 . should_equal 6
+        test_column.at 6 . should_fail_with Column.Index_Out_Of_Bounds_Error
+        empty_column.at 0 . should_fail_with Column.Index_Out_Of_Bounds_Error
+
+    Test.specify "should be able to take the first n elements" <|
+        expected_1 = Column.from_vector "Test" [1, 3, 5]
+        expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+        expected_3 = Column.from_vector "Test" []
+        test_column.take_start 3 . to_vector . should_equal expected_1.to_vector
+        test_column.take_start 7 . to_vector . should_equal expected_2.to_vector
+        test_column.take_start 0 . to_vector . should_equal expected_3.to_vector
+
+    Test.specify "should be able to take the last n elements" <|
+        expected_1 = Column.from_vector "Test" [2, 4, 6]
+        expected_2 = Column.from_vector "Test" [1, 3, 5, 2, 4, 6]
+        expected_3 = Column.from_vector "Test" []
+        test_column.take_end 3 . to_vector . should_equal expected_1.to_vector
+        test_column.take_end 7 . to_vector . should_equal expected_2.to_vector
+        test_column.take_end 0 . to_vector . should_equal expected_3.to_vector
+
+    Test.specify "should be able to get the first / head element" <|
+        test_column.first . should_equal 1
+        test_column.head . should_equal 1
+        empty_column.first.should_fail_with Nothing
+        empty_column.head.should_fail_with Nothing
+
+    Test.specify "should be able to get the last element" <|
+        test_column.last . should_equal 6
+        empty_column.last.should_fail_with Nothing
+
+    Test.specify "should be able to be reversed" <|
+        expected_1 = Column.from_vector "Test" [6, 4, 2, 5, 3, 1]
+        test_column.reverse.to_vector . should_equal expected_1.to_vector
+        empty_column.reverse.to_vector . should_equal empty_column.to_vector
+
