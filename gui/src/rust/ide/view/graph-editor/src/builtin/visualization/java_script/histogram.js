@@ -17,7 +17,7 @@ const ANIMATION_DURATION = 1000
 const LINEAR_SCALE = 'linear'
 const LIGHT_PLOT_COLOR = '#00E890'
 const DARK_PLOT_COLOR = '#E0A63B'
-const DEFAULT_NUMBER_OF_BINS = 10
+const DEFAULT_NUMBER_OF_BINS = 50
 const BUTTON_HEIGHT = 25
 
 /**
@@ -41,6 +41,11 @@ const BUTTON_HEIGHT = 25
 class Histogram extends Visualization {
     static inputType = 'Any'
     static label = 'Histogram'
+
+    constructor(data) {
+        super(data)
+        this.setPreprocessor('here.process_to_json_text', 'Standard.Visualization.Histogram')
+    }
 
     onDataReceived(data) {
         const { parsedData, isUpdate } = this.parseData(data)
@@ -67,7 +72,7 @@ class Histogram extends Visualization {
         } else {
             parsedData = data
         }
-        const isUpdate = parsedData.update === 'diff'
+        const isUpdate = parsedData?.update === 'diff'
         return { parsedData, isUpdate }
     }
 
@@ -84,26 +89,27 @@ class Histogram extends Visualization {
      */
     updateState(data, isUpdate) {
         if (isUpdate) {
-            this._axisSpec = ok(data.axis) ? data.axis : this._axisSpec
-            this._focus = ok(data.focus) ? data.focus : this._focus
-            this._dataValues = ok(data.data.values) ? data.data.values : this.data
-            this._bins = ok(data.bins) ? data.bins : this._bins
+            this._axisSpec = data.axis ?? this._axisSpec
+            this._focus = data.focus ?? this._focus
+            this._dataValues = this.extractValues(data.data.values ?? this.data)
+            this._bins = data.bins ?? this._bins
         } else {
             this._axisSpec = data.axis
             this._focus = data.focus
             this._dataValues = this.extractValues(data)
             this._bins = data.bins
         }
+
+        this._dataValues = this._dataValues.filter(value => isValidNumber(value))
     }
 
     extractValues(rawData) {
         /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
-        if (ok(rawData.data)) {
-            return rawData.data.values
-        } else if (Array.isArray(rawData)) {
+        if (Array.isArray(rawData)) {
             return rawData
+        } else {
+            return rawData.data.values ?? []
         }
-        return []
     }
 
     /**
@@ -118,7 +124,7 @@ class Histogram extends Visualization {
      */
     axisSpec() {
         return (
-            this._axisSpec || {
+            this._axisSpec ?? {
                 x: { scale: LINEAR_SCALE },
                 y: { scale: LINEAR_SCALE },
             }
@@ -129,18 +135,14 @@ class Histogram extends Visualization {
      * Return vales to plot.
      */
     data() {
-        return this._dataValues || {}
+        return this._dataValues ?? {}
     }
 
     /**
      * Return the number of bins to use for the histogram.
      */
     binCount() {
-        if (!ok(this._bins)) {
-            return DEFAULT_NUMBER_OF_BINS
-        } else {
-            return Math.max(1, self._bins)
-        }
+        return Math.max(1, self._bins ?? DEFAULT_NUMBER_OF_BINS)
     }
 
     /**
@@ -432,10 +434,7 @@ class Histogram extends Visualization {
      */
     rescale(scale, withAnimation) {
         const duration = withAnimation ? ANIMATION_DURATION : 0.0
-        this.xAxis
-            .transition()
-            .duration(duration)
-            .call(d3.axisBottom(scale.x).ticks(this.binCount()))
+        this.xAxis.transition().duration(duration).call(d3.axisBottom(scale.x))
         this.yAxis.transition().duration(duration).call(d3.axisLeft(scale.y))
         this.plot
             .selectAll('rect')
@@ -545,14 +544,14 @@ class Histogram extends Visualization {
         const canvas = this.canvas
 
         const fontStyle = '10px DejaVuSansMonoBook'
-        if (axis.x.label !== undefined) {
+        if (axis?.x?.label !== undefined) {
             this.xAxisLabel
                 .attr('y', canvas.inner.height + canvas.margin.bottom - X_AXIS_LABEL_WIDTH / 2.0)
                 .attr('x', canvas.inner.width / 2.0 + this.textWidth(axis.x.label, fontStyle) / 2)
                 .text(axis.x.label)
         }
         // Note: y axis is rotated by 90 degrees, so x/y is switched.
-        if (axis.y.label !== undefined) {
+        if (axis?.y?.label !== undefined) {
             this.yAxisLabel
                 .attr('y', -canvas.margin.left + Y_AXIS_LABEL_WIDTH)
                 .attr('x', -canvas.inner.height / 2 + this.textWidth(axis.y.label, fontStyle) / 2)
@@ -581,8 +580,8 @@ class Histogram extends Visualization {
      */
     extremesAndDeltas() {
         const dataPoints = this.data()
-        let xMin = dataPoints[0]
-        let xMax = dataPoints[0]
+        let xMin = dataPoints[0] ?? 0
+        let xMax = dataPoints[0] ?? 0
 
         dataPoints.forEach(value => {
             if (value < xMin) {
@@ -604,34 +603,15 @@ class Histogram extends Visualization {
      */
     margins() {
         const axis = this.axisSpec()
-        const noXAxis = axis.x.label === undefined
-        const noYAxis = axis.y.label === undefined
+        const noXAxis = axis?.x?.label === undefined
+        const noYAxis = axis?.y?.label === undefined
 
         const top = MARGIN / 2.0
         const right = MARGIN / 2.0
-        if (noXAxis && noYAxis) {
-            return { top, right, bottom: MARGIN, left: MARGIN }
-        } else if (noYAxis) {
-            return {
-                top,
-                right,
-                bottom: MARGIN + X_AXIS_LABEL_WIDTH,
-                left: MARGIN,
-            }
-        } else if (noXAxis) {
-            return {
-                top,
-                right,
-                bottom: MARGIN,
-                left: MARGIN + Y_AXIS_LABEL_WIDTH,
-            }
-        }
-        return {
-            top,
-            right,
-            bottom: MARGIN + X_AXIS_LABEL_WIDTH,
-            left: MARGIN + Y_AXIS_LABEL_WIDTH,
-        }
+        const bottom = MARGIN + (noXAxis ? 0 : X_AXIS_LABEL_WIDTH)
+        const left = MARGIN + (noYAxis ? 0 : Y_AXIS_LABEL_WIDTH)
+
+        return { top, right, bottom, left }
     }
 
     /**
