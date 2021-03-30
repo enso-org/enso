@@ -15,7 +15,7 @@ spec =
                 { "type": "Feature", "properties": { "Prop1": 1, "Prop3": 3}, "geometry": { "type": "Point", "coordinates": [ 10.11, 4.88, 19 ] } }
               ]
             }
-        Test.specify "should be created from GeoJSON document" <|
+        Test.specify "should be created from a GeoJSON document" <|
             geo_table = geo_json.to_table
             geo_table.is_a Table.Table . should_be_true
             geo_table.at "Prop1" . to_vector . should_equal [1, 1]
@@ -26,7 +26,18 @@ spec =
             geo_table.at "elevation" . to_vector . should_equal [Nothing, 19]
             geo_table.at "Prop4" . should_fail_with Table.No_Such_Column_Error
 
-        Test.specify "should return Nothing when created from invalid GeoJSON document" <|
+        Test.specify "should be created from a GeoJSON array of features" <|
+            geo_table = geo_json.get "features" . to_table
+            geo_table.is_a Table.Table . should_be_true
+            geo_table.at "Prop1" . to_vector . should_equal [1, 1]
+            geo_table.at "Prop2" . to_vector . should_equal ['value2', Nothing]
+            geo_table.at "Prop3" . to_vector . should_equal [Nothing, 3]
+            geo_table.at "longitude" . to_vector . should_equal [-118.58, 10.11]
+            geo_table.at "latitude" . to_vector . should_equal [34.19, 4.88]
+            geo_table.at "elevation" . to_vector . should_equal [Nothing, 19]
+            geo_table.at "Prop4" . should_fail_with Table.No_Such_Column_Error
+
+        Test.specify "should return error when created from invalid GeoJSON document" <|
             invalid_json = Json.parse <| '''
                 {
                   "features": {}
