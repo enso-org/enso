@@ -4,7 +4,6 @@ import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Histogram
-
 import Visualization_Tests
 
 spec = 

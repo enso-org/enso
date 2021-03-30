@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+import Standard.Test
+import Standard.Visualization.Geo_Map
+import Visualization_Tests.Helpers
+
+spec = 
+    expect value expected_json_text = 
+        result = Geo_Map.process_to_json_text value
+        Json.parse result . should_equal <| Json.parse expected_json_text
+
+    Test.group "Geo_Map" <|
+        Test.specify "works with empty table" <|
+            table  = Table.from_rows [] []
+            expect table '{}'
+
+        Test.specify "skips unrecognized columns" <|
+            header = ['α' , 'β' , 'ω']
+            row_1  = [11  , 10  , 09 ]
+            row_2  = [21  , 20  , 19 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table '{}'
+
+        Test.specify "recognizes latitude and longitude" <|
+            header = ['latitude' , 'longitude']
+            row_1  = [11         , 10         ]
+            row_2  = [21         , 20         ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table '{"latitude":[11,21],"longitude":[10,20]}'
+
+        Test.specify "is case insensitive" <|
+            header = ['latitude' , 'LONGITUDE' , 'LaBeL']
+            row_1  = [11         , 10          , 09     ]
+            row_2  = [21         , 20          , 19     ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table '{"label":[9,19],"latitude":[11,21],"longitude":[10,20]}'

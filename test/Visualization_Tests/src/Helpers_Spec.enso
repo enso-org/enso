@@ -3,8 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Helpers
-
-import Visualization_Tests
+import Visualization_Tests.Helpers
 
 spec = 
     Test.group "Table.all_columns" <|
@@ -45,4 +44,3 @@ spec =
             table.lookup_ignore_case 'Ω' . expect 'ω' [12,22]
             table.lookup_ignore_case 'b' . is_error . should_equal True
             table.lookup_ignore_case 'B' . is_error . should_equal True
-    
