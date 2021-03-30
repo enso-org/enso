@@ -524,15 +524,12 @@ type Vector
     to_json : Json.Array
     to_json = Json.Array (this.map .to_json)
 
-    ## Get the first element from the vector.
+    ## Get the first element from the vector, or an error `Nothing` if the
+       vector is empty.
 
        > Example
          The following code returns 1.
              [1, 2, 3, 4].head
-
-       > Example
-         Empty vectors return `Nothing`.
-             [].head == Nothing
     head : Any ! Nothing
     head = if this.length >= 1 then this.at 0 else Error.throw Nothing
 
@@ -541,10 +538,6 @@ type Vector
        > Example
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].tail
-
-       > Example
-         Empty vectors return `Nothing`.
-             [].tail == Nothing
     tail : Vector ! Nothing
     tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
 
@@ -553,38 +546,30 @@ type Vector
        > Example
          The following code returns [1, 2, 3].
              [1, 2, 3, 4].init
-
-       > Example
-         Empty vectors return `Nothing`.
-             [].init == Nothing
     init : Vector ! Nothing
     init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
 
-    ## Get the last element of the vector.
+    ## Get the last element of the vector, or an error `Nothing` if the vector
+       is empty.
 
        > Example
          The following code returns 4.
              [1, 2, 3, 4].last
-
-       > Example
-         Empty vectors return `Nothing`.
-             [].last == Nothing
     last : Vector ! Nothing
     last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
 
-    ## Get the first element from the vector.
+    ## Get the first element from the vector, or an error `Nothing` if the
+       vector is empty.
 
        > Example
          The following code returns 1.
              [1, 2, 3, 4].first
-
-       > Example
-         Empty vectors return `Nothing`.
-             [].first == Nothing
     first : Vector ! Nothing
     first = this.head
 
-    ## Get the second element from the vector.
+    ## Get the second element from the vector, or an error `Nothing` if the
+       vector doesn't have a second element.
+
        Useful when tuples are implemented as vectors.
 
        > Example

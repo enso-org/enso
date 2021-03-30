@@ -24,17 +24,179 @@ polyglot java import java.net.URI
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import org.enso.base.Http_Utils
 
-## An error when sending an Http request.
+## UNSTABLE
+
+   An error when sending an Http request.
+
+   Arguments:
+   - message: The message for the error.
 type Request_Error message
 
+## UNSTABLE
+
+   Convert a request error to a human-readable form.
 Request_Error.to_display_text =
     "Error when sending request: " + this.message
 
+## Create a new instance of the HTTP client.
+
+   Arguments:
+   - timeout: The length of time the client will wait for responses.
+   - follow_redirects: Whether or not the client should follow redirects.
+   - proxy: The proxy that the client should use, if any.
+   - version: The HTTP version supported by the client.
+
+   > Example
+     Create an HTTP client with default settings.
+         Http.new
+
+   > Example
+     Create an HTTP client with extended timeout.
+         Http.new timeout=30.seconds
+
+   > Example
+     Create an HTTP client with extended timeout and proxy settings.
+         Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
+new : Duration -> Boolean -> Proxy -> Http
+new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
+    Http timeout follow_redirects proxy version
+
+## Send an Options request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send an Options request.
+         Http.options "http://httpbin.org"
+options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+options uri (headers = []) = here.new.options uri headers
+
+## Send a Get request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Get request.
+         Http.get "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS).
+         Http.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+
+   > Example
+     Download a file.
+         out_file = File.new "/tmp/out.bin"
+         res = Http.get "http://httpbin.org/bytes/1024"
+         res.body.to_file out_file
+get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+get uri (headers = []) = here.new.get uri headers
+
+## Send the Get request and return the body.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Get request.
+         Http.fetch "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS).
+         Http.fetch "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+
+   > Example
+     Download a file.
+         out_file = File.new "/tmp/out.bin"
+         res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+fetch uri (headers = []) =
+    here.new.get uri headers . body
+
+## Send a Head request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Head request.
+         res = Http.head "http://httpbin.org"
+         IO.println res.headers
+head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+head uri (headers = []) = here.new.options uri headers
+
+## Send a Post request.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body: The contents of the post request.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with binary data.
+         body = Body.Bytes "Hello".utf_8
+         header_binary = Header.content_type "application/octet-stream"
+         Http.post "http://httpbin.org/post" body [header_binary]
+post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
+post uri body (headers = []) = here.new.post uri body headers
+
+## Send a Post request with the form. By default it will be encoded as
+   "application/x-www-form-urlencoded". To encode the form as
+   "multipart/form-data" add the appropriate header.
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - parts: A form, or a vector of parts for creating a form.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with form.
+         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+         Http.post_form "http://httpbin.org/post" form
+
+   > Example
+     Send a Post request with form encoded as "multipart/form-data".
+         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+         Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
+post_form uri parts (headers = []) = here.new.post_form uri parts headers
+
+## Send a Post request with body with content-type "application/json".
+
+   Arguments:
+   - uri: The address to which the request will be sent.
+   - body_json: The json for the body.
+   - headers: Any headers for the options request.
+
+   > Example
+     Send a Post request with json data.
+         json = Json.parse <| '''
+             {"key":"val"}
+         Http.post_json "http://httpbin.org/post" json
+post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
+post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
+
 type Http
 
+    ## An HTTP client.
+
+       Arguments:
+       - timeout: The length of time the client will wait for responses.
+       - follow_redirects: Whether or not the client should follow redirects.
+       - proxy: The proxy that the client should use, if any.
+       - version: The HTTP version supported by the client.
     type Http timeout follow_redirects proxy version
 
     ## Send an Options request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
 
        > Example
          Send an Options request.
@@ -45,6 +207,10 @@ type Http
         this.request req
 
     ## Send a Get request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
 
        > Example
          Send a Get request.
@@ -66,6 +232,10 @@ type Http
 
     ## Send a Head request.
 
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
        > Example
          Send a Head request.
              res = Http.new.head "http://httpbin.org"
@@ -76,6 +246,11 @@ type Http
         this.request req
 
     ## Send a Post request.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body: The body of the post request.
+       - headers: Any headers for the options request.
 
        > Example
          Send a Post request with binary data.
@@ -90,6 +265,11 @@ type Http
     ## Send a Post request with the form. By default it will be encoded as
        "application/x-www-form-urlencoded". To encode the form as
        "multipart/form-data" add the appropriate header.
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - parts: A form, or the parts for creating a form.
+       - headers: Any headers for the options request.
 
        > Example
          Send a Post request with form.
@@ -114,6 +294,11 @@ type Http
 
     ## Send a Post request with body with content-type "application/json".
 
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body_json: The JSON body for the post request.
+       - headers: Any headers for the options request.
+
        > Example
          Send a Post request with json data.
              json = Json.parse <| '''
@@ -127,6 +312,11 @@ type Http
 
     ## Send a Put request.
 
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body: The body for the put request.
+       - headers: Any headers for the options request.
+
        > Example
          Send a Put request with binary data.
              body = Body.Bytes "contents".utf_8
@@ -138,6 +328,11 @@ type Http
         this.request req
 
     ## Send a Put request with body with content-type "application/json".
+
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - body_json: The JSON for the body of the put request.
+       - headers: Any headers for the options request.
 
        > Example
          Send a Put request with json data.
@@ -152,6 +347,10 @@ type Http
 
     ## Create a Delete request.
 
+       Arguments:
+       - uri: The address to which the request will be sent.
+       - headers: Any headers for the options request.
+
        > Example
          Send a Delete request.
              Http.new.delete "http://httpbin.org/delete"
@@ -161,6 +360,9 @@ type Http
         this.request req
 
     ## Create a request
+
+       Arguments:
+       - req: The HTTP request to send using `this` HTTP client.
 
        > Example
          Send a Get request with headers.
@@ -282,109 +484,3 @@ type Http
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
-
-## Create a new instance of HTTP client.
-
-   > Example
-     Create an HTTP client with default settings.
-         Http.new
-
-   > Example
-     Create an HTTP client with extended timeout.
-         Http.new timeout=30.seconds
-
-   > Example
-     Create an HTTP client with extended timeout and proxy settings.
-         Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
-new : Duration -> Boolean -> Proxy -> Http
-new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
-    Http timeout follow_redirects proxy version
-
-## Send an Options request.
-
-   > Example
-     Send an Options request.
-         Http.options "http://httpbin.org"
-options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-options uri (headers = []) = here.new.options uri headers
-
-## Send a Get request.
-
-   > Example
-     Send a Get request.
-         Http.get "http://httpbin.org/get"
-
-   > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
-
-   > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.get "http://httpbin.org/bytes/1024"
-         res.body.to_file out_file
-get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-get uri (headers = []) = here.new.get uri headers
-
-## Send the Get request and return the body.
-
-   > Example
-     Send a Get request.
-         Http.fetch "http://httpbin.org/get"
-
-   > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.fetch "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
-
-   > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
-fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-fetch uri (headers = []) =
-    here.new.get uri headers . body
-
-## Send a Head request.
-
-   > Example
-     Send a Head request.
-         res = Http.head "http://httpbin.org"
-         IO.println res.headers
-head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
-head uri (headers = []) = here.new.options uri headers
-
-## Send a Post request.
-
-   > Example
-     Send a Post request with binary data.
-         body = Body.Bytes "Hello".utf_8
-         header_binary = Header.content_type "application/octet-stream"
-         Http.post "http://httpbin.org/post" body [header_binary]
-post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
-post uri body (headers = []) = here.new.post uri body headers
-
-## Send a Post request with the form. By default it will be encoded as
-   "application/x-www-form-urlencoded". To encode the form as
-   "multipart/form-data" add the appropriate header.
-
-   > Example
-     Send a Post request with form.
-         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-         Http.post_form "http://httpbin.org/post" form
-
-   > Example
-     Send a Post request with form encoded as "multipart/form-data".
-         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-         Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
-post_form uri parts (headers = []) = here.new.post_form uri parts headers
-
-## Send a Post request with body with content-type "application/json".
-
-   > Example
-     Send a Post request with json data.
-         json = Json.parse <| '''
-             {"key":"val"}
-         Http.post_json "http://httpbin.org/post" json
-post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
-post_json uri body_json (headers = []) = here.new.post_json uri body_json headers

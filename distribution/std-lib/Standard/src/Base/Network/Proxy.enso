@@ -3,15 +3,23 @@ from Standard.Base import all
 ## Proxy settings.
 type Proxy
 
-    ## Proxy is disabled.
+    ## The proxy is disabled.
     type None
 
-    ## Use a sysem proxy settings.
+    ## Use the system proxy settings.
     type System
 
-    ## Use provided proxy.
+    ## Use the provided proxy server.
     type Proxy_Addr proxy_host proxy_port
 
-## Create new proxy settins from host and port.
+## Create new proxy settings from a host and port.
+
+   Arguments:
+   - host: The host address for the proxy.
+   - port: The port number for the proxy server on `host`.
+
+   > Example
+     Create a new proxy running on localhost at port 80080.
+         Proxy.new "localhost" 80800
 new : Text -> Integer -> Proxy
 new host port=80 = Proxy_Addr host port

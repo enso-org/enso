@@ -10,11 +10,115 @@ import Standard.Base.System.File
 
 polyglot java import org.enso.base.Text_Utils
 
+## Create new HTTP request.
+
+   Arguments:
+   - method: The HTTP method represented by the request.
+   - addr: The address for the request.
+   - headers: A vector containing headers for the request.
+   - body: The body of the request.
+
+   > Example
+     Create a new post request with no headers and no body.
+         Request.new Method.Post (Uri.parse "http://example.com")
+new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
+new method addr (headers = []) (body = Request_Body.Empty) =
+    Panic.recover (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
+
+## Create an Options request.
+
+   Arguments:
+
+   > Example
+     Create a new options request.
+         Request.options (Uri.parse "http://example.com")
+options : (Text | Uri) -> Vector.Vector -> Request
+options addr (headers = []) = here.new Method.Options addr headers
+
+## Create a Get request.
+
+   Arguments:
+   - addr: The address for the request.
+   - headers: A vector containing headers for the request.
+
+   > Example
+     Create a new get request.
+         Request.get (Uri.parse "http://example.com")
+get : (Text | Uri) -> Vector.Vector -> Request
+get addr (headers = []) = here.new Method.Get addr headers
+
+## Create a Head request.
+
+   Arguments:
+   - addr: The address for the request.
+   - headers: A vector containing headers for the request.
+
+   > Example
+     Create a new head request.
+         Request.head (Uri.parse "http://example.com")
+head : (Text | Uri) -> Vector.Vector -> Request
+head addr (headers = []) = here.new Method.Head addr headers
+
+## Create a Post request.
+
+   Arguments:
+   - addr: The address for the request.
+   - body: The body for the request.
+   - headers: A vector containing headers for the request.
+
+   > Example
+     Create a new post request.
+         Request.post (Uri.parse "http://example.com") Request_Body.Empty
+post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
+post addr body (headers = []) = here.new Method.Post addr headers body
+
+## Create a Put request.
+
+   Arguments:
+   - addr: The address for the request.
+   - body: The body for the request.
+   - headers: A vector containing headers for the request.
+
+   > Example
+     Create a new put request.
+         Request.put (Uri.parse "http://example.com") Request_Body.Empty
+put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
+put addr body (headers = []) = here.new Method.Put addr headers body
+
+## Create a Delete request.
+
+   Arguments:
+   - addr: The address for the request.
+   - headers: A vector containing headers for the request.
+
+   > Example
+     Create a new delete request.
+         Request.delete (Uri.parse "http://example.com")
+delete : (Text | Uri) -> Vector.Vector -> Request
+delete addr (headers = []) = here.new Method.Delete addr headers
+
 type Request
 
+    ## PRIVATE
+
+       A type representing an HTTP request.
+
+       Arguments:
+       - method: The HTTP method represented by the request.
+       - uri: The URI for the request.
+       - headers: A vector containing headers for the request.
+       - body: The body of the request.
     type Request method uri headers body
 
-    ## Set header.
+    ## Sets the header for the request.
+
+       Arguments:
+       - key: The name for the header in this request.
+       - val: The value for the header in this request.
+
+       > Example
+         Create a request and add a new header to it.
+             Request.delete.with_header "Foo" "bar"
     with_header : Text -> Text -> Request
     with_header key val =
        new_header = Header.new key val
@@ -27,54 +131,54 @@ type Request
            Pair acc False -> acc + [new_header]
        Request this.method this.uri new_headers this.body
 
-    ## Set headers.
+    ## Sets the headers in the request.
+
+       Arguments:
+       - new_headers: A vector of headers to put in the request. If `this` has
+         any headers they will be replaced with new_headers.
+
+       > Example
+         Create a request and unset all the headers.
+             Request.delete.with_headers []
     with_headers : [Header] -> Request
     with_headers new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
         new_headers.fold this update_header
 
-    ## Set body.
+    ## Set the body for the request.
+
+        Arguments:
+        - new_body: The body to insert into the request.
+
+        > Example
+          Unsetting the body in a post request.
+             Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body Request_Body.Empty
     with_body : Request_Body -> Request
     with_body new_body = Request this.method this.uri this.headers new_body
 
-    ## Set body encoded as "application/json".
+    ## Set the body text in the request encoded as "application/json".
+
+        Arguments:
+        - json_body: The body to insert into the request. It must be textual
+          JSON.
+
+        > Example
+          Setting the body in a post request to some JSON.
+             Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body "{ "a": "b" }"
     with_json : Text -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
         Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
 
-    ## Set body as vector of parts encoded as
-       "application/x-www-form-urlencoded".
+    ## Set body as vector of parts encoded as "application/x-www-form-urlencoded".
+
+       Arguments:
+       - parts: The parts of the form, or a form itself.
+
+       > Example
+         Create a delete request with an empty form.
+             Request.delete (Uri.parse "http://example.com") . with_form []
     with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form
         Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
-
-## Create new HTTP request.
-new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
-new method addr (headers = []) (body = Request_Body.Empty) =
-    Panic.recover (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
-
-## Create an Options request.
-options : (Text | Uri) -> Vector.Vector -> Request
-options addr (headers = []) = here.new Method.Options addr headers
-
-## Create a Get request.
-get : (Text | Uri) -> Vector.Vector -> Request
-get addr (headers = []) = here.new Method.Get addr headers
-
-## Create a Head request.
-head : (Text | Uri) -> Vector.Vector -> Request
-head addr (headers = []) = here.new Method.Head addr headers
-
-## Create a Post request.
-post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-post addr body (headers = []) = here.new Method.Post addr headers body
-
-## Create a Put request.
-put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
-put addr body (headers = []) = here.new Method.Put addr headers body
-
-## Create a Delete request.
-delete : (Text | Uri) -> Vector.Vector -> Request
-delete addr (headers = []) = here.new Method.Delete addr headers
