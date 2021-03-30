@@ -44,7 +44,7 @@ const BUTTONS_HEIGHT = 25
  * }
  */
 class ScatterPlot extends Visualization {
-    static inputType = 'Any'
+    static inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
     static label = 'Scatter Plot'
 
     constructor(data) {

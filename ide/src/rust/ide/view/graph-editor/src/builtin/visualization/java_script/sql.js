@@ -82,7 +82,7 @@ loadScript('https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/4.0.2/sql-forma
 class SqlVisualization extends Visualization {
     // TODO Change the type below once #837 is done:
     // 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
-    static inputType = 'Any'
+    static inputType = 'Standard.Database.Data.Table.Table | Standard.Database.Data.Column.Column'
     static label = 'SQL Query'
 
     constructor(api) {

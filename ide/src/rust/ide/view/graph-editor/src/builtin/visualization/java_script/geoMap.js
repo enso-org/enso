@@ -96,7 +96,7 @@ const makeId = makeGenerator()
  * TODO: Make 2-finger panning behave like in IDE, and RMB zooming. [#1368]
  */
 class GeoMapVisualization extends Visualization {
-    static inputType = 'Any'
+    static inputType = 'Standard.Table.Data.Table.Table'
     static label = 'Geo Map'
 
     constructor(api) {
