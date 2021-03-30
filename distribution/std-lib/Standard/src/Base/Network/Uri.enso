@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Network.Uri.Internal
+
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
@@ -13,12 +15,6 @@ Text.to_uri = here.parse this
 panic_on_error ~action =
     action . catch e-> case e of
         Syntax_Error msg -> Panic.throw (Syntax_Error msg)
-
-## PRIVATE
-empty_if_null : Text | Nothing -> Text
-empty_if_null value = case value of
-    Nothing -> ""
-    x -> x
 
 type Uri
 
@@ -35,8 +31,8 @@ type Uri
          Return the "http" part of the HTTP address.
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . scheme
-    scheme : Text
-    scheme = here.empty_if_null this.internal_uri.getScheme
+    scheme : Text ! Nothing
+    scheme = Internal.handle_nothing this.internal_uri.getScheme
 
     ## Get user info part of this Uri.
 
@@ -44,8 +40,8 @@ type Uri
          Return the "user:pass" part of the HTTP address.
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . user_info
-    user_info : Text
-    user_info = here.empty_if_null this.internal_uri.getUserInfo
+    user_info : Text ! Nothing
+    user_info = Internal.handle_nothing this.internal_uri.getUserInfo
 
     ## Get host part of this Uri.
 
@@ -53,8 +49,8 @@ type Uri
          Return the "example.com" part of the HTTP address.
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . host
-    host : Text
-    host = here.empty_if_null this.internal_uri.getHost
+    host : Text ! Nothing
+    host = Internal.handle_nothing this.internal_uri.getHost
 
     ## Get authority (user info and host) part of this Uri.
 
@@ -62,8 +58,8 @@ type Uri
          Return the "user:pass@example.com" part of the HTTP address.
              addr = "http://user:pass@example.com/foo/bar?key=val"
              Uri.parse addr . authority
-    authority : Text
-    authority = here.empty_if_null this.internal_uri.getAuthority
+    authority : Text ! Nothing
+    authority = Internal.handle_nothing this.internal_uri.getAuthority
 
     ## Get port part of this Uri.
 
@@ -76,10 +72,11 @@ type Uri
          Return the empty string if the port is not specified.
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . port
-    port : Text
+    port : Text ! Nothing
     port =
         port_number = this.internal_uri.getPort
-        if port_number == -1 then "" else port_number.to_text
+        Internal.handle_nothing <|
+            if port_number == -1 then Nothing else port_number.to_text
 
     ## Get path part of this Uri.
 
@@ -87,8 +84,8 @@ type Uri
          Return the "/foo/bar" part of the HTTP address.
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . path
-    path : Text
-    path = here.empty_if_null this.internal_uri.getPath
+    path : Text ! Nothing
+    path = Internal.handle_nothing this.internal_uri.getPath
 
     ## Get query part of this Uri.
 
@@ -96,8 +93,8 @@ type Uri
          Return the "key=val" part of the HTTP address.
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . query
-    query : Text
-    query = here.empty_if_null this.internal_uri.getQuery
+    query : Text ! Nothing
+    query = Internal.handle_nothing this.internal_uri.getQuery
 
     ## Get fragment part of this Uri.
 
@@ -105,28 +102,28 @@ type Uri
          Return the empty fragment of the HTTP address.
              addr = "http://user:pass@example.com:80/foo/bar?key=val"
              Uri.parse addr . fragment
-    fragment : Text
-    fragment = here.empty_if_null this.internal_uri.getFragment
+    fragment : Text ! Nothing
+    fragment = Internal.handle_nothing this.internal_uri.getFragment
 
     ## Get unescaped user info part of this Uri.
-    raw_user_info : Text
-    raw_user_info = here.empty_if_null this.internal_uri.getRawUserInfo
+    raw_user_info : Text ! Nothing
+    raw_user_info = Internal.handle_nothing this.internal_uri.getRawUserInfo
 
     ## Get unescaped authority part of this Uri.
-    raw_authority : Text
-    raw_authority = here.empty_if_null this.internal_uri.getRawAuthority
+    raw_authority : Text ! Nothing
+    raw_authority = Internal.handle_nothing this.internal_uri.getRawAuthority
 
     ## Get unescaped path part of this Uri.
-    raw_path : Text
-    raw_path = here.empty_if_null this.internal_uri.getRawPath
+    raw_path : Text ! Nothing
+    raw_path = Internal.handle_nothing this.internal_uri.getRawPath
 
     ## Get unescaped query part of this Uri.
-    raw_query : Text
-    raw_query = here.empty_if_null this.internal_uri.getRawQuery
+    raw_query : Text ! Nothing
+    raw_query = Internal.handle_nothing this.internal_uri.getRawQuery
 
     ## Get unescaped fragment part of this Uri.
-    raw_fragment : Text
-    raw_fragment = here.empty_if_null this.internal_uri.getRawFragment
+    raw_fragment : Text ! Nothing
+    raw_fragment = Internal.handle_nothing this.internal_uri.getRawFragment
 
     ## Convert this Uri to text.
     to_text : Text
