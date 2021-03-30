@@ -40,8 +40,10 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   //// Formatters //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "*Foo*" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
-  "_Foo_" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
+  "Foo"             ?= Doc(Synopsis(Section.Raw("Foo")))
+  "Foo\uD83D\uDC98" ?= Doc(Synopsis(Section.Raw("Foo", "\uD83D\uDC98")))
+  "*Foo*"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
+  "_Foo_"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
   "~Foo~" ?= Doc(
     Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
   )
