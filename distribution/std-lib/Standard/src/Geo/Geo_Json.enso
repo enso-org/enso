@@ -3,6 +3,11 @@ from Standard.Base import all
 import Standard.Geo.Geo_Json.Internal
 import Standard.Table.Data.Table
 
+type Object_Type
+
+    type Feature
+    type FeatureCollection
+
 ## Convert a GeoJSON document into a dataframe.
 
    ? Implementation Note

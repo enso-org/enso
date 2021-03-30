@@ -1,6 +1,12 @@
 from Standard.Base import all
 
 ## PRIVATE
+Json.Object.get_type : Json
+Json.Object.get_type = case this of
+    Json.Object object ->
+        object.get_or_else "type" Nothing.to_json
+
+## PRIVATE
     Get key-value pairs of a feature array.
 Json.Array.get_rows -> Vector
 Json.Array.get_rows = case this of
@@ -30,7 +36,7 @@ Json.Object.get_properties_row : Map
 Json.Object.get_properties_row = case this of
     Json.Object properties -> properties.map p-> case p of
         Json.Object _ -> Nothing
-        _ -> p.unwrap
+        _ -> p
 
 ## PRIVATE
    Get column key-value pairs of a feature's "geometry" object.
@@ -45,5 +51,7 @@ Json.Object.get_geometry_row = case this of
 Json.Object.get_point_row : Map
 Json.Object.get_point_row =
     fields = ["longitude", "latitude", "elevation"]
-    coordinates = this.get "coordinates" . unwrap
-    Map.from_vector (fields.zip coordinates)
+    case this.get "coordinates" of
+        Json.Array coordinates ->
+            Map.from_vector (fields.zip coordinates)
+        _ -> Map.empty
