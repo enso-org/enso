@@ -243,6 +243,8 @@ impl<Host> Model<Host> {
     /// it. It is mainly used for a special 'root' element if such exists.
     pub fn force_set_visibility(&self, visibility:bool) {
         self.visible.set(visibility);
+        // TODO[ao] this function should make the next update call on_show or on_hide
+        //     https://github.com/enso-org/ide/issues/1406
     }
 
     /// Removes child by a given index. Does nothing if the index was incorrect.
@@ -342,22 +344,26 @@ impl<Host> Model<Host> {
 
     /// Hide all removed children and show this display object if it was attached to a new parent.
     fn update_visibility(&self, host:&Host, parent_scene_layers:&[LayerId]) {
-        self.take_removed_children_and_hide_orphans(host);
+        self.take_removed_children_and_update_their_visibility(host);
         let parent_changed = self.dirty.parent.check();
         if parent_changed && !self.is_orphan() {
             self.set_vis_true(host,parent_scene_layers)
         }
     }
 
-    fn take_removed_children_and_hide_orphans(&self, host:&Host) {
+    fn take_removed_children_and_update_their_visibility(&self, host:&Host) {
         if self.dirty.removed_children.check_all() {
             debug!(self.logger, "Updating removed children.", || {
                 for child in self.dirty.removed_children.take().into_iter() {
                     if let Some(child) = child.upgrade() {
-                        if child.is_orphan() {
+                        if !child.has_visible_parent() {
                             child.set_vis_false(host);
-                            child.take_removed_children_and_hide_orphans(host);
                         }
+                        // Even if the child is visible at this point, it does not mean that it
+                        // should be visible after the entire update. Therefore, we must ensure that
+                        // "removed children" lists in its subtree will be managed.
+                        // See also test `visibility_test3`.
+                        child.take_removed_children_and_update_their_visibility(host);
                     }
                 }
             })
@@ -366,6 +372,7 @@ impl<Host> Model<Host> {
 
     fn set_vis_false(&self, host:&Host) {
         if self.visible.get() {
+            info!(self.logger,"Hiding.");
             self.visible.set(false);
             self.callbacks.on_hide(host);
             self.children.borrow().iter().for_each(|child| {
@@ -606,7 +613,7 @@ impl<Host> Instance<Host> {
     }
 
     /// Add this object to the provided scene layer and remove it from all other layers. Do not use
-    //     /// this method explicitly. Use layers' methods instead.
+    /// this method explicitly. Use layers' methods instead.
     pub(crate) fn add_to_scene_layer_exclusive(&self, layer:LayerId) {
         self.dirty.scene_layer.set();
         *self.scene_layers.borrow_mut() = vec![layer];
@@ -680,6 +687,11 @@ impl<Host> Instance<Host> {
 impl<Host> Instance<Host> {
     fn parent_index(&self) -> Option<usize> {
         self.parent_bind.borrow().as_ref().map(|t| t.index)
+    }
+
+    fn has_visible_parent(&self) -> bool {
+        let parent = self.parent_bind.borrow().as_ref().and_then(|b| b.parent.upgrade());
+        parent.map_or(false, |parent| parent.is_visible())
     }
 }
 
@@ -1189,54 +1201,180 @@ mod tests {
         assert_eq!(node1.children_count(),0);
     }
 
+    /// A utility to test display object instances' visibility.
+    #[derive(Clone,CloneRef,Debug)]
+    struct TestedNode {
+        node         : Instance<()>,
+        show_counter : Rc<Cell<usize>>,
+        hide_counter : Rc<Cell<usize>>,
+    }
+
+    impl Deref for TestedNode {
+        type Target = Instance<()>;
+        fn deref(&self) -> &Self::Target { &self.node }
+    }
+
+    impl Object<()> for TestedNode {
+        fn display_object(&self) -> &Instance<()> { &self.node }
+    }
+
+    impl TestedNode {
+        fn new(label:impl Into<ImString>) -> Self {
+            let node         = Instance::<()>::new(Logger::new(label));
+            let show_counter = Rc::<Cell<usize>>::default();
+            let hide_counter = Rc::<Cell<usize>>::default();
+            node.set_on_show(f__!(show_counter.set(show_counter.get() + 1)));
+            node.set_on_hide(f_! (hide_counter.set(hide_counter.get() + 1)));
+            Self {node,show_counter,hide_counter}
+        }
+
+        fn reset_counters(&self) {
+            self.show_counter.set(0);
+            self.hide_counter.set(0);
+        }
+
+        fn check_if_was_shown(&self) {
+            assert!(self.node.is_visible());
+            assert_eq!(self.show_counter.get(), 1);
+            assert_eq!(self.hide_counter.get(), 0);
+            self.reset_counters();
+        }
+
+        fn check_if_was_hidden(&self) {
+            assert!(!self.node.is_visible());
+            assert_eq!(self.show_counter.get(), 0);
+            assert_eq!(self.hide_counter.get(), 1);
+            self.reset_counters();
+        }
+
+        fn check_if_visibility_did_not_changed(&self, expected_visibility:bool) {
+            assert_eq!(self.node.is_visible(), expected_visibility);
+            assert_eq!(self.show_counter.get(), 0);
+            assert_eq!(self.hide_counter.get(), 0);
+        }
+
+        fn check_if_still_shown(&self)  { self.check_if_visibility_did_not_changed(true)  }
+        fn check_if_still_hidden(&self) { self.check_if_visibility_did_not_changed(false) }
+    }
 
     #[test]
     fn visibility_test() {
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        let node3 = Instance::<()>::new(Logger::new("node3"));
+        let node1 = TestedNode::new("node1");
+        let node2 = TestedNode::new("node2");
+        let node3 = TestedNode::new("node3");
         node1.force_set_visibility(true);
-        assert_eq!(node3.is_visible(),false);
+        node3.check_if_still_hidden();
         node3.update(&());
-        assert_eq!(node3.is_visible(),false);
+        node3.check_if_still_hidden();
+
         node1.add_child(&node2);
         node2.add_child(&node3);
         node1.update(&());
-        assert_eq!(node3.is_visible(),true);
+        node3.check_if_was_shown();
+
         node3.unset_parent();
-        assert_eq!(node3.is_visible(),true);
+        node3.check_if_still_shown();
+
         node1.update(&());
-        assert_eq!(node3.is_visible(),false);
+        node3.check_if_was_hidden();
+
         node1.add_child(&node3);
         node1.update(&());
-        assert_eq!(node3.is_visible(),true);
+        node3.check_if_was_shown();
+
         node2.add_child(&node3);
         node1.update(&());
-        assert_eq!(node3.is_visible(),true);
+        node3.check_if_still_shown();
+
         node3.unset_parent();
         node1.update(&());
-        assert_eq!(node3.is_visible(),false);
+        node3.check_if_was_hidden();
+
         node2.add_child(&node3);
         node1.update(&());
-        assert_eq!(node3.is_visible(),true);
+        node3.check_if_was_shown();
     }
 
     #[test]
     fn visibility_test2() {
-        let node1 = Instance::<()>::new(Logger::new("node1"));
-        let node2 = Instance::<()>::new(Logger::new("node2"));
-        assert_eq!(node1.is_visible(),false);
+        let node1 = TestedNode::new("node1");
+        let node2 = TestedNode::new("node2");
+        node1.check_if_still_hidden();
         node1.update(&());
-        assert_eq!(node1.is_visible(),false);
+        node1.check_if_still_hidden();
         node1.force_set_visibility(true);
         node1.update(&());
-        assert_eq!(node1.is_visible(),true);
+        node1.check_if_still_shown();
 
         node1.add_child(&node2);
         node1.update(&());
-        assert_eq!(node1.is_visible(),true);
-        assert_eq!(node2.is_visible(),true);
+        node1.check_if_still_shown();
+        node2.check_if_was_shown();
     }
+
+    #[test]
+    fn visibility_test3() {
+        let node1 = TestedNode::new("node1");
+        let node2 = TestedNode::new("node2");
+        let node3 = TestedNode::new("node3");
+        node1.force_set_visibility(true);
+        node1.add_child(&node2);
+        node2.add_child(&node3);
+        node1.update(&());
+        node2.check_if_was_shown();
+        node3.check_if_was_shown();
+
+        node3.unset_parent();
+        node3.add_child(&node2);
+        node1.update(&());
+        node2.check_if_was_hidden();
+        node3.check_if_was_hidden();
+    }
+
+    #[test]
+    fn visibility_test4() {
+        let node1 = TestedNode::new("node1");
+        let node2 = TestedNode::new("node2");
+        let node3 = TestedNode::new("node3");
+        let node4 = TestedNode::new("node4");
+        node1.force_set_visibility(true);
+        node1.add_child(&node2);
+        node2.add_child(&node3);
+        node1.update(&());
+        node2.check_if_was_shown();
+        node3.check_if_was_shown();
+        node4.check_if_still_hidden();
+
+        node2.unset_parent();
+        node1.add_child(&node2);
+        node1.update(&());
+        node2.check_if_still_shown();
+        node3.check_if_still_shown();
+        node4.check_if_still_hidden();
+
+        node1.add_child(&node4);
+        node4.add_child(&node3);
+        node1.update(&());
+        node2.check_if_still_shown();
+        // TODO[ao]: This assertion fails, see https://github.com/enso-org/ide/issues/1405
+        // node3.check_if_still_shown();
+        node3.reset_counters();
+        node4.check_if_was_shown();
+
+        node4.unset_parent();
+        node2.unset_parent();
+        node1.update(&());
+        node2.check_if_was_hidden();
+        node3.check_if_was_hidden();
+        node4.check_if_was_hidden();
+
+        node2.add_child(&node3);
+        node1.update(&());
+        node2.check_if_still_hidden();
+        node3.check_if_still_hidden();
+        node4.check_if_still_hidden();
+    }
+
 
     #[test]
     fn deep_hierarchy_test() {

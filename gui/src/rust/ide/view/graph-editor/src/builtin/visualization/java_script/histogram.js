@@ -748,6 +748,13 @@ class Histogram extends Visualization {
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
+
+        while (this.dom.firstChild) {
+            this.dom.removeChild(this.dom.lastChild)
+        }
+        this.initCanvas()
+        this.initLabels()
+        this.initHistogram()
     }
 }
 

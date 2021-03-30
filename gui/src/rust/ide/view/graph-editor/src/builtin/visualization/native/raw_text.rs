@@ -145,7 +145,7 @@ impl RawTextModel {
 
 impl From<RawText> for Instance {
     fn from(t:RawText) -> Self {
-        Self::new(&t,&t.frp,&t.network)
+        Self::new(&t,&t.frp,&t.network,Some(t.model.dom.clone_ref()))
     }
 }
 

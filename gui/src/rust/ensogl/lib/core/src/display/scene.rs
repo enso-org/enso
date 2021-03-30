@@ -458,9 +458,12 @@ impl Dom {
 #[derive(Clone,CloneRef,Debug)]
 pub struct DomLayers {
     /// Back DOM scene layer.
-    pub back: DomScene,
+    pub back : DomScene,
+    /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because the
+    /// fullscreen visualizations should not share camera with main view.
+    pub fullscreen_vis : DomScene,
     /// Front DOM scene layer.
-    pub front: DomScene,
+    pub front : DomScene,
     /// The WebGL scene layer.
     pub canvas : web_sys::HtmlCanvasElement,
 
@@ -469,25 +472,29 @@ pub struct DomLayers {
 impl DomLayers {
     /// Constructor.
     pub fn new(logger:&Logger, dom:&web_sys::HtmlDivElement) -> Self {
-        let canvas = web::create_canvas();
-        let front  = DomScene::new(logger);
-        let back   = DomScene::new(logger);
+        let canvas         = web::create_canvas();
+        let front          = DomScene::new(logger);
+        let fullscreen_vis = DomScene::new(logger);
+        let back           = DomScene::new(logger);
         canvas.set_style_or_warn("height"        , "100vh"   , &logger);
         canvas.set_style_or_warn("width"         , "100vw"   , &logger);
         canvas.set_style_or_warn("display"       , "block"   , &logger);
         // Position must not be "static" to have z-index working.
         canvas.set_style_or_warn("position"      , "absolute", &logger);
-        canvas.set_style_or_warn("z-index"       , "1"       , &logger);
+        canvas.set_style_or_warn("z-index"       , "2"       , &logger);
         canvas.set_style_or_warn("pointer-events", "none"    , &logger);
         front.dom.set_class_name("front");
         front.dom.set_style_or_warn("z-index", "1", &logger);
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", &logger);
         back.dom.set_style_or_warn("z-index"       , "0"   , &logger);
+        fullscreen_vis.dom.set_class_name("fullscreen_vis");
+        fullscreen_vis.dom.set_style_or_warn("z-index"       , "1"   , &logger);
         dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
         dom.append_or_panic(&back.dom);
-        Self {front,canvas,back}
+        dom.append_or_panic(&fullscreen_vis.dom);
+        Self {front,canvas,back,fullscreen_vis}
     }
 }
 
@@ -854,13 +861,18 @@ impl SceneData {
     fn update_camera(&self, scene:&Scene) {
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
-        let camera  = self.camera();
-        let changed = camera.update(scene);
+        let camera                = self.camera();
+        let fullscreen_vis_camera = self.layers.viz_fullscreen.camera();
+        let changed               = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(&camera);
             self.dom.layers.front.update_view_projection(&camera);
             self.dom.layers.back.update_view_projection(&camera);
+        }
+        let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
+        if fs_vis_camera_changed {
+            self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).

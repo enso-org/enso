@@ -246,7 +246,7 @@ impl Model {
 
 impl From<Error> for Instance {
     fn from(t: Error) -> Self {
-        Self::new(&t,&t.frp,&t.network)
+        Self::new(&t,&t.frp,&t.network,Some(t.model.dom.clone_ref()))
     }
 }
 

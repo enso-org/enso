@@ -83,6 +83,7 @@ impl display::Object for Model {
 // ============================
 
 /// UI entity that shows a button that opens a list of visualisations that can be selected from.
+#[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct VisualizationChooser {
     pub frp : Frp,
@@ -90,6 +91,7 @@ pub struct VisualizationChooser {
 }
 
 impl VisualizationChooser {
+    /// Constructor.
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let frp   = Frp::new();
         let model = Model::new(app,registry);
