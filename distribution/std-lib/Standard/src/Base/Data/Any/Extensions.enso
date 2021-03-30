@@ -51,14 +51,6 @@ Any.== that = if Meta.is_same_object this that then True else
    Arguments:
    - that: The object to compare `this` against.
 
-   Two values are considered to be equal in Enso when they obey the following
-   recursive properties:
-   - At each level, they have the same structure.
-   - The value of each field in `this` is equal (by this definition) to the
-     corresponding field in `that`.
-
-   Values that are _not_ equal fail to satisfy one or more of these properties.
-
    ! Implementing Your Own Inequality
      We recommend that you do not implement your own inequality, instead relying
      on the default definition given here. If you do, please ensure that you
@@ -73,40 +65,89 @@ Any.!= that = (this == that).not
 ## Checks if `this` is greater than `that`.
 
    Arguments:
-   - `that`: The value to order against `this`.
+   - that: The value to compare `this` against.
 
    To have `>` defined, a type must define `compare_to`, returning an Ordering.
 
+   ! Implementing Greater Than
+     Many types can admit a definition of greater than that is more efficient
+     than the generic one given here. When implementing this for your own types
+     please ensure that it is semantically equivalent to this definition.
+
    > Example
-     Compare two integers.
-         1 > 10 == False
+     Checking if 1 is greater than 10.
+         1 > 10
 Any.> : Any -> Boolean
 Any.> that = this.compare_to that == Ordering.Greater
+
+## Checks if `this` is greater than or equal to `that`.
+
+   Arguments:
+   - that: The value to compare `this` against.
+
+   To have `>=` defined, a type must define both `>` and `==`.
+
+   ! Implementing Greater Than or Equal
+     In general we recommend that you do not implement this by hand to avoid
+     semantic incorrectness. It is very rare that a more efficient
+     implementation can be provided than the one given here.
+
+   > Example
+     Checking if 1 is greater than or equal to 10.
+         1 >= 10
+Any.>= : Any -> Boolean
+Any.>= that = (this > that) || (this == that)
 
 ## Checks if `this` is less than `that`.
 
    Arguments:
-   - `that`: The value to order against `this`.
+   - that: The value to compare `this` against.
 
    To have `<` defined, a type must define `compare_to`, returning an Ordering.
 
+   ! Implementing Less Than
+     Many types can admit a definition of less than that is more efficient than
+     the generic one given here. When implementing this for your own types
+     please ensure that it is semantically equivalent to this definition.
+
    > Example
-     Compare two integers.
-         1 < 10 == True
+     Checking if 1 is less than 10.
+         1 < 10
 Any.< : Any -> Boolean
 Any.< that = this.compare_to that == Ordering.Less
 
-## Checks if the type is an instance of `Nothing`.
+## Checks if `this` is less than or equal to `that`.
+
+   Arguments:
+   - that: The value to compare `this` against.
+
+   To have `<=` defined, a type must define both `<` and `==`.
+
+   ! Implementing Less Than or Equal
+     In general we recommend that you do not implement this by hand to avoid
+     semantic incorrectness. It is very rare that a more efficient
+     implementation can be provided than the one given here.
 
    > Example
-     Checking if a variable `a` is nothing.
-         a.is_nothing
+     Checking if 1 is less than or equal to 10.
+         1 <= 10
+Any.<= : Any -> Boolean
+Any.<= that = (this < that) || (this == that)
+
+## Checks if the type is an instance of `Nothing`.
+
+   Nothing in Enso is used as a universal value to indicate the lack of presence
+   of a value. This function is primarily useful in the IDE.
+
+   > Example
+     Checking if the value 1 is nothing.
+         1.is_nothing
 Any.is_nothing : Boolean
 Any.is_nothing = case this of
     Nothing -> True
     _ -> False
 
-## Executes the provided handler on a dataflow error, or forwards a non-error
+## Executes the provided handler on a dataflow error, or returns a non-error
    value unchanged.
 
    Arguments:
@@ -119,16 +160,13 @@ Any.is_nothing = case this of
 Any.catch : (Error -> Any) -> Any
 Any.catch (handler = x->x) = this.catch_primitive handler
 
-## Transforms a dataflow error.
+## Transforms an error.
 
    Arguments:
    - f: The function used to transform the error.
 
    If `this` is a non-error value it is returned unchanged. However, if `this`
    is an error, the error is transformed using the provided function
-
-   If the original value was a non-error value, it is not affected, but if it
-   was an error, the error is mapped through the provided function.
 
    > Example
      Wrapping an error value.
@@ -177,22 +215,20 @@ Any.<| ~argument = this argument
 Any.|> : (Any -> Any) -> Any
 Any.|> ~function = function this
 
-## Composes two functions together.
-
-   For `f << g`, this creates the function composition `f ∘ g`.
+## Composes two functions together, for `f << g` creating the function
+   composition `f ∘ g`.
 
    Arguments:
    - that: The function to compose with `this`.
 
    > Example
-     Compose the functions +1 and *2 and apply it to 2
+     Multiply by 2 and then add 1 as a function applied to 2.
          (+1 << *2) 2
 Any.<< : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.<< ~that = x -> this (that x)
 
-## Composes two functions together in the forward direction.
-
-   For `f >> g`, this creates the function composition `g ∘ f`.
+## Composes two functions together in the forward direction, for `f >> g`
+   creating the function composition `g ∘ f`.
 
    Arguments:
    - that: The function to compose with `this`.
@@ -209,11 +245,11 @@ Any.>> ~that = x -> that (this x)
    Returns a Text used to display this value in the IDE.
 
    The particular representation is left unspecified and subject to change in
-   the future.  The current implementation uses a JSON serialization as the
+   the future. The current implementation uses JSON serialization as the
    default.
 
    Types defining their own versions of this method should ensure that the
-   result is reasonably small and the operation is quick to compute.
+   result is reasonably small and that the operation is quick to compute.
 
    > Example
      Converting the number `2` into visualization data.

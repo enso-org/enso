@@ -3,9 +3,17 @@ from Standard.Base import all
 import Builtins
 
 ## Returns the root directory of the project.
+
+   > Example
+     Get the root directory of the current project.
+         Enso_Project.root
 Builtins.Project_Description.root : File.File
 Builtins.Project_Description.root = File.File this.prim_root_file
 
 ## Returns the root data directory of the project.
+
+   > Example
+     Get the data directory of the current project.
+         Enso_Project.data
 Builtins.Project_Description.data : File.File
 Builtins.Project_Description.data = this.root / "data"

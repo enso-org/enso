@@ -6,6 +6,9 @@ import Standard.Base.System.File
 type Body
 
     ## Response body
+
+       Arguments:
+       - bytes: The body of the response as binary data.
     type Body bytes
 
     ## Convert response body to Text.

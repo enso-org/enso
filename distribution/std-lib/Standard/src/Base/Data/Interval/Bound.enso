@@ -6,7 +6,21 @@ from Standard.Base import all
    [total order](https://en.wikipedia.org/wiki/Total_order) defined for it.
 type Bound
     ## A bound that includes the value `n`.
+
+       Arguments:
+       - n: The value defining the inclusive bound.
+
+       > Example
+         Create a bound that includes the value 2.
+             Inclusive 2
     type Inclusive n
 
     ## A bound that excludes the value `n`.
+
+       Arguments:
+       - n: The value defining the exclusive bound.
+
+       > Example
+         Create a bound that excludes the value 2.
+             Exclusive 2
     type Exclusive n

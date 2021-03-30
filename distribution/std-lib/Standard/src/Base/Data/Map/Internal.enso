@@ -4,14 +4,32 @@ from Standard.Base.Data.Map import all
 
 ## PRIVATE
 
-   Helper used in the insert operation.
+   A helper used in the insert operation to insert into the left subtree.
+
+   Arguments:
+   - key: The key to insert.
+   - value: The value to insert.
+   - k: The previous top key of the left subtree.
+   - v: The previous top value of the left subtree.
+   - l: The left subtree.
+   - r: The right subtree.
+insert_l : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
 insert_l key value k v l r =
     new_left = here.insert l key value
     here.balance_left k v new_left r
 
 ## PRIVATE
 
-   Helper used in the insert operation.
+   A helper used in the insert operation to insert into the right subtree.
+
+   Arguments:
+   - key: The key to insert.
+   - value: The value to insert.
+   - k: The previous top key of the right subtree.
+   - v: The previous top value of the right subtree.
+   - l: The left subtree.
+   - r: The right subtree.
+insert_r : Any -> Any -> Any -> Any -> Tree -> Tree -> Tree
 insert_r key value k v l r =
     new_right = here.insert r key value
     here.balance_right k v l new_right
@@ -20,10 +38,15 @@ insert_r key value k v l r =
 
    Helper for inserting a new key-value pair into a map.
 
+   Arguments:
+   - map: The map into which the insertion is performed.
+   - key: The key for which to insert the value into the map.
+   - value: The value to insert into the map at the given key.
+
    The algorithm used here is based on the paper "Implementing Sets Efficiently
-   in a Functional Language" by Stephen Adams.
-   Implementation is based on Haskell's `Data.Map.Strict` implemented in the
-   `containers` package.
+   in a Functional Language" by Stephen Adams.  The implementation is based on
+   Haskell's `Data.Map.Strict` as implemented in the `containers` package.
+insert : Map -> Any -> Any -> Map
 insert map key value = case map of
     Bin s k v l r ->
         if key > k then @Tail_Call here.insert_r key value k v l r else
@@ -34,6 +57,13 @@ insert map key value = case map of
 ## PRIVATE
 
    Rebalances the map after the left subtree grows.
+
+   Arguments:
+   - k: The old top key of the left subtree.
+   - x: The old top value of the left subtree.
+   - l: The left subtree.
+   - r: The right subtree.
+balance_left : Any -> Any -> Tree -> Tree -> Tree
 balance_left k x l r = case r of
     Bin rs _ _ _ _ -> case l of
         Bin ls lk lx ll lr ->
@@ -62,6 +92,12 @@ balance_left k x l r = case r of
 ## PRIVATE
 
    Rebalances the map after the right subtree grows.
+
+   Arguments:
+   - k: The old top key of the right subtree.
+   - x: The old top value of the right subtree.
+   - l: The left subtree.
+   - r: The right subtree.
 balance_right k x l r = case l of
     Bin ls _ _ _ _ -> case r of
         Bin rs rk rx rl rr ->
@@ -109,6 +145,10 @@ delta = 3
 ## PRIVATE
 
    Gets the size of a map.
+
+   Arguments:
+   - m: The map to get the size of.
+size: Map -> Integer
 size m = case m of
     Bin s _ _ _ _ -> s
     _ -> 0

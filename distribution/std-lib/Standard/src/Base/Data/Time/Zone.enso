@@ -7,19 +7,34 @@ type Zone
 
     ## A type representing a time zone.
 
+       Arguments:
+       - internal_zone_id: The identifier for the internal zone of the
+         representation.
+
        A time zone can be eiter offset-based like "-06:00" or id-based like
        "Europe/Paris".
     type Zone internal_zone_id
 
     ## Get the unique timezone ID.
+
+       > Example
+         Get the unique identifier for your system's current timezone.
+             Zone.system.zone_id
     zone_id : Text
     zone_id = this.internal_zone_id . getId
 
-    ## A Zone to Json conversion
+    ## Convert the time zone to JSON.
+
+       > Example
+         Convert your system's current timezone to JSON.
+             Zone.system.to_json
     to_json : Json.Object
     to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
 
 ## This method parses the ID producing a `Zone`.
+
+   Arguments:
+   - text: The text representing a zone identifier.
 
    > Example
      Get Central European Time.
@@ -40,27 +55,41 @@ parse : Text -> Zone
 parse text = Zone (ZoneId.of text)
 
 ## The system default timezone.
+
+   > Example
+     Get the system default timezone.
+         Zone.system
 system : Zone
 system = Zone ZoneId.systemDefault
 
-## The system default timezone.
+## The system's local timezone.
+
+   > Example
+     Get the system's local timezone.
+         Zone.local
 local : Zone
 local = here.system
 
-## UTC time zone.
+## The UTC timezone.
+
+   > Example
+     Get the UTC timezone.
+         Zone.utc
 utc : Zone
 utc = here.parse "UTC"
 
-## Obtains an instance of `Zone` using an offset in hours, minutes and seconds.
+## Obtains an instance of `Zone` using an offset in hours, minutes and seconds
+   from the UTC zone.
 
-   - the timezone offset in hours, from -18 to +18
-   - the timezone offset in minutes, from 0 to ±59, sign matches hours and
-     seconds
-   - the timezone offset in seconds, from 0 to ±59, sign matches hours and
-     minutes
+   Arguments:
+   - hours: The timezone offset in hours from UTC, from -18 to +18.
+   - minutes: The timezone offset in minutes from the nearest hour, from 0 to
+     ±59. The sign must match that of the hours argument.
+   - seconds: The timezone offset in seconds from the nearest minute, from 0 to
+     ±59. The sign must match that of the minutes argument.
 
    > Example
-     Get time zone 1 hour 1 minute and 50 seconds of Greenwich/UTC.
+     Get time zone 1 hour 1 minute and 50 seconds from UTC.
          Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =

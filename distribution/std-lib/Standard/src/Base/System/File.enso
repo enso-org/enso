@@ -299,13 +299,13 @@ new path = File (Prim_Io.get_file path)
 ## Open and read the file at the provided `path`.
 
    Arguments:
-   - `path`: The path of the file to open and read the contents of. It will
+   - path: The path of the file to open and read the contents of. It will
      accept a textual path or a file.
 
    ? Module or Instance?
      If you have a variable `file` of type `File`, we recommend calling the
      `.read` method on it directly, rather than using `File.read file`. The
-     latter, however, will work.
+     latter, however, will still work.
 
    > Example
      Read the `data.csv` file in the project directory's `data` directory. You

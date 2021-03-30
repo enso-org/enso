@@ -1,7 +1,13 @@
 from Standard.Base import all
 
-## Transform the array into text for displaying as part of its default
-   visualization.
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
 
    > Example
      Converting an array to its default visualization representation.
