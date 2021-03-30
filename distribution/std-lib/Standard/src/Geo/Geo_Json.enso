@@ -1,0 +1,67 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   A type of GeoJSON object.
+type Object_Type
+
+    ## PRIVATE
+    type Feature
+
+    ## PRIVATE
+    type Feature_Collection
+
+    ## PRIVATE
+
+       Convert GeoJSON object type to Text.
+    to_text : Text
+    to_text = case this of
+        Feature -> "Feature"
+        Feature_Collection -> "FeatureCollection"
+
+## PRIVATE
+
+   Get the type field of a GeoJSON object.
+Json.Object.get_type : Any
+Json.Object.get_type = case this of
+    Json.Object object ->
+        object.get_or_else "type" Nothing.to_json . unwrap
+
+## PRIVATE
+
+   Get key-value pairs of a Feature GeoJSON object.
+Json.Object.get_feature_row : Map
+Json.Object.get_feature_row =
+    properties_row = this.get "properties" . get_properties_row
+    geometry_row = this.get "geometry" . get_geometry_row
+    geometry_row.fold_with_key properties_row acc-> k-> v->
+        acc.insert k v
+
+## PRIVATE
+
+   Get column key-value pairs of a feature's "properties" object.
+Json.Object.get_properties_row : Map
+Json.Object.get_properties_row = case this of
+    Json.Object properties -> properties.map p-> case p of
+        Json.Object _ -> Nothing.to_json
+        _ -> p
+
+## PRIVATE
+
+   Get column key-value pairs of a feature's "geometry" object.
+Json.Object.get_geometry_row : Map
+Json.Object.get_geometry_row = case this of
+    Json.Object fields ->
+          geometry_type = fields.get_or_else "type" Nothing
+          if geometry_type == "Point".to_json then this.get_point_row else Map.empty
+
+## PRIVATE
+
+   Get column key-value pairs of a "Point" geometry object.
+Json.Object.get_point_row : Map
+Json.Object.get_point_row =
+    fields = ["longitude", "latitude", "elevation"]
+    case this.get "coordinates" of
+        Json.Array coordinates ->
+            Map.from_vector (fields.zip coordinates)
+        _ -> Map.empty
