@@ -336,20 +336,14 @@ class TableVisualization extends Visualization {
         }
         </style>`
 
-        const width = this.dom.getAttributeNS(null, 'width')
-        const height = this.dom.getAttributeNS(null, 'height')
         const tabElem = document.createElement('div')
         tabElem.setAttributeNS(null, 'id', 'vis-tbl-view')
         tabElem.setAttributeNS(null, 'class', 'scrollable')
-        tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         tabElem.setAttributeNS(null, 'width', '100%')
         tabElem.setAttributeNS(null, 'height', '100%')
-        const tblViewStyle = `width: ${width - 5}px;
-             height: ${height - 5}px;
-             overflow: scroll;
-             padding:2.5px;`
-        tabElem.setAttributeNS(null, 'style', tblViewStyle)
+        this.tabElem = tabElem
         this.dom.appendChild(tabElem)
+        this.updateTableSize()
 
         let parsedData = data
         if (typeof data === 'string') {
@@ -390,9 +384,23 @@ class TableVisualization extends Visualization {
         }
     }
 
+    updateTableSize() {
+        if (this.tabElem !== undefined) {
+            const width = this.dom.getAttributeNS(null, 'width')
+            const height = this.dom.getAttributeNS(null, 'height')
+            const tblViewStyle = `width: ${width - 5}px;
+                 height: ${height - 5}px;
+                 overflow: scroll;
+                 padding:2.5px;`
+            this.tabElem.setAttributeNS(null, 'style', tblViewStyle)
+            this.tabElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
+        }
+    }
+
     setSize(size) {
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
+        this.updateTableSize()
     }
 }
 

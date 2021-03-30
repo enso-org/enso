@@ -340,6 +340,7 @@ impl display::Object for Model {
 ///    |--------------------------------|
 ///
 /// ```
+#[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct ActionBar {
     pub frp : Frp,

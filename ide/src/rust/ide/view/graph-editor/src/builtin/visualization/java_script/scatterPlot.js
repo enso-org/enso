@@ -59,13 +59,70 @@ class ScatterPlot extends Visualization {
         while (this.dom.firstChild) {
             this.dom.removeChild(this.dom.lastChild)
         }
-
-        const divElem = this.createDivElem(this.canvasWidth(), this.canvasHeight())
-        this.dom.appendChild(divElem)
-
         let parsedData = this.parseData(data)
         this.updateState(parsedData)
+        this.drawScatterplot()
+    }
 
+    canvasWidth() {
+        return this.dom.getAttributeNS(null, 'width')
+    }
+
+    canvasHeight() {
+        let height = this.dom.getAttributeNS(null, 'height')
+        return height - BUTTONS_HEIGHT
+    }
+
+    updateState(parsedData) {
+        this.axis = parsedData.axis ?? {
+            x: { scale: LINEAR_SCALE },
+            y: { scale: LINEAR_SCALE },
+        }
+        this.focus = parsedData.focus
+        this.points = parsedData.points ?? { labels: 'visible' }
+        this.dataPoints = this.extractValues(parsedData)
+        this.dataPoints = this.dataPoints.filter(pt => isValidNumber(pt.x) && isValidNumber(pt.y))
+        this.updateBox()
+    }
+
+    updateBox() {
+        this.margin = this.getMargins(this.axis)
+        this.boxWidth = this.canvasWidth() - this.margin.left - this.margin.right
+        this.boxHeight = this.canvasHeight() - this.margin.top - this.margin.bottom
+    }
+
+    extractValues(data) {
+        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
+        if (Array.isArray(data)) {
+            return this.arrayAsValues(data)
+        }
+        return data.data ?? []
+    }
+
+    /**
+     * Return a array of values as valid scatterplot input.
+     * Uses the values of the array as y-coordinate and the index of the value as its x-coordinate.
+     */
+    arrayAsValues(dataArray) {
+        return dataArray.map((y, ix) => {
+            return { x: ix, y }
+        })
+    }
+
+    parseData(data) {
+        let parsedData
+        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
+        if (typeof data === 'string' || data instanceof String) {
+            parsedData = JSON.parse(data)
+        } else {
+            parsedData = data
+        }
+        return parsedData
+    }
+
+    drawScatterplot() {
+        const divElem = this.createDivElem(this.canvasWidth(), this.canvasHeight())
+        this.dom.appendChild(divElem)
         let svg = d3
             .select(divElem)
             .append('svg')
@@ -108,60 +165,6 @@ class ScatterPlot extends Visualization {
         this.createButtonFitAll(scatter, this.points, extremesAndDeltas, zoom, this.boxWidth)
         let selectedZoomBtn = this.createButtonScaleToPoints()
         this.addBrushing(this.boxWidth, this.boxHeight, scatter, selectedZoomBtn, this.points, zoom)
-    }
-
-    canvasWidth() {
-        return this.dom.getAttributeNS(null, 'width')
-    }
-
-    canvasHeight() {
-        let height = this.dom.getAttributeNS(null, 'height')
-        return height - BUTTONS_HEIGHT
-    }
-
-    updateState(parsedData) {
-        this.axis = parsedData.axis ?? {
-            x: { scale: LINEAR_SCALE },
-            y: { scale: LINEAR_SCALE },
-        }
-        this.focus = parsedData.focus
-        this.points = parsedData.points ?? { labels: 'visible' }
-        this.dataPoints = this.extractValues(parsedData)
-
-        this.dataPoints = this.dataPoints.filter(pt => isValidNumber(pt.x) && isValidNumber(pt.y))
-
-        this.margin = this.getMargins(this.axis)
-        this.boxWidth = this.canvasWidth() - this.margin.left - this.margin.right
-        this.boxHeight = this.canvasHeight() - this.margin.top - this.margin.bottom
-    }
-
-    extractValues(data) {
-        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
-        if (Array.isArray(data)) {
-            return this.arrayAsValues(data)
-        }
-        return data.data ?? []
-    }
-
-    /**
-     * Return a array of values as valid scatterplot input.
-     * Uses the values of the array as y-coordinate and the index of the value as its x-coordinate.
-     */
-    arrayAsValues(dataArray) {
-        return dataArray.map((y, ix) => {
-            return { x: ix, y }
-        })
-    }
-
-    parseData(data) {
-        let parsedData
-        /// Note this is a workaround for #1006, we allow raw arrays and JSON objects to be consumed.
-        if (typeof data === 'string' || data instanceof String) {
-            parsedData = JSON.parse(data)
-        } else {
-            parsedData = data
-        }
-        return parsedData
     }
 
     /**
@@ -788,8 +791,14 @@ class ScatterPlot extends Visualization {
      * Sets size of this DOM object.
      */
     setSize(size) {
+        while (this.dom.firstChild) {
+            this.dom.removeChild(this.dom.lastChild)
+        }
+
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
+        this.updateBox()
+        this.drawScatterplot()
     }
 }
 

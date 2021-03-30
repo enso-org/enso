@@ -279,7 +279,7 @@ impl Instance {
 
 impl From<Instance> for visualization::Instance {
     fn from(t:Instance) -> Self {
-        Self::new(&t,&t.frp,&t.network)
+        Self::new(&t,&t.frp,&t.network,Some(t.model.root_node.clone_ref()))
     }
 }
 

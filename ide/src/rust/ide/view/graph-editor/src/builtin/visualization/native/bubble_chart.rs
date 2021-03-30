@@ -141,7 +141,7 @@ impl BubbleChart {
 
 impl From<BubbleChart> for Instance {
     fn from(t:BubbleChart) -> Self {
-        Self::new(&t,&t.frp,&t.network)
+        Self::new(&t,&t.frp,&t.network,None)
     }
 }
 

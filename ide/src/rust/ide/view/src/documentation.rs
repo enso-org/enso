@@ -348,7 +348,9 @@ impl View {
 }
 
 impl From<View> for visualization::Instance {
-    fn from(t: View) -> Self { Self::new(&t,&t.visualization_frp,&t.frp.network) }
+    fn from(t: View) -> Self {
+        Self::new(&t,&t.visualization_frp,&t.frp.network,Some(t.model.dom.clone_ref()))
+    }
 }
 
 impl display::Object for View {
