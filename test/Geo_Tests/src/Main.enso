@@ -5,5 +5,4 @@ import Standard.Test
 import Geo_Tests.Geo_Spec
 
 main = Test.Suite.runMain <|
-    Geo_Spec.spec 
-
+    Geo_Spec.spec

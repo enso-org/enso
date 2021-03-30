@@ -1,0 +1,8 @@
+from Standard.Base import all
+
+## PRIVATE
+panic_on_error ~action =
+    action . catch Panic.throw
+
+## PRIVATE
+recover_panic error = Error.throw error

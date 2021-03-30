@@ -4,6 +4,7 @@ import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Internal
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
 
@@ -44,36 +45,36 @@ type Request
 
     ## Set body as vector of parts encoded as
        "application/x-www-form-urlencoded".
-    with_form : To_Form -> Request
+    with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form
         Request this.method this.uri this.headers new_body . with_headers [Header.application_x_www_form_urlencoded]
 
 ## Create new HTTP request.
-new : Method -> To_Uri -> Vector.Vector -> Request_Body -> Request
+new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
-    Request method (Uri.panic_on_error (addr.to_uri)) headers body
+    Panic.recover (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
 
 ## Create an Options request.
-options : To_Uri -> Vector.Vector -> Request
+options : (Text | Uri) -> Vector.Vector -> Request
 options addr (headers = []) = here.new Method.Options addr headers
 
 ## Create a Get request.
-get : To_Uri -> Vector.Vector -> Request
+get : (Text | Uri) -> Vector.Vector -> Request
 get addr (headers = []) = here.new Method.Get addr headers
 
 ## Create a Head request.
-head : To_Uri -> Vector.Vector -> Request
+head : (Text | Uri) -> Vector.Vector -> Request
 head addr (headers = []) = here.new Method.Head addr headers
 
 ## Create a Post request.
-post : To_Uri -> Request_Body -> Vector.Vector -> Request
+post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
 post addr body (headers = []) = here.new Method.Post addr headers body
 
 ## Create a Put request.
-put : To_Uri -> Request_Body -> Vector.Vector -> Request
+put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
 put addr body (headers = []) = here.new Method.Put addr headers body
 
 ## Create a Delete request.
-delete : To_Uri -> Vector.Vector -> Request
+delete : (Text | Uri) -> Vector.Vector -> Request
 delete addr (headers = []) = here.new Method.Delete addr headers

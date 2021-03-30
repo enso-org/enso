@@ -10,6 +10,7 @@ import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
 import Standard.Base.Network.Http.Response
 import Standard.Base.Network.Http.Version
+import Standard.Base.Network.Internal
 import Standard.Base.Network.Proxy
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
@@ -23,6 +24,12 @@ polyglot java import java.net.URI
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import org.enso.base.Http_Utils
 
+## An error when sending an Http request.
+type Request_Error message
+
+Request_Error.to_display_text =
+    "Error when sending request: " + this.message
+
 type Http
 
     type Http timeout follow_redirects proxy version
@@ -32,7 +39,7 @@ type Http
        > Example
          Send an Options request.
              Http.new.options "http://httpbin.org"
-    options : To_Uri -> Vector.Vector -> Response
+    options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     options uri (headers = []) =
         req = Request.options uri headers
         this.request req
@@ -52,7 +59,7 @@ type Http
              out_file = File.new "/tmp/out.bin"
              res = Http.new.get "http://httpbin.org/bytes/1024"
              res.body.to_file out_file
-    get : To_Uri -> Vector.Vector -> Response
+    get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     get uri (headers = []) =
         req = Request.get uri headers
         this.request req
@@ -63,7 +70,7 @@ type Http
          Send a Head request.
              res = Http.new.head "http://httpbin.org"
              IO.println res.headers
-    head : To_Uri -> Vector.Vector -> Response
+    head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     head uri (headers = []) =
         req = Request.head uri headers
         this.request req
@@ -75,7 +82,7 @@ type Http
              body = Body.Bytes "Hello".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.new.post "http://httpbin.org/post" body [header_binary]
-    post : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
+    post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     post uri body (headers = []) =
         req = Request.post uri body headers
         this.request req
@@ -99,7 +106,7 @@ type Http
              form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
              http = Http.new (timeout = 30.seconds)
              http.post_form "http://httpbin.org/post" form
-    post_form : To_Uri -> To_Form -> Vector.Vector -> Response
+    post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
     post_form uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
         req = Request.post uri (Request_Body.Form parts.to_form) new_headers . with_headers headers
@@ -112,7 +119,7 @@ type Http
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.post_json "http://httpbin.org/post" json
-    post_json : To_Uri -> Json -> Vector.Vector -> Response
+    post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
     post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -125,7 +132,7 @@ type Http
              body = Body.Bytes "contents".utf_8
              header_binary = Header.content_type "application/octet-stream"
              Http.new.put "http://httpbin.org/post" body [header_binary]
-    put : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
+    put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     put uri body (headers = []) =
         req = Request.put uri body headers
         this.request req
@@ -137,7 +144,7 @@ type Http
              json = Json.parse <| '''
                  {"key":"val"}
              Http.new.put_json "http://httpbin.org/put" json
-    put_json : To_Uri -> Json -> Vector.Vector -> Response
+    put_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
     put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -148,7 +155,7 @@ type Http
        > Example
          Send a Delete request.
              Http.new.delete "http://httpbin.org/delete"
-    delete : To_Uri -> Vector.Vector -> Response
+    delete : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     delete uri (headers = []) =
         req = Request.delete uri headers
         this.request req
@@ -185,56 +192,62 @@ type Http
              req = Request.new Method.Post "http://httpbin.org/post" . with_form form
              http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
              http.request req
-    request : Request -> Response
+    request : Request -> Response ! Request_Error
     request req =
-        body_publishers = HttpRequest.BodyPublishers
-        builder = HttpRequest.newBuilder
-        # set uri
-        builder.uri req.uri.internal_uri
-        # prepare headers and body
-        req_with_body = case req.body of
-            Request_Body.Empty ->
-                Pair req body_publishers.noBody
-            Request_Body.Text text ->
-                builder.header Header.text_plain.name Header.text_plain.value
-                Pair req (body_publishers.ofString text)
-            Request_Body.Json json ->
-                builder.header Header.application_json.name Header.application_json.value
-                Pair req (body_publishers.ofString json.to_text)
-            Request_Body.Form form ->
-                add_multipart form =
-                    body_builder = Http_Utils.multipart_body_builder
-                    form.parts.map part-> case part.value of
-                        Form.Part_Text text -> body_builder.add_part_text part.key text
-                        Form.Part_File file -> body_builder.add_part_file part.key file.path
-                    boundary = body_builder.get_boundary
-                    Pair (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
-                add_urlencoded form =
-                    body_builder = Http_Utils.urlencoded_body_builder
-                    form.parts.map part-> case part.value of
-                        Form.Part_Text text -> body_builder.add_part_text part.key text
-                        Form.Part_File file -> body_builder.add_part_file part.key file.path
-                    Pair req body_builder.build
-                if req.headers.contains Header.multipart_form_data then add_multipart form else
-                    add_urlencoded form
-        # method
-        req_http_method = case req.method of
-            Method.Options -> "OPTIONS"
-            Method.Get -> "GET"
-            Method.Post -> "POST"
-            Method.Put -> "PUT"
-            Method.Delete -> "DELETE"
-            Method.Trace -> "TRACE"
-            Method.Connect -> "CONNECT"
-        case req_with_body of
-            Pair req body ->
-                # set method and body
-                builder.method req_http_method body
-                # set headers
-                req.headers.map h-> builder.header h.name h.value
-        http_request = builder.build
-        body_handler = HttpResponse.BodyHandlers . ofByteArray
-        Response.response (this.internal_http_client.send http_request body_handler)
+        response = Panic.recover <|
+            body_publishers = HttpRequest.BodyPublishers
+            builder = HttpRequest.newBuilder
+            # set uri
+            builder.uri (Internal.panic_on_error req.uri.internal_uri)
+            # prepare headers and body
+            req_with_body = case req.body of
+                Request_Body.Empty ->
+                    Pair req body_publishers.noBody
+                Request_Body.Text text ->
+                    builder.header Header.text_plain.name Header.text_plain.value
+                    Pair req (body_publishers.ofString text)
+                Request_Body.Json json ->
+                    builder.header Header.application_json.name Header.application_json.value
+                    Pair req (body_publishers.ofString json.to_text)
+                Request_Body.Form form ->
+                    add_multipart form =
+                        body_builder = Http_Utils.multipart_body_builder
+                        form.parts.map part-> case part.value of
+                            Form.Part_Text text -> body_builder.add_part_text part.key text
+                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                        boundary = body_builder.get_boundary
+                        Pair (req.with_headers [Header.multipart_form_data boundary]) body_builder.build
+                    add_urlencoded form =
+                        body_builder = Http_Utils.urlencoded_body_builder
+                        form.parts.map part-> case part.value of
+                            Form.Part_Text text -> body_builder.add_part_text part.key text
+                            Form.Part_File file -> body_builder.add_part_file part.key file.path
+                        Pair req body_builder.build
+                    if req.headers.contains Header.multipart_form_data then add_multipart form else
+                        add_urlencoded form
+            # method
+            req_http_method = case req.method of
+                Method.Options -> "OPTIONS"
+                Method.Get -> "GET"
+                Method.Post -> "POST"
+                Method.Put -> "PUT"
+                Method.Delete -> "DELETE"
+                Method.Trace -> "TRACE"
+                Method.Connect -> "CONNECT"
+            case req_with_body of
+                Pair req body ->
+                    # set method and body
+                    builder.method req_http_method body
+                    # set headers
+                    req.headers.map h-> builder.header h.name h.value
+            http_request = builder.build
+            body_handler = HttpResponse.BodyHandlers . ofByteArray
+            Response.response (this.internal_http_client.send http_request body_handler)
+        response.catch e-> case e of
+            Polyglot_Error err ->
+                Error.throw (Request_Error err.getMessage)
+            _ ->
+                Error.throw e
 
     ## PRIVATE
 
@@ -292,7 +305,7 @@ new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (ver
    > Example
      Send an Options request.
          Http.options "http://httpbin.org"
-options : To_Uri -> Vector.Vector -> Response
+options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 options uri (headers = []) = here.new.options uri headers
 
 ## Send a Get request.
@@ -310,8 +323,26 @@ options uri (headers = []) = here.new.options uri headers
          out_file = File.new "/tmp/out.bin"
          res = Http.get "http://httpbin.org/bytes/1024"
          res.body.to_file out_file
-get : To_Uri -> Vector.Vector -> Response
+get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 get uri (headers = []) = here.new.get uri headers
+
+## Send the Get request and return the body.
+
+   > Example
+     Send a Get request.
+         Http.fetch "http://httpbin.org/get"
+
+   > Example
+     Send authenticated Get request (note the use of TLS).
+         Http.fetch "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+
+   > Example
+     Download a file.
+         out_file = File.new "/tmp/out.bin"
+         res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
+fetch uri (headers = []) =
+    here.new.get uri headers . body
 
 ## Send a Head request.
 
@@ -319,7 +350,7 @@ get uri (headers = []) = here.new.get uri headers
      Send a Head request.
          res = Http.head "http://httpbin.org"
          IO.println res.headers
-head : To_Uri -> Vector.Vector -> Response
+head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 head uri (headers = []) = here.new.options uri headers
 
 ## Send a Post request.
@@ -329,7 +360,7 @@ head uri (headers = []) = here.new.options uri headers
          body = Body.Bytes "Hello".utf_8
          header_binary = Header.content_type "application/octet-stream"
          Http.post "http://httpbin.org/post" body [header_binary]
-post : To_Uri -> Request_Body -> Vector.Vector -> Respoonse
+post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
 post uri body (headers = []) = here.new.post uri body headers
 
 ## Send a Post request with the form. By default it will be encoded as
@@ -345,7 +376,7 @@ post uri body (headers = []) = here.new.post uri body headers
      Send a Post request with form encoded as "multipart/form-data".
          form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
          Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
-post_form : To_Uri -> To_Form -> Vector.Vector -> Response
+post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
 post_form uri parts (headers = []) = here.new.post_form uri parts headers
 
 ## Send a Post request with body with content-type "application/json".
@@ -355,5 +386,5 @@ post_form uri parts (headers = []) = here.new.post_form uri parts headers
          json = Json.parse <| '''
              {"key":"val"}
          Http.post_json "http://httpbin.org/post" json
-post_json : To_Uri -> Json -> Vector.Vector -> Response
+post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
 post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
