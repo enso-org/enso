@@ -2,24 +2,17 @@ from Standard.Base import all
 
 import Standard.Base.Data.Vector
 
-type To_Form
-
-    type To_Form internal_to_form
-
-    to_form : Form
-    to_form = this.internal_to_form
-
-## Implement To_Form for vector
-Vector.Vector.to_form = Form this
-
 ## The HTTP form containing a vector of parts.
 type Form
 
     type Form parts
 
-    ## Implement To_Form.to_form
+    ## Convert this to a Form.
     to_form : Form
     to_form = this
+
+## Convert Vector to a Form.
+Vector.Vector.to_form = Form this
 
 ## The key-value element of the form.
 type Part
@@ -33,7 +26,7 @@ type Part_Value
 
     type Part_File part_file
 
-## Create Form data from Parts
+## Create Form data from Parts.
 new : Vector.Vector -> Form
 new parts = Form parts
 
