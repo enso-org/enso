@@ -674,7 +674,7 @@ impl Display for EdgeId {
 /// Typename information that may be associated with the given Port.
 ///
 /// `None` means that type for the port is unknown.
-#[derive(Clone,Debug,Default,Hash)]
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
 pub struct Type(pub ImString);
 
 impl Deref for Type {

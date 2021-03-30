@@ -54,6 +54,10 @@ const ERROR_VISUALIZATION_SIZE       : (f32,f32) = visualization::container::DEF
 
 const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
 
+/// A type of unresolved methods. We filter them out, because we don't want to treat them as types
+/// for ports and edges coloring (due to bad UX otherwise).
+const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
+
 
 
 // =============
@@ -573,8 +577,12 @@ impl Node {
 
             // === Expression ===
 
-            eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-            eval frp.set_expression            ((a)     model.set_expression(a));
+            let unresolved_symbol_type = Some(Type(ImString::new(UNRESOLVED_SYMBOL_TYPE)));
+            filtered_usage_type <- frp.set_expression_usage_type.filter(
+                move |(_,tp)| *tp != unresolved_symbol_type
+            );
+            eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval frp.set_expression  ((a)     model.set_expression(a));
             out.source.expression                  <+ model.input.frp.expression;
             model.input.set_connected              <+ frp.set_input_connected;
             model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
