@@ -97,7 +97,7 @@ impl From<node::Expression> for Expression {
     fn from(expr:node::Expression) -> Self {
         let code            = expr.pattern.clone();
         let whole_expr_type = expr.input_span_tree.root.tp().map(|t|t.to_owned().into());
-        let whole_expr_id   = expr.input_span_tree.root.ast_id;
+        let whole_expr_id   = expr.whole_expression_id;
         let mut span_tree   = expr.output_span_tree.map(|_| port::Model::default());
         span_tree.root_ref_mut().dfs_with_layer_data((),|node,()| {
             let span    = node.span();
