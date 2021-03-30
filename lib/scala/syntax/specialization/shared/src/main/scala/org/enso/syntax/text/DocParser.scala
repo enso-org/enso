@@ -464,13 +464,19 @@ object DocParserHTMLGenerator {
     args: List[AST],
     body: AST.Block
   ): astHtmlRepr = {
-    // TODO: move all the atoms there, and collect all methods here.
-//    val constructorsHeader = HTML.h2(`class` := "constr")("Atoms")
-//    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
+    val firstLine          = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val constructorsHeader = HTML.h2(`class` := "constr")("Constructors")
+    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
+    val allLines           = firstLine :: body.lines
+    val generatedCode      = renderHTMLOnLine(allLines)
+    val typesList =
+      generatedCode.filter(_.toString().contains("class=\"DefTitle\""))
+    val infixList =
+      generatedCode.filter(_.toString().contains("class=\"Infix\""))
     val head    = createDefTitle(name, args)
     val clsBody = HTML.`class` := "DefBody"
     val lines =
-      HTML.div(clsBody)
+      HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
     val cls = HTML.`class` := "Def"
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
@@ -498,11 +504,15 @@ object DocParserHTMLGenerator {
     * @return - Def title in HTML
     */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    val clsTitle = HTML.`class` := "DefTitle"
-    val clsArgs  = HTML.`class` := "DefArgs"
-    val nameStr  = name.show()
-    val argsStr  = args.map(_.show() + " ")
-    val pageHref = HTML.`href` := "#" + nameStr
+    val clsTitle   = HTML.`class` := "DefTitle"
+    val clsArgs    = HTML.`class` := "DefArgs"
+    val nameStr    = name.show()
+    val argsStr    = args.map(_.show())
+    var argsStrUrl = argsStr.mkString("_")
+    if (argsStr.nonEmpty) {
+      argsStrUrl = "_" + argsStrUrl
+    }
+    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
     val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
     HTML.a(pageHref)(innerDiv)
   }
@@ -514,8 +524,10 @@ object DocParserHTMLGenerator {
     * @return - HTML code generated from Infix
     */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
-    val cls      = HTML.`class` := "Infix"
-    val pageHref = HTML.`href` := "#" + infix.larg.show().replaceAll(" ", "_")
+    val cls = HTML.`class` := "Infix"
+    val pageHref = HTML.`href` := infix.larg
+      .show()
+      .replaceAll(" ", "_") + ".html"
     val innerDiv = HTML.div(cls)(infix.larg.show())
     HTML.a(pageHref)(innerDiv)
   }
