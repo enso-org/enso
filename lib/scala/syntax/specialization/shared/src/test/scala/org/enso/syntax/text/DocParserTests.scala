@@ -764,6 +764,58 @@ class DocParserTests extends AnyFlatSpec with Matchers {
       )
     )
   )
+  """
+    | - bar
+    |   baz
+    | - bar
+    |   baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Newline,
+        List(1, List.Unordered, " bar\n   baz", " bar\n   baz"),
+        Newline
+      )
+    )
+  )
+
+  """ This does foo:
+    | - bar
+    |   baz
+    | Another raw text.
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "This does foo:",
+        Newline,
+        List(1, List.Unordered, " bar\n   baz"),
+        Newline,
+        "Another raw text.",
+        Newline
+      )
+    )
+  )
+
+  """ > Example
+    |   This does foo:
+    |    - bar
+    |      baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Newline,
+        "This does foo:",
+        Newline,
+        List(4, List.Unordered, " bar\n      baz"),
+        Newline
+      )
+    )
+  )
 
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
