@@ -7,10 +7,12 @@ import Standard.Table.Data.Table
 
    ? Implementation Note
      Function has partial support of the GeoJSON format described in rfc7946.
-     - Supported geometry objects are Position and Point.
+     - Supported geometry objects are Position and Point. Rows containing
+       other geometry objects are not included in the resulting dataframe.
      - Position arrays are truncated to 3 elements: longitude, latitude
        and elevation.
-     - Nested properties are not supported.
+     - Nested properties are not supported and not included in the resulting
+       dataframe.
 Json.Object.to_table : Table ! Nothing
 Json.Object.to_table = case this of
     Json.Object object ->
