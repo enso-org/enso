@@ -5,19 +5,16 @@ import Standard.Base.Network.Uri.Internal
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
-type Uri_Error
-    type Syntax_Error message
+## Syntax error when parsing a Uri.
+type Syntax_Error message
+
+Syntax_Error.to_display_text =
+    "Uri syntax error: " + this.message
 
 ## Convert Text to Uri.
 Text.to_uri = here.parse this
 
-## PRIVATE
-panic_on_error ~action =
-    action . catch e-> case e of
-        Syntax_Error msg -> Panic.throw (Syntax_Error msg)
-
 type Uri
-
     ## Represents a Uniform Resource Identifier (URI) reference.
     type Uri internal_uri
 

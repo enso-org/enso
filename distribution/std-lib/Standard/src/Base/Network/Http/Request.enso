@@ -4,6 +4,7 @@ import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request.Body as Request_Body
+import Standard.Base.Network.Internal
 import Standard.Base.Network.Uri
 import Standard.Base.System.File
 
@@ -52,7 +53,7 @@ type Request
 ## Create new HTTP request.
 new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
-    Request method (Uri.panic_on_error (addr.to_uri)) headers body
+    Panic.recover (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
 
 ## Create an Options request.
 options : (Text | Uri) -> Vector.Vector -> Request
