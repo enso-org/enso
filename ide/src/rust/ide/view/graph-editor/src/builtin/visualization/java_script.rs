@@ -33,8 +33,9 @@ pub fn sql_visualization() -> visualization::java_script::FallibleDefinition {
 /// Return a `JavaScript` Scatter plot visualization.
 pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefinition {
     let loading_scripts = include_str!("java_script/helpers/loading.js");
+    let number          = include_str!("java_script/helpers/number.js");
     let source          = include_str!("java_script/scatterPlot.js");
-    let source          = format!("{}{}",loading_scripts,source);
+    let source          = format!("{}{}{}",loading_scripts,number,source);
 
     visualization::java_script::Definition::new_builtin(source)
 }
@@ -42,8 +43,9 @@ pub fn scatter_plot_visualization() -> visualization::java_script::FallibleDefin
 /// Return a `JavaScript` Histogram visualization.
 pub fn histogram_visualization() -> visualization::java_script::FallibleDefinition {
     let loading_scripts = include_str!("java_script/helpers/loading.js");
+    let number          = include_str!("java_script/helpers/number.js");
     let source          = include_str!("java_script/histogram.js");
-    let source          = format!("{}{}",loading_scripts,source);
+    let source          = format!("{}{}{}",loading_scripts,number,source);
 
     visualization::java_script::Definition::new_builtin(source)
 }

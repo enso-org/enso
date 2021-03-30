@@ -226,16 +226,16 @@ In particular:
   - #### Field `theme`
     The IDE's current color theme. Exposes the following methods.
     - ##### Method `getColorForType`
-      Takes a qualified type name and returns the color that is used in the GUI to represent that
-      type.
+      Takes a qualified type name and returns the color that is used in the GUI
+      to represent that type.
     - ##### Method `getForegroundColorForType`
-      Takes a qualified type name and returns the color that should be used for foreground elements
-      (e.g. text) that are shown on top of the background color returned by `getColorForType`.
+      Takes a qualified type name and returns the color that should be used for
+      foreground elements (e.g. text) that are shown on top of the background
+      color returned by `getColorForType`.
     - ##### Method `get`
-      Takes a style sheet path as string and returns the corresponding value from the theme. For
-      example, `get("graph_editor.node.error.panic")` returns the orange color that is used to mark
-      nodes in an error state.
-
+      Takes a style sheet path as string and returns the corresponding value
+      from the theme. For example, `get("graph_editor.node.error.panic")`
+      returns the orange color that is used to mark nodes in an error state.
 
 - ### [Optional] Field `label`
 
@@ -319,3 +319,54 @@ data types have defined conversion to JSON by default. If the visualization
 input is defined as JSON input, the binary stream will be converted to JSON by
 the GUI engine before passing to visualization. It is up to the visualization
 author to handle the textual or binary form.
+
+## Builtin Visualizations
+
+IDE comes with a set of predefined visualizations, including charts.
+
+### Dataframes Support
+
+Some of the predefined visualizations have some special support for `Table` from
+Enso Dataframes library.
+
+#### Histogram
+
+When using `Histogram` visualization on a `Table` value it will first look for a
+column named `value`. If present, it will be used as a data source. Otherwise,
+`Histogram` will use the first numerical column.
+
+#### Scatter Plot
+
+The `Scatter Plot` visualization has several properties for each point. If a
+column of a matching name is present in the `Table` it will be used.
+
+- `x` — position on horizontal axis. If not present, the index column will be
+  used. If there is no index set, the row indices will be used. If this column
+  has a missing value, the point will be omitted.
+- `y` — position on vertical axis. If not present, first numerical column of
+  unrecognized name will be used. If not present, first numerical column will be
+  used. If this column has a missing value, the point will be omitted.
+- `color` — color of the point. The default color is `black` and will be used if
+  column is not present or for its missing values. `color` should be a `Text`
+  column with elements being in a
+  [CSS colors format](https://www.w3schools.com/cssref/css_colors_legal.asp):
+  - Hexadecimal formats, like `#RGB`, `#RRGGBB` and `#RRGGBBAA`.
+  - RGB function-like syntax, e.g. `rgb(255,0,128)` or `rgba(255,0,128,0.5)`.
+  - HSL function-like syntax, e.g. `hsl(120, 100%, 50%)` or
+    `hsla(120, 100%, 50%, 0.3)`.
+  - name of one of
+    [predefined colors](https://www.w3schools.com/colors/colors_names.asp), e.g.
+    `red` or `SteelBlue`.
+- `label` — text to be displayed next to the point.
+- `shape` — shape of the point. Supported shapes are:
+
+  - `cross`;
+  - `diamond`;
+  - `square`;
+  - `star`;
+  - `triangle`.
+
+  The default shape is a circle.
+
+- `size` — size of the point as a (possible floating point) number. Default size
+  of the point is `1.0`.

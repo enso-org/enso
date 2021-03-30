@@ -297,7 +297,7 @@ impl Project {
                     //  see https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger,"Error emitted by the binary data connection: {error}.");
+                    error!(logger,"Error emitted by the JSON-RPC data connection: {error}.");
                 }
                 _ => {}
             }
