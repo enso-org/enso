@@ -97,7 +97,8 @@ impl Ide {
         let visualization = project.visualization().clone();
 
         let status_bar = view.status_bar().clone_ref();
-        status_bar.add_process(status_bar::process::Label::new("Compiling standard library..."));
+        let intro_msg  = "Compiling standard library. It can take up to 1 minute.";
+        status_bar.add_process(status_bar::process::Label::new(intro_msg));
         let compiling_process                = status_bar.last_process.value();
         let notifications                    = graph.subscribe();
         let mut computed_value_notifications = notifications.filter(|notification|

@@ -82,6 +82,12 @@
 - [Geo Map visualization recognizes columns regardless of their name letter
   case][1392]. This allows visualizing tables with columns like `LONGITUDE` or
   `Longitude`, where previously only `longitude` was recognized.
+- [It is possible now to switch themes][1390]. Also, theme manager was
+  integrated with the FRP event engine, which was a long-standing issue in the
+  IDE. Themes management was exposed to JavaScript with the `window.theme`
+  variable. It is even possible to change and develop themes live by editing
+  theme variables directly in the Chrome Inspector. Use the following command to
+  start: `theme.snapshot("t1"); theme.get("t1").interactiveMode()`.
 
 #### EnsoGL (rendering engine)
 
@@ -91,26 +97,27 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
-[479]: https://github.com/enso-org/ide/issues/479
+[1064]: https://github.com/enso-org/ide/pull/1064
 [1209]: https://github.com/enso-org/ide/pull/1209
 [1291]: https://github.com/enso-org/ide/pull/1291
-[1314]: https://github.com/enso-org/ide/pull/1314
-[1313]: https://github.com/enso-org/ide/pull/1313
 [1311]: https://github.com/enso-org/ide/pull/1311
-[1064]: https://github.com/enso-org/ide/pull/1064
+[1313]: https://github.com/enso-org/ide/pull/1313
+[1314]: https://github.com/enso-org/ide/pull/1314
 [1316]: https://github.com/enso-org/ide/pull/1316
 [1318]: https://github.com/enso-org/ide/pull/1318
+[1328]: https://github.com/enso-org/ide/pull/1328
 [1355]: https://github.com/enso-org/ide/pull/1355
 [1332]: https://github.com/enso-org/ide/pull/1332
 [1341]: https://github.com/enso-org/ide/pull/1341
-[1328]: https://github.com/enso-org/ide/pull/1328
 [1341]: https://github.com/enso-org/ide/pull/1341
 [1348]: https://github.com/enso-org/ide/pull/1348
 [1353]: https://github.com/enso-org/ide/pull/1353
 [1384]: https://github.com/enso-org/ide/pull/1384
 [1385]: https://github.com/enso-org/ide/pull/1385
-[1393]: https://github.com/enso-org/ide/pull/1393
+[1390]: https://github.com/enso-org/ide/pull/1390
 [1392]: https://github.com/enso-org/ide/pull/1392
+[1393]: https://github.com/enso-org/ide/pull/1393
+[479]: https://github.com/enso-org/ide/issues/479
 [1335]: https://github.com/enso-org/ide/pull/1335
 [1358]: https://github.com/enso-org/ide/pull/1358
 [1377]: https://github.com/enso-org/ide/pull/1377

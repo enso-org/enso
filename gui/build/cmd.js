@@ -1,5 +1,16 @@
-let spawn = require('child_process').spawn
-let exec  = require('child_process').exec
+const https = require('https')
+const spawn = require('child_process').spawn
+const exec  = require('child_process').exec
+
+function download(url) {
+    return new Promise((resolve,reject) => {
+        https.get(url,(res) => {
+            let data = ""
+            res.on("data", (chunk) => data += chunk)
+            res.on("end", () => resolve(data))
+        }).on("error", (error) => reject(error))
+    })
+}
 
 function section(title) {
     let border = '-'.repeat(8 + title.length)
@@ -70,4 +81,27 @@ async function get_npm_lts_version_of (name) {
     return version
 }
 
-module.exports = {section,run,run_read,check_version,get_npm_info,get_npm_lts_version_of,with_cwd}
+async function get_node_dist_index() {
+    let index = await download('https://nodejs.org/dist/index.json')
+    return JSON.parse(index)
+}
+
+async function get_node_lts_version() {
+    let index = await get_node_dist_index()
+    let newest = null
+    for (let entry of index) {
+        if (entry.lts !== false) {
+            newest = entry
+            break
+        }
+    }
+    if (!newest) {
+        throw "Cannot fetch the info about node LTS version."
+    }
+    let node = newest.version
+    let npm  = newest.npm
+    return [node,npm]
+}
+
+module.exports = {section,run,run_read,check_version,get_npm_info,get_npm_lts_version_of,with_cwd,
+    get_node_dist_index,get_node_lts_version}

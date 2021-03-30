@@ -233,7 +233,7 @@ impl Model {
         self.dom.set_size(self.size.get());
     }
 
-    fn set_text_color(&self, color:impl Into<display::shape::style_watch::ColorSource>) {
+    fn set_text_color(&self, color:impl Into<display::style::Path>) {
         let text_color   = self.styles.get_color(color);
         let text_color   = color::Rgba::from(text_color);
         let red          = text_color.red * 255.0;

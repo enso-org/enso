@@ -24,7 +24,6 @@ pub mod animation;
 
 pub use animation::Animation;
 pub use component::*;
-pub use gradient::*;
 pub use mix::mix;
 pub use self::data::*;
 pub use space::*;

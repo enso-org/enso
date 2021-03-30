@@ -93,7 +93,6 @@ impl Model {
         let tooltip = Label::new(app.clone_ref());
         let root    = display::object::Instance::new(&logger);
         root.add_child(&tooltip);
-
         Self{tooltip,root}
     }
 

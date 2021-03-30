@@ -24,20 +24,6 @@ use wasm_bindgen::prelude::Closure;
 
 
 
-// ===============
-// === Handles ===
-// ===============
-
-/// Callback handles managed by world.
-#[derive(Clone,CloneRef,Debug)]
-pub struct CallbackHandles {
-    on_before_frame : callback::Handle,
-    on_frame        : callback::Handle,
-    on_after_frame  : callback::Handle,
-}
-
-
-
 // ================
 // === Uniforms ===
 // ================
@@ -76,7 +62,9 @@ pub struct World {
     uniforms         : Uniforms,
     stats            : Stats,
     stats_monitor    : stats::Monitor,
-    callback_handles : CallbackHandles,
+    main_loop_frame  : callback::Handle,
+    on_before_frame  : callback::SharedRegistryMut1<animation::TimeInfo>,
+    on_after_frame   : callback::SharedRegistryMut1<animation::TimeInfo>,
 }
 
 impl World {
@@ -91,20 +79,26 @@ impl World {
         let uniforms        = Uniforms::new(&scene.variables);
         let main_loop       = animation::DynamicLoop::new();
         let stats_monitor   = stats::Monitor::new(&stats);
+        let on_before_frame = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
+        let on_after_frame  = <callback::SharedRegistryMut1<animation::TimeInfo>>::new();
+        let main_loop_frame = main_loop.on_frame(
+            f!([stats_monitor,on_before_frame,on_after_frame,uniforms,scene_dirty,scene]
+            (t:animation::TimeInfo) {
+                stats_monitor.begin();
+                on_before_frame.run_all(&t);
 
-        let on_before_frame = main_loop.on_before_frame (f_!(stats_monitor.begin()));
-        let on_after_frame  = main_loop.on_after_frame  (f_!(stats_monitor.end()));
-        let on_frame        = main_loop.on_frame(
-            f!([uniforms,scene_dirty,scene] (t:animation::TimeInfo) {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
                 scene.update(t);
                 scene.renderer.run();
+
+                on_after_frame.run_all(&t);
+                stats_monitor.end();
             })
         );
 
-        let callback_handles = CallbackHandles {on_before_frame,on_frame,on_after_frame};
-        Self{scene,scene_dirty,logger,main_loop,uniforms,callback_handles,stats,stats_monitor}.init()
+        Self{scene,scene_dirty,logger,main_loop,uniforms,main_loop_frame,stats,stats_monitor
+            ,on_before_frame,on_after_frame}.init()
     }
 
     fn init(self) -> Self {
@@ -154,10 +148,22 @@ impl World {
         &self.scene
     }
 
-    /// Register a callback which should be run on each animation frame.
+    /// Register a callback which should be run before each animation frame.
+    pub fn on_before_frame<F:FnMut(animation::TimeInfo)+'static>
+    (&self, mut callback:F) -> callback::Handle {
+        self.on_before_frame.add(move |time:&animation::TimeInfo| callback(*time))
+    }
+
+    /// Register a callback which should be run after each animation frame.
+    pub fn on_after_frame<F:FnMut(animation::TimeInfo)+'static>
+    (&self, mut callback:F) -> callback::Handle {
+        self.on_before_frame.add(move |time:&animation::TimeInfo| callback(*time))
+    }
+
+    /// Register a callback which should be run after each animation frame.
     pub fn on_frame<F:FnMut(animation::TimeInfo)+'static>
     (&self, mut callback:F) -> callback::Handle {
-        self.main_loop.on_frame(move |time| callback(time))
+        self.on_after_frame.add(move |time:&animation::TimeInfo| callback(*time))
     }
 
     /// Keeps the world alive even when all references are dropped. Use only if you want to keep one

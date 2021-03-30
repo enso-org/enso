@@ -41,9 +41,6 @@ use ensogl_theme as theme;
 /// Default width and height of the visualisation container.
 pub const DEFAULT_SIZE  : (f32,f32) = (200.0,200.0);
 const CORNER_RADIUS     : f32       = super::super::node::CORNER_RADIUS;
-// Note[mm]: at the moment we use a CSS replacement shadow defined in the .visualization class of
-// `src/js/lib/content/src/index.html`. While that is in use this shadow is deactivated.
-const SHADOW_SIZE       : f32       = 0.0 * super::super::node::SHADOW_SIZE;
 const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
 
 
@@ -54,10 +51,10 @@ const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
 
 /// Container background shape definition.
 ///
-/// Provides a backdrop and outline for visualisations. Can indicate the selection status of the
+/// Provides a backdrop and outline for visualizations. Can indicate the selection status of the
 /// container.
 /// TODO : We do not use backgrounds because otherwise they would overlap JS
-///        visualizations. Instead we added a HTML background to the `View`.
+///        visualizations. Instead, we added an HTML background to the `View`.
 ///        This should be further investigated while fixing rust visualization displaying. (#526)
 pub mod background {
     use super::*;
@@ -68,8 +65,9 @@ pub mod background {
 
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
-            let width         = &width  - SHADOW_SIZE.px() * 2.0;
-            let height        = &height - SHADOW_SIZE.px() * 2.0;
+            let shadow_size   = style.get_number(visualization_theme::shadow::size);
+            let width         = &width  - shadow_size.px() * 2.0;
+            let height        = &height - shadow_size.px() * 2.0;
             let radius        = 1.px() * &radius;
             let color_bg      = style.get_color(visualization_theme::background);
             let corner_radius = &radius * &roundness;
@@ -78,20 +76,15 @@ pub mod background {
 
             // === Shadow ===
 
-            let border_size_f = 16.0;
             let corner_radius = corner_radius*1.75;
-            let width         = &width  + SHADOW_SIZE.px() * 2.0;
-            let height        = &height + SHADOW_SIZE.px() * 2.0;
+            let width         = &width  + shadow_size.px() * 2.0;
+            let height        = &height + shadow_size.px() * 2.0;
             let shadow        = Rect((&width,&height)).corners_radius(&corner_radius).shrink(1.px());
             let base_color    = style.get_color(visualization_theme::shadow);
             let fading_color  = style.get_color(visualization_theme::shadow::fading);
-            let exponent      = style.get_number_or(visualization_theme::shadow::exponent,2.0);
-            let shadow_color  = color::LinearGradient::new()
-                .add(0.0,color::Rgba::from(fading_color).into_linear())
-                .add(1.0,color::Rgba::from(base_color).into_linear());
-            let shadow_color = color::SdfSampler::new(shadow_color)
-                .max_distance(border_size_f)
-                .slope(color::Slope::Exponent(exponent));
+            let exp           = style.get_number_or(visualization_theme::shadow::exponent,2.0);
+            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
+            let shadow_color  = shadow_color.sdf_sampler().size(shadow_size).exponent(exp);
             let shadow        = shadow.fill(shadow_color);
 
             let out = shadow + background;

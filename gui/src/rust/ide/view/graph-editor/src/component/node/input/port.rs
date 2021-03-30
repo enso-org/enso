@@ -132,7 +132,7 @@ ensogl::define_endpoints! {
         set_hover            (bool),
         set_connected        (bool,Option<Type>),
         set_parent_connected (bool),
-        set_definition_type  (Option<Type>),
+        set_definition_type   (Option<Type>),
         set_usage_type       (Option<Type>),
     }
 

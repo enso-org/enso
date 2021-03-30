@@ -28,7 +28,7 @@ macro_rules! _define_theme_literals {
             }
     };
     ($id:tt $theme:ident [$($path:ident)*] $var:ident = $($e:expr),* $(;$($rest:tt)*)?) => {
-        $theme.insert(stringify!($($path.)*$var), _select_theme_expr!{$id $($e),*});
+        $theme.set(stringify!($($path.)*$var), _select_theme_expr!{$id $($e),*});
         _define_theme_literals!{$id $theme [$($path)*] $($($rest)*)?}
     };
     ($id:tt $theme:ident [$($path:ident)*] $path_segment:ident {$($t:tt)*} $($rest:tt)*) => {
@@ -95,15 +95,15 @@ macro_rules! _define_theme_wrapper_and_literals {
             use ensogl_core::display::style::theme;
 
             /// Registers the theme in the application.
-            pub fn register(app:&Application) {
-                let mut $name = theme::Theme::new();
+            pub fn register(theme_manager:impl AsRef<theme::Manager>) {
+                let $name = theme::Theme::new();
                 _define_theme_literals!{$id $name [] $($t)*}
-                app.themes.register(stringify!($name),$name);
+                theme_manager.as_ref().register(stringify!($name),$name);
             }
 
-            /// Enables current theme.
-            pub fn enable(app:&Application) {
-                app.themes.set_enabled(&[stringify!($name)]);
+            /// Enables the current theme.
+            pub fn enable(theme_manager:impl AsRef<theme::Manager>) {
+                theme_manager.as_ref().set_enabled(&[stringify!($name)]);
             }
         }
     };
@@ -122,6 +122,7 @@ macro_rules! define_themes {
         #[allow(missing_docs)]
         #[allow(non_snake_case)]
         pub mod vars {
+            use ensogl_core::display::style::StaticPath;
             _define_theme_modules!{[] $($t)*}
         }
         pub use vars::*;
@@ -155,7 +156,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        background = Lcha(0.96,0.014,0.18,1.0) , Lcha(0.13,0.014,0.18,1.0);
+        background = Rgba(0.961,0.965,0.969,1.0) , Lcha(0.13,0.014,0.18,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -169,31 +170,50 @@ define_themes! { [light:0, dark:1]
             selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
         }
         types {
-            luminance     = 0.8 , 0.75;
-            chroma        = 0.6 , 0.4;
+            hue_steps     = 512.0 , 512.0;
+            hue_shift     = 0.0, 0.0;
+            lightness     = 0.72 , 0.75;
+            chroma        = 0.7 , 0.4;
             any           = code::syntax::base , Lcha(0.5,1.0,0.0,1.0);
             any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,1.0,0.0,1.0);
             selected      = graph_editor::node::background , graph_editor::node::background;
             overriden {
-                Text.hue   = 0.22 , 0.217;
-                Number.hue = 0.68 , 0.68;
+                Builtins {
+                    Main {
+                        Unresolved_Symbol {
+                            hue       = 0.68, 0.0;
+                            lightness = 0.09, 0.09;
+                            chroma    = 0.0, 0.0;
+                        }
+                        Integer.hue = 0.68 , 0.68;
+                        Number.hue = 0.68 , 0.68;
+                        Text.hue = 0.22 , 0.217;
+                    }
+                }
             }
         }
     }
     graph_editor {
         node {
-            background         = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
+            background         = Rgba(0.984,0.992,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0);
             background.skipped = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.15,0.014,0.18,1.0);
-            shadow             = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
+            shadow = shadow , shadow;
             shadow {
-                fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
-                exponent = 2.0 , 2.0;
+                size     = shadow::size , shadow::size;
+                spread   = shadow::spread , shadow::spread;
+                fading   = shadow::fading , shadow::fading;
+                exponent = shadow::exponent , shadow::exponent;
+                offset_x = shadow::offset_x , shadow::offset_x;
+                offset_y = shadow::offset_y , shadow::offset_y;
             }
-            selection      = Lcha(0.83,0.63,0.436,1.0) , Lcha(0.72,0.54,0.22,1.0);
-            selection.size = 9.0 , 9.0;
-            text           = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            selection      = selection, selection;
+            selection {
+                size = 10.0 , 5.0;
+                offset = 0.0 , 5.0;
+            }
+            text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                missing_arg    = Lcha(0.0,0.0,0.0,0.3) , Lcha(1.0,0.0,0.0,0.3);
+                missing_arg    = Rgba(0.078,0.067,0.137,0.25) , Lcha(1.0,0.0,0.0,0.3);
                 variant.dimmed = Lcha(0.7,0.0,0.0,0.7) , Lcha(0.25,0.014,0.18,1.0);
                 selection      = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
@@ -210,14 +230,22 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
-                panic    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                dataflow      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
+                panic        = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                width        = 4.0  , 4.0;
+                repeat_x     = 20.0 , 20.0;
+                repeat_y     = 20.0 , 20.0;
+                stripe_width = 10.0 , 10.0;
+                stripe_angle = 45.0 , 45.0;
             }
         }
         visualization {
             background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
             shadow     = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
             shadow {
+                // Note[mm]: at the moment we use a CSS replacement shadow defined in the .visualization class of
+                // `src/js/lib/content/src/index.html`. While that is in use this shadow is deactivated.
+                size     = 0.0, 0.0;
                 fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
                 exponent = 2.0 , 2.0;
                 html {
@@ -256,12 +284,12 @@ define_themes! { [light:0, dark:1]
     }
     widget {
         list_view {
-            background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
-            highlight  = Lcha(0.83,0.63,0.436,1.0) , Lcha(0.72,0.54,0.22,1.0);
-            shadow     = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
+            background = graph_editor::node::background , graph_editor::node::background;
+            highlight  = selection , selection;
+            shadow     = shadow , shadow;
             shadow {
-                fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
-                exponent = 2.0 , 2.0;
+                fading   = shadow::fading , shadow::fading;
+                exponent = shadow::exponent , shadow::exponent;
             }
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
@@ -293,5 +321,19 @@ define_themes! { [light:0, dark:1]
             padding = 15.0, 15.0;
             height  = 36.0, 36.0;
         }
+    }
+
+
+    // === Generics ===
+
+    selection = Rgba(0.776,0.8,0.81,0.57) , Lcha(0.72,0.54,0.22,1.0);
+    shadow = Rgba(0.078,0.067,0.137,0.07) , Lcha(0.0,0.0,0.0,0.20); // a 0.04
+    shadow {
+        size     = 14.0 , 14.0;  // 13
+        spread   = -2.0 , -2.0;
+        fading   = Rgba(0.078,0.067,0.137,0.0) , Lcha(0.0,0.0,0.0,0.0);
+        exponent = 3.0 , 3.0; // 2
+        offset_x = 0.0 , 0.0;
+        offset_y = -2.0 , -2.0;
     }
 }
