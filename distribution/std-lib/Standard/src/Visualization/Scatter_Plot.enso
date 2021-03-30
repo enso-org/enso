@@ -81,7 +81,7 @@ type PointData
     ## PRIVATE
     lookup_in : Table -> Column
     lookup_in table = 
-        named = table.at this.name
+        named = table.lookup_ignore_case this.name
         named.catch_ <| this.fallback_column table
 
 ## PRIVATE
@@ -89,8 +89,7 @@ type PointData
 Table.Table.point_data : Table -> Object
 Table.Table.point_data =
     get_point_data field = field.lookup_in this . rename field.name
-    is_valid column = column.is_error.not
-    columns = PointData.all_fields.map get_point_data . filter is_valid
+    columns = PointData.all_fields.filter_map get_point_data
     (0.up_to <| this.row_count + 1).to_vector.map <| row_n-> 
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
@@ -109,7 +108,7 @@ Table.Table.axes =
     y_axis = describe_axis Y
     is_valid axis_pair =
         label = axis_pair.at 1
-        label.is_error.not && (this.all_columns.length > 0)
+        label.is_valid && (this.all_columns.length > 0)
     axes_obj = Json.from_pairs <| [x_axis, y_axis].filter is_valid
     if axes_obj.fields.size > 0 then axes_obj else Nothing
 

@@ -13,8 +13,8 @@ Table.Table.first_numeric = this.all_columns.find _.is_numeric
    Get the value column - the column that will be used to create histogram.
 Table.Table.value_column : Table -> Column ! Nothing
 Table.Table.value_column = 
-    named_col = this.at 'value'
-    named_col.catch_ <| this.first_numeric
+    named_col = this.lookup_ignore_case 'value'
+    named_col.catch_ this.first_numeric
 
 ## PRIVATE
    Information that are placed in an update sent to a visualization.

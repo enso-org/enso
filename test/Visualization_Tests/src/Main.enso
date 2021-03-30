@@ -1,14 +1,21 @@
 from Standard.Base import all
 
 import Standard.Test
+import Standard.Table.Data.Column
 
+import Visualization_Tests.Geo_Map_Spec
 import Visualization_Tests.Helpers_Spec
 import Visualization_Tests.Histogram_Spec
 import Visualization_Tests.Scatter_Plot_Spec
 import Visualization_Tests.Sql_Spec
 import Visualization_Tests.Table_Spec
 
+Column.Column.expect name contents =
+    this.name.should_equal name
+    this.to_vector.should_equal contents
+
 main = Test.Suite.runMain <|
+    Geo_Map_Spec.spec
     Helpers_Spec.spec
     Histogram_Spec.spec
     Scatter_Plot_Spec.spec
