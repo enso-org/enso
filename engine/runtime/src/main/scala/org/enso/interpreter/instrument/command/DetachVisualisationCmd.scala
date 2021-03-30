@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.DetachVisualisationJob
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -20,22 +21,43 @@ class DetachVisualisationCmd(
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
-  ): Future[Unit] =
-    Future {
-      if (doesContextExist) {
-        ctx.contextManager.removeVisualisation(
-          request.contextId,
-          request.expressionId,
-          request.visualisationId
-        )
-        reply(Api.VisualisationDetached())
-      } else {
-        reply(Api.ContextNotExistError(request.contextId))
-      }
+  ): Future[Unit] = {
+    ctx.locking.acquireContextLock(request.contextId)
+    try {
+        if (doesContextExist) {
+          detachVisualization()
+        } else {
+          replyWithContextNotExistError()
+        }
+    } finally {
+      ctx.locking.releaseContextLock(request.contextId)
     }
+  }
 
   private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
     ctx.contextManager.contains(request.contextId)
+  }
+
+  private def detachVisualization()(implicit
+    ctx: RuntimeContext
+  ): Future[Unit] =
+    ctx.jobProcessor.run(
+      new DetachVisualisationJob(
+        maybeRequestId,
+        request.visualisationId,
+        request.expressionId,
+        request.contextId,
+        Api.VisualisationDetached()
+      )
+    )
+
+  private def replyWithContextNotExistError()(implicit
+    ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    Future {
+      reply(Api.ContextNotExistError(request.contextId))
+    }
   }
 
 }
