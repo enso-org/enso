@@ -6,10 +6,10 @@ import Standard.Visualization.Helpers
 
 json_from_table : Table.Table -> Text
 json_from_table table = 
-    names = ['label', 'latitude', 'longitude']
+    names = ['label', 'latitude', 'longitude', 'radius', 'color']
     pairs = names.filter_map <| name-> 
         column = table.lookup_ignore_case name
-        column.when_valid [name, column.to_vector]
+        column.when_valid ["df_" + name, column.to_vector]
         
     Json.from_pairs pairs
 
