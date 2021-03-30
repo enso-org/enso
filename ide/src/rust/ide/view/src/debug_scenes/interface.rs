@@ -259,16 +259,17 @@ use span_tree::traits::*;
 
 
 pub fn expression_mock_string(label:&str) -> Expression {
-    let pattern    = Some(label.to_string());
-    let code       = format!("\"{}\"", label);
-    let parser     = Parser::new_or_panic();
-    let parameters       = vec![];
-    let ast              = parser.parse_line(&code).unwrap();
-    let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
-    let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
-    let output_span_tree = span_tree::SpanTree::default();
-    let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
-    Expression {pattern,code,input_span_tree,output_span_tree}
+    let pattern             = Some(label.to_string());
+    let code                = format!("\"{}\"", label);
+    let parser              = Parser::new_or_panic();
+    let parameters          = vec![];
+    let ast                 = parser.parse_line(&code).unwrap();
+    let invocation_info     = span_tree::generate::context::CalledMethodInfo {parameters};
+    let ctx                 = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
+    let output_span_tree    = span_tree::SpanTree::default();
+    let input_span_tree     = span_tree::SpanTree::new(&ast,&ctx).unwrap();
+    let whole_expression_id = default();
+    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
 }
 
 pub fn expression_mock() -> Expression {
@@ -285,7 +286,8 @@ pub fn expression_mock() -> Expression {
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
-    Expression {pattern,code,input_span_tree,output_span_tree}
+    let whole_expression_id = default();
+    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
 }
 
 pub fn expression_mock2() -> Expression {
@@ -323,7 +325,8 @@ pub fn expression_mock2() -> Expression {
             .done()
         .add_empty_child(36,span_tree::node::InsertionPointType::Append)
         .build();
-    Expression {pattern,code,input_span_tree,output_span_tree}
+    let whole_expression_id = default();
+    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
 }
 
 pub fn expression_mock3() -> Expression {
@@ -357,5 +360,6 @@ pub fn expression_mock3() -> Expression {
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::new(&ast,&ctx).unwrap();//span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
-    Expression {pattern,code,input_span_tree,output_span_tree}
+    let whole_expression_id = default();
+    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
 }

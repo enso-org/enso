@@ -616,13 +616,12 @@ impl Model {
 
     /// Update the expression of the node and all related properties e.g., types, ports).
     fn refresh_node_expression(&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
-        let expression     = node.info.expression().repr();
-        let pattern        = node.info.pattern().map(|t|t.repr());
         let code_and_trees = graph_editor::component::node::Expression {
-            pattern,
-            code             : expression,
-            input_span_tree  : trees.inputs,
-            output_span_tree : trees.outputs.unwrap_or_else(default)
+            pattern             : node.info.pattern().map(|t|t.repr()),
+            code                : node.info.expression().repr(),
+            whole_expression_id : node.info.expression().id ,
+            input_span_tree     : trees.inputs,
+            output_span_tree    : trees.outputs.unwrap_or_else(default)
         };
         if !self.expression_views.borrow().get(&id).contains(&&code_and_trees) {
             for sub_expression in node.info.ast().iter_recursive() {
