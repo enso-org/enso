@@ -1,6 +1,7 @@
 //! FRP bindings to the animation engine.
 
 pub mod hysteretic;
+pub mod delayed;
 
 use crate::prelude::*;
 

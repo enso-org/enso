@@ -118,6 +118,7 @@ pub struct FrpInputs {
     pub send_data  : frp::Source<Data>,
     pub activate   : frp::Source,
     pub deactivate : frp::Source,
+    pub set_layer  : frp::Source<Layer>
 }
 
 /// Visualization FRP network.
@@ -149,8 +150,9 @@ impl FrpInputs {
             send_data  <- source();
             activate   <- source();
             deactivate <- source();
+            set_layer  <- source();
         };
-        Self {set_size,send_data,activate,deactivate}
+        Self {set_size,send_data,activate,deactivate,set_layer}
     }
 }
 

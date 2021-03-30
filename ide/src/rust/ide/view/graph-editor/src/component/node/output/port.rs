@@ -2,6 +2,7 @@
 use crate::prelude::*;
 
 use crate::tooltip;
+use crate::tooltip::Placement;
 use crate::Type;
 use crate::component::node;
 use crate::component::type_coloring;
@@ -33,6 +34,8 @@ const PORT_OPACITY_NOT_HOVERED : f32 = 0.25;
 const SEGMENT_GAP_WIDTH        : f32 = 2.0;
 const HOVER_AREA_PADDING       : f32 = 20.0;
 const INFINITE                 : f32 = 99999.0;
+
+const TOOLTIP_LOCATION : Placement = Placement::Bottom;
 
 
 
@@ -449,7 +452,7 @@ impl Model {
             on_hover  <- frp.on_hover.on_true();
             non_hover <- frp.on_hover.on_false();
             frp.source.tooltip <+ frp.tp.sample(&on_hover).unwrap().map(|tp| {
-                tooltip::Style::set_label(tp.to_string())
+                tooltip::Style::set_label(tp.to_string()).with_placement(TOOLTIP_LOCATION)
             });
             frp.source.tooltip <+ non_hover.constant(tooltip::Style::unset_label());
         }

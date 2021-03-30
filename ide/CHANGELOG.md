@@ -11,8 +11,17 @@
   will be lost. In this build we added notification in statusbar to signalize
   that the connection was lost and IDE must be restarted. In future IDE will try
   to automatically reconnect.
-- [Visualization can be extended to the whole screen][1355] by selecting the
-  node and pressing space twice. To quit this view, press space again.
+  - [Visualization can be extended to the whole screen][1355] by selecting the
+    node and pressing space twice. To quit this view, press space again.
+- [Visualization preview on output port hover.][1363] There is now a quick
+  preview for visualizations and error descriptions. Hovering a node output will
+  first show a tooltip with the type information and then after some time, will
+  show the visualization of the node. The preview visualization will be located
+  above other nodes, whereas the normal view, will be shown below nodes. Errors
+  will show the preview visualization immediately. Nodes without type
+  information will also show the visualization immediately. You can enter a
+  quick preview mode by pressing ctrl (or command on macOS), which will show the
+  preview visualization immediately for any hovered node output.
 - [Database Visualizations][1335]. Visualizations for the Database library have
   been added. The Table visualization now automatically executes the underlying
   query to display its results in a table. In addition, the SQL Query
@@ -66,7 +75,7 @@
   in JavaScript. You can query it for all IDE colors, including the colors used
   to represent types.
 - [You can now start the IDE service without window again.][1353] The command
-  line arguyment `--no-window` now starts all the required backend services
+  line argument `--no-window` now starts all the required backend services
   again, and prints the port on the command line, allowing you to open the IDE
   with a browser of your choice.
 - [JS visualizations have consistent gestures with the IDE][1291]. Panning and
@@ -115,6 +124,7 @@ you can find their release notes
 [1341]: https://github.com/enso-org/ide/pull/1341
 [1348]: https://github.com/enso-org/ide/pull/1348
 [1353]: https://github.com/enso-org/ide/pull/1353
+[1363]: https://github.com/enso-org/ide/pull/1363
 [1384]: https://github.com/enso-org/ide/pull/1384
 [1385]: https://github.com/enso-org/ide/pull/1385
 [1390]: https://github.com/enso-org/ide/pull/1390
