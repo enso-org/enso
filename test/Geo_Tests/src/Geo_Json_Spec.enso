@@ -1,12 +1,12 @@
 from Standard.Base import all
 
+import Standard.Geo.Geo_Json
+import Standard.Geo.Geo_Json.Internal
 import Standard.Table.Data.Table
-import Standard.Geo.Feature_Collection
-import Standard.Geo.Feature_Collection.Internal
 import Standard.Test
 
 spec =
-    Test.group "Feature Collection" <|
+    Test.group "GeoJSON" <|
         geo_json = Json.parse <| '''
             {
               "type": "FeatureCollection",

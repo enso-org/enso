@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import Standard.Test
 
-import Geo_Tests.Feature_Collection_Spec
 import Geo_Tests.Geo_Spec
+import Geo_Tests.Geo_Json_Spec
 
 main = Test.Suite.runMain <|
     Geo_Spec.spec
-    Feature_Collection_Spec.spec
+    Geo_Json_Spec.spec
