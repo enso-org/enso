@@ -103,8 +103,7 @@ object ContextRegistryProtocol {
     */
   case class ExpressionUpdatesNotification(
     contextId: ContextId,
-    updates: Vector[ExpressionUpdate],
-    updatesOld: Option[Vector[ExpressionValueUpdate]]
+    updates: Vector[ExpressionUpdate]
   )
 
   /** An update about computed expression.

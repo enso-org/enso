@@ -113,17 +113,6 @@ class ContextEventsListenerSpec
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload.Value
                 )
-              ),
-              Some(
-                Vector(
-                  ExpressionValueUpdate(
-                    Suggestions.method.externalId.get,
-                    Some(Suggestions.method.returnType),
-                    Some(suggestionIds(1).get),
-                    Vector(),
-                    false
-                  )
-                )
               )
             )
           )
@@ -163,8 +152,7 @@ class ContextEventsListenerSpec
                   ContextRegistryProtocol.ExpressionUpdate.Payload
                     .DataflowError(Seq(Suggestions.function.externalId.get))
                 )
-              ),
-              None
+              )
             )
           )
         )
@@ -201,8 +189,7 @@ class ContextEventsListenerSpec
                   ContextRegistryProtocol.ExpressionUpdate.Payload
                     .Panic("Method failure", Seq())
                 )
-              ),
-              None
+              )
             )
           )
         )
@@ -273,24 +260,6 @@ class ContextEventsListenerSpec
                   Vector(),
                   false,
                   ContextRegistryProtocol.ExpressionUpdate.Payload.Value
-                )
-              ),
-              Some(
-                Vector(
-                  ExpressionValueUpdate(
-                    Suggestions.method.externalId.get,
-                    None,
-                    None,
-                    Vector(),
-                    false
-                  ),
-                  ExpressionValueUpdate(
-                    Suggestions.local.externalId.get,
-                    None,
-                    None,
-                    Vector(),
-                    false
-                  )
                 )
               )
             )
