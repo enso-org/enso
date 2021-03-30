@@ -20,6 +20,7 @@ pub mod drop_down_menu;
 pub mod list_view;
 pub mod label;
 pub mod toggle_button;
+pub mod shadow;
 
 /// Commonly used types and functions.
 pub mod prelude {

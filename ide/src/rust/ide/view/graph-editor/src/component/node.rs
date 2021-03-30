@@ -31,6 +31,7 @@ use ensogl::data::color;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
+use ensogl_gui_components::shadow;
 use ensogl_text::Text;
 use ensogl_theme;
 use std::f32::EPSILON;
@@ -89,7 +90,6 @@ pub mod backdrop {
 
     ensogl::define_shape_system! {
         (style:Style, selection:f32) {
-            use ensogl_theme::graph_editor::node as node_theme;
 
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
@@ -98,21 +98,9 @@ pub mod backdrop {
 
             // === Shadow ===
 
-            let shadow_size   = style.get_number(node_theme::shadow::size);
-            let shadow_spread = style.get_number(node_theme::shadow::spread);
-            let shadow_width  = &width  + &shadow_size.px() * 2.0;
-            let shadow_height = &height + &shadow_size.px() * 2.0;
-            let shadow_radius = &shadow_height / 2.0;
-            let shadow_off_x  = style.get_number(node_theme::shadow::offset_x).px();
-            let shadow_off_y  = style.get_number(node_theme::shadow::offset_y).px();
-            let shadow        = Rect((shadow_width,shadow_height)).corners_radius(shadow_radius);
-            let shadow        = shadow.translate((shadow_off_x,shadow_off_y));
-            let base_color    = style.get_color(node_theme::shadow);
-            let fading_color  = style.get_color(node_theme::shadow::fading);
-            let exp           = style.get_number(node_theme::shadow::exponent);
-            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
-            let shadow_color  = shadow_color.sdf_sampler().size(shadow_size).spread(shadow_spread).exponent(exp);
-            let shadow        = shadow.fill(shadow_color);
+            let shadow_radius = &height / 2.0;
+            let shadow_base   = Rect((&width,&height)).corners_radius(shadow_radius);
+            let shadow        = shadow::from_shape(shadow_base.into(),style);
 
 
             // === Selection ===

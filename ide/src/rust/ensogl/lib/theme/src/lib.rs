@@ -161,6 +161,9 @@ define_themes! { [light:0, dark:1]
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
         }
+        searcher {
+            action_list_gap = 5.0, 5.0;
+        }
     }
     code {
         syntax {
@@ -197,15 +200,6 @@ define_themes! { [light:0, dark:1]
         node {
             background         = Rgba(0.984,0.992,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0);
             background.skipped = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.15,0.014,0.18,1.0);
-            shadow = shadow , shadow;
-            shadow {
-                size     = shadow::size , shadow::size;
-                spread   = shadow::spread , shadow::spread;
-                fading   = shadow::fading , shadow::fading;
-                exponent = shadow::exponent , shadow::exponent;
-                offset_x = shadow::offset_x , shadow::offset_x;
-                offset_y = shadow::offset_y , shadow::offset_y;
-            }
             selection      = selection, selection;
             selection {
                 size = 10.0 , 5.0;
@@ -241,18 +235,6 @@ define_themes! { [light:0, dark:1]
         }
         visualization {
             background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
-            shadow     = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
-            shadow {
-                // Note[mm]: at the moment we use a CSS replacement shadow defined in the .visualization class of
-                // `src/js/lib/content/src/index.html`. While that is in use this shadow is deactivated.
-                size     = 0.0, 0.0;
-                fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
-                exponent = 2.0 , 2.0;
-                html {
-                    alpha = 0.16 , 0.16;
-                    size  = 16.0 , 16.0;
-                }
-            }
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
@@ -286,11 +268,6 @@ define_themes! { [light:0, dark:1]
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
             highlight  = selection , selection;
-            shadow     = shadow , shadow;
-            shadow {
-                fading   = shadow::fading , shadow::fading;
-                exponent = shadow::exponent , shadow::exponent;
-            }
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 highlight = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.7,0.0,0.0,1.0);
@@ -307,13 +284,7 @@ define_themes! { [light:0, dark:1]
     component {
         label {
             background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
-            shadow     = Lcha(0.0,0.0,0.0,0.20) , Lcha(0.0,0.0,0.0,0.20);
-            shadow {
-                fading   = Lcha(0.0,0.0,0.0,0.0) , Lcha(0.0,0.0,0.0,0.0);
-                exponent = 2.0 , 2.0;
-                size     = 10.0, 10.0;
-            }
-            text         = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 offset = 10.0, 10.0;
                 size   = 12.0, 12.0;
@@ -335,5 +306,10 @@ define_themes! { [light:0, dark:1]
         exponent = 3.0 , 3.0; // 2
         offset_x = 0.0 , 0.0;
         offset_y = -2.0 , -2.0;
+        html {
+            alpha  = 0.16  , 0.16;
+            blur   = 10.0 , 10.0;
+            spread = -2.0 , -2.0;
+        }
     }
 }

@@ -6,6 +6,7 @@
 pub mod entry;
 
 use crate::prelude::*;
+use crate::shadow;
 
 use enso_frp as frp;
 use ensogl_core::application;
@@ -66,22 +67,13 @@ mod background {
         (style:Style) {
             let sprite_width  : Var<Pixels> = "input_size.x".into();
             let sprite_height : Var<Pixels> = "input_size.y".into();
-            let width         = sprite_width.clone()  - SHADOW_PX.px() * 2.0 - PADDING_PX.px() * 2.0;
-            let height        = sprite_height.clone() - SHADOW_PX.px() * 2.0 - PADDING_PX.px() * 2.0;
+            let width         = sprite_width - SHADOW_PX.px() * 2.0 - PADDING_PX.px() * 2.0;
+            let height        = sprite_height - SHADOW_PX.px() * 2.0 - PADDING_PX.px() * 2.0;
             let color         = style.get_color(theme::widget::list_view::background);
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
             let shape         = rect.fill(color::Rgba::from(color));
 
-            let corner_radius = CORNER_RADIUS_PX.px() + SHADOW_PX.px();
-            let width         = sprite_width  - PADDING_PX.px() * 2.0;
-            let height        = sprite_height - PADDING_PX.px() * 2.0;
-            let shadow        = Rect((&width,&height)).corners_radius(corner_radius);
-            let base_color    = style.get_color(theme::widget::list_view::shadow);
-            let fading_color  = style.get_color(theme::widget::list_view::shadow::fading);
-            let exponent      = style.get_number_or(theme::widget::list_view::shadow::exponent,2.0);
-            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
-            let shadow_color  = shadow_color.sdf_sampler().size(SHADOW_PX).exponent(exponent);
-            let shadow = shadow.fill(shadow_color);
+            let shadow  = shadow::from_shape(rect.into(),style);
 
             (shadow + shape).into()
         }

@@ -20,17 +20,17 @@ use crate::component::visualization::instance::PreprocessorConfiguration;
 
 use action_bar::ActionBar;
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::DomSymbol;
-use ensogl::display::scene;
 use ensogl::display::scene::Scene;
+use ensogl::display::scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::application::Application;
-use ensogl::system::web;
 use ensogl::system::web::StyleSetter;
-use ensogl_theme as theme;
+use ensogl::system::web;
+use ensogl_gui_components::shadow;
 
 
 
@@ -48,52 +48,6 @@ const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
 // =============
 // === Shape ===
 // =============
-
-/// Container background shape definition.
-///
-/// Provides a backdrop and outline for visualizations. Can indicate the selection status of the
-/// container.
-/// TODO : We do not use backgrounds because otherwise they would overlap JS
-///        visualizations. Instead, we added an HTML background to the `View`.
-///        This should be further investigated while fixing rust visualization displaying. (#526)
-pub mod background {
-    use super::*;
-
-    ensogl::define_shape_system! {
-        (style:Style,selected:f32,radius:f32,roundness:f32) {
-            use theme::graph_editor::visualization as visualization_theme;
-
-            let width         = Var::<Pixels>::from("input_size.x");
-            let height        = Var::<Pixels>::from("input_size.y");
-            let shadow_size   = style.get_number(visualization_theme::shadow::size);
-            let width         = &width  - shadow_size.px() * 2.0;
-            let height        = &height - shadow_size.px() * 2.0;
-            let radius        = 1.px() * &radius;
-            let color_bg      = style.get_color(visualization_theme::background);
-            let corner_radius = &radius * &roundness;
-            let background    = Rect((&width,&height)).corners_radius(&corner_radius);
-            let background    = background.fill(color::Rgba::from(color_bg));
-
-            // === Shadow ===
-
-            let corner_radius = corner_radius*1.75;
-            let width         = &width  + shadow_size.px() * 2.0;
-            let height        = &height + shadow_size.px() * 2.0;
-            let shadow        = Rect((&width,&height)).corners_radius(&corner_radius).shrink(1.px());
-            let base_color    = style.get_color(visualization_theme::shadow);
-            let fading_color  = style.get_color(visualization_theme::shadow::fading);
-            let exp           = style.get_number_or(visualization_theme::shadow::exponent,2.0);
-            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
-            let shadow_color  = shadow_color.sdf_sampler().size(shadow_size).exponent(exp);
-            let shadow        = shadow.fill(shadow_color);
-
-            let out = shadow + background;
-            out.into()
-        }
-    }
-}
-
-
 
 /// Container overlay shape definition. Used to capture events over the visualisation within the
 /// container.
@@ -180,10 +134,6 @@ impl View {
         let bg_color = color::Rgba::from(bg_color);
         let bg_hex   = format!("rgba({},{},{},{})",bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
 
-        let shadow_alpha = styles.get_number_or(ensogl_theme::graph_editor::visualization::shadow::html::alpha,0.16);
-        let shadow_size  = styles.get_number_or(ensogl_theme::graph_editor::visualization::shadow::html::size,16.0);
-        let shadow       = format!("0 0 {}px rgba(0, 0, 0, {})",shadow_size,shadow_alpha);
-
         let div            = web::create_div();
         let background_dom = DomSymbol::new(&div);
         // TODO : We added a HTML background to the `View`, because "shape" background was overlapping
@@ -196,7 +146,7 @@ impl View {
         background_dom.dom().set_style_or_warn("overflow-x"   ,"auto",&logger);
         background_dom.dom().set_style_or_warn("background"   ,bg_hex,&logger);
         background_dom.dom().set_style_or_warn("border-radius","14px",&logger);
-        background_dom.dom().set_style_or_warn("box-shadow"   ,shadow,&logger);
+        shadow::add_to_dom_element(&background_dom,&styles,&logger);
         display_object.add_child(&background_dom);
 
         scene.dom.layers.back.manage(&background_dom);

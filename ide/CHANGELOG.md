@@ -91,6 +91,9 @@
 
 #### EnsoGL (rendering engine)
 
+- [Unified shadow generation][1411]. Added a toolset to create shadows for   
+  arbitrary UI components.
+  
 #### Enso Compiler
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
@@ -121,6 +124,7 @@ you can find their release notes
 [1335]: https://github.com/enso-org/ide/pull/1335
 [1358]: https://github.com/enso-org/ide/pull/1358
 [1377]: https://github.com/enso-org/ide/pull/1377
+[1411]: https://github.com/enso-org/ide/pull/1411
 
 <br/>
 
