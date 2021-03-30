@@ -71,6 +71,9 @@
   with a browser of your choice.
 - [JS visualizations have consistent gestures with the IDE][1291]. Panning and
   zooming now works just as expected on trackpad and mouse.
+- [The `inputType` field of visualizations is actually taken into consideration]
+  [1384]. The visualization chooser shows entries accepting the node's output's
+  type only.
 - [Fix applying selected node output to the expression of new node][1385]. For
   example, having selected node with Table output and adding a new node with
   expression `at "x" == "y"` the selected node was applied to the right side of
@@ -104,6 +107,7 @@ you can find their release notes
 [1341]: https://github.com/enso-org/ide/pull/1341
 [1348]: https://github.com/enso-org/ide/pull/1348
 [1353]: https://github.com/enso-org/ide/pull/1353
+[1384]: https://github.com/enso-org/ide/pull/1384
 [1385]: https://github.com/enso-org/ide/pull/1385
 [1393]: https://github.com/enso-org/ide/pull/1393
 [1392]: https://github.com/enso-org/ide/pull/1392

@@ -45,7 +45,9 @@ impl Registry {
     pub fn add(&self, class:impl Into<visualization::Definition>) {
         let class = class.into();
         let sig   = &class.signature;
-        self.type_map.borrow_mut().entry(sig.input_type.clone()).or_default().push(class.clone_ref());
+        for tp in sig.input_type.alternatives() {
+            self.type_map.borrow_mut().entry(tp).or_default().push(class.clone_ref());
+        }
         self.path_map.borrow_mut().entry(sig.path.clone()).insert(class);
     }
 
@@ -65,7 +67,14 @@ impl Registry {
     /// Return all `visualization::Class`es that can create a visualization for the given datatype.
     pub fn valid_sources(&self, tp:&enso::Type) -> Vec<visualization::Definition>{
         let type_map = self.type_map.borrow();
-        type_map.get(tp).cloned().unwrap_or_default()
+        let any_type = enso::Type::any();
+        let mut result:Vec<visualization::Definition> = type_map.get(tp).cloned().unwrap_or_default();
+        if tp != &any_type {
+            if let Some(vis_for_any) = type_map.get(&any_type) {
+                result.extend(vis_for_any.iter().cloned());
+            }
+        }
+        result
     }
 
     /// Return the `visualization::Definition` registered for the given `visualization::Path`.

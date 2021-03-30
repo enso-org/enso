@@ -42,6 +42,7 @@ use crate::component::tooltip;
 use crate::component::type_coloring;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::component::visualization;
+use crate::data::enso;
 
 use enso_args::ARGS;
 use enso_frp as frp;
@@ -1575,11 +1576,13 @@ impl GraphEditorModel {
     fn set_node_expression_usage_type(&self, node_id:impl Into<NodeId>, ast_id:ast::Id, maybe_type:Option<Type>) {
         let node_id  = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            // TODO[ao]: we must update root output port according to the whole expression type
-            //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
             if node.view.model.output.whole_expr_id().contains(&ast_id) {
+                // TODO[ao]: we must update root output port according to the whole expression type
+                //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
                 let crumbs = span_tree::Crumbs::default();
                 node.view.model.output.set_expression_usage_type(crumbs,maybe_type.clone());
+                let enso_type = maybe_type.as_ref().map(|tp| enso::Type::new(&tp.0));
+                node.view.model.visualization.frp.set_vis_input_type(enso_type);
             }
             let crumbs = node.view.model.get_crumbs_by_id(ast_id);
             if let Some(crumbs) = crumbs {
@@ -2764,21 +2767,13 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         }
     });
 
-     nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
-     node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
-
-    let cycle_count = Rc::new(Cell::new(0));
-    def _cycle_visualization = node_to_cycle.map(f!([inputs,vis_registry,logger](node_id) {
-        let visualizations = vis_registry.valid_sources(&"Any".into());
-        cycle_count.set(cycle_count.get() % visualizations.len());
-        if let Some(vis) = visualizations.get(cycle_count.get()) {
-            let path = vis.signature.path.clone();
-            inputs.set_visualization.emit((*node_id,Some(path)));
-        } else {
-            warning!(logger,"Failed to get visualization while cycling.");
-        };
-        cycle_count.set(cycle_count.get() + 1);
-    }));
+    nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
+    node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
+    eval node_to_cycle ([model](node_id) {
+        if let Some(node) = model.nodes.get_cloned_ref(node_id) {
+            node.view.model.visualization.frp.cycle_visualization();
+        }
+    });
 
 
     // === Visualization toggle ===

@@ -226,10 +226,13 @@ impl DropDownMenu {
 
             let menu_height = DEPRECATED_Animation::<f32>::new(&network);
 
+
             eval menu_height.value ([model](height) {
                 model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
                 if *height <= 0.0 {
                     model.hide_selection_menu();
+                } else if *height > 0.0 {
+                    model.show_selection_menu();
                 }
             });
 
@@ -268,7 +271,6 @@ impl DropDownMenu {
             show_menu <- source::<()>();
 
             eval_ hide_menu (model.selection_menu.deselect_entries.emit(()));
-            eval_ show_menu (model.show_selection_menu());
 
             frp.source.menu_visible <+ hide_menu.constant(false);
             frp.source.menu_visible <+ show_menu.constant(true);
