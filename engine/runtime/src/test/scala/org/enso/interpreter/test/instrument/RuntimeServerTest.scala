@@ -1581,14 +1581,14 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val xId     = metadata.addItem(41, 5)
-    val mainRes = metadata.addItem(51, 12)
+    val xId     = metadata.addItem(41, 10)
+    val mainRes = metadata.addItem(56, 12)
 
     val code =
       """from Builtins import all
         |
         |main =
-        |    x = _ + 1
+        |    x = a -> a + 1
         |    IO.println x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -3625,6 +3625,140 @@ class RuntimeServerTest
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "not reorder visualization commands" in {
+    val contents = context.Main.code
+    val mainFile = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    // open files
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          true
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    // modify visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ModifyVisualisation(
+          visualisationId,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.incAndEncode x"
+          )
+        )
+      )
+    )
+    // detach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.DetachVisualisation(
+          contextId,
+          visualisationId,
+          context.Main.idMainX
+        )
+      )
+    )
+    val modifyVisualisationResponses = context.receive(3)
+    modifyVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationModified()),
+      Api.Response(requestId, Api.VisualisationDetached())
+    )
+    val Some(dataAfterModification) =
+      modifyVisualisationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualisationUpdate(
+                Api.VisualisationContext(
+                  `visualisationId`,
+                  `contextId`,
+                  `expectedExpressionId`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+    dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
   it should "rename a project" in {

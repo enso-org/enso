@@ -82,14 +82,13 @@ object LocationFilter {
 
         element match {
           case IR.Expression.Binding(_, function: IR.Function, _, _, _)
-              if isSynthetic(function) =>
+              if !isSynthetic(function) =>
             builder ++= getLocation(function)
           case IR.Expression.Binding(_, block: IR.Expression.Block, _, _, _) =>
             builder ++= getLocation(block)
-          case function: IR.Function =>
-            if (!isSynthetic(function)) {
-              builder ++= location
-            }
+          case arg: IR.CallArgument =>
+            queue += arg.value
+          case _: IR.Function =>
           case _ =>
             builder ++= location
             queue ++= element.children
