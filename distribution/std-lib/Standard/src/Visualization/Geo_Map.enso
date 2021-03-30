@@ -4,6 +4,7 @@ import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Helpers
 
+## PRIVATE
 json_from_table : Table.Table -> Text
 json_from_table table = 
     names = ['label', 'latitude', 'longitude', 'radius', 'color']
@@ -13,6 +14,14 @@ json_from_table table =
         
     Json.from_pairs pairs
 
+## PRIVATE
+
+   Default preprocessor for the geo map visualization.
+   
+   Generates JSON text describing the geo map visualization.
+   
+   Arguments:
+   - value: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value = 
     json = case value of
