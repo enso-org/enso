@@ -53,6 +53,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): Future[Seq[Option[Long]]] =
     db.run(getAllMethodsQuery(calls))
 
+  override def getAllModules: Future[Seq[String]] =
+    db.run(getAllModulesQuery)
+
   /** @inheritdoc */
   override def search(
     module: Option[String],
@@ -94,8 +97,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
-  override def removeByModule(name: String): Future[(Long, Seq[Long])] =
-    db.run(removeByModuleQuery(name))
+  override def removeModules(modules: Seq[String]): Future[(Long, Seq[Long])] =
+    db.run(removeByModuleQuery(modules))
 
   /** @inheritdoc */
   override def removeAll(
@@ -207,6 +210,14 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         calls.map(result.get)
       }
     }
+
+  /** The query to get all module names.
+    *
+    * @return the list of distinct module names.
+    */
+  def getAllModulesQuery: DBIO[Seq[String]] = {
+    Suggestions.map(_.module).distinct.result
+  }
 
   /** The query to search suggestion by various parameters.
     *
@@ -346,7 +357,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): DBIO[Seq[QueryResult[SuggestionsDatabaseAction]]] = {
     val queries = actions.map {
       case act @ SuggestionsDatabaseAction.Clean(module) =>
-        removeByModuleQuery(module).map { case (_, ids) =>
+        removeByModuleQuery(Seq(module)).map { case (_, ids) =>
           QueryResult[SuggestionsDatabaseAction](ids, act)
         }
     }
@@ -390,11 +401,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to remove the suggestions by module name
     *
-    * @param name the module name
+    * @param modules the module names to remove
     * @return the current database version and a list of removed suggestion ids
     */
-  private def removeByModuleQuery(name: String): DBIO[(Long, Seq[Long])] = {
-    val selectQuery = Suggestions.filter(_.module === name)
+  private def removeByModuleQuery(
+    modules: Seq[String]
+  ): DBIO[(Long, Seq[Long])] = {
+    val selectQuery = Suggestions.filter(_.module.inSet(modules))
     val deleteQuery = for {
       rows    <- selectQuery.result
       n       <- selectQuery.delete

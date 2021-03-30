@@ -142,6 +142,24 @@ final class SuggestionsHandler(
     case _ => stash()
   }
 
+  def verifying(
+    projectName: String,
+    graph: TypeGraph
+  ): Receive = {
+    case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
+      suggestionsRepo
+        .removeModules(toRemove)
+        .map(_ => SuggestionsHandler.Verified)
+        .pipeTo(self)
+
+    case SuggestionsHandler.Verified =>
+      log.debug("Verified")
+      context.become(initialized(projectName, graph, Set()))
+      unstashAll()
+
+    case _ => stash()
+  }
+
   def initialized(
     projectName: String,
     graph: TypeGraph,
@@ -271,7 +289,7 @@ final class SuggestionsHandler(
           err => Future.successful(Left(err)),
           module =>
             suggestionsRepo
-              .removeByModule(module)
+              .removeModules(Seq(module))
               .map { case (version, ids) =>
                 Right(
                   SuggestionsDatabaseUpdateNotification(
@@ -328,8 +346,15 @@ final class SuggestionsHandler(
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
         log.debug("Initialized")
-        context.become(initialized(name, graph, Set()))
-        unstashAll()
+        val requestId = UUID.randomUUID()
+        suggestionsRepo.getAllModules
+          .flatMap { modules =>
+            runtimeConnector.ask(
+              Api.Request(requestId, Api.VerifyModulesIndexRequest(modules))
+            )(timeout, self)
+          }
+          .pipeTo(self)
+        context.become(verifying(name, graph))
     }
   }
 
@@ -461,6 +486,9 @@ object SuggestionsHandler {
     * @param projectName the new project name
     */
   case class ProjectNameUpdated(projectName: String)
+
+  /** The notification that the suggestions database has been verified. */
+  case object Verified
 
   /** The initialization state of the handler.
     *
