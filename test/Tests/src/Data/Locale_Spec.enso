@@ -1,7 +1,7 @@
-from Base import all
+from Standard.Base import all
 
-import Base.Data.Locale
-import Test
+import Standard.Base.Data.Locale
+import Standard.Test
 
 spec = Test.group "Locale" <|
     en_gb = Locale.new "en" "GB"

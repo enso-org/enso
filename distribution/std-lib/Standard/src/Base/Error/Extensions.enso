@@ -1,0 +1,61 @@
+from Standard.Base import all
+
+## Returns the method name of the method that could not be found.
+No_Such_Method_Error.method_name : Text
+No_Such_Method_Error.method_name =
+    Meta.meta this.symbol . name
+
+## A type used to represent that something has not yet been implemented.
+type Unimplemented_Error message
+
+## A function that can be used to indicate that something hasn't been
+   implemented yet.
+unimplemented : Text -> Void
+unimplemented message="" = Panic.throw (Unimplemented_Error message)
+
+## Executes the provided handler on a dataflow error, or executes as identity on
+   a non-error value.
+
+   Arguments:
+   - handler: The function to call on this if it is an error value. By default
+     this is identity.
+
+   > Example
+     Catching an erroneous value to perform some operation on it.
+       (Time.Time_Error "Message").catch (err -> IO.println err)
+Error.catch : (Error -> Any) -> Any
+Error.catch (handler = x->x) = this.catch_primitive handler
+
+## Returns a display representation of the dataflow error on which it is called.
+
+   > Example
+     Displaying a dataflow error.
+         (Error.throw "oops!").to_default_visualization_data
+Error.to_default_visualization_data : Text
+Error.to_default_visualization_data = this.catch .to_default_visualization_data
+
+## Returns a human-readable text representing this error.
+Error.to_display_text : Text
+Error.to_display_text  = "Error: " + (this.catch .to_display_text)
+
+## Maps a dataflow error.
+   If the original value was a non-error value, it is not affected, but if it
+   was an error, the error is mapped through the provided function.
+
+   Arguments:
+   - f: The function to transform the error.
+
+   > Example
+     Wrapping an error value.
+       map.get "x" . map_error (_ -> ElementNotFound "x")
+Error.map_error : (Error -> Error) -> Any
+Error.map_error f = this.catch (x -> Error.throw (f x))
+
+## Checks if the underlying value is an error.
+Error.is_error : Boolean
+Error.is_error = True
+
+## Takes any value, and if it is a dataflow error, throws it as a Panic.
+   Otherwise, returns the original value unchanged.
+Panic.rethrow : (Any ! Any) -> Any
+Panic.rethrow value = value.catch Panic.throw

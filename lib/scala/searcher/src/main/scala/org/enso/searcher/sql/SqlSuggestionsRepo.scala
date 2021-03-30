@@ -1,8 +1,5 @@
 package org.enso.searcher.sql
 
-import java.io.File
-import java.util.UUID
-
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
@@ -16,6 +13,9 @@ import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
 
+import java.io.File
+import java.util.UUID
+import scala.collection.immutable.HashMap
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -56,7 +56,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   /** @inheritdoc */
   override def search(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -211,19 +211,22 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   /** The query to search suggestion by various parameters.
     *
     * @param module the module name search parameter
-    * @param selfType the selfType search parameter
+    * @param selfType the selfType search parameter, ordered by specificity
+    *                 with the most specific type first
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
-    * @return the list of suggestion ids
+    * @return the list of suggestion ids, ranked by specificity (as for
+    *         `selfType`)
     */
   private def searchQuery(
     module: Option[String],
-    selfType: Option[String],
+    selfType: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): DBIO[(Long, Seq[Long])] = {
+    val typeSorterMap: HashMap[String, Int] = HashMap(selfType.zipWithIndex: _*)
     val searchAction =
       if (
         module.isEmpty &&
@@ -236,11 +239,17 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       } else {
         val query =
           searchQueryBuilder(module, selfType, returnType, kinds, position)
-            .map(_.id)
+            .map(r => (r.id, r.selfType))
         query.result
       }
     val query = for {
-      results <- searchAction
+      resultsWithTypes <- searchAction
+      // This implementation should be revisited if it ever becomes a
+      // performance bottleneck. It may be possible to encode the same logic in
+      // the database query itself.
+      results = resultsWithTypes
+        .sortBy { case (_, ty) => typeSorterMap.getOrElse(ty, -1) }
+        .map(_._1)
       version <- currentVersionQuery
     } yield (version, results)
     query
@@ -656,7 +665,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     * global symbols (atoms and method).
     *
     * @param module the module name search parameter
-    * @param selfType the selfType search parameter
+    * @param selfTypes the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
     * @param position the absolute position in the text
@@ -664,7 +673,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private def searchQueryBuilder(
     module: Option[String],
-    selfType: Option[String],
+    selfTypes: Seq[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
@@ -673,9 +682,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .filterOpt(module) { case (row, value) =>
         row.scopeStartLine === ScopeColumn.EMPTY || row.module === value
       }
-      .filterOpt(selfType) { case (row, value) =>
-        row.selfType === value
-      }
+      .filterIf(selfTypes.nonEmpty) { row => row.selfType.inSet(selfTypes) }
       .filterOpt(returnType) { case (row, value) =>
         row.returnType === value
       }

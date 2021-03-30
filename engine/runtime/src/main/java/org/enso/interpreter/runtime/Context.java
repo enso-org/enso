@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.google.common.collect.HashBiMap;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -10,9 +11,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
@@ -21,12 +24,18 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.type.Types.Pair;
+import org.enso.interpreter.runtime.util.ShadowedPackage;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
+
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -48,6 +57,7 @@ public class Context {
   private final boolean isCachingDisabled;
   private final Builtins builtins;
   private final String home;
+  private final List<ShadowedPackage> shadowedPackages;
 
   /**
    * Creates a new Enso context.
@@ -66,6 +76,7 @@ public class Context {
     this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.home = home;
+    this.shadowedPackages = new ArrayList<>();
 
     builtins = new Builtins(this);
 
@@ -75,24 +86,40 @@ public class Context {
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
+    HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
     packages = new ArrayList<>();
 
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      packages.addAll(homeManager.loadStdLib().collect(Collectors.toList()));
+      packageMap.putAll(
+          homeManager.loadStdLib().collect(Collectors.toMap((Package::name), Function.identity())));
     }
 
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
-
     List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
-    packages.addAll(
-        packagePaths.stream()
-            .map(packageManager::fromDirectory)
-            .map(ScalaConversions::asJava)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toList()));
+
+    // Add user packages one-by-one, shadowing previously added packages. It assumes that the
+    // standard library packages will not clash. In the future, we should be able to disambiguate
+    // packages that clash.
+    for (var packagePath : packagePaths) {
+      Optional<Package<TruffleFile>> asPackage =
+          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
+      if (asPackage.isPresent()) {
+        Package<TruffleFile> pkg = asPackage.get();
+        boolean nameExists = packageMap.containsKey(pkg.name());
+
+        if (nameExists) {
+          shadowedPackages.add(
+              new ShadowedPackage(
+                  packageMap.get(pkg.name()).root().getPath(), pkg.root().getPath(), pkg.name()));
+          packageMap.remove(pkg.name());
+        }
+        packageMap.put(pkg.name(), pkg);
+      }
+    }
+
+    packages.addAll(packageMap.values());
 
     packages.forEach(
         pkg -> {
@@ -242,6 +269,20 @@ public class Context {
   }
 
   /**
+   * Find a module containing the given expression id.
+   *
+   * @param expressionId the expression id to lookup.
+   * @return the relevant module, if exists.
+   */
+  public Optional<Module> findModuleByExpressionId(UUID expressionId) {
+    return getTopScope().getModules().stream()
+        .filter(
+            module ->
+                module.getIr().preorder().exists(ir -> ir.getExternalId().contains(expressionId)))
+        .findFirst();
+  }
+
+  /**
    * Finds the package the provided module belongs to.
    *
    * @param module the module to find the package of
@@ -306,6 +347,24 @@ public class Context {
     return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
   }
 
+  /**
+   * Checks whether the suggestions indexing is enabled for project files.
+   *
+   * @return true if project-level suggestion indexing is enabled.
+   */
+  public boolean isProjectSuggestionsEnabled() {
+    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS_KEY);
+  }
+
+  /**
+   * Checks whether the suggestion indexing is enabled for external libraries.
+   *
+   * @return true if the suggestions indexing is enabled for external libraries.
+   */
+  public boolean isGlobalSuggestionsEnabled() {
+    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS_KEY);
+  }
+
   /** Creates a new thread that has access to the current language context. */
   public Thread createThread(Runnable runnable) {
     return environment.createThread(runnable);
@@ -326,5 +385,8 @@ public class Context {
     return isCachingDisabled;
   }
 
-
+  /** @return the list of shadowed packages */
+  public List<ShadowedPackage> getShadowedPackages() {
+    return shadowedPackages;
+  }
 }

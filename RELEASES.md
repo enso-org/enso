@@ -1,3 +1,116 @@
+# Enso 0.2.9 (2021-03-26)
+
+## Tooling
+
+- Fixed an issue where a panic would be improperly cached, resulting in no
+  updates being sent to the IDE
+  ([#1611](https://github.com/enso-org/enso/pull/1611)).
+- Added a feature to provide searcher suggestions for types compatible with the
+  type of `this` ([#1613](https://github.com/enso-org/enso/pull/1613)).
+
+## Libraries
+
+- Added a prototype of a library for working with images
+  ([#1450](https://github.com/enso-org/enso/pull/1450)).
+- Added histogram and scatter-plot visualisation support for the `Table` library
+  ([#1608](https://github.com/enso-org/enso/pull/1608)).
+- Fixed a bug in the implementation of `join` in the database library where it
+  would join on the wrong table when doing a multiple-join
+  ([#1614](https://github.com/enso-org/enso/pull/1614)).
+- Fixed an outdated example for the `File.read` function.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-26)
+  for issues opened before the release date.
+
+# Enso 0.2.8 (2021-03-19)
+
+## Interpreter/Runtime
+
+- Fixed miscellaneous crashes in the interpreter
+  ([#1588](https://github.com/enso-org/enso/pull/1588)).
+
+## Tooling
+
+- Fixed an issue where the documentation for builtins wasn't getting indexed
+  ([#1575](https://github.com/enso-org/enso/pull/1575)). The docs should now
+  show up in the searcher!
+
+## Libraries
+
+- Added support for visualising database tables to the `Database` library
+  ([#1582](https://github.com/enso-org/enso/pull/1582)).
+- Reworked the `Process` library to work better in the IDE
+  ([#1591](https://github.com/enso-org/enso/pull/1591)).
+- Added a proper visualisation for `Array` and improved the one for `Vector`
+  ([#1588](https://github.com/enso-org/enso/pull/1588)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-19)
+  for issues opened before the release date.
+
+# Enso 0.2.7 (2021-03-16)
+
+## Interpreter/Runtime
+
+- Added rudimentary support for interoperability with Python
+  ([#1541](https://github.com/enso-org/enso/pull/1541)). Due to limitations of
+  the underlying implementation
+  ([GraalPython](https://github.com/oracle/graalpython)), this does not
+  currently work on windows. We are working to have some means of supporting
+  Python interop on Windows.
+- Added rudimentary support for interoperability with R
+  ([#1559](https://github.com/enso-org/enso/pull/1559)). Due to limitations of
+  the underlying implementation ([FastR](https://github.com/oracle/fastr)), this
+  does not currently work on windows. We are working to have some means of
+  supporting R interop on Windows.
+- Fixed a performance issue that occurred due to the interpreter observing
+  deeper scopes than necessary during server-controlled execution
+  ([#1564](https://github.com/enso-org/enso/pull/1564)). Execution of lambdas in
+  the IDE is no longer far slower than it should be.
+- Fixed an issue where interrupts during the execution of polyglot Java code
+  would cause the host classloader to break, preventing further execution
+  ([#1574](https://github.com/enso-org/enso/pull/1574)). _Please note_ that the
+  fix that has been put in place is suboptimal, and means that we are currently
+  unable to interrupt host code during its execution. We intend to fix this as
+  soon as a fix for the host classloader has been merged upstream. You can track
+  the associated issue in GraalVM
+  [here](https://github.com/oracle/graal/issues/3273).
+- Fixed an issue where the interpreter would crash due to project name shadowing
+  ([#1571](https://github.com/enso-org/enso/pull/1571)).
+
+## Tooling
+
+- Added support for lazy initialization of the language server
+  ([#1535](https://github.com/enso-org/enso/pull/1535)). This ensures that it
+  behaves properly on systems where the working directories are on
+  lazily-mounted NFS volumes.
+- Fixed an issue where the unified logging infrastructure would disconnect,
+  preventing it from gathering diagnostic logs
+  ([#1563](https://github.com/enso-org/enso/pull/1563)). It now sends periodic
+  keepalive messages to ensure that the connection has not timed out.
+- Fixed project name validation in the project manager when renaming projects
+  ([#1570](https://github.com/enso-org/enso/pull/1570)).
+
+## Libraries
+
+- Added support for materializing data from databases in the database library
+  ([#1546](https://github.com/enso-org/enso/pull/1546)). You can now use this
+  library to connect to your data sources (currently only SQLite and Postgres,
+  but support for further backends is planned).
+- Reorganized the standard library in order to support plans for its future
+  evolution ([#1571](https://github.com/enso-org/enso/pull/1571)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-03-16)
+  for issues opened before the release date.
+
 # Enso 0.2.6 (2021-03-02)
 
 ## Interpreter/Runtime

@@ -1,0 +1,33 @@
+from Standard.Base import all
+
+import Standard.Table.Io.Csv
+import Standard.Table.Data.Table
+import Standard.Table.Data.Column
+import Standard.Table.Data.Order_Rule
+
+from Standard.Table.Io.Csv export all hiding Parser
+
+export Standard.Table.Data.Column
+
+from Standard.Table.Data.Table export new, from_rows, join, No_Such_Column_Error, Table
+from Standard.Table.Data.Order_Rule export Order_Rule
+
+## Converts a JSON array into a dataframe, by looking up the requested keys
+   from each item.
+
+   It assumes the items are JSON objects containing the requested keys.
+   In case an item is not an object, or the request key does not exist, the
+   relevant values of the table will be set to `Nothing`.
+
+   Arguments:
+     - fields: a vector of texts representing the names of fields to look up.
+Json.Array.to_table : Vector -> Table
+Json.Array.to_table fields = case this of
+    Json.Array items ->
+        rows = items.map <| case _ of
+            Json.Object fs ->
+                fields.map n-> fs.get n . unwrap . catch (_ -> Nothing)
+            _ -> Vector.fill fields.length Nothing
+        cols = fields.map_with_index i-> n->
+            [n, rows.map (_.at i)]
+        Table.new cols

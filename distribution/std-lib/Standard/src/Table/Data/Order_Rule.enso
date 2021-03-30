@@ -1,0 +1,29 @@
+from Standard.Base import all
+
+type Order_Rule
+    ## UNSTABLE
+
+       A rule used for sorting table-like structures.
+
+       Arguments:
+         - column: a value representing the data dimension by which this rule is
+           sorting. This type does not specify the underlying representation of
+           a column, assuming that the sorting engine defines its own column
+           representation.
+         - comparator: a function taking two elements of the data being sorted
+           on and returning an `Ordering`. The function may be `Nothing`, in
+           which case a natural ordering will be used.  Note that certain table
+           backends (such us database connectors) may not support this field
+           being set to a non-`Nothing` value.
+         - order: specifies whether the table should be sorted in an ascending
+           or descending order. The default value of `Nothing` delegates the
+           decision to the sorting function. Can be set to
+           `Sort_Order.Ascending` or `Sort_Order.Descending` from the `Base`
+           library, to specify the ordering.
+         - missing_last: whether the missing values should be placed at the
+           beginning or end of the sorted table. Note that this argument is
+           independent from `order`, i.e. missing values will always be sorted
+           according to this rule, ignoring the ascending / descending setting.
+           The default value of `Nothing` delegates the decision to the sorting
+           function.
+    type Order_Rule column comparator=Nothing order=Nothing missing_last=Nothing

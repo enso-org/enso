@@ -1,8 +1,10 @@
-from Base import all
+from Standard.Base import all
 
-import Test
+import Standard.Test
 
 import Table_Tests.Table_Spec
+import Table_Tests.Column_Spec
 
 main = Test.Suite.runMain <|
+    Column_Spec.spec
     Table_Spec.spec

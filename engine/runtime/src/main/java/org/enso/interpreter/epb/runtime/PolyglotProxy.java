@@ -900,7 +900,7 @@ public class PolyglotProxy implements TruffleObject {
   Object getExceptionMessage(
       @CachedLibrary("this.delegate") InteropLibrary errors,
       @CachedLibrary("this") InteropLibrary node,
-      @Cached @Exclusive ContextRewrapNode contextRewrapNode)
+      @Cached @Cached.Exclusive ContextRewrapNode contextRewrapNode)
       throws UnsupportedMessageException {
     Object p = enterOrigin(node);
     try {

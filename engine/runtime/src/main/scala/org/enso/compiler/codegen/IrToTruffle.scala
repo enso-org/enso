@@ -166,7 +166,7 @@ class IrToTruffle(
         )
       case i: Import.Module =>
         this.moduleScope.addImport(
-          context.getCompiler.processImport(i.name.name)
+          context.getCompiler.processImport(i.name.name, i.location, source)
         )
       case _: Error =>
     }

@@ -1,0 +1,113 @@
+from Standard.Base import all
+
+## Represents a right-exclusive range of integer values.
+type Range
+    type Range start end
+
+    ## Get the number of elements in the range.
+
+       > Example
+         The following range has 100 elements.
+            0.up_to 100
+    length : Number
+    length = this.end - this.start
+
+    ## Checks if this range is empty.
+
+       > Example
+             0.up_to 0 . is_empty == True
+             0.up_to 100 . is_empty == False
+    is_empty : Boolean
+    is_empty = this.end <= this.start
+
+    ## Checks if this range is not empty.
+
+       > Example
+             0.up_to 0 . not_empty == False
+             0.up_to 100 . not_empty == True
+    not_empty : Boolean
+    not_empty = this.is_empty.not
+
+    ## Applies a function for each element in the range.
+
+       > Example
+         To print all the numbers from 1 to 100 use:
+         1.up_to 101 . each IO.println
+    each : (Number -> Any) -> Nothing
+    each function =
+        it start end = if start == end then Nothing else
+            function start
+            @Tail_Call it start+1 end
+        it this.start this.end
+        Nothing
+
+    ## Combines all the elements of the range, by iteratively applying the
+       passed function with next elements of the range.
+
+       In general, the result of
+           Range start end . fold init f
+       is the same as
+           f (...(f (f init start) start+1)...) end-1
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         range:
+             Range 0 100 . fold 0 (+)
+    fold : Any -> (Number -> Any) -> Any
+    fold initial function =
+        it acc start end = if start == end then acc else
+            new_acc = function acc start
+            @Tail_Call it new_acc start+1 end
+        res = it initial this.start this.end
+        res
+
+    ## Checks whether `predicate` is satisfied for all numbers in this range.
+
+       A predicate is a function that takes an element in the range and returns
+       a boolean.
+
+       > Example
+         Checking that all numbers in the range are greater than 5.
+             10.up_to 100 . all (> 5)
+    all : (Number -> Boolean) -> Boolean
+    all predicate =
+        it start end = if start==end then True else
+            r = predicate start
+            if r then (@Tail_Call it start+1 end) else False
+        res = it this.start this.end
+        res
+
+    ## Checks whether `predicate` is satisfied for any number in this range.
+
+       A predicate is a function that takes an element in the range and returns
+       a boolean.
+
+       > Example
+         Checking that at least one number in the range is greater than 10.
+             1.up_to 100 . exists (> 10)
+    exists : (Number -> Boolean) -> Boolean
+    exists predicate =
+        limit = this.end
+        go n found = if found || (n >= limit) then found else
+            @Tail_Call go n+1 (predicate n)
+        go this.start False
+
+    ## Checks whether `predicate` is satisfied for any number in this range.
+
+       A predicate is a function that takes an element in the range and returns
+       a boolean.
+
+       > Example
+         Checking that at least one number in the range is greater than 10.
+             1.up_to 100 . any (> 10)
+    any : (Number -> Boolean) -> Boolean
+    any predicate = this.exists predicate
+
+    ## Converts the range to a vector containing the numbers in the range.
+
+       > Example
+         Getting a vector of the numbers 1 to 5.
+             1.up_to 6 . to_vector == [1, 2, 3, 4, 5]
+    to_vector : Vector.Vector
+    to_vector = Vector.new (this.end - 1) (i -> i + this.start)
+

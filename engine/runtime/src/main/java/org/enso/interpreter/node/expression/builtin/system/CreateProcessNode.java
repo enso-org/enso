@@ -32,9 +32,9 @@ public abstract class CreateProcessNode extends Node {
       Object command,
       Array arguments,
       Object input,
-      boolean redirectIn,
-      boolean redirectOut,
-      boolean redirectErr);
+      boolean redirect_in,
+      boolean redirect_out,
+      boolean redirect_err);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary

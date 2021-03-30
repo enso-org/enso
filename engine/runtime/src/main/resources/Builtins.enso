@@ -224,7 +224,7 @@ type Error
     catch_primitive : (Error -> Any) -> Any
     catch_primitive handler = @Builtin_Method "Any.catch"
 
-    ## PRIVATE 
+    ## PRIVATE
        UNSTABLE
 
        Returns a textual representation of the stack trace attached to an error.
@@ -719,6 +719,36 @@ type Meta
        - fields: The arguments to pass to constructor.
     new_atom : Atom_Constructor -> Array -> Atom
     new_atom constructor fields = @Builtin_Method "Meta.new_atom"
+
+    ## PRIVATE
+
+       Returns a Text representing the source location of a stack frame above
+       the call.
+
+       Arguments:
+       - frames_to_skip: how many frames on the stack to skip. Called with 0
+         will return exact location of the call.
+    get_source_location : Integer -> Text
+    get_source_location frames_to_skip = @Builtin_Method "Meta.get_source_location"
+
+    ## PRIVATE
+
+       Pretty-prints the type of the provided value using the interpreter's
+       internal logic for printing types.
+
+       Arguments:
+       - value: The value whose type should be printed.
+    get_simple_type_name : Any -> Text
+    get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
+
+    ## PRIVATE
+
+       Returns the fully qualified type name of the given value.
+
+       Arguments:
+       - value: the value to get the type of.
+   get_qualified_type_name : Any -> Text
+   get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
 
 ## Utilities for working with primitive arrays.
 type Array

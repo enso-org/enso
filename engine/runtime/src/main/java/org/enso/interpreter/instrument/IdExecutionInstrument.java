@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -377,17 +378,25 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
         callsCache.setExecuted(nodeId);
       } else if (node instanceof ExpressionNode) {
+        boolean isPanic = result instanceof PanicSentinel;
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
-        cache.offer(nodeId, result);
+
+        // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
+        // like imports, and the invalidation mechanism can not always track those changes and
+        // appropriately invalidate all dependent expressions.
+        if (!isPanic) {
+          cache.offer(nodeId, result);
+        }
         String cachedType = cache.putType(nodeId, resultType);
         FunctionCallInfo call = calls.get(nodeId);
         FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
-        var profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+
         onComputedCallback.accept(
             new ExpressionValue(
                 nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
-        if (result instanceof PanicSentinel) {
+        if (isPanic) {
           throw context.createUnwind(result);
         }
       }
@@ -410,7 +419,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (exception instanceof PanicException) {
         PanicException panicException = (PanicException) exception;
-        onReturnValue(context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
+        onReturnValue(
+            context, frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
       } else if (exception instanceof PanicSentinel) {
         onReturnValue(context, frame, exception);
       }
@@ -461,8 +471,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * Attach a new listener to observe identified nodes within given function.
    *
    * @param entryCallTarget the call target being observed.
-   * @param funSourceStart the source start of the observed range of ids.
-   * @param funSourceLength the length of the observed source range.
+   * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
@@ -474,8 +483,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    */
   public EventBinding<ExecutionEventListener> bind(
       CallTarget entryCallTarget,
-      int funSourceStart,
-      int funSourceLength,
+      LocationFilter locationFilter,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
@@ -487,7 +495,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
-            .indexIn(funSourceStart, funSourceLength)
+            .sourceSectionEquals(locationFilter.getSections())
             .build();
 
     return env.getInstrumenter()

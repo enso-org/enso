@@ -28,11 +28,11 @@ these libraries, as well as notes on how they should be used.
 `Base` is the core library of Enso. It contains core types and data structures,
 as well as basic functionality for interacting with the outside world. It can be
 found in
-[`distribution/std-lib/Base`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Base).
+[`distribution/std-lib/Standard/src/`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
 `Base` is intended to be imported unqualified at the top of the file:
-`from Base import all`. Items not included in this unqualified import are
-considered to be more specialist or internal, and should be intentionally
+`from Standard.Base import all`. Items not included in this unqualified import
+are considered to be more specialist or internal, and should be intentionally
 imported by users.
 
 ### Builtins

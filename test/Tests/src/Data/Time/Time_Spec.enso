@@ -1,9 +1,9 @@
-from Base import all
+from Standard.Base import all
 
-import Test
-import Base.Data.Time.Time
-import Base.Data.Time.Duration
-import Base.Data.Time.Zone
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time.Time
+import Standard.Base.Data.Time.Zone
+import Standard.Test
 
 spec =
     Test.group "Time" <|

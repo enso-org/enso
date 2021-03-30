@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.instrument.execution.Timer
-import org.enso.interpreter.runtime.`type`.Constants
+import org.enso.interpreter.runtime.`type`.{Constants, Types}
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
-import org.enso.polyglot.data.Tree
+import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
@@ -57,6 +57,8 @@ class RuntimeServerTest
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
+        .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -624,7 +626,6 @@ class RuntimeServerTest
         |    this.foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -635,7 +636,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -653,7 +654,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -662,57 +663,6 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None),
-                      Suggestion
-                        .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion
-                        .Argument("b", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    List(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
   }
@@ -735,7 +685,6 @@ class RuntimeServerTest
         |    IO.println (this.foo 1 2)
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -746,7 +695,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -764,7 +713,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -773,57 +722,6 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None),
-                      Suggestion
-                        .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion
-                        .Argument("b", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    List(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("3")
@@ -846,7 +744,6 @@ class RuntimeServerTest
         |bar = State.get Number
         |""".stripMargin
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -857,7 +754,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -875,7 +772,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -884,53 +781,6 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, "Test.Main", "bar")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "bar",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
@@ -955,7 +805,6 @@ class RuntimeServerTest
         |    State.get Number
         |""".stripMargin
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -966,7 +815,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -984,7 +833,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -993,53 +842,6 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, "Test.Main", "bar")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "bar",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("10")
@@ -1064,7 +866,6 @@ class RuntimeServerTest
         |    1
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1075,7 +876,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -1093,7 +894,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1102,57 +903,6 @@ class RuntimeServerTest
         Api.MethodPointer(moduleName, "Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None),
-                      Suggestion
-                        .Argument("a", Constants.ANY, false, false, None),
-                      Suggestion
-                        .Argument("b", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    List(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
   }
@@ -1282,7 +1032,6 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val idMain     = context.Main.metadata.addItem(33, 47)
     val contents   = context.Main.code
-    val version    = contentsVersion(contents)
     val mainFile   = context.writeMain(contents)
 
     // create context
@@ -1293,7 +1042,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -1311,153 +1060,12 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainX),
-                        moduleName,
-                        "x",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument(
-                          "this",
-                          Constants.NUMBER,
-                          false,
-                          false,
-                          None
-                        ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(9, 17),
-                            Suggestion.Position(12, 5)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(9, 17),
-                          Suggestion.Position(12, 5)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -1505,7 +1113,6 @@ class RuntimeServerTest
         |    IO.println result
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1516,7 +1123,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -1534,57 +1141,11 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idResult, Constants.INTEGER),
       TestMessages.update(contextId, idPrintln, Constants.NOTHING),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(idResult),
-                        moduleName,
-                        "result",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(2, 6),
-                          Suggestion.Position(4, 21)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("1337")
@@ -1619,10 +1180,14 @@ class RuntimeServerTest
     val idMain   = metadata.addItem(32, 35)
     val idMainA  = metadata.addItem(41, 8)
     val idMainP  = metadata.addItem(54, 12)
-    val idPie    = metadata.addItem(66 + 8, 1)
-    val idUwu    = metadata.addItem(74 + 8, 1)
-    val idHie    = metadata.addItem(82 + 8, 6)
-    val idXxx    = metadata.addItem(102 + 8, 1)
+    // pie id
+    metadata.addItem(66 + 8, 1)
+    // uwu id
+    metadata.addItem(74 + 8, 1)
+    // hie id
+    metadata.addItem(82 + 8, 6)
+    // Number.x id
+    metadata.addItem(102 + 8, 1)
     val code =
       """from Builtins import all
         |
@@ -1636,7 +1201,6 @@ class RuntimeServerTest
         |Number.x y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1647,7 +1211,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -1665,136 +1229,11 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMainA, Constants.INTEGER),
       TestMessages.update(contextId, idMainP, Constants.NOTHING),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(idMainA),
-                        moduleName,
-                        "a",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(2, 6),
-                          Suggestion.Position(5, 0)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idPie),
-                    moduleName,
-                    "pie",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idUwu),
-                    moduleName,
-                    "uwu",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idHie),
-                    moduleName,
-                    "hie",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idXxx),
-                    moduleName,
-                    "x",
-                    Seq(
-                      Suggestion.Argument(
-                        "this",
-                        Constants.NUMBER,
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("y", Constants.ANY, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("144")
@@ -1960,7 +1399,6 @@ class RuntimeServerTest
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
-    val version  = contentsVersion(contents)
     val mainFile = context.writeMain(contents)
 
     // create context
@@ -1971,7 +1409,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -1989,7 +1427,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       TestMessages.update(
@@ -2009,102 +1447,6 @@ class RuntimeServerTest
         id3,
         Constants.INTEGER,
         Api.MethodPointer(moduleName, Constants.NUMBER, "overloaded")
-      ),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(id1),
-                        moduleName,
-                        "x",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(2, 6),
-                          Suggestion.Position(7, 0)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "overloaded",
-                    Seq(
-                      Suggestion.Argument(
-                        "this",
-                        Constants.TEXT,
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
-                    ),
-                    Constants.TEXT,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "overloaded",
-                    Seq(
-                      Suggestion.Argument(
-                        "this",
-                        Constants.NUMBER,
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("arg", Constants.ANY, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
       ),
       context.executionComplete(contextId)
     )
@@ -2239,14 +1581,14 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val xId     = metadata.addItem(41, 5)
-    val mainRes = metadata.addItem(51, 12)
+    val xId     = metadata.addItem(41, 10)
+    val mainRes = metadata.addItem(56, 12)
 
     val code =
       """from Builtins import all
         |
         |main =
-        |    x = _ + 1
+        |    x = a -> a + 1
         |    IO.println x
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2278,7 +1620,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain allOf (
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xId, Constants.FUNCTION),
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
@@ -2301,13 +1643,12 @@ class RuntimeServerTest
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
-    val version = contentsVersion(code)
 
     // Create a new file
     val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, false)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, true)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2326,37 +1667,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Main",
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
@@ -2392,7 +1704,6 @@ class RuntimeServerTest
     val metadata   = new Metadata
     val idMain     = metadata.addItem(7, 2)
     val code       = metadata.appendToCode("main = 84")
-    val version    = contentsVersion(code)
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2403,15 +1714,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(
-      Api.Request(
-        Api.OpenFileNotification(
-          mainFile,
-          code,
-          false
-        )
-      )
-    )
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, true)))
     context.receiveNone shouldEqual None
 
     // Push new item on the stack to trigger the re-execution
@@ -2429,38 +1732,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    "Test.Main",
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -2488,7 +1762,6 @@ class RuntimeServerTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
     val idMain     = context.Main.metadata.addItem(33, 47)
-    val version    = contentsVersion(context.Main.code)
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -2500,13 +1773,7 @@ class RuntimeServerTest
 
     // Open the new file
     context.send(
-      Api.Request(
-        Api.OpenFileNotification(
-          mainFile,
-          context.Main.code,
-          false
-        )
-      )
+      Api.Request(Api.OpenFileNotification(mainFile, context.Main.code, true))
     )
     context.receiveNone shouldEqual None
 
@@ -2519,147 +1786,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    Some(idMain),
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainX),
-                        moduleName,
-                        "x",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument("this", Constants.NUMBER, false, false, None),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(9, 17),
-                            Suggestion.Position(12, 5)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(9, 17),
-                          Suggestion.Position(12, 5)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -2712,13 +1844,12 @@ class RuntimeServerTest
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
-    val version = contentsVersion(code)
 
     // Create a new file
     val mainFile = context.writeMain(code)
 
     // Open the new file
-    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, false)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code, true)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2737,42 +1868,21 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
-    // Modify the file
+    /*
+      Modify the file:
+      """from Builtins import all
+        |
+        |Number.lucky = 42
+        |
+        |main = IO.println "I'm a modified!"
+        |""".stripMargin
+     */
     context.send(
       Api.Request(
         Api.EditFileNotification(
@@ -2790,43 +1900,7 @@ class RuntimeServerTest
         )
       )
     )
-    val codeModified =
-      """from Builtins import all
-        |
-        |Number.lucky = 42
-        |
-        |main = IO.println "I'm a modified!"
-        |""".stripMargin
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = contentsVersion(codeModified),
-          actions = Vector(),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "lucky",
-                    Seq(
-                      Suggestion
-                        .Argument("this", Constants.NUMBER, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
+    context.receive(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("I'm a modified!")
@@ -3946,7 +3020,7 @@ class RuntimeServerTest
         Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code,
-          false
+          true
         )
       )
     )
@@ -3976,74 +3050,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = visualisationFile,
-          version = contentsVersion(context.Visualisation.code),
-          actions =
-            Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "encode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "incAndEncode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -4122,7 +3134,7 @@ class RuntimeServerTest
         Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code,
-          false
+          true
         )
       )
     )
@@ -4152,73 +3164,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = visualisationFile,
-          version = contentsVersion(context.Visualisation.code),
-          actions =
-            Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "encode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "incAndEncode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -4303,7 +3253,6 @@ class RuntimeServerTest
 
   it should "emit visualisation update without value update" in {
     val contents   = context.Main.code
-    val version    = contentsVersion(contents)
     val moduleName = "Test.Main"
     val mainFile   = context.writeMain(contents)
     val visualisationFile =
@@ -4319,13 +3268,13 @@ class RuntimeServerTest
         Api.OpenFileNotification(
           visualisationFile,
           context.Visualisation.code,
-          false
+          true
         )
       )
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
     context.receiveNone shouldEqual None
 
@@ -4345,208 +3294,11 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(7) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = visualisationFile,
-          version = contentsVersion(context.Visualisation.code),
-          actions =
-            Vector(Api.SuggestionsDatabaseAction.Clean("Test.Visualisation")),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "encode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    "Test.Visualisation",
-                    "incAndEncode",
-                    List(
-                      Suggestion.Argument(
-                        "this",
-                        "Test.Visualisation",
-                        false,
-                        false,
-                        None
-                      ),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    "Test.Visualisation",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector()
-              )
-            )
-          )
-        )
-      ),
-      Api.Response(
-        Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
-          version = version,
-          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
-          updates = Tree.Root(
-            Vector(
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "main",
-                    Seq(
-                      Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
-                    ),
-                    "Test.Main",
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainX),
-                        moduleName,
-                        "x",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idMainZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(3, 6),
-                            Suggestion.Position(8, 0)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              ),
-              Tree.Node(
-                Api.SuggestionUpdate(
-                  Suggestion.Method(
-                    None,
-                    moduleName,
-                    "foo",
-                    Seq(
-                      Suggestion
-                        .Argument("this", Constants.NUMBER, false, false, None),
-                      Suggestion
-                        .Argument("x", Constants.ANY, false, false, None)
-                    ),
-                    Constants.NUMBER,
-                    Constants.ANY,
-                    None
-                  ),
-                  Api.SuggestionAction.Add()
-                ),
-                Vector(
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooY),
-                        moduleName,
-                        "y",
-                        Constants.ANY,
-                        Suggestion
-                          .Scope(
-                            Suggestion.Position(9, 17),
-                            Suggestion.Position(12, 5)
-                          )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  ),
-                  Tree.Node(
-                    Api.SuggestionUpdate(
-                      Suggestion.Local(
-                        Some(context.Main.idFooZ),
-                        moduleName,
-                        "z",
-                        Constants.ANY,
-                        Suggestion.Scope(
-                          Suggestion.Position(9, 17),
-                          Suggestion.Position(12, 5)
-                        )
-                      ),
-                      Api.SuggestionAction.Add()
-                    ),
-                    Vector()
-                  )
-                )
-              )
-            )
-          )
-        )
-      ),
       context.executionComplete(contextId)
     )
 
@@ -4875,6 +3627,140 @@ class RuntimeServerTest
     )
   }
 
+  it should "not reorder visualization commands" in {
+    val contents = context.Main.code
+    val mainFile = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    // open files
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          true
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    // modify visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ModifyVisualisation(
+          visualisationId,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.incAndEncode x"
+          )
+        )
+      )
+    )
+    // detach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.DetachVisualisation(
+          contextId,
+          visualisationId,
+          context.Main.idMainX
+        )
+      )
+    )
+    val modifyVisualisationResponses = context.receive(3)
+    modifyVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationModified()),
+      Api.Response(requestId, Api.VisualisationDetached())
+    )
+    val Some(dataAfterModification) =
+      modifyVisualisationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualisationUpdate(
+                Api.VisualisationContext(
+                  `visualisationId`,
+                  `contextId`,
+                  `expectedExpressionId`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+    dataAfterModification.sameElements("7".getBytes) shouldBe true
+  }
+
   it should "rename a project" in {
     val contents  = context.Main.code
     val mainFile  = context.writeMain(contents)
@@ -4955,4 +3841,13 @@ class RuntimeServerTest
     )
   }
 
+  it should "send the type graph" in {
+    val requestId                = UUID.randomUUID()
+    val expectedGraph: TypeGraph = Types.getTypeHierarchy
+
+    context.send(Api.Request(requestId, Api.GetTypeGraphRequest()))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.GetTypeGraphResponse(expectedGraph))
+    )
+  }
 }

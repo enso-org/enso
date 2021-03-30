@@ -1,0 +1,48 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Vector
+
+type To_Form
+
+    type To_Form internal_to_form
+
+    to_form : Form
+    to_form = this.internal_to_form
+
+## Implement To_Form for vector
+Vector.Vector.to_form = Form this
+
+## The HTTP form containing a vector of parts.
+type Form
+
+    type Form parts
+
+    ## Implement To_Form.to_form
+    to_form : Form
+    to_form = this
+
+## The key-value element of the form.
+type Part
+
+    type Part key value
+
+## The value of the form element.
+type Part_Value
+
+    type Part_Text part_text
+
+    type Part_File part_file
+
+## Create Form data from Parts
+new : Vector.Vector -> Form
+new parts = Form parts
+
+# Helpers for creating different parts of the form.
+
+## Create a text field of a Form.
+text_field : Text -> Text -> Part
+text_field key val = Part key (Part_Text val)
+
+## Create a file field of a Form.
+file_field : Text -> Text -> Part
+file_field key file = Part key (Part_File file)

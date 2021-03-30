@@ -1,4 +1,4 @@
-from Base import all
+from Standard.Base import all
 
 foo = 123
 

@@ -41,6 +41,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.acquireWriteCompilationLock()
+
     try {
       val compilationResult = ensureCompiledFiles(files)
       ctx.contextManager.getAll.values.foreach { stack =>
@@ -73,8 +74,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
     val modulesInScope =
-      ctx.executionService.getContext.getTopScope.getModules.asScala
-        .filterNot(m => modules.exists(_ == m))
+      getModulesInScope.filterNot(m => modules.exists(_ == m))
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val scopeCompilationStatus  = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
@@ -97,7 +97,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         val cacheInvalidationCommands =
           buildCacheInvalidationCommands(changeset, module.getLiteralSource)
         runInvalidationCommands(cacheInvalidationCommands)
-        analyzeModule(module, changeset)
+        if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
+          analyzeModule(module, changeset)
+        }
         runCompilationDiagnostics(module)
       }
       .getOrElse(CompilationStatus.Failure)
@@ -126,7 +128,9 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             )
             CompilationStatus.Failure
           case Right(module) =>
-            analyzeModuleInScope(module)
+            if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
+              analyzeModuleInScope(module)
+            }
             runCompilationDiagnostics(module)
         }
       }
@@ -144,11 +148,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           e
         )
     }
-    if (
-      !module.isIndexed &&
-      module.getLiteralSource != null &&
-      module.getPath != null
-    ) {
+    if (!module.isIndexed && module.getLiteralSource != null) {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing module in scope ${module.getName}")
       val moduleName = module.getName
@@ -157,7 +157,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = new File(module.getPath),
+        file    = getIndexingPath(module),
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
@@ -429,6 +429,26 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         }
       case _ => None
     }
+
+  /** Get all modules in the current compiler scope. */
+  private def getModulesInScope(implicit
+    ctx: RuntimeContext
+  ): Iterable[Module] = {
+    val topScope       = ctx.executionService.getContext.getTopScope
+    val modulesInScope = topScope.getModules.asScala
+    val builtins       = topScope.getBuiltins.getModule
+    modulesInScope ++ Seq(builtins)
+  }
+
+  /** Get the module path for suggestions database indexing.
+    *
+    * If the module is synthetic (i.e. Builtins), uses its name as a path.
+    */
+  private def getIndexingPath(module: Module): File =
+    if (module.getPath eq null) {
+      new File(s"/${module.getName}")
+    } else
+      new File(module.getPath)
 
 }
 

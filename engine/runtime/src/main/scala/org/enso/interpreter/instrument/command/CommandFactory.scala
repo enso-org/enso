@@ -50,6 +50,9 @@ object CommandFactory {
       case payload: Api.ImportSuggestionRequest =>
         new ImportSuggestionCmd(request.requestId, payload)
 
+      case _: Api.GetTypeGraphRequest =>
+        new GetTypeGraphCommand(request.requestId)
+
       case Api.ShutDownRuntimeServer() =>
         throw new IllegalArgumentException(
           "ShutDownRuntimeServer request is not convertible to command object"

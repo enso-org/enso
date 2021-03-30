@@ -1,9 +1,9 @@
-from Base import all
+from Standard.Base import all
 
-import Base.Data.Noise.Generator
-import Base.Error.Extensions
+import Standard.Base.Data.Noise.Generator
+import Standard.Base.Error.Extensions
 
-import Test
+import Standard.Test
 
 spec =
     Test.group "Generator Interface" <|
