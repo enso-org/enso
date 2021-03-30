@@ -5,7 +5,10 @@ from Standard.Base import all
    A type of GeoJSON object.
 type Object_Type
 
+    ## PRIVATE
     type Feature
+
+    ## PRIVATE
     type Feature_Collection
 
     ## PRIVATE
