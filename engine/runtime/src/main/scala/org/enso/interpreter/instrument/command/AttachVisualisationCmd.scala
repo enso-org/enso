@@ -24,13 +24,15 @@ class AttachVisualisationCmd(
   ): Future[Unit] = {
     val contextId = request.visualisationConfig.executionContextId
     ctx.locking.acquireContextLock(contextId)
-    val result = if (doesContextExist) {
-      attachVisualisation()
-    } else {
-      replyWithContextNotExistError()
+    try {
+      if (doesContextExist) {
+        attachVisualisation()
+      } else {
+        replyWithContextNotExistError()
+      }
+    } finally {
+      ctx.locking.releaseContextLock(contextId)
     }
-    ctx.locking.releaseContextLock(contextId)
-    result
   }
 
   private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {

@@ -23,13 +23,15 @@ class DetachVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     ctx.locking.acquireContextLock(request.contextId)
-    val result = if (doesContextExist) {
-      detachVisualization()
-    } else {
-      replyWithContextNotExistError()
+    try {
+        if (doesContextExist) {
+          detachVisualization()
+        } else {
+          replyWithContextNotExistError()
+        }
+    } finally {
+      ctx.locking.releaseContextLock(request.contextId)
     }
-    ctx.locking.releaseContextLock(request.contextId)
-    result
   }
 
   private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
