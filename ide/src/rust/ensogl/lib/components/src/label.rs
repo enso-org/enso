@@ -51,12 +51,9 @@ mod background {
             let fading_color  = Var::<color::Rgba>::from(fading_color);
             let fading_color  = fading_color.multiply_alpha(&alpha);
             let exponent      = style.get_number_or(theme::shadow::exponent,2.0);
-            let shadow_color  = color::LinearGradient::new()
-                .add(0.0,fading_color.into_linear())
-                .add(1.0,base_color.into_linear());
-            let shadow_color = color::SdfSampler::new(shadow_color)
-                .max_distance(border_size_f)
-                .slope(color::Slope::Exponent(exponent));
+            let shadow_color  = color::gradient::Linear::<Var<color::LinearRgba>>
+                ::new(fading_color.into_linear(),base_color.into_linear());
+            let shadow_color  = shadow_color.sdf_sampler().size(border_size_f).exponent(exponent);
             let shadow        = shadow.fill(shadow_color);
 
             (shadow+shape).into()

@@ -10,9 +10,10 @@ pub use view::View;
 
 use crate::prelude::*;
 
-use crate::display;
-use crate::display::world::World;
+use crate::control::callback;
 use crate::display::style::theme;
+use crate::display::world::World;
+use crate::display;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
 use ensogl_system_web::StyleSetter;
@@ -28,13 +29,14 @@ use ensogl_system_web::StyleSetter;
 #[derive(Debug,Clone,CloneRef)]
 #[allow(missing_docs)]
 pub struct Application {
-    pub logger    : Logger,
-    pub cursor    : Cursor,
-    pub display   : World,
-    pub commands  : command::Registry,
-    pub shortcuts : shortcut::Registry,
-    pub views     : view::Registry,
-    pub themes    : theme::Manager,
+    pub logger           : Logger,
+    pub cursor           : Cursor,
+    pub display          : World,
+    pub commands         : command::Registry,
+    pub shortcuts        : shortcut::Registry,
+    pub views            : view::Registry,
+    pub themes           : theme::Manager,
+    update_themes_handle : callback::Handle,
 }
 
 impl Application {
@@ -50,7 +52,8 @@ impl Application {
         let cursor    = Cursor::new(display.scene());
         display.add_child(&cursor);
         web::body().set_style_or_panic("cursor","none");
-        Self {logger,cursor,display,commands,shortcuts,views,themes}
+        let update_themes_handle = display.on_before_frame(f_!(themes.update()));
+        Self {logger,cursor,display,commands,shortcuts,views,themes,update_themes_handle}
     }
 
     /// Create a new instance of a view.
@@ -62,5 +65,11 @@ impl Application {
 impl display::Object for Application {
     fn display_object(&self) -> &display::object::Instance {
         self.display.display_object()
+    }
+}
+
+impl AsRef<theme::Manager> for Application {
+    fn as_ref(&self) -> &theme::Manager {
+        &self.themes
     }
 }

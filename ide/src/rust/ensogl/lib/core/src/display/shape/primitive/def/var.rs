@@ -39,7 +39,7 @@ impl VarInitializerMarker<Var<color::Rgba>> for color::Rgb {}
 
 impl VarInitializerMarker<Var<color::Rgba>> for color::Rgba {}
 
-impl<G> VarInitializerMarker<Var<color::Rgba>> for color::SdfSampler<G> {}
+impl<G> VarInitializerMarker<Var<color::Rgba>> for color::gradient::SdfSampler<G> {}
 
 impl<T,S1,S2> VarInitializerMarker<Var<Vector2<T>>> for (S1,S2)
     where T:Scalar, S1:VarInitializerMarkerNested<Var<T>>, S2:VarInitializerMarkerNested<Var<T>> {}

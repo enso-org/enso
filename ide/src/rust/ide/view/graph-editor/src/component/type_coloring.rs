@@ -42,12 +42,18 @@ use std::hash::Hasher;
 /// parametrization, other mechanisms should be used. For example, `Point Float` and `Point Number`
 /// should have similar colors, completely distinct from their parameter types.
 pub fn compute(tp:&Type, styles:&StyleWatch) -> color::Lcha {
-    let hue_types_path = theme::code::types::overriden::HERE.path();
-    let hue_style_path = hue_types_path.into_sub(tp.as_str()).into_sub("hue");
-    let hue            = styles.get(hue_style_path).number_or_else(||auto_hue(tp));
-    let luminance      = styles.get_number_or(theme::code::types::luminance,0.85);
-    let chroma         = styles.get_number_or(theme::code::types::chroma,0.6);
-    color::Lch::new(luminance,chroma,hue).into()
+    // FIXME: Left for performance debug purposes. See: https://github.com/enso-org/ide/issues/952
+    // println!("Type coloring for: '{}",tp.as_str());
+    let types_path = theme::code::types::overriden::HERE.path();
+    let type_path  = types_path.into_subs(tp.as_str().split('.'));
+    // FIXME: Left for performance debug purposes. See: https://github.com/enso-org/ide/issues/952
+    // println!("Path: {:?}",type_path);
+    let hue = styles.get(type_path.sub("hue")).number_or_else(|| auto_hue(tp,styles));
+    let lightness = styles.get(type_path.sub("lightness")).number_or_else(||
+        styles.get_number_or(theme::code::types::lightness,0.85));
+    let chroma = styles.get(type_path.sub("chroma")).number_or_else(||
+        styles.get_number_or(theme::code::types::chroma,0.6));
+    color::Lch::new(lightness,chroma,hue).into()
 }
 
 /// Get the code color for the provided type or default code color in case the type is None.
@@ -63,11 +69,11 @@ pub fn compute_for_selection(tp:Option<&Type>, styles:&StyleWatch) -> color::Lch
 }
 
 /// Computes LCH hue value based on incoming type information.
-fn auto_hue(tp:&Type) -> f32 {
-    // Defines how many different hue values we can have based on our incoming type name.
-    let hue_step  = 512;
-    let hue_shift = 0.0;
-    (hash(&tp) % hue_step) as f32 / hue_step as f32 + hue_shift
+fn auto_hue(tp:&Type, styles:&StyleWatch) -> f32 {
+    // Defines how many hue values we can have based on our incoming type name.
+    let hue_steps = styles.get_number_or(theme::code::types::hue_steps,512.0);
+    let hue_shift = styles.get_number_or(theme::code::types::hue_shift,0.0);
+    (hash(&tp) % (hue_steps as u64)) as f32 / hue_steps + hue_shift
 }
 
 /// Compute the hash of the type for use in the `compute` function.

@@ -212,6 +212,8 @@ impl View {
         // Should not be needed after proper theme management will be introduced:
         ensogl_theme::builtin::light::enable(app);
 
+        display::style::javascript::expose_to_window(&app.themes);
+
         let model                      = Model::new(app);
         let frp                        = Frp::new();
         let searcher                   = &model.searcher.frp;
@@ -219,7 +221,12 @@ impl View {
         let network                    = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
 
+        // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
+        //   want shader recompilation. Model uses styles already.
         model.set_style(Theme::Light);
+        // TODO[WD]: This should not be needed after the theme switching issue is implemented.
+        //   See: https://github.com/enso-org/ide/issues/795
+        app.themes.update();
 
         frp::extend!{ network
             // === Searcher Position and Size ===

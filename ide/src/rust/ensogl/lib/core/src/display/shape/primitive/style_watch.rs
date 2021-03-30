@@ -5,9 +5,10 @@ use crate::prelude::*;
 use crate::control::callback;
 use crate::data::color;
 use crate::display::style::Path;
-use crate::display::style::StaticPath;
 use crate::display::style::data::DataMatch;
 use crate::display::style;
+
+use enso_frp as frp;
 
 
 
@@ -22,7 +23,77 @@ const VARIANT_PATH_PREFIX         : &str        = "variant";
 // require a cyclic import from the `ensogl-theme` crate.
 const COLOR_LIGHTNESS_FACTOR_PATH : &str        = "theme.vars.colors.dimming.lightness_factor";
 const COLOR_CHROMA_FACTOR_PATH    : &str        = "theme.vars.colors.dimming.chroma_factor";
-const DEFAULT_COLOR               : color::Lcha = color::Lcha::new(0.5,1.0,0.5,0.5);
+const FALLBACK_COLOR              : color::Lcha = color::Lcha::new(0.5,1.0,0.5,0.5);
+
+
+
+// =====================
+// === StyleWatchFrp ===
+// =====================
+
+/// FRP-based style watch utility. Whenever a style sheet value is accessed, the value reference is
+/// being remembered and tracked. Whenever it changes, the FRP event is emitted.
+#[derive(Clone,CloneRef,Derivative)]
+#[derivative(Debug)]
+pub struct StyleWatchFrp {
+    network  : frp::Network,
+    sheet    : style::Sheet,
+    vars     : Rc<RefCell<Vec<style::Var>>>,
+    handles  : Rc<RefCell<Vec<callback::Handle>>>,
+    #[derivative(Debug="ignore")]
+    callback : Rc<RefCell<Box<dyn Fn()>>>,
+}
+
+impl StyleWatchFrp {
+    /// Constructor.
+    #[allow(trivial_casts)]
+    pub fn new(sheet:&style::Sheet) -> Self {
+        let network  = frp::Network::new("style_watch");
+        let sheet    = sheet.clone_ref();
+        let vars     = default();
+        let handles  = default();
+        let callback = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
+        Self {network,sheet,vars,handles,callback}
+    }
+
+    fn get_internal
+    (&self, path:impl Into<Path>) -> (frp::Source<Option<style::Data>>,Option<style::Data>) {
+        let network = &self.network;
+        frp::extend! { network
+            source <- source::<Option<style::Data>>();
+        }
+        let path     = path.into();
+        let var      = self.sheet.var(path);
+        let current  = var.value();
+        let handle   = var.on_change(f!((data:&Option<style::Data>) source.emit(data.clone())));
+        self.vars.borrow_mut().push(var);
+        self.handles.borrow_mut().push(handle);
+        (source,current)
+    }
+
+    /// Queries style sheet value for a value.
+    pub fn get(&self, path:impl Into<Path>) -> frp::Sampler<Option<style::Data>> {
+        let network          = &self.network;
+        let (source,current) = self.get_internal(path);
+        frp::extend! { network
+            sampler <- source.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
+
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
+    pub fn get_color<T:Into<Path>>(&self, path:T) -> frp::Sampler<color::Lcha> {
+        let network          = &self.network;
+        let (source,current) = self.get_internal(path);
+        frp::extend! { network
+            value   <- source.map(|t| t.color().unwrap_or_else(|| FALLBACK_COLOR));
+            sampler <- value.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
+}
 
 
 
@@ -68,11 +139,13 @@ impl StyleWatch {
 
     /// Queries style sheet value for a value.
     pub fn get(&self, path:impl Into<Path>) -> Option<style::Data> {
+        let path     = path.into();
         let var      = self.sheet.var(path);
         let value    = var.value();
         let callback = self.callback.clone_ref();
-        var.on_change(move |_:&Option<style::Data>| (callback.borrow())());
+        let handle   = var.on_change(move |_:&Option<style::Data>| (callback.borrow())());
         self.vars.borrow_mut().push(var);
+        self.handles.borrow_mut().push(handle);
         value
     }
 
@@ -80,45 +153,17 @@ impl StyleWatch {
     pub fn get_number_or(&self, path:impl Into<Path>, fallback:f32) -> f32 {
         self.get(path).number().unwrap_or(fallback)
     }
-}
 
+    /// Queries style sheet number value. Returns 0 if not found.
+    pub fn get_number(&self, path:impl Into<Path>) -> f32 {
+        self.get_number_or(path,0.0)
+    }
 
-
-// ====================
-// === Color Source ===
-// ====================
-
-/// A `Source` contains the information required to get a color either from a theme, or statically
-/// through a constant.
-#[derive(Clone,Debug)]
-#[allow(missing_docs)]
-pub enum ColorSource {
-    /// A constant color value.
-    Static { color : color::Lcha },
-    /// A color derived from the current theme.
-    /// Should update automatically once #795 is resolved.
-    Theme  { path  : Path }
-}
-
-impl Default for ColorSource {
-    fn default() -> Self {
-        ColorSource::Static{color:DEFAULT_COLOR}
+    /// A debug check of how many stylesheet variables are registered in this style watch.
+    pub fn debug_var_count(&self) -> usize {
+        self.vars.borrow().len()
     }
 }
-
-impl<C> From<color::Color<C>> for ColorSource
-    where color::Color<C> : Into<color::Lcha> {
-    fn from(color:color::Color<C>) -> ColorSource {
-        let color = color.into();
-        ColorSource::Static {color}
-    }
-}
-
-impls! { From<Path>        for ColorSource { |t| ColorSource::Theme {path:t} }}
-impls! { From<&Path>       for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
-impls! { From<StaticPath>  for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
-impls! { From<&StaticPath> for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
-impls! { From<&str>        for ColorSource { |t| ColorSource::Theme {path:t.into()} }}
 
 
 
@@ -127,23 +172,14 @@ impls! { From<&str>        for ColorSource { |t| ColorSource::Theme {path:t.into
 // ====================
 
 impl StyleWatch {
-    /// Queries style sheet color, if not found fallbacks to red.
-    pub fn get_color<T:Into<ColorSource>>(&self, color:T) -> color::Lcha {
-        match color.into() {
-            ColorSource::Static { color } => color,
-            ColorSource::Theme { path }   => {
-                let fallback = color::Rgba::new(1.0,0.0,0.0,1.0).into();
-                self.get(path).color().unwrap_or_else(|| fallback)
-            }
-        }
+    /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
+    pub fn get_color<T:Into<Path>>(&self, path:T) -> color::Lcha {
+        self.get(path).color().unwrap_or_else(|| FALLBACK_COLOR)
     }
 
     /// Return the dimmed version for either a `Path` or a specific color.
-    pub fn get_color_dim<T:Into<ColorSource>>(&self, color:T) -> color::Lcha {
-        match color.into() {
-            ColorSource::Static { color } => self.make_color_dim(color),
-            ColorSource::Theme { path }   => self.get_color_from_path_dim(path)
-        }
+    pub fn get_color_dim<T:Into<Path>>(&self, path:T) -> color::Lcha {
+        self.get_color_from_path_dim(path)
     }
 
     /// Queries style sheet color, if not found fallbacks to red.
@@ -185,5 +221,4 @@ impl StyleWatch {
         let path  = Self::color_variant_path(path.into(), id.to_string());
         self.get(path).color()
     }
-
 }

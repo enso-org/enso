@@ -215,6 +215,11 @@ pub struct SharedRegistryMut1<T> {
 }
 
 impl<T> SharedRegistryMut1<T> {
+    /// Constructor.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Adds new callback and returns a new handle for it.
     pub fn add<F:CallbackMut1Fn<T>>(&self, callback:F) -> Handle {
         let callback = Rc::new(RefCell::new(callback));

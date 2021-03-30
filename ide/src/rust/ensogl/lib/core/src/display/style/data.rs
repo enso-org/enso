@@ -33,6 +33,12 @@ impl From<f32> for Data {
     }
 }
 
+impl From<i32> for Data {
+    fn from(t:i32) -> Data {
+        Data::Number(t as f32)
+    }
+}
+
 impl<C> From<color::Color<C>> for Data
 where color::Color<C> : Into<color::Lcha> {
     fn from(color:color::Color<C>) -> Data {
@@ -40,6 +46,20 @@ where color::Color<C> : Into<color::Lcha> {
     }
 }
 
+impl TryFrom<String> for Data {
+    type Error = ();
+    fn try_from(s:String) -> Result<Self,Self::Error> {
+        match s.parse::<f32>() {
+            Ok(t) => Ok(Data::Number(t)),
+            _     => {
+                match s.parse::<color::AnyFormat>() {
+                    Ok(t) => Ok(Data::Color(t.into())),
+                    _     => Err(())
+                }
+            }
+        }
+    }
+}
 
 
 // === Impls ===

@@ -48,13 +48,8 @@ pub const CORNER_RADIUS     : f32 = 14.0;
 pub const HEIGHT            : f32 = 28.0;
 pub const PADDING           : f32 = 40.0;
 pub const RADIUS            : f32 = 14.0;
-pub const SHADOW_SIZE       : f32 = 10.0;
 
 const INFINITE                       : f32       = 99999.0;
-const ERROR_PATTERN_STRIPE_WIDTH     : f32       = 10.0;
-const ERROR_PATTERN_STRIPE_ANGLE     : f32       = 45.0;
-const ERROR_PATTERN_REPEAT_TILE_SIZE : (f32,f32) = (20.0,20.0);
-const ERROR_BORDER_WIDTH             : f32       = 10.0;
 const ERROR_VISUALIZATION_SIZE       : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
 const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
@@ -65,59 +60,70 @@ const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
 // === Shape ===
 // =============
 
-/// Canvas node shape definition.
-pub mod shape {
+/// Node background definition.
+pub mod background {
     use super::*;
 
     ensogl::define_shape_system! {
-        (style:Style, selection:f32, bg_color:Vector4) {
-            use ensogl_theme::graph_editor::node as node_theme;
+        (style:Style, bg_color:Vector4) {
+            let bg_color = Var::<color::Rgba>::from(bg_color);
+            let width    = Var::<Pixels>::from("input_size.x");
+            let height   = Var::<Pixels>::from("input_size.y");
+            let width    = width  - PADDING.px() * 2.0;
+            let height   = height - PADDING.px() * 2.0;
+            let radius   = RADIUS.px();
+            let shape    = Rect((&width,&height)).corners_radius(&radius);
+            let shape    = shape.fill(bg_color);
+            shape.into()
+        }
+    }
+}
 
-            let bg_color      = Var::<color::Rgba>::from(bg_color);
-            let border_size_f = 16.0;
+/// Node backdrop. Contains shadow and selection.
+pub mod backdrop {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style, selection:f32) {
+            use ensogl_theme::graph_editor::node as node_theme;
 
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let width  = width  - PADDING.px() * 2.0;
             let height = height - PADDING.px() * 2.0;
-            let radius = RADIUS.px();
-            let shape  = Rect((&width,&height)).corners_radius(&radius);
-            let shape  = shape.fill(bg_color);
-
 
             // === Shadow ===
 
-            let shadow_size   = SHADOW_SIZE.px();
-            let shadow_width  = &width  + &shadow_size * 2.0;
-            let shadow_height = &height + &shadow_size * 2.0;
+            let shadow_size   = style.get_number(node_theme::shadow::size);
+            let shadow_spread = style.get_number(node_theme::shadow::spread);
+            let shadow_width  = &width  + &shadow_size.px() * 2.0;
+            let shadow_height = &height + &shadow_size.px() * 2.0;
             let shadow_radius = &shadow_height / 2.0;
+            let shadow_off_x  = style.get_number(node_theme::shadow::offset_x).px();
+            let shadow_off_y  = style.get_number(node_theme::shadow::offset_y).px();
             let shadow        = Rect((shadow_width,shadow_height)).corners_radius(shadow_radius);
+            let shadow        = shadow.translate((shadow_off_x,shadow_off_y));
             let base_color    = style.get_color(node_theme::shadow);
             let fading_color  = style.get_color(node_theme::shadow::fading);
-            let exponent      = style.get_number_or(node_theme::shadow::exponent,2.0);
-            let shadow_color  = color::LinearGradient::new()
-                .add(0.0,color::Rgba::from(fading_color).into_linear())
-                .add(1.0,color::Rgba::from(base_color).into_linear());
-            let shadow_color = color::SdfSampler::new(shadow_color)
-                .max_distance(border_size_f)
-                .slope(color::Slope::Exponent(exponent));
+            let exp           = style.get_number(node_theme::shadow::exponent);
+            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
+            let shadow_color  = shadow_color.sdf_sampler().size(shadow_size).spread(shadow_spread).exponent(exp);
             let shadow        = shadow.fill(shadow_color);
 
 
             // === Selection ===
 
-            let sel_color = style.get_color(ensogl_theme::graph_editor::node::selection);
-            let sel_size  = style.get_number_or(ensogl_theme::graph_editor::node::selection::size,9.0);
+            let sel_color  = style.get_color(ensogl_theme::graph_editor::node::selection);
+            let sel_size   = style.get_number(ensogl_theme::graph_editor::node::selection::size);
+            let sel_offset = style.get_number(ensogl_theme::graph_editor::node::selection::offset);
 
-            let sel_offset  = 5.px();
-            let sel_size    = sel_size.px();
-            let sel_width   = &width  - 2.px() + &sel_offset * 2.0 * &selection;
-            let sel_height  = &height - 2.px() + &sel_offset * 2.0 * &selection;
+            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_radius  = &sel_height / 2.0;
             let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
 
-            let sel2_width  = &width  - 2.px() + &sel_size * 2.0 * &selection;
-            let sel2_height = &height - 2.px() + &sel_size * 2.0 * &selection;
+            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
+            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_radius = &sel2_height / 2.0;
             let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
 
@@ -139,7 +145,7 @@ pub mod shape {
 
             // === Final Shape ===
 
-            let out = select + shadow + shape;
+            let out = select + shadow;
             out.into()
         }
     }
@@ -175,6 +181,8 @@ pub mod error_shape {
 
     ensogl::define_shape_system! {
         (style:Style,color_rgba:Vector4<f32>) {
+            use ensogl_theme::graph_editor::node as node_theme;
+
             let width  = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let zoom   = Var::<f32>::from("1.0/zoom()");
@@ -182,15 +190,18 @@ pub mod error_shape {
             let height = height - PADDING.px() * 2.0;
             let radius = RADIUS.px();
 
-            let (repeat_x,repeat_y) = ERROR_PATTERN_REPEAT_TILE_SIZE;
-            let repeat              = Var::<Vector2<Pixels>>::from((repeat_x.px(),repeat_y.px()));
-            let error_width         = Var::<Pixels>::from(zoom * ERROR_PATTERN_STRIPE_WIDTH);
-            let stripe_red          = Rect((error_width,INFINITE.px()));
-            let stripe_angle_rad    = ERROR_PATTERN_STRIPE_ANGLE.radians();
+            let error_width         = style.get_number(node_theme::error::width).px();
+            let repeat_x            = style.get_number(node_theme::error::repeat_x).px();
+            let repeat_y            = style.get_number(node_theme::error::repeat_y).px();
+            let stripe_width        = style.get_number(node_theme::error::stripe_width);
+            let stripe_angle        = style.get_number(node_theme::error::stripe_angle);
+            let repeat              = Var::<Vector2<Pixels>>::from((repeat_x,repeat_y));
+            let stripe_width        = Var::<Pixels>::from(zoom * stripe_width);
+            let stripe_red          = Rect((&stripe_width,INFINITE.px()));
+            let stripe_angle_rad    = stripe_angle.radians();
             let pattern             = stripe_red.repeat(repeat).rotate(stripe_angle_rad);
-            let pattern_width       = ERROR_BORDER_WIDTH.px();
             let mask                = Rect((&width,&height)).corners_radius(&radius);
-            let mask                = mask.grow(pattern_width);
+            let mask                = mask.grow(error_width);
             let pattern             = mask.intersection(pattern).fill(color_rgba);
 
             pattern.into()
@@ -235,7 +246,7 @@ impl Default for Crumbs {
 
 // ============
 // === Node ===
-// ============7
+// ============
 
 ensogl::define_endpoints! {
     Input {
@@ -348,7 +359,8 @@ pub struct NodeModel {
     pub app                 : Application,
     pub display_object      : display::object::Instance,
     pub logger              : Logger,
-    pub main_area           : shape::View,
+    pub backdrop            : backdrop::View,
+    pub background          : background::View,
     pub drag_area           : drag_area::View,
     pub error_indicator     : error_shape::View,
     pub input               : input::Area,
@@ -357,6 +369,7 @@ pub struct NodeModel {
     pub error_visualization : builtin_visualization::Error,
     pub action_bar          : action_bar::ActionBar,
     pub vcs_indicator       : vcs::StatusIndicator,
+    pub style               : StyleWatchFrp,
 }
 
 impl NodeModel {
@@ -364,11 +377,13 @@ impl NodeModel {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.scene() => {
-                edge::back::corner        -> shape;
-                edge::back::line          -> shape;
-                output::port::single_port -> shape;
-                output::port::multi_port  -> shape;
-                shape                     -> drag_area;
+                edge::back::corner        -> backdrop;
+                edge::back::line          -> backdrop;
+                backdrop                  -> output::port::single_port;
+                backdrop                  -> output::port::multi_port;
+                output::port::single_port -> background;
+                output::port::multi_port  -> background;
+                background                -> drag_area;
                 drag_area                 -> edge::front::corner;
                 drag_area                 -> edge::front::line;
                 edge::front::corner       -> input::port::hover;
@@ -385,18 +400,20 @@ impl NodeModel {
         let error_indicator_logger  = Logger::sub(&logger,"error_indicator");
 
         let error_indicator = error_shape::View::new(&error_indicator_logger);
-        let main_area       = shape::View::new(&main_logger);
+        let backdrop        = backdrop::View::new(&main_logger);
+        let background      = background::View::new(&main_logger);
         let drag_area       = drag_area::View::new(&drag_logger);
         let vcs_indicator   = vcs::StatusIndicator::new(app);
-
         let display_object  = display::object::Instance::new(&logger);
+
         display_object.add_child(&drag_area);
-        display_object.add_child(&main_area);
+        display_object.add_child(&backdrop);
+        display_object.add_child(&background);
         display_object.add_child(&vcs_indicator);
 
         // Disable shadows to allow interaction with the output port.
         let shape_system = scene.layers.main.shape_system_registry.shape_system
-            (&scene,PhantomData::<shape::DynamicShape>);
+            (&scene,PhantomData::<backdrop::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
         let input = input::Area::new(&logger,app);
@@ -415,9 +432,11 @@ impl NodeModel {
         let output = output::Area::new(&logger,app);
         display_object.add_child(&output);
 
+        let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
+
         let app = app.clone_ref();
-        Self {app,display_object,logger,main_area,drag_area,output,input,visualization
-            ,error_visualization,action_bar,error_indicator,vcs_indicator}.init()
+        Self {app,display_object,logger,backdrop,background,drag_area,output,input,visualization
+            ,error_visualization,action_bar,error_indicator,vcs_indicator,style}.init()
     }
 
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
@@ -455,11 +474,13 @@ impl NodeModel {
         let height      = self.height();
         let size        = Vector2(width,height);
         let padded_size = size + Vector2(PADDING,PADDING) * 2.0;
-        self.main_area.size.set(padded_size);
+        self.backdrop.size.set(padded_size);
+        self.background.size.set(padded_size);
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
         self.vcs_indicator.set_size(padded_size);
-        self.main_area.mod_position(|t| t.x = width/2.0);
+        self.backdrop.mod_position(|t| t.x = width/2.0);
+        self.background.mod_position(|t| t.x = width/2.0);
         self.drag_area.mod_position(|t| t.x = width/2.0);
 
         self.error_indicator.set_position_x(width/2.0);
@@ -519,6 +540,7 @@ impl Node {
         let bg_color_anim    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
         let style            = StyleWatch::new(&app.display.scene().style_sheet);
+        let style_frp        = &model.style;
         let action_bar       = &model.action_bar.frp;
 
         frp::extend! { network
@@ -546,7 +568,7 @@ impl Node {
             deselect_target  <- frp.deselect.constant(0.0);
             select_target    <- frp.select.constant(1.0);
             selection.target <+ any(&deselect_target,&select_target);
-            eval selection.value ((t) model.main_area.selection.set(*t));
+            eval selection.value ((t) model.backdrop.selection.set(*t));
 
 
             // === Expression ===
@@ -601,15 +623,23 @@ impl Node {
 
             // === Color Handling ===
 
-            bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
+            let bgg = style_frp.get_color(ensogl_theme::graph_editor::node::background);
+
+            bg_color <- all_with(&bgg,&frp.set_disabled,f!([model](bgg,disabled) {
                 model.input.frp.set_disabled(*disabled);
-                let bg_color_path = ensogl_theme::graph_editor::node::background;
-                if *disabled { style.get_color_dim(bg_color_path) }
-                else         { style.get_color(bg_color_path) }
+                *bgg
             }));
+
+            // FIXME [WD]: Uncomment when implementing disabled icon.
+            // bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
+            //     model.input.frp.set_disabled(*disabled);
+            //     let bg_color_path = ensogl_theme::graph_editor::node::background;
+            //     if *disabled { style.get_color_dim(bg_color_path) }
+            //     else         { style.get_color(bg_color_path) }
+            // }));
             bg_color_anim.target <+ bg_color;
             eval bg_color_anim.value ((c)
-                model.main_area.bg_color.set(color::Rgba::from(c).into())
+                model.background.bg_color.set(color::Rgba::from(c).into())
             );
 
             frp.source.tooltip <+ model.output.frp.tooltip;
@@ -629,7 +659,7 @@ impl Node {
 
         if let Some(error) = error {
             let path = match *error.kind {
-                error::Kind::Panic    => error_theme::panic,
+                error::Kind::Panic   => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
             };
             style.get_color(path)

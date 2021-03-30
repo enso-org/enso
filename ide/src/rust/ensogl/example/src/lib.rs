@@ -34,6 +34,7 @@ pub mod easing_animator;
 pub mod glyph_system;
 pub mod list_view;
 pub mod shape_system;
+pub mod complex_shape_system;
 pub mod sprite_system;
 pub mod sprite_system_benchmark;
 pub mod text_area;

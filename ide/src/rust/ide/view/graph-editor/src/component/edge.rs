@@ -32,7 +32,9 @@ const ARROW_SIZE_Y       : f32 = 20.0;
 const HOVER_EXTENSION    : f32 = 10.0;
 
 const MOUSE_OFFSET       : f32 = 2.0;
-const NODE_PADDING       : f32 = node::SHADOW_SIZE;
+
+// It was node::SHADOW_SIZE; Should be moved to theme manager and linked to node::shadow.
+const NODE_PADDING       : f32 = 10.0;
 
 // The padding needs to be large enough to accommodate the extended hover area without clipping it.
 const PADDING            : f32 = 4.0 + HOVER_EXTENSION;

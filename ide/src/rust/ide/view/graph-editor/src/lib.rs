@@ -1776,7 +1776,7 @@ impl GraphEditorModel {
     /// Return a color for the edge.
     ///
     /// The algorithm works as follow:
-    /// 1. We query the type of the currently hovered port if any.
+    /// 1. We query the type of the currently hovered port, if any.
     /// 2. In case the previous point returns None, we query the edge target type, if any.
     /// 3. In case the previous point returns None, we query the edge source type, if any.
     /// 4. In case the previous point returns None, we use the generic type (gray color).

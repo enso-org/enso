@@ -72,7 +72,6 @@ mod background {
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
             let shape         = rect.fill(color::Rgba::from(color));
 
-            let border_size_f = 16.0;
             let corner_radius = CORNER_RADIUS_PX.px() + SHADOW_PX.px();
             let width         = sprite_width  - PADDING_PX.px() * 2.0;
             let height        = sprite_height - PADDING_PX.px() * 2.0;
@@ -80,12 +79,8 @@ mod background {
             let base_color    = style.get_color(theme::widget::list_view::shadow);
             let fading_color  = style.get_color(theme::widget::list_view::shadow::fading);
             let exponent      = style.get_number_or(theme::widget::list_view::shadow::exponent,2.0);
-            let shadow_color  = color::LinearGradient::new()
-                .add(0.0,color::Rgba::from(fading_color).into_linear())
-                .add(1.0,color::Rgba::from(base_color).into_linear());
-            let shadow_color = color::SdfSampler::new(shadow_color)
-                .max_distance(border_size_f)
-                .slope(color::Slope::Exponent(exponent));
+            let shadow_color  = color::gradient::Linear::<color::LinearRgba>::new(fading_color,base_color);
+            let shadow_color  = shadow_color.sdf_sampler().size(SHADOW_PX).exponent(exponent);
             let shadow = shadow.fill(shadow_color);
 
             (shadow + shape).into()
