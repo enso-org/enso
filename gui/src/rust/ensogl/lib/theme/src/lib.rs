@@ -286,11 +286,13 @@ define_themes! { [light:0, dark:1]
             background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
             text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                offset = 10.0, 10.0;
+                offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
             }
-            padding = 15.0, 15.0;
-            height  = 36.0, 36.0;
+            padding_outer   = 10.0, 10.0;
+            padding_inner_x = 10.0, 10.0;
+            padding_inner_y = 2.0, 10.0;
+            height          = 30.0, 30.0;
         }
     }
 

@@ -14,36 +14,55 @@ use ensogl::display::shape::StyleWatch;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const PLACEMENT_OFFSET:f32 = 5.0;
+
+
+
 // =============
 // === Style ===
 // =============
 
 define_style! {
-    /// Host defines an object which the cursor position is bound to. It is used to implement
-    /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
-    /// it will inherit its position from the label instead.
-    text : Option<String>,
+    text      : Option<String>,
+    placement : Placement
 }
 
 impl Style {
     /// Create a `TooltipUpdate` that sets the label of the tooltip.
     pub fn set_label(text:String) -> Self {
         let text = Some(StyleValue::new(Some(text)));
-        Self{text}
+        Self{text, ..default()}
     }
     /// Create a `TooltipUpdate` that unsets the label of the tooltip.
     pub fn unset_label() -> Self {
         let text = Some(StyleValue::new(None));
-        Self{text}
+        Self{text, ..default()}
     }
 
-    fn has_text(&self) -> bool {
+    /// Indicate whether the `Style` has content to display.
+    pub fn has_content(&self) -> bool {
         if let Some(style_value) = self.text.as_ref() {
             if let Some(inner) = style_value.value.as_ref() {
                 return inner.is_some()
             }
         }
         false
+    }
+
+    /// Create a `TooltipUpdate` that sets the placement of the tooltip.
+    pub fn set_placement(placement:Placement) -> Self {
+        let placement = Some(StyleValue::new(placement));
+        Self{placement, ..default()}
+    }
+
+    /// Sets the placement of the tooltip.
+    pub fn with_placement(mut self, placement:Placement) -> Self {
+        self.placement = Some(StyleValue::new(placement));
+        self
     }
 }
 
@@ -53,7 +72,7 @@ impl Style {
 // === Offset ===
 // ==============
 
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,Eq,PartialEq)]
 #[allow(missing_docs)]
 /// Indicates the placement of the tooltip relative to the base position location.
 pub enum Placement {
@@ -83,25 +102,27 @@ ensogl::define_endpoints! {
 
 #[derive(Clone,Debug)]
 struct Model {
-    tooltip : Label,
-    root    : display::object::Instance,
+    tooltip   : Label,
+    root      : display::object::Instance,
+    placement : Cell<Placement>,
 }
 
 impl Model {
     fn new(app:&Application) -> Self {
         let logger  = Logger::new("TooltipModel");
-        let tooltip = Label::new(app.clone_ref());
+        let tooltip = Label::new(app);
         let root    = display::object::Instance::new(&logger);
         root.add_child(&tooltip);
-        Self{tooltip,root}
+        let placement = default();
+        Self{tooltip,root,placement}
     }
 
-    fn set_location(&self, position:Vector2, size:Vector2, layout: Placement) {
-        let layout_offset = match layout {
-            Placement::Top    => Vector2::new(0.0, size.y * 0.5),
-            Placement::Bottom => Vector2::new(0.0, -size.y * 0.5),
-            Placement::Left   => Vector2::new(-size.x / 2.0, 0.0),
-            Placement::Right  => Vector2::new(size.x / 2.0, 0.0),
+    fn set_location(&self, position:Vector2, size:Vector2) {
+        let layout_offset = match self.placement.get() {
+            Placement::Top    => Vector2::new(0.0, size.y * 0.5 + PLACEMENT_OFFSET),
+            Placement::Bottom => Vector2::new(0.0, -size.y * 0.5 - PLACEMENT_OFFSET),
+            Placement::Left   => Vector2::new(-size.x / 2.0 - PLACEMENT_OFFSET, 0.0),
+            Placement::Right  => Vector2::new(size.x / 2.0 + PLACEMENT_OFFSET, 0.0),
         };
 
         let base_positions = position.xy();
@@ -113,6 +134,11 @@ impl Model {
             let text = style.value.clone().flatten();
             if let Some(text) = text {
                 self.tooltip.frp.set_content(text)
+            }
+        }
+        if let Some(style) = update.placement.as_ref() {
+            if let Some(placement) = style.value {
+                self.placement.set(placement)
             }
         }
     }
@@ -174,7 +200,7 @@ impl Tooltip {
             // === Style ===
 
              eval frp.set_style ((t) model.set_style(t));
-             show_text         <- frp.set_style.map(|c| c.has_text());
+             show_text         <- frp.set_style.map(|c| c.has_content());
              on_has_content    <- show_text.on_true();
              on_has_no_content <- show_text.on_false();
 
@@ -183,11 +209,10 @@ impl Tooltip {
 
              location_update <- all(frp.set_location,
                                     model.tooltip.frp.size,
-                                    frp.set_offset,
-                                    frp.set_placement);
-             eval location_update ([model]((pos,size,offset,placement)) {
+                                    frp.set_offset);
+             eval location_update ([model]((pos,size,offset)) {
                 let base_position = pos+offset;
-                model.set_location(base_position,*size,*placement)
+                model.set_location(base_position,*size)
              });
 
 

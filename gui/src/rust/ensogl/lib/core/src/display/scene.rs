@@ -484,7 +484,7 @@ impl DomLayers {
         canvas.set_style_or_warn("z-index"       , "2"       , &logger);
         canvas.set_style_or_warn("pointer-events", "none"    , &logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "1", &logger);
+        front.dom.set_style_or_warn("z-index", "3", &logger);
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", &logger);
         back.dom.set_style_or_warn("z-index"       , "0"   , &logger);

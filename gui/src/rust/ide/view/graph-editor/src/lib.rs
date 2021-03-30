@@ -35,7 +35,6 @@ pub mod builtin;
 pub mod data;
 
 use crate::component::node;
-use crate::component::tooltip::Placement;
 use crate::component::tooltip::Tooltip;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::tooltip;
@@ -457,6 +456,10 @@ ensogl::define_endpoints! {
         reset_visualization_registry (),
         /// Reload visualization registry
         reload_visualization_registry(),
+        /// Show visualisation previews on nodes without delay.
+        enable_quick_visualization_preview(),
+        /// Show visualisation previews on nodes with delay.
+        disable_quick_visualization_preview(),
     }
 
     Output {
@@ -866,6 +869,12 @@ impl Nodes {
     pub fn check_grid_magnet(&self, position:Vector2<f32>) -> Vector2<Option<f32>> {
         self.grid.borrow().close_to(position,SNAP_DISTANCE_THRESHOLD)
     }
+
+    pub fn set_quick_preview(&self, quick:bool) {
+        self.all.raw.borrow().values().for_each(|node|{
+            node.view.frp.quick_preview_vis.emit(quick)
+        })
+    }
 }
 
 
@@ -1005,6 +1014,16 @@ impl Deref for GraphEditorModelWithNetwork {
     }
 }
 
+/// Context data required to create a new node.
+#[derive(Debug)]
+struct NodeCreationContext<'a> {
+    pointer_style  : &'a frp::Source<cursor::Style>,
+    tooltip_update : &'a frp::Source<tooltip::Style>,
+    output_press   : &'a frp::Source<EdgeEndpoint>,
+    input_press    : &'a frp::Source<EdgeEndpoint>,
+    output         : &'a FrpEndpoints,
+}
+
 impl GraphEditorModelWithNetwork {
     pub fn new(app:&Application, cursor:cursor::Cursor, frp:&Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
@@ -1012,15 +1031,7 @@ impl GraphEditorModelWithNetwork {
         Self {model,network}
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn new_node
-    ( &self
-    , pointer_style  : &frp::Source<cursor::Style>
-    , tooltip_update : &frp::Source<tooltip::Style>
-    , output_press   : &frp::Source<EdgeEndpoint>
-    , input_press    : &frp::Source<EdgeEndpoint>
-    , output         : &FrpEndpoints
-    ) -> NodeId {
+    fn new_node(&self, ctx:&NodeCreationContext) -> NodeId {
         let view    = component::Node::new(&self.app,self.vis_registry.clone_ref());
         let node    = Node::new(view);
         let node_id = node.id();
@@ -1028,6 +1039,8 @@ impl GraphEditorModelWithNetwork {
 
         let touch = &self.touch_state;
         let model = &self.model;
+
+        let NodeCreationContext {pointer_style,tooltip_update,output_press,input_press,output} = ctx;
 
         frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
@@ -1263,8 +1276,6 @@ impl GraphEditorModel {
                            else                        { MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET };
         self.breadcrumbs.set_position_x(x_offset);
         self.breadcrumbs.set_position_y(-5.0);
-
-        self.tooltip.frp.set_placement(Placement::Bottom);
         self.scene().add_child(&self.tooltip);
         self
     }
@@ -1887,8 +1898,11 @@ impl application::View for GraphEditor {
           , (Release     , "!node_editing"                 , "space" , "release_visualization_visibility"     )
           , (Press       , ""                              , "cmd i" , "reload_visualization_registry"        )
           , (Press       , "is_fs_visualization_displayed" , "space" , "close_fullscreen_visualization"       )
+          , (Press       , ""              , "cmd" , "enable_quick_visualization_preview")
+          , (Release     , ""              , "cmd" , "disable_quick_visualization_preview")
 
-          // === Selection ===
+
+            // === Selection ===
           , (Press   , "" , "shift"                   , "enable_node_multi_select")
           , (Press   , "" , "shift left-mouse-button" , "enable_node_multi_select")
           , (Release , "" , "shift"                   , "disable_node_multi_select")
@@ -2386,9 +2400,14 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node <- any (inputs.add_node,add_node_at_cursor);
     new_node <- add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
-        model.new_node(&node_pointer_style,
-        &node_tooltip,
-        &node_output_touch.down,&node_input_touch.down,&out)
+        let ctx = NodeCreationContext {
+            pointer_style  : &node_pointer_style,
+            tooltip_update : &node_tooltip,
+            output_press   : &node_output_touch.down,
+            input_press    : &node_input_touch.down,
+            output         : &out,
+        };
+        model.new_node(&ctx)
     }));
     out.source.node_added <+ new_node;
 
@@ -3004,6 +3023,10 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
         eval cursor.frp.scene_position ((pos)  model.tooltip.frp.set_location(pos.xy()) );
         eval node_tooltip ((tooltip_update) model.tooltip.frp.set_style(tooltip_update) );
+
+        quick_visualization_preview <- bool(&frp.disable_quick_visualization_preview,
+                                            &frp.enable_quick_visualization_preview);
+        eval quick_visualization_preview((value) model.nodes.set_quick_preview(*value));
     }
 
     GraphEditor {model,frp}

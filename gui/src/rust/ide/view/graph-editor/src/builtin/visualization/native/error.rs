@@ -75,8 +75,8 @@ pub struct Input {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Error {
+    pub frp : visualization::instance::Frp,
     model   : Model,
-    frp     : visualization::instance::Frp,
     network : frp::Network,
 }
 
@@ -103,7 +103,7 @@ impl Error {
     pub fn new(scene:&Scene) -> Self {
         let network = frp::Network::new("js_visualization_raw_text");
         let frp     = visualization::instance::Frp::new(&network);
-        let model   = Model::new(scene);
+        let model   = Model::new(scene.clone_ref());
         Self {model,frp,network} . init()
     }
 
@@ -113,11 +113,12 @@ impl Error {
         let frp     = self.frp.clone_ref();
         frp::extend! { network
             eval frp.set_size  ((size) model.set_size(*size));
-            eval frp.send_data ([frp](data) {
+            eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
                 }
             });
+            eval frp.set_layer ((layer) model.set_layer(*layer));
         }
 
         frp.preprocessor_change.emit(preprocessor());
@@ -152,11 +153,12 @@ pub struct Model {
     // when payload changes.
     displayed : Rc<CloneCell<Kind>>,
     messages  : SharedHashMap<Kind,ImString>,
+    scene     : Scene,
 }
 
 impl Model {
     /// Constructor.
-    fn new(scene:&Scene) -> Self {
+    fn new(scene:Scene) -> Self {
         let logger    = Logger::new("RawText");
         let div       = web::create_div();
         let dom       = DomSymbol::new(&div);
@@ -177,7 +179,7 @@ impl Model {
         dom.dom().set_style_or_warn("pointer-events","auto"               ,&logger);
 
         scene.dom.layers.back.manage(&dom);
-        Model{dom,logger,size,styles,displayed,messages}.init()
+        Model{dom,logger,size,styles,displayed,messages,scene}.init()
     }
 
     fn init(self) -> Self {
@@ -241,6 +243,10 @@ impl Model {
         let blue         = text_color.blue * 255.0;
         let text_color   = format!("rgba({},{},{},{})",red,green,blue,text_color.alpha);
         self.dom.dom().set_style_or_warn("color",text_color,&self.logger);
+    }
+
+    fn set_layer(&self, layer:Layer) {
+        layer.apply_for_html_component(&self.scene,&self.dom)
     }
 }
 
