@@ -19,6 +19,7 @@ use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web::clipboard;
 use ensogl::system::web;
+use ensogl_gui_components::shadow;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use web_sys::HtmlElement;
@@ -98,12 +99,6 @@ impl Model {
         let bg_hex   = format!("rgba({},{},{},{})",
             bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
 
-        let shadow_alpha_path = ensogl_theme::graph_editor::visualization::shadow::html::alpha;
-        let shadow_alpha_size = ensogl_theme::graph_editor::visualization::shadow::html::size;
-        let shadow_alpha = styles.get_number_or(shadow_alpha_path,0.16);
-        let shadow_size  = styles.get_number_or(shadow_alpha_size,16.0);
-        let shadow       = format!("0 0 {}px rgba(0, 0, 0, {})",shadow_size,shadow_alpha);
-
         dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
         dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
         dom.dom().set_style_or_warn("overflow-y"      ,"auto"                       ,&logger);
@@ -112,7 +107,7 @@ impl Model {
         dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
         dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
-        dom.dom().set_style_or_warn("box-shadow"      ,shadow                       ,&logger);
+        shadow::add_to_dom_element(&dom,&styles,&logger);
 
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);

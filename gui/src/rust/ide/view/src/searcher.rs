@@ -7,12 +7,13 @@ use crate::prelude::*;
 use crate::documentation;
 
 use enso_frp as frp;
-use ensogl::application;
-use ensogl::application::{Application, shortcut};
-use ensogl::display;
 use ensogl::DEPRECATED_Animation;
-use ensogl_gui_components::list_view;
+use ensogl::application::{Application, shortcut};
+use ensogl::application;
+use ensogl::display::shape::*;
+use ensogl::display;
 use ensogl_gui_components::list_view::ListView;
+use ensogl_gui_components::list_view;
 
 pub use ensogl_gui_components::list_view::entry;
 
@@ -104,6 +105,13 @@ impl Model {
         scene.layers.below_main.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
+
+        // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        //  system (#795)
+        let style                = StyleWatch::new(&app.display.scene().style_sheet);
+        let action_list_gap_path = ensogl_theme::application::searcher::action_list_gap;
+        let action_list_gap      = style.get_number_or(action_list_gap_path,0.0);
+        list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
         Self{app,logger,display_object,list,documentation,doc_provider}
