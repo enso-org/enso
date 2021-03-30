@@ -37,15 +37,15 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getParents("Builtins.Main.Any") shouldEqual Set()
-      graph.getParents("Builtins.Main.Number") shouldEqual Set(
+      graph.getParents("Builtins.Main.Any") shouldEqual List()
+      graph.getParents("Builtins.Main.Number") shouldEqual List(
         "Builtins.Main.Any"
       )
-      graph.getParents("Builtins.Main.Integer") shouldEqual Set(
+      graph.getParents("Builtins.Main.Integer") shouldEqual List(
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
-      graph.getParents("Builtins.Main.Decimal") shouldEqual Set(
+      graph.getParents("Builtins.Main.Decimal") shouldEqual List(
         "Builtins.Main.Number",
         "Builtins.Main.Any"
       )
@@ -57,8 +57,8 @@ class TypeGraphTest extends AnyWordSpec with Matchers {
       graph.insert("Builtins.Main.Decimal", "Builtins.Main.Number")
       graph.insert("Builtins.Main.Integer", "Builtins.Main.Number")
 
-      graph.getParents("My_User_Type") shouldEqual Set("Builtins.Main.Any")
-      graph.getParents("Standard.Base.Vector") shouldEqual Set(
+      graph.getParents("My_User_Type") shouldEqual List("Builtins.Main.Any")
+      graph.getParents("Standard.Base.Vector") shouldEqual List(
         "Builtins.Main.Any"
       )
     }

@@ -528,7 +528,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.CompletionResult(
             7L,
-            Seq(methodOnAnyId, methodId).flatten
+            Seq(methodId, methodOnAnyId).flatten
           )
         )
     }
@@ -549,7 +549,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.CompletionResult(
             7L,
-            Seq(anyMethodId, integerMethodId, numberMethodId).flatten
+            Seq(integerMethodId, numberMethodId, anyMethodId).flatten
           )
         )
     }

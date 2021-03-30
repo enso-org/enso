@@ -228,12 +228,20 @@ type Column
         Nothing -> Error.throw Table.No_Index_Set_Error
         i -> Column i
 
-    ## Returns the item contained in this column at the given index.
-    at : Integer -> Any
+    ## Returns the value contained in this column at the given index.
+
+       If the value is an NA then this method returns nothing. If the index is
+       not an index in the column it returns an `Index_Out_Of_Bounds_Error`.
+
+       Arguments:
+       - `index`: The index in the column from which to get the value
+    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at index =
-        storage = this.java_column.getStorage
-        if storage.isNa index then Nothing else
-            storage.getItem index
+        valid_index = (index >= 0) && (index < this.length)
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error index this.length) else
+            storage = this.java_column.getStorage
+            if storage.isNa index then Nothing else
+                storage.getItem index
 
     ## Selects only the rows of this column that correspond to `True` values in
        `indexes`.
@@ -380,10 +388,66 @@ type Column
 
     ## UNSTABLE
 
-       Returns a column truncated to at most `max_rows` rows.
+       Returns a column containing the first `count` elements in this column.
+
+       Arguments:
+       - count: The number of elements to take from the start of this column.
+
+       If `this` has a number of items in it less than `count`, the entire
+       column will be returned.
     take_start : Integer -> Column
-    take_start max_rows =
-        Column (this.java_column.slice 0 max_rows)
+    take_start count =
+        Column (this.java_column.slice 0 count)
+
+    ## UNSTABLE
+
+       Returns a column containing the last `count` elements in this column.
+
+       Arguments:
+       - count: The number of elements to take from the end of this column.
+
+       If `this` has a number of items in it less than `count`, the entire
+       column will be returned.
+    take_end : Integer -> Column
+    take_end count =
+        start_point = Math.max (this.length - count) 0
+        Column (this.java_column.slice start_point count)
+
+    ## UNSTABLE
+
+       Returns the first element in the column, if it exists.
+
+       If the column is empty, this method will return a dataflow error
+       containing `Nothing`.
+    first : Any ! Nothing
+    first = this.at 0 . catch (_ -> Error.throw Nothing)
+
+    ## UNSTABLE
+
+       Returns the first element in the column, if it exists.
+
+       If the column is empty, this method will return a dataflow error
+       containing `Nothing`.
+    head : Any ! Nothing
+    head = this.first
+
+    ## UNSTABLE
+
+       Returns the last element in the column, if it exists.
+
+       If the column is empty, this method will return a dataflow error
+       containing `Nothing`.
+    last : Any ! Nothing
+    last = this.at (this.length - 1) . catch (_ -> Error.throw Nothing)
+
+    ## UNSTABLE
+
+       Returns a column containing the values of `this` column with their order
+       reversed.
+    reverse : Column
+    reverse =
+        mask = OrderBuilder.buildReversedMask this.length
+        Column <| this.java_column.applyMask mask
 
 ## Creates a new column given a name and a vector of elements.
 from_vector : Text -> Vector -> Column
@@ -527,3 +591,12 @@ get_item_string column ix =
     if tp == Storage_Type_String then column.getItem ix else
         column.getItem ix . to_text
 
+## A type representing an error for an out-of-bounds index in a column.
+type Index_Out_Of_Bounds_Error index length
+
+## Pretty-prints the index out of bounds error.
+Index_Out_Of_Bounds_Error.to_display_text : Text
+Index_Out_Of_Bounds_Error.to_display_text =
+    ix_text = this.index.to_text
+    len_text = this.length.to_text
+    "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."

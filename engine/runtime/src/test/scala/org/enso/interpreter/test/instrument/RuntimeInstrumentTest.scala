@@ -589,7 +589,8 @@ class RuntimeInstrumentTest
     val metadata   = new Metadata
 
     val aExpr = metadata.addItem(41, 14)
-    val lam   = metadata.addItem(42, 10)
+    // lambda
+    metadata.addItem(42, 10)
     // lambda expression
     metadata.addItem(47, 5)
     val lamArg  = metadata.addItem(54, 1)
@@ -631,10 +632,9 @@ class RuntimeInstrumentTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, aExpr, Constants.INTEGER),
-      TestMessages.update(contextId, lam, Constants.FUNCTION),
       TestMessages.update(contextId, lamArg, Constants.INTEGER),
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -877,6 +877,79 @@ class RuntimeInstrumentTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, xExpr, Constants.THUNK),
       TestMessages.update(contextId, mainRes, Constants.THUNK),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not instrument a lambda in argument" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    // body of id method
+    metadata.addItem(42, 1)
+    // body of id1 function
+    metadata.addItem(78, 3)
+    // default lambda argument a->a in id method
+    metadata.addItem(34, 4)
+    // default lambda argument a->a in id1 function
+    metadata.addItem(70, 4)
+    // first x->x argument
+    metadata.addItem(94, 4)
+    // second x->x argument
+    metadata.addItem(148, 4)
+    val arg1 = metadata.addItem(90, 2)
+    val arg2 = metadata.addItem(101, 2)
+    val arg3 = metadata.addItem(133, 2)
+
+    val code =
+      """from Builtins import all
+        |
+        |id (x = a->a) = x
+        |
+        |main =
+        |    id1 x=42 (y = a->a) = y x
+        |    id1 42
+        |    id1 42 x->x
+        |    here.id
+        |    here.id 42
+        |    here.id x->x
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, arg1, Constants.INTEGER),
+      TestMessages.update(contextId, arg2, Constants.INTEGER),
+      TestMessages.update(contextId, arg3, Constants.INTEGER),
       context.executionComplete(contextId)
     )
   }
