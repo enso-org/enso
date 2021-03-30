@@ -3,16 +3,11 @@ from Standard.Base import all
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
-## A type that can be converted to Uri.
-type To_Uri
-
-    type To_Uri to_uri
-
-## Implement To_Uri for Text
-Text.to_uri = here.parse this
-
 type Uri_Error
     type Syntax_Error message
+
+## Convert Text to Uri.
+Text.to_uri = here.parse this
 
 ## PRIVATE
 panic_on_error ~action =
@@ -30,7 +25,7 @@ type Uri
     ## Represents a Uniform Resource Identifier (URI) reference.
     type Uri internal_uri
 
-    ## Implement To_Uri
+    ## Convert this to Uri.
     to_uri : Uri
     to_uri = this
 

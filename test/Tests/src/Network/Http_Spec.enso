@@ -65,6 +65,19 @@ spec =
             res = Http.get "http://localhost:8080/get"
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+        Test.specify "should fetch the body of a Get request" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.10"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.fetch "http://localhost:8080/get"
+            res.to_json.should_equal expected_response
         Test.specify "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {
