@@ -98,6 +98,25 @@ spec =
             t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
             t.at 'elevation' . to_vector . should_equal [Nothing, 19]
 
+        Test.specify "should allow converting a GeoJSON object into a table with provided fields" <|
+            fields = ['foo', 'bar', 'longitude']
+            t = geo_json.to_table fields
+            t.columns.map .name . should_equal fields
+            t.at 'foo' . to_vector . should_equal [1, 2]
+            t.at 'bar' . to_vector . should_equal ['value2', Nothing]
+            t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
+
+        Test.specify "should allow converting a GeoJSON object into a table containing all available fields" <|
+            fields = ['bar', 'baz', 'elevation', 'foo',  'latitude', 'longitude']
+            t = geo_json.to_table
+            t.columns.map .name . should_equal fields
+            t.at 'foo' . to_vector . should_equal [1, 2]
+            t.at 'bar' . to_vector . should_equal ['value2', Nothing]
+            t.at 'baz' . to_vector . should_equal [Nothing, 3]
+            t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
+            t.at 'latitude' . to_vector . should_equal [34.19, 4.88]
+            t.at 'elevation' . to_vector . should_equal [Nothing, 19]
+
     Test.group 'Construction' <|
         Test.specify 'should allow creating a table from rows' <|
             header = ['foo', 'bar']

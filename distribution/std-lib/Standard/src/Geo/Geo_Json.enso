@@ -1,47 +1,64 @@
 from Standard.Base import all
 
-import Standard.Geo.Geo_Json.Internal
-import Standard.Table.Data.Table
+## PRIVATE
 
+   A type of GeoJSON object.
 type Object_Type
 
     type Feature
-    type FeatureCollection
+    type Feature_Collection
 
-## Convert a GeoJSON document into a dataframe.
+    ## PRIVATE
 
-   ? Implementation Note
-     Function has partial support of the GeoJSON format described in rfc7946.
-     - Supported geometry objects are Position and Point. Rows containing
-       other geometry objects are not included in the resulting dataframe.
-     - Position arrays are truncated to 3 elements: longitude, latitude
-       and elevation.
-     - Nested properties are not supported and not included in the resulting
-       dataframe.
-Json.Object.to_table : Table ! Nothing
-Json.Object.to_table = case this of
+       Convert GeoJSON object type to Text.
+    to_text : Text
+    to_text = case this of
+        Feature -> "Feature"
+        Feature_Collection -> "FeatureCollection"
+
+## PRIVATE
+
+   Get the type field of a GeoJSON object.
+Json.Object.get_type : Any
+Json.Object.get_type = case this of
     Json.Object object ->
-        object_type = object.get_or_else "type" Nothing
-        if object_type != "FeatureCollection".to_json then Error.throw Nothing else
-            this.get "features" . to_table
+        object.get_or_else "type" Nothing.to_json . unwrap
 
-## Convert an array of GeoJSON features into a dataframe.
+## PRIVATE
 
-   ? Implementation Note
-     Function has partial support of the GeoJSON format described in rfc7946.
-     - Supported geometry objects are Position and Point. Rows containing
-       other geometry objects are not included in the resulting dataframe.
-     - Position arrays are truncated to 3 elements: longitude, latitude
-       and elevation.
-     - Nested properties are not supported and not included in the resulting
-       dataframe.
-Json.Array.to_table : Table ! Nothing
-Json.Array.to_table =
-    rows = this.get_rows
-    column_names_row = rows.fold Map.empty acc-> row->
-        row.fold_with_key acc a-> k-> _->
-            a.insert k 0
-    column_names = column_names_row.keys
-    columns = column_names.map name->
-        [name, rows.map (_.get_or_else name Nothing)]
-    Table.new columns
+   Get key-value pairs of a Feature GeoJSON object.
+Json.Object.get_feature_row : Map
+Json.Object.get_feature_row =
+    properties_row = this.get "properties" . get_properties_row
+    geometry_row = this.get "geometry" . get_geometry_row
+    geometry_row.fold_with_key properties_row acc-> k-> v->
+        acc.insert k v
+
+## PRIVATE
+
+   Get column key-value pairs of a feature's "properties" object.
+Json.Object.get_properties_row : Map
+Json.Object.get_properties_row = case this of
+    Json.Object properties -> properties.map p-> case p of
+        Json.Object _ -> Nothing.to_json
+        _ -> p
+
+## PRIVATE
+
+   Get column key-value pairs of a feature's "geometry" object.
+Json.Object.get_geometry_row : Map
+Json.Object.get_geometry_row = case this of
+    Json.Object fields ->
+          geometry_type = fields.get_or_else "type" Nothing
+          if geometry_type == "Point".to_json then this.get_point_row else Map.empty
+
+## PRIVATE
+
+   Get column key-value pairs of a "Point" geometry object.
+Json.Object.get_point_row : Map
+Json.Object.get_point_row =
+    fields = ["longitude", "latitude", "elevation"]
+    case this.get "coordinates" of
+        Json.Array coordinates ->
+            Map.from_vector (fields.zip coordinates)
+        _ -> Map.empty
