@@ -78,6 +78,8 @@ spec =
                 }
             res = Http.fetch "http://localhost:8080/get"
             res.to_json.should_equal expected_response
+        Test.specify "should return error if the fetch method fails" <|
+            Http.fetch "http://undefined_host" . should_fail_with Nothing
         Test.specify "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {

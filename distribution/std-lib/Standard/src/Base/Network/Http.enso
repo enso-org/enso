@@ -5,6 +5,7 @@ import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time.Time
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Internal
 import Standard.Base.Network.Http.Method
 import Standard.Base.Network.Http.Request
 import Standard.Base.Network.Http.Request.Body as Request_Body
@@ -327,8 +328,9 @@ get uri (headers = []) = here.new.get uri headers
      Download a file.
          out_file = File.new "/tmp/out.bin"
          res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
-fetch : (Text | Uri) -> Vector.Vector -> Response
-fetch uri (headers = []) = here.new.get uri headers . body
+fetch : (Text | Uri) -> Vector.Vector -> Response ! Nothing
+fetch uri (headers = []) =
+    Panic.recover (here.new.get uri headers . body) . catch Internal.panic_handler
 
 ## Send a Head request.
 

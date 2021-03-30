@@ -1,0 +1,7 @@
+from Standard.Base import all
+
+## INTERNAL
+panic_handler error =
+    case error of
+        Polyglot_Error err -> Error.throw Nothing
+        _ -> Error.throw error
