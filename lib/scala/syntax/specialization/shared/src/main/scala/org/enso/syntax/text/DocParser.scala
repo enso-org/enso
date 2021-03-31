@@ -148,7 +148,12 @@ object DocParserRunner {
               case line2 :: rest =>
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
-                    commentWithInfixForDocumented(com, off, ast, rest)
+                    commentWithInfixForDocumented(
+                      com,
+                      off,
+                      ast,
+                      rest
+                    )
                   case Line(Some(AST.Def.any(ast)), _) =>
                     commentWithDefForDocumented(com, off, ast, rest)
                   case Line(None, _) =>
@@ -163,9 +168,21 @@ object DocParserRunner {
                     val rHead = restTrav.head
                     rHead match {
                       case Line(Some(AST.App.Infix.any(ast)), _) =>
-                        commentWithInfixForDocumented(com, off, ast, rTail, emp)
+                        commentWithInfixForDocumented(
+                          com,
+                          off,
+                          ast,
+                          rTail,
+                          emp
+                        )
                       case Line(Some(AST.Def.any(ast)), _) =>
-                        commentWithDefForDocumented(com, off, ast, rTail, emp)
+                        commentWithDefForDocumented(
+                          com,
+                          off,
+                          ast,
+                          rTail,
+                          emp
+                        )
                       case _ =>
                         line1 :: line2 :: attachDocToSubsequentAST(rest)
                     }
@@ -181,8 +198,8 @@ object DocParserRunner {
 
   /** Creates Docs from comments found in parsed data
     *
-    * @param comment - comment found in AST
-    * @return - Documentation
+    * @param comment - Comment found in AST.
+    * @return - Documentation.
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
     val in = comment.lines.mkString("\n")
@@ -207,7 +224,8 @@ object DocParserRunner {
     emptyLines: Int = 0
   ): List[AST.Block.OptLine] = {
     val docFromAst = createDocs(ast)
-    val docLine    = createDocumentedLine(com, emptyLines, docFromAst, off)
+    val docLine =
+      createDocumentedLine(com, emptyLines, docFromAst, off)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -270,19 +288,25 @@ object DocParserHTMLGenerator {
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
   def generateHTMLForEveryDocumented(ast: AST): String = {
+    var allDocs = new String
     ast.map { elem =>
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          return file.code.toString() + generateHTMLForEveryDocumented(
+          allDocs += file.code.toString() + generateHTMLForEveryDocumented(
             documented
-          )
+          ) + HTML.hr + HTML.br
+        case AST.Def.any(tp) =>
+          tp.body match {
+            case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
+            case None       => ()
+          }
         case _ =>
-          generateHTMLForEveryDocumented(elem)
+          allDocs += generateHTMLForEveryDocumented(elem)
       }
       elem
     }
-    new String
+    allDocs
   }
 
   /** Function to generate HTML File from pure doc comment w/o connection to AST
@@ -339,7 +363,11 @@ object DocParserHTMLGenerator {
     * @return -  HTML Code from Doc and contents of [[AST.Def]] or
     *            [[AST.App.Infix]]
     */
-  def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
+  def DocumentedToHtml(
+    ast: AST,
+    doc: Doc,
+    isInOtherDoc: Boolean = false
+  ): TypedTag[String] = {
     val docClass       = HTML.`class` := "Documentation"
     val astHeadCls     = HTML.`class` := "ASTHead"
     val astHTML        = createHTMLFromAST(ast)
@@ -365,11 +393,19 @@ object DocParserHTMLGenerator {
         if (doc.tags.html.mkString.contains("DEPRECATED")) {
           content = HTML.div(strikeoutStyle)(doc.htmlWoTags)
         }
-        HTML.div(docClass)(
-          astName,
-          content,
-          doc.tags.html
-        )
+        if (isInOtherDoc) {
+          HTML.div(docClass)(
+            astName,
+            content,
+            doc.tags.html
+          )
+        } else {
+          HTML.div(docClass)(
+            doc.tags.html,
+            astName,
+            content
+          )
+        }
     }
   }
 
@@ -507,7 +543,7 @@ object DocParserHTMLGenerator {
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
         val cls     = HTML.`class` := "DefDoc"
-        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
+        val docHtml = DocumentedToHtml(doc.ast, doc.doc, true)
         HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
       case x :: rest =>
         x match {
