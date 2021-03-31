@@ -32,7 +32,7 @@ import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
-import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.searcher.sqlite.LockingMode
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
@@ -164,7 +164,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   val context = Context
-    .newBuilder(LanguageInfo.ID)
+    .newBuilder()
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
