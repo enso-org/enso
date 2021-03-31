@@ -244,8 +244,8 @@ object DistributionPackage {
     ): Unit = {
       val packageName = s"graalvm-${os.name}-${architecture.name}-" +
         s"$graalVersion-$graalJavaVersion"
-      val root = artifactRoot / packageName
-      if (!root.exists()) {
+      val archive = artifactRoot / (packageName + os.archiveExt)
+      if (!archive.exists()) {
         log.info(
           s"Downloading GraalVM $graalVersion Java $graalJavaVersion " +
           s"for $os $architecture"
@@ -255,19 +255,13 @@ object DistributionPackage {
           s"vm-$graalVersion/" +
           s"graalvm-ce-java$graalJavaVersion-${os.graalName}-" +
           s"${architecture.name}-$graalVersion${os.archiveExt}"
-        val archive  = artifactRoot / (packageName + os.archiveExt)
         val exitCode = (url(graalUrl) #> archive).!
         if (exitCode != 0) {
           throw new RuntimeException(s"Graal download from $graalUrl failed.")
         }
-
-        extract(archive, root)
       }
 
-      IO.copyDirectory(
-        root / graalInPackageName,
-        runtimeDir / graalInPackageName
-      )
+      extract(archive, runtimeDir)
     }
 
     def copyEngine(os: OS, architecture: Architecture, distDir: File): Unit = {
@@ -299,6 +293,7 @@ object DistributionPackage {
         Process(
           Seq(
             "zip",
+            "-9",
             "-q",
             "-r",
             target.toPath.toAbsolutePath.normalize.toString,
@@ -310,7 +305,8 @@ object DistributionPackage {
         Process(
           Seq(
             "tar",
-            "-czf",
+            "--use-compress-program=gzip -9",
+            "-cf",
             target.toPath.toAbsolutePath.normalize.toString,
             rootDir
           ),
