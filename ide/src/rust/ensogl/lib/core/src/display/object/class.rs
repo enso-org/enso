@@ -100,7 +100,7 @@ impl<Host> Debug for Callbacks<Host> {
 
 type NewParentDirty        = dirty::SharedBool<()>;
 type ChildrenDirty         = dirty::SharedSet<usize,OnDirtyCallback>;
-type RemovedChildren<Host> = dirty::SharedVector<WeakInstance<Host>,OnDirtyCallback>;
+type RemovedChildren<Host> = dirty::SharedVector<Instance<Host>,OnDirtyCallback>;
 type TransformDirty        = dirty::SharedBool<OnDirtyCallback>;
 type SceneLayerDirty       = dirty::SharedBool<OnDirtyCallback>;
 
@@ -250,9 +250,11 @@ impl<Host> Model<Host> {
     /// Removes child by a given index. Does nothing if the index was incorrect.
     fn remove_child_by_index(&self, index:usize) {
         self.children.borrow_mut().remove(index).for_each(|child| {
-            child.upgrade().for_each(|child| child.unsafe_unset_parent_without_update());
+            if let Some(child) = child.upgrade() {
+                child.unsafe_unset_parent_without_update();
+                self.dirty.removed_children.set(child);
+            }
             self.dirty.children.unset(&index);
-            self.dirty.removed_children.set(child);
         });
     }
 
@@ -355,16 +357,14 @@ impl<Host> Model<Host> {
         if self.dirty.removed_children.check_all() {
             debug!(self.logger, "Updating removed children.", || {
                 for child in self.dirty.removed_children.take().into_iter() {
-                    if let Some(child) = child.upgrade() {
-                        if !child.has_visible_parent() {
-                            child.set_vis_false(host);
-                        }
-                        // Even if the child is visible at this point, it does not mean that it
-                        // should be visible after the entire update. Therefore, we must ensure that
-                        // "removed children" lists in its subtree will be managed.
-                        // See also test `visibility_test3`.
-                        child.take_removed_children_and_update_their_visibility(host);
+                    if !child.has_visible_parent() {
+                        child.set_vis_false(host);
                     }
+                    // Even if the child is visible at this point, it does not mean that it
+                    // should be visible after the entire update. Therefore, we must ensure that
+                    // "removed children" lists in its subtree will be managed.
+                    // See also test `visibility_test3`.
+                    child.take_removed_children_and_update_their_visibility(host);
                 }
             })
         }
@@ -505,7 +505,8 @@ impl<Host> Model<Host> {
     }
 
     /// Sets a callback which will be called with a reference to scene when the object will be
-    /// hidden (detached from display object graph).
+    /// hidden (detached from display object graph). This will also happen when the last `Instance`
+    /// referring to the object gets dropped.
     pub fn set_on_hide<F>(&self, f:F)
     where F : Fn(&Host) + 'static{
         self.callbacks.on_hide.set(Box::new(f))
@@ -571,6 +572,16 @@ pub struct Id(usize);
 #[derivative(Clone(bound=""))]
 pub struct Instance<Host=Scene> {
     rc : Rc<Model<Host>>
+}
+
+impl<Host> Drop for Instance<Host> {
+    fn drop(&mut self) {
+        // If this is the last reference, remove it from its parent. If there is a parent, then this
+        // will create a new reference which will be dropped on the parent's next update.
+        if Rc::strong_count(&self.rc) == 1 {
+            self.unset_parent();
+        }
+    }
 }
 
 impl<Host> Deref for Instance<Host> {
@@ -1448,5 +1459,24 @@ mod tests {
         assert_eq!(node4.is_visible(),false);
         assert_eq!(node5.is_visible(),false);
         assert_eq!(node6.is_visible(),false);
+    }
+
+    #[test]
+    fn hide_after_drop_test() {
+        let node1 = Instance::<()>::new(Logger::new("node1"));
+        let node2 = Instance::<()>::new(Logger::new("node2"));
+        node1.add_child(&node2);
+
+        node1.force_set_visibility(true);
+        node1.update(&());
+        assert!(node2.is_visible());
+
+        let node1_was_hidden = Rc::new(Cell::new(false));
+        let node1_was_hidden_clone = node1_was_hidden.clone();
+        node2.set_on_hide(move |_| node1_was_hidden_clone.set(true));
+
+        drop(node2);
+        node1.update(&());
+        assert!(node1_was_hidden.get());
     }
 }
