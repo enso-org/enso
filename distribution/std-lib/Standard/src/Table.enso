@@ -16,23 +16,23 @@ from Standard.Table.Data.Order_Rule export Order_Rule
 ## Converts a JSON array into a dataframe, by looking up the requested keys
    from each item.
 
+   Arguments:
+   - fields: a vector of texts representing the names of fields to look up.
+
    The function assumes the elements have one of the following structures:
    - a JSON object containing the requested keys. In case an item is not an
      object, or the request key does not exist, the relevant values of the table
      will be set to `Nothing`.
    - a GeoJSON object of type Feature. The format is described in rfc7946.
 
-   ? Implementation Node
-     GeoJson support is partial.
+   ? Implementation Note
+     The GeoJson support is only partial.
      - Supported geometry objects are Position and Point. Rows containing
        other geometry objects are not included in the resulting dataframe.
      - Position arrays are truncated to 3 elements: longitude, latitude
        and elevation.
      - Nested properties are not supported and not included in the resulting
        dataframe.
-
-   Arguments:
-     - fields: a vector of texts representing the names of fields to look up.
 Json.Array.to_table : Vector -> Table
 Json.Array.to_table fields = case this of
     Json.Array items ->
@@ -48,21 +48,21 @@ Json.Array.to_table fields = case this of
 ## Converts a JSON object into a dataframe, by looking up the requested keys
    from each item.
 
+   Arguments:
+   - fields: a vector of texts representing the names of fields to look up.
+
    The function assumes the elements have one of the following structures:
    - a GeoJSON object of type FeatureCollection. The format is described in
      rfc7946.
 
-   ? Implementation Node
-     GeoJson support is partial.
+   ? Implementation Note
+     The GeoJson support is only partial.
      - Supported geometry objects are Position and Point. Rows containing
        other geometry objects are not included in the resulting dataframe.
      - Position arrays are truncated to 3 elements: longitude, latitude
        and elevation.
      - Nested properties are not supported and not included in the resulting
        dataframe.
-
-   Arguments:
-     - fields: a vector of texts representing the names of fields to look up.
 Json.Object.to_table : Vector -> Table ! Nothing
 Json.Object.to_table fields=Nothing =
     if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw Nothing else

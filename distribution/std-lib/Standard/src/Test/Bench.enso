@@ -72,7 +72,7 @@ Number.times act =
    - label: A name for the measurement.
    - iter_size: The number of runs per iteration.
    - num_iters: The number of iterations per measurement.
-measure = Any -> Text -> Integer -> Integer -> Nothing
+measure : Any -> Text -> Integer -> Integer -> Nothing
 measure = ~act -> label -> iter_size -> num_iters ->
     single_call = _ ->
         x1 = System.nano_time

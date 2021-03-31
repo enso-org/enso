@@ -6,12 +6,16 @@ import Standard.Visualization.Helpers
 
    Prepares the query for visualization.
 
+   Arguments:
+   - x: The query to prepare for visualisation.
+
    For each interpolation it provides its value, its actual type name, its
    expected SQL type name and if it was possible to infer it, its expected Enso
    typename.
 
    Expected Enso types are inferred based on known SQL types and their mapping
    to Enso types.
+prepare_visualization : Table.IR.Query -> Json
 prepare_visualization x = Helpers.recover_errors <|
     prepared = x.to_sql.prepare
     code = prepared.first
@@ -29,8 +33,12 @@ prepare_visualization x = Helpers.recover_errors <|
 
    Return an expected Enso type for an SQL type.
 
+   Arguments:
+   - sql_type: The SQL type to convert to an Enso type.
+
    Expected Enso types are only inferred for some known SQL types. For unknown
    types it will return `Nothing`.
+find_expected_enso_type_for_sql : Sql_Type -> Text
 find_expected_enso_type_for_sql sql_type =
     if sql_type.is_definitely_integer then "Builtins.Main.Integer" else
         if sql_type.is_definitely_double then "Builtins.Main.Decimal" else
