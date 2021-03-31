@@ -40,8 +40,10 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   //// Formatters //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "*Foo*" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
-  "_Foo_" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
+  "Foo"             ?= Doc(Synopsis(Section.Raw("Foo")))
+  "Foo\uD83D\uDC98" ?= Doc(Synopsis(Section.Raw("Foo", "\uD83D\uDC98")))
+  "*Foo*"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
+  "_Foo_"           ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
   "~Foo~" ?= Doc(
     Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
   )
@@ -752,14 +754,64 @@ class DocParserTests extends AnyFlatSpec with Matchers {
 
   """
     | - bar
-    | baz
+    |   baz
     |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         Newline,
-        List(1, List.Unordered, " bar"),
+        List(1, List.Unordered, " bar\n   baz"),
+        Newline
+      )
+    )
+  )
+  """
+    | - bar
+    |   baz
+    | - bar
+    |   baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
         Newline,
-        CodeBlock(CodeBlock.Line(1, "baz")),
+        List(1, List.Unordered, " bar\n   baz", " bar\n   baz"),
+        Newline
+      )
+    )
+  )
+
+  """ This does foo:
+    | - bar
+    |   baz
+    | Another raw text.
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "This does foo:",
+        Newline,
+        List(1, List.Unordered, " bar\n   baz"),
+        Newline,
+        "Another raw text.",
+        Newline
+      )
+    )
+  )
+
+  """ > Example
+    |   This does foo:
+    |    - bar
+    |      baz
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
+    Synopsis(
+      Section.Marked(
+        1,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Newline,
+        "This does foo:",
+        Newline,
+        List(4, List.Unordered, " bar\n      baz"),
         Newline
       )
     )

@@ -205,6 +205,18 @@ case class DocParserDef() extends Parser[Doc] {
             }
           case Some(_) | None => result.push()
         }
+        if (result.stack.tail.head.isInstanceOf[Elem.List]) {
+          val code = result.current.get.asInstanceOf[Elem.CodeBlock]
+          result.pop()
+          result.pop()
+          val list = result.current.get.asInstanceOf[Elem.List]
+          val last = list.elems.toList.last.repr + newline + code.elems.repr
+          val newElems =
+            list.elems.reverse.tail.reverse :+ Elem.stringToText(last.build())
+          val nElems  = List1(newElems).get
+          val newList = Elem.List(list.indent, list.typ, nElems)
+          result.current = Some(newList)
+        }
         result.push()
       }
 
@@ -878,4 +890,5 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   ROOT || eof || documentation.onEOF()
+  ROOT || any || text.push(currentMatch)
 }
