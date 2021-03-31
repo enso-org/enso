@@ -1597,6 +1597,7 @@ type Runtime
     no_inline ~action = @Builtin_Method "Runtime.no_inline"
 
     ## ADVANCED
+       UNSTABLE
 
        Applies the following function to the given argument, without allowing
        them to inline.
