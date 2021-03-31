@@ -262,6 +262,11 @@ spec prefix connection pending=Nothing =
             m.length . should_equal m.to_vector.length
             m.length . should_equal 4
 
+#        Test.specify "should correctly count values" <|
+#           m = agg.at 'price' . mean
+#           m.count . should_equal 4
+#           m.count_missing . should_equal 0
+
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|
             t7 = make_table "T7" ['price'] ['DOUBLE PRECISION']
@@ -355,7 +360,7 @@ spec prefix connection pending=Nothing =
             r_3 = c.sort order=Sort_Order.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing, Nothing, 7.3, 3.0, 3.0, 2.2]
 
-    Test.group "Index" pending=pending <|
+    Test.group prefix+"Index" pending=pending <|
         t0 = make_table "Tix" ['ix', 'c1'] ['INTEGER', 'INTEGER']
         t0.insert [1, 4]
         t0.insert [2, 5]
@@ -363,6 +368,8 @@ spec prefix connection pending=Nothing =
         t = t0.set_index 'ix'
         Test.specify "should be accessible by `at` like other columns" <|
             t.at 'ix' . to_vector . should_equal t.index.to_vector
+        Test.specify "should be accessible by `select` like other columns" <|
+            t.select ['ix'] . columns . first . to_vector . should_equal t.index.to_vector
         Test.specify "treated as a column indexed by itself should still correctly compute values" <|
             col = t.index+10
             vec = [11, 12, 13]
