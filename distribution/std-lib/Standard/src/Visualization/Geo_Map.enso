@@ -1,4 +1,4 @@
- from Standard.Base import all
+from Standard.Base import all
 
 import Standard.Table.Data.Table
 import Standard.Test
@@ -21,7 +21,8 @@ json_from_table table =
 
 ## PRIVATE
 
-   Default preprocessor for the geo map visualization, generating JSON text describing the geo map visualization.
+   Default preprocessor for the geo map visualization, generating JSON text
+   describing the geo map visualization.
    
    Arguments:
    - value: the value to be visualized.
