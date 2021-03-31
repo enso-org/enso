@@ -25,6 +25,7 @@ import org.enso.interpreter.node.expression.builtin.io.PrintlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
+import org.enso.interpreter.node.expression.builtin.runtime.NoInlineWithArgMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.GetStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.PutStateMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.RunStateMethodGen;
@@ -148,6 +149,7 @@ public class Builtins {
     scope.registerMethod(primIo, "get_user_home", GetUserHomeMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
