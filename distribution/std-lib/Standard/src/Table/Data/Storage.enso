@@ -1,7 +1,17 @@
 ## Represents different types of underlying storage for Columns.
 type Type
+
+    ## A column storing text data.
     type Text
+
+    ## A column storing integer data.
     type Integer
+
+    ## A column storing decimal data.
     type Decimal
+
+    ## A column storing boolean data.
     type Boolean
+
+    ## A column storing arbitrary data.
     type Any

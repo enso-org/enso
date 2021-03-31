@@ -10,20 +10,76 @@ polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 
 ## An error returned when a non-existent column is being looked up.
+
+   Arguments:
+   - column_name: The name of the column that doesn't exist.
 type No_Such_Column_Error column_name
 
 ## An error returned when getting an index but no index is set for that table.
 type No_Index_Set_Error
 
+## Creates a new table from a vector of column names and a vector of vectors
+   specifying row contents.
+
+   Arguments:
+   - header: A list of texts specifying the column names
+   - rows: A vector of vectors, specifying the contents of each table row. The
+     length of each element of `rows` must be equal in length to `header`.
+
+   > Example
+     The code below creates a table with 3 columns, named `foo`, `bar`, and
+     `baz`, containing `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`,
+     respectively.
+         header = [ 'foo' , 'bar' , 'baz' ]
+         row_1 =  [ 1     , True  , 'a'   ]
+         row_2 =  [ 2     , False , 'b'   ]
+         row_3 =  [ 3     , True  , 'c'   ]
+         Table.from_rows header [row_1, row_2, row_3]
+from_rows : Vector.Vector -> Vector.Vector -> Table
+from_rows header rows =
+    columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
+    here.new columns
+
+## Creates a new table from a vector of `[name, items]` pairs.
+
+   Arguments:
+   - columns: The `[name, items]` pairs to construct a new table from.
+
+   > Example
+     Create a new table with the given in two columns:
+         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
+new : Vector -> Table
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    here.from_columns cols
+
+## Joins a vector of tables (or columns) into a single table, using each table's
+   index as the join key.
+
+   Arguments:
+   - tables: A vector of tables to join into a single table.
+
+   Particularly useful for joining multiple columns derived from one original
+   table into a new table.
+join : Vector -> Table
+join tables =
+    tables.reduce .join
+
 ## Represents a column-oriented table data structure.
 type Table
+
+    ## A table.
+
+       Arguments:
+       - java_table: The internal java representation of the table.
     type Table java_table
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
-         - show_rows: the number of initial rows that should be displayed.
-         - format_terminal: whether ANSI-terminal formatting should be used
+       - show_rows: the number of initial rows that should be displayed.
+       - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
         cols = Vector.Vector this.java_table.getColumns
@@ -44,7 +100,7 @@ type Table
     ## Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
-         - show_rows: the number of initial rows that should be displayed.
+       - show_rows: the number of initial rows that should be displayed.
     print show_rows=10 =
         IO.println (this.display show_rows format_terminal=True)
         IO.println ''
@@ -61,6 +117,7 @@ type Table
        ADVANCED
 
        Returns a Text used to display this table in the IDE by default.
+
        Returns a JSON object containing useful metadata and previews of column
        values.
     to_default_visualization_data : Text
@@ -74,6 +131,9 @@ type Table
         Json.from_pairs [row_count, ['columns', cols]] . to_text
 
     ## Returns the column with the given name.
+
+       Arguments:
+       - name: The name of the column being looked up.
     at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
@@ -82,12 +142,12 @@ type Table
     ## Selects only the rows of this table that correspond to `True` values in
        `indexes`.
 
-       This is useful for filtering the rows by given predicate.
-
        Arguments:
        - indexes: The column to mask the table by. This column should contain
          boolean values (`True` or `False`) that determine whether or not the
          corresponding row is kept.
+
+       This is useful for filtering the rows by given predicate.
 
        > Example
          Select only the rows of `my_table` where the `"Status"` column has the
@@ -97,8 +157,14 @@ type Table
     where indexes =
         Table (this.java_table.mask indexes.java_column)
 
-    ## Sets the column value at the given name. If a column with the given name
-       already exists, it will be replaced. Otherwise a new column is added.
+    ## Sets the column value at the given name.
+
+       Arguments:
+       - name: The name of the column to set the value of.
+       - column: The new value for the column called `name`.
+
+       If a column with the given name already exists, it will be replaced.
+       Otherwise a new column is added.
     set : Text -> Column.Column | Vector.Vector -> Table
     set name column = case column of
         Vector.Vector _ ->
@@ -112,6 +178,9 @@ type Table
         Vector.Vector this.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
+
+       Arguments:
+       - index: The name of the column to use as the index in this table.
     set_index : Text -> Table
     set_index index =
         Table (this.java_table.indexFromColumn index)
@@ -132,21 +201,21 @@ type Table
     ## Efficiently joins two tables based on either the index or the specified
        key column.
 
+       Arguments:
+       - other: The table being the right operand of this join operation.
+       - on: The column of `this` that should be used as the join key. If this
+         argument is not provided, the index of `this` will be used.
+       - drop_unmatched: Whether the rows of `this` without corresponding
+         matches in `other` should be dropped from the result.
+       - left_suffix: A suffix that should be added to the columns of `this`
+         when there's a name conflict with a column of `other`.
+       - right_suffix: A suffix that should be added to the columns of `other`
+         when there's a name conflict with a column of `this`.
+
        The resulting table contains rows of `this` extended with rows of
        `other` with matching indexes. If the index values in `other` are not
        unique, the corresponding rows of `this` will be duplicated in the
        result.
-
-       Arguments:
-         - other: the table being the right operand of this join operation.
-         - on: the column of `this` that should be used as the join key. If
-               this argument is not provided, the index of `this` will be used.
-         - drop_unmatched: whether the rows of `this` without corresponding
-                           matches in `other` should be dropped from the result.
-         - left_suffix: a suffix that should be added to the columns of `this`
-                        when there's a name conflict with a column of `other`.
-         - right_suffix: a suffix that should be added to the columns of `other`
-                         when there's a name conflict with a column of `this`.
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
@@ -220,27 +289,27 @@ type Table
        Sorts the table according to the specified rules.
 
        Arguments:
-         - by: specifies the columns used for reordering the table. This
-           argument may be one of:
-             - a text: the text is treated as a column name.
-             - a column: any column, that may or may not belong to this table.
-               Sorting by a column will result in reordering the rows of this
-               table in a way that would result in sorting the given column.
-             - an order rule: specifies both the sorting column and additional
-               settings, that will take precedence over the global parameters of
-               this sort operation. The `column` field of the rule may be a text
-               or a column, with the semantics described above.
-             - a vector of any of the above: this will result in a hierarchical
-               sorting, such that the first rule is applied first, the second is
-               used for breaking ties, etc.
-         - order: specifies the default sort order for this operation. All the
-           rules specified in the `by` argument will default to this setting,
-           unless specified in the rule.
-         - missing_last: specifies the default placement of missing values when
-           compared to non-missing ones. This setting may be overriden by the
-           particular rules of the `by` argument.  Note thet this argument is
-           independent from `order`, i.e. missing values will always be sorted
-           according to this rule, ignoring the ascending / descending setting.
+       - by: Specifies the columns used for reordering the table. This argument
+         may be one of:
+         - a text: The text is treated as a column name.
+         - a column: Any column, that may or may not belong to this table.
+           Sorting by a column will result in reordering the rows of this
+           table in a way that would result in sorting the given column.
+         - an order rule: Specifies both the sorting column and additional
+           settings, that will take precedence over the global parameters of
+           this sort operation. The `column` field of the rule may be a text
+           or a column, with the semantics described above.
+         - a vector of any of the above: This will result in a hierarchical
+           sorting, such that the first rule is applied first, the second is
+           used for breaking ties, etc.
+       - order: Specifies the default sort order for this operation. All the
+         rules specified in the `by` argument will default to this setting,
+         unless specified in the rule.
+       - missing_last: Specifies the default placement of missing values when
+         compared to non-missing ones. This setting may be overriden by the
+         particular rules of the `by` argument.  Note thet this argument is
+         independent from `order`, i.e. missing values will always be sorted
+         according to this rule, ignoring the ascending / descending setting.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`
@@ -282,6 +351,14 @@ type Table
         Table new_table
 
     ## PRIVATE
+
+       Transforms order rules from Enso into Java.
+
+       Arguments:
+       - rules: The rule(s) to convert.
+       - order: The sorting order.
+       - missing_last: Whether or not missing values should be ordered last.
+    build_java_order_rules : (Text | Column.Column. | Order_Rule | Vector (Text | Column.Column | Order_Rule)) -> Sort_Order -> Boolean -> Vector
     build_java_order_rules rules order missing_last = case rules of
         Text -> [this.build_java_order_rule rules order missing_last]
         Column.Column _ -> [this.build_java_order_rule rules order missing_last]
@@ -289,6 +366,14 @@ type Table
         Vector.Vector _ -> rules.map (this.build_java_order_rule _ order missing_last)
 
     ## PRIVATE
+
+       Builds a java order rule.
+
+       Arguments:
+       - rule: The rule to convert.
+       - order: The sort order.
+       - missing_last: Whether or not missing values should be ordered last.
+    build_java_order_rule : (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> OrderRule
     build_java_order_rule rule order missing_last =
         order_bool = case order of
             Sort_Order.Ascending -> True
@@ -317,9 +402,14 @@ type Table
 
     ## UNSTABLE
 
-       Concatenates `other` to `this`. Any column that is present in one table,
-       but missing in another, will be `Nothing`-padded in the positions
-       corresponding to the missing column.
+       Concatenates `other` to `this`.
+
+       Arguments:
+       - other: The table to concatenate to `this`.
+
+       Any column that is present in one table, but missing in another, will be
+       `Nothing`-padded in the positions corresponding to the missing column.
+    concat : Table -> Table
     concat other =
         Table (this.java_table.concat other.java_table)
 
@@ -390,10 +480,23 @@ type Table
         Table <| this.java_table.applyMask mask
 
 ## PRIVATE
+
+   Wraps the Enso comparator function so it's usable in Java.
+
+   Arguments:
+   - cmp: The Enso comparator function.
+   - x: The left operand to the compartor.
+   - y: The right operand to the comparator.
+comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
 comparator_to_java cmp x y = cmp x y . to_sign
 
 ## Represents a table with grouped rows.
 type Aggregate_Table
+
+    ## A table type with grouped rows.
+
+       Arguments:
+       - java_table: The internal representation of the table.
     type Aggregate_Table java_table
 
     ## Returns a vector of aggregate columns in this table.
@@ -411,69 +514,44 @@ type Aggregate_Table
     count = Column.Column this.java_table.count
 
     ## Returns an aggregate column with the given name, contained in this table.
-    at : Text -> Column | Nothing
+
+       Arguments:
+       - name: The name of the aggregate column to get.
+    at : Text -> Column ! Nothing
     at name = case this.java_table.getColumnByName name of
-        Nothing -> Nothing
+        Nothing -> Error.throw Nothing
         c -> Column.Aggregate_Column c
 
     ## Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
-         - show_rows: the number of initial rows that should be displayed.
+       - show_rows: the number of initial rows that should be displayed.
     print : Integer -> Nothing
     print show_rows=10 = this.values.print show_rows
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)
 
-## Creates a new table from a vector of column names and a vector of vectors
-   specifying row contents.
-
-   Arguments:
-     - header: a list of texts specifying the column names
-     - rows: a vector of vectors, specifying the contents of each table row.
-       the length of each element of `rows` must be equal in length to `header`.
-
-   > Example
-     The code below creates a table with 3 columns, named `foo`, `bar`, and
-     `baz`, containing `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`,
-     respectively.
-         header = [ 'foo' , 'bar' , 'baz' ]
-         row_1 =  [ 1     , True  , 'a'   ]
-         row_2 =  [ 2     , False , 'b'   ]
-         row_3 =  [ 3     , True  , 'c'   ]
-         Table.from_rows header [row_1, row_2, row_3]
-from_rows : Vector.Vector -> Vector.Vector -> Table
-from_rows header rows =
-    columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
-    here.new columns
-
-## Creates a new table from a vector of `[name, items]` pairs.
-
-   > Example
-     Create a new table with the given in two columns:
-         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
-new columns =
-    cols = columns.map c->
-        Column.from_vector (c.at 0) (c.at 1) . java_column
-    here.from_columns cols
-
-## Joins a vector of tables (or columns) into a single table, using each table's
-   index as the join key. Particularly useful for joining multiple columns
-   derived from one original table into a new table.
-join : Vector -> Table
-join tables =
-    tables.reduce .join
-
 ## PRIVATE
 
    Ensures that the `txt` has at least `len` characters by appending spaces at
    the end.
+
+   Arguments:
+   - txt: The text to pad.
+   - len: The minimum length of the text.
+pad : Text -> Integer -> Text
 pad txt len =
     true_len = txt.characters.length
     txt + (" ".repeat (len - true_len))
 
 ## PRIVATE
+
+   Adds ANSI bold escape sequences to text if the feature is enabled.
+
+   Arguments:
+   - txt: The text to possibly bold.
+ansi_bold_enabled : Text -> Text
 ansi_bold enabled txt =
     case Platform.os of
         ## Output formatting for Windows is not currently supported.
@@ -506,3 +584,4 @@ print_table header rows indices_count format_term =
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
+
