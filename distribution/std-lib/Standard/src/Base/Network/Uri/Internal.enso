@@ -1,0 +1,7 @@
+from Standard.Base import all
+
+## PRIVATE
+handle_nothing : Any -> Any ! Nothing
+handle_nothing value = case value of
+    Nothing -> Error.throw Nothing
+    _ -> value

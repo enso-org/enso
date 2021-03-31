@@ -36,7 +36,7 @@ spec =
             http = Http.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid Uri" <|
-            Test.expect_panic_with (Http.new.get "not a uri") Uri.Syntax_Error
+            Http.new.get "not a uri" . should_fail_with Uri.Syntax_Error
         Test.specify "should send Get request" <|
             expected_response = Json.parse <| '''
                 {
@@ -65,6 +65,21 @@ spec =
             res = Http.get "http://localhost:8080/get"
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+        Test.specify "should fetch the body of a Get request" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "0",
+                    "User-Agent": "Java-http-client/11.0.10"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {}
+                }
+            res = Http.fetch "http://localhost:8080/get"
+            res.to_json.should_equal expected_response
+        Test.specify "should return error if the fetch method fails" <|
+            Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error
         Test.specify "should Post empty body" <|
             expected_response = Json.parse <| '''
                 {
