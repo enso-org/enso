@@ -103,6 +103,8 @@
   variable. It is even possible to change and develop themes live by editing
   theme variables directly in the Chrome Inspector. Use the following command to
   start: `theme.snapshot("t1"); theme.get("t1").interactiveMode()`.
+- [The active visualization is highlighted.][1412] Now it is clearly visible
+  when the mouse events are passed to the visualization.
 
 #### EnsoGL (rendering engine)
 
@@ -142,6 +144,7 @@ you can find their release notes
 [1358]: https://github.com/enso-org/ide/pull/1358
 [1377]: https://github.com/enso-org/ide/pull/1377
 [1411]: https://github.com/enso-org/ide/pull/1411
+[1412]: https://github.com/enso-org/ide/pull/1412
 
 <br/>
 

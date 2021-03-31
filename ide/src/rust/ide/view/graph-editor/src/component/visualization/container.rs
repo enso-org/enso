@@ -20,14 +20,16 @@ use crate::component::visualization::instance::PreprocessorConfiguration;
 
 use action_bar::ActionBar;
 use enso_frp as frp;
+use ensogl::Animation;
 use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::display::scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
-use ensogl::display;
+
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web;
 use ensogl_gui_components::shadow;
@@ -40,6 +42,7 @@ use ensogl_gui_components::shadow;
 
 /// Default width and height of the visualisation container.
 pub const DEFAULT_SIZE  : (f32,f32) = (200.0,200.0);
+const PADDING           : f32       = 20.0;
 const CORNER_RADIUS     : f32       = super::super::node::CORNER_RADIUS;
 const ACTION_BAR_HEIGHT : f32       = 2.0 * CORNER_RADIUS;
 
@@ -55,7 +58,7 @@ pub mod overlay {
     use super::*;
 
     ensogl::define_shape_system! {
-        (selected:f32,radius:f32,roundness:f32) {
+        (radius:f32,roundness:f32,selection:f32) {
             let width         = Var::<Pixels>::from("input_size.x");
             let height        = Var::<Pixels>::from("input_size.y");
             let radius        = 1.px() * &radius;
@@ -65,6 +68,47 @@ pub mod overlay {
             let overlay       = overlay.fill(color_overlay);
             let out           = overlay;
             out.into()
+        }
+    }
+}
+
+/// Container's background, including selection.
+// TODO[ao] : Currently it does not contain the real background, which is rendered in HTML instead.
+//        This should be fixed in https://github.com/enso-org/ide/issues/526
+pub mod background {
+    use super::*;
+    use ensogl_theme::graph_editor::visualization as theme;
+
+    ensogl::define_shape_system! {
+        (style:Style, radius:f32, roundness:f32, selection:f32) {
+            let width         = Var::<Pixels>::from("input_size.x");
+            let height        = Var::<Pixels>::from("input_size.y");
+            let width         = width  - PADDING.px() * 2.0;
+            let height        = height - PADDING.px() * 2.0;
+            let radius        = 1.px() * &radius;
+            let corner_radius = &radius * &roundness;
+
+
+            // === Selection ===
+
+            let sel_color  = style.get_color(theme::selection);
+            let sel_size   = style.get_number(theme::selection::size);
+            let sel_offset = style.get_number(theme::selection::offset);
+
+            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_radius  = &corner_radius + &sel_offset.px();
+            let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
+
+            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
+            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
+            let sel2_radius = &corner_radius + &(sel_size + sel_offset).px();
+            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
+
+            let select = select2 - select;
+            let select = select.fill(color::Rgba::from(sel_color));
+
+            select.into()
         }
     }
 }
@@ -113,10 +157,8 @@ ensogl::define_endpoints! {
 pub struct View {
     logger         : Logger,
     display_object : display::object::Instance,
-    // TODO : We do not use backgrounds because otherwise they would overlap JS
-    //        visualizations. Instead we added a HTML background to the `View`.
-    //        This should be further investigated while fixing rust visualization displaying. (#526)
-    // background     : background::View,
+
+    background     : background::View,
     overlay        : overlay::View,
     background_dom : DomSymbol,
     scene          : Scene,
@@ -127,8 +169,16 @@ impl View {
     pub fn new(logger:&Logger, scene:Scene) -> Self {
         let logger         = Logger::sub(logger,"view");
         let display_object = display::object::Instance::new(&logger);
+        let background     = background::View::new(&logger);
         let overlay        = overlay::View::new(&logger);
+        display_object.add_child(&background);
         display_object.add_child(&overlay);
+
+        ensogl::shapes_order_dependencies! {
+            scene => {
+                background -> overlay;
+            }
+        };
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
@@ -151,7 +201,7 @@ impl View {
         shadow::add_to_dom_element(&background_dom,&styles,&logger);
         display_object.add_child(&background_dom);
 
-        Self {logger,display_object,overlay,background_dom,scene}.init()
+        Self {logger,display_object,background,overlay,background_dom,scene}.init()
     }
 
     fn set_layer(&self, layer:visualization::Layer) {
@@ -329,8 +379,9 @@ impl ContainerModel {
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.radius.set(CORNER_RADIUS);
-            // self.view.background.shape.sprite.size.set(size);
+            self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.size.set(size);
+            self.view.background.size.set(size + 2.0*Vector2(PADDING,PADDING));
             dom.set_style_or_warn("width" ,format!("{}px",size[0]),&self.logger);
             dom.set_style_or_warn("height",format!("{}px",size[1]),&self.logger);
             bg_dom.set_style_or_warn("width", "0", &self.logger);
@@ -354,8 +405,7 @@ impl ContainerModel {
 
     fn set_corner_roundness(&self, value:f32) {
         self.view.overlay.roundness.set(value);
-        // self.view.background.shape.roundness.set(value);
-        // self.fullscreen_view.background.shape.roundness.set(value);
+        self.view.background.roundness.set(value);
     }
 
     fn show_visualisation(&self) {
@@ -422,14 +472,15 @@ impl Container {
     }
 
     fn init(self, app:&Application) -> Self {
-        let frp                 = &self.frp;
-        let network             = &self.frp.network;
-        let model               = &self.model;
-        let scene               = &self.model.scene;
-        let scene_shape         = scene.shape();
-        let logger              = &self.model.logger;
-        let action_bar          = &model.action_bar.frp;
-        let registry            = &model.registry;
+        let frp         = &self.frp;
+        let network     = &self.frp.network;
+        let model       = &self.model;
+        let scene       = &self.model.scene;
+        let scene_shape = scene.shape();
+        let logger      = &self.model.logger;
+        let action_bar  = &model.action_bar.frp;
+        let registry    = &model.registry;
+        let selection   = Animation::new(&network);
 
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
@@ -502,6 +553,10 @@ impl Container {
                 }
                 None
             }));
+            selection_after_click <- selected_by_click.map(|sel| if *sel {1.0} else {0.0});
+            selection.target <+ selection_after_click;
+            eval selection.value ((selection) model.view.background.selection.set(*selection));
+
             selected_by_going_fullscreen <- bool(&frp.disable_fullscreen,&frp.enable_fullscreen);
             selected                     <- any(selected_by_click,selected_by_going_fullscreen);
 

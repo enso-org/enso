@@ -246,6 +246,11 @@ define_themes! { [light:0, dark:1]
                 icon       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             }
+            selection = selection, selection;
+            selection {
+                size = 10.0 , 5.0;
+                offset = 0.0 , 5.0;
+            }
         }
         breadcrumbs {
             full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
