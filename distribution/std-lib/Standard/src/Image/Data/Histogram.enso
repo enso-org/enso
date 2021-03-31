@@ -30,7 +30,7 @@ type Histogram
    Create a histogram for the specified channel of the image.
 
    Arguments:
-   `channel`: the channel number.
+   - channel: the channel number.
 
    > Example
      Create a histogram.
