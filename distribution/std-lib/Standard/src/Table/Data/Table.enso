@@ -135,7 +135,7 @@ type Table
        Arguments:
        - name: The name of the column being looked up.
     at : Text -> Column ! No_Such_Column_Error
-    at name = case this.java_table.getColumnByName name of
+    at name = case this.java_table.getColumnOrIndexByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
