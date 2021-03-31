@@ -13,6 +13,9 @@ type Image
 
        The image data type.
 
+       Arguments:
+       - opencv_mat: The underlying matrix that stores the image data.
+
        The image is represented with a matrix of rows x columns. Each
        pixel is represented with a vector of 1 to 4 values (channels).
        Pixel values are normalized in a range [0.0 .. 1.0].

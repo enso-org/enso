@@ -7,6 +7,13 @@ polyglot java import org.opencv.core.Mat
 polyglot java import org.opencv.core.Scalar
 
 ## PRIVATE
+
+   Apply a core matrix operation.
+
+   Arguments:
+   - mat: The matrix to operate on.
+   - value: The value to apply to the matrix.
+   - function: The function with which to apply `value` to `mat`.
 core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
@@ -21,6 +28,11 @@ core_op mat value function =
     Matrix.Matrix result
 
 ## PRIVATE
+
+   Handles errors in `core_op`.
+
+   Arguments:
+   - error: The value to throw as an error.
 core_op_handler error =
     case error of
         Matrix.Dimensions_Not_Equal -> Error.throw error

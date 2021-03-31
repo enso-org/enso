@@ -11,6 +11,10 @@ type Histogram
     ## UNSTABLE
 
        The histogram of a single image channel.
+
+       Arguments:
+       - channel: The channel in the image for which this is a histogram.
+       - data: The histogram data.
     type Histogram channel data
 
     ## UNSTABLE
