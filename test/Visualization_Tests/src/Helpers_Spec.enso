@@ -25,7 +25,7 @@ spec =
             table  = Table.from_rows header [row_1, row_2]
             table.all_columns.map (_.name) . should_equal ['a']
 
-        Test.specify "includes first index then normal columns" <|
+        Test.specify "includes the index first and then normal columns" <|
             header = ['a', 'b']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
