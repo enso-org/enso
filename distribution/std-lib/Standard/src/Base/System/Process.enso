@@ -5,13 +5,44 @@ from Builtins import Array, System, True, False
 
 ## UNSTABLE
 
+   Call a command with a list of arguments.
+
+   > Example
+     Call the `echo` command with arguments
+         Process.run "echo" ["-n", "Hello!"]
+     The result is printed to stdout:
+         Hello!
+run : Text -> Vector.Vector Text -> Exit_Code
+run command arguments=[] =
+    result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
+    Exit_Code.from_number result.exit_code
+
+## UNSTABLE
+
    The builder object that is used to create operating system processes.
 type Builder
+
+    ## UNSTABLE
+
+       A builder object that is used to create operating system processes.
+
+       Arguments:
+       - command: The command to execute on the system.
+       - arguments: The arguments to pass to `command`. These must be text.
+       - stdin: Any content to pass to the standard input for `command`.
+
+       ? Creating a Builder
+         We recommend that you use this type with its builder interface. Start
+         by creating a `Builder "command"` and then call functions on it to
+         set arguments and standard output. It results in much clearer code.
     type Builder command arguments=[] stdin=""
 
     ## UNSTABLE
 
        Sets the arguments that should be passed to the created process.
+
+       Arguments:
+       - arguments: The arguments to pass to the process.
     set_arguments : Vector.Vector Text -> Builder
     set_arguments arguments = Builder this.command arguments this.stdin
 
@@ -19,6 +50,9 @@ type Builder
 
        Sets the text that will be used to feed standard input to the created
        process.
+
+       Arguments:
+       - stdin: The standard input contents to pass to the process.
     set_stdin : Text -> Builder
     set_stdin stdin = Builder this.command this.arguments stdin
 
@@ -40,18 +74,10 @@ type Builder
 ## UNSTABLE
 
    The result of the process invocation.
+
+   Arguments:
+   - exit_code: The exit code for the process.
+   - stdout: The contents of the process' standard output.
+   - stderr: The contents of the process' standard error.
 type Result exit_code stdout stderr
 
-## UNSTABLE
-
-   Call a command with a list of arguments.
-
-   > Example
-     Call the `echo` command with arguments
-         Process.run "echo" ["-n", "Hello!"]
-     The result is printed to stdout:
-         Hello!
-run : Text -> Vector.Vector Text -> Exit_Code
-run command arguments=[] =
-    result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
-    Exit_Code.from_number result.exit_code
