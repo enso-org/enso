@@ -456,7 +456,7 @@ type Table
         column_name = "row_count"
         virtual_column = IR.Internal_Column "1" Sql.Sql_Type.integer (IR.Constant Sql.Sql_Type.integer 1)
         setup = this.context.as_subquery this.name [[virtual_column]]
-        new_ctx = IR.Context setup.first [] [] [] [] Nothing
+        new_ctx = IR.subquery_as_ctx setup.first
         query = IR.Select [[column_name, expr]] new_ctx
         sql = this.connection.dialect.generate_sql query
         table = this.connection.execute_query sql
@@ -619,7 +619,8 @@ type Aggregate_Table
     count : Column
     count =
         expr = IR.Operation "COUNT_ROWS" []
-        Column "count" this.connection Sql.Sql_Type.integer expr this.context
+        # new_name connection expected_type expr context
+        Column_Module.lift_aggregate "count" this.connection Sql.Sql_Type.integer expr this.context
 
     ## UNSTABLE
 

@@ -257,15 +257,23 @@ spec prefix connection pending=Nothing =
             determinize (agg.at 'price' . min) . to_vector . should_equal [3.5, 6.7, 0.4, Nothing]
             determinize (agg.at 'price' . max) . to_vector . should_equal [97, 6.7, 0.4, Nothing]
 
+        Test.specify "should allow to join multiple aggregations" <|
+            m1 = agg.at 'price' . mean
+            m2 = agg.at 'quantity' . max
+            df = (m1.join m2).to_dataframe
+            df2 = df.sort by=df.index
+            df2.at 'price_mean' . to_vector . should_equal [50.25, 6.7, 0.4, Nothing]
+            df2.at 'quantity_max' . to_vector . should_equal [60, 40, 50, 70]
+
         Test.specify "should correctly compute the result size" <|
             m = agg.at 'price' . mean
             m.length . should_equal m.to_vector.length
             m.length . should_equal 4
 
-#        Test.specify "should correctly count values" <|
-#           m = agg.at 'price' . mean
-#           m.count . should_equal 4
-#           m.count_missing . should_equal 0
+        Test.specify "should correctly count values" <|
+           m = agg.at 'price' . mean
+           m.count . should_equal 3
+           m.count_missing . should_equal 1
 
     Test.group prefix+"Column-wide statistics" pending=pending <|
         Test.specify 'should allow computing basic column-wide stats' <|

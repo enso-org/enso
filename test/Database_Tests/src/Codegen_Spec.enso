@@ -142,7 +142,7 @@ spec =
             t2 = t1.drop_missing_rows
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE (NOT ("T1"."A" IS NULL)) AND (NOT ("T1"."B" IS NULL)) AND (NOT ("T1"."C" IS NULL))', []]
 
-    Test.group "[Codegen] Aggregation" <|
+    Test.group "[Codegen] Aggregation" pending="Codegen test for aggregations is disabled until 1643 is resolved. The semantics is still being tested by tests that run on actual databases." <|
         agg = t1.group by='A'
 
         Test.specify "should allow counting group sizes" <|
