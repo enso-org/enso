@@ -252,7 +252,7 @@ type Unsupported_Dialect url
 ## Pretty print the error about unsupported SQL dialects.
 Unsupported_Dialect.to_display_text : Text
 Unsupported_Dialect.to_display_text =
-    "Could not infer the SQL dialect for the database at " + url + "."
+    "Could not infer the SQL dialect for the database at " + this.url + "."
 
 ## PRIVATE
 
