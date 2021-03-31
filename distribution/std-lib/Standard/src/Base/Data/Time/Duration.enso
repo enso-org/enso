@@ -84,7 +84,7 @@ type Duration
          Get the portion of the duration expressed in hours.
              1.hour.hours
     hours : Integer
-    hours = this.internal_duration . toHoursPart
+    hours = this.internal_duration . toHours
 
     ## Get the portion of the duration expressed in days.
 
