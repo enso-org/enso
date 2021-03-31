@@ -236,6 +236,7 @@ class Histogram extends Visualization {
         const maxScale = 20
         const rightButton = 2
         const midButton = 1
+        const midButtonClicked = 4
         const scrollWheel = 0
         const extent = [minScale, maxScale]
         let startPos
@@ -280,32 +281,40 @@ class Histogram extends Visualization {
         const self = this
 
         let transformedScale = Object.assign({}, self.scale)
+        let tempRmbScale = Object.assign({}, self.scale)
 
         /**
          * Helper function called on pan/scroll.
          */
         function zoomed() {
-            if (d3.event.sourceEvent != null && d3.event.sourceEvent.buttons === rightButton) {
-                const rmbDivider = 5000.0
-                const zoomAmount = rmbZoomValue(d3.event.sourceEvent) / rmbDivider
-                const scale = Math.exp(zoomAmount)
-                const focus = startPos
-                const distanceScale = d3.zoomIdentity
+            function rescale(transformEvent) {
+                transformedScale.x = transformEvent.rescaleX(transformedScale.x)
+                if (transformEvent.rescaleY(transformedScale.y).domain()[0] >= 0) {
+                    transformedScale.y = transformEvent.rescaleY(transformedScale.y)
+                }
+            }
+
+            function getScaleForZoom(scale, focus) {
+                return d3.zoomIdentity
                     .translate(focus.x - (Y_AXIS_LABEL_WIDTH + MARGIN), focus.y - MARGIN)
                     .scale(scale)
                     .translate(-focus.x + (Y_AXIS_LABEL_WIDTH + MARGIN), -focus.y + MARGIN)
+            }
+
+            if (d3.event.sourceEvent != null && d3.event.sourceEvent.buttons === rightButton) {
+                transformedScale.x = tempRmbScale.x
+                const rmbDivider = 100.0
+                const zoomAmount = rmbZoomValue(d3.event.sourceEvent) / rmbDivider
+                const scale = Math.exp(zoomAmount)
+                const distanceScale = getScaleForZoom(scale, startPos)
                 transformedScale.x = distanceScale.rescaleX(transformedScale.x)
-                transformedScale.zoom = transformedScale.zoom * scale
+                transformedScale.zoom = tempRmbScale.zoom * scale
             } else if (d3.event.sourceEvent != null && d3.event.sourceEvent.type === 'wheel') {
                 if (d3.event.sourceEvent.ctrlKey) {
                     const pinchDivider = 100.0
                     const zoomAmount = -d3.event.sourceEvent.deltaY / pinchDivider
                     const scale = Math.exp(zoomAmount)
-                    const focus = startPos
-                    const distanceScale = d3.zoomIdentity
-                        .translate(focus.x - (Y_AXIS_LABEL_WIDTH + MARGIN), focus.y - MARGIN)
-                        .scale(scale)
-                        .translate(-focus.x + (Y_AXIS_LABEL_WIDTH + MARGIN), -focus.y + MARGIN)
+                    const distanceScale = getScaleForZoom(scale, startPos)
                     transformedScale.x = distanceScale.rescaleX(transformedScale.x)
                     transformedScale.zoom = transformedScale.zoom * scale
                 } else {
@@ -313,16 +322,20 @@ class Histogram extends Visualization {
                         -d3.event.sourceEvent.deltaX,
                         -d3.event.sourceEvent.deltaY
                     )
-                    transformedScale.x = distanceScale.rescaleX(transformedScale.x)
-                    if (distanceScale.rescaleY(transformedScale.y).domain()[0] >= 0) {
-                        transformedScale.y = distanceScale.rescaleY(transformedScale.y)
-                    }
+                    rescale(distanceScale)
                 }
+            } else if (
+                d3.event.sourceEvent != null &&
+                d3.event.sourceEvent.buttons === midButtonClicked
+            ) {
+                const movementFactor = 2
+                const distanceScale = d3.zoomIdentity.translate(
+                    d3.event.sourceEvent.movementX / movementFactor,
+                    d3.event.sourceEvent.movementY / movementFactor
+                )
+                rescale(distanceScale)
             } else {
-                transformedScale.x = d3.event.transform.rescaleX(transformedScale.x)
-                if (d3.event.transform.rescaleY(transformedScale.y).domain()[0] >= 0) {
-                    transformedScale.y = d3.event.transform.rescaleY(transformedScale.y)
-                }
+                rescale(d3.event.transform)
             }
 
             self.rescale(transformedScale, false)
@@ -332,7 +345,10 @@ class Histogram extends Visualization {
          * Return the position of this event in local canvas coordinates.
          */
         function getPos(event) {
-            return { x: event.offsetX, y: event.offsetY }
+            if (ok(event)) {
+                return { x: event.offsetX, y: event.offsetY }
+            }
+            return { x: 0, y: 0 }
         }
 
         /**
@@ -351,6 +367,7 @@ class Histogram extends Visualization {
          */
         function startZoom() {
             startPos = getPos(d3.event.sourceEvent)
+            tempRmbScale = Object.assign({}, transformedScale)
         }
 
         return { zoomElem, zoom, transformedScale }
