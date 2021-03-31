@@ -712,10 +712,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         v1 shouldEqual v2
     }
 
-    "rename the module" taggedAs Retry in withRepo { repo =>
+    "rename the project name" taggedAs Retry in withRepo { repo =>
       val newModuleName = "Best.Main"
       val action = for {
-        _ <- repo.insertAll(
+        (_, ids) <- repo.insertAll(
           Seq(
             suggestion.atom,
             suggestion.method,
@@ -723,11 +723,13 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             suggestion.local
           )
         )
-        _        <- repo.renameProject("Test", "Best")
-        (_, res) <- repo.getAll
-      } yield res
+        (_, renamed) <- repo.renameProject("Test", "Best")
+        (_, res)     <- repo.getAll
+      } yield (ids, renamed, res)
 
-      val res = Await.result(action, Timeout)
+      val (ids, renamed, res) = Await.result(action, Timeout)
+
+      renamed should contain theSameElementsAs ids.flatten
       res.map(_.suggestion) should contain theSameElementsAs Seq(
         suggestion.atom.copy(module     = newModuleName),
         suggestion.method.copy(module   = newModuleName),
@@ -736,12 +738,50 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       )
     }
 
-    "not change version after renaming the module" taggedAs Retry in withRepo {
+    "rename the module containing project name" taggedAs Retry in withRepo {
+      repo =>
+        val newModuleName = "Best.Main"
+        val atom          = suggestion.atom.copy(module = "Test.Main.Test.Main")
+        val action = for {
+          (_, ids) <- repo.insertAll(
+            Seq(
+              atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (_, renamed) <- repo.renameProject("Test", "Best")
+          (_, res)     <- repo.getAll
+        } yield (ids, renamed, res)
+
+        val (ids, renamed, res) = Await.result(action, Timeout)
+
+        renamed should contain theSameElementsAs ids.flatten
+        res.map(_.suggestion) should contain theSameElementsAs Seq(
+          atom.copy(module                = "Best.Main.Test.Main"),
+          suggestion.method.copy(module   = newModuleName),
+          suggestion.function.copy(module = newModuleName),
+          suggestion.local.copy(module    = newModuleName)
+        )
+    }
+
+    "change version after renaming the module" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          v1 <- repo.insert(suggestion.atom)
-          _  <- repo.renameProject("Test", "Zest")
-          v2 <- repo.currentVersion
+          v1      <- repo.insert(suggestion.atom)
+          (v2, _) <- repo.renameProject("Test", "Zest")
+        } yield (v1, v2)
+
+        val (v1, v2) = Await.result(action, Timeout)
+        v1 should not equal Some(v2)
+    }
+
+    "not change version when not renamed the module" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          v1      <- repo.insert(suggestion.atom)
+          (v2, _) <- repo.renameProject("Zest", "Best")
         } yield (v1, v2)
 
         val (v1, v2) = Await.result(action, Timeout)

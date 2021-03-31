@@ -133,7 +133,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
-  override def renameProject(oldName: String, newName: String): Future[Unit] =
+  override def renameProject(
+    oldName: String,
+    newName: String
+  ): Future[(Long, Seq[Long])] =
     db.run(renameProjectQuery(oldName, newName))
 
   /** @inheritdoc */
@@ -627,16 +630,25 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     *
     * @param oldName the old name of the project
     * @param newName the new project name
+    * @return the current database version and a list of updated suggestion ids
     */
   private def renameProjectQuery(
     oldName: String,
     newName: String
-  ): DBIO[Unit] = {
+  ): DBIO[(Long, Seq[Long])] = {
     val updateQuery =
       sqlu"""update suggestions
-          set module = replace(module, $oldName, $newName)
-          where module like '#$oldName%'"""
-    updateQuery >> DBIO.successful(())
+          set module = $newName || substr(module, length($oldName) + 1)
+          where module like '#$oldName.%'"""
+    val selectQuery = Suggestions
+      .filter(row => row.module.like(s"$newName.%"))
+      .map(_.id)
+      .result
+    for {
+      n       <- updateQuery
+      ids     <- if (n > 0) selectQuery else DBIO.successful(Seq())
+      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
+    } yield (version, ids)
   }
 
   /** The query to get current version of the repo. */
