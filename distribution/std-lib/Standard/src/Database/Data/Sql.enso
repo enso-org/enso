@@ -4,8 +4,54 @@ import Standard.Database.Data.Internal.Vector_Builder
 
 polyglot java import java.sql.Types
 
+## UNSTABLE
+
+   Creates a Builder representing and empty code fragment.
+empty : Builder
+empty = Builder (Vector_Builder.empty)
+
+## UNSTABLE
+
+   Creates a Builder representing a code fragment containing the specified raw
+   code.
+
+   Arguments:
+   - text: The raw SQL code.
+code : Text -> Builder
+code text =
+    vec = if text.is_empty then [] else [Sql_Code_Part text]
+    Builder (Vector_Builder.from_vector vec)
+
+## UNSTABLE
+
+   Creates a Builder representing an interpolation of the given object.
+
+   Arguments:
+   - sql_type: The expected SQL type of `object`.
+   - object: The object to be interpolated into the query as if it has the type
+     given by `sql_type`.
+interpolation : Sql_Type -> Any -> Builder
+interpolation sql_type object = Builder (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
+
+## UNSTABLE
+
+   Joins a vector of code fragments with the provided separator.
+
+   Arguments:
+   - separator: The separator to use when joining the code fragments.
+   - statements: The SQL statements to join using `separator`.
+join : Builder | Text -> Vector Builder -> Builder
+join separator statements =
+    sep = case separator of
+        Builder _ -> separator
+        _ -> here.code separator
+
+    if statements.length == 0 then here.empty else
+        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
+
 ## Represents an internal SQL data-type.
 type Sql_Type
+
     ## Represents an internal SQL data-type.
 
        Arguments:
@@ -35,24 +81,29 @@ type Sql_Type
 
     ## PRIVATE
 
-       Returns True if this type represents an integer. It only handles the
-       standard types so it may return false negatives for non-standard ones.
+       Returns True if this type represents an integer.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
     is_definitely_integer : Boolean
     is_definitely_integer =
         [Types.INTEGER, Types.SMALLINT, Types.TINYINT].contains this.typeid
 
     ## PRIVATE
 
-       Returns True if this type represents a boolean. It only handles the
-       standard types so it may return false negatives for non-standard ones.
+       Returns True if this type represents a boolean.
+
+       It only handles the standard types so it may return false negatives for
+       non-standard ones.
     is_definitely_boolean : Boolean
     is_definitely_boolean =
         [Types.BOOLEAN, Types.BIT].contains this.typeid
 
     ## PRIVATE
 
-       Returns True if this type represents a floating point number. It only
-       handles the standard types so it may return false negatives for
+       Returns True if this type represents a floating point number.
+
+       It only handles the standard types so it may return false negatives for
        non-standard ones.
     is_definitely_double : Boolean
     is_definitely_double =
@@ -67,35 +118,51 @@ type Sql_Type
 ## UNSTABLE
 
    A fragment of a SQL query.
+
    It can either be a Sql_Code_Part that represents raw SQL code or
    Sql_Interpolation which represents an object that will be interpolated into
    the query.
 type Sql_Fragment
+
     ## UNSTABLE
 
        A SQL fragment that represents raw SQL code.
-       # type Sql_Code_Part (code : Text)
+
+       Arguments:
+       - code: A fragment of SQL code.
+    # type Sql_Code_Part (code : Text)
     type Sql_Code_Part code
+
     ## UNSTABLE
 
        A SQL fragment that represents an object which will be interpolated into
        the query.
-       # type Sql_Interpolation (sql_type : Sql_Type) (object : Any)
+
+       Arguments:
+       - sql_type: The expected SQL type of `object`.
+       - object: A value that will be interpolated into the query, interpreted
+         as having the type `sql_type`.
+    # type Sql_Interpolation (sql_type : Sql_Type) (object : Any)
     type Sql_Interpolation sql_type object
 
 type Statement
+
     ## UNSTABLE
 
        Represents a built SQL statement.
 
+       Arguments:
+       - internal_fragments: A vector of SQL code fragments.
+
        The statement consists of SQL code with parameters and values that will be
        interpolated for these parameters.
-       # type Statement (internal_fragments : Vector Sql_Fragment)
+    # type Statement (internal_fragments : Vector Sql_Fragment)
     type Statement internal_fragments
 
     ## UNSTABLE
 
        A vector of code fragments.
+
        Consists of two types of values:
        - Sql_Code_Part, representing parts of raw SQL code and
        - Sql_Interpolation, representing objects that will be interpolated in
@@ -129,7 +196,7 @@ type Statement
 
        Returns a pair consisting of the SQL code with holes for values and
        a list for values that should be substituted.
-       # prepare : [Text, Vector Any]
+    # prepare : [Text, Vector Any]
     prepare =
         to_code fragment = case fragment of
             Sql_Code_Part code -> code
@@ -155,18 +222,25 @@ type Statement
         Json.from_pairs [["query", fragments]]
 
 type Builder
-    ## UNSTABLE
+
+    ## PRIVATE
 
        A Builder for SQL queries.
 
-       It can be used to concatenate parts of SQL code in O(1) time and at the end
-       build the actual query in linear time.
+       Arguments:
+       - fragments: A builder that contains fragments of SQL code.
+
+       It can be used to concatenate parts of SQL code in O(1) time and at the
+       end build the actual query in linear time.
     # type Builder (fragments : Vector_Builder.Vector_Builder Sql_Fragment)
     type Builder fragments
 
     ## UNSTABLE
 
        Concatenates two code fragments.
+
+       Arguments:
+       - other: The code fragment to append to `this`.
     ++ : Builder -> Builder
     ++ other = Builder (this.fragments ++ other.fragments)
 
@@ -196,6 +270,10 @@ type Builder
     ## UNSTABLE
 
        If the fragment is non empty, prepends the specified prefix to it.
+
+       Arguments:
+       - prefix: The prefix to append if the fragment is present.
+
        Empty fragments are unaffected.
     prefix_if_present : Text | Builder -> Builder
     prefix_if_present prefix =
@@ -204,43 +282,13 @@ type Builder
             _ -> here.code prefix
         if this.is_empty then this else pref++this
 
-## UNSTABLE
-
-   Creates a Builder representing and empty code fragment.
-empty : Builder
-empty = Builder (Vector_Builder.empty)
-
-## UNSTABLE
-
-   Creates a Builder representing a code fragment containing the specified raw
-   code.
-code : Text -> Builder
-code text =
-    vec = if text.is_empty then [] else [Sql_Code_Part text]
-    Builder (Vector_Builder.from_vector vec)
-
-## UNSTABLE
-
-   Creates a Builder representing an interpolation of the given object.
-interpolation : Sql_Type -> Any -> Builder
-interpolation sql_type object = Builder (Vector_Builder.from_vector [Sql_Interpolation sql_type object])
-
-## UNSTABLE
-
-   Joins a vector of code fragments with the provided separator.
-join : Builder | Text -> Vector Builder -> Builder
-join separator statements =
-    sep = case separator of
-        Builder _ -> separator
-        _ -> here.code separator
-
-    if statements.length == 0 then here.empty else
-        (1.up_to statements.length . fold (statements.at 0) acc-> i-> acc ++ sep ++ statements.at i)
-
-## UNSTABLE
+## PRIVATE
 
    Merges neighboring code fragments to create a more compact representation of
    the same code.
+
+   Arguments:
+   - fragments: The fragments to be merged together.
 optimize_fragments : Vector Sql_Fragment -> Vector Sql_Fragment
 optimize_fragments fragments =
     builder = Vector.new_builder

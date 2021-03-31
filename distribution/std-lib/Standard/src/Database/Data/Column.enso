@@ -15,6 +15,12 @@ type Column
 
        Represents a single column backed by a database.
 
+       Arguments:
+       - name: The name of the column.
+       - connection: The connection with which the column is associated.
+       - expression: The expressions to apply to the column.
+       - context: The SQl context in which the column exists.
+
        These columns may come from the Table or can be created by combining
        other columns with operators. Expressions created in this way may be
        materialized or used to apply filters, groupings etc. to tables from
@@ -43,6 +49,7 @@ type Column
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
+    print : Nothing
     print show_rows=10 =
         IO.println (this.display show_rows format_terminal=True)
         IO.println ''
@@ -93,6 +100,14 @@ type Column
     ## PRIVATE
 
        Creates a binary operation with given kind and operand.
+
+       Arguments:
+       - op_kind: The kind of binary operator.
+       - operand: The right operand to the binary operator.
+       - new_type: The type of the SQL column that results from applying the
+         operator.
+       - operand_type: The SQL type of the operand.
+
        If not specified, the `new_type` is the same as the current one.
        `operand_type` is only relevant if the operand is not a column, it
        defaults to the current type if not provided.
@@ -116,6 +131,11 @@ type Column
     ## PRIVATE
 
        Helper for implementing unary operators.
+
+       Arguments:
+       - op_kind: The kind of the unary operator.
+       - new_type: The type of the SQL column that results from applying the
+         operator.
     make_unary_op : Text -> Text -> (Sql_Type | Nothing) -> Column
     make_unary_op op_kind new_type=Nothing =
         actual_new_type = if new_type.is_nothing then this.sql_type else new_type
@@ -147,6 +167,12 @@ type Column
     mean = this.compute_aggregate "AVG"
 
     ## PRIVATE
+
+       Computes an aggregate operator.
+
+       Arguments:
+       - op_name: The name of the operator to compute.
+    compute_aggregate : Text
     compute_aggregate op_name =
         agg = here.make_aggregate this op_name
         agg.to_vector . at 0
@@ -171,109 +197,159 @@ type Column
 
     ## UNSTABLE
 
-       Element-wise equality comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise equality comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     == : Column | Any -> Column
     == other = this.make_binary_op "=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise non-equality comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise non-equality comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     != : Column | Any -> Column
     != other = this.make_binary_op "!=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise order comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     >= : Column | Any -> Column
     >= other = this.make_binary_op ">=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise order comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     <= : Column | Any -> Column
     <= other = this.make_binary_op "<=" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise order comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     > : Column | Any -> Column
     > other = this.make_binary_op ">" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise order comparison.
+
+       Arguments:
+       - other: The other column to compare pairwise with.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.  If `other` is a column, the comparison is performed pairwise
+       between corresponding elements of `this` and `other`.
     < : Column | Any -> Column
     < other = this.make_binary_op "<" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
-       Element-wise addition. Returns a column containing the result
-       of adding `other` to each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise addition.
+
+       Arguments:
+       - other: The other column to add to this column.
+
+       Returns a column containing the result of adding `other` to each element
+       of `this`.  If `other` is a column, the operation is performed pairwise
+       between corresponding elements of `this` and `other`.
     + : Column | Any -> Column
     + other = this.make_binary_op "+" other
 
     ## UNSTABLE
 
-       Element-wise subtraction. Returns a column containing the result
-       of subtracting `other` from each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise subtraction.
+
+       Arguments:
+       - other: The other column to subtract from this column.
+
+       Returns a column containing the result of subtracting `other` from each
+       element of `this`.  If `other` is a column, the operation is performed
+       pairwise between corresponding elements of `this` and `other`.
     - : Column | Any -> Column
     - other = this.make_binary_op "-" other
 
     ## UNSTABLE
 
-       Element-wise multiplication. Returns a column containing the result
-       of multiplying `other` by each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise multiplication.
+
+       Arguments:
+       - other: The other column to multiply `this` by.
+
+       Returns a column containing the result of multiplying `other` by each
+       element of `this`.  If `other` is a column, the operation is performed
+       pairwise between corresponding elements of `this` and `other`.
     * : Column | Any -> Column
     * other = this.make_binary_op "*" other
 
     ## UNSTABLE
 
-       Element-wise division. Returns a column containing the result
-       of dividing each element of `this` by `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise division.
+
+       Arguments:
+       - other: The other column to divide `this` column by.
+
+       Returns a column containing the result of dividing each element of `this`
+       by `other`.  If `other` is a column, the operation is performed pairwise
+       between corresponding elements of `this` and `other`.
     / : Column | Any -> Column
     / other = this.make_binary_op "/" other
 
     ## UNSTABLE
 
-       Element-wise boolean conjunction. Returns a column containing the result
-       of performing the boolean `and` on `other` and each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise boolean conjunction.
+
+       Arguments:
+       - other: The other column to compute the conjunction with.
+
+       Returns a column containing the result of performing the boolean `and` on
+       `other` and each element of `this`.  If `other` is a column, the
+       operation is performed pairwise between corresponding elements of `this` ]
+       and `other`.
     && : Column | Any -> Column
     && other = this.make_binary_op "AND" other
 
     ## UNSTABLE
 
-       Element-wise boolean disjunction. Returns a column containing the result
-       of performing the boolean `or` on `other` and each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+       Element-wise boolean disjunction.
+
+       Arguments:
+       - other: The other column to compute the disjunction with.
+
+       Returns a column containing the result of performing the boolean `or` on
+       `other` and each element of `this`.  If `other` is a column, the
+       operation is performed pairwise between corresponding elements of `this`
+       and `other`.
     || : Column | Any -> Column
     || other = this.make_binary_op "OR" other
 
@@ -300,8 +376,13 @@ type Column
     ## UNSTABLE
 
        Selects only the rows of this column that correspond to `True` values in
-       `indexes`.
+       `filter`.
+
+       Arguments:
+       - filter: A column of booleans to mask `this` by.
+
        This is useful for filtering the rows by given predicate.
+
        > Example
          Select only the rows of `my_column` where the `status_column` column
          has the value `"Valid"`
@@ -325,6 +406,9 @@ type Column
     ## UNSTABLE
 
        Returns the same column with changed name.
+
+       Arguments:
+       - new_name: The name to rename `this` column to.
     rename : Text -> Column
     rename new_name = case Helpers.ensure_name_is_sane new_name of
         True ->
@@ -339,8 +423,8 @@ type Column
        Sorts the column according to the specified rules.
 
        Arguments:
-         - order: specifies the default sort order for this operation.
-         - missing_last: specifies the default placement of missing values when
+         - order: Specifies the default sort order for this operation.
+         - missing_last: Specifies the default placement of missing values when
            compared to non-missing ones. Note thet this argument is independent
            from `order`, i.e. missing values will always be sorted according to
            this rule, ignoring the ascending / descending setting.
@@ -360,33 +444,42 @@ type Column
     ## UNSTABLE
 
        Checks for each element of the column if it starts with `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
 
-       If the argument is a missing value (a Nothing or a column with missing
-       values), the behaviour on these missing values is vendor specific.
+       Arguments:
+       - other: A column or text to check for each item in `this`.
+
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.  If the argument is a
+       missing value (a Nothing or a column with missing values), the behaviour
+       on these missing values is vendor specific.
     starts_with : Column | Text -> Column
     starts_with other = this.make_binary_op "starts_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
        Checks for each element of the column if it ends with `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
 
-       If the argument is a missing value (a Nothing or a column with missing
-       values), the behaviour on these missing values is vendor specific.
+       Arguments:
+       - other: A column ot text to check for each item in `this`.
+
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.  If the argument is a
+       missing value (a Nothing or a column with missing values), the behaviour
+       on these missing values is vendor specific.
     ends_with : Column | Text -> Column
     ends_with other = this.make_binary_op "ends_with" other new_type=Sql_Type.boolean
 
     ## UNSTABLE
 
        Checks for each element of the column if it contains `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
 
-       If the argument is a missing value (a Nothing or a column with missing
-       values), the behaviour on these missing values is vendor specific.
+       Arguments:
+       - other: A column ot text to check for each item in `this`.
+
+       If `other` is a column, the operation is performed pairwise between
+       corresponding elements of `this` and `other`.  If the argument is a
+       missing value (a Nothing or a column with missing values), the behaviour
+       on these missing values is vendor specific.
     contains : Column | Text -> Column
     contains other = this.make_binary_op "contains" other new_type=Sql_Type.boolean
 
@@ -395,13 +488,22 @@ type Column
     as_internal = IR.Internal_Column this.name this.sql_type this.expression
 
 type Aggregate_Column
+
     ## UNSTABLE
 
-       Wraps a column grouped by its index. Allows performing aggregation operations
-       on the contained values.
-       # type Aggregate_Column (name : Text) (connection : Connection)
-       #                       (sql_type : Sql_Type) (expression : IR.Expression)
-       #                       (context : IR.Context)
+       Wraps a column grouped by its index.
+
+       Arguments:
+       - name: The name of the column.
+       - connection: The connection with which the column is associated.
+       - sql_type: The SQL type of the aggregate column.
+       - expression: The expressions to apply to the column.
+       - context: The SQl context in which the column exists.
+
+       Allows performing aggregation operations on the contained values.
+    # type Aggregate_Column (name : Text) (connection : Connection)
+    #                       (sql_type : Sql_Type) (expression : IR.Expression)
+    #                       (context : IR.Context)
     type Aggregate_Column name connection sql_type expression context
 
     ## UNSTABLE
@@ -409,8 +511,8 @@ type Aggregate_Column
        Sums the values in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
         here.make_aggregate this "SUM" name_suffix
@@ -420,8 +522,8 @@ type Aggregate_Column
        Computes the maximum element of each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
         here.make_aggregate this "MAX" name_suffix
@@ -431,8 +533,8 @@ type Aggregate_Column
        Computes the minimum element of each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
         here.make_aggregate this "MIN" name_suffix
@@ -442,8 +544,8 @@ type Aggregate_Column
        Computes the number of non-missing elements in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
         here.make_aggregate this "COUNT" name_suffix new_type=Sql_Type.integer
@@ -453,15 +555,15 @@ type Aggregate_Column
        Computes the mean of non-missing elements in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
         here.make_aggregate this "AVG" name_suffix
 
     ## PRIVATE
 
-       Helper that returns the underlying column from before grouping.
+       A helper that returns the underlying column from before grouping.
     ungrouped : Column
     ungrouped =
         new_ctx = this.context.set_groups []
@@ -471,6 +573,13 @@ type Aggregate_Column
 
    A helper method for creating an aggregated column by applying some
    operation.
+
+   Arguments:
+   - column: The column to aggregate.
+   - operation: The name of the aggregation operation.
+   - name_suffix: The suffix to apply to the name of the aggregate column.
+   - new_type: The SQL type of the result column.
+make_aggregate : Column -> Text -> Text -> Sql_Type -> Column
 make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     actual_new_type = if new_type.is_nothing then column.sql_type else new_type
     expr = IR.Operation operation [column.expression]
