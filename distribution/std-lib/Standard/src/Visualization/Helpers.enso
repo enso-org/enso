@@ -6,41 +6,41 @@ import Standard.Table.Data.Table
 
 ## PRIVATE
    Maps the vector using the given function. Filters out all error values.
-Vector.Vector.filter_map: Any -> Vector
+Vector.Vector.filter_map : Any -> Vector
 Vector.Vector.filter_map f = this.map f . filter .is_valid
 
 ## PRIVATE
    Returns the given value if this is not an error. Propagates error otherwise.
-Any.when_valid: Any -> Any
+Any.when_valid : Any -> Any
 Any.when_valid ~val = this.map_valid (_-> val)
 
 ## PRIVATE
    Returns the given value if this is not an error. Propagates error otherwise.
-Error.when_valid: Any -> Any
+Error.when_valid : Any -> Any
 Error.when_valid ~val = this.map_valid (_-> val)
 
 ## PRIVATE
    Checks if the value is not an error.
-Any.is_valid: Any -> Any
+Any.is_valid : Any -> Any
 Any.is_valid = this.is_error.not
 
 ## PRIVATE
    Checks if the value is not an error.
-Error.is_valid: Any -> Any
+Error.is_valid : Any -> Any
 Error.is_valid = this.is_error.not
 
 ## PRIVATE
    Maps over non-error value.
-Any.map_valid: Any -> Any
+Any.map_valid : Any -> Any
 Any.map_valid f = f this
 
 ## PRIVATE
    Maps over non-error value.
-Error.map_valid: Any -> Any
+Error.map_valid : Any -> Any
 Error.map_valid _ = this
 
 ## PRIVATE
-Any.catch_: Any -> Any
+Any.catch_ : Any -> Any
 Any.catch_ ~val = this.catch (_-> val)
 
 ## PRIVATE
@@ -56,8 +56,9 @@ recover_errors ~body =
 
 ## PRIVATE
 
-   Returns all the columns in the table, including indices. Index columns are 
-   placed before other columns.
+   Returns all the columns in the table, including indices. 
+   
+   Index columns are placed before other columns.
 Table.Table.all_columns : Vector
 Table.Table.all_columns =
     index = this.index.catch_ []
@@ -68,8 +69,12 @@ Table.Table.all_columns =
 
 ## PRIVATE
 
-   Looks for a column by a given name. Unlike `Table.at` looks into index
-   columns and name comparison is case-insensitive.
+   Looks for a column by a given name. 
+   
+   Unlike `Table.at` looks into index columns and name comparison is case-insensitive.
+
+   Arguments:
+   - text: the case-insensitive name of the searched column .
 Table.Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.Table.lookup_ignore_case name =
     ret = this.all_columns.find <| col-> 
