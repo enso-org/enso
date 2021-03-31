@@ -9,6 +9,7 @@ import Tests.Semantic.Error_Spec
 import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import Tests.Semantic.Meta_Spec
 import Tests.Semantic.Names_Spec
+import Tests.Semantic.Runtime_Spec
 
 import Tests.Semantic.Java_Interop_Spec
 import Tests.Semantic.Js_Interop_Spec
@@ -60,6 +61,7 @@ main = Test.Suite.runMain <|
     Maybe_Spec.spec
     Meta_Spec.spec
     Names_Spec.spec
+    Runtime_Spec.spec
     Noise_Generator_Spec.spec
     Noise_Spec.spec
     Numbers_Spec.spec
