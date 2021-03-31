@@ -5,7 +5,7 @@ import Database_Tests.Codegen_Spec
 import Database_Tests.Sqlite_Spec
 import Database_Tests.Postgresql_Spec
 
-main = Test.Suite.runMain <|
+main = Test.Suite.run_main <|
     Codegen_Spec.spec
     Sqlite_Spec.spec
     Postgresql_Spec.spec
