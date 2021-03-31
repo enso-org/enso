@@ -262,33 +262,48 @@ commands['toml-fmt'].rust = async function() {
 
 commands.watch          = command(`Start a file-watch utility and run interactive mode`)
 commands.watch.options  = Object.assign({},commands.build.options)
-commands.watch.parallel = true
-commands.watch.rust = async function(argv) {
-    let build_args = []
-    if (argv.crate !== undefined) {
-        build_args.push(`--crate=${argv.crate}`)
-    }
-    if (argv.backend !== 'false') {
-        build_project_manager().then(run_project_manager)
-    }
+commands.watch.parallel = false
+commands.watch.common   = async function(argv) {
+    argv.dev = true
 
-    build_args = build_args.join(' ')
-    let target =
-        '"' +
-        `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
-        cargoArgs.join(' ') +
-        '"'
-    let args = ['watch', '-s', `${target}`]
-    await cmd.with_cwd(paths.rust.root, async () => {
-        await cmd.run('cargo',args)
-    })
-}
+    // Init JS build and project manager.
 
-commands.watch.js = async function() {
     await installJsDeps()
-    await cmd.with_cwd(paths.js.root, async () => {
-        await run('npm',['run','watch'])
+    if (argv.backend !== 'false') {
+        await build_project_manager().then(run_project_manager)
+    }
+
+    // Run build processes.
+
+    await cmd.with_cwd(paths.rust.root, async () => {
+        return commands.build.rust(argv);
     })
+    await cmd.with_cwd(paths.js.root, async () => {
+        return  commands.build.js(argv)
+    })
+
+    // Run watch processes.
+
+    const rust_process = cmd.with_cwd(paths.rust.root, async () => {
+        let build_args = []
+        if (argv.crate !== undefined) {
+            build_args.push(`--crate=${argv.crate}`)
+        }
+        build_args = build_args.join(' ')
+        const target =
+          '"' +
+          `node ${paths.script.main} build --skip-version-validation --no-js --dev ${build_args} -- ` +
+          cargoArgs.join(' ') +
+          '"'
+        let args = ['watch', '-s', `${target}`]
+        return cmd.run('cargo',args)
+    })
+    const js_process = cmd.with_cwd(paths.js.root, async () => {
+        return run('npm',['run','watch']);
+    })
+
+    await rust_process
+    await js_process
 }
 
 
@@ -518,18 +533,23 @@ async function runCommand(command,argv) {
         cargoArgs  = cargoArgs.slice(0,index)
     }
     let runner = async function () {
-        let do_rust = argv.rust && config.rust
-        let do_js   = argv.js   && config.js
-        let rustCmd = () => cmd.with_cwd(paths.rust.root, async () => await config.rust(argv))
-        let jsCmd   = () => cmd.with_cwd(paths.js.root  , async () => await config.js(argv))
+        let do_common = config.common
+        let do_rust   = argv.rust && config.rust
+        let do_js     = argv.js   && config.js
+
+        let commonCmd = () => cmd.with_cwd(paths.root, async () => await config.common(argv))
+        let rustCmd   = () => cmd.with_cwd(paths.rust.root, async () => await config.rust(argv))
+        let jsCmd     = () => cmd.with_cwd(paths.js.root  , async () => await config.js(argv))
         if(config.parallel) {
             let promises = []
-            if (do_rust) { promises.push(rustCmd()) }
-            if (do_js)   { promises.push(jsCmd()) }
+            if (do_common ) { promises.push(commonCmd()) }
+            if (do_rust)    { promises.push(rustCmd()) }
+            if (do_js)      { promises.push(jsCmd()) }
             await Promise.all(promises)
         } else {
-            if (do_rust) { await rustCmd() }
-            if (do_js)   { await jsCmd()   }
+            if (do_common) { await commonCmd() }
+            if (do_rust)   { await rustCmd() }
+            if (do_js)     { await jsCmd()   }
         }
     }
     cmd.section(command)
