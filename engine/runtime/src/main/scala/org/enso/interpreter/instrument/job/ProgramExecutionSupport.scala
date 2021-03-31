@@ -256,7 +256,7 @@ trait ProgramExecutionSupport {
     val executionUpdate = getExecutionOutcome(error)
     ctx.executionService.getLogger
       .log(
-        Level.INFO,
+        Level.WARNING,
         s"Error executing a function $itemName. ${error.getMessage}"
       )
     executionUpdate.getOrElse(
