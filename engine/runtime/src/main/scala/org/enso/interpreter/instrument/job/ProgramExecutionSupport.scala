@@ -254,14 +254,11 @@ trait ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
-    executionUpdate match {
-      case Some(_) =>
-        ctx.executionService.getLogger
-          .log(Level.FINEST, s"Error executing a function $itemName.")
-      case None =>
-        ctx.executionService.getLogger
-          .log(Level.FINEST, s"Error executing a function $itemName.", error)
-    }
+    ctx.executionService.getLogger
+      .log(
+        Level.WARNING,
+        s"Error executing a function $itemName. ${error.getMessage}"
+      )
     executionUpdate.getOrElse(
       Api.ExecutionResult
         .Failure(s"Error in function $itemName.", None)
