@@ -297,7 +297,7 @@ type Sql_Error
 
        Convert the SQL error to a textual representation.
     to_text : Text
-    to_text = "There was an SQL error: " + ""this.java_exception.getMessage + "."
+    to_text = "There was an SQL error: " + this.java_exception.getMessage.to_text + "."
 
     ## UNSTABLE
 
