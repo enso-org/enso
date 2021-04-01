@@ -291,9 +291,13 @@ object DistributionPackage {
     }
 
     private def graalArchive(os: OS, architecture: Architecture): File = {
-      val packageName = s"graalvm-${os.name}-${architecture.name}-" +
+      val packageDir = artifactRoot / s"graalvm-${os.name}-${architecture.name}"
+      if (!packageDir.exists()) {
+        IO.createDirectory(packageDir)
+      }
+      val archiveName = s"graalvm-${os.name}-${architecture.name}-" +
         s"$graalVersion-$graalJavaVersion"
-      artifactRoot / (packageName + os.archiveExt)
+      packageDir / (archiveName + os.archiveExt)
     }
 
     private def downloadGraal(
@@ -339,21 +343,22 @@ object DistributionPackage {
       val archive = downloadGraal(log, os, architecture)
 
       if (os != OS.Windows) {
+        val packageDir        = archive.getParentFile
         val archiveRootDir    = list(archive).head.getTopDirectory.getName
-        val extractedGraalDir = artifactRoot / archiveRootDir
+        val extractedGraalDir = packageDir / archiveRootDir
         if (extractedGraalDir.exists()) {
           IO.delete(extractedGraalDir)
         }
 
-        log.info(s"Extracting $archive to $artifactRoot")
-        extract(archive, artifactRoot)
+        log.info(s"Extracting $archive to $packageDir")
+        extract(archive, packageDir)
 
         log.info("Installing components")
         gu(log, os, extractedGraalDir, "install", "python", "R")
 
         log.info(s"Re-creating $archive")
-        archive.delete()
-        makeArchive(artifactRoot, archiveRootDir, archive)
+        IO.delete(archive)
+        makeArchive(packageDir, archiveRootDir, archive)
 
         log.info(s"Cleaning up $extractedGraalDir")
         IO.delete(extractedGraalDir)
