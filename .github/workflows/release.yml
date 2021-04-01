@@ -163,6 +163,12 @@ jobs:
         run: |
           sleep 1
           sbt buildProjectManagerDistribution
+      - name: Prepare GraalVM Distribution
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt buildGraalDistribution
 
       # Ensure that the versions encoded in the binary and in the release match
       - name: Check Versions (Unix)
@@ -216,6 +222,11 @@ jobs:
         with:
           name: ${{ env.PROJECTMANAGER_DIST_NAME }}
           path: repo/${{ env.PROJECTMANAGER_DIST_ROOT }}
+      - name: Upload the GraalVM Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.GRAAL_PACKAGE_NAME }}
+          path: repo/${{ env.GRAAL_PACKAGE_ROOT }}
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:

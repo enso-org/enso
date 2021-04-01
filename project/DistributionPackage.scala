@@ -6,6 +6,29 @@ import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 import scala.sys.process._
 
 object DistributionPackage {
+
+  /** File extensions. */
+  implicit class FileExtensions(file: File) {
+
+    /** Get the outermost directory of this file.
+      *
+      * == Example ==
+      * {{{
+      *   file("foo/bar/baz").getTopDirectory == file("foo")
+      * }}}
+      *
+      * @return the outermost directory of this file.
+      */
+    def getTopDirectory: File = {
+      @scala.annotation.tailrec
+      def go(path: File): File = {
+        val parent = path.getParentFile
+        if (parent == null) path else go(parent)
+      }
+      go(file)
+    }
+  }
+
   def copyDirectoryIncremental(
     source: File,
     destination: File,
@@ -157,20 +180,28 @@ object DistributionPackage {
   }
   object OS {
     case object Linux extends OS {
-      override def name: String = "linux"
+      override val name: String = "linux"
     }
     case object MacOS extends OS {
-      override def name: String      = "macos"
+      override val name: String      = "macos"
       override def graalName: String = "darwin"
     }
     case object Windows extends OS {
-      override def name: String                         = "windows"
+      override val name: String                         = "windows"
       override def executableName(base: String): String = base + ".exe"
       override def archiveExt: String                   = ".zip"
       override def isUNIX: Boolean                      = false
     }
 
     val platforms = Seq(Linux, MacOS, Windows)
+
+    def apply(name: String): Option[OS] =
+      name.toLowerCase match {
+        case Linux.`name`   => Some(Linux)
+        case MacOS.`name`   => Some(MacOS)
+        case Windows.`name` => Some(Windows)
+        case _              => None
+      }
   }
 
   sealed trait Architecture {
@@ -213,6 +244,14 @@ object DistributionPackage {
       }
     }
 
+    private def listZip(archive: File): Seq[File] = {
+      val suppressStdErr = ProcessLogger(_ => ())
+      val zipList = Process(
+        Seq("zip", "-l", archive.toPath.toAbsolutePath.normalize.toString)
+      )
+      zipList.lineStream(suppressStdErr).map(file)
+    }
+
     private def extractTarGz(archive: File, root: File): Unit = {
       IO.createDirectory(root)
       val exitCode = Process(
@@ -228,6 +267,13 @@ object DistributionPackage {
       }
     }
 
+    private def listTarGz(archive: File): Seq[File] = {
+      val suppressStdErr = ProcessLogger(_ => ())
+      val tarList =
+        Process(Seq("tar", "tf", archive.toPath.toAbsolutePath.toString))
+      tarList.lineStream(suppressStdErr).map(file)
+    }
+
     private def extract(archive: File, root: File): Unit = {
       if (archive.getName.endsWith("zip")) {
         extractZip(archive, root)
@@ -236,15 +282,26 @@ object DistributionPackage {
       }
     }
 
-    def copyGraal(
-      log: ManagedLogger,
-      os: OS,
-      architecture: Architecture,
-      runtimeDir: File
-    ): Unit = {
+    private def list(archive: File): Seq[File] = {
+      if (archive.getName.endsWith("zip")) {
+        listZip(archive)
+      } else {
+        listTarGz(archive)
+      }
+    }
+
+    private def graalArchive(os: OS, architecture: Architecture): File = {
       val packageName = s"graalvm-${os.name}-${architecture.name}-" +
         s"$graalVersion-$graalJavaVersion"
-      val archive = artifactRoot / (packageName + os.archiveExt)
+      artifactRoot / (packageName + os.archiveExt)
+    }
+
+    private def downloadGraal(
+      log: ManagedLogger,
+      os: OS,
+      architecture: Architecture
+    ): File = {
+      val archive = graalArchive(os, architecture)
       if (!archive.exists()) {
         log.info(
           s"Downloading GraalVM $graalVersion Java $graalJavaVersion " +
@@ -261,7 +318,72 @@ object DistributionPackage {
         }
       }
 
+      archive
+    }
+
+    private def copyGraal(
+      os: OS,
+      architecture: Architecture,
+      runtimeDir: File
+    ): Unit = {
+      val archive = graalArchive(os, architecture)
       extract(archive, runtimeDir)
+    }
+
+    def createGraalPackage(
+      log: ManagedLogger,
+      os: OS,
+      architecture: Architecture
+    ): File = {
+      log.info("Building GraalVM distribution")
+      val archive = downloadGraal(log, os, architecture)
+
+      if (os != OS.Windows) {
+        val archiveRootDir    = list(archive).head.getTopDirectory.getName
+        val extractedGraalDir = artifactRoot / archiveRootDir
+        if (extractedGraalDir.exists()) {
+          IO.delete(extractedGraalDir)
+        }
+
+        log.info(s"Extracting $archive to $artifactRoot")
+        extract(archive, artifactRoot)
+
+        log.info("Installing components")
+        gu(log, os, extractedGraalDir, "install", "python", "R")
+
+        log.info(s"Re-creating $archive")
+        archive.delete()
+        makeArchive(artifactRoot, archiveRootDir, archive)
+
+        log.info(s"Cleaning up $extractedGraalDir")
+        IO.delete(extractedGraalDir)
+      }
+      archive
+    }
+
+    /** Run the `gu` executable from the GraalVM distribution.
+      *
+      * @param log the log manager
+      * @param os the system
+      * @param graalDir the directory with a GraalVM distributions
+      * @param arguments the command arguments
+      */
+    private def gu(
+      log: ManagedLogger,
+      os: OS,
+      graalDir: File,
+      arguments: String*
+    ): Unit = {
+      val executableFile = graalDir / "bin" / os.executableName("gu")
+      val command =
+        executableFile.toPath.toAbsolutePath.toString +: arguments
+      log.debug(command.mkString(" "))
+      val exitCode = Process(command, cwd = Some(graalDir)).!
+      if (exitCode != 0) {
+        throw new RuntimeException(
+          s"Failed to run '${command.mkString(" ")}'"
+        )
+      }
     }
 
     def copyEngine(os: OS, architecture: Architecture, distDir: File): Unit = {
@@ -351,6 +473,12 @@ object DistributionPackage {
         architecture
       ) + os.archiveExt)
 
+    private def cleanDirectory(dir: File): Unit = {
+      for (f <- IO.listFiles(dir)) {
+        IO.delete(f)
+      }
+    }
+
     /** Creates compressed and ready for release packages for the launcher and
       * engine.
       *
@@ -390,12 +518,6 @@ object DistributionPackage {
       state
     }
 
-    private def cleanDirectory(dir: File): Unit = {
-      for (f <- IO.listFiles(dir)) {
-        IO.delete(f)
-      }
-    }
-
     /** Creates launcher and project-manager bundles that include the component
       * itself, the engine and a Graal runtime.
       *
@@ -418,7 +540,7 @@ object DistributionPackage {
         if (launcher.exists()) {
           fixLauncher(launcher, os)
           copyEngine(os, arch, launcher / "enso" / "dist")
-          copyGraal(log, os, arch, launcher / "enso" / "runtime")
+          copyGraal(os, arch, launcher / "enso" / "runtime")
 
           val archive = builtArchive("bundle", os, arch)
           makeArchive(launcher, "enso", archive)
@@ -436,7 +558,8 @@ object DistributionPackage {
           }
 
           copyEngine(os, arch, pm / "enso" / "dist")
-          copyGraal(log, os, arch, pm / "enso" / "runtime")
+          copyGraal(os, arch, pm / "enso" / "runtime")
+
           IO.copyFile(
             file("distribution/enso.bundle.template"),
             pm / "enso" / ".enso.bundle"

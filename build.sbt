@@ -1362,3 +1362,24 @@ buildProjectManagerDistribution := {
   DistributionPackage.createProjectManagerPackage(root, cacheFactory)
   log.info(s"Project Manager package created at $root")
 }
+
+lazy val buildGraalDistribution =
+  taskKey[Unit]("Builds the GraalVM distribution")
+buildGraalDistribution := {
+  val log = streams.value.log
+  val osName = sys.env.get("DIST_OS").getOrElse {
+    val name = sys.props("os.name").takeWhile(!_.isWhitespace)
+    log.warn(
+      s"DIST_OS env var is empty. Falling back to system property os.name=$name."
+    )
+    name
+  }
+  val os = DistributionPackage.OS(osName).getOrElse {
+    throw new RuntimeException(s"Failed to determine OS: $osName.")
+  }
+  packageBuilder.createGraalPackage(
+    log,
+    os,
+    DistributionPackage.Architecture.X64
+  )
+}
