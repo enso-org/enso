@@ -13,6 +13,9 @@ type Image
 
        The image data type.
 
+       Arguments:
+       - opencv_mat: The underlying matrix that stores the image data.
+
        The image is represented with a matrix of rows x columns. Each
        pixel is represented with a vector of 1 to 4 values (channels).
        Pixel values are normalized in a range [0.0 .. 1.0].
@@ -41,8 +44,8 @@ type Image
        Get the pixel value indexed by row and column.
 
        Arguments:
-       - `row`: the row index.
-       - `column`: the column index.
+       - row: the row index.
+       - column: the column index.
 
        > Example
          Get the value at the specified row and column.
@@ -61,11 +64,9 @@ type Image
     ## UNSTABLE
 
        Calculates the per-element sum of an image and a scalar or a matrix.
-       Matrix should have the same dimensions as the image.
 
        Arguments:
-
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each pixel's channel of the image. The
          vector value is padded with zeros to match the number of channels and
          then applied to each image's pixel. The matrix value must have the same
@@ -74,6 +75,8 @@ type Image
          applied element-wise, e.g., each matrix element is combined with the
          appropriate pixel (the element with the same row and column) of this
          image.
+
+       The matrix should have the same dimensions as the image.
 
        > Example
          Add the constant to an image. Operation will add 0.1 to each channel
@@ -93,10 +96,9 @@ type Image
     ## UNSTABLE
 
        Calculates the per-element difference between an image and a scalar or a matrix.
-       Matrix should have the same dimensions as the image.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each pixel's channel of the image. The
          vector value is padded with zeros to match the number of channels and
          then applied to each image's pixel. The matrix value must have the same
@@ -105,6 +107,8 @@ type Image
          applied element-wise, e.g., each matrix element is combined with the
          appropriate pixel (the element with the same row and column) of this
          image.
+
+       The matrix should have the same dimensions as the image.
 
        > Example
          Subtract 0.5 from each channel of the image.
@@ -123,10 +127,9 @@ type Image
     ## UNSTABLE
 
        Calculates the per-element product of an image and a scalar or a matrix.
-       Matrix should have the same dimensions as the image.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each pixel's channel of the image. The
          vector value is padded with zeros to match the number of channels and
          then applied to each image's pixel. The matrix value must have the same
@@ -135,6 +138,8 @@ type Image
          applied element-wise, e.g., each matrix element is combined with the
          appropriate pixel (the element with the same row and column) of this
          image.
+
+       The matrix should have the same dimensions as the image.
 
        > Example
          Multiply each channel of the image by 2.
@@ -158,10 +163,9 @@ type Image
     ## UNSTABLE
 
        Performs per-element division of an image and a scalar or a matrix.
-       Matrix should have the same dimensions as the image.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each pixel's channel of the image. The
          vector value is padded with zeros to match the number of channels and
          then applied to each image's pixel. The matrix value must have the same
@@ -170,6 +174,8 @@ type Image
          applied element-wise, e.g., each matrix element is combined with the
          appropriate pixel (the element with the same row and column) of this
          image.
+
+       The matrix should have the same dimensions as the image.
 
        > Example
          Divide each channel of the image by 2.
@@ -194,7 +200,7 @@ type Image
        Check the equality of two images.
 
        Arguments:
-       - `that`: the matrix to compare with.
+       - that: the matrix to compare with.
 
        ? Implementation Note
          Two images considered equal when they have the same number of rows,
@@ -233,11 +239,12 @@ type Image
    Create an image from the array of values.
 
    Arguments:
-   - `values`: the vector of numbers.
-   - `rows`: the number of rows in the resulting image.
-   - `channels`: the number of channels in the resulting image.
+   - values: the vector of numbers.
+   - rows: the number of rows in the resulting image.
+   - channels: the number of channels in the resulting image.
 
-   The function expects the array of normalized values in a range of [0.0 .. 1.0].
+   The function expects the array of normalized values to have each value in 
+   the range of [0.0 .. 1.0].
 
    > Example
      Create an image from the vector.

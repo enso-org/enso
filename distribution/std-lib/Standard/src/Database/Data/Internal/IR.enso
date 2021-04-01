@@ -6,6 +6,7 @@ from Standard.Base import all
    reference, an interpolated constant or an operation that combines other
    expressions.
 type Expression
+
     ## PRIVATE
 
        The internal representation of an SQL expression that gets a value from a
@@ -16,7 +17,7 @@ type Expression
          originates from, it corresponds to the `alias` field in `from_spec`.
        - name: the name of the column directly in the table or its alias in a
          sub-query.
-       # type Column (origin : Text) (name : Text)
+    # type Column (origin : Text) (name : Text)
     type Column origin name
 
     ## PRIVATE
@@ -50,9 +51,19 @@ type Internal_Column
     ## PRIVATE
 
        An internal column structure.
+
+       Arguments:
+       - name: The column name.
+       - sql_type: The SQL type of the column.
+       - expression: An expression for applying to the column.
     type Internal_Column name sql_type expression
 
     ## PRIVATE
+
+       Rename the internal column.
+
+       Arguments:
+       - new_name: The new name for the column.
     rename : Text -> Internal_Column
     rename new_name = Internal_Column new_name this.sql_type this.expression
 
@@ -83,15 +94,18 @@ type Context
        - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
-       # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
-       #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
-       #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
-       #              (limit : Nothing | Integer)
+    # type Context (from_spec : From_Spec) (where_filters : Vector Expression)
+    #              (orders : Vector [Expression, Order_Direction, Nulls_Order])
+    #              (groups : Vector Expression) (meta_index : Vector Internal_Column)
+    #              (limit : Nothing | Integer)
     type Context from_spec where_filters orders groups meta_index limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `meta_index`.
+
+       Arguments:
+       - new_index: The new index to set in the query.
     set_index : Vector Internal_Column -> Context
     set_index new_index =
         Context this.from_spec this.where_filters this.orders this.groups new_index this.limit
@@ -99,6 +113,9 @@ type Context
     ## PRIVATE
 
        Returns a copy of the context with changed `where_filters`.
+
+       Arguments:
+       - new_filters: The new filters to set in the query.
     set_where_filters : Vector Expression -> Context
     set_where_filters new_filters =
         Context this.from_spec new_filters this.orders this.groups this.meta_index this.limit
@@ -106,13 +123,20 @@ type Context
     ## PRIVATE
 
        Returns a copy of the context with changed `orders`.
-       # set_orders : Vector [Expression, Order_Direction] -> Context
+
+       Arguments:
+       - new_orders: The new ordering clauses to set in the query.
+    # set_orders : Vector [Expression, Order_Direction] -> Context
+    set_orders : Vector -> Context
     set_orders new_orders =
         Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
 
     ## PRIVATE
 
        Returns a copy of the context with changed `groups`.
+
+       Arguments:
+       - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector Expression -> Context
     set_groups new_groups =
         Context this.from_spec this.where_filters this.orders new_groups this.meta_index this.limit
@@ -120,6 +144,9 @@ type Context
     ## PRIVATE
 
        Returns a copy of the context with changed `limit`.
+
+       Arguments:
+       - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit new_limit =
        Context this.from_spec this.where_filters this.orders this.groups this.meta_index new_limit
@@ -139,6 +166,7 @@ type Context
 
        This is useful as a preprocessing step between combining queries, for example in a join.
     # as_subquery : Text -> Vector (Vector Internal_Column) -> [IR.Sub_Query, Vector (Vector Internal_Column)]
+    as_subquery : Text -> Vector -> Vector
     as_subquery alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
@@ -169,7 +197,7 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-       # type From_Table (table_name : Text) (alias : Text)
+    # type From_Table (table_name : Text) (alias : Text)
     type From_Table table_name alias
 
     ## PRIVATE
@@ -183,8 +211,8 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-       # type Join (kind : Join_Kind) (left_spec : From_Spec)
-       #           (right_spec : From_Spec) (on : Vector Expression)
+    # type Join (kind : Join_Kind) (left_spec : From_Spec)
+    #           (right_spec : From_Spec) (on : Vector Expression)
     type Join kind left_spec right_spec on
 
     ## PRIVATE
@@ -285,16 +313,19 @@ type Query
        A Select SQL query.
 
        Arguments:
-       - expressions: list of pairs specifying the columns to materialize; each
+       - expressions: List of pairs specifying the columns to materialize; each
          is a pair whose first element is the name of the materialized column
          and the second element is the expression to compute.
-       - context: the query context, see `Context` for more detail.
+       - context: The query context, see `Context` for more detail.
     # type Select (expressions : [Text, Expression]) (context : Context)
     type Select columns context
 
     ## PRIVATE
 
        A Select SQL query that gets all columns in a table.
+
+       Arguments:
+       - context: The query context, see `Context` for more detail.
     type Select_All context
 
     ## PRIVATE
@@ -302,14 +333,17 @@ type Query
        An Insert SQL query that inserts a single row to the table.
 
        Arguments:
-       - table_name: name of the table to insert to.
-       - pairs: a list of pairs consisting of a column name and and expression.
+       - table_name: The name of the table to insert to.
+       - pairs: A list of pairs consisting of a column name and and expression.
     type Insert table_name pairs
 
 ## PRIVATE
 
    Creates a query context that just fetches data from a table, without any
    additional processing.
+
+   Arguments:
+   - table_name: The name of the tanle for which the context is being created.
 make_ctx_from : Text -> Context
 make_ctx_from table_name =
     Context (From_Table table_name table_name) [] [] [] [] Nothing
@@ -317,15 +351,25 @@ make_ctx_from table_name =
 ## PRIVATE
 
    Creates an expression which is a simple constant to be interpolated.
+
+   Arguments:
+   - sql_type: The SQL type of the value.
+   - x: The value to turn into a constant.
 make_constant : Sql.Sql_Type -> Any -> Expression
 make_constant sql_type x =
     Constant sql_type x
 
 ## PRIVATE
 
-   A helper function to subsitute names tables inside of expressions. It is used
-   for example when renaming a table during a join.
-substitute_origin : Text -> Text -> Expression
+   A helper function to subsitute names tables inside of expressions.
+
+   Arguments:
+   - old_origin: The old table name.
+   - new_origin: The new table name.
+   - expr: The expression in which the substitution should be performed.
+
+   It is used for example when renaming a table during a join.
+substitute_origin : Text -> Text -> Expression -> Expression
 substitute_origin old_origin new_origin expr = case expr of
     Column origin name ->
         if origin == old_origin then Column new_origin name else expr
@@ -338,6 +382,10 @@ substitute_origin old_origin new_origin expr = case expr of
    Lifts a function mapping expressions into a function mapping internal columns
    which applies the original function to their expressions, leaving other
    fields as-is.
+
+   Arguments:
+   - f: The function to map over expressions.
+   - col: The column over which to apply `f`.
 lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
 lift_expression_map f col =
     Internal_Column col.name col.sql_type (f col.expression)

@@ -15,14 +15,14 @@ type Dialect
 
        Represents a specific SQL dialect.
 
-       It encapsulates dialect-specific code generation details allowing us to
-       support differing SQL dialects.
-
        Arguments:
        - name: name of the dialect.
        - generate_sql: a function which generates SQL code from the internal
          representation according to the specific dialect.
-       # type Dialect (name : Text) (generate_sql : Query -> Sql.Statement)
+
+       It encapsulates dialect-specific code generation details allowing us to
+       support differing SQL dialects.
+    # type Dialect (name : Text) (generate_sql : Query -> Sql.Statement)
     type Dialect name generate_sql
 
 ## PRIVATE
@@ -98,5 +98,7 @@ sqlite =
     Dialect "sqlite" (query -> Base_Generator.generate_query dialect query . build)
 
 ## PRIVATE
+
+   A vector of SQL dialects supported by the Database library.
 supported_dialects : Vector Dialect
 supported_dialects = [here.postgresql, here.sqlite]

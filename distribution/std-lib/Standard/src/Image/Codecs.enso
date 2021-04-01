@@ -30,7 +30,10 @@ type Write_Flag
 
     ## UNSTABLE
 
-       For a JPEG, this can be a quality from 0 to 100 (the higher, the better).
+       Sets the quality used when writing a JPEG.
+
+       Arguments:
+       - value: A quality value from 0 to 100 (the higher, the better).
     type Write_Jpeg_Quality value=95
 
     ## UNSTABLE
@@ -45,25 +48,36 @@ type Write_Flag
 
     ## UNSTABLE
 
-       Separate luma quality level, 0 - 100.
+       Sets the luma quality level used when writing a JPEG.
+
+       Arguments:
+       - value: A quality value from 0 to 100 (the higher, the better).
     type Write_Jpeg_Luma_Quality value=0
 
     ## UNSTABLE
 
-       Separate chroma quality level, 0 - 100.
+       Sets the chroma quality level used when writing a JPEG.
+
+       Arguments:
+       - value: A quality value from 0 to 100 (the higher, the better).
     type Write_Jpeg_Chroma_Quality value=0
 
     ## UNSTABLE
 
-       For PNG, it can be the compression level from 0 to 9. A higher value
-       means a smaller size and longer compression time.
+       Sets the compression level used when writing a PNG.
+
+       Arguments:
+       - value: A compression level from 0 to 9. A higher value means a smaller
+         size but a longer compression time.
     type Write_Png_Compression value=3
 
     ## UNSTABLE
 
-       For WEBP, this is a quality from 1 to 100 (the higher, the better).
-       By default (without any parameter) and for quality above 100 the lossless
-       compression is used.
+       Sets the quality used when writing a WEBP image.
+
+       Arguments:
+       - value: A quality from 0 to 100 (the higher, the better). A quality
+         above 100 indicates that the encoder should use lossless compression.
     type Write_Webp_Quality value=101
 
 ## UNSTABLE
@@ -74,8 +88,8 @@ type Write_Flag
    `Read_Alpha_Channel` flag is specified.
 
    Arguments:
-   - `location`: the file to read.
-   - `flags`: the read flags.
+   - location: the file to read.
+   - flags: the read flags.
 
    > Example
      Read the image.
@@ -107,6 +121,10 @@ read location flags=[] =
 
    Write an image to a file.
 
+   Arguments:
+   - location: The location to write the image to.
+   - flags: A vector of flags that control how the image is written.
+
    > Example
      Write the image with applying png compression.
          Codecs.write path image
@@ -131,3 +149,4 @@ Image.Image.write location flags=[] =
         case e of
             Polyglot_Error _ -> Panic.throw (File.Io_Error ('Failed to write to the file at ' + path + '.'))
             err -> Panic.throw err
+

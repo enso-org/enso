@@ -12,8 +12,12 @@ polyglot java import org.enso.base.Time_Utils
 
 type Date
 
-    ## This type represents a date, often viewed as year-month-day. For example,
-       the value "2nd October 2007" can be stored in a `Date`.
+    ## This type represents a date, often viewed as year-month-day. 
+
+       Arguments:
+       - internal_local_date: The internal date representation.
+
+       For example, the value "2nd October 2007" can be stored in a `Date`.
 
        This class does not store or represent a time or timezone. Instead, it
        is a description of the date, as used for birthdays. It cannot represent
@@ -22,56 +26,93 @@ type Date
     type Date internal_local_date
 
     ## Get the year field.
+
+       > Example
+         Get the current year.
+             Date.now.year
     year : Integer
     year = this . internal_local_date . getYear
 
     ## Get the month of year field, as a number from 1 to 12.
+
+       > Example
+         Get the current month.
+             Date.now.month
     month : Integer
     month = this . internal_local_date . getMonthValue
 
     ## Get the day of month field.
+
+       > Example
+         Get the current day.
+             Date.now.day
     day : Integer
     day = this . internal_local_date . getDayOfMonth
 
     ## Combine this date with time of day to create a point in time.
 
+       Arguments:
+       - time_of_day: The time to combine with the date to create a time.
+       - zone: The time-zone in which to create the time.
+
        > Example
          Convert this date to midnight UTC time.
              Day.new 2020 2 3 . to_time Time_Of_Day.new Zone.utc
     to_time : Time_Of_Day -> Zone -> Time
-    to_time daytime (zone = Zone.system) = Time.time (this . internal_local_date . atTime daytime.internal_local_time . atZone zone.internal_zone_id)
+    to_time time_of_day (zone = Zone.system) = Time.time (this . internal_local_date . atTime time_of_day.internal_local_time . atZone zone.internal_zone_id)
 
-    ## Add specified amount of time to this instant.
+    ## Add the specified amount of time to this instant to get another date.
+
+       Arguments:
+       - amount: The time duration to add to this instant.
 
        > Example
          Add 6 months to a local date.
              Date.new 2020 + 6.months
     + : Duration -> Date
-    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . plus amount.internal_period)
+    + amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+        Date (this . internal_local_date . plus amount.internal_period)
 
-    ## Subtract specified amount of time to this instant.
+    ## Subtract the specified amount of time from this instant to get another
+       date.
+
+       Arguments:
+       - amount: The time duration to subtract from this date.
 
        > Example
          Subtract 7 days from a local date.
              Date.new 2020 - 7.days
     - : Duration -> Date
-    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else Date (this . internal_local_date . minus amount.internal_period)
+    - amount = if amount.is_time then Error.throw (Time.Time_Error "Date does not support time intervals") else
+        Date (this . internal_local_date . minus amount.internal_period)
 
     ## Format this date using the default formatter.
+
+       > Example
+         Convert the current date to text.
+             Date.now.to_text
     to_text : Text
     to_text = Time_Utils.default_date_formatter . format this.internal_local_date
 
     ## A Date to Json conversion.
+
+       > Example
+         Convert the current date to JSON.
+             Date.now.to_json
     to_json : Json.Object
     to_json = Json.from_pairs [["type", "Date"], ["day", this.day], ["month", this.month], ["year", this.year]]
 
-    ## Format this date using formatter text.
+    ## Format this date using the provided format specifier.
 
-       Patterns are based on a simple sequence of letters and symbols. For
-       example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+       Arguments:
+       - pattern: The text specifying the format for formatting the date.
 
-       For the list of accepted symbols in pattern refer to
-       `Base.Data.Time.Time.format` doc.
+       ? Pattern Syntax
+         Patterns are based on a simple sequence of letters and symbols. For
+         example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+         For the list of accepted symbols in pattern refer to the
+         `Base.Data.Time.Time.format` doc.
 
        > Example
          Format "2020-06-02" as "2 June 2020"
@@ -95,33 +136,34 @@ type Date
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_date
 
-## Obtains an instance of `Date` from a text, such as "2007-12-03".
+## Converts text containing a date into a Date object.
 
    Arguments:
-   - text: The textual content to parse as a date.
+   - text: The text to try and parse as a date.
 
    Returns a `Time_Error` if the provided `text` cannot be parsed using the
    provided `pattern`.
 
-   The text must represent a valid date and is parsed using the ISO-8601
-   extended local date format. The format consists of:
+   ? Date Formatting
+     The text must represent a valid date and is parsed using the ISO-8601
+     extended local date format. The format consists of:
 
-   - Four digits or more for the year. Years in the range 0000 to 9999
-     will be pre-padded by zero to ensure four digits. Years outside
-     that range will have a prefixed positive or negative symbol.
-   - A dash
-   - Two digits for the month-of-year. This is pre-padded by zero to ensure two
-     digits.
-   - A dash
-   - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-     digits.
+     - Four digits or more for the year. Years in the range 0000 to 9999
+       will be pre-padded by zero to ensure four digits. Years outside
+       that range will have a prefixed positive or negative symbol.
+     - A dash
+     - Two digits for the month-of-year. This is pre-padded by zero to ensure
+       two digits.
+     - A dash
+     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+       digits.
 
    > Example
      Parse the date of 23rd December 2020.
          Date.parse "2020-12-23"
 
    > Example
-     Recover from the parse error.
+     Recover from an error due to a wrong format.
          Date.parse "my birthday" . catch e-> case e of
              Time.Error _ -> Date.new 2000 1 1
 parse : Text -> Date ! Time.Time_Error
@@ -130,17 +172,18 @@ parse text =
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
 
-## Obtains an instance of `Date` from a text using custom format.
+## Converts text containing a date into a Date object using a custom format.
 
    Arguments:
    - text: The textual content to parse as a time.
    - pattern: The pattern describing how to parse the text.
 
-   For the list of accepted symbols in pattern refer to
-   `Base.Data.Time.Time.format` doc.
-
    Returns a `Time_Error` if the provided `text` cannot be parsed using the
    provided `pattern`.
+
+   ? Pattern Syntax
+     For the list of accepted symbols in pattern refer to the
+     `Base.Data.Time.Time.format` doc.
 
    > Example
      Parse "1999-1-1" as Date.
@@ -159,18 +202,27 @@ parse_format text pattern =
         x -> x
 
 ## Obtains the current date from the system clock in the system timezone.
+
+   > Example
+     Get the current date.
+         Date.now
 now : Date
 now = Date LocalDate.now
 
 ## Alias for `now`.
+
+   > Example
+     Get the current date.
+         Date.today
 today : Date
 today = here.now
 
-## Obtains an instance of `Date` from a year, month and day.
+## Constructs a new Date from a year, month, and day.
 
-   - month - the month-of-year to represent, from 1 (January) to 12 (December)
-   - day - the day-of-month to represent, from 1 to 31 and must be valid for the
-     year and month
+   Arguments
+   - month: The month-of-year to represent, from 1 (January) to 12 (December).
+   - day: The day-of-month to represent, from 1 to 31. It must be valid for the
+     year and month.
 
    Returns a `Time_Error` if the provided time is not valid.
 

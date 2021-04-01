@@ -4,19 +4,47 @@ import Standard.Base.Data.Json.Internal
 
 ## Represents a JSON structure.
 type Json
+
+    ## A representation of a JSON object.
+
+       Arguments:
+       - fields: The fields of the JSON object.
     type Object fields
+
+    ## A representation of a JSON array.
+
+       Arguments:
+       - items: The items in the JSON array.
     type Array items
+
+    ## A representation of a JSON string.
+
+       Arguments:
+       - value: The text contained in the JSON string.
     type String value
+
+    ## A representation of a JSON number.
+
+       Arguments:
+       - value: The number contained in the JSON number.
     type Number value
+
+    ## A representation of a JSON boolean.
+
+       Arguments:
+       - value: The boolean contained in a JSON boolean.
     type Boolean value
+
+    ## A representation of a JSON null.
     type Null
 
     ## Marshalls this JSON into an arbitrary value described by
        `type_descriptor`.
 
-       The type descriptor is a fully-applied type, describing all required
-       sub-types. It can either be an Atom or one of the primitive types
-       (`Number`, `Text`, `Boolean`, `Vector`).
+       Arguments:
+       - `type_dscriptor`: The type descriptor is a fully-applied type,
+         describing all required sub-types. It can either be an Atom or one of
+         the primitive types (`Number`, `Text`, `Boolean`, `Vector`).
 
        > Example
          The following shows an example of reading a nested JSON into a desired
@@ -63,10 +91,18 @@ type Json
     to_json = this
 
     ## Renders this JSON into an RFC-8259 compliant text.
+
+       > Example
+         Convert a JSON number to text.
+             Json.Number 3 . to_text
     to_text : Text
     to_text = Internal.render_helper "" this
 
     ## Recursively unwraps the JSON value into primitive values.
+
+       > Example
+         Unwrap the JSON number 3 to the primitive number 3.
+             Json.Number 3 . unwrap
     unwrap : Any
     unwrap = case this of
         Json.Array its -> its.map .unwrap
@@ -76,21 +112,36 @@ type Json
         Json.Null -> Nothing
         Json.Object f -> f.map .unwrap
 
-## A failure indicating malformed text input into the JSON parser.
+## UNSTABLE
+
+   A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
 type Parse_Error message
 
-## Converts the error to a display representation.
+## UNSTABLE
+
+   Converts the error to a display representation.
 Parse_Error.to_display_text : Text
 Parse_Error.to_display_text = "Parse error in parsing JSON: " + this.message.to_text + "."
 
-## Gets the value associated with the given key in this object. Returns
-   `Nothing` if the associated key is not defined.
-Object.get : Text -> Json | Nothing
+## Gets the value associated with the given key in this object.
+
+   Arguments:
+   - field: The name of the field from which to get the value.
+
+   Throws `Nothing` if the associated key is not defined.
+Object.get : Text -> Json ! Nothing
 Object.get field = this.fields.get field
 
 ## Parses an RFC-8259 compliant JSON text into a `Json` structure.
+
+   Arguments:
+   - json_text: The RFC-8259-compliant JSON text.
+
+   > Example
+     Convert some text representing a JSON object into JSON.
+         "{ "a": 1 }".parse
 parse : Text -> Json ! Parse_Error
 parse json_text =
     r = Panic.recover (Internal.parse_helper json_text)
@@ -98,22 +149,41 @@ parse json_text =
         Polyglot_Error err -> Error.throw (Parse_Error err.getMessage)
         p -> Panic.throw p
 
-## A failure indicating the inability to marshall a `Json` object into the
+## UNSTABLE
+
+   A failure indicating the inability to marshall a `Json` object into the
    specified format.
 type Marshalling_Error
-    ## The `json` object could not be converted into `format`, due to a type
+
+    ## UNSTABLE
+
+       The `json` object could not be converted into `format`, due to a type
        mismatch.
+
+       Arguments:
+       - json: The JSON that could not be marshalled.
+       - format: The type format that did not match.
 
        This can occur e.g. when trying to reinterpret a number as a `Text`, etc.
     type Type_Mismatch_Error json format
 
-    ## The `json` object could not be converted into `format`, due to a field
+    ## UNSTABLE
+
+       The `json` object could not be converted into `format`, due to a field
        missing in the `json` structure.
+
+       Arguments:
+       - json: The json that had a missing field.
+       - field: The field name that was missing.
+       - format: The type format that diud not match.
 
        This can occure when trying to reinterpret a JSON object into an atom,
        when the JSON does not contain all the fields required by the atom.
     type Missing_Field_Error json field format
 
+    ## UNSTABLE
+
+       Convert the marshalling error into a human-readable format.
     to_display_text : Text
     to_display_text = case this of
         Type_Mismatch_Error json format ->
@@ -128,6 +198,10 @@ type Marshalling_Error
    The input atom is converted into a JSON object, with a `"type"` field set to
    the atom's type name and all other fields serialized with their name as
    object key and the value as the object value.
+
+   > Example
+     Convert a vector to JSON.
+         [1, 2, 3, 4].to_json
 Any.to_json =
     m = Meta.meta this
     case m of
@@ -147,19 +221,34 @@ Any.to_json =
         Meta.Primitive _ -> Null
 
 ## Method used by object builders to convert a value into a valid JSON key.
+
+   > Example
+     Ensure that the text "foo" is a JSON key.
+         "foo".to_json_key
 Text.to_json_key : Text
 Text.to_json_key = this
 
-## Boolean to JSON conversion.
+## Convert a boolean to JSON.
+
+   > Example
+     Convert `True` to JSON.
+         True.to_json
 Base.Boolean.to_json : Boolean
 Base.Boolean.to_json = Boolean this
 
-## Nothing to JSON conversion.
+## Convert `Nothing` to JSON.
+
+   > Example
+     Convert `Nothing` to JSON.
+         Nothing.to_json
 Nothing.to_json : Null
 Nothing.to_json = Null
 
 ## A smart constructor, building an object representation based on a vector
    of key-value pairs.
+
+   Arguments:
+   - contents: A vector of key-value pairs.
 
    All values used as keys must define a `to_json_key : Text` method.
 

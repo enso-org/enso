@@ -16,12 +16,19 @@ polyglot java import java.sql.JDBCType
 
 ## Represents a column-oriented table data structure backed by a database.
 type Table
+
     ## PRIVATE
 
        Represents a column-oriented table data structure backed by a database.
-       # type Table (name : Text) (connection : Connection)
-       #            (internal_columns : Vector Internal_Column)
-       #            (context : IR.Context)
+
+       Arguments:
+       - name: The name of the table.
+       - connection: The connection with whicg the table is associated.
+       - internal_columns: The internal representation of the table columns.
+       - context: The context associated with this table.
+    # type Table (name : Text) (connection : Connection)
+    #            (internal_columns : Vector Internal_Column)
+    #            (context : IR.Context)
     type Table name connection internal_columns context
 
     ## UNSTABLE
@@ -50,7 +57,7 @@ type Table
 
     ## UNSTABLE
 
-       Converts this table to a JSON structure.
+       Converts this table into a JSON structure.
     to_json : Json
     to_json = case this.internal_columns.is_empty of
         True ->
@@ -60,15 +67,23 @@ type Table
     ## UNSTABLE
 
        Returns the column with the given name.
-    at : Text -> Column ! UnknownColumnError
+
+       Arguments:
+       - name: The name of the column to get.
+    at : Text -> Column ! No_Such_Column_Error
     at name =
         internal = this.internal_columns.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## PRIVATE
-       Resolves the column name to a column within this table. If instead of a
-       name, a column is provided, it is returned as-is as long as it comes from
-       the same context.
+
+       Resolves the column name to a column within this table.
+
+       Arguments:
+       - column: The name (or column handle) for the column you want to resolve.
+
+       If instead of a name, a column is provided, it is returned as-is as long
+       as it comes from the same context.
     resolve : Text | Column -> Column
     resolve column = case column of
         Text -> Panic.rethrow (this.at column)
@@ -80,7 +95,13 @@ type Table
 
        Selects only the rows of this table that correspond to `True` values in
        `filter`.
+
+       Arguments:
+       - filter: A column of boolean values that will be used to mask the table
+         rows.
+
        This is useful for filtering the rows by given predicate.
+
        > Example
          Select only the rows of `my_table` where the `"Status"` column has the
          value `"Valid"`
@@ -99,6 +120,9 @@ type Table
 
        Returns a new Table that will include at most `max_rows` rows from the
        original Table.
+
+       Arguments:
+       - max_rows: The maximum number of rows to get from the table.
 
        Since this Table is backed by an SQL database, the Table returned by the
        `limit` method is deterministic only if the Table has been ordered (using
@@ -129,8 +153,14 @@ type Table
 
     ## UNSTABLE
 
-       Sets the column value at the given name. If a column with the given name
-       already exists, it will be replaced. Otherwise a new column is added.
+       Sets the column value at the given name.
+
+       Arguments:
+       - name: The name of the column to set.
+       - column: The new value for the column called `name`.
+
+       If a column with the given name already exists, it will be replaced.
+       Otherwise a new column is added.
     set : Text -> Column -> Table
     set name column = case Helpers.ensure_name_is_sane name of
         True ->
@@ -156,6 +186,9 @@ type Table
     ## UNSTABLE
 
        Sets the index of this table, using the column with the provided name.
+
+       Arguments:
+       - index: The column to use as the index of the table.
     set_index : Text | Column | Vector Text -> Table
     set_index index = Panic.recover <|
         new_index = (Helpers.unify_vector_singleton index).map (this.at >> .as_internal)
@@ -174,7 +207,9 @@ type Table
 
     ## UNSTABLE
 
-       Returns the index (or indexes) of this table, as a column (indexed by itself).
+       Returns the index (or indexes) of this table, as a column (indexed by
+       itself).
+
        Throws `No_Index_Set_Error` if there is no index set.
     index : Column | Vector Column ! Materialized_Table.No_Index_Set_Error
     index =
@@ -188,26 +223,26 @@ type Table
        Sorts the table according to the specified rules.
 
        Arguments:
-         - by: specifies the columns used for reordering the table. This
-           argument may be one of:
-             - a text: the text is treated as a column name.
-             - a column: any column, which is an expression computed from this
-               table.
-             - an order rule: specifies both the sorting column and additional
-               settings, that will take precedence over the global parameters of
-               this sort operation. The `column` field of the rule may be a text
-               or a column, with the semantics described above.
-             - a vector of any of the above: this will result in a hierarchical
-               sorting, such that the first rule is applied first, the second is
-               used for breaking ties, etc.
-         - order: specifies the default sort order for this operation. All the
-           rules specified in the `by` argument will default to this setting,
-           unless specified in the rule.
-         - missing_last: specifies the default placement of missing values when
-           compared to non-missing ones. This setting may be overriden by the
-           particular rules of the `by` argument.  Note thet this argument is
-           independent from `order`, i.e. missing values will always be sorted
-           according to this rule, ignoring the ascending / descending setting.
+       - by: Specifies the columns used for reordering the table. This
+         argument may be one of:
+           - a text: The text is treated as a column name.
+           - a column: Any column, which is an expression computed from this
+             table.
+           - an order rule: Specifies both the sorting column and additional
+             settings, that will take precedence over the global parameters of
+             this sort operation. The `column` field of the rule may be a text
+             or a column, with the semantics described above.
+           - a vector of any of the above: This will result in a hierarchical
+             sorting, such that the first rule is applied first, the second is
+             used for breaking ties, etc.
+       - order: Specifies the default sort order for this operation. All the
+         rules specified in the `by` argument will default to this setting,
+         unless specified in the rule.
+       - missing_last: Specifies the default placement of missing values when
+         compared to non-missing ones. This setting may be overriden by the
+         particular rules of the `by` argument.  Note thet this argument is
+         independent from `order`, i.e. missing values will always be sorted
+         according to this rule, ignoring the ascending / descending setting.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`
@@ -261,6 +296,9 @@ type Table
     ## UNSTABLE
 
        Selects a subset of columns from this table by name.
+
+       Arguments:
+       - columns: The names of the columns to select from the table.
     select : Vector Text -> Table
     select columns =
         find_col = (name -> this.internal_columns.find (p -> p.name == name))
@@ -271,21 +309,21 @@ type Table
 
        Efficiently joins two tables based on either the index or a key column.
 
+       Arguments:
+       - other: the table being the right operand of this join operation.
+       - on: the column(s) or expression(s) of `this` that should be used as
+         the join key. If this argument is not provided, the index of `this`
+         will be used.
+       - drop_unmatched: whether the rows of `this` without corresponding
+         matches in `other` should be dropped from the result.
+       - left_suffix: a suffix that should be added to the columns of `this`
+         when there's a name conflict with a column of `other`.
+       - right_suffix: a suffix that should be added to the columns of `other`
+         when there's a name conflict with a column of `this`.
+
        The resulting table contains rows of `this` extended with rows of
        `other` with matching indexes. If the index in `other` is not unique,
        the corresponding rows of `this` will be duplicated in the result.
-
-       Arguments:
-         - other: the table being the right operand of this join operation.
-         - on: the column(s) or expression(s) of `this` that should be used as
-           the join key. If this argument is not provided, the index of `this`
-           will be used.
-         - drop_unmatched: whether the rows of `this` without corresponding
-                           matches in `other` should be dropped from the result.
-         - left_suffix: a suffix that should be added to the columns of `this`
-                        when there's a name conflict with a column of `other`.
-         - right_suffix: a suffix that should be added to the columns of `other`
-                         when there's a name conflict with a column of `this`.
     join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' = case other of
         Column _ _ _ _ _ -> this.join other.to_table on drop_unmatched left_suffix right_suffix
@@ -365,7 +403,9 @@ type Table
        Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
 
-       If the `by` argument is not set, the index is used for grouping instead.
+       Arguments:
+       - by: The column names on which to group. If this is not set, the index
+         will be used for grouping instead.
     group : Vector Text | Text | Nothing -> Aggregate_Table
     group by=Nothing = Panic.recover <|
         cols = case by of
@@ -481,6 +521,9 @@ type Table
     ## PRIVATE
 
        Helper to create columns from internal columns.
+
+       Arguments:
+       - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> Column
     make_column internal =
         Column internal.name this.connection internal.sql_type internal.expression this.context
@@ -488,11 +531,19 @@ type Table
     ## PRIVATE
 
        Returns a copy of this table with updated internal columns.
+
+       Arguments:
+       - columns: The columns with which to update this table.
+    updated_columns : Vector Colums -> Table
     updated_columns columns = Table this.name this.connection columns this.context
 
     ## PRIVATE
 
        Returns a copy of this table with updated context.
+
+       Arguments:
+       - ctx: The new context for this table.
+    updated_context : Context -> Table
     updated_context ctx = Table this.name this.connection this.internal_columns ctx
 
     ## PRIVATE
@@ -506,12 +557,14 @@ type Table
 
     ## PRIVATE
 
-       Inserts a new row to the table. It actually modifies the underlying table
-       in the database.
+       Inserts a new row to the table.
 
-       It can only be called on the Table if no operations modifying it have
-       been performed like modifying, removing or adding columns, filtering,
-       grouping etc.
+       Arguments:
+       - values: The values making up the row of the table.
+
+       It actually modifies the underlying table in the database.  It can only
+       be called on the Table if no operations modifying it have been performed
+       like modifying, removing or adding columns, filtering, grouping etc.
     insert : Vector Any -> Nothing
     insert values =
         table_name = case this.context.from_spec of
@@ -533,9 +586,15 @@ type Aggregate_Table
     ## UNSTABLE
 
        Represents a table with grouped rows.
-       # type Aggregate_Table (name : Text) (connection : Connection)
-       #                      (internal_columns : Vector [Text, IR.Expression])
-       #                      (context : IR.Context)
+
+       Arguments:
+       - name: The name of the table.
+       - connection: The connection with whicg the table is associated.
+       - internal_columns: The internal representation of the table columns.
+       - context: The context associated with this table.
+    # type Aggregate_Table (name : Text) (connection : Connection)
+    #                      (internal_columns : Vector [Text, IR.Expression])
+    #                      (context : IR.Context)
     type Aggregate_Table name connection internal_columns context
 
     ## UNSTABLE
@@ -555,6 +614,9 @@ type Aggregate_Table
     ## UNSTABLE
 
        Returns an aggregate column with the given name, contained in this table.
+
+       Arguments:
+       - name: The name of the aggregate column to get from the aggregate table.
     at : Text -> Column ! No_Such_Column_Error
     at name =
         internal = this.internal_columns.find (p -> p.name == name)
@@ -563,7 +625,10 @@ type Aggregate_Table
     ## PRIVATE
 
        Helper to create aggregate columns from internal columns.
-       # make_column : Internal_Column -> Aggregate_Column
+
+       Arguments:
+       - internal: The internal column to make into an aggregate column.
+    make_column : Internal_Column -> Aggregate_Column
     make_column internal =
         Aggregate_Column internal.name this.connection internal.sql_type internal.expression this.context
 
@@ -579,6 +644,7 @@ type Aggregate_Table
         Table this.name this.connection new_cols new_ctx
 
 type Integrity_Error
+
     ## UNSTABLE
 
        Signalizes that an operation tried using objects coming from different
@@ -591,10 +657,19 @@ type Integrity_Error
     to_text : Text
     to_text = this.object_description + " comes from a different context."
 
+    to_display_text : Text
+    to_display_text = this.to_text
+
 ## PRIVATE
 
    Creates a Table out of a connection, name and list of column names.
-   # make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
+
+   Arguments:
+   - connection: The connection to a database.
+   - table_name: The name of the table to get.
+   - columns: The names of the columns to get.
+# make_table : Connection -> Text -> Vector [Text, Sql.Sql_Type] -> Table
+make_table : Connection -> Text -> Vector -> Table
 make_table connection table_name columns =
     ctx = IR.make_ctx_from table_name
     cols = columns.map (p -> Internal_Column p.first p.second (IR.Column table_name p.first))
@@ -606,15 +681,15 @@ make_table connection table_name columns =
    contains a fragment of the underlying data and count of all rows.
 
    Arguments:
-   - df: the materialized dataframe that contains the data to be displayed, it
+   - df: The materialized dataframe that contains the data to be displayed, it
      should have no indices set.
-   - indices_count: indicates how many columns from the materialized dataframe
+   - indices_count: Indicates how many columns from the materialized dataframe
      should be treated as indices in the display (index columns will be bold if
      `format_terminal` is enabled).
-   - all_rows_count: the count of all rows in the underlying Table; if
+   - all_rows_count: The count of all rows in the underlying Table; if
      `all_rows_count` is bigger than the amount of rows of `df`, an additional
      line will be included that will say how many hidden rows there are.
-   - format_term: a boolean flag, specifying whether to use ANSI escape codes
+   - format_term: A boolean flag, specifying whether to use ANSI escape codes
      for rich formatting in the terminal.
 display_dataframe : Materialized_Table.Table -> Integer -> Integer -> Boolean -> Text
 display_dataframe df indices_count all_rows_count format_terminal =
@@ -635,6 +710,12 @@ display_dataframe df indices_count all_rows_count format_terminal =
 
    Creates a list of non-colliding names by merging the two lists and
    appending suffixes if necessary.
+
+   Arguments:
+   - left_names: The names on the left.
+   - right_names: The names on the right.
+   - left_suffix: The suffix to apply to colliding names on the left.
+   - right_suffix: The suffix to apply to colliding names on the right.
 
    If even after appending the suffixes it is impossible to have unique names,
    it throws a panic. It returns two vectors, one for each input. It assumes
@@ -668,9 +749,15 @@ combine_names left_names right_names left_suffix right_suffix =
 
 ## PRIVATE
 
-   Transforms `preferred_names` names in such a way to not collide with `used_names`. If a name
-   from `preferred_names` does not collide with others, it is kept as is, otherwise numerical
-   suffixes are added.
+   Transforms `preferred_names` names in such a way to not collide with
+   `used_names`.
+
+   Arguments:
+   - used_names: The names that have already been used.
+   - preferred_names: The names that the user wants to use.
+
+   If a name from `preferred_names` does not collide with others, it is kept as
+   is, otherwise numerical suffixes are added.
 fresh_names : Vector Text -> Vector Text -> Vector Text
 fresh_names used_names preferred_names =
    freshen currently_used name ix =
@@ -686,7 +773,12 @@ fresh_names used_names preferred_names =
 
 ## PRIVATE
 
-   Transforms the vector of columns, changing names of each column to the corresponding name from the second vector.
+   Transforms the vector of columns, changing names of each column to the
+   corresponding name from the second vector.
+
+   Arguments:
+   - columns: A vector of columns to rename.
+   - new_names: The new names for the columns.
 rename_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
 rename_columns columns new_names =
     columns.zip new_names col-> name->
@@ -694,8 +786,15 @@ rename_columns columns new_names =
 
 ## PRIVATE
 
-   Ensures that the provided columns do not clash with the vector of names provided as first argument.
-   Original column names are kept if possible, but if they would clash, the columns are renamed.
+   Ensures that the provided columns do not clash with the vector of names
+   provided as first argument.
+
+   Arguments:
+   - used_names: The already used names.
+   - columns: The columns to rename to avoid clashes.
+
+   Original column names are kept if possible, but if they would clash, the
+   columns are renamed.
 freshen_columns : Vector Text -> Vector Column -> Vector Column
 freshen_columns used_names columns =
     fresh_names = here.fresh_names used_names (columns.map .name)

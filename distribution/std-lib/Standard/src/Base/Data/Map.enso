@@ -2,18 +2,38 @@ from Standard.Base import all
 
 import Standard.Base.Data.Map.Internal
 
-## An error for getting a missing value from a map.
+## UNSTABLE
+
+   An error for getting a missing value from a map.
+
+   Arguments:
+   - key: The key that was asked for.
 type No_Value_For_Key key
 
 ## Returns an empty map.
+
+   > Example
+     Create an empty map.
+         Map.empty
 empty : Map
 empty = Tip
 
 ## Returns a single-element map with the given key and value present.
+
+   Arguments:
+   - key: The key to update in the map.
+   - value: The value to store against 'key' in the map.
+
+   > Example
+     Create a single element map storing the key 1 and the value 2.
+         Map.singleton 1 2
 singleton : Any -> Any -> Map
 singleton key value = Bin 1 key value Tip Tip
 
 ## Builds a map from a vector of key-value pairs.
+
+   Arguments:
+   - vec: A vector of key-value pairs.
 
    > Example
      Building a map containing two key-value pairs.
@@ -24,27 +44,59 @@ from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.
 type Map
+
+    ## PRIVATE
+       A key-value store. This type assumes all keys are pairwise comparable,
+       using the `<`, `>` and `==` operators.
     type Tip
+
+    ## PRIVATE
+       A key-value store. This type assumes all keys are pairwise comparable,
+       using the `<`, `>` and `==` operators.
+
+       Arguments:
+       - s: The size of the tree at this node.
+       - key: The key stored at this node.
+       - value: The value stored at this node.
+       - left: The left subtree.
+       - right: The right subtree.
     type Bin s key value left right
 
     ## Checks if the map is empty.
+
+       > Example
+         Check if a singleton map is empty.
+             Map.singleton 1 2 . is_empty
     is_empty : Boolean
     is_empty = case this of
         Bin _ _ _ _ _ -> False
         Tip -> True
 
     ## Checks if the map is not empty.
+
+       > Example
+         Check if a singleton map is not empty.
+             Map.singleton 1 2 . not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 
     ## Returns the number of entries in this map.
+
+       > Example
+         Get the size of a singleton map.
+             Map.singleton 1 2 . size
     size : Integer
     size = case this of
         Bin s _ _ _ _ -> s
         Tip -> 0
 
     ## Converts the map into a vector of `[key, value]` pairs.
+
        The returned vector is sorted in the increasing order of keys.
+
+       > Example
+         Convert a singleton map to a vector.
+             Map.singleton 1 2 . to_vector
     to_vector : Vector.Vector
     to_vector =
         builder = Vector.new_builder
@@ -60,23 +112,49 @@ type Map
         result
 
     ## Returns a text representation of this map.
+
+       > Example
+         Convert an empty map to text.
+             Map.empty.to_text
     to_text : Text
     to_text = this.to_vector.to_text
 
     ## Checks if this map is equal to another map.
 
+       Arguments:
+       - that: The map to compare `this` to.
+
        Maps are equal when they contained the same keys and the values
        associated with each key are pairwise equal.
+
+       > Example
+         Checking two singleton maps for equality.
+             (Map.singleton 1 2) == (Map.singleton 2 3)
     == : Map -> Boolean
     == that = this.to_vector == that.to_vector
 
-    ## Inserts a key-value mapping into this map. If `key` is already present,
-       it will be overriden with the new `value`.
+    ## Inserts a key-value mapping into this map, overriding any existing
+       instance of `key` with the new `value`.
+
+       Arguments:
+       - key: The key to insert the value for.
+       - value: The value to associate with `key`.
+
+       > Example
+         Insert the value 3 into a map for the key 1.
+             Map.empty.insert 1 3
     insert : Any -> Any -> Map
     insert key value = Internal.insert this key value
 
-    ## Gets the value associated with `key` in this map, or returns a
-       `Nothing`, if `key` is not present.
+    ## Gets the value associated with `key` in this map, or throws a `Nothing`,
+       if `key` is not present.
+
+       Arguments:
+       - key: The key to look up in the map.
+
+       > Example
+         Get the value for the key 2 in a map.
+             Map.empty.get 2
     get : Any -> Any ! Nothing
     get key =
         go map = case map of
@@ -89,11 +167,24 @@ type Map
 
     ## Gets the value associated with `key` in this map, or returns `other` if
        it isn't present.
+
+       Arguments:
+       - key: The key to look up in the map.
+       - other: The value to use if the key isn't present.
+
+       > Example
+         Get the value for the key 2 in a map or instead return 10 if it isn't
+         present.
+             Map.empty.get_or_else 2 10
     get_or_else : Any -> Any -> Any
     get_or_else key ~other =
         this.get key . catch (_ -> other)
 
     ## Transforms the map's keys and values to create a new map.
+
+       Arguments:
+       - function: The function used to transform the map, taking a key and a
+         value and returning a pair of `[key, value]`.
 
        > Example
          Turn all keys into `Text` and double the values for a map `m`.
@@ -106,6 +197,10 @@ type Map
 
     ## Maps a function over each value in this map.
 
+       Arguments:
+       - function: The function to apply to each value in the map, taking a
+         value and returning a value.
+
        > Example
          Turn all values into `Text` for a map `m`.
              m.map (v -> v.to_text)
@@ -116,6 +211,10 @@ type Map
 
     ## Maps a function over each key-value pair in the map, transforming the
        value.
+
+       Arguments:
+       - function: The function to apply to each key and value in the map,
+         taking a key and a value and returning a value.
 
        > Example
          Adding the key to the value in a map `m`.
@@ -130,6 +229,10 @@ type Map
 
     ## Maps a function over each key in this map.
 
+       Arguments:
+       - function: The function to apply to each key in the map, taking a key
+         and returning a key.
+
        > Example
          Doubling all keys in the map `m`.
              m.map_keys (k -> k*2)
@@ -139,6 +242,10 @@ type Map
         this.transform trans_function
 
     ## Applies a function to each value in the map.
+
+       Arguments:
+       - function: The function to apply to each value in the map, taking a
+         value and returning anything.
 
        This method does not return the results, so is only useful for performing
        computations with side-effects.
@@ -152,6 +259,10 @@ type Map
         this.each_with_key kv_func
 
     ## Applies a function to each key-value pair in the map.
+
+       Arguments:
+       - function: The function to apply to each key-value pair in the map,
+         taking a key and a value and returning anything.
 
        This method does not return the results, so is only useful for performing
        computations with side-effects.
@@ -172,6 +283,10 @@ type Map
 
     ## Combines the values in the map.
 
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A binary function to apply to pairs of values in the map.
+
        > Example
          Summing all of the values in the map `m`.
              m.fold 0 (+)
@@ -186,6 +301,11 @@ type Map
         go this init
 
     ## Combines the key-value pairs in the map.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking the left value, the current key, and the
+         current value, and combining them to yield a single value.
 
        > Example
          Sum the keys and values in the map `m`.

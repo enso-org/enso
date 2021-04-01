@@ -4,33 +4,77 @@ polyglot java import org.enso.base.Http_Utils
 
 type Header
 
+    ## PRIVATE
+
+       A type representing a header.
+
+       Arguments:
+       - name: The header name.
+       - value: The header value.
     type Header name value
 
     ## Header equality.
+
+       Arguments:
+       - that: The header to compare against.
+
+       > Example
+         Compare two headers.
+             (Header.new "My_Header" "foo") == (Header.new "My_Header" "bar")
     == : Header -> Boolean
     == that = (this.name.equals_ignore_case that.name) && this.value==that.value
 
 ## Create a new Header.
+
+   Arguments:
+   - name: The name of the header.
+   - value: The value for the header.
+
+   > Example
+     Create a new header called "My_Header".
+         Header.new "My_Header" "my header's value"
 new : Text -> Text -> Header
 new name value = Header name value
 
 # Accept
 
-## Create "Accept" header.
+## Create an "Accept" header.
+
+   Arguments:
+   - value: The value for the accept header.
+
+   > Example
+     Create an accept header.
+         Header.accept "my_field"
 accept : Text -> Header
 accept value = Header "Accept" value
 
-## Header "Accept: */*".
+## Create a header that accepts all (`"*/*"`).
+
+   > Example
+     Create an accept all header.
+         Header.accept_all
 accept_all : Header
 accept_all = here.accept "*/*"
 
 # Authorization
 
 ## Create "Authorization" header.
+
+   Arguments:
+   - value: The value for the authorization header.
+
+   > Example
+     Create an auth header containing "foo".
+         Header.authorization "foo"
 authorization : Text -> Header
 authorization value = Header "Authorization" value
 
 ## Create HTTP basic auth header.
+
+   Arguments:
+   - user: The username.
+   - pass: The password.
 
    > Example
      Create basic auth header.
@@ -42,27 +86,57 @@ authorization_basic user pass =
 # Content-Type
 
 ## Create "Content-Type" header.
+
+   Arguments:
+   - value: The value for the content type header.
+
+   > Example
+     Create a content type header containing "my_type".
+         Header.content_type "my_type"
 content_type : Text -> Header
 content_type value = Header "Content-Type" value
 
 ## Header "Content-Type: application/json".
+
+   > Example
+     Create a header with content type "application/json".
+         Header.application_json
 application_json : Header
 application_json = here.content_type "application/json"
 
 ## Header "Content-Type: application/octet-stream".
+
+   > Example
+     Create a header with content type "application/octet-stream".
+         Header.application_octet_stream
 application_octet_stream : Header
 application_octet_stream = here.content_type "application/octet-stream"
 
 ## Header "Content-Type: application/x-www-form-urlencoded".
+
+   > Example
+     Create a header with content type "application/x-www-form-urlencoded".
+         Header.application_x_www_form_urlencoded
 application_x_www_form_urlencoded : Header
 application_x_www_form_urlencoded = here.content_type "application/x-www-form-urlencoded"
 
 ## Header "Content-Type: multipart/form-data".
+
+   Arguments:
+   - boundary: The text that delimits boundaries between the parts of the form.
+
+   > Example
+     Create a header with content type "multipart/form-data".
+         Header.multipart_form_data
 multipart_form_data : Text -> Header
 multipart_form_data (boundary = "") =
     if boundary == "" then here.content_type "multipart/form-data" else
         here.content_type ("multipart/form-data; boundary=" + boundary)
 
 ## Header "Content-Type: text/plain".
+
+   > Example
+     Create a header with the content type "text/plain".
+         Header.text_plain
 text_plain : Header
 text_plain = here.content_type "text/plain"

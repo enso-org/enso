@@ -6,23 +6,58 @@ polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
 ## Syntax error when parsing a Uri.
+
+   Arguments:
+   - message: The error message for the URI syntax error.
 type Syntax_Error message
 
+## Converts the URI syntax error to a human-readable form.
 Syntax_Error.to_display_text =
     "Uri syntax error: " + this.message
 
-## Convert Text to Uri.
+## Parse a Uri from text.
+
+   Arguments:
+   - text: The text to parse as a URI.
+
+   Throws a Syntax_Error when the text cannot be parsed as a Uri.
+
+   > Example
+     Parse Uri text.
+         Uri.parse "http://example.com"
+parse : Text -> Uri ! Syntax_Error
+parse text =
+    Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
+        Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
+        other -> Panic.throw other
+
+## Convert Text to a Uri.
+
+   Throws a Syntax_Error when `this` cannot be parsed as a Uri.
+
+   > Example
+     Parse Uri text.
+         Uri.parse "http://example.com"
+Text.to_uri : Uri ! Syntax_Error
 Text.to_uri = here.parse this
 
 type Uri
+
     ## Represents a Uniform Resource Identifier (URI) reference.
+
+       Arguments:
+       - internal_uri: The internal representation of the URI.
     type Uri internal_uri
 
     ## Convert this to Uri.
+
+       > Examples
+         Convert a URI to a URI (a no op).
+             "http://example.com".to_uri.to_uri
     to_uri : Uri
     to_uri = this
 
-    ## Get scheme part of this Uri.
+    ## Get the scheme part of this Uri.
 
        > Example
          Return the "http" part of the HTTP address.
@@ -31,7 +66,7 @@ type Uri
     scheme : Text ! Nothing
     scheme = Internal.handle_nothing this.internal_uri.getScheme
 
-    ## Get user info part of this Uri.
+    ## Get the user info part of this Uri.
 
        > Example
          Return the "user:pass" part of the HTTP address.
@@ -40,7 +75,7 @@ type Uri
     user_info : Text ! Nothing
     user_info = Internal.handle_nothing this.internal_uri.getUserInfo
 
-    ## Get host part of this Uri.
+    ## Get the host part of this Uri.
 
        > Example
          Return the "example.com" part of the HTTP address.
@@ -49,7 +84,7 @@ type Uri
     host : Text ! Nothing
     host = Internal.handle_nothing this.internal_uri.getHost
 
-    ## Get authority (user info and host) part of this Uri.
+    ## Get the authority (user info and host) part of this Uri.
 
        > Example
          Return the "user:pass@example.com" part of the HTTP address.
@@ -58,7 +93,7 @@ type Uri
     authority : Text ! Nothing
     authority = Internal.handle_nothing this.internal_uri.getAuthority
 
-    ## Get port part of this Uri.
+    ## Get the port part of this Uri.
 
        > Example
          Return the "80" part of the HTTP address.
@@ -75,7 +110,7 @@ type Uri
         Internal.handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
 
-    ## Get path part of this Uri.
+    ## Get the path part of this Uri.
 
        > Example
          Return the "/foo/bar" part of the HTTP address.
@@ -84,7 +119,7 @@ type Uri
     path : Text ! Nothing
     path = Internal.handle_nothing this.internal_uri.getPath
 
-    ## Get query part of this Uri.
+    ## Get the query part of this Uri.
 
        > Example
          Return the "key=val" part of the HTTP address.
@@ -93,7 +128,7 @@ type Uri
     query : Text ! Nothing
     query = Internal.handle_nothing this.internal_uri.getQuery
 
-    ## Get fragment part of this Uri.
+    ## Get the fragment part of this Uri.
 
        > Example
          Return the empty fragment of the HTTP address.
@@ -102,46 +137,57 @@ type Uri
     fragment : Text ! Nothing
     fragment = Internal.handle_nothing this.internal_uri.getFragment
 
-    ## Get unescaped user info part of this Uri.
+    ## ADVANCED
+
+       Get the unescaped user info part of this Uri.
     raw_user_info : Text ! Nothing
     raw_user_info = Internal.handle_nothing this.internal_uri.getRawUserInfo
 
-    ## Get unescaped authority part of this Uri.
+    ## ADVANCED
+
+       Get the unescaped authority part of this Uri.
     raw_authority : Text ! Nothing
     raw_authority = Internal.handle_nothing this.internal_uri.getRawAuthority
 
-    ## Get unescaped path part of this Uri.
+    ## ADVANCED
+
+       Get the unescaped path part of this Uri.
     raw_path : Text ! Nothing
     raw_path = Internal.handle_nothing this.internal_uri.getRawPath
 
-    ## Get unescaped query part of this Uri.
+    ## ADVANCED
+
+       Get the unescaped query part of this Uri.
     raw_query : Text ! Nothing
     raw_query = Internal.handle_nothing this.internal_uri.getRawQuery
 
-    ## Get unescaped fragment part of this Uri.
+    ## ADVANCED
+
+       Get the unescaped fragment part of this Uri.
     raw_fragment : Text ! Nothing
     raw_fragment = Internal.handle_nothing this.internal_uri.getRawFragment
 
     ## Convert this Uri to text.
+
+       > Example
+         Convert a URI to text.
+             Uri.new "https://example.com" . to_text
     to_text : Text
     to_text = this.internal_uri.toString
 
-    ## An Uri to JSON conversion.
+    ## Convert a Uri to JSON.
+
+       > Example
+         Convert a URI to JSON.
+             Uri.new "https://example.com" . to_json
     to_json : Json.String
     to_json : Json.String this.to_text
 
-    ## Check Uri equality.
+    ## Check if this URI is equal to another URI.
+
+       > Example
+         Check if two URIs are equal.
+             "https://example.com" == "http://example.com"
     == : Uri -> Boolean
     == that = this.internal_uri.equals that.internal_uri
 
-## Parse Uri from text.
-   Return Syntax_Error when the text cannot be parsed as Uri.
-
-   > Example
-     Parse Uri text.
-         Uri.parse "http://example.com"
-parse : Text -> Uri ! Syntax_Error
-parse text =
-    Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
-        Polyglot_Error ex -> Error.throw (Syntax_Error ex.getMessage)
-        other -> Panic.throw other

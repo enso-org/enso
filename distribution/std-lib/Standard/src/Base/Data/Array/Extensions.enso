@@ -1,8 +1,18 @@
 from Standard.Base import all
 
-## Transform the array into text for displaying as part of its default
-   visualization.
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
+
+   > Example
+     Converting an array to its default visualization representation.
+         [1, 2, 3, 4].to_array.to_default_visualization_data
 Array.to_default_visualization_data : Text
-Array.to_default_visualization_data = 
+Array.to_default_visualization_data =
     Vector.Vector this . to_default_visualization_data
 

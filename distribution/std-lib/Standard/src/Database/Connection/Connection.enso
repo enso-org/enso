@@ -25,11 +25,11 @@ type Connection
 
        A Database connection using a JDBC driver.
 
-       Allows to access tables from a database.
-
        Arguments:
        - java_connection: the resource managing the underlying JDBC connection.
        - dialect: the dialect associated with the database we are connected to.
+
+       Allows accessing tables from a database.
     type Connection connection_resource dialect
 
     ## UNSTABLE
@@ -106,6 +106,11 @@ type Connection
                 _ -> Error.throw err
 
     ## PRIVATE
+
+       Prepares the statement by ensuring that it is sanitised.
+
+       Arguments:
+       - query: The query to prepare the SQL statement in.
     prepare_statement : Text | Sql.Statement -> PreparedStatement
     prepare_statement query =
         go template holes=[] = Managed_Resource.with this.connection_resource java_connection->
@@ -130,6 +135,9 @@ type Connection
 
        A helper function that fetches column names and sql types associated with
        them for a table in the database.
+
+       Arguments:
+       - table_name: The name of the table to fetch the column metadata for.
     # fetch_columns : Text -> Vector [Text, Sql_Type]
     fetch_columns table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
@@ -149,6 +157,9 @@ type Connection
 
    Creates a builder for a column based on a provided SQL type, trying to infer
    the best type for the builder.
+
+   Arguments:
+   - sql_type: The SQL type of the column to create a builder for.
 create_builder : Sql_Type -> Builder
 create_builder sql_type =
     initial_size = 10
@@ -158,16 +169,37 @@ create_builder sql_type =
                 Builder_Inferred (Java_Exports.make_inferred_builder initial_size)
 
 type Builder
+
     ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
     type Builder_Inferred java_builder
 
     ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
     type Builder_Double java_builder
 
     ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
     type Builder_Long java_builder
 
     ## PRIVATE
+
+       A builder that has an inferred column type at runtime.
+
+       Arguments:
+       - java_builder: The underlying builder object.
     type Builder_Boolean java_builder
 
     ## PRIVATE
@@ -202,6 +234,9 @@ type Builder
     ## PRIVATE
 
        Seals the builder and returns a built Java-column.
+
+       Argument:
+       - name: The name of the column.
     make_column : Text -> Java_Exports.Column
     make_column name =
         storage = this.java_builder.seal
@@ -209,12 +244,24 @@ type Builder
 
 ## An error indicating that a supported dialect could not be deduced for the
    provided URL.
+
+   Argument:
+   - url: The URL for which the dialect could not be deduced.
 type Unsupported_Dialect url
+
+## Pretty print the error about unsupported SQL dialects.
+Unsupported_Dialect.to_display_text : Text
+Unsupported_Dialect.to_display_text =
+    "Could not infer the SQL dialect for the database at " + this.url + "."
 
 ## PRIVATE
 
    Creates a JDBC connection based on a URL and optionally username and
    password.
+
+   Arguments:
+   - url: The URL to connect to.
+   - properties: A vector of properties for the connection.
 create_jdbc_connection : Text -> Vector -> Connection
 create_jdbc_connection url properties = here.wrap_sql_errors <|
     java_props = Properties.new
@@ -228,37 +275,55 @@ create_jdbc_connection url properties = here.wrap_sql_errors <|
 ## PRIVATE
 
    This cannot be a closure due to limitations of Managed_Resource.
+
+   Arguments:
+   - connection: The connection to close.
+close_connection : Connection -> Nothing
 close_connection connection =
     connection.close
 
 type Sql_Error
+
     ## UNSTABLE
 
        Indicates an error with executing a query, update or connecting to the
        database.
 
-       Wraps an SQLException from the Java drvier.
+       Arguments:
+       - java_exception: The underlying exception.
     type Sql_Error java_exception
 
     ## UNSTABLE
+
+       Convert the SQL error to a textual representation.
     to_text : Text
-    to_text = this.java_exception.getMessage
+    to_text = "There was an SQL error: " + this.java_exception.getMessage.to_text + "."
 
     ## UNSTABLE
+
+       Pretty print the SQL error.
     to_display_text : Text
     to_display_text = this.to_text
 
 type Sql_Timeout_Error
+
     ## UNSTABLE
 
        Indicates that an operation has timed out.
+
+       Arguments:
+       - java_exception: The underlying exception.
     type Sql_Timeout_Error java_exception
 
     ## UNSTABLE
+
+       Convert the timeout error to a textual representation.
     to_text : Text
-    to_text = this.java_exception.getMessage
+    to_text = "The SQL connection timed out: " + this.java_exception.getMessage + "."
 
     ## UNSTABLE
+
+       Pretty print the timeout error.
     to_display_text : Text
     to_display_text = this.to_text
 
@@ -266,6 +331,9 @@ type Sql_Timeout_Error
 
    Executes `action` and returns its result, catching any panics and if they are
    coming from JDBC, wraps them with our own error types.
+
+   Arguments:
+   - action: The computation to execute. This computation may throw SQL errors.
 wrap_sql_errors ~action =
     result = Panic.recover action
     result.catch err-> case err of

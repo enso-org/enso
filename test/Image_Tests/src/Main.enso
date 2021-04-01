@@ -5,7 +5,7 @@ import Image_Tests.Codecs_Spec
 import Image_Tests.Data.Image_Spec
 import Image_Tests.Data.Matrix_Spec
 
-main = Test.Suite.runMain <|
+main = Test.Suite.run_main <|
     Codecs_Spec.spec
     Matrix_Spec.spec
     Image_Spec.spec

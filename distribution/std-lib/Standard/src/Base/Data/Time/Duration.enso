@@ -9,9 +9,17 @@ type Duration
 
     ## An amount of time in terms of years, months, days, hours, minutes,
        seconds and nanoseconds.
+
+       Arguments:
+       - internal_period: The internal representation of the time as a period.
+       - internal_duration: The internal representation of the time as a
+         duration.
     type Duration internal_period internal_duration
 
-    ## Add specified amount of time to this duration.
+    ## Add the specified amount of time to this duration.
+
+       Arguments:
+       - that: The duration to add to `this`.
 
        > Example
          Add 6 seconds to a duration of 3 minutes
@@ -21,9 +29,12 @@ type Duration
          Add 12 hours to a duration of a month.
              1.month + 12.hours
     + : Duration -> Duration
-    + other = Duration (this.internal_period . plus other.internal_period . normalized) (this.internal_duration . plus other.internal_duration)
+    + that = Duration (this.internal_period . plus that.internal_period . normalized) (this.internal_duration . plus that.internal_duration)
 
-    ## Subtract specified amount of time from this duration.
+    ## Subtract the specified amount of time from this duration.
+
+       Arguments:
+       - that: The duration to subtract from `this`.
 
        > Example
          Subtract 11 months from a duration of 3 years
@@ -33,37 +44,69 @@ type Duration
          Substract 30 minutes from a duration of 7 months.
              7.months - 30.minutes
     - : Duration -> Duration
-    - other = Duration (this.internal_period . minus other.internal_period . normalized) (this.internal_duration . minus other.internal_duration)
+    - that = Duration (this.internal_period . minus that.internal_period . normalized) (this.internal_duration . minus that.internal_duration)
 
-    ## Get the amount of nanoseconds of this duration.
+    ## Get the portion of the duration expressed in nanoseconds.
+
+       > Example
+         Get the portion of the duration expressed in nanoseconds.
+             1.nanosecond.nanoseconds
     nanoseconds : Integer
     nanoseconds = this.internal_duration . toNanosPart
 
-    ## Get the amount of milliseconds of this duration.
+    ## Get the portion of the duration expressed in milliseconds.
+
+       > Example
+         Get the portion of the duration expressed in milliseconds.
+             1.millisecond.milliseconds
     milliseconds : Integer
     milliseconds = this.internal_duration . toMillisPart
 
-    ## Get the amount of minutes of this duration.
+    ## Get the portion of the duration expressed in seconds.
+
+       > Example
+         Get the portion of the duration expressed in seconds.
+             1.second.seconds
     seconds : Integer
     seconds = this.internal_duration . toSecondsPart
 
-    ## Get the amount of minutes of this duration.
+    ## Get the portion of the duration expressed in minutes.
+
+       > Example
+         Get the portion of the duration expressed in minutes.
+             1.minute.minutes
     minutes : Integer
     minutes = this.internal_duration . toMinutesPart
 
-    ## Get the amount of hours of this duration.
+    ## Get the portion of the duration expressed in hours.
+
+       > Example
+         Get the portion of the duration expressed in hours.
+             1.hour.hours
     hours : Integer
     hours = this.internal_duration . toHours
 
-    ## Get the amount of days of this duration.
+    ## Get the portion of the duration expressed in days.
+
+       > Example
+         Get the portion of the duration expressed in days.
+             1.day.days
     days : Integer
     days = this.internal_period . getDays
 
-    ## Get the amount of months of this duration.
+    ## Get the portion of the duration expressed in months.
+
+       > Example
+         Get the portion of the duration expressed in months.
+             1.month.months
     months : Integer
     months = this.internal_period . getMonths
 
-    ## Get the amount of days of this duration.
+    ## Get the portion of the duration expressed in years.
+
+       > Example
+         Get the portion of the duration expressed in years.
+             1.year.years
     years : Integer
     years = this.internal_period . getYears
 
@@ -81,6 +124,10 @@ type Duration
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
     ## A Duration to Json conversion.
+
+       > Example
+         Convert a duration of 10 seconds to Json.
+             10.seconds.to_json
     to_json : Json.Object
     to_json =
         b = Vector.new_builder
@@ -95,18 +142,37 @@ type Duration
         Json.from_pairs b.to_vector
 
     ## Check if this duration is date-based.
+
+       > Example
+         Check if the duration of 10 seconds is date-based.
+             10.seconds.is_date
     is_date : Boolean
     is_date = (this.years==0 . not) || (this.months==0 . not) || (this.days==0 . not)
 
     ## Check if this duration is time-based.
+
+       > Example
+         Check if the duration of 10 seconds is time-based.
+             10.seconds.is_time
     is_time : Boolean
     is_time = (this.hours==0 . not) || (this.minutes==0 . not) || (this.seconds==0 . not) || (this.nanoseconds==0 . not)
 
     ## Check if this duration represents an empty time-span.
+
+       > Example
+         Check if the duration of 10 seconds is empty.
+             10.seconds.is_empty
     is_empty : Boolean
     is_empty = this.is_date.not && this.is_time.not
 
-    ## Check the durations equality.
+    ## Check two durations for equality.
+
+       Arguments:
+       - that: The duration to compare against `this`.
+
+       > Examples
+         Check if 60 seconds and 1 minute are equal.
+             60.seconds == 1.minute
     == : Duration -> Boolean
     == that = this.to_vector == that.to_vector
 
@@ -176,9 +242,14 @@ Integer.years = this.year
 
 ## Create an interval representing the duration between two points in time.
 
+   Arguments:
+   - start_inclusive: The start time of the duration.
+   - end_inclusife: The end time of the duration.
+
    > Example
      An hour interval between two points in time.
          Duration.between Time.now (Time.new 2010 10 20)
 between : Time -> Time -> Duration
 between start_inclusive end_exclusive =
    Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
+

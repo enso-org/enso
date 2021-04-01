@@ -12,13 +12,22 @@ type Matrix_Error
     ## UNSTABLE
 
        Indicates that a matrix has been accessed with an illegal index.
+
+       Arguments:
+       - rows: The number of rows in the matrix.
+       - columns: The number of columns in the matrix.
+       - index: The requested index in the matrix.
     type Index_Out_Of_Bounds_Error rows columns index
 
     ## UNSTABLE
 
-       Indicates that operation has failed.
+       An error indicating that an operation has failed due to a mismatch of
+       matrix dimensions.
     type Dimensions_Not_Equal
 
+    ## UNSTABLE
+
+       Pretty-prints a matrix error to be readable by the users.
     to_display_text : Text
     to_display_text = case this of
         Index_Out_Of_Bounds_Error rows columns index ->
@@ -32,6 +41,9 @@ type Matrix
     ## UNSTABLE
 
        The matrix data type.
+
+       Arguments:
+       - opencv_mat: The internal representation of the matrix.
 
        Each value of the matrix is represented with an array of
        channels. In contrast to an Image data type, Matrix values are
@@ -59,8 +71,8 @@ type Matrix
        Get the matrix value at the specified row and column.
 
        Arguments:
-       - `row`: the row index.
-       - `column`: the column index.
+       - row: the row index.
+       - column: the column index.
 
        > Example
          Get the value at the specified row and column.
@@ -81,8 +93,8 @@ type Matrix
        Reshape the matrix specifying new number of rows and channels.
 
        Arguments:
-       - `rows`: the new number of rows.
-       - `channels`: the new number of channels.
+       - rows: the new number of rows.
+       - channels: the new number of channels.
 
        > Example
          Reshape the matrix to a new shape of 3 rows and 1 column, with 1 channel.
@@ -98,7 +110,7 @@ type Matrix
        Calculates the per-element sum of two matrices or a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each values's channel of the matrix. The
          vector value is padded with zeros to match the number of channels and
          then applied to each pixel of this matrix. The matrix value must have
@@ -124,10 +136,11 @@ type Matrix
 
     ## UNSTABLE
 
-       Calculates the per-element difference of two matrices or of a matrix and a scalar.
+       Calculates the per-element difference of two matrices or of a matrix and
+       a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each values's channel of the matrix. The
          vector value is padded with zeros to match the number of channels and
          then applied to each pixel of this matrix. The matrix value must have
@@ -153,10 +166,11 @@ type Matrix
 
     ## UNSTABLE
 
-       Calculates the per-element product of two matrices or a matrix and a scalar.
+       Calculates the per-element product of two matrices or a matrix and a
+       scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each values's channel of the matrix. The
          vector value is padded with zeros to match the number of channels and
          then applied to each pixel of this matrix. The matrix value must have
@@ -190,7 +204,7 @@ type Matrix
        Performs per-element division of two matrices or a matrix and a scalar.
 
        Arguments:
-       - `value`: A value can be a number, a vector of numbers, or a matrix. The
+       - value: A value can be a number, a vector of numbers, or a matrix. The
          number value is applied to each values's channel of the matrix. The
          vector value is padded with zeros to match the number of channels and
          then applied to each pixel of this matrix. The matrix value must have
@@ -219,7 +233,7 @@ type Matrix
        Check the equality of two matrices.
 
        Arguments:
-       - `that`: the matrix to compare with.
+       - that: the matrix to compare with.
 
        ? Implementation Note
          Two matrices considered equal when they have the same number of rows,
@@ -234,8 +248,8 @@ type Matrix
        the matrix becomes `max_value`.
 
        Arguments:
-       - `min_value`: the minimum value in the resulting normalized range.
-       - `max_value`: the maximum value in the resulting normalized range.
+       - min_value: the minimum value in the resulting normalized range.
+       - max_value: the maximum value in the resulting normalized range.
 
        > Example
          Normalize a matrix from vector.
@@ -277,9 +291,9 @@ type Matrix
    Create a matrix with all elements set to zero.
 
    Arguments:
-   - `rows`: the number of rows in the resulting matrix.
-   - `columns`: the number of columns in the resulitng matrix.
-   - `channels`: the number of channels in the resulting matrix.
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.
@@ -293,9 +307,9 @@ zeros rows columns channels=1 =
    Create a matrix with all elements set to one.
 
    Arguments:
-   - `rows`: the number of rows in the resulting matrix.
-   - `columns`: the number of columns in the resulitng matrix.
-   - `channels`: the number of channels in the resulting matrix.
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.
@@ -309,9 +323,9 @@ ones rows columns channels=1 =
    Create an identity matrix containing ones on a main diagonal.
 
    Arguments:
-   - `rows`: the number of rows in the resulting matrix.
-   - `columns`: the number of columns in the resulitng matrix.
-   - `channels`: the number of channels in the resulting matrix.
+   - rows: the number of rows in the resulting matrix.
+   - columns: the number of columns in the resulitng matrix.
+   - channels: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.
@@ -325,9 +339,9 @@ identity rows columns channels=1 =
    Create a matrix from the provided vector.
 
    Arguments:
-   - `values`: the vector of numbers.
-   - `rows`: the number of rows in the resulting matrix.
-   - `channels`: the number of channels in the resulting matrix.
+   - values: the vector of numbers.
+   - rows: the number of rows in the resulting matrix.
+   - channels: the number of channels in the resulting matrix.
 
    > Example
      Create a matrix.
@@ -335,3 +349,4 @@ identity rows columns channels=1 =
 from_vector : Vector -> Integer -> Integer -> Matrix
 from_vector values rows=1 channels=1 =
     Matrix (Java_Matrix.from_vector values.to_array channels rows)
+

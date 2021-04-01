@@ -10,6 +10,10 @@ polyglot java import java.util.regex.Pattern
    Checks if the two tables or columns have the same context and use the same
    connection.
 
+   Arguments:
+   - entity1: The entity to check against the second.
+   - entity2: The entity to check against the first.
+
    To combine different objects they need to satisfy this requirement, otherwise
    the combination would be ill-formed.
 check_integrity : (Table | Column) -> (Table | Column) -> Boolean
@@ -20,9 +24,13 @@ check_integrity entity1 entity2 =
 
 ## PRIVATE
 
-   A helper function simplifying argument handling. It always returns a vector,
-   if the argument was already a vector, it is kept as-is, otherwise it is
-   wrapped in a singleton vector.
+   A helper function simplifying argument handling.
+
+   Arguments:
+   - x: A value that may or may not be a vector.
+
+   It always returns a vector, if the argument was already a vector, it is kept
+   as-is, otherwise it is wrapped in a singleton vector.
 unify_vector_singleton : (Any | Vector.Vector Any) -> Vector.Vector Any
 unify_vector_singleton x = case x of
     Vector.Vector _ -> x
@@ -32,14 +40,25 @@ unify_vector_singleton x = case x of
 
    Signals that a name for a column or table is not supported.
 
+   Arguments:
+   - text: The name that is not supported.
+
    Currently the names can only include ASCII letters, numbers and the
    underscore. This is a temporary limitation simplifying name handling. It will
    be removed in a future version.
 type Unsupported_Name_Error text
 
+Unsupported_Name_Error.to_display_text : Text
+Unsupported_Name_Error.to_display_text =
+    "The name " + this.text + " is not currently supported by the Database library."
+
 ## PRIVATE
 
    This is used to check if the new name is safe for use in Sql queries.
+
+   Arguments:
+   - name: The name to check for safety.
+
    In a future version we will decouple the internal Sql-safe names from the
    external names shown to the user, but as a temporary solution we only allow
    Sql-safe names for columns.

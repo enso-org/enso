@@ -5,19 +5,40 @@ from Standard.Base.Data.Json import all
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
 
-## A JSON parser event consumer, passed to the Java parser backend.
+## PRIVATE
+
+   A JSON parser event consumer, passed to the Java parser backend.
 
    Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
 type Consumer
+
+    ## PRIVATE
+
+       A JSON parser event consumer, passed to the Java parser backend.
+
+       Arguments:
+       - child_consumer: The child consumer of this.
+       - value: The value being consumed.
+
+       Conforms to the `org.enso.base.json.Parser.JsonConsumer` Java interface.
     type Consumer child_consumer value
 
-    ## Helper for handling "value emitted" events.
+    ## PRIVATE
+
+       A helper for handling "value emitted" events.
+
+       Arguments:
+       - v: The value to act upon.
+    on_value : Any -> Nothing
     on_value v = case Ref.get this.child_consumer of
         Nil -> Ref.put this.value v
         cons -> cons.on_value v
 
-    ## Closes the child consumer and either sets the current consumer to its
+    ## PRIVATE
+
+       Closes the child consumer and either sets the current consumer to its
        parent, or takes its returned value as the final result of parsing.
+    seal_child : Nothing
     seal_child =
         child = Ref.get this.child_consumer
         val = child.seal
@@ -28,92 +49,202 @@ type Consumer
                 Ref.put this.child_consumer p
                 p.on_value val
 
-    ## Consumes the `start_object` event.
+    ## PRIVATE
+
+       Consumes the `start_object` event.
+    on_start_object : Nothing
     on_start_object =
         parent = Ref.get this.child_consumer
         Ref.put this.child_consumer (here.mk_object_consumer parent)
 
-    ## Consumes the `key` event.
+    ## PRIVATE
+
+       Consumes the `key` event.
+
+       Arguments:
+       - k: The key to act upon.
+    on_key : Text -> Nothing
     on_key k = Ref.get this.child_consumer . on_key k
 
-    ## Consumes the `end_object` event.
+    ## PRIVATE
+
+       Consumes the `end_object` event.
+    on_end_object : Nothing
     on_end_object = this.seal_child
 
-    ## Consumes the `start_array` event.
+    ## PRIVATE
+
+       Consumes the `start_array` event.
+    on_start_array : Nothing
     on_start_array =
         parent = Ref.get this.child_consumer
         Ref.put this.child_consumer (here.mk_array_consumer parent)
 
-    ## Consumes the `end_array` event.
+    ## PRIVATE
+
+       Consumes the `end_array` event.
+    on_end_array : Nothing
     on_end_array = this.seal_child
 
-    ## Consumes the `long` event.
+    ## PRIVATE
+
+       Consumes the `long` event.
+
+       Arguments:
+       - n: The long value to process.
+    on_long : Integer -> Nothing
     on_long n = this.on_value (Number n)
 
-    ## Consumes the `double` event.
+    ## PRIVATE
+
+       Consumes the `double` event.
+
+       Arguments:
+       - n: The double value to process.
+    on_double : Decimal -> Nothing
     on_double n = this.on_value (Number n)
 
-    ## Consumes the `string` event.
+    ## PRIVATE
+
+       Consumes the `string` event.
+
+       Arguments:
+       - s: The string value to process.
+    on_string : Text -> Nothing
     on_string s = this.on_value (String s)
 
-    ## Consumes the `true` event.
+    ## PRIVATE
+
+       Consumes the `true` event.
+    on_true : Nothing
     on_true = this.on_value (Boolean True)
 
-    ## Consumes the `false` event.
+    ## PRIVATE
+
+       Consumes the `false` event.
+    on_false : Nothing
     on_false = this.on_value (Boolean False)
 
-    ## Consumes the `null` event.
+    ## PRIVATE
+
+       Consumes the `null` event.
+    on_null : Nothing
     on_null = this.on_value Null
 
-## A child consumer, used to process events inside arrays.
+## PRIVATE
+
+   A child consumer, used to process events inside arrays.
 type Array_Consumer
+    ## PRIVATE
+
+       A child consumer, used to process events inside arrays.
+
+       Arguments:
+       - builder: The builder for array values.
+       - parent: The parent consumer.
     type Array_Consumer builder parent
 
-    ## Consumes a value.
+    ## PRIVATE
+
+       Consumes a value.
+
+       Arguments:
+       - v: The value to process.
+    on_value : Any -> Nothing
     on_value v = this.builder.append v
 
-    ## Returns the final value built by this consumer.
+    ## PRIVATE
+
+       Returns the final value built by this consumer.
+    seal : Array
     seal =
         vec = this.builder.to_vector
         Array vec
 
-## A child consumer, used to process events inside objects.
+## PRIVATE
+
+   A child consumer, used to process events inside objects.
 type Object_Consumer
+    ## PRIVATE
+
+       A child consumer, used to process events inside objects.
+
+       Arguments:
+       - last_key: The last object key that has been seen.
+       - map: The map representing the object.
+       - parent: The parent consumer.
     type Object_Consumer last_key map parent
 
-    ## Consumes a key.
+    ## PRIVATE
+
+       Consumes a key.
+
+       Arguments:
+       - k: The key to process.
+    on_key : Text -> Nothing
     on_key k = Ref.put this.last_key k
 
-    ## Consumes a value.
+    ## PRIVATE
+
+       Consumes a value.
+
+       Arguments:
+       - v: The value to process.
+    on_value : Any -> Nothing
     on_value v =
         k = Ref.get this.last_key
         m = Ref.get this.map
         new_m = m.insert k v
         Ref.put this.map new_m
 
-    ## Returns the final value built by this consumer.
+    ## PRIVATE
+
+       Returns the final value built by this consumer.
+    seal : Object
     seal =
         m = Ref.get this.map
         Object m
 
-## Creates a new object consumer with the given parent.
+## PRIVATE
+
+   Creates a new object consumer with the given parent.
+
+   Arguments:
+   - parent: The parent of the new consumer.
+mk_object_consumer : Any -> Object_Consumer
 mk_object_consumer parent =
     k = Ref.new ""
     m = Ref.new Map.empty
     Object_Consumer k m parent
 
-## Creates a new array consumer with the given parent.
+## PRIVATE
+
+  Creates a new array consumer with the given parent.
+
+  Arguments:
+  - parent: The parent of the new consumer.
+mk_array_consumer : Any -> Array_Consumer
 mk_array_consumer parent =
     bldr = Vector.new_builder
     Array_Consumer bldr parent
 
-## Creates a new top-level consumer.
+## PRIVATE
+
+   Creates a new top-level consumer.
+mk_consumer : Consumer
 mk_consumer =
     child = Ref.new Nil
     val = Ref.new Nothing
     Consumer child val
 
-## Helper method for printing JSON values to Text.
+## PRIVATE
+
+   A helper method for printing JSON values to Text.
+
+   Arguments:
+   - builder: An accumulator for text.
+   - json: The json value being converted to text.
+render_helper : Text -> Json -> Text
 render_helper builder json = case json of
     Object fields ->
         r = Ref.new ""
@@ -143,9 +274,16 @@ render_helper builder json = case json of
     Null ->
         builder + "null"
 
-## Helper method for converting JSON objects into arbitrary types.
+## PRIVATE
+
+   A helper method for converting JSON objects into arbitrary types.
+
+   Arguments:
+   - fmt: The format to convert the JSON into.
+   - json: The JSON being converted.
 
    See `Json.into` for semantics documentation.
+into_helper : Any -> Json -> Any
 into_helper fmt json = case fmt of
     Base.Vector.Vector field -> case json of
         Array items -> items.map (here.into_helper field)
@@ -175,7 +313,12 @@ into_helper fmt json = case fmt of
                 _ -> Panic.throw (Type_Mismatch_Error json fmt)
             _ -> Panic.throw (Type_Mismatch_Error json fmt)
 
-## Helper used to parse text into a JSON value.
+## PRIVATE
+
+   A helper used to parse text into a JSON value.
+
+   Arguments:
+   - json_text: The textual representation of the JSON.
 parse_helper : Text -> Json
 parse_helper json_text =
     consumer = here.mk_consumer

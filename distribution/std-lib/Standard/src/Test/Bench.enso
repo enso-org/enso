@@ -1,13 +1,27 @@
 from Standard.Base import all
 
-reverse_list = list ->
+## PRIVATE
+
+   Reverses the provided list.
+
+   Arguments:
+   - list: The list to reverse.
+reverse_list : List Any -> List
+reverse_list list =
     go = list -> acc -> case list of
         Cons h t -> @Tail_Call go t (Cons h acc)
         Nil -> acc
     res = go list Nil
     res
 
-sum_list = list ->
+## PRIVATE
+
+   Sums the elements of the list.
+
+   Arguments:
+   - list: The list of numbers to sum.
+sum_list : List Number -> Sum
+sum_list list =
     go = list -> acc -> case list of
         Cons a b -> @Tail_Call go b (acc + a)
         Nil -> acc
@@ -15,21 +29,50 @@ sum_list = list ->
     res = go list 0
     res
 
-avg_list = list -> here.sum_list list / here.len_list list
+## PRIVATE
 
-len_list = list ->
+   Calculate the average of the elements of a numeric list.
+
+   Arguments:
+   - list: The list of numbers to calculate the average of.
+avg_list : List Number -> Number
+avg_list list = here.sum_list list / here.len_list list
+
+## PRIVATE
+
+   Calculates the length of the provided list.
+
+   Arguments:
+   - list: The list to calculate the length of.
+len_list : List Any -> Integer
+len_list list =
     go = list -> acc -> case list of
         Cons _ b -> @Tail_Call go b (acc + 1)
         Nil -> acc
     res = go list 0
     res
 
-Number.times = act ->
+## PRIVATE
+
+   Perform an action a number of times.
+
+   Arguments:
+   - act: The action to perform `this` number of times.
+Number.times : List Any
+Number.times act =
     go = results -> number -> if number == 0 then results else
         @Tail_Call go (Cons (act number) results) number-1
     res = here.reverse_list (go Nil this)
     res
 
+## Measure the amount of time it takes to execute a given computation.
+
+   Arguments:
+   - act: The action to perform.
+   - label: A name for the measurement.
+   - iter_size: The number of runs per iteration.
+   - num_iters: The number of iterations per measurement.
+measure : Any -> Text -> Integer -> Integer -> Nothing
 measure = ~act -> label -> iter_size -> num_iters ->
     single_call = _ ->
         x1 = System.nano_time
@@ -43,3 +86,4 @@ measure = ~act -> label -> iter_size -> num_iters ->
         fmt = (avg / 1000000).format "%.2f"
         IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
     num_iters.times iteration
+

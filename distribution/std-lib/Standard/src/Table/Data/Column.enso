@@ -6,14 +6,27 @@ import Standard.Table.Data.Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
+## Creates a new column given a name and a vector of elements.
+
+   Arguments:
+   - name: The name of the column to create.
+   - items: The elements to contain in the column.
+from_vector : Text -> Vector -> Column
+from_vector name items = Column (Java_Column.fromItems name items.to_array)
+
 type Column
+
+    ## A representation of a column in a Table.
+
+       Arguments:
+       - java_column: The internal representation of the column.
     type Column java_column
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
        Arguments:
-         - show_rows: the number of initial rows that should be displayed.
-         - format_terminal: whether ANSI-terminal formatting should be used
+       - show_rows: the number of initial rows that should be displayed.
+       - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
         java_col = this.java_column
@@ -34,97 +47,158 @@ type Column
     ## Prints an ASCII-art table with this data to the standard output.
 
        Arguments:
-         - show_rows: the number of initial rows that should be displayed.
+       - show_rows: the number of initial rows that should be displayed.
+    print : Integer -> Nothing
     print show_rows=10 =
         IO.println (this.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Element-wise equality comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise equality comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     == : Column | Any -> Column
     == other =
         here.run_vectorized_binary_op this "==" (==) other
 
-    ## Element-wise non-equality comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise non-equality comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     != : Column | Any -> Column
     != other = (this == other).not
 
-    ## Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise order comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     >= : Column | Any -> Column
     >= other =
         here.run_vectorized_binary_op this ">=" (>=) other
 
-    ## Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise order comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     <= : Column | Any -> Column
     <= other =
         here.run_vectorized_binary_op this "<=" (<=) other
 
-    ## Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise order comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     > : Column | Any -> Column
     > other =
         here.run_vectorized_binary_op this ">" (>) other
 
-    ## Element-wise order comparison. Returns a column with results of
-       comparing this column's elements against `other`.
-       If `other` is a column, the comparison is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise order comparison.
+
+       Arguments:
+       - other: The value to compare `this` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
     < : Column | Any -> Column
     < other = here.run_vectorized_binary_op this "<" (<) other
 
-    ## Element-wise addition. Returns a column containing the result
-       of adding `other` to each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise addition.
+
+       Arguments:
+       - other: The value to add to `this`. If `other` is a column, the addition
+         is performed pairwise between corresponding elements of `this` and
+         `other`.
+
+       Returns a column with results of adding `other` from each element of
+       `this`.
     + : Column | Any -> Column
     + other = here.run_vectorized_binary_op this '+' (+) other
 
-    ## Element-wise subtraction. Returns a column containing the result
-       of subtracting `other` from each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise subtraction.
+
+       Arguments:
+       - other: The value to subtract from `this`. If `other` is a column, the
+         subtraction is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column with results of subtracting `other` from each element of
+       `this`.
     - : Column | Any -> Column
     - other = here.run_vectorized_binary_op this '-' (-) other
 
-    ## Element-wise multiplication. Returns a column containing the result
-       of multiplying `other` by each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise multiplication.
+
+       Arguments:
+       - other: The value to multiply `this` by. If `other` is a column, the
+         multiplication is performed pairwise between corresponding elements of
+         `this` and `other`.
+
+       Returns a column containing the result of multiplying each element of
+       `this` by `other`.
     * : Column | Any -> Column
     * other = here.run_vectorized_binary_op this '*' (*) other
 
-    ## Element-wise division. Returns a column containing the result
-       of dividing each element of `this` by `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise division.
+
+       Arguments:
+       - other: The value to divide `this` by. If `other` is a column, the
+         division is performed pairwise between corresponding elements of `this`
+         and `other`.
+
+       Returns a column containing the result of dividing each element of `this`
+       by `other`.
     / : Column | Any -> Column
     / other = here.run_vectorized_binary_op this '/' (/) other
 
-    ## Element-wise boolean conjunction. Returns a column containing the result
-       of performing the boolean `and` on `other` and each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise boolean conjunction.
+
+       Arguments:
+       - other: The value to compute the conjunction of `this` with. If `other`
+         is a column, the conjunction is performed pairwise between
+         corresponding elements of `this` and `other`.
+
+       Returns a column containing the result of performing boolean `and` on
+       each element of `this` and `other`.
     && : Column | Any -> Column
     && other =
         here.run_vectorized_binary_op this "&&" (&&) other
 
-    ## Element-wise boolean disjunction. Returns a column containing the result
-       of performing the boolean `or` on `other` and each element of `this`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+    ## Element-wise boolean disjunction.
+
+       Arguments:
+       - other: The value to compute the disjunction of `this` with. If `other`
+         is a column, the disjunction is performed pairwise between
+         corresponding elements of `this` and `other`.
+
+       Returns a column containing the result of performing the boolean `or` on
+       each element of `this` and `other`.
     || : Column | Any -> Column
     || other =
         here.run_vectorized_binary_op this "||" (||) other
@@ -146,6 +220,9 @@ type Column
 
     ## Returns a new column where missing values have been replaced with the
        provided default.
+
+       Arguments:
+       - default: The value to replace missing values with.
     fill_missing : Any -> Column
     fill_missing default =
         storage = this.java_column.getStorage
@@ -161,28 +238,40 @@ type Column
         this.where this.is_missing.not
 
     ## Checks for each element of the column if it starts with `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+
+       Arguments:
+       - other: The value to compare `this` with. If `other` is a column, the
+         operation is performed pairwise between corresponding elements of
+         `this` and `other`.
     starts_with : Column | Text -> Column
     starts_with other =
         here.run_vectorized_binary_op this "starts_with" (a -> b -> a.starts_with b) other
 
     ## Checks for each element of the column if it ends with `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+
+       Arguments:
+       - other: The value to compare `this` with. If `other` is a column, the
+         operation is performed pairwise between corresponding elements of
+         `this` and `other`.
     ends_with : Column | Text -> Column
     ends_with other =
         here.run_vectorized_binary_op this "ends_with" (a -> b -> a.ends_with b) other
 
     ## Checks for each element of the column if it contains `other`.
-       If `other` is a column, the operation is performed pairwise between
-       corresponding elements of `this` and `other`.
+
+       Arguments:
+       - other: The value to compare `this` with. If `other` is a column, the
+         operation is performed pairwise between corresponding elements of
+         `this` and `other`.
     contains : Column | Text -> Column
     contains other =
         here.run_vectorized_binary_op this "contains" (a -> b -> a.contains b) other
 
     ## Applies `function` to each item in this column and returns the column
        of results.
+
+       Arguments:
+       - function: The function to apply to each element of `this` column.
     map : (Any -> Any) -> Column
     map function =
         storage = this.java_column.getStorage
@@ -193,6 +282,11 @@ type Column
 
     ## Applies `function` to consecutive pairs of elements of `this` and `that`
        and returns a column of results.
+
+       Arguments:
+       - that: The column to zip with `this`.
+       - function: A binary function that is applied to corresponding pairs of
+         elements of `this` and `that` to produce a value.
     zip : Column -> (Any -> Any -> Any) -> Column
     zip that function =
         s1 = this.java_column.getStorage
@@ -203,6 +297,10 @@ type Column
 
     ## Returns a new column, containing the same elements as `this`, but with
        the given name.
+
+       Arguments:
+       - name: The new name for the column.
+    rename : Text -> Column
     rename name = Column (this.java_column.rename name)
 
     ## Returns the name of this column.
@@ -222,6 +320,7 @@ type Column
     count = this.length - this.count_missing
 
     ## Returns the index of this column, as a column (indexed by itself).
+
        Throws `No_Index_Set_Error` if there is no index set.
     index : Column ! Table.No_Index_Set_Error
     index = case this.java_column.getIndex.toColumn of
@@ -230,11 +329,11 @@ type Column
 
     ## Returns the value contained in this column at the given index.
 
+       Arguments:
+       - index: The index in the column from which to get the value.
+
        If the value is an NA then this method returns nothing. If the index is
        not an index in the column it returns an `Index_Out_Of_Bounds_Error`.
-
-       Arguments:
-       - `index`: The index in the column from which to get the value
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at index =
         valid_index = (index >= 0) && (index < this.length)
@@ -245,6 +344,11 @@ type Column
 
     ## Selects only the rows of this column that correspond to `True` values in
        `indexes`.
+
+       Arguments:
+       - indexes: A column containing boolean values that is used to mask
+         `this`.
+
        This is useful for filtering the rows by given predicate.
 
        > Example
@@ -288,21 +392,21 @@ type Column
     ## Efficiently joins two tables based on either the index or the specified
        key column.
 
+       Arguments:
+       - other: the table being the right operand of this join operation.
+       - on: the column of `this` that should be used as the join key. If this
+         argument is not provided, the index of `this` will be used.
+       - drop_unmatched: whether the rows of `this` without corresponding
+         matches in `other` should be dropped from the result.
+       - left_suffix: a suffix that should be added to the columns of `this`
+         when there's a name conflict with a column of `other`.
+       - right_suffix: a suffix that should be added to the columns of `other`
+         when there's a name conflict with a column of `this`.
+
        The resulting table contains rows of `this` extended with rows of
        `other` with matching indexes. If the index values in `other` are not
        unique, the corresponding rows of `this` will be duplicated in the
        result.
-
-       Arguments:
-         - other: the table being the right operand of this join operation.
-         - on: the column of `this` that should be used as the join key. If
-               this argument is not provided, the index of `this` will be used.
-         - drop_unmatched: whether the rows of `this` without corresponding
-                           matches in `other` should be dropped from the result.
-         - left_suffix: a suffix that should be added to the columns of `this`
-                        when there's a name conflict with a column of `other`.
-         - right_suffix: a suffix that should be added to the columns of `other`
-                         when there's a name conflict with a column of `this`.
     join : Table.Table | Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         this.to_table.join other on drop_unmatched left_suffix right_suffix
@@ -350,14 +454,14 @@ type Column
        Sorts the column according to the specified rules.
 
        Arguments:
-         - order: specifies the default sort order for this operation.
-         - missing_last: specifies the default placement of missing values when
-           compared to non-missing ones. Note thet this argument is independent
-           from `order`, i.e. missing values will always be sorted according to
-           this rule, ignoring the ascending / descending setting.
-         - comparator: function taking two items in this column and returning
-           an ordering. If specified, it is used instead of the natural
-           (`.compare_to`) ordering.
+       - order: specifies the default sort order for this operation.
+       - missing_last: specifies the default placement of missing values when
+         compared to non-missing ones. Note thet this argument is independent
+         from `order`, i.e. missing values will always be sorted according to
+         this rule, ignoring the ascending / descending setting.
+       - comparator: function taking two items in this column and returning
+         an ordering. If specified, it is used instead of the natural
+         (`.compare_to`) ordering.
 
        > Example
          Sorting `column` in ascending order.
@@ -368,7 +472,8 @@ type Column
          top of the resulting column.
              column.sort order=Sort_Order.Descending missing_last=False
 
-       > Sorting `column` in ascending order, using a custom comparator
+       > Example
+         Sorting `column` in ascending order, using a custom comparator
          function.
              manhattan_comparator a b = (a.x.abs + a.y.abs) . compare_to (b.x.abs + b.y.abs)
              column.sort comparator=manhattan_comparator
@@ -449,10 +554,6 @@ type Column
         mask = OrderBuilder.buildReversedMask this.length
         Column <| this.java_column.applyMask mask
 
-## Creates a new column given a name and a vector of elements.
-from_vector : Text -> Vector -> Column
-from_vector name items = Column (Java_Column.fromItems name items.to_array)
-
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
 type Aggregate_Column
@@ -462,12 +563,12 @@ type Aggregate_Column
        with the provided `function`.
 
        Arguments:
-         - function: the function used for value aggregation. Values belonging
-                     to each group are passed to this function in a vector.
-         - skip_missing: controls whether missing values should be included
-                         in groups.
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - function: the function used for value aggregation. Values belonging to
+         each group are passed to this function in a vector.
+       - skip_missing: controls whether missing values should be included in
+         groups.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
     reduce function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.Vector arr)
@@ -477,8 +578,8 @@ type Aggregate_Column
     ## Sums the values in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     sum : Text -> Column
     sum name_suffix='_sum' =
         r = this.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
@@ -487,8 +588,8 @@ type Aggregate_Column
     ## Computes the maximum element of each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     max : Text -> Column
     max name_suffix='_max' =
         r = this.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
@@ -497,8 +598,8 @@ type Aggregate_Column
     ## Computes the minimum element of each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     min : Text -> Column
     min name_suffix='_min' =
         r = this.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
@@ -507,8 +608,8 @@ type Aggregate_Column
     ## Computes the number of non-missing elements in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     count : Text -> Column
     count name_suffix='_count' =
         r = this.java_column.aggregate 'count' name_suffix (x-> x.length) True
@@ -517,8 +618,8 @@ type Aggregate_Column
     ## Computes the mean of non-missing elements in each group.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     mean : Text -> Column
     mean name_suffix='_mean' =
         vec_mean v = if v.length == 0 then Nothing else
@@ -530,14 +631,23 @@ type Aggregate_Column
        such vectors.
 
        Arguments:
-         - name_suffix: a suffix that will be appended to the original column
-                        name to generate the resulting column name.
+       - name_suffix: a suffix that will be appended to the original column name
+         to generate the resulting column name.
     values : Text -> Column
     values name_suffix='_values' =
         r = this.java_column.aggregate Nothing name_suffix Vector.Vector False
         Column r
 
 ## PRIVATE
+
+   Executes a vectorized binary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+   - operand: The operand to apply to the function after `column`.
+run_vectorized_binary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_binary_op column name fallback_fn operand = case operand of
     Column col2 ->
         s1 = column.java_column.getStorage
@@ -552,46 +662,75 @@ run_vectorized_binary_op column name fallback_fn operand = case operand of
         Column (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
+
+   Executes a vectorized unary operation over the provided column.
+
+   Arguments:
+   - column: The column to execute the operation over.
+   - name: The name of the vectorized operation.
+   - fallback_fn: A function used if the vectorized operation isn't available.
+run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Column
 run_vectorized_unary_op column name fallback_fn =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn
     Column (Java_Column.new "Result" ix rs)
 
-
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.LONG`
+storage_type_long : Integer
 storage_type_long = 1
 
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.DOUBLE`
+storage_type_double : Integer
 storage_type_double = 2
 
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.STRING`
+storage_type_string : Integer
 storage_type_string = 3
 
 ## PRIVATE
 
    Keep this in sync with `org.enso.table.data.Storage.Type.BOOL`
+storage_type_bool : Integer
 storage_type_bool = 4
 
 ## PRIVATE
+
+   A helper function for converting a column storage to JSON.
+
+   Arguments:
+   - storage: The storage to convert to JSON.
+   - factory: The factory function for converting the storage.
+storage_to_json : Storage -> (Any -> Json) -> Json
 storage_to_json storage factory =
     Vector.new storage.size ix->
         if storage.isNa ix then Json.Null else
             factory (storage.getItem ix)
 
 ## PRIVATE
+
+   Gets a textual representation of the item at position `ix` in `column`.
+
+   Arguments:
+   - column: The column to get the item from.
+   - ix: The index in the column from which to get the item.
+get_item_string : Column -> Integer -> Text
 get_item_string column ix =
     tp = column.getType
     if tp == Storage_Type_String then column.getItem ix else
         column.getItem ix . to_text
 
 ## A type representing an error for an out-of-bounds index in a column.
+
+   Arguments:
+   - index: The index of the element requested.
+   - length: The length of the column in which `index` was out of bounds.
 type Index_Out_Of_Bounds_Error index length
 
 ## Pretty-prints the index out of bounds error.

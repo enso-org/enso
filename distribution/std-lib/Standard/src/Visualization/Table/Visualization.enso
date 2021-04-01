@@ -7,11 +7,17 @@ import Standard.Database.Data.Column as Database_Column
 import Standard.Visualization.Helpers
 
 # TODO add an initial offset to fully support lazy visualizations
+
 ## PRIVATE
 
    Prepares a table or column for visualization.
 
+   Arguments:
+   - x: The table to prepare for visualisation.
+   - max_rows: The maximum number of rows to display.
+
    In case of Database backed data, it materializes a fragment of the data.
+prepare_visualization : Any -> Integer -> Json
 prepare_visualization x max_rows = Helpers.recover_errors <| case x of
     Dataframe_Table.Table _ ->
         dataframe = x.take_start max_rows
@@ -71,6 +77,7 @@ prepare_visualization x max_rows = Helpers.recover_errors <| case x of
      `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
+make_json : Table -> Vector Column -> Integer -> Json
 make_json dataframe indices all_rows_count =
     columns  = dataframe.columns
     header      = ["header", columns.map .name]

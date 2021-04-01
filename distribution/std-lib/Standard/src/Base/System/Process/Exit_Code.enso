@@ -1,19 +1,34 @@
+from Standard.Base import all
+
 ## The exit codes that the process can return.
 type Exit_Code
+
+    ## The process exited with a success.
     type Exit_Success
+
+    ## The process exited with a failure.
+
+       Arguments:
+       - code: The exit code for the failure.
     type Exit_Failure code
 
     ## Convert exit code to a number.
+
+       > Example
+         Convert a success code to a corresponding number.
+             Exit_Success.to_number
+    to_number : Integer
     to_number = case this of
         Exit_Success -> 0
         Exit_Failure code -> code
 
 ## Create exit code from a number.
 
+   Arguments:
+   - code: The exit code you want to create.
+
    > Example
-     Create failure exit code:
+     Create a failure exit code.
          Exit_Code.from_number 1
-     Result in:
-         Exit_Failure 1
 from_number : Number -> Exit_Code
 from_number code = if code == 0 then Exit_Success else Exit_Failure code

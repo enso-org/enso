@@ -9,7 +9,7 @@ import Visualization_Tests.Scatter_Plot_Spec
 import Visualization_Tests.Sql_Spec
 import Visualization_Tests.Table_Spec
 
-main = Test.Suite.runMain <|
+main = Test.Suite.run_main <|
     Geo_Map_Spec.spec
     Helpers_Spec.spec
     Histogram_Spec.spec

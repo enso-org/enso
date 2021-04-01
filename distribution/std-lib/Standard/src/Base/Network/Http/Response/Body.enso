@@ -6,6 +6,9 @@ import Standard.Base.System.File
 type Body
 
     ## Response body
+
+       Arguments:
+       - bytes: The body of the response as binary data.
     type Body bytes
 
     ## Convert response body to Text.
@@ -17,7 +20,10 @@ type Body
     to_json = Json.parse this.to_text
 
     ## Write response body to a File.
+
+       Arguments:
+       - file: The file to write the bytes to.
     to_file : File -> File
-    to_file path =
-        path.write_bytes this.bytes
-        path
+    to_file file =
+        file.write_bytes this.bytes
+        file

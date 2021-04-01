@@ -5,6 +5,6 @@ import Standard.Test
 import Table_Tests.Table_Spec
 import Table_Tests.Column_Spec
 
-main = Test.Suite.runMain <|
+main = Test.Suite.run_main <|
     Column_Spec.spec
     Table_Spec.spec

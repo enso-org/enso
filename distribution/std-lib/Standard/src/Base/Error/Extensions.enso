@@ -1,32 +1,51 @@
 from Standard.Base import all
 
-## Returns the method name of the method that could not be found.
+## ADVANCED
+   UNSTABLE
+
+   Returns the method name of the method that could not be found.
 No_Such_Method_Error.method_name : Text
 No_Such_Method_Error.method_name =
     Meta.meta this.symbol . name
 
-## A type used to represent that something has not yet been implemented.
+## UNSTABLE
+
+   A type used to represent that something has not yet been implemented.
+
+   Arguments:
+   - message: The message describing what implementation is missing.
 type Unimplemented_Error message
+
+## UNSTABLE
+
+   Converts the unimplemented error to a human-readable error message.
+Unimplemented_Error.to_display_text : Text
+Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
 
 ## A function that can be used to indicate that something hasn't been
    implemented yet.
+
+   Arguments:
+   - message: A description of what implementation is missing.
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error message)
 
-## Executes the provided handler on a dataflow error, or executes as identity on
-   a non-error value.
+## Executes the provided handler on a dataflow error, or returns a non-error
+   value unchanged.
 
    Arguments:
    - handler: The function to call on this if it is an error value. By default
      this is identity.
 
    > Example
-     Catching an erroneous value to perform some operation on it.
-       (Time.Time_Error "Message").catch (err -> IO.println err)
+     Catching an erroneous value and getting the length of its message.
+       (Time.Time_Error "Message").catch (err -> err.error_message.length)
 Error.catch : (Error -> Any) -> Any
 Error.catch (handler = x->x) = this.catch_primitive handler
 
-## Returns a display representation of the dataflow error on which it is called.
+## UNSTABLE
+
+   Returns a display representation of the dataflow error on which it is called.
 
    > Example
      Displaying a dataflow error.
@@ -34,16 +53,19 @@ Error.catch (handler = x->x) = this.catch_primitive handler
 Error.to_default_visualization_data : Text
 Error.to_default_visualization_data = this.catch .to_default_visualization_data
 
-## Returns a human-readable text representing this error.
+## UNSTABLE
+
+   Returns a human-readable text representing this error.
 Error.to_display_text : Text
 Error.to_display_text  = "Error: " + (this.catch .to_display_text)
 
-## Maps a dataflow error.
-   If the original value was a non-error value, it is not affected, but if it
-   was an error, the error is mapped through the provided function.
+## Transforms an error.
 
    Arguments:
-   - f: The function to transform the error.
+   - f: The function used to transform the error.
+
+   If `this` is a non-error value it is returned unchanged. However, if `this`
+   is an error, the error is transformed using the provided function
 
    > Example
      Wrapping an error value.
@@ -51,11 +73,23 @@ Error.to_display_text  = "Error: " + (this.catch .to_display_text)
 Error.map_error : (Error -> Error) -> Any
 Error.map_error f = this.catch (x -> Error.throw (f x))
 
-## Checks if the underlying value is an error.
+## Checks if `this` is an error.
+
+   > Example
+     Checking if the value 1 is an error.
+         1.is_error
 Error.is_error : Boolean
 Error.is_error = True
 
-## Takes any value, and if it is a dataflow error, throws it as a Panic.
-   Otherwise, returns the original value unchanged.
+## Takes any value, and if it is a dataflow error, throws it as a Panic,
+   otherwise, returns the original value unchanged.
+
+   Arguments:
+   - value: The value to rethrow any errors on as a panic.
+
+   > Example
+     Rethrowing a dataflow error as a panic.
+         Panic.rethrow (Error.throw "Oh, no!")
 Panic.rethrow : (Any ! Any) -> Any
 Panic.rethrow value = value.catch Panic.throw
+
