@@ -67,6 +67,25 @@ public class Table {
   }
 
   /**
+   * Returns a column or index with the given name, or null if it doesn't exist.
+   *
+   * @param name the column name
+   * @return a column or index column with the given name
+   */
+  public Column getColumnOrIndexByName(String name) {
+    var column = getColumnByName(name);
+    if (column != null) {
+      return column;
+    }
+
+    if (getIndex().getName().equals(name)) {
+      return getIndex().toColumn();
+    }
+
+    return null;
+  }
+
+  /**
    * Returns a table resulting from selecting only the rows corresponding to true entries in the
    * provided column.
    *
@@ -169,7 +188,7 @@ public class Table {
   public Table selectColumns(List<String> colNames) {
     Column[] newCols =
         colNames.stream()
-            .map(this::getColumnByName)
+            .map(this::getColumnOrIndexByName)
             .filter(Objects::nonNull)
             .toArray(Column[]::new);
     return new Table(newCols, index);
