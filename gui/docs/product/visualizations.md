@@ -275,11 +275,6 @@ In particular:
   from the server. Note that the visualization will receive the "full data" if
   you are not using the `setPreprocessor` method.
 
-- ### [Optional] Function `onHide`
-
-  The `onHide()` method is called whenever the visualization is hidden or closed
-  on screen.
-
 - ### [Optional] Function `setSize`
 
   The `setSize(size)` method is called on every size change of the

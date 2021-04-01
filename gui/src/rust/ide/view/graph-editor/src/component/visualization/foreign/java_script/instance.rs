@@ -89,7 +89,6 @@ type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>
 #[allow(missing_docs)]
 pub struct InstanceModel {
     pub root_node           : DomSymbol,
-        display_object      : display::object::Instance,
     pub logger              : Logger,
         on_data_received    : Rc<Option<js_sys::Function>>,
         set_size            : Rc<Option<js_sys::Function>>,
@@ -120,6 +119,7 @@ impl InstanceModel {
         let bg_blue  = bg_color.blue*255.0;
         let bg_hex   = format!("rgba({},{},{},{})",bg_red,bg_green,bg_blue,bg_color.alpha);
         root_node.dom().set_style_or_warn("background",bg_hex,logger);
+
         Ok(root_node)
     }
 
@@ -169,17 +169,8 @@ impl InstanceModel {
         let set_size                      = Rc::new(set_size);
         let object                        = Rc::new(object);
         let scene                         = scene.clone_ref();
-        let display_object                = display::object::Instance::new(Logger::new(""));
-        display_object.add_child(root_node.display_object());
-        let on_hide                       = get_method(&object.as_ref(), method::ON_HIDE).ok();
-        if let Some(f) = on_hide {
-            display_object.set_on_hide(move |_| {
-                let context = &JsValue::NULL;
-                let _       = f.call0(context);
-            });
-        }
         Ok(InstanceModel{object,on_data_received,set_size,root_node,logger,preprocessor_change,
-                         display_object,scene})
+                         scene})
     }
 
     /// Hooks the root node into the given scene.
@@ -302,7 +293,7 @@ impl From<Instance> for visualization::Instance {
 
 impl display::Object for Instance {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object
+        &self.model.root_node.display_object()
     }
 }
 
