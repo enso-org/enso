@@ -49,6 +49,12 @@ spec =
             table = Table.from_rows header [row_1]
             expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
             
+        Test.specify "is case insensitive" <|
+            header = ['X' , 'Y' , 'Size' , 'Shape'  , 'Label' , 'Color' ]
+            row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
+            table = Table.from_rows header [row_1]
+            expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
+            
         Test.specify "uses first unrecognized numeric column as `y` fallback" <|
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
@@ -69,16 +75,13 @@ spec =
             table = Table.from_rows header [row_1, row_2] . set_index 'baz'
             # [TODO] mwu: When it is possible to set multiple index columns, test such case.
             expect table (labels 'baz' 'y') '[{"size":40,"x":14,"y":10},{"size":50,"x":15,"y":20}]'
-          
 
         Test.specify "prefers explicit 'x' to index and looks into indices for recognized fields" <|
             header = [ 'x' , 'size']
             row_1 =  [ 10  , 21  ]
             row_2 =  [ 20  , 22  ]
             table = Table.from_rows header [row_1, row_2] . set_index 'size'
-            # FIXME [mwu] Below the `size` field should be present. Depends on 
-            #             https://github.com/enso-org/enso/issues/1602
-            expect table (labels 'x' 'size') '[{"x":10,"y":21},{"x":20,"y":22}]'
+            expect table (labels 'x' 'size') '[{"size":21,"x":10,"y":21},{"size":22,"x":20,"y":22}]'
 
         Test.specify "used default index for `x` if none set" <|
             header = [ 'y'  , 'bar' , 'size']

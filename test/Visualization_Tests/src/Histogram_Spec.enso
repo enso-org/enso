@@ -4,7 +4,6 @@ import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Histogram
-
 import Visualization_Tests
 
 spec = 
@@ -46,6 +45,13 @@ spec =
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
             expect table 'value' [10,20]
+
+        Test.specify "is case insensitive" <|
+            header = ['α', 'Value']
+            row_1  = [11 , 10 ]
+            row_2  = [21 , 20 ]
+            table  = Table.from_rows header [row_1, row_2]
+            expect table 'Value' [10,20]
 
         Test.specify "plots column" <|
             column = Column.from_vector 'my_name' [1,4,6]
