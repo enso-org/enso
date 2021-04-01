@@ -613,11 +613,20 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
 
 ## PRIVATE
 
-   A helper function that lifts an aggregate query into a subquery to ensure correctness of further processing.
+   A helper function that lifts an aggregate query into a subquery to ensure
+   correctness of further processing.
+
+   Argument:
+   - new_name: The new name for the aggregate column.
+   - connection: The connection with which the aggregate is associated.
+   - expected_type: The expected SQL type of the column.
+   - expr: The expression for the query.
+   - context: The context in which the query exists.
 lift_aggregate : Text -> Connection -> Sql_Type -> IR.Expression -> IR.Context -> Column
 lift_aggregate new_name connection expected_type expr context =
-    # TODO [RW] This is a simple workaround for #1643 - we always wrap the aggregate into a subquery, thus
-    # making it safe to use it everywhere. A more complex solution may be adopted at some point.
+    # TODO [RW] This is a simple workaround for #1643 - we always wrap the
+    # aggregate into a subquery, thus making it safe to use it everywhere. A
+    # more complex solution may be adopted at some point.
     ixes = Table.freshen_columns [new_name] context.meta_index
     col = IR.Internal_Column new_name expected_type expr
     setup = context.as_subquery new_name+"_sub" [[col], ixes]
@@ -627,3 +636,4 @@ lift_aggregate new_name connection expected_type expr context =
     new_ixes = cols.second
     new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
     Column new_name connection new_col.sql_type new_col.expression new_ctx
+
