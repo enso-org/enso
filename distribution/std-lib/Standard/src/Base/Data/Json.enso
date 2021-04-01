@@ -32,7 +32,7 @@ type Json
     ## A representation of a JSON boolean.
 
        Arguments:
-       - value: The number contained in a JSON boolean.
+       - value: The boolean contained in a JSON boolean.
     type Boolean value
 
     ## A representation of a JSON null.
@@ -140,7 +140,7 @@ Object.get field = this.fields.get field
    - json_text: The RFC-8259-compliant JSON text.
 
    > Example
-     Convert a JSON object into JSON.
+     Convert some text representing a JSON object into JSON.
          "{ "a": 1 }".parse
 parse : Text -> Json ! Parse_Error
 parse json_text =

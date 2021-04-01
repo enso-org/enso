@@ -72,7 +72,7 @@ Any.!= that = (this == that).not
    ! Implementing Greater Than
      Many types can admit a definition of greater than that is more efficient
      than the generic one given here. When implementing this for your own types
-     please ensure that it is semantically equivalent to this definition.
+     please ensure that it is semantically equivalent to using `.compare_to`.
 
    > Example
      Checking if 1 is greater than 10.
@@ -88,9 +88,10 @@ Any.> that = this.compare_to that == Ordering.Greater
    To have `>=` defined, a type must define both `>` and `==`.
 
    ! Implementing Greater Than or Equal
-     In general we recommend that you do not implement this by hand to avoid
-     semantic incorrectness. It is very rare that a more efficient
-     implementation can be provided than the one given here.
+     While it is often possible to implement a more efficient version of this
+     operation for complex types, care must be taken to ensure that your
+     implementation is semantically equivalent to the disjunction of the
+     greater than and equal to operations.
 
    > Example
      Checking if 1 is greater than or equal to 10.
@@ -108,7 +109,7 @@ Any.>= that = (this > that) || (this == that)
    ! Implementing Less Than
      Many types can admit a definition of less than that is more efficient than
      the generic one given here. When implementing this for your own types
-     please ensure that it is semantically equivalent to this definition.
+     please ensure that it is semantically equivalent to using `.compare_to`.
 
    > Example
      Checking if 1 is less than 10.
@@ -124,9 +125,10 @@ Any.< that = this.compare_to that == Ordering.Less
    To have `<=` defined, a type must define both `<` and `==`.
 
    ! Implementing Less Than or Equal
-     In general we recommend that you do not implement this by hand to avoid
-     semantic incorrectness. It is very rare that a more efficient
-     implementation can be provided than the one given here.
+     While it is often possible to implement a more efficient version of this
+     operation for complex types, care must be taken to ensure that your
+     implementation is semantically equivalent to the disjunction of the
+     less than than and equal to operations.
 
    > Example
      Checking if 1 is less than or equal to 10.
@@ -156,7 +158,7 @@ Any.is_nothing = case this of
 
    > Example
      Catching an erroneous value and getting the length of its message.
-       (Time.Time_Error "Message").catch (err -> IO.println err.error_message)
+       (Time.Time_Error "Message").catch (err -> err.error_message.length)
 Any.catch : (Error -> Any) -> Any
 Any.catch (handler = x->x) = this.catch_primitive handler
 
@@ -166,7 +168,7 @@ Any.catch (handler = x->x) = this.catch_primitive handler
    - f: The function used to transform the error.
 
    If `this` is a non-error value it is returned unchanged. However, if `this`
-   is an error, the error is transformed using the provided function
+   is an error, the error is transformed using the provided function.
 
    > Example
      Wrapping an error value.
@@ -206,7 +208,8 @@ Any.<| ~argument = this argument
      similar to the operator `|>`. In Enso, with the variable precedence of
      operators, this makes perfect sense. In general, we recommend using `.`.
      However, there are some contexts where variable precedence might be unclear
-     or confusing, and for those times we recommend using `|>`.
+     or confusing, or where the function being applied is not a method. In these
+     contexts we recommend using `|>`.
 
    > Example
      Applying multiple functions in a pipeline to compute a number and transform
@@ -216,7 +219,7 @@ Any.|> : (Any -> Any) -> Any
 Any.|> ~function = function this
 
 ## Composes two functions together, for `f << g` creating the function
-   composition `f ∘ g`.
+   composition `f ∘ g` (equivalent to `x -> f (g x)`).
 
    Arguments:
    - that: The function to compose with `this`.
@@ -228,7 +231,7 @@ Any.<< : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.<< ~that = x -> this (that x)
 
 ## Composes two functions together in the forward direction, for `f >> g`
-   creating the function composition `g ∘ f`.
+   creating the function composition `g ∘ f` (equivalent to `x -> g (f (x))`).
 
    Arguments:
    - that: The function to compose with `this`.

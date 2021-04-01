@@ -39,7 +39,7 @@ unimplemented message="" = Panic.throw (Unimplemented_Error message)
 
    > Example
      Catching an erroneous value and getting the length of its message.
-       (Time.Time_Error "Message").catch (err -> IO.println err.error_message)
+       (Time.Time_Error "Message").catch (err -> err.error_message.length)
 Error.catch : (Error -> Any) -> Any
 Error.catch (handler = x->x) = this.catch_primitive handler
 
