@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+import Standard.Table.Data.Table
+import Standard.Test
+import Standard.Visualization.Helpers
+
+## PRIVATE
+
+   Construct JSON describing table geo map visualization.
+   
+   Arguments:
+   - table: the Table to be visualized.
+json_from_table : Table.Table -> Object
+json_from_table table = 
+    names = ['label', 'latitude', 'longitude', 'radius', 'color']
+    pairs = names.filter_map <| name-> 
+        column = table.lookup_ignore_case name
+        column.when_valid ["df_" + name, column.to_vector]
+        
+    Json.from_pairs pairs
+
+## PRIVATE
+
+   Default preprocessor for the geo map visualization, generating JSON text
+   describing the geo map visualization.
+   
+   Arguments:
+   - value: the value to be visualized.
+process_to_json_text : Any -> Text
+process_to_json_text value = 
+    json = case value of
+        Table.Table _ -> here.json_from_table value
+        _ -> value.to_json
+   
+    json.to_text
