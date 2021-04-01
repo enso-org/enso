@@ -102,6 +102,8 @@
   start: `theme.snapshot("t1"); theme.get("t1").interactiveMode()`.
 - [The active visualization is highlighted.][1412] Now it is clearly visible
   when the mouse events are passed to the visualization.
+- [Fixed an issue when projects containing certain language constructs failed to
+  load.][1413]
 
 #### EnsoGL (rendering engine)
 
@@ -142,6 +144,7 @@ you can find their release notes
 [1377]: https://github.com/enso-org/ide/pull/1377
 [1411]: https://github.com/enso-org/ide/pull/1411
 [1412]: https://github.com/enso-org/ide/pull/1412
+[1413]: https://github.com/enso-org/ide/pull/1413
 
 <br/>
 

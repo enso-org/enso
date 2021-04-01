@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::api;
+use crate::from_json_str_without_recursion_limit;
 
 use api::Ast;
 use ast::IdMap;
@@ -71,7 +72,7 @@ impl Client {
         let ast = || {
             let json_ids = serde_json::to_string(&ids)?;
             let json_ast = parse(program,json_ids)?;
-            let      ast = serde_json::from_str(&json_ast)?;
+            let      ast = from_json_str_without_recursion_limit(&json_ast)?;
             Result::Ok(ast)
         };
         Ok(ast()?)
@@ -82,7 +83,7 @@ impl Client {
     (&self, program:String) -> api::Result<api::ParsedSourceFile<M>> {
         let result = || {
             let json   = &parse_with_metadata(program)?;
-            let module = serde_json::from_str(&json)?;
+            let module = from_json_str_without_recursion_limit(&json)?;
             Result::Ok(module)
         };
         Ok(result()?)
