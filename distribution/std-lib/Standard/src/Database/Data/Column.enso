@@ -144,6 +144,29 @@ type Column
 
     ## UNSTABLE
 
+       Efficiently joins two tables based on either the index or a key column.
+
+       Arguments:
+       - other: the table being the right operand of this join operation.
+       - on: the column(s) or expression(s) of `this` that should be used as
+         the join key. If this argument is not provided, the index of `this`
+         will be used.
+       - drop_unmatched: whether the rows of `this` without corresponding
+         matches in `other` should be dropped from the result.
+       - left_suffix: a suffix that should be added to the columns of `this`
+         when there's a name conflict with a column of `other`.
+       - right_suffix: a suffix that should be added to the columns of `other`
+         when there's a name conflict with a column of `this`.
+
+       The resulting table contains rows of `this` extended with rows of
+       `other` with matching indexes. If the index in `other` is not unique,
+       the corresponding rows of `this` will be duplicated in the result.
+    join : Table | Column -> Nothing | Text | Column | Vector (Text | Column) -> Boolean -> Text -> Text -> Table
+    join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
+        this.to_table.join other on drop_unmatched left_suffix right_suffix
+
+    ## UNSTABLE
+
        Sums the values in this column.
     sum : Any
     sum = this.compute_aggregate "SUM"
@@ -586,4 +609,31 @@ make_aggregate column operation name_suffix="_agg" new_type=Nothing =
     case Helpers.ensure_name_is_sane name_suffix of
         True ->
             new_name = column.name + name_suffix
-            Column new_name column.connection actual_new_type expr column.context
+            here.lift_aggregate new_name column.connection actual_new_type expr column.context
+
+## PRIVATE
+
+   A helper function that lifts an aggregate query into a subquery to ensure
+   correctness of further processing.
+
+   Argument:
+   - new_name: The new name for the aggregate column.
+   - connection: The connection with which the aggregate is associated.
+   - expected_type: The expected SQL type of the column.
+   - expr: The expression for the query.
+   - context: The context in which the query exists.
+lift_aggregate : Text -> Connection -> Sql_Type -> IR.Expression -> IR.Context -> Column
+lift_aggregate new_name connection expected_type expr context =
+    # TODO [RW] This is a simple workaround for #1643 - we always wrap the
+    # aggregate into a subquery, thus making it safe to use it everywhere. A
+    # more complex solution may be adopted at some point.
+    ixes = Table.freshen_columns [new_name] context.meta_index
+    col = IR.Internal_Column new_name expected_type expr
+    setup = context.as_subquery new_name+"_sub" [[col], ixes]
+    subquery = setup.first
+    cols = setup.second
+    new_col = cols.first.first
+    new_ixes = cols.second
+    new_ctx = IR.subquery_as_ctx subquery . set_index new_ixes
+    Column new_name connection new_col.sql_type new_col.expression new_ctx
+

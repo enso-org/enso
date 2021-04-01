@@ -350,6 +350,16 @@ make_ctx_from table_name =
 
 ## PRIVATE
 
+   Creates a Context from a Sub_Query.
+
+   Arguments:
+   - subquery: The subquery to lift into a context.
+subquery_as_ctx : Sub_Query -> Context
+subquery_as_ctx subquery =
+    Context subquery [] [] [] [] Nothing
+
+## PRIVATE
+
    Creates an expression which is a simple constant to be interpolated.
 
    Arguments:

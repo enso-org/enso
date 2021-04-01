@@ -72,7 +72,8 @@ type Table
        - name: The name of the column to get.
     at : Text -> Column ! No_Such_Column_Error
     at name =
-        internal = this.internal_columns.find (p -> p.name == name)
+        candidates = this.internal_columns + this.context.meta_index
+        internal = candidates.find (p -> p.name == name)
         this.make_column internal . map_error (_ -> No_Such_Column_Error name)
 
     ## PRIVATE
@@ -301,7 +302,8 @@ type Table
        - columns: The names of the columns to select from the table.
     select : Vector Text -> Table
     select columns =
-        find_col = (name -> this.internal_columns.find (p -> p.name == name))
+        candidates = this.internal_columns + this.context.meta_index
+        find_col name = candidates.find (p -> p.name == name)
         selected_cols = columns.map (find_col >> .catch) . filter (c -> c.is_nothing.not)
         this.updated_columns selected_cols
 
@@ -452,7 +454,10 @@ type Table
     row_count =
         expr = IR.Operation "COUNT_ROWS" []
         column_name = "row_count"
-        query = IR.Select [[column_name, expr]] this.context
+        virtual_column = IR.Internal_Column "1" Sql.Sql_Type.integer (IR.Constant Sql.Sql_Type.integer 1)
+        setup = this.context.as_subquery this.name [[virtual_column]]
+        new_ctx = IR.subquery_as_ctx setup.first
+        query = IR.Select [[column_name, expr]] new_ctx
         sql = this.connection.dialect.generate_sql query
         table = this.connection.execute_query sql
         table.at column_name . at 0
@@ -526,7 +531,12 @@ type Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> Column
     make_column internal =
-        Column internal.name this.connection internal.sql_type internal.expression this.context
+        # TODO [RW] Many places assume that index names are distinct from column names, so when creating a column from
+        # index we need to ensure that the names do not collide. In the future we may consider trying to get rid of
+        # these distinctness assumptions, to avoid this renaming.
+        ixes = here.freshen_columns [internal.name] this.context.meta_index
+        new_ctx = this.context.set_index ixes
+        Column internal.name this.connection internal.sql_type internal.expression new_ctx
 
     ## PRIVATE
 
@@ -609,7 +619,8 @@ type Aggregate_Table
     count : Column
     count =
         expr = IR.Operation "COUNT_ROWS" []
-        Column "count" this.connection Sql.Sql_Type.integer expr this.context
+        # new_name connection expected_type expr context
+        Column_Module.lift_aggregate "count" this.connection Sql.Sql_Type.integer expr this.context
 
     ## UNSTABLE
 
@@ -795,7 +806,7 @@ rename_columns columns new_names =
 
    Original column names are kept if possible, but if they would clash, the
    columns are renamed.
-freshen_columns : Vector Text -> Vector Column -> Vector Column
+freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
 freshen_columns used_names columns =
     fresh_names = here.fresh_names used_names (columns.map .name)
     here.rename_columns columns fresh_names
