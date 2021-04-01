@@ -2,7 +2,10 @@ from Standard.Base import all
 
 type Status_Code
 
-    ## HTTP status code.
+    ## An HTTP status code.
+
+       Arguments:
+       - code: The numeric representation of the code.
     type Status_Code code
 
 ## 100 Continue.

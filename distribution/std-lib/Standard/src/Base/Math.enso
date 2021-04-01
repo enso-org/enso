@@ -18,9 +18,35 @@ e : Decimal
 e = 2.718281828459045235360
 
 ## Returns the smaller value of `a` and `b`.
+
+   Arguments:
+   - a: The first number.
+   - b: The second number.
+
+   ? Math.min or Number.min
+     While we provide the min method on `Number`, we find it more intuitive to
+     write `Math.min a b` rather than `a.min b`. To that end, we recommend using
+     the first style.
+
+   > Example
+     Calculate the smallest number out of 1 and 2.
+         Math.min 1 2
 min : Number -> Number -> Number
 min a b = if a <= b then a else b
 
 ## Returns the larger value of `a` and `b`.
+
+   Arguments:
+   - a: The first number.
+   - b: The second number.
+
+   ? Math.max or Number.max
+     While we provide the max method on `Number`, we find it more intuitive to
+     write `Math.max a b` rather than `a.max b`. To that end, we recommend using
+     the first style.
+
+   > Example
+     Calculate the largest number out of 1 and 2.
+         Math.max 1 2
 max : Number -> Number -> Number
 max a b = if a < b then b else a

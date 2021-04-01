@@ -13,7 +13,7 @@ sqlite_specific_spec connection =
 
             action = connection.execute_query "SELECT A FROM undefined_table"
             action . should_fail_with Sql_Error
-            action.catch.to_text . should_equal "[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)"
+            action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'."
 
     Test.group "[SQLite] Metadata" <|
         connection.execute_update 'CREATE TABLE "Tinfo" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'

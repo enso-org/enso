@@ -11,6 +11,10 @@ type Histogram
     ## UNSTABLE
 
        The histogram of a single image channel.
+
+       Arguments:
+       - channel: The channel in the image for which this is a histogram.
+       - data: The histogram data.
     type Histogram channel data
 
     ## UNSTABLE
@@ -26,7 +30,7 @@ type Histogram
    Create a histogram for the specified channel of the image.
 
    Arguments:
-   `channel`: the channel number.
+   - channel: the channel number.
 
    > Example
      Create a histogram.

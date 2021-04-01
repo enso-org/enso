@@ -9,6 +9,13 @@ polyglot java import org.enso.base.Http_Utils
 
 type Response
 
+    ## PRIVATE
+
+       A type representing an HTTP response.
+
+       Arguments:
+       - internal_http_response: The internal represnetation of the HTTP
+         response.
     type Response internal_http_response
 
     ## Get the response headers.
@@ -25,6 +32,6 @@ type Response
     code : Status_Code
     code = Status_Code.status_code this.internal_http_response.statusCode
 
-    ## A Response to Json conversion.
+    ## Convert the response to JSON.
     to_json : Json.Object
     to_json = Json.from_pairs [["type", "Response"], ["headers", this.headers], ["body", this.body], ["code", this.code]]

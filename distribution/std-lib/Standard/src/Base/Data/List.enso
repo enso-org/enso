@@ -4,6 +4,11 @@ from Builtins export Nil, Cons
 ## PRIVATE
    A helper for the `map` function.
 
+   Arguments:
+   - list: The list to map over.
+   - cons: The current field to set.
+   - f: The function to apply to the value.
+
    Uses unsafe field mutation under the hood, to rewrite `map` in
    a tail-recursive manner. The mutation is purely internal and does not leak
    to the user-facing API.
@@ -16,7 +21,7 @@ map_helper list cons f = case list of
 
 ## The basic cons-list type.
 
-   A cons-list allows to store an arbitrary number of elements.
+   A cons-list allows storage of an arbitrary number of elements.
 
    Prepending to the list can be achieved by using the `Cons` constructor,
    while an empty list is represented by `Nil`.
@@ -29,11 +34,19 @@ type List
     Cons
 
     ## Computes the number of elements in the list.
+
+       > Example
+         Get the length of a two item list.
+             (Cons 1 (Cons 2 Nil)).length
     length : Number
     length = this.fold 0 (acc -> _ -> acc + 1)
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - f: The binary function used to combine elements of the list.
 
        In general, the result of
            (Cons l0 <| Cons l1 <| ... <| Cons ln) . fold init f
@@ -54,8 +67,10 @@ type List
 
     ## Checks whether any element of the list matches the given predicate.
 
-       A predicate is a function that takes a list element and returns
-       a Boolean value.
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
 
        > Example
          In the following example, we'll check if any element of the list is
@@ -72,6 +87,11 @@ type List
 
     ## Checks whether any element of the list matches the given predicate.
 
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
        A predicate is a function that takes a list element and returns
        a Boolean value.
 
@@ -84,6 +104,11 @@ type List
 
     ## Checks whether a predicate holds for all elements in this list.
 
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
        > Example
          Check if all elements in the list are less than zero.
              (Cons 1 (Cons 2 Nil)).all (< 0)
@@ -91,6 +116,9 @@ type List
     all predicate = this.fold True (l -> r -> l && predicate r)
 
     ## Checks whether this list contains a given value as an element.
+
+       Arguments:
+       - elem: The element to check if it is in the list.
 
        > Example
          Checking if the list contains the number 72.
@@ -118,9 +146,14 @@ type List
 
     ## Selects all elements of this list which satisfy a predicate.
 
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+
        > Example
          Selecting all elements that are greater than 3.
-         (Cons 1 Nil).filter (> 3)
+             (Cons 1 Nil).filter (> 3)
     filter : (Any -> Boolean) -> List
     filter predicate =
         case this of
@@ -132,11 +165,12 @@ type List
     ## Applies a function to each element of the list, returning the list of
        results.
 
+       Arguments:
+       - f: The function to apply to each element of the list.
+
        > Example
-         In the following example, we add `1` to each element of the list:
+         Add `1` to each element of the list:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . map +1
-         The result of running the code above is:
-             Cons 1 <| Cons 2 <| Cons 3 <| Nil
     map : (Any -> Any) -> List
     map f = case this of
         Nil -> Nil
@@ -147,12 +181,14 @@ type List
 
     ## Applies a function to each element of the list.
 
+       Arguments:
+       - f: The function to apply to each element of the list.
+
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
 
        > Example
-         In the following example, we're printing each element of the list
-         to the standard output:
+         Print each of the list elements to the standard output.
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . each IO.println
     each : (Any -> Any) -> Nothing
     each f =
@@ -176,6 +212,9 @@ type List
     ## Creates a new list with the first `count` elements at the start of `this`
        removed.
 
+       Arguments:
+       - count: The number of elements to take drop the start of `this`.
+
        > Example
          Removing the first element from a list.
              (Cons 1 (Cons 2 (Nil))).drop_start 1
@@ -186,6 +225,9 @@ type List
 
     ## Creates a new list consisting of the first `count` elements at the start
        of `this`.
+
+       Arguments:
+       - count: The number of elements to take from the start of `this`.
 
        > Example
          Obtaining the first 2 elements of a list.

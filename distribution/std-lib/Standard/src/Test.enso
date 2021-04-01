@@ -1,138 +1,29 @@
 from Standard.Base import all
 
-## The top-level entry point for a test suite.
-type Suite specs
+## Creates a new test group, desribing properties of the object
+   described by `this`.
 
-## PRIVATE
-type Spec name behaviors
+   Arguments:
+   - specs: An action encapsulating a number of test specs or groups.
 
-## PRIVATE
-type Behavior name result
-
-## PRIVATE
-Behavior.is_fail = this.result.is_fail
-
-## PRIVATE
-Spec.is_fail = this.behaviors.any .is_fail
-
-## PRIVATE
-Suite.is_fail = this.specs.any .is_fail
-
-## PRIVATE
-type Finished_With_Error err stack_trace_text
-
-## PRIVATE
-type Matched_On_Error err
-
-## PRIVATE
-type Assertion
-    type Success
-    type Failure message
-    type Pending reason
-
-    is_fail = case this of
-        Success -> False
-        Failure _ -> True
-        Pending _ -> False
-
-type Verbs
-    type Verbs
-
-    start_with subject argument =
-        if subject.starts_with argument then Success else
-            here.fail (subject.to_text + " did not start with " + argument.to_text))
-
-    equal subject argument =
-        if subject == argument then Success else
-            msg = subject.to_text + " did not equal " + argument.to_text + "."
-            here.fail msg
-
-    be subject argument = this.equal subject argument
-
-    contain subject argument =
-        if subject.contains argument then Success else
-            msg = subject.to_text + " did not contain " + argument.to_text + "."
-            here.fail msg
-
-Any.should verb argument = verb Verbs this argument
-
-## Fail a test with the given message.
-fail message = Panic.throw (Failure message)
-
-## Expect a function to fail with the provided dataflow error.
-Any.should_fail_with matcher =
-    here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
-
-## Expect a function to fail with the provided dataflow error.
-Error.should_fail_with matcher =
-    caught = this.catch x->x
-    if caught.is_a matcher then Nothing else
-        here.fail ("Unexpected error " + caught.to_text + " returned.")
-
-## Expect a function to fail with the provided panic.
-expect_panic_with ~action matcher =
-    res = Panic.recover action
-    case res of
-        _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
-    err = res.catch x->x
-    if err.is_a matcher then Nothing else
-        here.fail ("Unexpected error " + err.to_text + " thrown.")
-
-## Asserts that `this` value is equal to the expected value.
-Any.should_equal that = case this == that of
-    True -> Success
-    False ->
-        loc = Meta.get_source_location 2
-        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-        Panic.throw (Failure msg)
-
-## Asserts that `this` value is equal to the expected value.
-Error.should_equal _ = Panic.throw (Matched_On_Error this)
-
-## Asserts that `this` is within `epsilon` from `that`.
-Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
-    True -> Success
-    False ->
-        loc = Meta.get_source_location 2
-        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
-        Panic.throw (Failure msg)
-
-## Asserts that the given `Boolean` is `True`
-Boolean.should_be_true = case this of
-    True -> Success
-    False ->
-        loc = Meta.get_source_location 2
-        Panic.throw (Failure "Expected False to be True (at "+loc+").")
-
-## Asserts that the given `Boolean` is `True`.
-Error.should_be_true = Panic.throw (Matched_On_Error this)
-
-## Asserts that the given `Boolean` is `False`
-Boolean.should_be_false = case this of
-    True ->
-        loc = Meta.get_source_location 2
-        Panic.throw (Failure "Expected True to be False (at "+loc+").")
-    False -> Success
-
-## Asserts that the given `Boolean` is `False`
-Error.should_be_false = Panic.throw (Matched_On_Error this)
-
-## PRIVATE
-Spec.print_report =
-    IO.print_err (this.name + ":")
-    this.behaviors.reverse.each behavior->
-        case behavior.result of
-            Success ->
-                IO.print_err ("    - " + behavior.name)
-            Failure msg ->
-                IO.print_err ("    - [FAILED] " + behavior.name)
-                IO.print_err ("        Reason: " + msg)
-            Pending reason ->
-                IO.print_err ("    - [PENDING] " + behavior.name)
-                IO.print_err ("        Reason: " + reason)
+   > Example
+         Suite.run_main <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
+                     2+3 . should_equal 5
+                 Test.specify "should define multiplication" <|
+                     2*3 . should_equal 6
+Suite.run_main : Any -> Nothing
+Suite.run_main ~specs =
+    r = this.run specs
+    code = if r.is_fail then 1 else 0
+    System.exit code
 
 ## Creates a new test group, desribing properties of the object
    described by `this`.
+
+   Arguments:
+   - specs: An action encapsulating a number of test specs or groups.
 
    > Example
          Suite.run <|
@@ -141,6 +32,30 @@ Spec.print_report =
                      2+3 . should_equal 5
                  Test.specify "should define multiplication" <|
                      2*3 . should_equal 6
+Suite.run : Any -> Any
+Suite.run ~specs =
+    r = State.run Suite (Suite Nil) <|
+        specs
+        State.get Suite
+    r
+
+## Creates a new test group, desribing properties of the object
+   described by `this`.
+
+   Arguments:
+   - name: The name of the test group.
+   - behaviors: An action containing a set of specs for the group.
+   - pending: A reason for why the test is pending, or `Nothing` when it is not
+     pending.
+
+   > Example
+         Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
+                     2+3 . should_equal 5
+                 Test.specify "should define multiplication" <|
+                     2*3 . should_equal 6
+group : Text -> Any -> (Text | Nothing) -> Nothing
 group name ~behaviors pending=Nothing =
     case pending of
         Nothing ->
@@ -157,6 +72,12 @@ group name ~behaviors pending=Nothing =
 
 ## Specifies a single behavior, described by `this`.
 
+   Arguments:
+   - label: A description of the behavior being tested.
+   - behavior: An action that executes tests.
+   - pending: A reason for why the test is pending, or `Nothing` when it is not
+     pending.
+
    > Example
          Suite.run <|
              describe "Number" <|
@@ -164,6 +85,7 @@ group name ~behaviors pending=Nothing =
                      2+3 . should_equal 5
                  it "should define multiplication" <|
                      2*3 . should_equal 6
+specify : Text -> Any -> (Text | Nothing) -> Nothing
 specify label ~behavior pending=Nothing =
     result = case pending of
         Nothing -> here.run_spec behavior
@@ -172,7 +94,276 @@ specify label ~behavior pending=Nothing =
     new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
     State.put Spec new_spec
 
+## Asserts a property about the receiver.
+
+   Arguments:
+   - verb: The property (see `Verbs`) being asserted
+   - argument: The argument to the verb.
+Anu.should : (Verbs -> Any -> Any) -> Any -> Assertion
+Any.should verb argument = verb Verbs this argument
+
+## Fail a test with the given message.
+
+   Arguments:
+   - message: The message printed when failing the test.
+fail : Text -> Assertion
+fail message = Panic.throw (Failure message)
+
+## Expect a function to fail with the provided dataflow error.
+
+   Arguments:
+   - matcher: The expected type of dataflow error contained in `this`.
+Any.should_fail_with : Any -> Assertion
+Any.should_fail_with matcher =
+    here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
+
+## Expect a function to fail with the provided dataflow error.
+
+   Arguments:
+   - matcher: The expected type of dataflow error contained in `this`.
+Error.should_fail_with : Any -> Assertion
+Error.should_fail_with matcher =
+    caught = this.catch x->x
+    if caught.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + caught.to_text + " returned.")
+
+## Expect a function to fail with the provided panic.
+
+   Arguments:
+   - action: The action to evaluate that is expected to fail with a panic.
+   - matcher: The expected type of the panic thrown by `action`.
+expect_panic_with : Any -> Any -> Assertion
+expect_panic_with ~action matcher =
+    res = Panic.recover action
+    case res of
+        _ -> here.fail ("Expected a " + matcher.to_text + " to be thrown, but the action succeeded.")
+    err = res.catch x->x
+    if err.is_a matcher then Nothing else
+        here.fail ("Unexpected error " + err.to_text + " thrown.")
+
+## Asserts that `this` value is equal to the expected value.
+
+   Arguments:
+   - that: The value to check `this` for equality with.
+Any.should_equal : Any -> Assertion
+Any.should_equal that = case this == that of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2
+        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+        here.fail msg
+
+## Asserts that `this` value is equal to the expected value.
+
+   Arguments:
+   - _: The value to check `this` for equality with.
+Error.should_equal : Any -> Assertion.
+Error.should_equal _ = Panic.throw (Matched_On_Error this)
+
+## Asserts that `this` is within `epsilon` from `that`.
+
+   Arguments:
+   - that: The value to compare `this` for equality with.
+   - epsilon: The epislon for comparing two decimal numbers.
+Decimal.should_equal : Decimal -> Decimal -> Assertion
+Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2
+        msg = this.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
+        Panic.throw (Failure msg)
+
+## Asserts that the given `Boolean` is `True`
+Boolean.should_be_true : Assertion
+Boolean.should_be_true = case this of
+    True -> Success
+    False ->
+        loc = Meta.get_source_location 2
+        Panic.throw (Failure "Expected False to be True (at "+loc+").")
+
+## Asserts that the given `Boolean` is `True`.
+Error.should_be_true : Assertion
+Error.should_be_true = Panic.throw (Matched_On_Error this)
+
+## Asserts that the given `Boolean` is `False`
+Boolean.should_be_false : Assertion
+Boolean.should_be_false = case this of
+    True ->
+        loc = Meta.get_source_location 2
+        Panic.throw (Failure "Expected True to be False (at "+loc+").")
+    False -> Success
+
+## Asserts that the given `Boolean` is `False`
+Error.should_be_false : Assertion
+Error.should_be_false = Panic.throw (Matched_On_Error this)
+
+type Verbs
+
+    ## Verbs that describe how tests should execute.
+    type Verbs
+
+    ## Checks if the `subject` starts with `argument`.
+
+       Arguments:
+       - subject: The value to check. It must have a `.starts_with` method.
+       - argument: The expected prefix.
+    start_with : Text -> Text -> Assertion
+    start_with subject argument =
+        if subject.starts_with argument then Success else
+            here.fail (subject.to_text + " did not start with " + argument.to_text))
+
+    ## Checks if the `subject` is equal to the `argument`.
+
+       Arguments:
+       - subject: The value to check for equality against the provided value.
+       - argument: The provided value to check the `subject` for equality
+         against.
+    equal : Any -> Any -> Assertion
+    equal subject argument =
+        if subject == argument then Success else
+            msg = subject.to_text + " did not equal " + argument.to_text + "."
+            here.fail msg
+
+    ## Checks if `subject` is `argument`.
+
+       Arguments:
+       - subject: The value to check for equality against the provided value.
+       - argument: The provided value to check the `subject` for equality
+         against.
+    be : Any -> Any -> Assertion
+    be subject argument = this.equal subject argument
+
+    ## Checks if `subject` contains `argument`.
+
+       Arguments:
+       - subject: The collection type to check if `argument` is contained in it.
+         This type must have a `.contains` method.
+       - argument: The value to see if it is contained in `subject`.
+    contain : Any -> Any -> Assertion
+    contain subject argument =
+        if subject.contains argument then Success else
+            msg = subject.to_text + " did not contain " + argument.to_text + "."
+            here.fail msg
+
 ## PRIVATE
+
+   Prints a report on the tests to standard output.
+Spec.print_report : Nothing
+Spec.print_report =
+    IO.print_err (this.name + ":")
+    this.behaviors.reverse.each behavior->
+        case behavior.result of
+            Success ->
+                IO.print_err ("    - " + behavior.name)
+            Failure msg ->
+                IO.print_err ("    - [FAILED] " + behavior.name)
+                IO.print_err ("        Reason: " + msg)
+            Pending reason ->
+                IO.print_err ("    - [PENDING] " + behavior.name)
+                IO.print_err ("        Reason: " + reason)
+
+## PRIVATE
+
+   The top-level entry point for a test suite.
+
+   Arguments:
+   - specs: The specs contained within the test suite.
+type Suite specs
+
+## PRIVATE
+
+   A group of behaviors for a test.
+
+   Arguments:
+   - name: The name of the spec.
+   - behaviors: The results of the behaviors encapsulated in that spec.
+type Spec name behaviors
+
+## PRIVATE
+
+   A description of a behaviors in a test.
+
+   Arguments:
+   - name: The name of the behavior.
+   - result: The result of the behavior.
+type Behavior name result
+
+## PRIVATE
+
+   Checks if the behavior is a failure.
+Behavior.is_fail : Boolean
+Behavior.is_fail = this.result.is_fail
+
+## PRIVATE
+
+   Checks if the spec group contains any failures and hence fails itself.
+Spec.is_fail : Boolean
+Spec.is_fail = this.behaviors.any .is_fail
+
+## PRIVATE
+
+   Checks if the suite contains any failures, and hence fails itself.
+Suite.is_fail : Boolean
+Suite.is_fail = this.specs.any .is_fail
+
+## PRIVATE
+
+   An error describing that a test finished with an unexpected error.
+
+   Arguments:
+   - err: The payload of the error that triggered this error.
+   - stack_trace_text: A textual representation of the stack trace for the
+     error.
+type Finished_With_Error err stack_trace_text
+
+## PRIVATE
+
+   An error describing that the test runner matched on an unexpected error.
+
+   Arguments:
+   - err: The payload of the error that triggered this error.
+type Matched_On_Error err
+
+## PRIVATE
+type Assertion
+
+    ## PRIVATE
+
+       Represents a successful behavioral test.
+    type Success
+
+    ## PRIVATE
+
+       Represents a failing behavioral test.
+
+       Arguments:
+       - message: The reason why the test failed.
+    type Failure message
+
+    ## PRIVATE
+
+       Represents a pending behavioral test.
+
+       Arguments:
+       - reason: Text describing why the test is pending.
+    type Pending reason
+
+    ## PRIVATE
+
+       Checks if the Assertion is a failure.
+    is_fail : Boolean
+    is_fail = case this of
+        Success -> False
+        Failure _ -> True
+        Pending _ -> False
+
+## PRIVATE
+
+   Executes a behavior test.
+
+   Arguments:
+   - behavior: The behavior to execute.
+run_spec : Any -> Assertion
 run_spec ~behavior =
     recovery = Panic.recover <|
         result = behavior
@@ -187,34 +378,3 @@ run_spec ~behavior =
                 Failure ("An unexpected error was returned: " + err.to_display_text + '\n' + stack_trace_text)
             _ -> Failure ("An unexpected panic was thrown: " + ex.to_display_text + '\n' + maybeExc.get_stack_trace_text)
     result
-
-## Creates a new test group, desribing properties of the object
-   described by `this`.
-
-   > Example
-         Suite.run <|
-             Test.group "Number" <|
-                 Test.specify "should define addition" <|
-                     2+3 . should_equal 5
-                 Test.specify "should define multiplication" <|
-                     2*3 . should_equal 6
-Suite.run ~specs =
-    r = State.run Suite (Suite Nil) <|
-        specs
-        State.get Suite
-    r
-
-## Creates a new test group, desribing properties of the object
-   described by `this`.
-
-   > Example
-         Suite.run <|
-             Test.group "Number" <|
-                 Test.specify "should define addition" <|
-                     2+3 . should_equal 5
-                 Test.specify "should define multiplication" <|
-                     2*3 . should_equal 6
-Suite.runMain ~specs =
-    r = this.run specs
-    code = if r.is_fail then 1 else 0
-    System.exit code

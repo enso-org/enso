@@ -2,10 +2,25 @@ from Standard.Base import all
 
 ## A type representing an interval bound over any orderable type.
 
-   An orderable type is one that
+   An orderable type is one that has a
+   [total order](https://en.wikipedia.org/wiki/Total_order) defined for it.
 type Bound
-    ## A bound that includes `n`.
+    ## A bound that includes the value `n`.
+
+       Arguments:
+       - n: The value defining the inclusive bound.
+
+       > Example
+         Create a bound that includes the value 2.
+             Inclusive 2
     type Inclusive n
 
-    ## A bound that excludes `n`.
+    ## A bound that excludes the value `n`.
+
+       Arguments:
+       - n: The value defining the exclusive bound.
+
+       > Example
+         Create a bound that excludes the value 2.
+             Exclusive 2
     type Exclusive n

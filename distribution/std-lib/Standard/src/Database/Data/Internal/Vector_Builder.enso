@@ -11,10 +11,23 @@ from Builtins import Array
    is known in advance and the tree is traversed in order to create the
    resulting vector without resizing it.
 type Vector_Builder
+
     ## PRIVATE
+
+       A leaf in the vector builder.
+
+       Arguments:
+       - vec: The vector at the leaf.
     type Leaf vec
 
     ## PRIVATE
+
+       A node that appends the two child nodes.
+
+       Arguments:
+       - left: The left subtree.
+       - right: The right subtree.
+       - len: The length of the vectors across the subtrees.
     type Append left right len
 
     ## PRIVATE
@@ -52,6 +65,9 @@ type Vector_Builder
 
        Concatenates another builder or vector to this.
 
+       Arguments:
+       - other: The other vector to concatenate with `this`.
+
        It returns a new builder that will yield a vector that is a concatenation
        of `this` and the argument.
     ++ : Vector_Builder Any | Vector Any -> Vector_Builder Any
@@ -71,5 +87,8 @@ empty = Leaf []
 ## PRIVATE
 
    Creates a vector builder from a vector.
+
+   Arguments:
+   - vec: The vector to create a vector builder from.
 from_vector : Vector Any -> Vector_Builder Any
 from_vector vec = Leaf vec

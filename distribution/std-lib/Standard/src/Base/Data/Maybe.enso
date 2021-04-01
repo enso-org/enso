@@ -7,6 +7,9 @@ type Maybe
     Nothing
 
     ## A value.
+
+       Arguments:
+       - value: The contained value in the maybe.
     type Some value
 
     ## Applies the provided function to the contained value if it exists,

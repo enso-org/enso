@@ -40,7 +40,7 @@ import Tests.Network.Uri_Spec
 import Tests.System.File_Spec
 import Tests.System.Process_Spec
 
-main = Test.Suite.runMain <|
+main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Case_Spec.spec

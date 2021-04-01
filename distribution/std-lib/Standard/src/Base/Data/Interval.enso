@@ -38,9 +38,18 @@ inclusive start end = Interval (Bound.Inclusive start) (Bound.Inclusive end)
 
 ## An interval type
 type Interval
+
+    ## A type representing an interval over orderable types.
+
+       Arguments:
+       - start: The start of the interval.
+       - end: The end of the interval.
     type Interval start end
 
     ## Checks if the interval contains `that`.
+
+       Arguments:
+       - that: The item to check if it is contained in the interval.
 
        > Example
          Checking if the interval 1 to 5 contains 7.
@@ -56,6 +65,10 @@ type Interval
                 Bound.Inclusive e -> that <= e
 
     ## Check if this interval is empty.
+
+       > Example
+         Check if the interval from 0 to 0 is empty.
+             Interval.inclusive 0 0 . is_empty
     is_empty : Boolean
     is_empty = case this.start of
         Bound.Exclusive s -> case this.end of
@@ -66,6 +79,10 @@ type Interval
             Bound.Inclusive e -> s > e
 
     ## Check if this interval is not empty.
+
+       > Example
+         Check if the interval from 0 to 1 is not empty.
+             Interval.inclusive 0 1 . not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 

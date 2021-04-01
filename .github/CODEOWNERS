@@ -2,52 +2,52 @@
 * @iamrecursion @kustosz @radeusgd
 
 # Distribution
-/distribution @iamrecursion @kustosz @radeusgd
-/distribution/std-lib @iamrecursion @kustosz @wdanilo
+/distribution @iamrecursion @kustosz @radeusgd @4e6
+/distribution/std-lib @iamrecursion @kustosz @wdanilo @4e6
 
 # Scala Libraries
-/lib/scala/cli @iamrecursion @kustosz @radeusgd
-/lib/scala/core-definition @iamrecursion @kustosz
-/lib/scala/flexer @iamrecursion @kustosz
-/lib/scala/graph @iamrecursion @kustosz
-/lib/scala/interpreter-dsl @iamrecursion @kustosz
+/lib/scala/cli @iamrecursion @kustosz @radeusgd @4e6
+/lib/scala/core-definition @iamrecursion @kustosz @4e6
+/lib/scala/flexer @iamrecursion @kustosz @4e6
+/lib/scala/graph @iamrecursion @kustosz @4e6
+/lib/scala/interpreter-dsl @iamrecursion @kustosz @4e6
 /lib/scala/json-rpc-server @radeusgd @4e6 @iamrecursion @kustosz
 /lib/scala/json-rpc-server-test @radeusgd @4e6 @iamrecursion @kustosz
-/lib/scala/logger @kustosz @iamrecursion
-/lib/scala/parser-service @kustosz @iamrecursion
-/lib/scala/pkg @iamrecursion @kustosz
+/lib/scala/logger @kustosz @iamrecursion @4e6
+/lib/scala/parser-service @kustosz @iamrecursion @4e6
+/lib/scala/pkg @iamrecursion @kustosz @4e6
 /lib/scala/project-manager @radeusgd @4e6 @kustosz
-/lib/scala/searcher @4e6 @radeusgd @kustosz
-/lib/scala/syntax @iamrecursion @kustosz
+/lib/scala/searcher @4e6 @radeusgd @kustosz @iamrecursion
+/lib/scala/syntax @iamrecursion @kustosz @4e6
 /lib/scala/testkit @4e6 @kustosz @iamrecursion
-/lib/scala/text-buffer @iamrecursion @kustosz
-/lib/scala/version-output @iamrecursion @kustosz @radeusgd
+/lib/scala/text-buffer @iamrecursion @kustosz @4e6
+/lib/scala/version-output @iamrecursion @kustosz @radeusgd @4e6
 
 # Rust Libraries
 /lib/rust/ @iamrecursion @wdanilo @radeusgd
 
 # Main Project
-/engine/language-server @radeusgd @4e6 @kustosz
-/engine/launcher @iamrecursion @kustosz @radeusgd
-/engine/polyglot-api @iamrecursion @kustosz
-/engine/runner @iamrecursion @kustosz @radeusgd
-/engine/runtime @iamrecursion @kustosz @radeusgd
+/engine/language-server @radeusgd @4e6 @kustosz @iamrecursion
+/engine/launcher @iamrecursion @kustosz @radeusgd @4e6
+/engine/polyglot-api @iamrecursion @kustosz @4e6
+/engine/runner @iamrecursion @kustosz @radeusgd @4e6
+/engine/runtime @iamrecursion @kustosz @radeusgd @4e6
 
 # Documentation
-/docs @iamrecursion @kustosz
-/.gitignore @iamrecursion @kustosz
-/.jvmopts @iamrecursion @kustosz
-/.scalafmt.conf @iamrecursion @kustosz
-/CODE_OF_CONDUCT.md @iamrecursion @kustosz
-/LICENSE @iamrecursion @kustosz
-README.md @iamrecursion @kustosz
+/docs @iamrecursion @kustosz @4e6
+/.gitignore @iamrecursion @kustosz @4e6
+/.jvmopts @iamrecursion @kustosz @4e6
+/.scalafmt.conf @iamrecursion @kustosz @4e6
+/CODE_OF_CONDUCT.md @iamrecursion @kustosz @4e6
+/LICENSE @iamrecursion @kustosz @4e6
+README.md @iamrecursion @kustosz @4e6
 
 # Config
-/.github @iamrecursion @kustosz
-/.github/workflows @iamrecursion @kustosz @radeusgd
-/tools @iamrecursion @kustosz @radeusgd
-/project @iamrecursion @kustosz @radeusgd
-/build.sbt @iamrecursion @kustosz @radeusgd
+/.github @iamrecursion @kustosz @4e6
+/.github/workflows @iamrecursion @kustosz @radeusgd @4e6
+/tools @iamrecursion @kustosz @radeusgd @4e6
+/project @iamrecursion @kustosz @radeusgd @4e6
+/build.sbt @iamrecursion @kustosz @radeusgd @4e6
 
 # Repo Configuration
 /.github/settings.yml @iamrecursion

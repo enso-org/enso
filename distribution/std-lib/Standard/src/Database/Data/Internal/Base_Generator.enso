@@ -6,19 +6,21 @@ import Standard.Database.Data.Internal.IR
 from Standard.Database.Data.Sql import Sql_Type
 
 type Internal_Dialect
+
     ## PRIVATE
 
        An internal representation of a SQL dialect.
 
        Arguments:
-       - operation_map: the mapping which maps operation names to their
+       - operation_map: The mapping which maps operation names to their
          implementations; each implementation is a function which takes SQL
          builders for the arguments and should return a builder yielding the
          whole operation.
-       - wrap_identifier: a function that converts an arbitrary supported
+       - wrap_identifier: A function that converts an arbitrary supported
          identifier name in such a way that it can be used in the query; that
          usually consists of wrapping the name in quotes and escaping any quotes
          within it.
+
        # type Internal_Dialect (operation_map : Map Text (Vector Sql.Builder -> Sql.Builder))
        #                       (identifier_wrapper : Text -> Sql.Builder)
     type Internal_Dialect operation_map wrap_identifier
@@ -27,7 +29,9 @@ type Internal_Dialect
 
        Creates a copy of the dialect that supports additional operations or
        overrides existing ones.
+
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
+    extend_with : Vector -> Internal_Dialect
     extend_with mappings =
         new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect new_map this.wrap_identifier
@@ -35,6 +39,9 @@ type Internal_Dialect
 ## PRIVATE
 
    A helper function to create a binary operator.
+
+   Arguments:
+   - name: The name of the binary operator.
 make_binary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_binary_op name =
     arguments ->
@@ -48,6 +55,9 @@ make_binary_op name =
 ## PRIVATE
 
    A helper function to create a unary operator.
+
+   Arguments:
+   - name: The name of the unary operator.
 make_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_unary_op name =
     arguments ->
@@ -61,6 +71,9 @@ make_unary_op name =
 
    A helper function to create a unary operator which is added to the right of
    the expression.
+
+   Arguments:
+   - name: The name of the unary operator.
 make_right_unary_op : Text -> Vector Sql.Builder -> Sql.Builder
 make_right_unary_op name =
     arguments ->
@@ -73,6 +86,9 @@ make_right_unary_op name =
 ## PRIVATE
 
    A helper function to create a functional operation.
+
+   Arguments:
+   - name: The name of the function.
 make_function : Text -> Vector Sql.Builder -> Sql.Builder
 make_function name =
     arguments ->
@@ -81,6 +97,9 @@ make_function name =
 ## PRIVATE
 
    A helper function to create an operation that takes no arguments.
+
+   Arguments:
+   - code: The code for the constant.
 make_constant : Text -> Vector Sql.Builder -> Sql.Builder
 make_constant code =
     arguments ->
@@ -90,8 +109,13 @@ make_constant code =
 ## PRIVATE
 
    Wraps the identifier name in quotes and escapes any quotes within the name
-   with double-quote. This is the simplest way of escaping identifiers that
-   should work across most dialects.
+   with double-quote.
+
+   Arguments:
+   - identifier: The identifier to wrap and escape.
+
+   This is the simplest way of escaping identifiers that should work across most
+   dialects.
 wrap_in_quotes : Text -> Sql.Builder
 wrap_in_quotes identifier =
     escaped = identifier.replace '"' '""'
@@ -118,6 +142,10 @@ base_dialect =
 ## PRIVATE
 
    Builds code for an expression.
+
+   Arguments:
+   - dialect: The SQL dialect in which the expression is being generated.
+   - expr: The expression to generate SQL code for.
 generate_expression : Internal_Dialect -> IR.Expression -> Sql.Builder
 generate_expression dialect expr = case expr of
     IR.Column origin name ->
@@ -133,6 +161,10 @@ generate_expression dialect expr = case expr of
 
    Adds an alias for the expression, applicable for expressions that represent
    columns or sub-queries.
+
+   Arguments:
+   - dialect: The dialect for which to add the alias.
+   - name: The name of the alias.
 alias : Internal_Dialect -> Text -> Sql.Builder
 alias dialect name =
     wrapped = dialect.wrap_identifier name
@@ -141,6 +173,10 @@ alias dialect name =
 ## PRIVATE
 
    Builds code for the FROM clause.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is generated.
+   - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Sql.Builder
 generate_from_part dialect from_spec = case from_spec of
     IR.From_Table name as_name ->
@@ -162,7 +198,13 @@ generate_from_part dialect from_spec = case from_spec of
 ## PRIVATE
 
    Builds code for an ordering.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is generated.
+   - order_description: A description of the ORDER clause.
+
    # generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
+generate_order : Internal_Dialect -> Vector -> Sql.Builder
 generate_order dialect order_description =
     order_suffix = case order_description.second of
         IR.Ascending -> Sql.code " ASC"
@@ -173,6 +215,12 @@ generate_order dialect order_description =
     (here.generate_expression dialect (order_description.first)) ++ order_suffix ++ nulls_suffix
 
 ## PRIVATE
+
+   Generates SQL code corresponding to a SELECT statement.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - ctx: A description of the SELECT clause.
 generate_select_context : Internal_Dialect -> IR.Context -> Sql.Builder
 generate_select_context dialect ctx =
     gen_exprs exprs = exprs.map (here.generate_expression dialect)
@@ -188,6 +236,15 @@ generate_select_context dialect ctx =
     (Sql.code " FROM ") ++ from_part ++ where_part ++ group_part ++ order_part ++ limit_part
 
 ## PRIVATE
+
+   Generates the SQL code corresponding to an INSERT query.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - table_name: The name of the table into which the values are being inserted.
+   - pairs: The values to insert into the table, consisting of pairs of key, and
+     expression returning a value.
+generate_insert_query : Internal_Dialect -> Text -> Vector -> Sql.Builder
 generate_insert_query dialect table_name pairs =
     names = Sql.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
     values = Sql.join ", " <| pairs.map (.second >> here.generate_expression dialect)
@@ -198,6 +255,10 @@ generate_insert_query dialect table_name pairs =
 ## PRIVATE
 
    Builds code for a whole query.
+
+   Arguments:
+   - dialect: The SQL dialect for which the code is being generated.
+   - query: An IR describing the query.
 generate_query : Internal_Dialect -> IR.Query -> Sql.Builder
 generate_query dialect query = case query of
     IR.Select columns ctx ->

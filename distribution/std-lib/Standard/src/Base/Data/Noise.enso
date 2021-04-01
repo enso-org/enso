@@ -4,6 +4,10 @@ from Standard.Base.Data.Noise.Generator import all
 
 ## Generate noise based on the input number.
 
+   Arguments:
+   - interval: An interval in which the noise should be generated.
+   - gen: The generator to use for generating noise.
+
    The output of the noise generator will depend on the input and the range over
    which the noise is being generated.
 

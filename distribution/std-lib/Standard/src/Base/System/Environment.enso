@@ -6,6 +6,13 @@ polyglot java import java.lang.System
 
    Returns a value of a specified environment variable or Nothing if such
    variable is not defined.
+
+   Arguments:
+   - key: The name of the environment variable to look up.
+
+   > Example
+     Look up the value of the `PATH` environment variable.
+         Environment.get "PATH"
 get : Text -> Text | Nothing
 get key =
     System.getenv key

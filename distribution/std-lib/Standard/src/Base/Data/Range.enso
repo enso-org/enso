@@ -2,6 +2,13 @@ from Standard.Base import all
 
 ## Represents a right-exclusive range of integer values.
 type Range
+
+    ## UNSTABLE
+       A representation of a right-exclusive range of integer values.
+
+       Arguments:
+       - start: The left boundary of the range. Its value is included.
+       - end: The right boundary of the range. Its value is excluded.
     type Range start end
 
     ## Get the number of elements in the range.
@@ -30,6 +37,9 @@ type Range
 
     ## Applies a function for each element in the range.
 
+       Arguments:
+       - function: The function to apply to each integer in the range.
+
        > Example
          To print all the numbers from 1 to 100 use:
          1.up_to 101 . each IO.println
@@ -44,6 +54,11 @@ type Range
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
 
+       Arguments:
+       - init: The initial integral value for the fold.
+       - function: A binary function taking an item and a number, and returning
+         an item.
+
        In general, the result of
            Range start end . fold init f
        is the same as
@@ -53,18 +68,20 @@ type Range
          In the following example, we'll compute the sum of all elements of a
          range:
              Range 0 100 . fold 0 (+)
-    fold : Any -> (Number -> Any) -> Any
-    fold initial function =
+    fold : Any -> (Any -> Number -> Any) -> Any
+    fold init function =
         it acc start end = if start == end then acc else
             new_acc = function acc start
             @Tail_Call it new_acc start+1 end
-        res = it initial this.start this.end
+        res = it init this.start this.end
         res
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
-       A predicate is a function that takes an element in the range and returns
-       a boolean.
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
 
        > Example
          Checking that all numbers in the range are greater than 5.
@@ -79,8 +96,10 @@ type Range
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
-       A predicate is a function that takes an element in the range and returns
-       a boolean.
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
 
        > Example
          Checking that at least one number in the range is greater than 10.
@@ -94,8 +113,10 @@ type Range
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
-       A predicate is a function that takes an element in the range and returns
-       a boolean.
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
 
        > Example
          Checking that at least one number in the range is greater than 10.

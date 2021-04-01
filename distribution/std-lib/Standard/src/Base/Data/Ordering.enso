@@ -12,14 +12,15 @@ from Builtins export Less, Equal, Greater
    The result should be returned in terms of how `this` orders in comparison to
    `that`. So, if `this` is greater than `that`, you should return `Greater.`
 type Ordering
-    ## An ordering where a compared value is less than another.
     Less
-    ## An ordering where a compared value is equal to another.
     Equal
-    ## An ordering where a compared value is greater than another.
     Greater
 
     ## Converts the ordering to the signed notion of ordering based on integers.
+
+       > Example
+         Converting equal ordering to a signed number.
+             Ordering.Equal.to_sign
     to_sign : Integer
     to_sign = case this of
         Less -> -1

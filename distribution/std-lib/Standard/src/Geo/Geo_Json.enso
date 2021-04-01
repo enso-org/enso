@@ -6,9 +6,13 @@ from Standard.Base import all
 type Object_Type
 
     ## PRIVATE
+
+       A Geo JSON feature.
     type Feature
 
     ## PRIVATE
+
+       A Geo JSON feature collection.
     type Feature_Collection
 
     ## PRIVATE
