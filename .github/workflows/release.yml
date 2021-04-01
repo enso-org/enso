@@ -225,8 +225,8 @@ jobs:
       - name: Upload the GraalVM Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.GRAAL_PACKAGE_NAME }}
-          path: repo/${{ env.GRAAL_PACKAGE_ROOT }}
+          name: ${{ env.GRAAL_DIST_NAME }}
+          path: repo/${{ env.GRAAL_DIST_ROOT }}
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
