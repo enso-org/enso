@@ -365,7 +365,7 @@ object DistributionPackage {
       *
       * @param log the log manager
       * @param os the system
-      * @param graalDir the directory with a GraalVM distributions
+      * @param graalDir the directory with a GraalVM distribution
       * @param arguments the command arguments
       */
     private def gu(
@@ -374,10 +374,16 @@ object DistributionPackage {
       graalDir: File,
       arguments: String*
     ): Unit = {
-      val executableFile = graalDir / "bin" / os.executableName("gu")
+      val executableFile = os match {
+        case OS.Linux =>
+          graalDir / "bin" / "gu"
+        case OS.MacOS =>
+          graalDir / "Contents" / "Home" / "bin" / "gu"
+        case OS.Windows =>
+          graalDir / "bin" / "gu.cmd"
+      }
       val command =
         executableFile.toPath.toAbsolutePath.toString +: arguments
-      log.debug(command.mkString(" "))
       val exitCode = Process(command, cwd = Some(graalDir)).!
       if (exitCode != 0) {
         throw new RuntimeException(

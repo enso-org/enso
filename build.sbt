@@ -1370,7 +1370,7 @@ buildGraalDistribution := {
   val osName = sys.env.get("DIST_OS").getOrElse {
     val name = sys.props("os.name").takeWhile(!_.isWhitespace)
     log.warn(
-      s"DIST_OS env var is empty. Falling back to system property os.name=$name."
+      s"DIST_OS env var is empty. Fallback to system property os.name=$name."
     )
     name
   }
