@@ -291,7 +291,8 @@ object DistributionPackage {
     }
 
     private def graalArchive(os: OS, architecture: Architecture): File = {
-      val packageDir = artifactRoot / s"graalvm-${os.name}-${architecture.name}"
+      val packageDir =
+        artifactRoot / s"graalvm-$graalVersion-${os.name}-${architecture.name}"
       if (!packageDir.exists()) {
         IO.createDirectory(packageDir)
       }
