@@ -608,6 +608,7 @@ object Main extends scala.App {
       |  Here is a small test of Example Section
       |      Import Foo
       |      def Bar a
+      |          Foo x y
       |""".stripMargin
   val doc2      = DocParser.runMatched(inpOnlyDoc)
   val htmlCode2 = DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
