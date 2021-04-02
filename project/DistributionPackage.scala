@@ -335,6 +335,13 @@ object DistributionPackage {
       extract(archive, runtimeDir)
     }
 
+    /** Prepare the GraalVM package.
+      *
+      * @param log the logger
+      * @param os the system type
+      * @param architecture the architecture type
+      * @return the path to the created GraalVM package
+      */
     def createGraalPackage(
       log: ManagedLogger,
       os: OS,
@@ -369,8 +376,8 @@ object DistributionPackage {
 
     /** Run the `gu` executable from the GraalVM distribution.
       *
-      * @param log the log manager
-      * @param os the system
+      * @param log the logger
+      * @param os the system type
       * @param graalDir the directory with a GraalVM distribution
       * @param arguments the command arguments
       */

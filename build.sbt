@@ -1366,16 +1366,20 @@ buildProjectManagerDistribution := {
 lazy val buildGraalDistribution =
   taskKey[Unit]("Builds the GraalVM distribution")
 buildGraalDistribution := {
-  val log = streams.value.log
-  val osName = sys.env.get("DIST_OS").getOrElse {
-    val name = sys.props("os.name").takeWhile(!_.isWhitespace)
-    log.warn(
-      s"DIST_OS env var is empty. Fallback to system property os.name=$name."
-    )
+  val log    = streams.value.log
+  val distOs = "DIST_OS"
+  val osName = "os.name"
+  val distName = sys.env.get(distOs).getOrElse {
+    val name = sys.props(osName).takeWhile(!_.isWhitespace)
+    if (sys.env.contains("CI")) {
+      log.warn(
+        s"$distOs env var is empty. Fallback to system property $osName=$name."
+      )
+    }
     name
   }
-  val os = DistributionPackage.OS(osName).getOrElse {
-    throw new RuntimeException(s"Failed to determine OS: $osName.")
+  val os = DistributionPackage.OS(distName).getOrElse {
+    throw new RuntimeException(s"Failed to determine OS: $distName.")
   }
   packageBuilder.createGraalPackage(
     log,
