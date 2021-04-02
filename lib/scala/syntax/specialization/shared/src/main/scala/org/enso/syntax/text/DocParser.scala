@@ -293,8 +293,7 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs += file.code
-            .toString()
+          allDocs += file.code.toString() + HTML.br + HTML.br
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -328,7 +327,7 @@ object DocParserHTMLGenerator {
     * @return - HTML code with file name
     */
   def onHTMLRendering(documented: AST.Documented): htmlFile = {
-    val htmlCode = renderHTML(documented.ast, documented.doc)
+    val htmlCode = DocumentedToHtml(documented.ast, documented.doc)
     val astLines = documented.ast.show().split("\n")
     val fileName =
       astLines.head
@@ -339,20 +338,6 @@ object DocParserHTMLGenerator {
     htmlFile(htmlCode, fileName)
   }
   case class htmlFile(code: TypedTag[String], name: String)
-
-  /** Function invoked by [[onHTMLRendering]] to render HTML File
-    *
-    * @param ast - AST from Parser
-    * @param doc - Doc from Doc Parser
-    * @return - HTML Code from Doc and contents of [[AST.Def]] or
-    *           [[AST.App.Infix]], with optional title made from AST
-    */
-  def renderHTML(ast: AST, doc: Doc): TypedTag[String] = {
-//    val title         = ast.show().split("\n").head.split("=").head
-//    val documentation = DocumentedToHtml(ast, doc)
-//    HTML.html(createHTMLHead(title), HTML.body(documentation))
-    DocumentedToHtml(ast, doc)
-  }
 
   /** This function is used to get HTML content of Doc and try to render AST,
     * by finding if it also contains Documented to retrieve Doc and it's AST,
@@ -369,7 +354,7 @@ object DocParserHTMLGenerator {
     val astName  = HTML.div(astHTML.header)
     astHTML.body match {
       case Some(b) =>
-        val astBodyCls = HTML.`class` := "ASTData"
+        val astBodyCls = HTML.`class` := "ml-20"
         val astBody    = Seq(HTML.div(astBodyCls)(b))
         // Case when producing main page
         HTML.div(docClass)(
@@ -508,8 +493,6 @@ object DocParserHTMLGenerator {
     args: List[AST],
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-//    val clsTitle   = HTML.`class` := "DefTitle"
-//    val clsArgs    = HTML.`class` := "DefArgs"
     val nameStr    = name.show()
     val argsStr    = args.map(_.show())
     var argsStrUrl = argsStr.mkString("_")
@@ -520,9 +503,7 @@ object DocParserHTMLGenerator {
     if (tags.isDefined) {
       tagsHtml = HTML.div(tags.html)
     }
-//    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
-//    val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
-//    HTML.a(pageHref)(innerDiv)
+
     HTML.div(HTML.`class` := "doc-subsection DefTitle")(
       HTML.div(HTML.`class` := "doc-header-container flex")(
         HTML.span(HTML.`class` := "doc-header-name")(
@@ -545,12 +526,6 @@ object DocParserHTMLGenerator {
     infix: AST.App.Infix,
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-//    val cls = HTML.`class` := "Infix"
-//    val pageHref = HTML.`href` := infix.larg
-//      .show()
-//      .replaceAll(" ", "_") + ".html"
-//    val innerDiv = HTML.div(cls)(infix.larg.show())
-//    HTML.a(pageHref)(innerDiv)
     var tagsHtml = HTML.div()
     if (tags.isDefined) {
       tagsHtml = HTML.div(tags.html)

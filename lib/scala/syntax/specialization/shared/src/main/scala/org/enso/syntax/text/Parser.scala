@@ -550,6 +550,14 @@ object Main extends scala.App {
       |        ! Important
       |          This function, if used wildly, will break space-time continuum.
       |    pow x y = x ** y
+      |
+      |## TEXTONLY
+      |  PRIVATE
+      |  This is a testing framework for `Option.
+      |  
+      |  ? Info
+      |  It doesn't do too much in current state.
+      |type Option_Test
       |""".stripMargin
 
   println("--- PARSING ---")
