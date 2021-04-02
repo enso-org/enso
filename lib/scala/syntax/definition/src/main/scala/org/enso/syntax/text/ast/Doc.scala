@@ -355,7 +355,9 @@ object Doc {
     final case class Header(elems: List[Elem]) extends Elem {
       val repr: Repr.Builder = R + elems.map(_.repr)
       val html: HTML = Seq(
-        HTML.div(HTML.`class` := "doc-special-text-title")(elems.map(_.html))
+        HTML.div(HTML.`class` := "doc-special-text-title mb-4")(
+          elems.map(_.html)
+        )
       )
     }
     object Header {
