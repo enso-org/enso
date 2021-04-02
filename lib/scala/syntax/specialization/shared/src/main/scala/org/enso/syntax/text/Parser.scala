@@ -508,11 +508,9 @@ object Main extends scala.App {
       |""".stripMargin
   val inC =
     """
-      |## DEPRECATED
-      |  REMOVED - replaced by Foo Bar
-      |  ADDED
-      |  MODIFIED
-      |  UPCOMING
+      |## ADDED in 2.0
+      |  MODIFIED in 2.1
+      |  UNSTABLE
       |  Optional values.
       |
       |   Type `Option` represents an optional value: every `Option` is either `Some`
@@ -528,15 +526,24 @@ object Main extends scala.App {
       |   a value and take action, always accounting for the None case.
       |
       |type Option a
-      |    ## The `Some` type indicates a presence of a value.
+      |    ## ADVANCED
+      |       The `Some` type indicates a presence of a value.
       |    type Some a
       |
-      |    ## The `None` type indicates a lack of a value.
+      |    ## MODIFIED
+      |     The `None` type indicates a lack of a value.
       |
       |     It is a very common type and is used by such types as `Maybe` or `List`.
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
       |    type None
+      |    
+      |    ## DEPRECATED
+      |       PRIVATE
+      |       UNSTABLE
+      |       TEXTONLY
+      |     The `Nothing` is previous `None`.
+      |    type Nothing
       |
       |    ## The pow function calculates power of integers.
       |    

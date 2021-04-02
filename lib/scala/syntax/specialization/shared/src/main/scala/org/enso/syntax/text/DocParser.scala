@@ -365,7 +365,7 @@ object DocParserHTMLGenerator {
     */
   def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
     val docClass = HTML.`class` := "doc"
-    val astHTML  = createHTMLFromAST(ast)
+    val astHTML  = createHTMLFromAST(ast, doc.tags)
     val astName  = HTML.div(astHTML.header)
     astHTML.body match {
       case Some(b) =>
@@ -379,11 +379,9 @@ object DocParserHTMLGenerator {
         )
       case None =>
         // Case when listing constructors/methods | Name | Synopsis | Tags |
-        val content = HTML.div(doc.htmlWoTags)
         HTML.div(docClass)(
           astName,
-          content,
-          doc.tags.html
+          doc.htmlWoTags
         )
     }
   }
@@ -412,19 +410,23 @@ object DocParserHTMLGenerator {
     * @param ast - AST
     * @return - HTML Code
     */
-  def createHTMLFromAST(ast: AST): astHtmlRepr = {
+  def createHTMLFromAST(
+    ast: AST,
+    tags: Option[Doc.Tags] = None
+  ): astHtmlRepr = {
     ast match {
       case AST.Def.any(d) =>
         d.body match {
           case Some(body) =>
             body match {
-              case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
+              case AST.Block.any(b) =>
+                createDefWithBody(d.name, d.args, b, tags)
               case _ =>
-                astHtmlRepr(createDefWithoutBody(d.name, d.args))
+                astHtmlRepr(createDefWithoutBody(d.name, d.args, tags))
             }
-          case None => astHtmlRepr(createDefWithoutBody(d.name, d.args))
+          case None => astHtmlRepr(createDefWithoutBody(d.name, d.args, tags))
         }
-      case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i))
+      case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i, tags))
       case _                    => astHtmlRepr()
     }
   }
@@ -441,7 +443,8 @@ object DocParserHTMLGenerator {
   def createDefWithBody(
     name: AST.Cons,
     args: List[AST],
-    body: AST.Block
+    body: AST.Block,
+    tags: Option[Doc.Tags]
   ): astHtmlRepr = {
     val firstLine = Line(Option(body.firstLine.elem), body.firstLine.off)
     val atomsHeader = HTML.span(
@@ -460,7 +463,7 @@ object DocParserHTMLGenerator {
       generatedCode.filter(
         _.toString().contains("class=\"doc-subsection Infix\"")
       )
-    val head    = createDefTitle(name, args)
+    val head    = createDefTitle(name, args, tags)
     val clsBody = HTML.`class` := "DefBody"
     val lines =
       HTML.div(clsBody)(
@@ -486,10 +489,11 @@ object DocParserHTMLGenerator {
     */
   def createDefWithoutBody(
     name: AST.Cons,
-    args: List[AST]
+    args: List[AST],
+    tags: Option[Doc.Tags]
   ): TypedTag[String] = {
     val cls = HTML.`class` := "DefNoBody"
-    HTML.div(cls)(createDefTitle(name, args))
+    HTML.div(cls)(createDefTitle(name, args, tags))
   }
 
   /** Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
@@ -499,7 +503,11 @@ object DocParserHTMLGenerator {
     * @param args - Def Arguments
     * @return - Def title in HTML
     */
-  def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
+  def createDefTitle(
+    name: AST.Cons,
+    args: List[AST],
+    tags: Option[Doc.Tags]
+  ): TypedTag[String] = {
 //    val clsTitle   = HTML.`class` := "DefTitle"
 //    val clsArgs    = HTML.`class` := "DefArgs"
     val nameStr    = name.show()
@@ -507,6 +515,10 @@ object DocParserHTMLGenerator {
     var argsStrUrl = argsStr.mkString("_")
     if (argsStr.nonEmpty) {
       argsStrUrl = "_" + argsStrUrl
+    }
+    var tagsHtml = HTML.div()
+    if (tags.isDefined) {
+      tagsHtml = HTML.div(tags.html)
     }
 //    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
 //    val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
@@ -518,7 +530,7 @@ object DocParserHTMLGenerator {
           " ",
           HTML.span(HTML.`class` := "opacity-60")(argsStr)
         ),
-        HTML.div(HTML.`class` := "mb-3 flex")("--TAGS--")
+        tagsHtml
       )
     )
   }
@@ -529,19 +541,26 @@ object DocParserHTMLGenerator {
     * @param infix - AST Infix
     * @return - HTML code generated from Infix
     */
-  def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
+  def createInfixHtmlRepr(
+    infix: AST.App.Infix,
+    tags: Option[Doc.Tags]
+  ): TypedTag[String] = {
 //    val cls = HTML.`class` := "Infix"
 //    val pageHref = HTML.`href` := infix.larg
 //      .show()
 //      .replaceAll(" ", "_") + ".html"
 //    val innerDiv = HTML.div(cls)(infix.larg.show())
 //    HTML.a(pageHref)(innerDiv)
+    var tagsHtml = HTML.div()
+    if (tags.isDefined) {
+      tagsHtml = HTML.div(tags.html)
+    }
     HTML.div(HTML.`class` := "doc-subsection Infix")(
       HTML.div(HTML.`class` := "doc-header-container flex")(
         HTML.span(HTML.`class` := "doc-header-name")(
           infix.larg.show()
         ),
-        HTML.div(HTML.`class` := "mb-3 flex")("--TAGS--")
+        tagsHtml
       )
     )
   }

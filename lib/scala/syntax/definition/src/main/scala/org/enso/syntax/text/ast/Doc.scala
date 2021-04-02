@@ -515,7 +515,9 @@ object Doc {
     val repr: Repr.Builder =
       R + elems.head + elems.tail.map(R + newLn + _) + newLn
     val html: HTML = Seq(
-      HTML.div(HTML.`class` := "mb-3 flex")(elems.toList.map(_.html))
+      HTML.div(HTML.`class` := "mb-3 flex float-right")(
+        elems.toList.map(_.html)
+      )
     )
   }
   object Tags {
@@ -579,10 +581,7 @@ object Doc {
     }
 
     implicit final class ExtForTagDetails(val self: Option[String]) {
-      val html: HTML = {
-        val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
-        Seq(self.map(HTML.div(htmlCls)(_)))
-      }
+      val html: HTML = Seq(self.map(HTML.span(HTML.`class` := "opacity-80")(_)))
     }
   }
 }
