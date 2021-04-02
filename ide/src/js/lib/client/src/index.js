@@ -332,28 +332,67 @@ Electron.app.on('web-contents-created', (event,contents) => {
 // === Project Manager ===
 // =======================
 
-async function withBackend(opts) {
+function projectManagerPath() {
     let binPath = args['backend-path']
     if (!binPath) {
         binPath = paths.get_project_manager_path(resources)
     }
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
+    return binPath
+}
 
-    let out = await execFile(binPath,opts).catch(function(err) {throw err})
+/**
+ * Executes the Project Manager with given arguments.
+ * 
+ * Note that this function captures all the Project Manager output into a fixed
+ * size buffer. If too much output is produced, it will fail and Project 
+ * Manager process will prematurely close.
+ * 
+ * @param {string[]} args Project Manager command line arguments.
+ * @returns Promise with captured standard output and error contents.
+ */
+async function execProjectManager(args) {
+    let binPath = projectManagerPath()
+    return await execFile(binPath,args).catch(function(err) {throw err})
+}
+
+/**
+ * Spawn process with Project Manager,
+ * 
+ * The standard output and error handles will be inherited, i.e. will be
+ * redirected to the electron's app output and error handles. Input is piped
+ * to this process, so it will not be closed, until this process finished.
+ * 
+ * @param {string[]} args 
+ * @returns Handle to the spawned process.
+ */
+function spawnProjectManager(args) { 
+    let binPath = projectManagerPath()
+    let stdin = 'pipe'
+    let stdout = 'inherit'
+    let stderr = 'inherit'
+    let opts = {
+        stdio: [stdin,stdout,stderr]
+    }
+    let out = child_process.spawn(binPath,args,opts)
+    console.log(`Project Manager has been spawned, pid = ${out.pid}.`) 
+    out.on('exit', (code) => {
+        console.log(`Project Manager exited with code ${code}.`)
+    })
     return out
 }
 
 function runBackend() {
     if(args.backend !== false) {
         console.log("Starting the backend process.")
-        withBackend()
+        return spawnProjectManager()
     }
 }
 
 async function backendVersion() {
     if(args.backend !== false) {
-        return await withBackend(['--version']).then((t) => t.stdout)
+        return await execProjectManager(['--version']).then((t) => t.stdout)
     }
 }
 
