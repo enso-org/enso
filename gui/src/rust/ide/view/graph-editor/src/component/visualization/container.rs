@@ -95,14 +95,14 @@ pub mod background {
             let sel_size   = style.get_number(theme::selection::size);
             let sel_offset = style.get_number(theme::selection::offset);
 
-            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
-            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_width   = &width  - 1.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_height  = &height - 1.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_radius  = &corner_radius + &sel_offset.px();
             let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
 
             let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
-            let sel2_radius = &corner_radius + &(sel_size + sel_offset).px();
+            let sel2_radius = &corner_radius + &sel_offset.px() + &sel_size.px() * &selection;
             let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
 
             let select = select2 - select;

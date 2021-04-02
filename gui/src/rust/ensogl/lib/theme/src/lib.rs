@@ -212,7 +212,7 @@ define_themes! { [light:0, dark:1]
     graph_editor {
         node {
             background         = Rgba(0.984,0.992,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0);
-            background.skipped = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.15,0.014,0.18,1.0);
+            background.skipped = graph_editor::node::background , Lcha(0.15,0.014,0.18,1.0);
             selection      = selection, selection;
             selection {
                 size = 10.0 , 5.0;
@@ -247,7 +247,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         visualization {
-            background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
+            background = graph_editor::node::background , Lcha(0.2,0.014,0.18,1.0);
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
@@ -301,7 +301,7 @@ define_themes! { [light:0, dark:1]
     }
     component {
         label {
-            background = Lcha(0.98,0.014,0.18,1.0) , Lcha(0.2,0.014,0.18,1.0);
+            background = graph_editor::node::background , Lcha(0.2,0.014,0.18,1.0);
             text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 offset = 00.0, 00.0;
