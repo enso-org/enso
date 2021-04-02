@@ -515,7 +515,7 @@ object Doc {
     val repr: Repr.Builder =
       R + elems.head + elems.tail.map(R + newLn + _) + newLn
     val html: HTML = Seq(
-      HTML.div(HTML.`class` := "mb-3 flex float-right")(
+      HTML.div(HTML.`class` := "doc-tags")(
         elems.toList.map(_.html)
       )
     )
