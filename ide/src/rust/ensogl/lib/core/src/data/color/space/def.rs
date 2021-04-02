@@ -510,6 +510,11 @@ impl Lcha {
     pub fn blue_green  (l:f32, c:f32) -> Lcha { Lch::blue_green (l,c) . into() }
     pub fn blue        (l:f32, c:f32) -> Lcha { Lch::blue       (l,c) . into() }
     pub fn violet      (l:f32, c:f32) -> Lcha { Lch::violet     (l,c) . into() }
+
+    /// Convert the color to JavaScript representation.
+    pub fn to_javascript_string(&self) -> String {
+        Rgba::from(self).to_javascript_string()
+    }
 }
 
 

@@ -114,6 +114,7 @@ impl Model {
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
+        documentation.set_position_y(-action_list_gap);
         Self{app,logger,display_object,list,documentation,doc_provider}
     }
 

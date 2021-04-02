@@ -19,9 +19,11 @@ use ensogl_theme as theme;
 // === Constants  ===
 // ==================
 
-const BUTTON_PADDING : f32 = 0.5;
-const BUTTON_OFFSET  : f32 = 0.5;
-
+const BUTTON_PADDING  : f32 = 0.5;
+const BUTTON_OFFSET   : f32 = 0.5;
+/// Grow the hover area in x direction by this amount. Used to close the gap between action
+/// icons and node.
+const HOVER_EXTENSION_X: f32 = 15.0;
 
 
 // ===============
@@ -87,9 +89,16 @@ impl Icons {
         let freeze         = ToggleButton::new(&logger);
         let visibility     = ToggleButton::new(&logger);
         let skip           = ToggleButton::new(&logger);
-        display_object.add_child(&freeze);
         display_object.add_child(&visibility);
-        display_object.add_child(&skip);
+        // Note: Disabled for https://github.com/enso-org/ide/issues/1397
+        // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
+        //
+        // We implemented the additonal action icons, but do not currenlty use them. If they
+        // are used again, uncomment the below code to make the already implemented icons
+        // functional again.
+        //
+        // display_object.add_child(&freeze);
+        // display_object.add_child(&skip);
         Self {display_object,freeze,visibility,skip}
     }
 
@@ -175,12 +184,13 @@ impl Model {
         let offset         = BUTTON_OFFSET;
         let hover_padding  = 1.0;
         let button_width   = self.icon_size().x;
-        let hover_width    = button_width * (button_count + hover_padding + offset + padding);
+        let hover_width    = button_width * (button_count + hover_padding + offset + padding)
+            + HOVER_EXTENSION_X;
         let hover_height   = button_width * 2.0;
         let hover_ara_size = Vector2::new(hover_width,hover_height);
         self.hover_area.size.set(hover_ara_size);
         let center_offset  = -size.x / 2.0 + hover_ara_size.x / 2.0;
-        let padding_offset = - 0.5 * hover_padding * button_width;
+        let padding_offset = - 0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
         self.hover_area.set_position_x(center_offset + padding_offset);
     }
 
@@ -188,11 +198,18 @@ impl Model {
         self.size.set(size);
         self.icons.set_position_x(-size.x/2.0);
 
+        // Note: Disabled for https://github.com/enso-org/ide/issues/1397
+        // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
+        //
+        // We implemented the additonal action icons, but do not currenlty use them. If they
+        // are used again, uncomment the below code to make the already implemented icons
+        // functional again.
         self.place_button_in_slot(&self.icons.visibility , 0);
-        self.place_button_in_slot(&self.icons.skip       , 1);
-        self.place_button_in_slot(&self.icons.freeze     , 2);
+        // self.place_button_in_slot(&self.icons.skip       , 1);
+        // self.place_button_in_slot(&self.icons.freeze     , 2);
 
-        self.layout_hover_area_to_cover_buttons(3);
+        // Note: needs increasing to 3 when re-enabling the above buttons.
+        self.layout_hover_area_to_cover_buttons(1);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         self.icons.visibility.set_scale_xy(Vector2::new(1.2,1.2));
