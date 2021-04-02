@@ -28,7 +28,7 @@ mod background {
 
             let width      = Var::<Pixels>::from("input_size.x");
             let height     = Var::<Pixels>::from("input_size.y");
-            let padding    = style.get_number_or(theme::padding_outer, 0.0);
+            let padding    = style.get_number(theme::padding_outer);
             let width      = width  - padding.px() * 2.0;
             let height     = height - padding.px() * 2.0;
             let radius     = &height / 2.0;
@@ -98,18 +98,18 @@ impl Model {
     }
 
     pub fn height(&self) -> f32 {
-        self.style.get_number_or(theme::height, 0.0)
+        self.style.get_number(theme::height)
     }
 
     fn set_width(&self, width:f32) -> Vector2 {
-        let padding_outer   = self.style.get_number_or(theme::padding_outer,0.0);
-        let padding_inner_x = self.style.get_number_or(theme::padding_inner_x,0.0);
-        let padding_inner_y = self.style.get_number_or(theme::padding_inner_y,0.0);
+        let padding_outer   = self.style.get_number(theme::padding_outer);
+        let padding_inner_x = self.style.get_number(theme::padding_inner_x);
+        let padding_inner_y = self.style.get_number(theme::padding_inner_y);
         let padding_x       = padding_outer + padding_inner_x;
         let padding_y       = padding_outer + padding_inner_y;
         let padding         = Vector2(padding_x,padding_y);
-        let text_size       = self.style.get_number_or(theme::text::size,0.0);
-        let text_offset     = self.style.get_number_or(theme::text::offset,0.0);
+        let text_size       = self.style.get_number(theme::text::size);
+        let text_offset     = self.style.get_number(theme::text::offset);
         let height          = self.height();
         let size            = Vector2(width,height);
         let padded_size     = size + padding * 2.0;

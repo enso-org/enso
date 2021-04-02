@@ -9,7 +9,6 @@ pub use visualization::container::overlay;
 
 use ast::prelude::FallibleResult;
 use enso_frp as frp;
-use ensogl::data::color;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -94,16 +93,14 @@ impl Model {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
-        let bg_color = color::Rgba::from(bg_color);
-        let bg_hex   = format!("rgba({},{},{},{})",
-            bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
+        let style_path = ensogl_theme::application::documentation::background;
+        let bg_color = styles.get_color(style_path).to_javascript_string();
 
         dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
         dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
         dom.dom().set_style_or_warn("overflow-y"      ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("overflow-x"      ,"auto"                       ,&logger);
-        dom.dom().set_style_or_warn("background-color",bg_hex                       ,&logger);
+        dom.dom().set_style_or_warn("background-color",bg_color                     ,&logger);
         dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
         dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);

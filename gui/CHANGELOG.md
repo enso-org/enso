@@ -31,6 +31,7 @@
   `Column` datatypes are properly visualized. Scatter Plot can display points of
   different color, shape and size, all as defined by the data within the
   `Table`.
+- [Many small visual improvements.][1419] See the source issue for more details.
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -144,6 +145,7 @@ you can find their release notes
 [1377]: https://github.com/enso-org/ide/pull/1377
 [1411]: https://github.com/enso-org/ide/pull/1411
 [1412]: https://github.com/enso-org/ide/pull/1412
+[1419]: https://github.com/enso-org/ide/pull/1419
 [1413]: https://github.com/enso-org/ide/pull/1413
 
 <br/>

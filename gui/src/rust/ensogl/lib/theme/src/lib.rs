@@ -162,7 +162,20 @@ define_themes! { [light:0, dark:1]
             show_delay_duration_ms = 150.0, 150.0;
         }
         searcher {
-            action_list_gap = 5.0, 5.0;
+            action_list_gap = 10.0, 10.0;
+            padding = 5.0, 5.0;
+            selection {
+                padding {
+                    horizontal = 2.0, 2.0;
+                    vertical   = 2.0, 2.0
+                }
+            }
+        }
+        documentation {
+            background = graph_editor::node::background, graph_editor::node::background;
+        }
+        status_bar {
+            text = text, text;
         }
     }
     code {
@@ -275,7 +288,7 @@ define_themes! { [light:0, dark:1]
             highlight  = selection , selection;
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.7,0.0,0.0,1.0);
+                highlight = Lcha(0.7,0.4,0.74,1.0) , Lcha(0.7,0.4,0.74,1.0);
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
         }
@@ -314,9 +327,13 @@ define_themes! { [light:0, dark:1]
         offset_x = 0.0 , 0.0;
         offset_y = -2.0 , -2.0;
         html {
-            alpha  = 0.16  , 0.16;
+            alpha  = 0.10  , 0.10;
             blur   = 10.0 , 10.0;
             spread = -2.0 , -2.0;
         }
+    }
+    text = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
+    text {
+        size   = 12.0, 12.0;
     }
 }

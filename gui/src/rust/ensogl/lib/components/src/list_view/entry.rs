@@ -15,15 +15,15 @@ use ensogl_theme;
 // =================
 
 /// Padding inside entry in pixels.
-pub const PADDING:f32 = 7.0;
+pub const PADDING:f32 = 14.0;
 /// The overall entry's height (including padding).
 pub const HEIGHT:f32 = 30.0;
 /// The text size of entry's labe.
 pub const LABEL_SIZE:f32 = 12.0;
 /// The size in pixels of icons inside entries.
-pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when created some icons for searcher.
+pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
 /// The gap between icon and label.
-pub const ICON_LABEL_GAP:f32 = 7.0;
+pub const ICON_LABEL_GAP:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
 
 
 
