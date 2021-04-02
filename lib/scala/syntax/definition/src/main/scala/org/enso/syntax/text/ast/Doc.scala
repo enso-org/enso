@@ -30,10 +30,10 @@ final case class Doc(
 ) extends Doc.Symbol {
   val repr: Repr.Builder = R + tags + synopsis + body
   val htmlWoTags: Doc.HTML = Seq(
-    HTML.div(htmlCls())(synopsis.html)(body.html)
+    HTML.div(synopsis.html)(body.html)
   )
   val html: Doc.HTML = Seq(
-    HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
+    HTML.div(tags.html)(synopsis.html)(body.html)
   )
 }
 

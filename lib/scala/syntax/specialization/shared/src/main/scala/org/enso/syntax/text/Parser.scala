@@ -513,7 +513,6 @@ object Main extends scala.App {
       |  ADDED
       |  MODIFIED
       |  UPCOMING
-      |  ALAMAKOTA a kot ma Ale
       |  Optional values.
       |
       |   Type `Option` represents an optional value: every `Option` is either `Some`
@@ -540,6 +539,9 @@ object Main extends scala.App {
       |    type None
       |
       |    ## The pow function calculates power of integers.
+      |    
+      |        ! Important
+      |          This function, if used wildly, will break space-time continuum.
       |    pow x y = x ** y
       |""".stripMargin
 
