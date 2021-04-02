@@ -105,6 +105,8 @@
   when the mouse events are passed to the visualization.
 - [Fixed an issue when projects containing certain language constructs failed to
   load.][1413]
+- [Fixed a case where IDE could lose connection to the backend after some
+  time.][1428]
 
 #### EnsoGL (rendering engine)
 
@@ -147,6 +149,7 @@ you can find their release notes
 [1412]: https://github.com/enso-org/ide/pull/1412
 [1419]: https://github.com/enso-org/ide/pull/1419
 [1413]: https://github.com/enso-org/ide/pull/1413
+[1428]: https://github.com/enso-org/ide/pull/1428
 
 <br/>
 
