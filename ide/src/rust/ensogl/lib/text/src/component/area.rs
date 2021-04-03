@@ -104,7 +104,6 @@ pub mod selection {
             let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
             let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
             let color          = style.get_color(theme::code::syntax::selection);
-            let color          = color::Rgba::from(color);
             let color          = format!("srgba({},{},{},{})",color.red,color.green,color.blue,alpha.glsl());
             let shape          = shape.fill(color);
             shape.into()

@@ -29,11 +29,11 @@ pub fn from_shape_with_alpha(base_shape:AnyShape,alpha:&Var<f32>,style:&StyleWat
     let shadow        = base_shape.grow(shadow_grow);
     let shadow        = shadow.translate((shadow_off_x,shadow_off_y));
 
-    let base_color    = color::Rgba::from(style.get_color(theme::shadow));
+    let base_color    = style.get_color(theme::shadow);
     let base_color    = Var::<color::Rgba>::from(base_color);
     let base_color    = base_color.multiply_alpha(&alpha);
 
-    let fading_color  = color::Rgba::from(style.get_color(theme::shadow::fading));
+    let fading_color  = style.get_color(theme::shadow::fading);
     let fading_color  = Var::<color::Rgba>::from(fading_color);
     let fading_color  = fading_color.multiply_alpha(&alpha);
 
@@ -49,14 +49,11 @@ pub fn from_shape_with_alpha(base_shape:AnyShape,alpha:&Var<f32>,style:&StyleWat
 
 /// Add a theme defined box shadow to the given `DomSymbol`.
 pub fn add_to_dom_element(element:&DomSymbol, style:&StyleWatch,logger:&Logger) {
-
-    let shadow_off_x  = style.get_number(theme::shadow::offset_x);
-    let shadow_off_y  = style.get_number(theme::shadow::offset_y);
-
-    let shadow_alpha  = style.get_number_or(ensogl_theme::shadow::html::alpha,0.16);
-    let shadow_blur   = style.get_number_or(ensogl_theme::shadow::html::blur,16.0);
-    let shadow_spread = style.get_number_or(ensogl_theme::shadow::html::spread,0.0);
-    let shadow       = format!("{}px {}px {}px {}px rgba(0, 0, 0, {})",shadow_off_x,shadow_off_y,
-                               shadow_blur,shadow_spread,shadow_alpha);
+    let off_x  = style.get_number(theme::shadow::offset_x);
+    let off_y  = -style.get_number(theme::shadow::offset_y);
+    let alpha  = style.get_number(ensogl_theme::shadow::html::alpha);
+    let blur   = style.get_number(ensogl_theme::shadow::html::blur);
+    let spread = style.get_number(ensogl_theme::shadow::html::spread);
+    let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})",off_x,off_y,blur,spread,alpha);
     element.dom().set_style_or_warn("box-shadow",shadow,&logger);
 }

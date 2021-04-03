@@ -22,7 +22,7 @@ mod shape {
 
     ensogl_core::define_shape_system! {
         (style:Style) {
-            let base_color = color::Rgba::from(style.get_color("base_color"));
+            let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
             let circle_bg  = circle1.translate_x(-(50.0.px()));
             let circle_sub = circle1.translate_y(-(50.0.px()));

@@ -419,7 +419,7 @@ async function reportCrash(message) {
 
 function style_root() {
     let root = document.getElementById('root')
-    root.style.backgroundColor = 'rgb(247,246,246)'
+    root.style.backgroundColor = 'rgb(249,250,251)'
 }
 
 /// Waits for the window to finish its show animation. It is used when the website is run in

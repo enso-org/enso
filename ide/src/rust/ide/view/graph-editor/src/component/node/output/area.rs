@@ -183,7 +183,7 @@ impl Model {
         self.label.single_line(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(color::Rgba::from(text_color));
+        self.label.set_default_color(text_color);
         self.label.set_default_text_size(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
 
@@ -410,7 +410,7 @@ impl Area {
 
             // === Label Color ===
 
-            let label_vis_color = model.styles.get_color(theme::graph_editor::node::text);
+            let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));
             let label_vis_alpha = label_vis_color.alpha;
             port_hover               <- frp.on_port_hover.map(|t| t.is_on());
             frp.source.body_hover    <+ frp.set_hover || port_hover;

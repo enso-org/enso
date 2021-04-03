@@ -384,9 +384,9 @@ impl Rgb {
 
     /// Convert the color to JavaScript representation.
     pub fn to_javascript_string(&self) -> String {
-        let red   = (self.red*255.0) as i32;
-        let green = (self.green*255.0) as i32;
-        let blue  = (self.blue*255.0) as i32;
+        let red   = (self.red*255.0).round() as i32;
+        let green = (self.green*255.0).round() as i32;
+        let blue  = (self.blue*255.0).round() as i32;
         format!("rgb({},{},{})",red,green,blue)
     }
 }
@@ -419,9 +419,9 @@ impl Rgba {
 
     /// Convert the color to JavaScript representation.
     pub fn to_javascript_string(&self) -> String {
-        let red   = (self.red*255.0) as i32;
-        let green = (self.green*255.0) as i32;
-        let blue  = (self.blue*255.0) as i32;
+        let red   = (self.red*255.0).round() as i32;
+        let green = (self.green*255.0).round() as i32;
+        let blue  = (self.blue*255.0).round() as i32;
         format!("rgba({},{},{},{})",red,green,blue,self.alpha)
     }
 }

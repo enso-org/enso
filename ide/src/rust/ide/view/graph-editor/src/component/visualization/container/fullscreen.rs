@@ -37,7 +37,7 @@ pub mod background {
             let color_bg      = style.get_color(color_path);
             let corner_radius = &radius * &roundness;
             let background    = Rect((&width,&height)).corners_radius(&corner_radius);
-            let background    = background.fill(color::Rgba::from(color_bg));
+            let background    = background.fill(color_bg);
             background.into()
         }
     }
@@ -68,7 +68,6 @@ impl Panel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles   = StyleWatch::new(&scene.style_sheet);
         let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
-        let bg_color = color::Rgba::from(bg_color);
         let red      = bg_color.red * 255.0;
         let green    = bg_color.green * 255.0;
         let blue     = bg_color.blue * 255.0;

@@ -94,7 +94,6 @@ impl RawTextModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles       = StyleWatch::new(&scene.style_sheet);
         let text_color   = styles.get_color(ensogl_theme::graph_editor::visualization::text);
-        let text_color   = color::Rgba::from(text_color);
         let _red         = text_color.red * 255.0;
         let _green       = text_color.green * 255.0;
         let _blue        = text_color.blue * 255.0;

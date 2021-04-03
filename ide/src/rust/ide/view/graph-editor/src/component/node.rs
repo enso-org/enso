@@ -123,7 +123,7 @@ pub mod backdrop {
             let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
 
             let select = select2 - select;
-            let select = select.fill(color::Rgba::from(sel_color));
+            let select = select.fill(sel_color);
 
 
              // === Error Pattern  Alternative ===
@@ -534,7 +534,6 @@ impl Node {
         let model     = Rc::new(NodeModel::new(app,registry));
         let selection = Animation::<f32>::new(network);
 
-        let bg_color_anim    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
         let style            = StyleWatch::new(&app.display.scene().style_sheet);
         let style_frp        = &model.style;
@@ -689,10 +688,12 @@ impl Node {
             //     if *disabled { style.get_color_dim(bg_color_path) }
             //     else         { style.get_color(bg_color_path) }
             // }));
-            bg_color_anim.target <+ bg_color;
-            eval bg_color_anim.value ((c)
-                model.background.bg_color.set(color::Rgba::from(c).into())
-            );
+            // bg_color_anim.target <+ bg_color;
+            // eval bg_color_anim.value ((c)
+            //     model.background.bg_color.set(color::Rgba::from(c).into())
+            // );
+
+            eval bg_color ((c) model.background.bg_color.set(c.into()));
 
 
             // === Tooltip ===
@@ -722,7 +723,7 @@ impl Node {
                 error::Kind::Panic   => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
             };
-            style.get_color(path)
+            style.get_color(path).into()
         } else {
             color::Lcha::transparent()
         }

@@ -1289,7 +1289,7 @@ impl EdgeModelData {
         let color:color::Lcha = color.opaque.into();
         if !is_disabled {color} else {
             let styles = StyleWatch::new(&self.scene.style_sheet);
-            styles.get_color(theme::code::syntax::disabled)
+            styles.get_color(theme::code::syntax::disabled).into()
         }
     }
 
@@ -1297,7 +1297,7 @@ impl EdgeModelData {
         // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
         let color:color::Lcha = color.opaque.into();
         let styles            = StyleWatch::new(&self.scene.style_sheet);
-        let bg_color          = styles.get_color(theme::application::background);
+        let bg_color          = styles.get_color(theme::application::background).into();
         color::mix(bg_color,color,0.25)
     }
 
