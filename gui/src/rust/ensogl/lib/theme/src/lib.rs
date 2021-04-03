@@ -156,7 +156,7 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        background = Rgba(0.961,0.965,0.969,1.0) , Lcha(0.13,0.014,0.18,1.0);
+        background = Rgba(0.976,0.98,0.984,1.0) , Lcha(0.13,0.014,0.18,1.0); // rgb(249,250,251)
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -211,12 +211,12 @@ define_themes! { [light:0, dark:1]
     }
     graph_editor {
         node {
-            background         = Rgba(0.984,0.992,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0);
+            background         = Rgba(0.992,0.996,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0); // rgb(253,254,255)
             background.skipped = graph_editor::node::background , Lcha(0.15,0.014,0.18,1.0);
-            selection      = selection, selection;
+            selection          = selection, selection;
             selection {
-                size = 10.0 , 5.0;
-                offset = 0.0 , 5.0;
+                size = 3.0 , 5.0;
+                offset = 5.0 , 5.0;
             }
             text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
             text {
@@ -255,13 +255,13 @@ define_themes! { [light:0, dark:1]
                 panic.text    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
             }
             action_bar {
-                background = Lcha(0.94,0.014,0.18,1.0) , Lcha(0.3,0.014,0.18,1.0);
+                background = Rgba(0.929,0.941,0.953,1.0) , Lcha(0.3,0.014,0.18,1.0); // rgb(237 240 243)
                 icon       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             }
-            selection = selection, selection;
+            selection = Rgba(0.306,0.647,0.992,0.14) , Lcha(0.72,0.54,0.22,1.0);
             selection {
-                size = 10.0 , 5.0;
+                size = 8.0 , 5.0;
                 offset = 0.0 , 5.0;
             }
         }
@@ -285,10 +285,10 @@ define_themes! { [light:0, dark:1]
     widget {
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
-            highlight  = selection , selection;
+            highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.7); // rgb(231,233,235)
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight = Lcha(0.7,0.4,0.74,1.0) , Lcha(0.7,0.4,0.74,1.0);
+                highlight = selection, selection;
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
         }
@@ -307,7 +307,7 @@ define_themes! { [light:0, dark:1]
                 offset = 00.0, 00.0;
                 size   = 12.0, 12.0;
             }
-            padding_outer   = 10.0, 10.0;
+            padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;
             padding_inner_y = 2.0, 10.0;
             height          = 30.0, 30.0;
@@ -317,15 +317,15 @@ define_themes! { [light:0, dark:1]
 
     // === Generics ===
 
-    selection = Rgba(0.776,0.8,0.81,0.57) , Lcha(0.72,0.54,0.22,1.0);
-    shadow = Rgba(0.078,0.067,0.137,0.07) , Lcha(0.0,0.0,0.0,0.20); // a 0.04
+    selection = Rgba(0.306,0.647,0.992,1.0) , Lcha(0.72,0.54,0.22,1.0); // rgb(78,165,253)
+    shadow = Rgba(0.09,0.055,0.125,0.09) , Lcha(0.0,0.0,0.0,0.20); // rgba(23,14,32,0.09)
     shadow {
-        size     = 14.0 , 14.0;  // 13
-        spread   = -2.0 , -2.0;
-        fading   = Rgba(0.078,0.067,0.137,0.0) , Lcha(0.0,0.0,0.0,0.0);
-        exponent = 3.0 , 3.0; // 2
+        size     = 25.0 , 25.0;
+        spread   = -5.0 , -5.0;
+        fading   = Rgba(0.09,0.055,0.125,0.0) , Lcha(0.0,0.0,0.0,0.0);
+        exponent = 3.0 , 3.0;
         offset_x = 0.0 , 0.0;
-        offset_y = -2.0 , -2.0;
+        offset_y = -5.0 , -5.0;
         html {
             alpha  = 0.10  , 0.10;
             blur   = 10.0 , 10.0;

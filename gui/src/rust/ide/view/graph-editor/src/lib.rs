@@ -1802,7 +1802,9 @@ impl GraphEditorModel {
             .or_else(|| self.edge_target_type(edge_id))
             .or_else(|| self.edge_source_type(edge_id));
         let opt_color = edge_type.map(|t|type_coloring::compute(&t,&styles));
-        opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection))
+        opt_color.unwrap_or_else(||
+            color::Lcha::from(styles.get_color(theme::code::types::any::selection))
+        )
     }
 
     fn first_detached_edge(&self) -> Option<EdgeId> {
@@ -2009,7 +2011,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
     let styles             = StyleWatch::new(&scene.style_sheet);
-    let any_type_sel_color = styles.get_color(theme::code::types::any::selection);
+    let any_type_sel_color = color::Lcha::from(styles.get_color(theme::code::types::any::selection));
 
 
 

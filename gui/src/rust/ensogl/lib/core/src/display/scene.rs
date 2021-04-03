@@ -16,7 +16,6 @@ use crate::animation;
 use crate::control::callback;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
-use crate::data::color;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
@@ -790,12 +789,7 @@ impl SceneData {
         let bg_color_var         = style_sheet.var("application.background");
         let bg_color_change      = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
-                let color = color::Rgba::from(color);
-                let red   = 255.0*color.red;
-                let green = 255.0*color.green;
-                let blue  = 255.0*color.blue;
-                let alpha = 255.0*color.alpha;
-                let color = iformat!("rgba({red},{green},{blue},{alpha})");
+                let color = color.to_javascript_string();
                 dom.root.set_style_or_panic("background-color",color);
             })
         }));

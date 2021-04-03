@@ -103,8 +103,7 @@ impl InstanceModel {
 
     fn get_background_color(scene:&Scene) -> color::Rgba {
         let styles   = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
-        color::Rgba::from(bg_color)
+        styles.get_color(ensogl_theme::graph_editor::visualization::background)
     }
 
     fn create_root(scene:&Scene,logger:&Logger) -> result::Result<DomSymbol, Error> {

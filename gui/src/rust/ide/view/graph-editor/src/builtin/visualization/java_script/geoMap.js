@@ -27,7 +27,7 @@ const LABEL_LIGHT_COLOR = `rgba(0, 0, 0, 0.8)`
 
 const DEFAULT_MAP_ZOOM = 11
 const DARK_ACCENT_COLOR = [222, 162, 47]
-const LIGHT_ACCENT_COLOR = [1, 234, 146]
+const LIGHT_ACCENT_COLOR = [78, 165, 253]
 
 // =====================================
 // === Script & Style Initialisation ===

@@ -2,7 +2,6 @@
 use crate::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
@@ -250,7 +249,7 @@ impl Entry {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(ensogl_theme::widget::list_view::text);
-        label.set_default_color(color::Rgba::from(text_color));
+        label.set_default_color(text_color);
         label.set_default_text_size(text::Size(LABEL_SIZE));
         Entry{app,id,label,icon,display_object}
     }
@@ -272,9 +271,8 @@ impl Entry {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles                = StyleWatch::new(&self.app.display.scene().style_sheet);
-        let highlight             = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
-        let highlight:color::Rgba = highlight.into();
+        let styles    = StyleWatch::new(&self.app.display.scene().style_sheet);
+        let highlight = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
         for highlighted in &model.highlighted {
             self.label.set_color_bytes(highlighted,highlight);
         }

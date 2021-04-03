@@ -11,7 +11,6 @@ use super::sheet::Data;
 use crate::system::web;
 use wasm_bindgen::prelude::Closure;
 use js_sys;
-use crate::data::color;
 
 
 
@@ -143,8 +142,7 @@ pub fn expose_to_window(manager:&Manager) {
             values.sort_by_key(|(path,_)|path.clone());
             for (path,value) in values {
                 match value {
-                    Value::Data(Data::Color(c)) => {
-                        let color    = color::Rgba::from(c);
+                    Value::Data(Data::Color(color)) => {
                         let js_color = color.to_javascript_string();
                         js::add_interactive_mode_style(name2.clone(),path,js_color)
                     },

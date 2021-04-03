@@ -44,7 +44,7 @@ pub mod arrow {
             let triangle_down    = triangle.rotate(Var::<f32>::from(std::f32::consts::PI));
             let color_path       = ensogl_theme::graph_editor::visualization::action_bar::icon;
             let icon_color       = style.get_color(color_path);
-            let triangle_colored = triangle_down.fill(color::Rgba::from(icon_color));
+            let triangle_colored = triangle_down.fill(icon_color);
 
             triangle_colored.into()
         }
@@ -357,7 +357,7 @@ impl DropDownMenu {
         // shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
-        model.label.set_default_color(color::Rgba::from(text_color));
+        model.label.set_default_color(text_color);
 
         self
     }

@@ -139,7 +139,6 @@ impl ProjectNameModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let style                 = StyleWatch::new(&scene.style_sheet);
         let base_color            = style.get_color(theme::graph_editor::breadcrumbs::transparent);
-        let base_color            = color::Rgba::from(base_color);
         let text_size:TextSize    = TEXT_SIZE.into();
         let text_field            = app.new_view::<text::Area>();
         text_field.set_default_color.emit(base_color);
@@ -252,11 +251,8 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles           = StyleWatch::new(&scene.style_sheet);
         let hover_color      = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let hover_color      = color::Rgba::from(hover_color);
         let deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let deselected_color = color::Rgba::from(deselected_color);
         let selected_color   = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color   = color::Rgba::from(selected_color);
         let animations       = Animations::new(&network);
 
         frp::extend! { network

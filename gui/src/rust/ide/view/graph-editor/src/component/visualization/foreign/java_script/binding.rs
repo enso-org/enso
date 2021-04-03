@@ -81,15 +81,20 @@ pub struct JsColor {
     pub alpha: f32
 }
 
-impl From<color::Lcha> for JsColor {
-    fn from(lcha: color::Lcha) -> Self {
-        let rgba = color::Rgba::from(lcha);
+impl From<color::Rgba> for JsColor {
+    fn from(rgba: color::Rgba) -> Self {
         JsColor {
             red: rgba.red,
             green: rgba.green,
             blue: rgba.blue,
             alpha: rgba.alpha
         }
+    }
+}
+
+impl From<color::Lcha> for JsColor {
+    fn from(lcha: color::Lcha) -> Self {
+        color::Rgba::from(lcha).into()
     }
 }
 

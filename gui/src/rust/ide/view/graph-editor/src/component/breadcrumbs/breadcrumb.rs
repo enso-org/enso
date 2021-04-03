@@ -323,9 +323,7 @@ impl BreadcrumbModel {
 
         let styles            = &self.style;
         let full_color        = styles.get_color(theme::graph_editor::breadcrumbs::full);
-        let full_color        = color::Rgba::from(full_color);
         let transparent_color = styles.get_color(theme::graph_editor::breadcrumbs::transparent);
-        let transparent_color = color::Rgba::from(transparent_color);
 
         let color  = if self.is_selected() { full_color } else { transparent_color };
 
@@ -400,9 +398,7 @@ impl BreadcrumbModel {
     fn select(&self) {
         let styles          = &self.style;
         let selected_color  = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color  = color::Rgba::from(selected_color);
         let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let left_deselected = color::Rgba::from(left_deselected);
 
         self.animations.color.set_target_value(selected_color.into());
         self.animations.separator_color.set_target_value(left_deselected.into());
@@ -420,11 +416,8 @@ impl BreadcrumbModel {
     fn deselected_color(&self) -> color::Rgba {
         let styles           = &self.style;
         let selected_color   = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color   = color::Rgba::from(selected_color);
         let left_deselected  = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let left_deselected  = color::Rgba::from(left_deselected);
         let right_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::right);
-        let right_deselected = color::Rgba::from(right_deselected);
 
         match self.relative_position.get() {
             Some(RelativePosition::RIGHT) => right_deselected,
@@ -471,7 +464,6 @@ impl Breadcrumb {
         //         system (#795)
         let styles      = StyleWatch::new(&scene.style_sheet);
         let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let hover_color = color::Rgba::from(hover_color);
 
         frp::extend! { network
             eval_ frp.fade_in(model.animations.fade_in.set_target_value(1.0));

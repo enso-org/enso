@@ -92,9 +92,10 @@ impl Model {
         let overlay        = overlay::View::new(&logger);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles   = StyleWatch::new(&scene.style_sheet);
+        let styles     = StyleWatch::new(&scene.style_sheet);
         let style_path = ensogl_theme::application::documentation::background;
-        let bg_color = styles.get_color(style_path).to_javascript_string();
+        let bg_color   = styles.get_color(style_path);
+        let bg_color   = bg_color.to_javascript_string();
 
         dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
         dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);

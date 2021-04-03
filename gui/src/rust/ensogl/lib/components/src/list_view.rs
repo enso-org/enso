@@ -12,7 +12,6 @@ use enso_frp as frp;
 use ensogl_core::application;
 use ensogl_core::application::Application;
 use ensogl_core::application::shortcut;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
@@ -48,7 +47,7 @@ mod selection {
             let height        = sprite_height - 2.0.px() * SHAPE_PADDING + 2.0.px() * padding_inner_y;
             let color         = style.get_color(ensogl_theme::widget::list_view::highlight);
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
-            let shape         = rect.fill(color::Rgba::from(color));
+            let shape         = rect.fill(color);
             shape.into()
         }
     }
@@ -71,7 +70,7 @@ mod background {
             let height        = sprite_height - SHADOW_PX.px() * 2.0 - SHAPE_PADDING.px() * 2.0;
             let color         = style.get_color(theme::widget::list_view::background);
             let rect          = Rect((&width,&height)).corners_radius(CORNER_RADIUS_PX.px());
-            let shape         = rect.fill(color::Rgba::from(color));
+            let shape         = rect.fill(color);
 
             let shadow  = shadow::from_shape(rect.into(),style);
 
@@ -133,7 +132,8 @@ impl Model {
         let visible_entries = Self::visible_entries(view,self.entries.entry_count());
         let padding_px      = self.padding();
         let padding         = 2.0 * padding_px + SHAPE_PADDING;
-        let padding         = Vector2(padding, padding);
+        // FIXME: Why this + 2.0*padding_px is needed here? It was added to make bottom padding but should rather not be needed.
+        let padding         = Vector2(padding, padding + 2.0*padding_px);
         let shadow          = Vector2(2.0 * SHADOW_PX,  2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);
