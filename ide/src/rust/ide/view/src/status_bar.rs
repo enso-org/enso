@@ -8,7 +8,6 @@
 use crate::prelude::*;
 
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display::Scene;
 use ensogl::display::shape::StyleWatch;
 use ensogl::display;

@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
