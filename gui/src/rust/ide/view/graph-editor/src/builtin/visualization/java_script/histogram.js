@@ -15,8 +15,6 @@ const X_AXIS_LABEL_WIDTH = 10
 const Y_AXIS_LABEL_WIDTH = 10
 const ANIMATION_DURATION = 1000
 const LINEAR_SCALE = 'linear'
-const LIGHT_PLOT_COLOR = '#00E890'
-const DARK_PLOT_COLOR = '#E0A63B'
 const DEFAULT_NUMBER_OF_BINS = 50
 const BUTTON_HEIGHT = 25
 
@@ -516,11 +514,10 @@ class Histogram extends Visualization {
 
         this.yAxis.call(yAxis)
 
-        let accentColor = LIGHT_PLOT_COLOR
-
-        if (document.getElementById('root').classList.contains('dark')) {
-            accentColor = DARK_PLOT_COLOR
-        }
+        const fill = d3
+            .scaleSequential()
+            .interpolator(d3.interpolateViridis)
+            .domain([0, d3.max(bins, d => d.x0)])
 
         const items = this.plot.selectAll('rect').data(bins)
 
@@ -531,7 +528,7 @@ class Histogram extends Visualization {
             .attr('transform', d => 'translate(' + x(d.x0) + ',' + y(d.length) + ')')
             .attr('width', d => x(d.x1) - x(d.x0))
             .attr('height', d => this.canvas.inner.height - y(d.length))
-            .style('fill', accentColor)
+            .style('fill', d => fill(d.x0))
 
         items.exit().remove()
 
