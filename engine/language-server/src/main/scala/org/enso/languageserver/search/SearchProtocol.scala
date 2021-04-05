@@ -198,6 +198,7 @@ object SearchProtocol {
     /** Modify the database entry.
       *
       * @param id the suggestion id
+      * @param module the module name to update
       * @param externalId the external id to update
       * @param arguments the arguments to update
       * @param returnType the return type to update
@@ -206,6 +207,7 @@ object SearchProtocol {
       */
     case class Modify(
       id: SuggestionId,
+      module: Option[FieldUpdate[String]]                    = None,
       externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
       arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
       returnType: Option[FieldUpdate[String]]                = None,

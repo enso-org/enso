@@ -607,6 +607,11 @@ interface Modify {
   externalId?: FieldUpdate<UUID>;
 
   /**
+   * The module name to update.
+   */
+  module?: FieldUpdate<String>;
+
+  /**
    * The list of argument updates.
    */
   arguments?: SuggestionArgumentUpdate[];

@@ -120,7 +120,8 @@ final class SuggestionsHandler(
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
 
-    case ProjectNameUpdated(name) =>
+    case ProjectNameUpdated(name, updates) =>
+      updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
@@ -331,10 +332,22 @@ final class SuggestionsHandler(
     case ProjectNameChangedEvent(oldName, newName) =>
       suggestionsRepo
         .renameProject(oldName, newName)
-        .map(_ => ProjectNameUpdated(newName))
+        .map { case (version, updatedIds) =>
+          val suggestionUpdates = updatedIds.map { suggestionId =>
+            SuggestionsDatabaseUpdate.Modify(
+              id     = suggestionId,
+              module = Some(fieldUpdate(newName))
+            )
+          }
+          val notification =
+            SuggestionsDatabaseUpdateNotification(version, suggestionUpdates)
+          val updates = clients.map(DeliverToJsonController(_, notification))
+          ProjectNameUpdated(newName, updates)
+        }
         .pipeTo(self)
 
-    case ProjectNameUpdated(name) =>
+    case ProjectNameUpdated(name, updates) =>
+      updates.foreach(sessionRouter ! _)
       context.become(initialized(name, graph, clients))
   }
 
@@ -484,8 +497,22 @@ object SuggestionsHandler {
   /** The notification about the project name update.
     *
     * @param projectName the new project name
+    * @param updates the list of updates to send
     */
-  case class ProjectNameUpdated(projectName: String)
+  case class ProjectNameUpdated(
+    projectName: String,
+    updates: Iterable[DeliverToJsonController[_]]
+  )
+  object ProjectNameUpdated {
+
+    /** Create the notification about the project name update.
+      *
+      * @param projectName the new project name
+      * @return the notification about the project name update.
+      */
+    def apply(projectName: String): ProjectNameUpdated =
+      new ProjectNameUpdated(projectName, Seq())
+  }
 
   /** The notification that the suggestions database has been verified. */
   case object Verified
