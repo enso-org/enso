@@ -136,7 +136,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   override def renameProject(
     oldName: String,
     newName: String
-  ): Future[(Long, Seq[Long])] =
+  ): Future[
+    (Long, Seq[(Long, String)], Seq[(Long, String)], Seq[(Long, String)])
+  ] =
     db.run(renameProjectQuery(oldName, newName))
 
   /** @inheritdoc */
@@ -630,25 +632,42 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     *
     * @param oldName the old name of the project
     * @param newName the new project name
-    * @return the current database version and a list of updated suggestion ids
+    * @return the current database version and a list of suggestion ids
+    * with updated module name, self type and return type
     */
   private def renameProjectQuery(
     oldName: String,
     newName: String
-  ): DBIO[(Long, Seq[Long])] = {
-    val updateQuery =
+  ): DBIO[
+    (Long, Seq[(Long, String)], Seq[(Long, String)], Seq[(Long, String)])
+  ] = {
+    def updateQuery(column: String) =
       sqlu"""update suggestions
-          set module = $newName || substr(module, length($oldName) + 1)
-          where module like '#$oldName.%'"""
-    val selectQuery = Suggestions
+          set #$column = $newName || substr(#$column, length($oldName) + 1)
+          where #$column like '#$oldName.%'"""
+    def noop[A] = DBIO.successful(Seq[A]())
+    val selectUpdatedModulesQuery = Suggestions
       .filter(row => row.module.like(s"$newName.%"))
-      .map(_.id)
+      .map(row => (row.id, row.module))
+      .result
+    val selectUpdatedSelfTypesQuery = Suggestions
+      .filter(_.selfType.like(s"$newName.%"))
+      .map(row => (row.id, row.selfType))
+      .result
+    val selectUpdatedReturnTypesQuery = Suggestions
+      .filter(_.returnType.like(s"$newName.%"))
+      .map(row => (row.id, row.returnType))
       .result
     for {
-      n       <- updateQuery
-      ids     <- if (n > 0) selectQuery else DBIO.successful(Seq())
-      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
-    } yield (version, ids)
+      n1            <- updateQuery("module")
+      moduleIds     <- if (n1 > 0) selectUpdatedModulesQuery else noop
+      n2            <- updateQuery("self_type")
+      selfTypeIds   <- if (n2 > 0) selectUpdatedSelfTypesQuery else noop
+      n3            <- updateQuery("return_type")
+      returnTypeIds <- if (n3 > 0) selectUpdatedReturnTypesQuery else noop
+      version <-
+        if (n1 + n2 + n3 > 0) incrementVersionQuery else currentVersionQuery
+    } yield (version, moduleIds, selfTypeIds, returnTypeIds)
   }
 
   /** The query to get current version of the repo. */

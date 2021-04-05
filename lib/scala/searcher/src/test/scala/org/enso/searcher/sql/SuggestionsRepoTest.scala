@@ -79,7 +79,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           )
         )
         results <- repo.getAllMethods(
-          Seq(("Test.Main", "Main", "main"), ("Test.Main", "Main", "foo"))
+          Seq(
+            ("Test.Main", "Test.Main", "main"),
+            ("Test.Main", "Test.Main", "foo")
+          )
         )
       } yield (ids, results)
 
@@ -714,6 +717,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "rename the project name" taggedAs Retry in withRepo { repo =>
       val newModuleName = "Best.Main"
+      val newSelfType   = "Best.Main"
+      val newReturnType = "Best.Main.MyType"
       val action = for {
         (_, ids) <- repo.insertAll(
           Seq(
@@ -723,54 +728,71 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             suggestion.local
           )
         )
-        (_, renamed) <- repo.renameProject("Test", "Best")
-        (_, res)     <- repo.getAll
-      } yield (ids, renamed, res)
+        (_, xs1, xs2, xs3) <- repo.renameProject("Test", "Best")
+        (_, res)           <- repo.getAll
+      } yield (ids, xs1, xs2, xs3, res)
 
-      val (ids, renamed, res) = Await.result(action, Timeout)
+      val (ids, xs1, xs2, xs3, res) = Await.result(action, Timeout)
 
-      renamed should contain theSameElementsAs ids.flatten
+      xs1 should contain theSameElementsAs ids.flatten.map((_, newModuleName))
+      xs2 should contain theSameElementsAs Seq(ids(1)).flatten
+        .map((_, newSelfType))
+      xs3 should contain theSameElementsAs Seq(ids(2), ids(3)).flatten
+        .map((_, newReturnType))
       res.map(_.suggestion) should contain theSameElementsAs Seq(
-        suggestion.atom.copy(module     = newModuleName),
-        suggestion.method.copy(module   = newModuleName),
-        suggestion.function.copy(module = newModuleName),
-        suggestion.local.copy(module    = newModuleName)
+        suggestion.atom.copy(module = newModuleName),
+        suggestion.method
+          .copy(module = newModuleName, selfType = newSelfType),
+        suggestion.function
+          .copy(module = newModuleName, returnType = newReturnType),
+        suggestion.local
+          .copy(module = newModuleName, returnType = newReturnType)
       )
     }
 
     "rename the module containing project name" taggedAs Retry in withRepo {
       repo =>
         val newModuleName = "Best.Main"
-        val atom          = suggestion.atom.copy(module = "Test.Main.Test.Main")
+        val newSelfType   = "Best.Main"
+        val newReturnType = "Best.Main.MyType"
+
+        val atom = suggestion.atom.copy(module = "Test.Main.Test.Main")
+        val all =
+          Seq(atom, suggestion.method, suggestion.function, suggestion.local)
         val action = for {
-          (_, ids) <- repo.insertAll(
-            Seq(
-              atom,
-              suggestion.method,
-              suggestion.function,
-              suggestion.local
-            )
-          )
-          (_, renamed) <- repo.renameProject("Test", "Best")
-          (_, res)     <- repo.getAll
-        } yield (ids, renamed, res)
+          (_, ids)           <- repo.insertAll(all)
+          (_, xs1, xs2, xs3) <- repo.renameProject("Test", "Best")
+          (_, res)           <- repo.getAll
+        } yield (ids, xs1, xs2, xs3, res)
 
-        val (ids, renamed, res) = Await.result(action, Timeout)
+        val (ids, xs1, xs2, xs3, res) = Await.result(action, Timeout)
 
-        renamed should contain theSameElementsAs ids.flatten
+        xs1 should contain theSameElementsAs ids.zip(all).flatMap {
+          case (idOpt, _: Suggestion.Atom) =>
+            idOpt.map((_, "Best.Main.Test.Main"))
+          case (idOpt, _) =>
+            idOpt.map((_, newModuleName))
+        }
+        xs2 should contain theSameElementsAs Seq(ids(1)).flatten
+          .map((_, newSelfType))
+        xs3 should contain theSameElementsAs Seq(ids(2), ids(3)).flatten
+          .map((_, newReturnType))
         res.map(_.suggestion) should contain theSameElementsAs Seq(
-          atom.copy(module                = "Best.Main.Test.Main"),
-          suggestion.method.copy(module   = newModuleName),
-          suggestion.function.copy(module = newModuleName),
-          suggestion.local.copy(module    = newModuleName)
+          atom.copy(module = "Best.Main.Test.Main"),
+          suggestion.method
+            .copy(module = newModuleName, selfType = newSelfType),
+          suggestion.function
+            .copy(module = newModuleName, returnType = newReturnType),
+          suggestion.local
+            .copy(module = newModuleName, returnType = newReturnType)
         )
     }
 
     "change version after renaming the module" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          v1      <- repo.insert(suggestion.atom)
-          (v2, _) <- repo.renameProject("Test", "Zest")
+          v1            <- repo.insert(suggestion.atom)
+          (v2, _, _, _) <- repo.renameProject("Test", "Zest")
         } yield (v1, v2)
 
         val (v1, v2) = Await.result(action, Timeout)
@@ -780,8 +802,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     "not change version when not renamed the module" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          v1      <- repo.insert(suggestion.atom)
-          (v2, _) <- repo.renameProject("Zest", "Best")
+          v1            <- repo.insert(suggestion.atom)
+          (v2, _, _, _) <- repo.renameProject("Zest", "Best")
         } yield (v1, v2)
 
         val (v1, v2) = Await.result(action, Timeout)
@@ -833,7 +855,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, Seq("Main"), None, None, None)
+        res <- repo.search(None, Seq("Test.Main"), None, None, None)
       } yield (id2, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -846,7 +868,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _   <- repo.insert(suggestion.method)
         id3 <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, Seq(), Some("MyType"), None, None)
+        res <- repo.search(None, Seq(), Some("Test.Main.MyType"), None, None)
       } yield (id3, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -921,7 +943,13 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           id2 <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.function)
           _   <- repo.insert(suggestion.local)
-          res <- repo.search(Some("Test.Main"), Seq("Main"), None, None, None)
+          res <- repo.search(
+            Some("Test.Main"),
+            Seq("Test.Main"),
+            None,
+            None,
+            None
+          )
         } yield (id2, res._2)
 
         val (id, res) = Await.result(action, Timeout)
@@ -936,7 +964,13 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           _   <- repo.insert(suggestion.method)
           _   <- repo.insert(suggestion.function)
           id4 <- repo.insert(suggestion.local)
-          res <- repo.search(None, Seq(), Some("MyType"), Some(kinds), None)
+          res <- repo.search(
+            None,
+            Seq(),
+            Some("Test.Main.MyType"),
+            Some(kinds),
+            None
+          )
         } yield (id4, res._2)
 
         val (id, res) = Await.result(action, Timeout)
@@ -953,7 +987,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           res <- repo.search(
             None,
             Seq(),
-            Some("MyType"),
+            Some("Test.Main.MyType"),
             None,
             Some(Suggestion.Position(42, 0))
           )
@@ -986,11 +1020,17 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     "search suggestion by self and return types" taggedAs Retry in withRepo {
       repo =>
         val action = for {
-          _   <- repo.insert(suggestion.atom)
-          _   <- repo.insert(suggestion.method)
-          _   <- repo.insert(suggestion.function)
-          _   <- repo.insert(suggestion.local)
-          res <- repo.search(None, Seq("Main"), Some("MyType"), None, None)
+          _ <- repo.insert(suggestion.atom)
+          _ <- repo.insert(suggestion.method)
+          _ <- repo.insert(suggestion.function)
+          _ <- repo.insert(suggestion.local)
+          res <- repo.search(
+            None,
+            Seq("Test.Main"),
+            Some("Test.Main.MyType"),
+            None,
+            None
+          )
         } yield res._2
 
         val res = Await.result(action, Timeout)
@@ -1008,7 +1048,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           res <- repo.search(
             Some("Test.Main"),
             Seq(),
-            Some("MyType"),
+            Some("Test.Main.MyType"),
             Some(kinds),
             None
           )
@@ -1029,7 +1069,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           res <- repo.search(
             None,
             Seq(),
-            Some("MyType"),
+            Some("Test.Main.MyType"),
             Some(kinds),
             Some(Suggestion.Position(42, 0))
           )
@@ -1052,8 +1092,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         _ <- repo.insert(suggestion.local)
         res <- repo.search(
           Some("Test.Main"),
-          Seq("Main"),
-          Some("MyType"),
+          Seq("Test.Main"),
+          Some("Test.Main.MyType"),
           Some(kinds),
           Some(Suggestion.Position(42, 0))
         )
@@ -1085,7 +1125,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         module        = "Test.Main",
         name          = "main",
         arguments     = Seq(),
-        selfType      = "Main",
+        selfType      = "Test.Main",
         returnType    = "IO",
         documentation = None
       )
@@ -1098,7 +1138,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         arguments = Seq(
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
-        returnType = "MyType",
+        returnType = "Test.Main.MyType",
         scope =
           Suggestion.Scope(Suggestion.Position(1, 5), Suggestion.Position(1, 9))
       )
@@ -1108,7 +1148,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         externalId = Some(UUID.randomUUID()),
         module     = "Test.Main",
         name       = "bazz",
-        returnType = "MyType",
+        returnType = "Test.Main.MyType",
         scope = Suggestion.Scope(
           Suggestion.Position(32, 0),
           Suggestion.Position(84, 0)

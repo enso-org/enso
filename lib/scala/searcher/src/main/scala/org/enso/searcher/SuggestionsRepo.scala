@@ -150,7 +150,11 @@ trait SuggestionsRepo[F[_]] {
     *
     * @param oldName the old name of the project
     * @param newName the new project name
-    * @return the current database version and a list of updated suggestion ids
+    * @return the current database version and lists of suggestion ids with
+    * updated module name, self type and return type
     */
-  def renameProject(oldName: String, newName: String): F[(Long, Seq[Long])]
+  def renameProject(
+    oldName: String,
+    newName: String
+  ): F[(Long, Seq[(Long, String)], Seq[(Long, String)], Seq[(Long, String)])]
 }

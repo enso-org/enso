@@ -515,7 +515,7 @@ class SuggestionsHandlerSpec
                   module = Some(
                     SearchProtocol.FieldUpdate(
                       SearchProtocol.FieldAction.Set,
-                      Some(newModuleName)
+                      Some("Vest.Main")
                     )
                   )
                 )

@@ -607,14 +607,19 @@ interface Modify {
   externalId?: FieldUpdate<UUID>;
 
   /**
+   * The list of argument updates.
+   */
+  arguments?: SuggestionArgumentUpdate[];
+
+  /**
    * The module name to update.
    */
   module?: FieldUpdate<String>;
 
   /**
-   * The list of argument updates.
+   * The self type to update.
    */
-  arguments?: SuggestionArgumentUpdate[];
+  selfType?: FieldUpdate<String>;
 
   /**
    * The return type to update.
