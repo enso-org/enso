@@ -154,11 +154,11 @@ final class SuggestionsHandler(
         .pipeTo(self)
 
     case SuggestionsHandler.Verified =>
-      log.debug("Verified")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
 
-    case _ => stash()
+    case _ =>
+      stash()
   }
 
   def initialized(

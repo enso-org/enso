@@ -625,6 +625,11 @@ class SuggestionsHandlerSpec
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(buildTestTypeGraph)
     )
+    runtimeConnector.receiveN(1)
+    handler ! Api.Response(
+      UUID.randomUUID(),
+      Api.VerifyModulesIndexResponse(Seq())
+    )
     handler
   }
 
@@ -673,13 +678,7 @@ class SuggestionsHandlerSpec
     )
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
-    val handler = newSuggestionsHandler(
-      config,
-      router,
-      connector,
-      suggestionsRepo,
-      versionsRepo
-    )
+
     suggestionsRepo.init.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
@@ -692,6 +691,14 @@ class SuggestionsHandlerSpec
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize FileVersions repo")
     }
+
+    val handler = newSuggestionsHandler(
+      config,
+      router,
+      connector,
+      suggestionsRepo,
+      versionsRepo
+    )
 
     try test(config, suggestionsRepo, router, connector, handler)
     finally {

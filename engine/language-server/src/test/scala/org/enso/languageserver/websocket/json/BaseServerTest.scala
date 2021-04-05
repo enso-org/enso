@@ -27,6 +27,7 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
@@ -163,6 +164,12 @@ class BaseServerTest extends JsonRpcServerTestKit {
       Api.GetTypeGraphResponse(typeGraph)
     )
     Await.ready(initializationComponent.init(), timeout)
+    system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
+    runtimeConnectorProbe.receiveN(1)
+    suggestionsHandler ! Api.Response(
+      UUID.randomUUID(),
+      Api.VerifyModulesIndexResponse(Seq())
+    )
 
     new JsonConnectionControllerFactory(
       initializationComponent,
