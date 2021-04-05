@@ -137,7 +137,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     oldName: String,
     newName: String
   ): Future[
-    (Long, Seq[(Long, String)], Seq[(Long, String)], Seq[(Long, String)])
+    (
+      Long,
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, Int, String)]
+    )
   ] =
     db.run(renameProjectQuery(oldName, newName))
 
@@ -632,19 +638,29 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     *
     * @param oldName the old name of the project
     * @param newName the new project name
-    * @return the current database version and a list of suggestion ids
-    * with updated module name, self type and return type
+    * @return the current database version and lists of suggestion ids
+    * with updated module name, self type, return type and arguments
     */
   private def renameProjectQuery(
     oldName: String,
     newName: String
   ): DBIO[
-    (Long, Seq[(Long, String)], Seq[(Long, String)], Seq[(Long, String)])
+    (
+      Long,
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, Int, String)]
+    )
   ] = {
     def updateQuery(column: String) =
       sqlu"""update suggestions
           set #$column = $newName || substr(#$column, length($oldName) + 1)
           where #$column like '#$oldName.%'"""
+    val argumentsUpdateQuery =
+      sqlu"""update arguments
+          set type = $newName || substr(type, length($oldName) + 1)
+          where type like '#$oldName.%'"""
     def noop[A] = DBIO.successful(Seq[A]())
     val selectUpdatedModulesQuery = Suggestions
       .filter(row => row.module.like(s"$newName.%"))
@@ -658,6 +674,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .filter(_.returnType.like(s"$newName.%"))
       .map(row => (row.id, row.returnType))
       .result
+    val selectUpdatedArgumentsQuery = Arguments
+      .filter(_.tpe.like(s"$newName.%"))
+      .map(row => (row.suggestionId, row.index, row.tpe))
+      .result
     for {
       n1            <- updateQuery("module")
       moduleIds     <- if (n1 > 0) selectUpdatedModulesQuery else noop
@@ -665,9 +685,12 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       selfTypeIds   <- if (n2 > 0) selectUpdatedSelfTypesQuery else noop
       n3            <- updateQuery("return_type")
       returnTypeIds <- if (n3 > 0) selectUpdatedReturnTypesQuery else noop
+      n4            <- argumentsUpdateQuery
+      argumentIds   <- if (n4 > 0) selectUpdatedArgumentsQuery else noop
       version <-
-        if (n1 + n2 + n3 > 0) incrementVersionQuery else currentVersionQuery
-    } yield (version, moduleIds, selfTypeIds, returnTypeIds)
+        if (n1 > 0 || n2 > 0 || n3 > 0 || n4 > 0) incrementVersionQuery
+        else currentVersionQuery
+    } yield (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds)
   }
 
   /** The query to get current version of the repo. */

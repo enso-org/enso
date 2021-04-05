@@ -332,35 +332,47 @@ final class SuggestionsHandler(
     case ProjectNameChangedEvent(oldName, newName) =>
       suggestionsRepo
         .renameProject(oldName, newName)
-        .map { case (version, moduleIds, selfTypeIds, returnTypeIds) =>
-          val suggestionModuleUpdates = moduleIds.map {
-            case (suggestionId, moduleName) =>
-              SuggestionsDatabaseUpdate.Modify(
-                id     = suggestionId,
-                module = Some(fieldUpdate(moduleName))
+        .map {
+          case (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds) =>
+            val suggestionModuleUpdates = moduleIds.map {
+              case (suggestionId, moduleName) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id     = suggestionId,
+                  module = Some(fieldUpdate(moduleName))
+                )
+            }
+            val selfTypeUpdates = selfTypeIds.map {
+              case (suggestionId, selfType) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id       = suggestionId,
+                  selfType = Some(fieldUpdate(selfType))
+                )
+            }
+            val returnTypeUpdates = returnTypeIds.map {
+              case (suggestionId, returnType) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id         = suggestionId,
+                  returnType = Some(fieldUpdate(returnType))
+                )
+            }
+            val argumentUpdates = argumentIds.map {
+              case (suggestionId, index, typeName) =>
+                val argUpdate = SuggestionArgumentUpdate.Modify(
+                  index    = index,
+                  reprType = Some(fieldUpdate(typeName))
+                )
+                SuggestionsDatabaseUpdate.Modify(
+                  id        = suggestionId,
+                  arguments = Some(Seq(argUpdate))
+                )
+            }
+            val notification =
+              SuggestionsDatabaseUpdateNotification(
+                version,
+                suggestionModuleUpdates ++ selfTypeUpdates ++ returnTypeUpdates ++ argumentUpdates
               )
-          }
-          val selfTypeUpdates = selfTypeIds.map {
-            case (suggestionId, selfType) =>
-              SuggestionsDatabaseUpdate.Modify(
-                id       = suggestionId,
-                selfType = Some(fieldUpdate(selfType))
-              )
-          }
-          val returnTypeUpdates = returnTypeIds.map {
-            case (suggestionId, returnType) =>
-              SuggestionsDatabaseUpdate.Modify(
-                id         = suggestionId,
-                returnType = Some(fieldUpdate(returnType))
-              )
-          }
-          val notification =
-            SuggestionsDatabaseUpdateNotification(
-              version,
-              suggestionModuleUpdates ++ selfTypeUpdates ++ returnTypeUpdates
-            )
-          val updates = clients.map(DeliverToJsonController(_, notification))
-          ProjectNameUpdated(newName, updates)
+            val updates = clients.map(DeliverToJsonController(_, notification))
+            ProjectNameUpdated(newName, updates)
         }
         .pipeTo(self)
 
