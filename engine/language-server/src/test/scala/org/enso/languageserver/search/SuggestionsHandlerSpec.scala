@@ -3,6 +3,7 @@ package org.enso.languageserver.search
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -13,6 +14,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
@@ -485,6 +487,42 @@ class SuggestionsHandlerSpec
         connector.reply(Api.Response(Api.InvalidateModulesIndexResponse()))
 
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
+    }
+
+    "handle project name changed event" taggedAs Retry in withDb {
+      (_, repo, router, _, handler) =>
+        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        val clientId      = UUID.randomUUID()
+        val newModuleName = "Vest"
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        handler ! ProjectNameChangedEvent("Test", newModuleName)
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              2,
+              Seq(
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id = 1,
+                  module = Some(
+                    SearchProtocol.FieldUpdate(
+                      SearchProtocol.FieldAction.Set,
+                      Some(newModuleName)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
     }
 
     "search entries by empty search query" taggedAs Retry in withDb {
