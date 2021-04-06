@@ -101,7 +101,7 @@ public abstract class ContextRewrapNode extends Node {
     try {
       return numbers.asDouble(d);
     } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException("Impossible, `l` is checked to be a long");
+      throw new IllegalStateException("Impossible, `l` is checked to be a double");
     }
   }
 
