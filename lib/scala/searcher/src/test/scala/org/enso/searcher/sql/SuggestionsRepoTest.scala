@@ -790,6 +790,46 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
     }
 
+    "rename multiple modules containing project name" taggedAs Retry in withRepo {
+      repo =>
+        val newMainModuleName = "Best.Main"
+        val newFooModuleName  = "Best.Foo"
+        val newReturnTypeName = "Best.Main.MyType"
+
+        val atom     = suggestion.atom.copy(module = "Test.Main")
+        val method   = suggestion.method.copy(module = "Test.Foo")
+        val function = suggestion.function.copy(module = "Bar.Main")
+        val local    = suggestion.local.copy(module = "Bar.Main")
+        val all      = Seq(atom, method, function, local)
+        val action = for {
+          (_, ids)                <- repo.insertAll(all)
+          (_, xs1, xs2, xs3, xs4) <- repo.renameProject("Test", "Best")
+          (_, res)                <- repo.getAll
+        } yield (ids, xs1, xs2, xs3, xs4, res)
+
+        val (ids, xs1, xs2, xs3, xs4, res) = Await.result(action, Timeout)
+
+        xs1 should contain theSameElementsAs ids
+          .zip(Seq(atom, method))
+          .flatMap {
+            case (idOpt, _: Suggestion.Atom) =>
+              idOpt.map((_, newMainModuleName))
+            case (idOpt, _) =>
+              idOpt.map((_, newFooModuleName))
+          }
+        xs2 should contain theSameElementsAs Seq(ids(1)).flatten
+          .map((_, newMainModuleName))
+        xs3 should contain theSameElementsAs Seq(ids(2), ids(3)).flatten
+          .map((_, newReturnTypeName))
+        xs4 should contain theSameElementsAs Seq()
+        res.map(_.suggestion) should contain theSameElementsAs Seq(
+          atom.copy(module         = newMainModuleName),
+          method.copy(module       = newFooModuleName, selfType = newMainModuleName),
+          function.copy(returnType = newReturnTypeName),
+          local.copy(returnType    = newReturnTypeName)
+        )
+    }
+
     "rename arguments containing project name" taggedAs Retry in withRepo {
       repo =>
         val newModuleName   = "Best.Main"
