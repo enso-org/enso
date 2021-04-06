@@ -179,7 +179,8 @@ object DistributionPackage {
   }
 
   sealed trait OS {
-    def name: String
+    def name:                String
+    def hasSupportForSulong: Boolean
     def graalName: String                    = name
     def executableName(base: String): String = base
     def archiveExt: String                   = ".tar.gz"
@@ -187,14 +188,17 @@ object DistributionPackage {
   }
   object OS {
     case object Linux extends OS {
-      override val name: String = "linux"
+      override val name: String                 = "linux"
+      override val hasSupportForSulong: Boolean = true
     }
     case object MacOS extends OS {
-      override val name: String      = "macos"
-      override def graalName: String = "darwin"
+      override val name: String                 = "macos"
+      override val hasSupportForSulong: Boolean = true
+      override def graalName: String            = "darwin"
     }
     case object Windows extends OS {
       override val name: String                         = "windows"
+      override val hasSupportForSulong: Boolean         = false
       override def executableName(base: String): String = base + ".exe"
       override def archiveExt: String                   = ".zip"
       override def isUNIX: Boolean                      = false
@@ -357,7 +361,7 @@ object DistributionPackage {
       log.info("Building GraalVM distribution")
       val archive = downloadGraal(log, os, architecture)
 
-      if (os != OS.Windows) {
+      if (os.hasSupportForSulong) {
         val packageDir        = archive.getParentFile
         val archiveRootDir    = list(archive).head.getTopDirectory.getName
         val extractedGraalDir = packageDir / archiveRootDir
