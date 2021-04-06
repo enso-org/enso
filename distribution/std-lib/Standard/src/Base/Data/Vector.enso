@@ -9,6 +9,9 @@ from Builtins import Array
    - constructor: A function taking the index in the vector and returning an
      item for that index in the vector.
 
+   A vector allows to store an arbitrary number of elements in linear memory. It
+   is the recommended data structure for most applications.
+
    > Example
      To create a vector containing the numbers 1 through 50:
          Vector.new 50 (ix -> ix + 1)
@@ -29,6 +32,9 @@ new length constructor =
    - length: The length of the vector (>= 0).
    - constructor: A value fo be placed into each element of the vector.
 
+   A vector allows to store an arbitrary number of elements in linear memory. It
+   is the recommended data structure for most applications.
+
    > Example
      A vector containing 50 elements, each being the number `42`, can be
      created by:
@@ -44,6 +50,9 @@ fill length ~item =
    A vector builder is a mutable data structure, that allows for gathering
    a number of elements and then converting them into a vector. This is
    particularly useful when the number of elements is not known upfront.
+
+   A vector allows to store an arbitrary number of elements in linear memory. It
+   is the recommended data structure for most applications.
 
    > Example
      In the following example we'll read items from the standard input,
@@ -67,26 +76,43 @@ new_builder = Builder.new
 ## Converts a polyglot value representing an array into a vector.
 
    Arguments:
-   - arr: The array value to wrap into a vector.
+   - arr: The polyglot array value to wrap into a vector.
 
    This is useful when wrapping polyglot APIs for further use in Enso.
-from_polyglot_array : Any -> Vector.Vector
-from_polyglot_array arr = here.new arr.length (arr.at _)
+
+   A vector allows to store an arbitrary number of elements in linear memory. It
+   is the recommended data structure for most applications.
+
+   ! Value Copying
+     As Enso vectors implement immutable semantics, this constructor function
+     makes a copy of each value in the argument array.
+
+     If this didn't happen then it would be possible for the underlyinf array to
+     be mutated under the hood, and sneak mutability into our immutable data.
+from_array : Any -> Vector.Vector
+from_array arr = here.new (Polyglot.get_array_size arr) (arr.at _)
 
 ## The basic, immutable, vector type.
-
-   A vector allows to store an arbitrary number of elements, in linear memory.
-   It is the recommended data structure for most applications.
-
-   > Example
-     A vector containing the elements `1`, `2`, and `3`, in this order is:
-         [1, 2, 3]
-
-   > Example
-     A vector containing 50 elements, each being the number `42`, can be
-     created by:
-         Vector.fill length=50 item=42
 type Vector
+
+    ## ADVANCED
+
+       The basic, immutable, vector type.
+
+       Arguments:
+       - to_array: The underlying array.
+
+       A vector allows to store an arbitrary number of elements, in linear memory.
+       It is the recommended data structure for most applications.
+
+       > Example
+         A vector containing the elements `1`, `2`, and `3`, in this order is:
+             [1, 2, 3]
+
+       > Example
+         A vector containing 50 elements, each being the number `42`, can be
+         created by:
+             Vector.fill length=50 item=42
     type Vector to_array
 
     ## Returns the number of elements stored in this vector.
