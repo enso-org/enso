@@ -97,7 +97,7 @@ Text.split (separator = Split_Kind.Whitespace) =
         Split_Kind.Lines -> Text_Utils.split_on_lines this
         Split_Kind.Words -> this.words
         Text -> Text_Utils.split_by_literal this separator
-    Vector.from_polyglot_array result
+    Vector.from_array result
 
 ## Returns a vector containing all words in the given text.
 
@@ -224,7 +224,7 @@ Text.not_empty = this.is_empty.not
      Get the UTF-8 bytes of the text "Hello".
          "Hello".utf_8
 Text.utf_8 : Vector.Vector
-Text.utf_8 = Vector.from_polyglot_array (Text_Utils.get_bytes this)
+Text.utf_8 = Vector.from_array (Text_Utils.get_bytes this)
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
@@ -250,8 +250,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
      Get the codepoints of the text "Hello".
          "Hello".codepoints
 Text.codepoints : Vector.Vector
-Text.codepoints =
-    Vector.from_polyglot_array (Text_Utils.get_codepoints this)
+Text.codepoints = Vector.from_array (Text_Utils.get_codepoints this)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.
