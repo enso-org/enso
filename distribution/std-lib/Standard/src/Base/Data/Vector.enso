@@ -76,8 +76,7 @@ new_builder = Builder.new
 ## Converts a polyglot value representing an array into a vector.
 
    Arguments:
-   - arr: The array value to wrap into a vector. This value must conform to the
-     Truffle polyglot notion of 'array'.
+   - arr: The polyglot array value to wrap into a vector.
 
    This is useful when wrapping polyglot APIs for further use in Enso.
 
