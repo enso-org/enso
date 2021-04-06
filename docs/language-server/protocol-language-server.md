@@ -23,7 +23,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`ContextId`](#contextid)
   - [`StackItem`](#stackitem)
   - [`MethodPointer`](#methodpointer)
-  - [`ExpressionValueUpdate`](#expressionvalueupdate)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`ProfilingInfo`](#profilinginfo)
@@ -113,7 +112,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
-  - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
@@ -232,32 +230,6 @@ interface MethodPointer {
   name: String;
 }
 ```
-
-### `ExpressionValueUpdate`
-
-Metadata on an updated expression.
-
-```typescript
-interface ExpressionValueUpdate {
-  /** The id of updated expression */
-  expressionId: ExpressionId;
-
-  /** The updated type of the expression */
-  type?: String;
-
-  /** The updated pointer to the method call */
-  methodPointer?: SuggestionId;
-
-  /** Profiling information for the expression */
-  profilingInfo: ProfilingInfo[];
-
-  /** Whether the expression value came from the cache or not */
-  fromCache: bool;
-}
-```
-
-Currently, the `profilingInfo` array is guaranteed to contain at least the
-`ExecutionTime` information.
 
 ### `ProfilingInfo`
 
@@ -638,6 +610,16 @@ interface Modify {
    * The list of argument updates.
    */
   arguments?: SuggestionArgumentUpdate[];
+
+  /**
+   * The module name to update.
+   */
+  module?: FieldUpdate<String>;
+
+  /**
+   * The self type to update.
+   */
+  selfType?: FieldUpdate<String>;
 
   /**
    * The return type to update.
@@ -1317,7 +1299,6 @@ given execution context.
 
 #### Enables
 
-- [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
 - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
 - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
 - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
@@ -2672,29 +2653,6 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
-
-### `executionContext/expressionValuesComputed`
-
-Sent from the server to the client to inform about new information for certain
-expressions becoming available.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Protocol
-- **Visibility:** Public
-
-#### Parameters
-
-```typescript
-{
-  contextId: ContextId;
-  updates: [ExpressionValueUpdate];
-}
-```
-
-#### Errors
-
-None
 
 ### `executionContext/expressionUpdates`
 

@@ -194,17 +194,11 @@ class JsonConnectionController(
       )
 
     case ContextRegistryProtocol
-          .ExpressionUpdatesNotification(contextId, updates, updatesOld) =>
+          .ExpressionUpdatesNotification(contextId, updates) =>
       webActor ! Notification(
         ExecutionContextExpressionUpdates,
         ExecutionContextExpressionUpdates.Params(contextId, updates)
       )
-      updatesOld.foreach { value =>
-        webActor ! Notification(
-          ExecutionContextExpressionValuesComputed,
-          ExecutionContextExpressionValuesComputed.Params(contextId, value)
-        )
-      }
 
     case ContextRegistryProtocol.ExecutionFailedNotification(
           contextId,
