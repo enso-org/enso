@@ -53,6 +53,9 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): Future[Seq[Option[Long]]] =
     db.run(getAllMethodsQuery(calls))
 
+  override def getAllModules: Future[Seq[String]] =
+    db.run(getAllModulesQuery)
+
   /** @inheritdoc */
   override def search(
     module: Option[String],
@@ -94,8 +97,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
-  override def removeByModule(name: String): Future[(Long, Seq[Long])] =
-    db.run(removeByModuleQuery(name))
+  override def removeModules(modules: Seq[String]): Future[(Long, Seq[Long])] =
+    db.run(removeByModuleQuery(modules))
 
   /** @inheritdoc */
   override def removeAll(
@@ -130,7 +133,18 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
-  override def renameProject(oldName: String, newName: String): Future[Unit] =
+  override def renameProject(
+    oldName: String,
+    newName: String
+  ): Future[
+    (
+      Long,
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, Int, String)]
+    )
+  ] =
     db.run(renameProjectQuery(oldName, newName))
 
   /** @inheritdoc */
@@ -207,6 +221,14 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         calls.map(result.get)
       }
     }
+
+  /** The query to get all module names.
+    *
+    * @return the list of distinct module names.
+    */
+  def getAllModulesQuery: DBIO[Seq[String]] = {
+    Suggestions.map(_.module).distinct.result
+  }
 
   /** The query to search suggestion by various parameters.
     *
@@ -346,7 +368,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   ): DBIO[Seq[QueryResult[SuggestionsDatabaseAction]]] = {
     val queries = actions.map {
       case act @ SuggestionsDatabaseAction.Clean(module) =>
-        removeByModuleQuery(module).map { case (_, ids) =>
+        removeByModuleQuery(Seq(module)).map { case (_, ids) =>
           QueryResult[SuggestionsDatabaseAction](ids, act)
         }
     }
@@ -390,11 +412,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to remove the suggestions by module name
     *
-    * @param name the module name
+    * @param modules the module names to remove
     * @return the current database version and a list of removed suggestion ids
     */
-  private def removeByModuleQuery(name: String): DBIO[(Long, Seq[Long])] = {
-    val selectQuery = Suggestions.filter(_.module === name)
+  private def removeByModuleQuery(
+    modules: Seq[String]
+  ): DBIO[(Long, Seq[Long])] = {
+    val selectQuery = Suggestions.filter(_.module.inSet(modules))
     val deleteQuery = for {
       rows    <- selectQuery.result
       n       <- selectQuery.delete
@@ -614,16 +638,61 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     *
     * @param oldName the old name of the project
     * @param newName the new project name
+    * @return the current database version and lists of suggestion ids
+    * with updated module name, self type, return type and arguments
     */
   private def renameProjectQuery(
     oldName: String,
     newName: String
-  ): DBIO[Unit] = {
-    val updateQuery =
+  ): DBIO[
+    (
+      Long,
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, String)],
+      Seq[(Long, Int, String)]
+    )
+  ] = {
+    def updateQuery(column: String) =
       sqlu"""update suggestions
-          set module = replace(module, $oldName, $newName)
-          where module like '#$oldName%'"""
-    updateQuery >> DBIO.successful(())
+          set #$column = $newName || substr(#$column, length($oldName) + 1)
+          where #$column like '#$oldName.%'"""
+    val argumentsUpdateQuery =
+      sqlu"""update arguments
+          set type = $newName || substr(type, length($oldName) + 1)
+          where type like '#$oldName.%'"""
+    def noop[A] = DBIO.successful(Seq[A]())
+
+    val selectUpdatedModulesQuery = Suggestions
+      .filter(row => row.module.like(s"$newName.%"))
+      .map(row => (row.id, row.module))
+      .result
+    val selectUpdatedSelfTypesQuery = Suggestions
+      .filter(_.selfType.like(s"$newName.%"))
+      .map(row => (row.id, row.selfType))
+      .result
+    val selectUpdatedReturnTypesQuery = Suggestions
+      .filter(_.returnType.like(s"$newName.%"))
+      .map(row => (row.id, row.returnType))
+      .result
+    val selectUpdatedArgumentsQuery = Arguments
+      .filter(_.tpe.like(s"$newName.%"))
+      .map(row => (row.suggestionId, row.index, row.tpe))
+      .result
+
+    for {
+      n1            <- updateQuery("module")
+      moduleIds     <- if (n1 > 0) selectUpdatedModulesQuery else noop
+      n2            <- updateQuery("self_type")
+      selfTypeIds   <- if (n2 > 0) selectUpdatedSelfTypesQuery else noop
+      n3            <- updateQuery("return_type")
+      returnTypeIds <- if (n3 > 0) selectUpdatedReturnTypesQuery else noop
+      n4            <- argumentsUpdateQuery
+      argumentIds   <- if (n4 > 0) selectUpdatedArgumentsQuery else noop
+      version <-
+        if (n1 > 0 || n2 > 0 || n3 > 0 || n4 > 0) incrementVersionQuery
+        else currentVersionQuery
+    } yield (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds)
   }
 
   /** The query to get current version of the repo. */

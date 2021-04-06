@@ -47,6 +47,9 @@ object CommandFactory {
       case payload: Api.InvalidateModulesIndexRequest =>
         new InvalidateModulesIndexCmd(request.requestId, payload)
 
+      case payload: Api.VerifyModulesIndexRequest =>
+        new VerifyModulesIndexCmd(request.requestId, payload)
+
       case payload: Api.ImportSuggestionRequest =>
         new ImportSuggestionCmd(request.requestId, payload)
 
