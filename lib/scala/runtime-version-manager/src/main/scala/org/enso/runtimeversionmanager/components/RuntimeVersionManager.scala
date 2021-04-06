@@ -36,6 +36,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param engineReleaseProvider the provider of engine releases
   * @param runtimeReleaseProvider the provider of runtime releases
   * @param componentConfig the runtime component configuration
+  * @param componentUpdaterFactory the runtime component updater factory
   */
 class RuntimeVersionManager(
   userInterface: RuntimeVersionManagementUserInterface,
@@ -45,6 +46,7 @@ class RuntimeVersionManager(
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
   componentConfig: RuntimeComponentConfiguration,
+  componentUpdaterFactory: RuntimeComponentUpdaterFactory,
   implicit private val installerKind: InstallerKind
 ) {
   private val logger = Logger[RuntimeVersionManager]
@@ -733,7 +735,7 @@ class RuntimeVersionManager(
     runtime: GraalRuntime,
     os: OS
   ): Try[Unit] = {
-    val ru = new GraalVMComponentUpdater(runtime, os)
+    val ru = componentUpdaterFactory.build(runtime, os)
     val requiredComponents =
       componentConfig.getRequiredComponents(runtime.version, os)
 

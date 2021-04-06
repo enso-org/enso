@@ -31,6 +31,7 @@ import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   HasTestDirectory,
+  NoopComponentUpdaterFactory,
   TestLocalLockManager
 }
 
@@ -70,6 +71,8 @@ class TestDistributionConfiguration(
 
   lazy val componentConfig = new GraalVMComponentConfiguration
 
+  lazy val componentUpdaterFactory = NoopComponentUpdaterFactory
+
   override def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager = new RuntimeVersionManager(
@@ -80,6 +83,7 @@ class TestDistributionConfiguration(
     engineReleaseProvider     = engineReleaseProvider,
     runtimeReleaseProvider    = runtimeReleaseProvider,
     componentConfig           = componentConfig,
+    componentUpdaterFactory   = componentUpdaterFactory,
     installerKind             = InstallerKind.ProjectManager
   )
 

@@ -64,6 +64,7 @@ class RuntimeVersionManagerTest
       engineProvider,
       runtimeProvider,
       componentConfig,
+      NoopComponentUpdaterFactory,
       installerKind
     )
 
