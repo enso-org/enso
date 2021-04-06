@@ -3,6 +3,7 @@ package org.enso.projectmanager.versionmanagement
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
+  GraalVMComponentConfiguration,
   InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -67,6 +68,7 @@ object DefaultDistributionConfiguration
       resourceManager           = resourceManager,
       engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = GraalCEReleaseProvider.default,
+      componentConfig           = new GraalVMComponentConfiguration,
       installerKind             = InstallerKind.ProjectManager
     )
 

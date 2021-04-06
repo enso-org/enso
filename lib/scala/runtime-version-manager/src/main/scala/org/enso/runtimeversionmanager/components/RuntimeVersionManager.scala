@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
+import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.distribution.{
@@ -35,6 +35,7 @@ import scala.util.{Failure, Success, Try, Using}
   * @param distributionManager the [[DistributionManager]] to use
   * @param engineReleaseProvider the provider of engine releases
   * @param runtimeReleaseProvider the provider of runtime releases
+  * @param componentConfig the runtime component configuration
   */
 class RuntimeVersionManager(
   userInterface: RuntimeVersionManagementUserInterface,
@@ -43,9 +44,11 @@ class RuntimeVersionManager(
   resourceManager: ResourceManager,
   engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: GraalVMRuntimeReleaseProvider,
+  componentConfig: RuntimeComponentConfiguration,
   implicit private val installerKind: InstallerKind
 ) {
   private val logger = Logger[RuntimeVersionManager]
+  private val os     = OS.operatingSystem
 
   /** Tries to find a GraalVM runtime for the provided engine.
     *
@@ -582,6 +585,7 @@ class RuntimeVersionManager(
         .toTry
       runtime = GraalRuntime(version, path)
       _ <- runtime.ensureValid()
+      _ <- installRequiredRuntimeComponents(runtime, os)
     } yield runtime
   }
 
@@ -704,7 +708,14 @@ class RuntimeVersionManager(
           )
         }
 
+        installRequiredRuntimeComponents(runtime, os).getOrElse {
+          throw InstallationError(
+            "fatal: Cannot install the required runtime components."
+          )
+        }
+
         userInterface.logInfo(s"Installed $runtime.")
+
         runtime
       } catch {
         case NonFatal(e) =>
@@ -712,6 +723,26 @@ class RuntimeVersionManager(
           throw e
       }
     }
+
+  /** Install components required for the specified runtime on the specified OS.
+    *
+    * @param runtime the GraalVM runtime
+    * @param os the operating system
+    */
+  private def installRequiredRuntimeComponents(
+    runtime: GraalRuntime,
+    os: OS
+  ): Try[Unit] = {
+    val ru = new GraalVMComponentUpdater(runtime, os)
+    val requiredComponents =
+      componentConfig.getRequiredComponents(runtime.version, os)
+
+    for {
+      installedComponents <- ru.list
+      missingComponents = requiredComponents.diff(installedComponents)
+      _ <- ru.install(missingComponents)
+    } yield ()
+  }
 
   private def engineDirectoryNameForVersion(version: SemVer): Path =
     Path.of(version.toString())
