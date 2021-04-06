@@ -792,14 +792,21 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     "rename arguments containing project name" taggedAs Retry in withRepo {
       repo =>
-        val newModuleName = "Best.Main"
-        val newSelfType   = "Best.Main"
-        val newReturnType = "Best.Main.MyType"
+        val newModuleName   = "Best.Main"
+        val newSelfType     = "Best.Main"
+        val newReturnType   = "Best.Main.MyType"
+        val newArgumentType = "Best.Main.Test.MyType"
 
         val method = suggestion.method.copy(arguments =
           Seq(
             Suggestion.Argument("x", "Number", false, true, Some("0")),
-            Suggestion.Argument("y", "Test.Main.MyType", false, false, None)
+            Suggestion.Argument(
+              "y",
+              "Test.Main.Test.MyType",
+              false,
+              false,
+              None
+            )
           )
         )
         val all =
@@ -818,7 +825,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         xs3 should contain theSameElementsAs Seq(ids(2), ids(3)).flatten
           .map((_, newReturnType))
         xs4 should contain theSameElementsAs Seq(ids(1)).flatMap {
-          _.map((_, 1, newReturnType))
+          _.map((_, 1, newArgumentType))
         }
         res.map(_.suggestion) should contain theSameElementsAs Seq(
           suggestion.atom.copy(module = newModuleName),
@@ -828,7 +835,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
               selfType = newSelfType,
               arguments = method.arguments.map { argument =>
                 argument.copy(reprType =
-                  if (argument.reprType.startsWith("Test.")) newReturnType
+                  if (argument.reprType.startsWith("Test.")) newArgumentType
                   else argument.reprType
                 )
               }

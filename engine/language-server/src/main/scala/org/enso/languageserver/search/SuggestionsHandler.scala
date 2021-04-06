@@ -355,17 +355,19 @@ final class SuggestionsHandler(
                   returnType = Some(fieldUpdate(returnType))
                 )
             }
-            val argumentUpdates = argumentIds.map {
-              case (suggestionId, index, typeName) =>
-                val argUpdate = SuggestionArgumentUpdate.Modify(
-                  index    = index,
-                  reprType = Some(fieldUpdate(typeName))
-                )
+            val argumentUpdates =
+              argumentIds.groupBy(_._1).map { case (suggestionId, grouped) =>
+                val argumentUpdates = grouped.map { case (_, index, typeName) =>
+                  SuggestionArgumentUpdate.Modify(
+                    index    = index,
+                    reprType = Some(fieldUpdate(typeName))
+                  )
+                }
                 SuggestionsDatabaseUpdate.Modify(
                   id        = suggestionId,
-                  arguments = Some(Seq(argUpdate))
+                  arguments = Some(argumentUpdates)
                 )
-            }
+              }
             val notification =
               SuggestionsDatabaseUpdateNotification(
                 version,

@@ -489,7 +489,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
     }
 
-    "handle project name changed event" taggedAs Retry in withDb {
+    "rename module when renaming project" taggedAs Retry in withDb {
       (_, repo, router, _, handler) =>
         Await.ready(repo.insert(Suggestions.atom), Timeout)
         val clientId      = UUID.randomUUID()
@@ -511,12 +511,59 @@ class SuggestionsHandlerSpec
               2,
               Seq(
                 SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id     = 1,
+                  module = Some(fieldUpdate("Vest.Main"))
+                )
+              )
+            )
+          )
+        )
+    }
+
+    "rename types when renaming project" taggedAs Retry in withDb {
+      (_, repo, router, _, handler) =>
+        val method = Suggestions.method.copy(
+          selfType = "Test.MyType",
+          arguments = Suggestions.method.arguments.map(arg =>
+            arg.copy(reprType = "Test.MyType")
+          )
+        )
+        Await.ready(repo.insert(method), Timeout)
+        val clientId      = UUID.randomUUID()
+        val newModuleName = "Vest"
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        handler ! ProjectNameChangedEvent("Test", newModuleName)
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              2,
+              Seq(
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id     = 1,
+                  module = Some(fieldUpdate("Vest.Main"))
+                ),
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id       = 1,
+                  selfType = Some(fieldUpdate("Vest.MyType"))
+                ),
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
                   id = 1,
-                  module = Some(
-                    SearchProtocol.FieldUpdate(
-                      SearchProtocol.FieldAction.Set,
-                      Some("Vest.Main")
-                    )
+                  arguments = Some(
+                    method.arguments.zipWithIndex.map { case (_, index) =>
+                      SearchProtocol.SuggestionArgumentUpdate.Modify(
+                        index    = index,
+                        reprType = Some(fieldUpdate("Vest.MyType"))
+                      )
+                    }
                   )
                 )
               )
@@ -638,6 +685,9 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.CompletionResult(7L, Seq(localId).flatten))
     }
   }
+
+  private def fieldUpdate(value: String): SearchProtocol.FieldUpdate[String] =
+    SearchProtocol.FieldUpdate(SearchProtocol.FieldAction.Set, Some(value))
 
   def newSuggestionsHandler(
     config: Config,

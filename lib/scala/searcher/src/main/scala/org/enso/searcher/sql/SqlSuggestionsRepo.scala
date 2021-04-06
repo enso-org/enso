@@ -662,6 +662,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
           set type = $newName || substr(type, length($oldName) + 1)
           where type like '#$oldName.%'"""
     def noop[A] = DBIO.successful(Seq[A]())
+
     val selectUpdatedModulesQuery = Suggestions
       .filter(row => row.module.like(s"$newName.%"))
       .map(row => (row.id, row.module))
@@ -678,6 +679,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       .filter(_.tpe.like(s"$newName.%"))
       .map(row => (row.suggestionId, row.index, row.tpe))
       .result
+
     for {
       n1            <- updateQuery("module")
       moduleIds     <- if (n1 > 0) selectUpdatedModulesQuery else noop
