@@ -200,6 +200,8 @@ object SearchProtocol {
       * @param id the suggestion id
       * @param externalId the external id to update
       * @param arguments the arguments to update
+      * @param module the module name to update
+      * @param selfType the self type to update
       * @param returnType the return type to update
       * @param documentation the documentation string to update
       * @param scope the scope to update
@@ -208,6 +210,8 @@ object SearchProtocol {
       id: SuggestionId,
       externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
       arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
+      module: Option[FieldUpdate[String]]                    = None,
+      selfType: Option[FieldUpdate[String]]                  = None,
       returnType: Option[FieldUpdate[String]]                = None,
       documentation: Option[FieldUpdate[String]]             = None,
       scope: Option[FieldUpdate[Suggestion.Scope]]           = None

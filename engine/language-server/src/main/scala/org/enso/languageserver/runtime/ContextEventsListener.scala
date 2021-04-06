@@ -156,32 +156,14 @@ final class ContextEventsListener(
             toProtocolPayload(update.payload)
           )
         }
-        val valueUpdates = computedExpressions.collect(toExpressionValueUpdate)
         val payload = ContextRegistryProtocol.ExpressionUpdatesNotification(
           contextId,
-          computedExpressions,
-          Option.when(valueUpdates.nonEmpty)(valueUpdates)
+          computedExpressions
         )
         DeliverToJsonController(rpcSession.clientId, payload)
 
       }
       .pipeTo(sessionRouter)
-  }
-
-  /** Conversion between the new and the old expression update message. */
-  private def toExpressionValueUpdate: PartialFunction[
-    ContextRegistryProtocol.ExpressionUpdate,
-    ExpressionValueUpdate
-  ] = {
-    case m: ContextRegistryProtocol.ExpressionUpdate
-        if m.payload == ContextRegistryProtocol.ExpressionUpdate.Payload.Value =>
-      ExpressionValueUpdate(
-        m.expressionId,
-        m.`type`,
-        m.methodPointer,
-        m.profilingInfo,
-        m.fromCache
-      )
   }
 
   /** Convert the runtime expression update payload to the context registry

@@ -120,7 +120,8 @@ final class SuggestionsHandler(
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
 
-    case ProjectNameUpdated(name) =>
+    case ProjectNameUpdated(name, updates) =>
+      updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
@@ -140,6 +141,24 @@ final class SuggestionsHandler(
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case _ => stash()
+  }
+
+  def verifying(
+    projectName: String,
+    graph: TypeGraph
+  ): Receive = {
+    case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
+      suggestionsRepo
+        .removeModules(toRemove)
+        .map(_ => SuggestionsHandler.Verified)
+        .pipeTo(self)
+
+    case SuggestionsHandler.Verified =>
+      context.become(initialized(projectName, graph, Set()))
+      unstashAll()
+
+    case _ =>
+      stash()
   }
 
   def initialized(
@@ -271,7 +290,7 @@ final class SuggestionsHandler(
           err => Future.successful(Left(err)),
           module =>
             suggestionsRepo
-              .removeByModule(module)
+              .removeModules(Seq(module))
               .map { case (version, ids) =>
                 Right(
                   SuggestionsDatabaseUpdateNotification(
@@ -313,10 +332,54 @@ final class SuggestionsHandler(
     case ProjectNameChangedEvent(oldName, newName) =>
       suggestionsRepo
         .renameProject(oldName, newName)
-        .map(_ => ProjectNameUpdated(newName))
+        .map {
+          case (version, moduleIds, selfTypeIds, returnTypeIds, argumentIds) =>
+            val suggestionModuleUpdates = moduleIds.map {
+              case (suggestionId, moduleName) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id     = suggestionId,
+                  module = Some(fieldUpdate(moduleName))
+                )
+            }
+            val selfTypeUpdates = selfTypeIds.map {
+              case (suggestionId, selfType) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id       = suggestionId,
+                  selfType = Some(fieldUpdate(selfType))
+                )
+            }
+            val returnTypeUpdates = returnTypeIds.map {
+              case (suggestionId, returnType) =>
+                SuggestionsDatabaseUpdate.Modify(
+                  id         = suggestionId,
+                  returnType = Some(fieldUpdate(returnType))
+                )
+            }
+            val argumentUpdates =
+              argumentIds.groupBy(_._1).map { case (suggestionId, grouped) =>
+                val argumentUpdates = grouped.map { case (_, index, typeName) =>
+                  SuggestionArgumentUpdate.Modify(
+                    index    = index,
+                    reprType = Some(fieldUpdate(typeName))
+                  )
+                }
+                SuggestionsDatabaseUpdate.Modify(
+                  id        = suggestionId,
+                  arguments = Some(argumentUpdates)
+                )
+              }
+            val notification =
+              SuggestionsDatabaseUpdateNotification(
+                version,
+                suggestionModuleUpdates ++ selfTypeUpdates ++ returnTypeUpdates ++ argumentUpdates
+              )
+            val updates = clients.map(DeliverToJsonController(_, notification))
+            ProjectNameUpdated(newName, updates)
+        }
         .pipeTo(self)
 
-    case ProjectNameUpdated(name) =>
+    case ProjectNameUpdated(name, updates) =>
+      updates.foreach(sessionRouter ! _)
       context.become(initialized(name, graph, clients))
   }
 
@@ -328,8 +391,15 @@ final class SuggestionsHandler(
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
         log.debug("Initialized")
-        context.become(initialized(name, graph, Set()))
-        unstashAll()
+        val requestId = UUID.randomUUID()
+        suggestionsRepo.getAllModules
+          .flatMap { modules =>
+            runtimeConnector.ask(
+              Api.Request(requestId, Api.VerifyModulesIndexRequest(modules))
+            )(timeout, self)
+          }
+          .pipeTo(self)
+        context.become(verifying(name, graph))
     }
   }
 
@@ -459,8 +529,25 @@ object SuggestionsHandler {
   /** The notification about the project name update.
     *
     * @param projectName the new project name
+    * @param updates the list of updates to send
     */
-  case class ProjectNameUpdated(projectName: String)
+  case class ProjectNameUpdated(
+    projectName: String,
+    updates: Iterable[DeliverToJsonController[_]]
+  )
+  object ProjectNameUpdated {
+
+    /** Create the notification about the project name update.
+      *
+      * @param projectName the new project name
+      * @return the notification about the project name update.
+      */
+    def apply(projectName: String): ProjectNameUpdated =
+      new ProjectNameUpdated(projectName, Seq())
+  }
+
+  /** The notification that the suggestions database has been verified. */
+  case object Verified
 
   /** The initialization state of the handler.
     *

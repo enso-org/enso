@@ -2,7 +2,6 @@ package org.enso.languageserver.websocket.json
 import java.util.UUID
 
 import io.circe.literal._
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
@@ -13,16 +12,8 @@ class SuggestionsHandlerTest
 
   "SuggestionsHandler" must {
 
-    "stash messages when initializing" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.getSuggestionsDatabaseVersion(0))
-      client.expectNoMessage()
-    }
-
     "get initial suggestions database version" taggedAs Retry in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.getSuggestionsDatabaseVersion(0))
       client.expectJson(json"""
@@ -37,7 +28,6 @@ class SuggestionsHandlerTest
 
     "get initial suggestions database" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.getSuggestionsDatabase(0))
       client.expectJson(json"""
@@ -54,7 +44,6 @@ class SuggestionsHandlerTest
 
     "reply to completion request" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",
@@ -113,7 +102,6 @@ class SuggestionsHandlerTest
 
     "reply with error when project root not found" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",

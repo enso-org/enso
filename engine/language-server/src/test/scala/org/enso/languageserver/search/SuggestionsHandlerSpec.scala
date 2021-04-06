@@ -3,6 +3,7 @@ package org.enso.languageserver.search
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -13,6 +14,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
@@ -487,6 +489,89 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
     }
 
+    "rename module when renaming project" taggedAs Retry in withDb {
+      (_, repo, router, _, handler) =>
+        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        val clientId      = UUID.randomUUID()
+        val newModuleName = "Vest"
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        handler ! ProjectNameChangedEvent("Test", newModuleName)
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              2,
+              Seq(
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id     = 1,
+                  module = Some(fieldUpdate("Vest.Main"))
+                )
+              )
+            )
+          )
+        )
+    }
+
+    "rename types when renaming project" taggedAs Retry in withDb {
+      (_, repo, router, _, handler) =>
+        val method = Suggestions.method.copy(
+          selfType = "Test.MyType",
+          arguments = Suggestions.method.arguments.map(arg =>
+            arg.copy(reprType = "Test.MyType")
+          )
+        )
+        Await.ready(repo.insert(method), Timeout)
+        val clientId      = UUID.randomUUID()
+        val newModuleName = "Vest"
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        handler ! ProjectNameChangedEvent("Test", newModuleName)
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              2,
+              Seq(
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id     = 1,
+                  module = Some(fieldUpdate("Vest.Main"))
+                ),
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id       = 1,
+                  selfType = Some(fieldUpdate("Vest.MyType"))
+                ),
+                SearchProtocol.SuggestionsDatabaseUpdate.Modify(
+                  id = 1,
+                  arguments = Some(
+                    method.arguments.zipWithIndex.map { case (_, index) =>
+                      SearchProtocol.SuggestionArgumentUpdate.Modify(
+                        index    = index,
+                        reprType = Some(fieldUpdate("Vest.MyType"))
+                      )
+                    }
+                  )
+                )
+              )
+            )
+          )
+        )
+    }
+
     "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, _, handler) =>
         val (_, inserted) =
@@ -601,6 +686,9 @@ class SuggestionsHandlerSpec
     }
   }
 
+  private def fieldUpdate(value: String): SearchProtocol.FieldUpdate[String] =
+    SearchProtocol.FieldUpdate(SearchProtocol.FieldAction.Set, Some(value))
+
   def newSuggestionsHandler(
     config: Config,
     sessionRouter: TestProbe,
@@ -624,6 +712,11 @@ class SuggestionsHandlerSpec
     handler ! Api.Response(
       UUID.randomUUID(),
       Api.GetTypeGraphResponse(buildTestTypeGraph)
+    )
+    runtimeConnector.receiveN(1)
+    handler ! Api.Response(
+      UUID.randomUUID(),
+      Api.VerifyModulesIndexResponse(Seq())
     )
     handler
   }
@@ -673,13 +766,7 @@ class SuggestionsHandlerSpec
     )
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
-    val handler = newSuggestionsHandler(
-      config,
-      router,
-      connector,
-      suggestionsRepo,
-      versionsRepo
-    )
+
     suggestionsRepo.init.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
@@ -692,6 +779,14 @@ class SuggestionsHandlerSpec
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize FileVersions repo")
     }
+
+    val handler = newSuggestionsHandler(
+      config,
+      router,
+      connector,
+      suggestionsRepo,
+      versionsRepo
+    )
 
     try test(config, suggestionsRepo, router, connector, handler)
     finally {
