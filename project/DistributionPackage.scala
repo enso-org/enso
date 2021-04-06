@@ -10,11 +10,18 @@ object DistributionPackage {
   /** File extensions. */
   implicit class FileExtensions(file: File) {
 
-    /** Get the outermost directory of this file.
+    /** Get the outermost directory of this file. For absolute paths this
+      * function always return root.
       *
       * == Example ==
+      * Get top directory of the relative path.
       * {{{
       *   file("foo/bar/baz").getTopDirectory == file("foo")
+      * }}}
+      *
+      * Get top directory of the absolute path.
+      * {{{
+      *   file(/foo/bar/baz").getTopDirectory == file("/")
       * }}}
       *
       * @return the outermost directory of this file.
