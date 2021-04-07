@@ -11,7 +11,7 @@ object DistributionPackage {
   implicit class FileExtensions(file: File) {
 
     /** Get the outermost directory of this file. For absolute paths this
-      * function always return root.
+      * function always returns root.
       *
       * == Example ==
       * Get top directory of the relative path.
