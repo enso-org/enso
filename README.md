@@ -214,7 +214,7 @@ If you would like to gain a better understanding of the principles on which Enso
 is based, or just delve into the why's and what's of Enso's design, please take
 a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
 component of Enso. You can view this same documentation in a rendered form at
-[the developer docs website](https://dev.enso.org).
+[the developer docs website](https://enso.org/docs/developer).
 
 This folder also contains a document on Enso's
 [design philosophy](./docs/enso-philosophy.md), that details the thought process
