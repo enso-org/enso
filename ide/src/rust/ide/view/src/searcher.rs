@@ -28,8 +28,8 @@ pub const SEARCHER_WIDTH:f32 = 480.0;
 /// Height of searcher panel in pixels.
 ///
 /// Because we don't implement clipping yet, the best UX is when searcher height is almost multiple
-/// of entry height.
-pub const SEARCHER_HEIGHT:f32 = 179.5;
+/// of entry height + padding.
+pub const SEARCHER_HEIGHT:f32 = 184.5;
 
 const ACTION_LIST_GAP     : f32 = 180.0;
 const LIST_DOC_GAP        : f32 = 15.0;
