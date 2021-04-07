@@ -132,8 +132,7 @@ impl Model {
         let visible_entries = Self::visible_entries(view,self.entries.entry_count());
         let padding_px      = self.padding();
         let padding         = 2.0 * padding_px + SHAPE_PADDING;
-        // FIXME: Why this + 2.0*padding_px is needed here? It was added to make bottom padding but should rather not be needed.
-        let padding         = Vector2(padding, padding + 2.0*padding_px);
+        let padding         = Vector2(padding, padding);
         let shadow          = Vector2(2.0 * SHADOW_PX,  2.0 * SHADOW_PX);
         self.entries.set_position_x(-view.size.x / 2.0);
         self.background.size.set(view.size + padding + shadow);

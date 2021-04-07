@@ -4,8 +4,10 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application;
-use ensogl::application::{Application, shortcut};
+use ensogl::application::Application;
+use ensogl::application::shortcut;
 use ensogl::display;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::DEPRECATED_Animation;
 use ensogl_text as text;
 
@@ -65,6 +67,7 @@ impl View {
     /// Create Code Editor component.
     pub fn new(app:&Application) -> Self {
         let scene           = app.display.scene();
+        let styles          = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let frp             = Frp::new();
         let network         = &frp.network;
         let model           = app.new_view::<text::Area>();
@@ -104,6 +107,9 @@ impl View {
                 Vector2(x,y)
             });
             eval position ((pos) model.set_position_xy(*pos));
+
+            let color = styles.get_color(ensogl_theme::code::syntax::base);
+            eval color ((color) model.set_default_color(color));
         }
 
         Self{model,frp}
