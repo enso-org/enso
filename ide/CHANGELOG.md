@@ -32,6 +32,10 @@
   different color, shape and size, all as defined by the data within the
   `Table`.
 - [Many small visual improvements.][1419] See the source issue for more details.
+- The dark theme is officially supported now. You can start the IDE with the
+  `--theme=dark` option to enable it.
+- You can hide the node labels with `--no-node-labels` option. This is useful
+  when creating demo videos.
 - [Added Heatmap visualization.][1438]
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)

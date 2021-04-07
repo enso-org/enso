@@ -19,6 +19,7 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::component::node;
 use crate::tooltip;
+use enso_args::ARGS;
 
 
 
@@ -193,7 +194,8 @@ impl Model {
     }
 
     fn set_label(&self, content:impl Into<String>) {
-        self.label.set_content(content.into());
+        let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
+        self.label.set_content(str);
         self.label.set_position_x(-self.label.width.value() - input::area::TEXT_OFFSET);
     }
 

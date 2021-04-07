@@ -1,4 +1,4 @@
-//! Enso startup arguments definition.
+//! Startup arguments definition.
 
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -34,10 +34,12 @@ ensogl::read_args! {
         language_server_data : String,
         platform             : web::platform::Platform,
         frame                : bool,
+        theme                : String,
         dark_theme           : bool,
         high_contrast        : bool,
         use_loader           : bool,
         wasm_url             : String,
         wasm_glue_url        : String,
+        node_labels          : bool,
     }
 }
