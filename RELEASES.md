@@ -1,3 +1,42 @@
+# Enso 0.2.10 (2021-04-07)
+
+## Interpreter/Runtime
+
+- Added support for the Python and R runtimes to the bundled runtime
+  ([#1644](https://github.com/enso-org/enso/pull/1644)).
+
+## Tooling
+
+- Added a feature to ensure that suggestions are ranked by type specificity,
+  with the more specific suggestions being ranked first
+  ([#1629](https://github.com/enso-org/enso/pull/1629)).
+- Fixed a raft of small issues in the runtime server that caused bugs in the
+  engine's interaction with the IDE
+  ([#1633](https://github.com/enso-org/enso/pull/1633)).
+- Fixed an issue where the suggestions database would get out of sync when a
+  project was renamed ([#1647](https://github.com/enso-org/enso/pull/1647)).
+- Fixed some bugs in the vector constructors that prevented them from working
+  correctly on certain inputs
+  ([#1650](https://github.com/enso-org/enso/pull/1650)).
+- Added support to the launcher and project manager for installing companion
+  runtimes alongside Enso ([#1651](https://github.com/enso-org/enso/pull/1651)).
+
+## Libraries
+
+- Added some additional useful methods to the `Standard.Table` library
+  ([#1628](https://github.com/enso-org/enso/pull/1628)).
+- Added a method to perform basic type inference on JSON, allowing converting
+  Geo-JSON to a `Table` ([#1632](https://github.com/enso-org/enso/pull/1632)).
+- Performed a comprehensive overhaul of the standard library documentation
+  ([#1641](https://github.com/enso-org/enso/pull/1641)). It now has a standard
+  format.
+
+## Miscellaneous
+
+- Fixed an issue where we were accidentally archiving two copies of some runtime
+  components ([#1631](https://github.com/enso-org/enso/pull/1631)). Downloads
+  should now be smaller.
+
 # Enso 0.2.9 (2021-03-26)
 
 ## Tooling
