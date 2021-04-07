@@ -19,3 +19,14 @@ from Standard.Base import all
 #           y = x + 1
 #           ...
 
+## An example error type used in a number of examples.
+
+   Arguments:
+   - message: The message contained in the error type.
+
+   > Example
+     Constructing the error.
+
+         Example_Error_Type "My message"
+type Example_Error_Type message
+
