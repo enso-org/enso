@@ -54,7 +54,17 @@ foreign js make_double = """
 foreign js does_not_parse = """
     return { x
 
+foreign js test_multilevel = """
+    return {a : 1, b: {x: 1, y: 2}}
+
+foreign js test_array_properties = """
+    var my_array = [1, 2, 3]
+    my_array.groups = {a: 1, b: 2}
+    my_array.index = 0
+    return my_array
+
 spec = Test.group "Polyglot JS" <|
+
     Test.specify "should allow declaring module-level methods in JS" <|
         here.my_method 1 2 . should_equal 3
 
@@ -112,4 +122,18 @@ spec = Test.group "Polyglot JS" <|
     Test.specify "should properly handle parse errors" <|
         err = Panic.recover here.does_not_parse . catch
         err.cause.message.should .contain "Expected }"
+
+    Test.specify "allow access to properties of nested objects" <|
+        value = here.test_multilevel
+        value.b.x . should_equal 1
+
+    Test.specify "allow access to properties of array objects in JS" <|
+        array = here.test_array_properties
+        array.groups.a . should_equal 1
+        array.index . should_equal 0
+
+    length_pending_msg = ".length cannot currently be called due to a bug in GraalJS. Fixed in 21.1.0."
+    Test.specify "allow access to the length property of a JS array in Enso" pending=length_pending_msg <|
+        array = here.make_array
+        array.length . should_equal 3
 
