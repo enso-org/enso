@@ -1315,6 +1315,7 @@ name = "ide-view"
 version = "0.1.0"
 dependencies = [
  "ast 0.1.0",
+ "enso-args 0.1.0",
  "enso-frp 0.1.0",
  "enso-logger 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "enso-prelude 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",

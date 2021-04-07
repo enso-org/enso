@@ -156,7 +156,9 @@ impl Default for Theme {
 
 define_themes! { [light:0, dark:1]
     application {
-        background = Rgba(0.976,0.98,0.984,1.0) , Lcha(0.13,0.014,0.18,1.0); // rgb(249,250,251)
+        // Original RGB values (for reference after fixing color-conversion issues)
+        // light: rgb(249,250,251), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
+        background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -188,18 +190,18 @@ define_themes! { [light:0, dark:1]
         types {
             hue_steps     = 512.0 , 512.0;
             hue_shift     = 0.0, 0.0;
-            lightness     = 0.72 , 0.75;
+            lightness     = 0.72 , 0.7;
             chroma        = 0.7 , 0.4;
-            any           = code::syntax::base , Lcha(0.5,1.0,0.0,1.0);
-            any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,1.0,0.0,1.0);
+            any           = code::syntax::base , code::syntax::base;
+            any.selection = Lcha(0.8,0.0,0.0,1.0) , Lcha(0.5,0.0,0.0,1.0);
             selected      = graph_editor::node::background , graph_editor::node::background;
             overriden {
                 Builtins {
                     Main {
                         Unresolved_Symbol {
                             hue       = 0.68, 0.0;
-                            lightness = 0.09, 0.09;
-                            chroma    = 0.0, 0.0;
+                            lightness = 0.09, 0.7;
+                            chroma    = 0.0, 0.4;
                         }
                         Integer.hue = 0.68 , 0.68;
                         Number.hue = 0.68 , 0.68;
@@ -211,11 +213,13 @@ define_themes! { [light:0, dark:1]
     }
     graph_editor {
         node {
-            background         = Rgba(0.992,0.996,1.0,1.0) , Lcha(0.2,0.014,0.18,1.0); // rgb(253,254,255)
-            background.skipped = graph_editor::node::background , Lcha(0.15,0.014,0.18,1.0);
+            // Original RGB values (for reference after fixing color-conversion issues)
+            // light: rgb(253,254,255), old-dark: Lcha(0.2,0.014,0.18,1.0), dark: rgb(47,48,50)
+            background         = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
+            background.skipped = graph_editor::node::background , graph_editor::node::background;
             selection          = selection, selection;
             selection {
-                size = 3.0 , 5.0;
+                size = 3.0 , 3.0;
                 offset = 5.0 , 5.0;
             }
             text           = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
@@ -247,7 +251,7 @@ define_themes! { [light:0, dark:1]
             }
         }
         visualization {
-            background = graph_editor::node::background , Lcha(0.2,0.014,0.18,1.0);
+            background = graph_editor::node::background , graph_editor::node::background;
             text           = Lcha(0.0,0.0,0.0,0.7)   , Lcha(1.0,0.0,0.0,0.7);
             text.selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             error {
@@ -255,14 +259,18 @@ define_themes! { [light:0, dark:1]
                 panic.text    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
             }
             action_bar {
-                background = Rgba(0.929,0.941,0.953,1.0) , Lcha(0.3,0.014,0.18,1.0); // rgb(237 240 243)
+                // Original RGB values (for reference after fixing color-conversion issues)
+                // rgb(237 240 243)
+                background = Rgba(0.929,0.941,0.953,1.0) , Lcha(1.0,0.0,0.0,0.1);
                 icon       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
                 text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             }
-            selection = Rgba(0.306,0.647,0.992,0.14) , Lcha(0.72,0.54,0.22,1.0);
+            // Original RGB values (for reference after fixing color-conversion issues)
+            // ... , rgb(35 41 47)
+            selection = Rgba(0.306,0.647,0.992,0.14) , Rgba(0.137,0.16,0.184,1.0);
             selection {
-                size = 8.0 , 5.0;
-                offset = 0.0 , 5.0;
+                size = 8.0 , 8.0;
+                offset = 0.0 , 0.0;
             }
         }
         breadcrumbs {
@@ -285,10 +293,10 @@ define_themes! { [light:0, dark:1]
     widget {
         list_view {
             background = graph_editor::node::background , graph_editor::node::background;
-            highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.7); // rgb(231,233,235)
+            highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight = selection, selection;
+                highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
                 selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
         }
@@ -301,7 +309,7 @@ define_themes! { [light:0, dark:1]
     }
     component {
         label {
-            background = graph_editor::node::background , Lcha(0.2,0.014,0.18,1.0);
+            background = graph_editor::node::background , graph_editor::node::background;
             text       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
                 offset = 00.0, 00.0;
@@ -309,7 +317,7 @@ define_themes! { [light:0, dark:1]
             }
             padding_outer   = 20.0, 20.0;
             padding_inner_x = 10.0, 10.0;
-            padding_inner_y = 2.0, 10.0;
+            padding_inner_y = 2.0, 2.0;
             height          = 30.0, 30.0;
         }
     }
@@ -318,7 +326,7 @@ define_themes! { [light:0, dark:1]
     // === Generics ===
 
     accent = Rgba(0.306,0.647,0.992,1.0) , Lcha(0.72,0.54,0.22,1.0); // rgb(78,165,253)
-    selection = Rgba(0.306,0.647,0.992,1.0) , Lcha(0.72,0.54,0.22,1.0); // rgb(78,165,253)
+    selection = Rgba(0.306,0.647,0.992,1.0) , Rgba(0.204,0.337,0.486,1.0); // rgb(78,165,253), rgb(52 86 124)
     shadow = Rgba(0.09,0.055,0.125,0.09) , Lcha(0.0,0.0,0.0,0.20); // rgba(23,14,32,0.09)
     shadow {
         size     = 25.0 , 25.0;
@@ -328,7 +336,7 @@ define_themes! { [light:0, dark:1]
         offset_x = 0.0 , 0.0;
         offset_y = -5.0 , -5.0;
         html {
-            alpha  = 0.10  , 0.10;
+            alpha  = 0.10  , 0.30;
             blur   = 10.0 , 10.0;
             spread = -2.0 , -2.0;
         }

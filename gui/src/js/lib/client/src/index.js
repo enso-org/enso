@@ -156,6 +156,19 @@ optParser.options('window-size', {
     requiresArg : true
 })
 
+optParser.options('theme', {
+    group       : styleOptionsGroup,
+    describe    : 'Use the provided theme. Defaults to `light`.',
+    type        : `string`
+})
+
+optParser.options('node-labels', {
+    group       : styleOptionsGroup,
+    describe    : 'Show node labels. Defaults to `true`.',
+    default     : false,
+    type        : `boolean`
+})
+
 
 // === Other Options ===
 
@@ -197,6 +210,9 @@ if (args.frame === undefined) {
     args.frame = (process.platform !== 'darwin')
 }
 
+if (args.theme === undefined) {
+    args.theme = 'light'
+}
 
 if (args.windowSize) {
     let size   = args.windowSize.split('x')
@@ -482,10 +498,12 @@ function createWindow() {
     let urlCfg = {
         platform        : process.platform,
         frame           : args.frame,
+        theme           : args.theme,
         dark_theme      : Electron.nativeTheme.shouldUseDarkColors,
         high_contrast   : Electron.nativeTheme.shouldUseHighContrastColors,
         crashReportHost : args.crashReportHost,
         noDataGathering : args.noDataGathering,
+        node_labels     : args.nodeLabels,
     }
 
     if (args.project)    { urlCfg.project = args.project }

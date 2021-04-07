@@ -19,6 +19,7 @@ use ensogl::display;
 use ensogl::DEPRECATED_Animation;
 use ensogl::system::web;
 use ensogl_theme::Theme as Theme;
+use enso_args::ARGS;
 
 
 
@@ -207,10 +208,18 @@ impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
 
-        ensogl_theme::builtin::dark::register(app);
-        ensogl_theme::builtin::light::register(app);
-        // Should not be needed after proper theme management will be introduced:
-        ensogl_theme::builtin::light::enable(app);
+        let theme = match ARGS.theme.as_ref().map(|s|s.as_str()) {
+            Some("dark") => {
+                ensogl_theme::builtin::dark::register(app);
+                ensogl_theme::builtin::dark::enable(app);
+                Theme::Dark
+            }
+            _ => {
+                ensogl_theme::builtin::light::register(app);
+                ensogl_theme::builtin::light::enable(app);
+                Theme::Light
+            }
+        };
 
         display::style::javascript::expose_to_window(&app.themes);
 
@@ -223,7 +232,7 @@ impl View {
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
-        model.set_style(Theme::Light);
+        model.set_style(theme);
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
