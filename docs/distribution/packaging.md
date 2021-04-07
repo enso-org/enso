@@ -200,7 +200,7 @@ definitions.
 
 For more information on how visualization definitions should work with the Enso
 IDE, see
-[this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example).
+[this example](https://enso.org/docs/developer/docs/ide/product/visualizations.html#custom-visualization-example).
 
 ## Build Reproducibility
 

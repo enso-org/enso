@@ -23,7 +23,7 @@ import scala.util.{Failure, Success, Try}
   *    release tag which contain the listed assets.
   *
   * It must adhere to the fallback mechanism specification as defined at
-  * [[https://dev.enso.org/docs/enso/distribution/fallback-launcher-release-infrastructure.html#fallback-infrastructure-specification]].
+  * [[https://enso.org/docs/developer/docs/enso/distribution/fallback-launcher-release-infrastructure.html#fallback-infrastructure-specification]].
   */
 class FileStorageFallbackReleaseProvider(
   storage: FileStorage,

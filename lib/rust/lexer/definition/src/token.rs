@@ -1,8 +1,8 @@
 //! This file defines the various tokens requried by the Enso lexer.
 //!
 //! This file makes heavy use of terminology from the Enso design documentation, particularly the
-//! [syntax](https://dev.enso.org/docs/enso/syntax) documentation. For the sake of brevity, many
-//! terms will _not_ be defined here.
+//! [syntax](https://enso.org/docs/developer/docs/enso/syntax) documentation. For the sake of 
+//! brevity, many terms will _not_ be defined here.
 
 use crate::prelude::*;
 

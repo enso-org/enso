@@ -715,8 +715,9 @@ the best results through open collaboration.
 
 Documentation improvements are very welcome! For now, the main documentation
 available is the _developer_ documentation for the language, which can be found
-at the [dev docs site](https://dev.enso.org). The source for this documentation
-is found in the [`docs/`](.) folder, and can be altered from there.
+at the [dev docs site](https://enso.org/docs/developer). The source for this
+documentation is found in the [`docs/`](.) folder, and can be altered from
+there.
 
 Documentation pull requests will be reviewed in exactly the same way as normal
 pull requests.
