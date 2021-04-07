@@ -7,6 +7,7 @@ import org.enso.cli.task.TaskProgress
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
+  GraalVMComponentConfiguration,
   GraalVMVersion,
   InstallerKind,
   Manifest,
@@ -146,6 +147,7 @@ class ConcurrencyTest
 
     val temporaryDirectoryManager =
       new TemporaryDirectoryManager(distributionManager, resourceManager)
+    val componentConfig = new GraalVMComponentConfiguration
     val componentsManager = new RuntimeVersionManager(
       TestRuntimeVersionManagementUserInterface.default,
       distributionManager,
@@ -153,6 +155,8 @@ class ConcurrencyTest
       resourceManager,
       engineProvider,
       runtimeProvider,
+      componentConfig,
+      NoopComponentUpdaterFactory,
       InstallerKind.Launcher
     )
 
