@@ -1,0 +1,21 @@
+from Standard.Base import all
+
+# Can do the top-level examples directory.
+
+# Fine to not provide examples for some APIs (e.g. Database).
+
+# Examples with HTTP should note this clearly in the example text.
+
+# Image source should only download if it doesn't exist. We can say that the #
+# user can put it there.
+
+# > Example
+#   Frobnicate the doobly do
+#
+#       import Standard.Examples
+#
+#       my_example =
+#           x = dlksaldjks
+#           y = x + 1
+#           ...
+
