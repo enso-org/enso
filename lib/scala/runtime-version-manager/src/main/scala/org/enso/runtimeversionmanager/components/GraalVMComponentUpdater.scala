@@ -26,8 +26,8 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
     val process = Process(
       Seq[String](Paths.gu, "list", "-v"),
       Some(runtime.path.toFile),
-      ("JAVA_HOME", Paths.javaHome),
-      ("GRAALVM_HOME", Paths.javaHome)
+      ("JAVA_HOME", runtime.path),
+      ("GRAALVM_HOME", runtime.path)
     )
 
     for {
@@ -45,8 +45,8 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
       val process = Process(
         Seq[String](Paths.gu, "install") ++ componentsList,
         Some(runtime.path.toFile),
-        ("JAVA_HOME", Paths.javaHome),
-        ("GRAALVM_HOME", Paths.javaHome)
+        ("JAVA_HOME", runtime.path),
+        ("GRAALVM_HOME", runtime.path)
       )
       Try(process.!!)
     } else {
@@ -56,18 +56,11 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
 
   private object Paths {
 
-    /** Path to the java home directory in the runtime distribution. */
-    def javaHome: Path = os match {
-      case OS.Linux   => runtime.path
-      case OS.MacOS   => runtime.path / "Contents" / "Home"
-      case OS.Windows => runtime.path
-    }
-
     /** Path to `gu` executable. */
     val gu: Path = os match {
-      case OS.Linux   => javaHome / "bin" / "gu"
-      case OS.MacOS   => javaHome / "bin" / "gu"
-      case OS.Windows => javaHome / "bin" / "gu.cmd"
+      case OS.Linux   => runtime.path / "bin" / "gu"
+      case OS.MacOS   => runtime.path / "bin" / "gu"
+      case OS.Windows => runtime.path / "bin" / "gu.cmd"
     }
   }
 }
