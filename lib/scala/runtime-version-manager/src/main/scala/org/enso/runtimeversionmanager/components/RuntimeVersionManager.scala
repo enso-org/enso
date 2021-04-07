@@ -714,8 +714,8 @@ class RuntimeVersionManager(
             "fatal: Cannot load the installed runtime."
           )
         }
-
         installRequiredRuntimeComponents(runtime, os).getOrElse {
+          FileSystem.removeDirectory(runtimePath)
           throw InstallationError(
             "fatal: Cannot install the required runtime components."
           )
