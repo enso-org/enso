@@ -587,7 +587,12 @@ class RuntimeVersionManager(
         .toTry
       runtime = GraalRuntime(version, path)
       _ <- runtime.ensureValid()
-      _ <- installRequiredRuntimeComponents(runtime, os)
+      _ <- installRequiredRuntimeComponents(runtime, os).recover { _ =>
+        logger.warn(
+          s"Failed to install required components on the existing $runtime. " +
+          "Some language features may be unavailable."
+        )
+      }
     } yield runtime
   }
 
@@ -735,14 +740,14 @@ class RuntimeVersionManager(
     runtime: GraalRuntime,
     os: OS
   ): Try[Unit] = {
-    val ru = componentUpdaterFactory.build(runtime, os)
+    val cu = componentUpdaterFactory.build(runtime, os)
     val requiredComponents =
       componentConfig.getRequiredComponents(runtime.version, os)
 
     for {
-      installedComponents <- ru.list
+      installedComponents <- cu.list
       missingComponents = requiredComponents.diff(installedComponents)
-      _ <- ru.install(missingComponents)
+      _ <- cu.install(missingComponents)
     } yield ()
   }
 
