@@ -10,6 +10,7 @@ use crate::model::module::MethodId;
 use data::text::TextLocation;
 use enso_protocol::language_server;
 use enso_protocol::language_server::FieldUpdate;
+use enso_protocol::language_server::SuggestionsDatabaseModification;
 use language_server::types::FieldAction;
 use std::collections::BTreeSet;
 
@@ -271,20 +272,20 @@ impl Entry {
 
     /// Apply modification to the entry.
     pub fn apply_modifications
-    ( &mut self
-      , arguments     : Vec<language_server::types::SuggestionArgumentUpdate>
-      , return_type   : Option<FieldUpdate<String>>
-      , documentation : Option<FieldUpdate<String>>
-      , scope         : Option<FieldUpdate<language_server::types::SuggestionEntryScope>>
-    ) -> Vec<failure::Error> {
+    (&mut self, modification:SuggestionsDatabaseModification) -> Vec<failure::Error> {
+        let m         = modification;
+        let module    = m.module.map(|f| f.try_map(module::QualifiedName::from_text)).transpose();
+        let self_type = m.self_type.map(|f| f.try_map(tp::QualifiedName::from_text)).transpose();
         let other_update_results =
-            [ Entry::apply_field_update    ("return_type"  , &mut self.return_type  , return_type  )
-                , Entry::apply_opt_field_update("documentation", &mut self.documentation, documentation)
-                , self.apply_scope_update(scope)
+            [ Entry::apply_field_update    ("return_type"  , &mut self.return_type  , m.return_type  )
+            , Entry::apply_opt_field_update("documentation", &mut self.documentation, m.documentation)
+            , module.and_then   (|m| Entry::apply_field_update    ("module"   , &mut self.module   , m))
+            , self_type.and_then(|s| Entry::apply_opt_field_update("self_type", &mut self.self_type, s))
+            , self.apply_scope_update(m.scope)
             ];
         let other_update_results = SmallVec::from_buf(other_update_results).into_iter();
         let other_update_errors  = other_update_results.filter_map(|res| res.err());
-        let arg_update_errors    = arguments.into_iter().flat_map(|arg| self.apply_arg_update(arg));
+        let arg_update_errors    = m.arguments.into_iter().flat_map(|arg| self.apply_arg_update(arg));
         arg_update_errors.chain(other_update_errors).collect_vec()
     }
 
@@ -344,16 +345,15 @@ impl Entry {
         }
     }
 
-    fn apply_field_update<T:Default>
+    fn apply_field_update<T>
     (field_name:&'static str, field:&mut T, update:Option<FieldUpdate<T>>) -> FallibleResult {
         let err = InvalidFieldUpdate(field_name);
         if let Some(update) = update {
             match update.tag {
-                FieldAction::Set    => { *field = update.value.ok_or(err)? },
-                FieldAction::Remove => { *field = default()                }
+                FieldAction::Set    => { *field = update.value.ok_or(err)?; Ok(()) },
+                FieldAction::Remove => { Err(err.into())                           }
             }
-        }
-        Ok(())
+        } else { Ok(()) }
     }
 
     fn apply_opt_field_update<T>

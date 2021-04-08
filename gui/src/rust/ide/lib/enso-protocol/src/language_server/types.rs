@@ -806,6 +806,9 @@ pub struct SuggestionsDatabaseEntry {
     pub suggestion : SuggestionEntry,
 }
 
+
+// === Suggestion Database Updates ===
+
 #[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
 #[allow(missing_docs)]
 pub enum FieldAction {Remove,Set}
@@ -833,6 +836,24 @@ impl<T> FieldUpdate<T> {
             tag   : FieldAction::Remove,
             value : None,
         }
+    }
+
+    /// Maps the field update by applying `f` on the underlying value.
+    pub fn map<U>(self, f:impl Fn(T) -> U) -> FieldUpdate<U> {
+        FieldUpdate {
+            tag   : self.tag,
+            value : self.value.map(f),
+        }
+    }
+
+    /// Maps the field update by applying `f` on the underlying value, if `f` returns [`Ok`].
+    /// Otherwise returns the error returned by `f`.
+    pub fn try_map<U,E>
+    (self, f:impl Fn(T) -> std::result::Result<U,E>) -> std::result::Result<FieldUpdate<U>,E> {
+        Ok(FieldUpdate {
+            tag   : self.tag,
+            value : self.value.map(f).transpose()?,
+        })
     }
 }
 
@@ -883,12 +904,23 @@ pub enum SuggestionsDatabaseUpdate {
     Modify {
         id            : SuggestionId,
         external_id   : Option<FieldUpdate<Uuid>>,
-        #[serde(default)]
-        arguments     : Vec<SuggestionArgumentUpdate>,
-        return_type   : Option<FieldUpdate<String>>,
-        documentation : Option<FieldUpdate<String>>,
-        scope         : Option<FieldUpdate<SuggestionEntryScope>>,
+        #[serde(flatten)]
+        modification  : Box<SuggestionsDatabaseModification>,
     }
+}
+
+/// The modification of suggestion database entry.
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[allow(missing_docs)]
+#[serde(tag="type")]
+pub struct SuggestionsDatabaseModification {
+    #[serde(default)]
+    pub arguments     : Vec<SuggestionArgumentUpdate>,
+    pub module        : Option<FieldUpdate<String>>,
+    pub self_type     : Option<FieldUpdate<String>>,
+    pub return_type   : Option<FieldUpdate<String>>,
+    pub documentation : Option<FieldUpdate<String>>,
+    pub scope         : Option<FieldUpdate<SuggestionEntryScope>>,
 }
 
 /// Notification about change in the suggestions database.
