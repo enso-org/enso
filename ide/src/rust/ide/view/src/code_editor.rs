@@ -52,8 +52,9 @@ ensogl::define_endpoints! {
 /// The View of IDE Code Editor.
 #[derive(Clone,CloneRef,Debug)]
 pub struct View {
-    model : text::Area,
-    frp   : Frp,
+    model  : text::Area,
+    styles : StyleWatchFrp,
+    frp    : Frp,
 }
 
 impl Deref for View {
@@ -111,8 +112,9 @@ impl View {
             let color = styles.get_color(ensogl_theme::code::syntax::base);
             eval color ((color) model.set_default_color(color));
         }
+        model.set_default_color(color.value());
 
-        Self{model,frp}
+        Self{model,styles,frp}
     }
 
     /// Return the Text Area component inside this editor.

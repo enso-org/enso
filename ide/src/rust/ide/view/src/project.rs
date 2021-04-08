@@ -207,15 +207,14 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-
+        ensogl_theme::builtin::dark::register(app);
+        ensogl_theme::builtin::light::register(app);
         let theme = match ARGS.theme.as_ref().map(|s|s.as_str()) {
             Some("dark") => {
-                ensogl_theme::builtin::dark::register(app);
                 ensogl_theme::builtin::dark::enable(app);
                 Theme::Dark
             }
             _ => {
-                ensogl_theme::builtin::light::register(app);
                 ensogl_theme::builtin::light::enable(app);
                 Theme::Light
             }
