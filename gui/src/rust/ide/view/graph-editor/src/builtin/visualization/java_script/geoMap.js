@@ -184,7 +184,7 @@ class GeoMapVisualization extends Visualization {
         this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
         this.pitch = ok(data.pitch) ? data.pitch : 0
         this.controller = ok(data.controller) ? data.controller : true
-        this.showingLabels = ok(data.showingLabels) ? data.showingLabels : false
+        this.showingLabels = ok(data.showingLabels) ? data.showingLabels : true
         return true
     }
 
