@@ -139,11 +139,11 @@ impl SuggestionDatabase {
                         error!(self.logger, "Received Remove event for nonexistent id: {id}");
                     }
                 },
-                entry::Update::Modify {id,arguments,return_type,documentation,scope,..} => {
+                entry::Update::Modify
+                    {id,modification,..} => {
                     if let Some(old_entry) = entries.get_mut(&id) {
                         let entry  = Rc::make_mut(old_entry);
-                        let errors = entry.apply_modifications
-                            (arguments,return_type,documentation,scope);
+                        let errors = entry.apply_modifications(*modification);
                         for error in errors {
                             error!(self.logger
                                 ,"Error when applying update for entry {id}: {error:?}");
@@ -237,7 +237,7 @@ mod test {
     use crate::model::suggestion_database::entry::Scope;
 
     use enso_data::text::TextLocation;
-    use enso_protocol::language_server::{SuggestionsDatabaseEntry, FieldUpdate};
+    use enso_protocol::language_server::{SuggestionsDatabaseEntry, FieldUpdate, SuggestionsDatabaseModification};
     use enso_protocol::language_server::SuggestionArgumentUpdate;
     use enso_protocol::language_server::SuggestionEntryScope;
     use enso_protocol::language_server::Position;
@@ -384,10 +384,14 @@ mod test {
         let modify_update = entry::Update::Modify {
             id            : 1,
             external_id   : None,
-            arguments     : vec![],
-            return_type   : None,
-            documentation : None,
-            scope         : None
+            modification  : Box::new(SuggestionsDatabaseModification {
+                arguments     : vec![],
+                module        : None,
+                self_type     : None,
+                return_type   : None,
+                documentation : None,
+                scope         : None
+            }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates         : vec![modify_update],
@@ -407,17 +411,21 @@ mod test {
         let modify_update = entry::Update::Modify {
             id          : 1,
             external_id : None,
-            // Invalid: the entry does not have any arguments.
-            arguments:vec![SuggestionArgumentUpdate::Remove {index:0}],
-            // Valid.
-            return_type:Some(FieldUpdate::set("TestAtom2".to_owned())),
-            // Valid.
-            documentation:Some(FieldUpdate::set("Blah blah".to_owned())),
-            // Invalid: atoms does not have any scope.
-            scope:Some(FieldUpdate::set(SuggestionEntryScope {
-                start : Position {line:4, character:10},
-                end   : Position {line:8, character:12}
-            })),
+            modification : Box::new(SuggestionsDatabaseModification {
+                // Invalid: the entry does not have any arguments.
+                arguments:vec![SuggestionArgumentUpdate::Remove {index:0}],
+                // Valid.
+                return_type:Some(FieldUpdate::set("TestAtom2".to_owned())),
+                // Valid.
+                documentation:Some(FieldUpdate::set("Blah blah".to_owned())),
+                // Invalid: atoms does not have any scope.
+                scope:Some(FieldUpdate::set(SuggestionEntryScope {
+                    start : Position {line:4, character:10},
+                    end   : Position {line:8, character:12}
+                })),
+                module:None,
+                self_type:None,
+            }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates         : vec![modify_update],
@@ -437,20 +445,24 @@ mod test {
         let modify_update = entry::Update::Modify {
             id            : 3,
             external_id   : None,
-            arguments     : vec![SuggestionArgumentUpdate::Modify {
-                index         : 2,
-                name          : Some(FieldUpdate::set("NewArg".to_owned())),
-                repr_type     : Some(FieldUpdate::set("TestAtom".to_owned())),
-                is_suspended  : Some(FieldUpdate::set(true)),
-                has_default   : Some(FieldUpdate::set(false)),
-                default_value : Some(FieldUpdate::remove()),
-            }],
-            return_type   : None,
-            documentation : None,
-            scope         : Some(FieldUpdate::set(SuggestionEntryScope {
-                start: Position { line: 1, character: 5 },
-                end: Position { line: 3, character: 0 }
-            })),
+            modification  : Box::new(SuggestionsDatabaseModification {
+                arguments     : vec![SuggestionArgumentUpdate::Modify {
+                    index         : 2,
+                    name          : Some(FieldUpdate::set("NewArg".to_owned())),
+                    repr_type     : Some(FieldUpdate::set("TestAtom".to_owned())),
+                    is_suspended  : Some(FieldUpdate::set(true)),
+                    has_default   : Some(FieldUpdate::set(false)),
+                    default_value : Some(FieldUpdate::remove()),
+                }],
+                return_type   : None,
+                documentation : None,
+                scope         : Some(FieldUpdate::set(SuggestionEntryScope {
+                    start: Position { line: 1, character: 5 },
+                    end: Position { line: 3, character: 0 }
+                })),
+                self_type : None,
+                module    : None,
+            }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates         : vec![modify_update],
@@ -480,10 +492,14 @@ mod test {
         let add_arg_update = entry::Update::Modify {
             id            : 3,
             external_id   : None,
-            arguments     : vec![SuggestionArgumentUpdate::Add {index:2, argument:new_argument}],
-            return_type   : None,
-            documentation : None,
-            scope         : None,
+            modification  : Box::new(SuggestionsDatabaseModification {
+                arguments     : vec![SuggestionArgumentUpdate::Add {index:2, argument:new_argument}],
+                return_type   : None,
+                documentation : None,
+                scope         : None,
+                self_type     : None,
+                module        : None,
+            }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates         : vec![add_arg_update],
@@ -501,10 +517,14 @@ mod test {
         let remove_arg_update = entry::Update::Modify {
             id            : 3,
             external_id   : None,
-            arguments     : vec![SuggestionArgumentUpdate::Remove {index:2}],
-            return_type   : None,
-            documentation : None,
-            scope         : None,
+            modification  : Box::new(SuggestionsDatabaseModification {
+                arguments     : vec![SuggestionArgumentUpdate::Remove {index:2}],
+                return_type   : None,
+                documentation : None,
+                scope         : None,
+                self_type     : None,
+                module        : None,
+            }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
             updates         : vec![remove_arg_update],

@@ -39,7 +39,7 @@ loadStyle('https://api.mapbox.com/mapbox-gl-js/v2.1.1/mapbox-gl.css')
 
 const mapboxStyle = `
 .mapboxgl-map {
-    border-radius: 14px;
+ border-radius: 14px;
 }`
 
 loadStyleFromString(mapboxStyle)
@@ -104,19 +104,7 @@ class GeoMapVisualization extends Visualization {
         this.initMapElement()
         this.initStyle()
         this.dataPoints = []
-        this.setPreprocessorModule('Standard.Table')
-        this.setPreprocessorCode(`
-                df -> case df of
-                    Table.Table _ ->
-                        names = ['label', 'latitude', 'longitude']
-                        look_for name = 
-                            is_matching column = column.name.equals_ignore_case name
-                            ["df_" + name, df.columns.find is_matching . to_vector]
-                        valid_column pair = pair.at 1 . is_error . not
-                        pairs = names.map look_for . filter valid_column
-                        Json.from_pairs pairs . to_text
-                    _ -> df . to_json . to_text
-            `)
+        this.setPreprocessor('here.process_to_json_text', 'Standard.Visualization.Geo_Map')
     }
 
     initMapElement() {
@@ -177,14 +165,14 @@ class GeoMapVisualization extends Visualization {
         }
         const { latitude, longitude } = this.centerPoint()
 
-        this.latitude = ok(data.latitude) ? data.latitude : latitude
-        this.longitude = ok(data.longitude) ? data.longitude : longitude
+        this.latitude = data.latitude ?? latitude
+        this.longitude = data.longitude ?? longitude
         // TODO : Compute zoom somehow from span of latitudes and longitudes.
-        this.zoom = ok(data.zoom) ? data.zoom : DEFAULT_MAP_ZOOM
-        this.mapStyle = ok(data.mapStyle) ? data.mapStyle : this.defaultMapStyle
-        this.pitch = ok(data.pitch) ? data.pitch : 0
-        this.controller = ok(data.controller) ? data.controller : true
-        this.showingLabels = ok(data.showingLabels) ? data.showingLabels : true
+        this.zoom = data.zoom ?? DEFAULT_MAP_ZOOM
+        this.mapStyle = data.mapStyle ?? this.defaultMapStyle
+        this.pitch = data.pitch ?? 0
+        this.controller = data.controller ?? true
+        this.showingLabels = data.showingLabels ?? false
         return true
     }
 
@@ -308,7 +296,7 @@ function extractVisualizationDataFromFullConfig(parsedData, preparedDataPoints, 
     } else if (ok(parsedData.layers)) {
         parsedData.layers.forEach(layer => {
             if (layer.type === SCATTERPLOT_LAYER) {
-                let dataPoints = layer.data || []
+                let dataPoints = layer.data ?? []
                 pushPoints(dataPoints, preparedDataPoints, accentColor)
             } else {
                 console.warn('Geo_Map: Currently unsupported deck.gl layer.')
@@ -321,10 +309,12 @@ function extractVisualizationDataFromFullConfig(parsedData, preparedDataPoints, 
  * Extract the visualisation data from a dataframe.
  */
 function extractVisualizationDataFromDataFrame(parsedData, preparedDataPoints, accentColor) {
-    const geoPoints = parsedData.df_latitude.map(function (lat, i) {
-        const lon = parsedData.df_longitude[i]
-        let label = ok(parsedData.df_label) ? parsedData.df_label[i] : undefined
-        return { latitude: lat, longitude: lon, label }
+    const geoPoints = parsedData.df_latitude.map(function (latitude, i) {
+        const longitude = parsedData.df_longitude[i]
+        const label = parsedData.df_label?.[i]
+        const color = parsedData.df_color?.[i]
+        const radius = parsedData.df_radius?.[i]
+        return { latitude, longitude, label, color, radius }
     })
     pushPoints(geoPoints, preparedDataPoints, accentColor)
 }
@@ -359,7 +349,7 @@ function extractDataPoints(parsedData, preparedDataPoints, accentColor) {
 function pushPoints(dataPoints, targetList, accentColor) {
     dataPoints.forEach(geoPoint => {
         let position = [geoPoint.longitude, geoPoint.latitude]
-        let radius = isNaN(geoPoint.radius) ? DEFAULT_POINT_RADIUS : geoPoint.radius
+        let radius = isValidNumber(geoPoint.radius) ? geoPoint.radius : DEFAULT_POINT_RADIUS
         let color = ok(geoPoint.color) ? geoPoint.color : accentColor
         let label = ok(geoPoint.label) ? geoPoint.label : ''
         targetList.push({ position, color, radius, label })
