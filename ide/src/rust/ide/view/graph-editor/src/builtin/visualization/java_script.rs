@@ -76,6 +76,15 @@ pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition 
     visualization::java_script::Definition::new_builtin(source)
 }
 
+/// Return a `JavaScript` Image visualization.
+pub fn image_base64_visualization() -> visualization::java_script::FallibleDefinition {
+    let loading_scripts = include_str!("java_script/helpers/loading.js");
+    let source          = include_str!("java_script/imageBase64.js");
+    let source          = format!("{}{}", loading_scripts, source);
+
+    visualization::java_script::Definition::new_builtin(source)
+}
+
 /// Return an empty minimal `JavaScript` visualization. This should not be used except for testing.
 pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
     let source = r#"

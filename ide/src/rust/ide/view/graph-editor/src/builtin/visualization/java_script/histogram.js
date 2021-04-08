@@ -37,7 +37,8 @@ const BUTTON_HEIGHT = 25
  }
  */
 class Histogram extends Visualization {
-    static inputType = 'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector'
+    static inputType =
+        'Standard.Table.Data.Table.Table | Standard.Base.Data.Vector.Vector | Standard.Image.Data.Histogram.Histogram'
     static label = 'Histogram'
 
     constructor(data) {
@@ -95,6 +96,7 @@ class Histogram extends Visualization {
             this._axisSpec = data.axis
             this._focus = data.focus
             this._dataValues = this.extractValues(data)
+            this._dataBins = this.extractBins(data)
             this._bins = data.bins
         }
 
@@ -108,6 +110,13 @@ class Histogram extends Visualization {
         } else {
             return rawData.data.values ?? []
         }
+    }
+
+    extractBins(rawData) {
+        if (ok(rawData.data)) {
+            return rawData.data.bins
+        }
+        return null
     }
 
     /**
@@ -468,6 +477,14 @@ class Histogram extends Visualization {
             )
     }
 
+    createBins(values) {
+        let bins = []
+        for (let i = 0; i < values.length; i++) {
+            bins.push({ x0: i, x1: i + 1, length: values[i] })
+        }
+        return bins
+    }
+
     /**
      * Update the d3 histogram with the current data.
      *
@@ -476,7 +493,6 @@ class Histogram extends Visualization {
      */
     updateHistogram() {
         const extremesAndDeltas = this.extremesAndDeltas()
-        const dataPoints = this.data()
         const focus = this.focus()
 
         let domainX = [
@@ -497,13 +513,18 @@ class Histogram extends Visualization {
             .attr('transform', 'translate(0,' + this.canvas.inner.height + ')')
             .call(d3.axisBottom(x))
 
-        const histogram = d3
-            .histogram()
-            .value(d => d)
-            .domain(x.domain())
-            .thresholds(x.ticks(this.binCount()))
+        let bins
+        if (ok(this._dataBins)) {
+            bins = this.createBins(this._dataBins)
+        } else {
+            const histogram = d3
+                .histogram()
+                .value(d => d)
+                .domain(x.domain())
+                .thresholds(x.ticks(this.binCount()))
 
-        const bins = histogram(dataPoints)
+            bins = histogram(this._dataValues)
+        }
 
         const y = d3.scaleLinear().range([this.canvas.inner.height, 0])
         y.domain([0, d3.max(bins, d => d.length)])
@@ -593,19 +614,26 @@ class Histogram extends Visualization {
      * than the container.
      */
     extremesAndDeltas() {
-        const dataPoints = this.data()
-        let xMin = dataPoints[0] ?? 0
-        let xMax = dataPoints[0] ?? 0
+        let xMin
+        let xMax
+        if (ok(this._dataBins)) {
+            const dataBins = this._dataBins
+            xMin = 0
+            xMax = dataBins.length - 1
+        } else {
+            const dataPoints = this._dataValues
+            xMin = dataPoints[0]
+            xMax = dataPoints[0]
 
-        dataPoints.forEach(value => {
-            if (value < xMin) {
-                xMin = value
-            }
-            if (value > xMax) {
-                xMax = value
-            }
-        })
-
+            dataPoints.forEach(value => {
+                if (value < xMin) {
+                    xMin = value
+                }
+                if (value > xMax) {
+                    xMax = value
+                }
+            })
+        }
         const dx = xMax - xMin
         const paddingX = 0.1 * dx
 
@@ -654,7 +682,7 @@ class Histogram extends Visualization {
         addStyleToElem(
             'button',
             `
-            margin-left: 5px; 
+            margin-left: 5px;
             margin-bottom: 5px;
             display: inline-block;
             padding: 2px 10px;
