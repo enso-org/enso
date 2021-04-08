@@ -124,8 +124,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       }
     }
 
+    val builder: TreeBuilder = Vector.newBuilder
+    builder += Tree.Node(buildModuleAtom(module), Vector())
+
     Tree.Root(
-      go(Vector.newBuilder, Scope(ir.children, ir.location))
+      go(builder, Scope(ir.children, ir.location))
     )
   }
 
@@ -196,6 +199,17 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       buildScope(location)
     )
   }
+
+  /** Build an atom suggestion representing a module. */
+  private def buildModuleAtom(module: QualifiedName): Suggestion =
+    Suggestion.Atom(
+      externalId    = None,
+      module        = module.toString,
+      name          = module.item,
+      arguments     = Seq(),
+      returnType    = module.toString,
+      documentation = None
+    )
 
   /** Build suggestions for an atom definition. */
   private def buildAtom(
