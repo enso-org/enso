@@ -18,10 +18,9 @@ pub use expression::Expression;
 
 use crate::prelude::*;
 
-use crate::Type;
-use crate::builtin::visualization::native as builtin_visualization;
 use crate::component::visualization;
 use crate::tooltip;
+use crate::Type;
 
 use enso_frp as frp;
 use enso_frp;
@@ -363,7 +362,7 @@ pub struct NodeModel {
     pub input               : input::Area,
     pub output              : output::Area,
     pub visualization       : visualization::Container,
-    pub error_visualization : builtin_visualization::Error,
+    pub error_visualization : error::Container,
     pub action_bar          : action_bar::ActionBar,
     pub vcs_indicator       : vcs::StatusIndicator,
     pub style               : StyleWatchFrp,
@@ -419,7 +418,7 @@ impl NodeModel {
         display_object.add_child(&visualization);
         display_object.add_child(&input);
 
-        let error_visualization = builtin_visualization::Error::new(scene);
+        let error_visualization = error::Container::new(scene);
         let (x,y)               = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x,y));
 
@@ -650,8 +649,6 @@ impl Node {
             layer_on_not_hover <- preview_visible.on_true().map(|_| visualization::Layer::Front);
             layer              <- any(layer_on_hover,layer_on_not_hover);
             model.visualization.frp.set_layer <+ layer;
-            eval layer ((l) model.error_visualization.frp.set_layer.emit(l));
-
 
             update_error <- all(frp.set_error,preview_visible);
             eval update_error([model]((error,visible)){
@@ -703,9 +700,9 @@ impl Node {
 
             // === VCS Handling ===
             model.vcs_indicator.frp.set_status <+ frp.set_vcs_status;
-
         }
 
+        model.error_visualization.set_layer(visualization::Layer::Front);
         frp.set_error.emit(None);
         frp.set_disabled.emit(false);
         Self {frp,model}
