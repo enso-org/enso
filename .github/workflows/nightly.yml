@@ -25,26 +25,22 @@ jobs:
     if: >
       ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message,'[release: nightly]') || true }}
     outputs:
-      proceed:
-        description: Whether the nightly build should proceed.
-        value: ${{ steps.check-assumptions.outputs.proceed }}
-      nightly-version:
-        description: The version string to use for the current build.
-        value: ${{ steps.compute-version.outputs.nightly-version }}
+      proceed: ${{ steps.check-assumptions.outputs.proceed }}
+      nightly-version: ${{ steps.compute-version.outputs.nightly-version }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - id: check-assumptions
         name: Check If The Build Should Proceed
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         # The script below sets an output 'proceed' to true or false depending on whether the nightly build should proceed.
         # Nightly builds are skipped if no new changes are present since the last one.
         run: |
           cd tools/ci/nightly/
+          npm install
           node preflight-check.js ${{ github.sha }}
-      - name: Checkout
-        if: ${{ steps.check-assumptions.outputs.proceed == 'true' }}
-        uses: actions/checkout@v2
-        with:
-          path: repo
       - name: Compute Version
         id: compute-version
         if: ${{ steps.check-assumptions.outputs.proceed == 'true' }}
@@ -143,6 +139,7 @@ jobs:
           echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
           echo "ENSO_VERSION=${{ needs.preflight-check.outputs.nightly-version }}" >> $GITHUB_ENV
       - name: Update the Version Number to the Nightly
+        working-directory: repo
         shell: bash
         run: |
           sed -i "s/val ensoVersion.*= \".*\"/val ensoVersion   = \"$ENSO_VERSION\"/" build.sbt
@@ -361,7 +358,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: enso-${{ env.DIST_VERSION }}
-          release_name: Enso ${{ env.DIST_VERSION }}
+          release_name: Enso Nightly ${{ env.DIST_VERSION }}
           body: "Please fill-in the release description"
           draft: true
           prerelease: true
@@ -600,3 +597,6 @@ jobs:
           asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
+
+  # TODO: publish the release
+  # Possible hint: secrets.GITHUB_TOKEN may not be allowed to publish releases.

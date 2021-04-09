@@ -15,8 +15,8 @@ function setProceed(proceed) {
 }
 
 function isNightly(release) {
-  const nightlyInfix = "-SNAPSHOT-";
-  return release.tagName.indexOf(nightlyInfix) >= 0;
+  const nightlyInfix = "Nightly";
+  return release.name.indexOf(nightlyInfix) >= 0;
 }
 
 async function main() {
@@ -25,10 +25,10 @@ async function main() {
     repository(owner: "enso-org", name: "enso") {
       releases(first: 100, orderBy: {direction: DESC, field: CREATED_AT}) {
         nodes {
-          tagName
           tagCommit {
             oid
           }
+          name
         }
       }
     }
