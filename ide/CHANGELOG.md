@@ -37,6 +37,8 @@
 - You can hide the node labels with `--no-node-labels` option. This is useful
   when creating demo videos.
 - [Added Heatmap visualization.][1438]
+- [Add backgrounds to the project name and status bar][1447]. Both now have a
+  background with drop shadow for better readability.
 - [Image visualization.][1367]. Visualizations for the Enso Image library. Now
   You can display Image type and string with image encoded in base64. Histogram
   visualization has been adjusted, allowing to display the values of the

@@ -7,10 +7,15 @@
 //    description
 use crate::prelude::*;
 
+use crate::graph_editor::component::node::input::area::TEXT_SIZE;
+
 use ensogl::application::Application;
+use ensogl::display::camera::Camera2d;
 use ensogl::display::Scene;
-use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::*;
+use ensogl::display::style;
 use ensogl::display;
+use ensogl_gui_components::shadow;
 use ensogl_text as text;
 use ensogl_theme as theme;
 use std::future::Future;
@@ -22,9 +27,13 @@ use std::future::Future;
 // =================
 
 /// The height of the status bar.
-pub const HEIGHT:f32 = 40.0;
+const HEIGHT              : f32 = 28.0;
 /// Padding inside the status bar.
-pub const PADDING:f32 = 12.0;
+pub const PADDING         : f32 = 12.0;
+/// Margin between status bar and edge of the screen
+const MARGIN              : f32 = 12.0;
+/// This should be as large as the shadow around the background.
+const MAGIC_SHADOW_MARGIN : f32 = 40.0;
 
 
 
@@ -75,6 +84,39 @@ pub mod process {
 
 
 
+// ==================
+// === Background ===
+// ==================
+
+mod background {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let theme             = ensogl_theme::application::status_bar::background;
+            let theme             = style::Path::from(theme);
+            let width             = Var::<Pixels>::from("input_size.x");
+            let height            = Var::<Pixels>::from("input_size.y");
+
+            let corner_radius     = style.get_number(theme.sub("corner_radius"));
+            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
+            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
+            let shape             = Rect((&shape_width,&shape_height));
+            let shape             = shape.corners_radius(corner_radius.px());
+
+            let bg_color          = style.get_color(&theme);
+            let bg                = shape.fill(bg_color);
+            let shadow_parameters = shadow::parameters_from_style_path(style,theme.sub("shadow"));
+            let shadow            = shadow::from_shape_with_parameters
+                (shape.into(),shadow_parameters);
+
+            (shadow + bg).into()
+        }
+    }
+}
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -86,7 +128,6 @@ ensogl::define_endpoints! {
         finish_process (process::Id),
     }
     Output {
-        width             (f32),
         last_event        (event::Id),
         last_process      (process::Id),
         displayed_event   (Option<event::Id>),
@@ -105,21 +146,31 @@ ensogl::define_endpoints! {
 struct Model {
     logger          : Logger,
     display_object  : display::object::Instance,
+    root            : display::object::Instance,
+    background      : background::View,
     label           : text::Area,
     events          : Rc<RefCell<Vec<event::Label>>>,
     processes       : Rc<RefCell<HashMap<process::Id,process::Label>>>,
     next_process_id : Rc<RefCell<process::Id>>,
+    camera          : Camera2d,
 }
 
 impl Model {
     fn new(app:&Application) -> Self {
+        let scene           = app.display.scene();
         let logger          = Logger::new("StatusBar");
         let display_object  = display::object::Instance::new(&logger);
+        let root            = display::object::Instance::new(&logger);
+        let background      = background::View::new(&logger);
         let label           = text::Area::new(app);
         let events          = default();
         let processes       = default();
         let next_process_id = default();
-        display_object.add_child(&label);
+        let camera          = scene.camera();
+
+        scene.layers.breadcrumbs_background.add_exclusive(&background);
+        label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
+        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
 
         let text_color_path = theme::application::status_bar::text;
         let style           = StyleWatch::new(&app.display.scene().style_sheet);
@@ -127,11 +178,42 @@ impl Model {
         label.frp.set_color_all.emit(text_color);
         label.frp.set_default_color.emit(text_color);
 
-        Self {logger,display_object,label,events,processes,next_process_id}
+        Self {logger,display_object,root,background,label,events,processes,next_process_id,camera}
+            .init()
     }
 
-    fn set_width(&self, width:f32) {
-        self.label.set_position_x(-width/2.0 + PADDING);
+    fn init(self) -> Self {
+        self.display_object.add_child(&self.root);
+        self.root.add_child(&self.background);
+        self.root.add_child(&self.label);
+
+        self.update_layout();
+        self.camera_changed();
+
+        self
+    }
+
+    fn camera_changed(&self) {
+        let screen = self.camera.screen();
+        let x = -screen.width/2.0 + MARGIN;
+        let y = -screen.height/2.0 + MARGIN;
+        self.root.set_position_x(x.round());
+        self.root.set_position_y(y.round());
+    }
+
+    fn update_layout(&self) {
+        self.label.set_position_x(PADDING);
+        self.label.set_position_y(HEIGHT/2.0 + TEXT_SIZE/2.0);
+
+        let bg_width = if self.label.width.value() > 0.0 {
+            PADDING + self.label.width.value() + PADDING
+        } else {
+            0.0
+        };
+        let bg_height = HEIGHT;
+        self.background.size.set(Vector2(bg_width+2.0*MAGIC_SHADOW_MARGIN,
+            bg_height+2.0*MAGIC_SHADOW_MARGIN));
+        self.background.set_position(Vector3(bg_width/2.0,bg_height/2.0,0.0));
     }
 
     fn add_event(&self, label:&event::Label) -> event::Id {
@@ -184,10 +266,6 @@ impl View {
         let model       = Model::new(&app);
         let network     = &frp.network;
         let scene       = app.display.scene();
-        let scene_shape = scene.shape().clone_ref();
-
-        model.label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        model.label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
 
         enso_frp::extend! { network
             event_added       <- frp.add_event.map(f!((label) model.add_event(label)));
@@ -219,15 +297,9 @@ impl View {
             frp.source.displayed_process <+ event_added.constant(None);
             frp.source.displayed_process <+ displayed_process_finished.constant(None);
 
-            width <- scene_shape.map(|scene_shape| scene_shape.width);
-            eval width ((width) model.set_width(*width));
-            eval scene_shape ((scene_shape)
-                model.display_object.set_position_y(-scene_shape.height / 2.0 + HEIGHT / 2.0);
-            );
-            frp.source.width <+ width;
+            eval_ model.label.output.width (model.update_layout());
+            eval_ scene.frp.camera_changed (model.camera_changed());
         }
-
-        model.set_width(scene_shape.value().width);
 
         Self {frp,model}
     }
