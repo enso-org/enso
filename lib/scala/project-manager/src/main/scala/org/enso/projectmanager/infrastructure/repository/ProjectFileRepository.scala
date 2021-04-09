@@ -57,7 +57,7 @@ class ProjectFileRepository[
     getAll().map(_.filter(predicate))
 
   /** @inheritdoc */
-  override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
+  override def getAll(): F[ProjectRepositoryFailure, List[Project]] = {
     fileSystem
       .list(storageConfig.userProjectsPath)
       .map(_.filter(_.isDirectory))
@@ -65,7 +65,11 @@ class ProjectFileRepository[
         Nil
       }
       .mapError(th => StorageFailure(th.toString))
-      .flatMap(s => Traverse[List].traverse(s)(tryLoadProject).map(_.flatten))
+      .flatMap { dirs =>
+        Traverse[List].traverse(dirs)(tryLoadProject).map(_.flatten)
+      }
+      .flatMap(resolveClashingIds)
+  }
 
   /** @inheritdoc */
   override def findById(
@@ -291,4 +295,46 @@ class ProjectFileRepository[
       fileSystem,
       gen
     )
+
+  /** Resolve id clashes and return a list of projects with unique identifiers
+    * by assigning random ids to clashing projects.
+    *
+    * @param projects the list of projects
+    * @return return the list of projects with unique ids
+    */
+  private def resolveClashingIds(
+    projects: List[Project]
+  ): F[ProjectRepositoryFailure, List[Project]] = {
+    val clashing = markProjectsWithClashingIds(projects)
+    Traverse[List].traverse(clashing) { case (isClashing, project) =>
+      if (isClashing) {
+        for {
+          newId <- gen.randomUUID()
+          updatedProject = project.copy(id = newId)
+          _ <- update(updatedProject)
+        } yield updatedProject
+      } else {
+        Applicative[F].pure(project)
+      }
+    }
+  }
+
+  /** Take a list of projects and mark the projects that have duplicate ids.
+    *
+    * @param projects the list of projects
+    * @return the list of pairs. Fist element of the pair indicates if the
+    * project has clashing id.
+    */
+  private def markProjectsWithClashingIds(
+    projects: List[Project]
+  ): List[(Boolean, Project)] = {
+    projects.groupBy(_.id).foldRight(List.empty[(Boolean, Project)]) {
+      case ((_, groupedProjects), acc) =>
+        // groupBy always returns non-empty list
+        (groupedProjects: @unchecked) match {
+          case project :: clashingProjects =>
+            (false, project) :: clashingProjects.map((true, _)) ::: acc
+        }
+    }
+  }
 }
