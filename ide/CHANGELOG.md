@@ -119,6 +119,8 @@
   load.][1413]
 - [Fixed a case where IDE could lose connection to the backend after some
   time.][1428]
+- [Improved performance of the graph editor, particularly when opening a project
+  for a first time.][1445]
 
 #### EnsoGL (rendering engine)
 
@@ -164,6 +166,7 @@ you can find their release notes
 [1428]: https://github.com/enso-org/ide/pull/1428
 [1438]: https://github.com/enso-org/ide/pull/1438
 [1367]: https://github.com/enso-org/ide/pull/1367
+[1445]: https://github.com/enso-org/ide/pull/1445
 
 <br/>
 

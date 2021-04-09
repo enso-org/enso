@@ -182,6 +182,7 @@ struct Model {
     node_views              : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
     node_view_by_expression : RefCell<HashMap<ast::Id,graph_editor::NodeId>>,
     expression_views        : RefCell<HashMap<graph_editor::NodeId,graph_editor::component::node::Expression>>,
+    expression_types        : SharedHashMap<ExpressionId,Option<graph_editor::Type>>,
     connection_views        : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
     code_view               : CloneRefCell<ensogl_text::Text>,
     visualizations          : SharedHashMap<graph_editor::NodeId,VisualizationId>,
@@ -427,13 +428,15 @@ impl Model {
         let node_view_by_expression = default();
         let connection_views        = default();
         let expression_views        = default();
+        let expression_types        = default();
         let code_view               = default();
         let visualizations          = default();
         let error_visualizations    = default();
         let searcher                = default();
         let this                    = Model
-            {view,graph,text,searcher,node_views,expression_views,connection_views,code_view,logger
-            ,visualization,visualizations,error_visualizations,project,node_view_by_expression};
+            {view,graph,text,searcher,node_views,expression_views,expression_types,connection_views
+            ,code_view,logger,visualization,visualizations,error_visualizations,project
+            ,node_view_by_expression};
 
         this.init_project_name();
         this.load_visualizations();
@@ -623,7 +626,9 @@ impl Model {
             input_span_tree     : trees.inputs,
             output_span_tree    : trees.outputs.unwrap_or_else(default)
         };
-        if !self.expression_views.borrow().get(&id).contains(&&code_and_trees) {
+        let expression_changed =
+            !self.expression_views.borrow().get(&id).contains(&&code_and_trees);
+        if expression_changed {
             for sub_expression in node.info.ast().iter_recursive() {
                 if let Some(expr_id) = sub_expression.id {
                     self.node_view_by_expression.borrow_mut().insert(expr_id,id);
@@ -636,7 +641,7 @@ impl Model {
         // Set initially available type information on ports (identifiable expression's sub-parts).
         for expression_part in node.info.expression().iter_recursive() {
             if let Some(id) = expression_part.id {
-                self.refresh_computed_info(id);
+                self.refresh_computed_info(id,expression_changed);
             }
         }
     }
@@ -645,7 +650,7 @@ impl Model {
     fn refresh_computed_infos(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult {
         debug!(self.logger, "Refreshing type information for IDs: {expressions_to_refresh:?}.");
         for id in expressions_to_refresh {
-            self.refresh_computed_info(*id)
+            self.refresh_computed_info(*id,false)
         }
         Ok(())
     }
@@ -654,12 +659,12 @@ impl Model {
     /// graph editor view.
     ///
     /// The computed value information includes the expression type and the target method pointer.
-    fn refresh_computed_info(&self, id:ExpressionId) {
+    fn refresh_computed_info(&self, id:ExpressionId, force_type_info_refresh:bool) {
         let info     = self.lookup_computed_info(&id);
         let info     = info.as_ref();
         let typename = info.and_then(|info| info.typename.clone().map(graph_editor::Type));
         if let Some(node_id) = self.node_view_by_expression.borrow().get(&id).cloned() {
-            self.set_type(node_id,id,typename);
+            self.set_type(node_id,id,typename, force_type_info_refresh);
             let method_pointer = info.and_then(|info| {
                 info.method_call.and_then(|entry_id| {
                     let opt_method = self.project.suggestion_db().lookup_method_ptr(entry_id).ok();
@@ -677,9 +682,20 @@ impl Model {
     }
 
     /// Set given type (or lack of such) on the given sub-expression.
-    fn set_type(&self, node_id:graph_editor::NodeId, id:ExpressionId, typename:Option<graph_editor::Type>) {
-        let event = (node_id,id,typename);
-        self.view.graph().frp.input.set_expression_usage_type.emit(&event);
+    fn set_type
+    ( &self
+    , node_id       : graph_editor::NodeId
+    , id            : ExpressionId
+    , typename      : Option<graph_editor::Type>
+    , force_refresh : bool
+    ) {
+        // We suppress spurious type information updates here, as they were causing performance
+        // issues. See: https://github.com/enso-org/ide/issues/952
+        let previous_type_opt = self.expression_types.insert(id,typename.clone());
+        if force_refresh || previous_type_opt.as_ref() != Some(&typename) {
+            let event = (node_id,id,typename);
+            self.view.graph().frp.input.set_expression_usage_type.emit(&event);
+        }
     }
 
     /// Set given method pointer (or lack of such) on the given sub-expression.
@@ -851,7 +867,7 @@ impl Model {
         use controller::graph::executed::Notification;
         use controller::graph::Notification::*;
 
-        debug!(self.logger, "Received notification {notification:?}");
+        debug!(self.logger, "Received graph notification {notification:?}");
         let result = match notification {
             Some(Notification::Graph(Invalidate))         => self.on_graph_invalidated(),
             Some(Notification::Graph(PortsUpdate))        => self.on_graph_expression_update(),
@@ -874,7 +890,7 @@ impl Model {
     pub fn handle_text_notification(&self, notification:Option<controller::text::Notification>) {
         use controller::text::Notification;
 
-        debug!(self.logger, "Received notification {notification:?}");
+        debug!(self.logger, "Received text notification {notification:?}");
         let result = match notification {
             Some(Notification::Invalidate) => self.on_text_invalidated(),
             other => {
@@ -892,6 +908,7 @@ impl Model {
     pub fn handle_searcher_notification(&self, notification:controller::searcher::Notification) {
         use controller::searcher::Notification;
         use controller::searcher::UserAction;
+        debug!(self.logger, "Received searcher notification {notification:?}");
         match notification {
             Notification::NewActionList => with(self.searcher.borrow(), |searcher| {
                 if let Some(searcher) = &*searcher {
