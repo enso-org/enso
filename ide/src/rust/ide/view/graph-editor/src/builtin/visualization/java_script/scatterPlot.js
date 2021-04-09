@@ -274,9 +274,15 @@ class ScatterPlot extends Visualization {
             }
 
             scaleAndAxis.xAxis.call(
-                d3.axisBottom(transformedScale.xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH)
+                d3
+                    .axisBottom(transformedScale.xScale)
+                    .ticks((5 * self.dom.getAttributeNS(null, 'width')) / 200)
             )
-            scaleAndAxis.yAxis.call(d3.axisLeft(transformedScale.yScale))
+            scaleAndAxis.yAxis.call(
+                d3
+                    .axisLeft(transformedScale.yScale)
+                    .ticks((10 * self.dom.getAttributeNS(null, 'height')) / 200)
+            )
             scatter
                 .selectAll('path')
                 .attr(
@@ -410,11 +416,19 @@ class ScatterPlot extends Visualization {
         scaleAndAxis.xAxis
             .transition()
             .duration(ANIMATION_DURATION)
-            .call(d3.axisBottom(scaleAndAxis.xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH))
+            .call(
+                d3
+                    .axisBottom(scaleAndAxis.xScale)
+                    .ticks((5 * this.dom.getAttributeNS(null, 'width')) / 200)
+            )
         scaleAndAxis.yAxis
             .transition()
             .duration(ANIMATION_DURATION)
-            .call(d3.axisLeft(scaleAndAxis.yScale))
+            .call(
+                d3
+                    .axisLeft(scaleAndAxis.yScale)
+                    .ticks((10 * this.dom.getAttributeNS(null, 'height')) / 200)
+            )
 
         scatter
             .selectAll('path')
@@ -586,11 +600,14 @@ class ScatterPlot extends Visualization {
             .append('g')
             .attr('transform', 'translate(0,' + boxHeight + ')')
             .attr('style', LABEL_STYLE)
-            .call(d3.axisBottom(xScale).ticks(boxWidth / X_AXIS_LABEL_WIDTH))
+            .call(d3.axisBottom(xScale).ticks((5 * this.dom.getAttributeNS(null, 'width')) / 200))
 
         let yScale = this.axisD3Scale(axis?.y)
         yScale.domain(domainY).range([boxHeight, 0])
-        let yAxis = svg.append('g').attr('style', LABEL_STYLE).call(d3.axisLeft(yScale))
+        let yAxis = svg
+            .append('g')
+            .attr('style', LABEL_STYLE)
+            .call(d3.axisLeft(yScale).ticks((10 * this.dom.getAttributeNS(null, 'height')) / 200))
         return { xScale: xScale, yScale: yScale, xAxis: xAxis, yAxis: yAxis }
     }
 
