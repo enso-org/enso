@@ -598,5 +598,20 @@ jobs:
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
 
-  # TODO: publish the release
-  # Possible hint: secrets.GITHUB_TOKEN may not be allowed to publish releases.
+      - name: Prepare Nodejs
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: npm install
+      - name: Publish Release
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: node publish-release.js ${{ steps.create_release.id }}
+        # TODO: secrets.GITHUB_TOKEN may not be allowed to publish releases.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Remove Old Releases
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: node clean-old-releases.js
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

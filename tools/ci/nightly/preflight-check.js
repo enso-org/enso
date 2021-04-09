@@ -1,41 +1,13 @@
-const { Octokit } = require("@octokit/core");
-const octokit = new Octokit();
+const github = require("./github");
 
 const currentHeadSha = process.argv[2];
-const token = process.env.GITHUB_TOKEN;
-
-const graphqlWithAuth = octokit.graphql.defaults({
-  headers: {
-    authorization: "token " + token,
-  },
-});
 
 function setProceed(proceed) {
   console.log("::set-output name=proceed::" + proceed)
 }
 
-function isNightly(release) {
-  const nightlyInfix = "Nightly";
-  return release.name.indexOf(nightlyInfix) >= 0;
-}
-
 async function main() {
-  const query = `
-  {
-    repository(owner: "enso-org", name: "enso") {
-      releases(first: 100, orderBy: {direction: DESC, field: CREATED_AT}) {
-        nodes {
-          tagCommit {
-            oid
-          }
-          name
-        }
-      }
-    }
-  }
-  `;
-  const { repository } = await graphqlWithAuth(query);
-  const nightlies = repository.releases.nodes.filter(isNightly);
+  const nightlies = await github.fetchNightlies();
   if (nightlies.length == 0) {
     console.log("No prior nightly releases found. Proceeding with the first release.")
     setProceed(true);
