@@ -42,12 +42,8 @@ use std::hash::Hasher;
 /// parametrization, other mechanisms should be used. For example, `Point Float` and `Point Number`
 /// should have similar colors, completely distinct from their parameter types.
 pub fn compute(tp:&Type, styles:&StyleWatch) -> color::Lcha {
-    // FIXME: Left for performance debug purposes. See: https://github.com/enso-org/ide/issues/952
-    // println!("Type coloring for: '{}",tp.as_str());
     let types_path = theme::code::types::overriden::HERE.path();
     let type_path  = types_path.into_subs(tp.as_str().split('.'));
-    // FIXME: Left for performance debug purposes. See: https://github.com/enso-org/ide/issues/952
-    // println!("Path: {:?}",type_path);
     let hue = styles.get(type_path.sub("hue")).number_or_else(|| auto_hue(tp,styles));
     let lightness = styles.get(type_path.sub("lightness")).number_or_else(||
         styles.get_number_or(theme::code::types::lightness,0.85));
