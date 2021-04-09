@@ -697,11 +697,16 @@ class RuntimeVersionManager(
       }
 
       try {
-        val temporaryRuntime = loadGraalRuntime(runtimeTemporaryPath)
-        if (temporaryRuntime.isFailure) {
+        val temporaryRuntime =
+          loadGraalRuntime(runtimeTemporaryPath).getOrElse {
+            throw InstallationError(
+              "Cannot load the installed runtime. The package may have been " +
+              "corrupted. Reverting installation."
+            )
+          }
+        installRequiredRuntimeComponents(temporaryRuntime, os).getOrElse {
           throw InstallationError(
-            "Cannot load the installed runtime. The package may have been " +
-            "corrupted. Reverting installation."
+            "fatal: Cannot install the required runtime components."
           )
         }
 
@@ -714,13 +719,6 @@ class RuntimeVersionManager(
             "fatal: Cannot load the installed runtime."
           )
         }
-        installRequiredRuntimeComponents(runtime, os).getOrElse {
-          FileSystem.removeDirectory(runtimePath)
-          throw InstallationError(
-            "fatal: Cannot install the required runtime components."
-          )
-        }
-
         userInterface.logInfo(s"Installed $runtime.")
 
         runtime
