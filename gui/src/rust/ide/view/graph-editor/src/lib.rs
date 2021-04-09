@@ -1274,8 +1274,9 @@ impl GraphEditorModel {
         let is_frameless = ARGS.frame == Some(false);
         let x_offset     = if is_macos && is_frameless { MACOS_TRAFFIC_LIGHTS_WIDTH }
                            else                        { MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET };
+        let y_offset     = -MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
         self.breadcrumbs.set_position_x(x_offset);
-        self.breadcrumbs.set_position_y(-5.0);
+        self.breadcrumbs.set_position_y(y_offset);
         self.scene().add_child(&self.tooltip);
         self
     }

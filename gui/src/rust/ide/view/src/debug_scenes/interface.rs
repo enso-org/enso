@@ -10,6 +10,7 @@ use crate::graph_editor;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::Type;
 use crate::project;
+use crate::status_bar;
 
 use enso_frp as frp;
 use ensogl::display::navigation::navigator::Navigator;
@@ -99,6 +100,9 @@ fn init(app:&Application) {
     world.add_child(&project_view);
 
     code_editor.text_area().set_content(STUB_MODULE.to_owned());
+
+    project_view.status_bar().add_event(status_bar::event::Label::new("This is a status message."));
+    graph_editor.debug_push_breadcrumb();
 
 
     // === Nodes ===

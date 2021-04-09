@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
-use super::VERTICAL_MARGIN;
 use super::TEXT_SIZE;
 use super::RelativePosition;
-
+use crate::component::breadcrumbs;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::MethodPointer;
 
 use enso_frp as frp;
@@ -29,8 +29,8 @@ use ensogl::application::Application;
 // === Constants ===
 // =================
 
-/// Breadcrumb top margin.
-pub const TOP_MARGIN:f32 = 0.0;
+/// Breadcrumb vertical margin.
+pub const VERTICAL_MARGIN:f32 = 0.0;
 /// Breadcrumb left margin.
 pub const LEFT_MARGIN:f32 = 0.0;
 /// Breadcrumb right margin.
@@ -290,23 +290,23 @@ impl BreadcrumbModel {
         let relative_position = default();
         let outputs           = frp.outputs.clone_ref();
 
-        scene.layers.breadcrumbs.add_exclusive(&view);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_background.add_exclusive(&view);
+        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
             (scene,PhantomData::<background::DynamicShape>);
-        scene.layers.breadcrumbs.add_symbol_exclusive(&shape_system.shape_system.symbol);
+        scene.layers.breadcrumbs_background.add_symbol_exclusive(&shape_system.shape_system.symbol);
 
-        scene.layers.breadcrumbs.add_exclusive(&icon);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_text.add_exclusive(&icon);
+        let shape_system = scene.layers.breadcrumbs_text.shape_system_registry.shape_system
             (scene,PhantomData::<icon::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        scene.layers.breadcrumbs.add_exclusive(&separator);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_background.add_exclusive(&separator);
+        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
             (scene,PhantomData::<separator::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
         label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
+        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)
@@ -367,14 +367,14 @@ impl BreadcrumbModel {
 
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
-        TEXT_SIZE + VERTICAL_MARGIN * 2.0
+        LINE_HEIGHT + breadcrumbs::VERTICAL_MARGIN * 2.0
     }
 
     fn fade_in(&self, value:f32) {
         let width      = self.width();
         let height     = self.height();
         let x_position = width*value/2.0;
-        let y_position = -height/2.0-TOP_MARGIN-PADDING;
+        let y_position = -height/2.0-VERTICAL_MARGIN-PADDING;
         self.view.set_position(Vector3(x_position.round(),y_position.round(),0.0));
     }
 

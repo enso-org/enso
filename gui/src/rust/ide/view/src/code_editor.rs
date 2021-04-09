@@ -76,7 +76,7 @@ impl View {
 
         model.set_position_x(PADDING_LEFT);
         model.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        model.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
+        model.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
         //  should be changed in the second part of focus management
         //  (https://github.com/enso-org/ide/issues/823)

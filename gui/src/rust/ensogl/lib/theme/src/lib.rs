@@ -178,6 +178,19 @@ define_themes! { [light:0, dark:1]
         }
         status_bar {
             text = text, text;
+            background = graph_editor::node::background , graph_editor::node::background;
+            background {
+                corner_radius = 14.0 , 14.0;
+                shadow = shadow , shadow;
+                shadow {
+                    size     = shadow::size     , shadow::size;
+                    spread   = shadow::spread   , shadow::spread;
+                    fading   = shadow::fading   , shadow::fading;
+                    exponent = shadow::exponent , shadow::exponent;
+                    offset_x = shadow::offset_x , shadow::offset_x;
+                    offset_y = shadow::offset_y , shadow::offset_y;
+                }
+            }
         }
     }
     code {
@@ -241,7 +254,7 @@ define_themes! { [light:0, dark:1]
                 edited    = Lcha::yellow(0.9,1.0), Lcha::yellow(0.9,1.0);
             }
             error {
-                dataflow      = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
+                dataflow     = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 panic        = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
                 width        = 4.0  , 4.0;
                 repeat_x     = 20.0 , 20.0;
@@ -281,6 +294,19 @@ define_themes! { [light:0, dark:1]
             deselected  {
                 left  = Lcha(0.0,0.0,0.0,0.5) , Lcha(1.0,0.0,0.0,0.5);
                 right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
+            }
+            background = graph_editor::node::background , graph_editor::node::background;
+            background {
+                corner_radius = 8.0 , 8.0;
+                shadow = shadow , shadow;
+                shadow {
+                    size     = shadow::size     , shadow::size;
+                    spread   = shadow::spread   , shadow::spread;
+                    fading   = shadow::fading   , shadow::fading;
+                    exponent = shadow::exponent , shadow::exponent;
+                    offset_x = shadow::offset_x , shadow::offset_x;
+                    offset_y = shadow::offset_y , shadow::offset_y;
+                }
             }
         }
         edge {
