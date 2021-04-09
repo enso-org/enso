@@ -66,6 +66,8 @@ class Heatmap extends Visualization {
             return rawData.data
         } else if (Array.isArray(rawData)) {
             return rawData
+        } else if (ok(rawData.json) && Array.isArray(rawData.json)) {
+            return rawData.json
         }
         return []
     }
@@ -105,6 +107,17 @@ class Heatmap extends Visualization {
         divElem.setAttributeNS(null, 'width', '100%')
         divElem.setAttributeNS(null, 'height', '100%')
 
+        const addStyleToElem = (attr, stl) => {
+            const style = document.createElement('style')
+            style.innerText = attr + '{' + stl + '}'
+
+            divElem.appendChild(style)
+        }
+
+        const darkStrokeColor = `rgba(255,255,255,0.7)`
+
+        addStyleToElem('.dark-theme text', `fill: ${darkStrokeColor};`)
+
         return divElem
     }
 
@@ -140,29 +153,61 @@ class Heatmap extends Visualization {
      */
     initHeatmap() {
         let data = this.data()
+        if (ok(data.length) && data.length === 2 && Array.isArray(data[1])) {
+            let indices = Array.from(Array(data[1].length).keys())
+            data = [data[0], indices, data[1]]
+        } else if (!Array.isArray(data[0])) {
+            let indices = Array.from(Array(data.length).keys())
+            data = [indices, [], data]
+        } else if (ok(data.length) && data.length === 1 && Array.isArray(data[0])) {
+            let indices = Array.from(Array(data[0].length).keys())
+            data = [indices, [], data[0]]
+        }
+
         // Labels of row and columns
         let myGroups = d3.map(data[0], d => d).keys()
         let myVars = d3.map(data[1], d => d).keys()
         let labelStyle = 'font-family: DejaVuSansMonoBook; font-size: 10px;'
+        let self = this
 
         // Build X scales and axis:
         let x = d3.scaleBand().range([0, this.canvas.inner.width]).domain(myGroups).padding(0.05)
+        let xAxis = d3
+            .axisBottom(x)
+            .tickSize(0)
+            .tickValues(
+                myGroups.filter((d, i) => {
+                    if (i == myGroups.length - 1) {
+                        return 1
+                    }
+                    let divisor = (5 * self.canvas.outer.width) / 200
+                    return !(i % Math.round(myGroups.length / divisor))
+                })
+            )
+
         this.svg
             .append('g')
             .attr('style', labelStyle)
             .attr('transform', 'translate(0,' + this.canvas.inner.height + ')')
-            .call(d3.axisBottom(x).tickSize(0))
+            .call(xAxis)
             .select('.domain')
             .remove()
 
         // Build Y scales and axis:
         let y = d3.scaleBand().range([this.canvas.inner.height, 0]).domain(myVars).padding(0.05)
-        this.svg
-            .append('g')
-            .attr('style', labelStyle)
-            .call(d3.axisLeft(y).tickSize(0))
-            .select('.domain')
-            .remove()
+        let yAxis = d3
+            .axisLeft(y)
+            .tickSize(0)
+            .tickValues(
+                myVars.filter((d, i) => {
+                    if (i == myVars.length - 1) {
+                        return 1
+                    }
+                    let divisor = (9 * self.canvas.outer.height) / 200
+                    return !(i % Math.round(myVars.length / divisor))
+                })
+            )
+        this.svg.append('g').attr('style', labelStyle).call(yAxis).select('.domain').remove()
 
         // Build color scale
         let fill = d3
@@ -193,8 +238,14 @@ class Heatmap extends Visualization {
      * Sets size of the main parent DOM object.
      */
     setSize(size) {
+        while (this.dom.firstChild) {
+            this.dom.removeChild(this.dom.lastChild)
+        }
+
         this.dom.setAttributeNS(null, 'width', size[0])
         this.dom.setAttributeNS(null, 'height', size[1])
+        this.initCanvas()
+        this.initHeatmap()
     }
 }
 

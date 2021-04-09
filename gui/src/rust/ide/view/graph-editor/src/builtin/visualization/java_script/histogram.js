@@ -458,8 +458,14 @@ class Histogram extends Visualization {
      */
     rescale(scale, withAnimation) {
         const duration = withAnimation ? ANIMATION_DURATION : 0.0
-        this.xAxis.transition().duration(duration).call(d3.axisBottom(scale.x))
-        this.yAxis.transition().duration(duration).call(d3.axisLeft(scale.y))
+        this.xAxis
+            .transition()
+            .duration(duration)
+            .call(d3.axisBottom(scale.x).ticks((5 * this.canvasDimensions().outer.width) / 200))
+        this.yAxis
+            .transition()
+            .duration(duration)
+            .call(d3.axisLeft(scale.y).ticks((10 * this.canvasDimensions().outer.height) / 200))
         this.plot
             .selectAll('rect')
             .transition()
@@ -511,7 +517,7 @@ class Histogram extends Visualization {
 
         this.xAxis
             .attr('transform', 'translate(0,' + this.canvas.inner.height + ')')
-            .call(d3.axisBottom(x))
+            .call(d3.axisBottom(x).ticks((5 * this.canvasDimensions().outer.width) / 200))
 
         let bins
         if (ok(this._dataBins)) {
@@ -533,7 +539,7 @@ class Histogram extends Visualization {
 
         const yAxis = d3.axisLeft(y).tickValues(yAxisTicks).tickFormat(d3.format('d'))
 
-        this.yAxis.call(yAxis)
+        this.yAxis.call(yAxis.ticks((10 * this.canvasDimensions().outer.height) / 200))
 
         const fill = d3
             .scaleSequential()
@@ -706,22 +712,22 @@ class Histogram extends Visualization {
         )
 
         addStyleToElem(
-            '.dark button',
+            '.dark-theme button',
             `
             border: 0;
             background-color: ${darkStrokeColor};
         `
         )
         addStyleToElem(
-            '.dark button:hover',
+            '.dark-theme button:hover',
             `
             background-color: ${darkBtnHoverColor};
         `
         )
-        addStyleToElem('.dark .selection', `fill: ${darkSelectionFill}`)
-        addStyleToElem('.dark line', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark .domain', `stroke: ${darkStrokeColor};`)
-        addStyleToElem('.dark text', `fill: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .selection', `fill: ${darkSelectionFill}`)
+        addStyleToElem('.dark-theme line', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme .domain', `stroke: ${darkStrokeColor};`)
+        addStyleToElem('.dark-theme text', `fill: ${darkStrokeColor};`)
 
         return divElem
     }
