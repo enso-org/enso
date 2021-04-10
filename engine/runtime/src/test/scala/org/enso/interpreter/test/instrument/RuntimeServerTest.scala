@@ -55,7 +55,7 @@ class RuntimeServerTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
@@ -1626,6 +1626,119 @@ class RuntimeServerTest
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
       context.executionComplete(contextId)
     )
+  }
+
+  it should "test shape" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val newline    = System.lineSeparator()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val squareId  = metadata.addItem(125, 9)
+    val surfaceId = metadata.addItem(139, 9)
+
+    println(s"square=$squareId")
+    println(s"surface=$surfaceId")
+
+    val code =
+      """from Builtins import all
+        |
+        |type Shape
+        |    type Square a
+        |
+        |    surface = case this of
+        |        Square a -> a * a
+        |
+        |main =
+        |    s = Square 12
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable s.",
+              Some(mainFile),
+              Some(model.Range(model.Position(9, 4), model.Position(9, 5))),
+              None
+            )
+          )
+        )
+      ),
+      TestMessages.update(contextId, squareId, "Test.Main.Square"),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(9, 17), model.Position(9, 17)),
+              s"$newline    s"
+            )
+          )
+        )
+      )
+    )
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(10, 5), model.Position(10, 5)),
+              s".surface"
+            )
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId),
+     TestMessages.update(
+       contextId,
+       surfaceId,
+       Constants.INTEGER,
+       Api.MethodPointer(moduleName, "Test.Main.Square", "surface")
+     ),
+      context.executionComplete(contextId)
+    )
+
   }
 
   it should "support file modification operations without attached ids" in {
