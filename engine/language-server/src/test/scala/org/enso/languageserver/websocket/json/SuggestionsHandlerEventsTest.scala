@@ -3,7 +3,6 @@ package org.enso.languageserver.websocket.json
 import java.io.File
 
 import io.circe.literal._
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.data.Tree
@@ -16,7 +15,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
 
     "send suggestions database notifications" taggedAs Retry in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))

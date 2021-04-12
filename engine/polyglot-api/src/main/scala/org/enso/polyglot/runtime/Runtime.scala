@@ -182,6 +182,14 @@ object Runtime {
         name  = "invalidateModulesIndexResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.VerifyModulesIndexRequest],
+        name  = "verifyModulesIndexRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VerifyModulesIndexResponse],
+        name  = "verifyModulesIndexResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ImportSuggestionRequest],
         name  = "importSuggestionRequest"
       ),
@@ -1040,6 +1048,20 @@ object Runtime {
 
     /** Signals that the module indexes has been invalidated. */
     case class InvalidateModulesIndexResponse() extends ApiResponse
+
+    /** A request to verify the modules in the suggestions database.
+      *
+      * @param modules the list of modules
+      */
+    case class VerifyModulesIndexRequest(modules: Seq[String])
+        extends ApiRequest
+
+    /** A response to the module verification request.
+      *
+      * @param remove the list of modules to remove from suggestions database.
+      */
+    case class VerifyModulesIndexResponse(remove: Seq[String])
+        extends ApiResponse
 
     /** A request to return info needed to import the suggestion.
       *

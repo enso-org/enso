@@ -5,7 +5,10 @@ import org.enso.launcher.cli.{
   GlobalCLIOptions
 }
 import org.enso.runtimeversionmanager.components.{
+  GraalVMComponentConfiguration,
   InstallerKind,
+  RuntimeComponentConfiguration,
+  RuntimeComponentUpdaterFactory,
   RuntimeVersionManager
 }
 import org.enso.runtimeversionmanager.distribution.{
@@ -43,6 +46,10 @@ object DefaultManagers {
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, defaultResourceManager)
 
+  /** Default [[RuntimeComponentConfiguration]]. */
+  lazy val componentConfig: RuntimeComponentConfiguration =
+    new GraalVMComponentConfiguration
+
   /** Creates a [[RuntimeVersionManager]] that uses the default distribution. */
   def runtimeVersionManager(
     globalCLIOptions: GlobalCLIOptions,
@@ -58,6 +65,8 @@ object DefaultManagers {
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider.default,
+      componentConfig,
+      RuntimeComponentUpdaterFactory.Default,
       InstallerKind.Launcher
     )
 }

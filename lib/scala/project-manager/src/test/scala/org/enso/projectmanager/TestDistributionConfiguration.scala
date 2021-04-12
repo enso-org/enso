@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
+  GraalVMComponentConfiguration,
   InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -30,6 +31,7 @@ import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   HasTestDirectory,
+  NoopComponentUpdaterFactory,
   TestLocalLockManager
 }
 
@@ -67,6 +69,10 @@ class TestDistributionConfiguration(
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)
 
+  lazy val componentConfig = new GraalVMComponentConfiguration
+
+  lazy val componentUpdaterFactory = NoopComponentUpdaterFactory
+
   override def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager = new RuntimeVersionManager(
@@ -76,6 +82,8 @@ class TestDistributionConfiguration(
     resourceManager           = resourceManager,
     engineReleaseProvider     = engineReleaseProvider,
     runtimeReleaseProvider    = runtimeReleaseProvider,
+    componentConfig           = componentConfig,
+    componentUpdaterFactory   = componentUpdaterFactory,
     installerKind             = InstallerKind.ProjectManager
   )
 

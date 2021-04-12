@@ -85,19 +85,6 @@ object ExecutionApi {
     }
   }
 
-  case object ExecutionContextExpressionValuesComputed
-      extends Method("executionContext/expressionValuesComputed") {
-
-    case class Params(
-      contextId: ContextId,
-      updates: Vector[ExpressionValueUpdate]
-    )
-
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = ExecutionContextExpressionValuesComputed.Params
-    }
-  }
-
   case object ExecutionContextExpressionUpdates
       extends Method("executionContext/expressionUpdates") {
 
