@@ -28,6 +28,8 @@ import org.enso.interpreter.runtime.library.dispatch.MethodDispatchLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
+import java.util.Objects;
+
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(MethodDispatchLibrary.class)
@@ -48,6 +50,25 @@ public final class AtomConstructor implements TruffleObject {
   public AtomConstructor(String name, ModuleScope definitionScope) {
     this.name = name;
     this.definitionScope = definitionScope;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AtomConstructor that = (AtomConstructor) o;
+    return name.equals(that.name)
+        && Objects.equals(
+        definitionScope.getAssociatedType(), that.definitionScope.getAssociatedType());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, definitionScope);
   }
 
   /**
@@ -231,8 +252,7 @@ public final class AtomConstructor implements TruffleObject {
     static final int CACHE_SIZE = 10;
 
     @CompilerDirectives.TruffleBoundary
-    static Function doResolve(
-        Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
+    static Function doResolve(Context context, AtomConstructor cons, UnresolvedSymbol symbol) {
       return symbol.resolveFor(cons, context.getBuiltins().any());
     }
 
@@ -250,8 +270,7 @@ public final class AtomConstructor implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached("symbol") UnresolvedSymbol cachedSymbol,
         @Cached("_this") AtomConstructor cachedConstructor,
-        @Cached("doResolve(context, cachedConstructor, cachedSymbol)")
-            Function function) {
+        @Cached("doResolve(context, cachedConstructor, cachedSymbol)") Function function) {
       return function;
     }
 

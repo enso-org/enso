@@ -198,8 +198,8 @@ trait ProgramExecutionSupport {
     }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
+      logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        logger.log(Level.FINEST, s"ON_CACHED_VALUE ${value.getExpressionId}")
         fireVisualisationUpdates(contextId, value)
       }
     }

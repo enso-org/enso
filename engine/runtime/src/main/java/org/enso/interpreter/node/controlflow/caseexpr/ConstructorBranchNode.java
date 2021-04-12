@@ -33,7 +33,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
 
   @Specialization
   void doAtom(VirtualFrame frame, Object state, Atom target) {
-    if (profile.profile(matcher == target.getConstructor())) {
+    if (profile.profile(matcher.equals(target.getConstructor()))) {
       accept(frame, state, target.getFields());
     }
   }
