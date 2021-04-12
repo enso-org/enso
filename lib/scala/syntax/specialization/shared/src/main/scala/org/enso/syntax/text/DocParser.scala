@@ -293,7 +293,9 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs += HTML.div(HTML.`class` := "root")(file.code).toString()
+          allDocs += HTML
+            .div(HTML.`class` := "mb-20")(file.code)
+            .toString() //`class` := "root"
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -352,14 +354,12 @@ object DocParserHTMLGenerator {
     val astHTML = createHTMLFromAST(ast, doc.tags)
     val astName = HTML.div(astHTML.header)
     astHTML.body match {
-      case Some(b) =>
-        val astBodyCls = HTML.`class` := "ml-20"
-        val astBody    = Seq(HTML.div(astBodyCls)(b))
+      case Some(body) =>
         // Case when producing main page
-        HTML.div(HTML.`class` := "main")(
+        HTML.div(HTML.`class` := "main ml-20")(
           astName,
           doc.htmlWoTagsMain,
-          astBody
+          body
         )
       case None =>
         // Case when listing atoms or methods
@@ -433,28 +433,34 @@ object DocParserHTMLGenerator {
     val firstLine = Line(Option(body.firstLine.elem), body.firstLine.off)
     val atomsHeader = HTML.h2(
       HTML.div(HTML.`class` := "flex")(
-        //"<AtomsIcon className=\"-mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />",
+        HTML.raw(
+          "<AtomsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
         HTML.p("Atoms")
       )
     )
 
     val extMethodsHeader = HTML.h2(
       HTML.div(HTML.`class` := "flex")(
-        //"<MethodsIcon className=\"-mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />",
+        HTML.raw(
+          "<MethodsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
         HTML.p("Methods")
       )
     )
 
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
-    val atoms =
-      generatedCode.filter(
-        _.toString().contains("class=\"atom\"")
-      )
-    val methods =
-      generatedCode.filter(
-        _.toString().contains("class=\"method\"")
-      )
+    val atoms = generatedCode.filter(
+      _.toString().contains("class=\"atom\"")
+    )
+    val methods = generatedCode.filter(
+      _.toString().contains("class=\"method\"")
+    )
+    println("ATOMS +++++++++")
+    println(atoms.map(x => x.render + "\n"))
+    println("METHODS +++++++++")
+    println(methods)
     val head = createDocTitle(name, args, tags)
     val lines =
       HTML.div(
