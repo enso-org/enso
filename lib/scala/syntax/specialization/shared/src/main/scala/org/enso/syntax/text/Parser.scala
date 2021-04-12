@@ -553,11 +553,13 @@ object Main extends scala.App {
       |
       |## TEXTONLY
       |  PRIVATE
-      |  This is a testing framework for `Option.
+      |  This is a testing framework for `Option`.
       |  
       |  ? Info
       |  It doesn't do too much in current state.
-      |type Option_Test
+      |type Option_Testing
+      |    type Foo
+      |    type Bar
       |""".stripMargin
 
   println("--- PARSING ---")

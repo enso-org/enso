@@ -32,6 +32,9 @@ final case class Doc(
   val htmlWoTags: Doc.HTML = Seq(
     HTML.div(synopsis.html)(body.html)
   )
+  val htmlWoTagsMain: Doc.HTML = Seq(
+    HTML.div(synopsis.getOrElse(Doc.Synopsis()).htmlBig)(body.html)
+  )
   val html: Doc.HTML = Seq(
     HTML.div(tags.html)(synopsis.html)(body.html)
   )
@@ -299,9 +302,8 @@ object Doc {
         List(indent, listType, List1(elems.head, elems.tail.toList))
 
       abstract class Type(val marker: Char, val HTMLMarker: HTMLTag)
-      final case object Unordered
-          extends Type('-', HTML.ul(HTML.`class` := "doc-list"))
-      final case object Ordered extends Type('*', HTML.ol)
+      final case object Unordered extends Type('-', HTML.ul)
+      final case object Ordered   extends Type('*', HTML.ol)
 
       object Indent {
         final case class Invalid(indent: Int, typ: Type, elem: Elem)
@@ -355,7 +357,7 @@ object Doc {
     final case class Header(elems: List[Elem]) extends Elem {
       val repr: Repr.Builder = R + elems.map(_.repr)
       val html: HTML = Seq(
-        HTML.div(HTML.`class` := "doc-special-text-title mb-4")(
+        HTML.div(HTML.`class` := "summary")(
           elems.map(_.html)
         )
       )
@@ -384,7 +386,7 @@ object Doc {
 
       val repr: Repr.Builder = R + firstIndentRepr + elemsRepr
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := "doc-special-text-container doc-" + typ.toString.toLowerCase
+        HTML.`class` := typ.toString.toLowerCase
       }
 
       override def indent: Int =
@@ -438,8 +440,10 @@ object Doc {
       val repr: Repr.Builder = R + indent + elemsRepr
 
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := "doc-raw-text-container"
+        HTML.`class` := ""
       }
+
+      override val html: HTML = Seq(HTML.p(elems.map(_.html)))
     }
 
     object Raw {
@@ -466,7 +470,14 @@ object Doc {
     val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       Seq(
-        HTML.div(HTML.`class` := "doc-subsection text-2xl")(
+        HTML.div(HTML.`class` := "")(
+          elems.toList.map(_.html)
+        )
+      )
+    }
+    val htmlBig: HTML = {
+      Seq(
+        HTML.div(HTML.`class` := "summary")(
           elems.toList.map(_.html)
         )
       )
@@ -492,7 +503,7 @@ object Doc {
       R + newLn + _
     )
     val html: HTML = Seq(
-      HTML.div(HTML.`class` := "doc-subsection")(elems.toList.map(_.html))
+      HTML.div(elems.toList.map(_.html))
     )
   }
 
@@ -515,7 +526,7 @@ object Doc {
     val repr: Repr.Builder =
       R + elems.head + elems.tail.map(R + newLn + _) + newLn
     val html: HTML = Seq(
-      HTML.div(HTML.`class` := "doc-tags")(
+      HTML.div(HTML.`class` := "tags")(
         elems.toList.map(_.html)
       )
     )
@@ -539,18 +550,27 @@ object Doc {
         case _                => R + indent + name + details
       }
       val html: HTML = {
-        val className = "doc-tag doc-tag-"
         typ match {
           case Tag.Unrecognized =>
-            Seq(HTML.div(HTML.`class` := className + cName)(details.html))
+            Seq(
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)(details.html)
+              )
+            )
           case Tag.Type.TextOnly =>
             Seq(
-              HTML.div(HTML.`class` := className + cName)("TEXT ONLY")(
-                details.html
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)("TEXT ONLY")(
+                  details.html
+                )
               )
             )
           case _ =>
-            Seq(HTML.div(HTML.`class` := className + cName)(name)(details.html))
+            Seq(
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)(name)(details.html)
+              )
+            )
         }
       }
     }
@@ -581,7 +601,7 @@ object Doc {
     }
 
     implicit final class ExtForTagDetails(val self: Option[String]) {
-      val html: HTML = Seq(self.map(HTML.span(HTML.`class` := "opacity-80")(_)))
+      val html: HTML = Seq(self.map(HTML.span(HTML.`class` := "details")(_)))
     }
   }
 }

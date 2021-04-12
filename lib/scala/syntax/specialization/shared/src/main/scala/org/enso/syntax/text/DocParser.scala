@@ -293,7 +293,7 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs += file.code.toString() + HTML.br + HTML.br
+          allDocs += HTML.div(HTML.`class` := "root")(file.code).toString()
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -349,22 +349,21 @@ object DocParserHTMLGenerator {
     *            [[AST.App.Infix]]
     */
   def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
-    val docClass = HTML.`class` := "doc"
-    val astHTML  = createHTMLFromAST(ast, doc.tags)
-    val astName  = HTML.div(astHTML.header)
+    val astHTML = createHTMLFromAST(ast, doc.tags)
+    val astName = HTML.div(astHTML.header)
     astHTML.body match {
       case Some(b) =>
         val astBodyCls = HTML.`class` := "ml-20"
         val astBody    = Seq(HTML.div(astBodyCls)(b))
         // Case when producing main page
-        HTML.div(docClass)(
+        HTML.div(HTML.`class` := "main")(
           astName,
-          doc.htmlWoTags,
+          doc.htmlWoTagsMain,
           astBody
         )
       case None =>
-        // Case when listing constructors/methods | Name | Synopsis | Tags |
-        HTML.div(docClass)(
+        // Case when listing atoms or methods
+        HTML.div(
           astName,
           doc.htmlWoTags
         )
@@ -407,9 +406,9 @@ object DocParserHTMLGenerator {
               case AST.Block.any(b) =>
                 createDefWithBody(d.name, d.args, b, tags)
               case _ =>
-                astHtmlRepr(createDefWithoutBody(d.name, d.args, tags))
+                astHtmlRepr(createAtomHtmlRepr(d.name, d.args, tags))
             }
-          case None => astHtmlRepr(createDefWithoutBody(d.name, d.args, tags))
+          case None => astHtmlRepr(createAtomHtmlRepr(d.name, d.args, tags))
         }
       case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i, tags))
       case _                    => astHtmlRepr()
@@ -432,87 +431,83 @@ object DocParserHTMLGenerator {
     tags: Option[Doc.Tags]
   ): astHtmlRepr = {
     val firstLine = Line(Option(body.firstLine.elem), body.firstLine.off)
-    val atomsHeader = HTML.span(
-      `class` := "font-extrabold text-accent-important text-3xl"
-    )("Atoms")
-    val extMethodsHeader = HTML.span(
-      `class` := "font-extrabold text-accent-important text-3xl"
-    )("Extension Methods")
+    val atomsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "flex")(
+        //"<AtomsIcon className=\"-mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />",
+        HTML.p("Atoms")
+      )
+    )
+
+    val extMethodsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "flex")(
+        //"<MethodsIcon className=\"-mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />",
+        HTML.p("Methods")
+      )
+    )
+
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
-    val typesList =
+    val atoms =
       generatedCode.filter(
-        _.toString().contains("class=\"doc-subsection DefTitle\"")
+        _.toString().contains("class=\"atom\"")
       )
-    val infixList =
+    val methods =
       generatedCode.filter(
-        _.toString().contains("class=\"doc-subsection Infix\"")
+        _.toString().contains("class=\"method\"")
       )
-    val head    = createDefTitle(name, args, tags)
-    val clsBody = HTML.`class` := "DefBody"
+    val head = createDocTitle(name, args, tags)
     val lines =
-      HTML.div(clsBody)(
-        HTML.hr,
-        HTML.br,
-        atomsHeader,
-        typesList,
-        HTML.hr,
-        HTML.br,
-        extMethodsHeader,
-        infixList
+      HTML.div(
+        HTML.div(HTML.`class` := "atoms")(atomsHeader, atoms),
+        HTML.div(HTML.`class` := "methods")(extMethodsHeader, methods)
       )
-    val cls = HTML.`class` := "Def"
-    astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
+    astHtmlRepr(head, lines)
   }
 
-  /** Helper function for [[createHTMLFromAST]] to generate appropriate code
-    * from [[AST.Def]] when it doesn't contain anything in it's body
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - HTML code generated from Def
-    */
-  def createDefWithoutBody(
+  def createDocTitle(
     name: AST.Cons,
     args: List[AST],
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-    val cls = HTML.`class` := "DefNoBody"
-    HTML.div(cls)(createDefTitle(name, args, tags))
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show())
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+
+    HTML.h1(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "parameter")(argsStr)
+      ),
+      tagsHtml
+    )
   }
 
-  /** Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
-    * to generate [[AST.Def]] title form it's name and args
+  /** Function to generate Atoms from it's name and tags.
     *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - Def title in HTML
+    * @param name - Atom Name
+    * @param args - Atom Arguments
+    * @param tags - Atom Tags
+    * @return - HTMl doc of atom.
     */
-  def createDefTitle(
+  def createAtomHtmlRepr(
     name: AST.Cons,
     args: List[AST],
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-    val nameStr    = name.show()
-    val argsStr    = args.map(_.show())
-    var argsStrUrl = argsStr.mkString("_")
-    if (argsStr.nonEmpty) {
-      argsStrUrl = "_" + argsStrUrl
-    }
-    var tagsHtml = HTML.div()
-    if (tags.isDefined) {
-      tagsHtml = HTML.div(tags.html)
-    }
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show())
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
-    HTML.div(HTML.`class` := "doc-subsection DefTitle")(
-      HTML.div(HTML.`class` := "doc-header-container flex")(
-        HTML.span(HTML.`class` := "doc-header-name")(
-          nameStr,
+    HTML.div(
+      HTML.div(HTML.`class` := "atom")(
+        HTML.p(
+          HTML.span(HTML.`class` := "name")(nameStr),
           " ",
-          HTML.span(HTML.`class` := "opacity-60")(argsStr)
-        ),
-        tagsHtml
-      )
+          HTML.span(HTML.`class` := "parameter")(argsStr)
+        )
+      ),
+      tagsHtml
     )
   }
 
@@ -526,17 +521,19 @@ object DocParserHTMLGenerator {
     infix: AST.App.Infix,
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-    var tagsHtml = HTML.div()
-    if (tags.isDefined) {
-      tagsHtml = HTML.div(tags.html)
-    }
-    HTML.div(HTML.`class` := "doc-subsection Infix")(
-      HTML.div(HTML.`class` := "doc-header-container flex")(
-        HTML.span(HTML.`class` := "doc-header-name")(
-          infix.larg.show()
-        ),
-        tagsHtml
-      )
+    val nameStr  = infix.larg.show().split(" ").head
+    val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+
+    HTML.div(
+      HTML.div(HTML.`class` := "method")(
+        HTML.p(
+          HTML.span(HTML.`class` := "name")(nameStr),
+          " ",
+          HTML.span(HTML.`class` := "argument")(argsStr)
+        )
+      ),
+      tagsHtml
     )
   }
 
@@ -550,15 +547,13 @@ object DocParserHTMLGenerator {
   def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        val cls     = HTML.`class` := "DefDoc"
         val docHtml = DocumentedToHtml(doc.ast, doc.doc)
-        HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
+        HTML.div(docHtml) :: renderHTMLOnLine(rest)
       case x :: rest =>
         x match {
           case Line(Some(d), _) =>
-            val cls     = HTML.`class` := "DefNoDoc"
             val astHtml = createHTMLFromAST(d)
-            val div     = HTML.div(cls)(astHtml.header, astHtml.body)
+            val div     = HTML.div(astHtml.header, astHtml.body)
             div :: renderHTMLOnLine(rest)
           case _ => renderHTMLOnLine(rest)
         }
