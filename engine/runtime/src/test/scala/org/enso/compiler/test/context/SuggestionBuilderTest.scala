@@ -1261,7 +1261,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build module with atom" in {
+    "build module with simple atom" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
         """type MyType a b
@@ -1313,6 +1313,64 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
               selfType      = "Unnamed.Test.MyType",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "main",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build module with an atom named as module" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type Test a
+          |
+          |main = IO.println "Hello!"""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleAtomNode,
+          Tree.Node(
+            Suggestion.Atom(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "Test",
+              arguments = Seq(
+                Suggestion
+                  .Argument("a", SuggestionBuilder.Any, false, false, None)
+              ),
+              returnType    = "Unnamed.Test.Test",
+              documentation = None
+            ),
+            Vector()
+          ),
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "a",
+              arguments = List(
+                Suggestion
+                  .Argument("this", "Unnamed.Test.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test.Test",
               returnType    = SuggestionBuilder.Any,
               documentation = None
             ),

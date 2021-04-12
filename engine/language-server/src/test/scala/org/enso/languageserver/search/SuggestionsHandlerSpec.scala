@@ -18,6 +18,7 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -331,6 +332,72 @@ class SuggestionsHandlerSpec
             SearchProtocol.SuggestionsDatabaseUpdateNotification(
               (updates1.size + updates2.size).toLong,
               updates2
+            )
+          )
+        )
+    }
+
+    "apply update with an atom named as module" taggedAs Retry in withDb {
+      (_, _, router, _, handler) =>
+        val clientId = UUID.randomUUID()
+
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+
+        val moduleName = "Test.Foo"
+        val moduleAtom = Suggestion.Atom(
+          externalId    = None,
+          module        = moduleName,
+          name          = "Foo",
+          arguments     = Vector(),
+          returnType    = moduleName,
+          documentation = None
+        )
+        val fooAtom = moduleAtom.copy(returnType = "Test.Foo.Foo")
+
+        val tree = Tree.Root(
+          Vector(
+            Tree.Node(
+              Api.SuggestionUpdate(
+                moduleAtom,
+                Api.SuggestionAction.Add()
+              ),
+              Vector()
+            ),
+            Tree.Node(
+              Api.SuggestionUpdate(
+                fooAtom,
+                Api.SuggestionAction.Add()
+              ),
+              Vector()
+            )
+          )
+        )
+
+        // add tree
+        handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
+          new File("/tmp/foo"),
+          contentsVersion(""),
+          Vector(),
+          tree
+        )
+
+        val updates = tree.toVector.zipWithIndex.map { case (update, ix) =>
+          SearchProtocol.SuggestionsDatabaseUpdate.Add(
+            ix + 1L,
+            update.suggestion
+          )
+        }
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(
+              updates.size.toLong,
+              updates
             )
           )
         )
