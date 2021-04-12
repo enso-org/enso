@@ -32,9 +32,10 @@ final case class Doc(
   val htmlWoTags: Doc.HTML = Seq(
     HTML.div(synopsis.html)(body.html)
   )
-  val htmlWoTagsMain: Doc.HTML = Seq(
-    HTML.div(synopsis.getOrElse(Doc.Synopsis()).htmlBig)(body.html)
-  )
+  val htmlWoTagsMain: Doc.HTML = synopsis match {
+    case Some(s) => Seq(HTML.div(s.htmlBig)(body.html))
+    case None    => Seq(HTML.div(body.html))
+  }
   val html: Doc.HTML = Seq(
     HTML.div(tags.html)(synopsis.html)(body.html)
   )

@@ -508,58 +508,342 @@ object Main extends scala.App {
       |""".stripMargin
   val inC =
     """
-      |## ADDED in 2.0
-      |  MODIFIED in 2.1
-      |  UNSTABLE
-      |  Optional values.
+      |from Standard.Base import all
       |
-      |   Type `Option` represents an optional value: every `Option` is either `Some`
-      |   and contains a value, or `None`, and does not. Option types are very common
-      |   in Enso code, as they have a number of uses:
-      |      - Initial values.
-      |      - Return values for functions that are not defined 
-      |        over their entire input range (partial functions).
-      |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
-      |      - Optional struct fields.
-      |      - Optional function arguments.
-      |   `Option`s are commonly paired with pattern matching to query the presence of
-      |   a value and take action, always accounting for the None case.
+      |polyglot java import java.util.Locale as JavaLocale
       |
-      |type Option a
-      |    ## ADVANCED
-      |       The `Some` type indicates a presence of a value.
-      |    type Some a
+      |# Constants
+      |# These are chosen as the union of the top 10 countries by population, and the
+      |# top ten countries by total (nominal, not per-capita) GDP.
       |
-      |    ## MODIFIED
-      |     The `None` type indicates a lack of a value.
+      |## The default locale.
       |
-      |     It is a very common type and is used by such types as `Maybe` or `List`.
-      |     Also, `None` is the return value of functions which do not return an
-      |     explicit value.
-      |    type None
-      |    
-      |    ## DEPRECATED
-      |       PRIVATE
-      |       UNSTABLE
-      |       TEXTONLY
-      |     The `Nothing` is previous `None`.
-      |    type Nothing
+      |   The default locale is a locale that does not specify any language, country,
+      |   or variant and is used as the language/country-neutral setting for locale
+      |   sensitive operations.
+      |default : Locale
+      |default = here.from_java JavaLocale.ROOT
       |
-      |    ## The pow function calculates power of integers.
-      |    
-      |        ! Important
-      |          This function, if used wildly, will break space-time continuum.
-      |    pow x y = x ** y
+      |## A locale representing Bangladesh.
       |
-      |## TEXTONLY
-      |  PRIVATE
-      |  This is a testing framework for `Option`.
-      |  
-      |  ? Info
-      |  It doesn't do too much in current state.
-      |type Option_Testing
-      |    type Foo
-      |    type Bar
+      |   > Example
+      |     Get the Bangladeshi locale.
+      |         Locale.bangladesh
+      |bangladesh : Locale
+      |bangladesh = here.from_language_tag "bn-BD"
+      |
+      |## A locale representing Brazil.
+      |
+      |   > Example
+      |     Get the Brazilian locale.
+      |         Locale.brazil
+      |brazil : Locale
+      |brazil = here.from_language_tag "pt-BR"
+      |
+      |## A locale representing Canada with language English.
+      |
+      |   > Example
+      |     Get the Canadian english locale.
+      |         Locale.canada_english
+      |canada_english : Locale
+      |canada_english = here.from_language_tag "en-CA"
+      |
+      |## A locale representing Canada with language French.
+      |
+      |   > Example
+      |     Get the Canadian french locale.
+      |         Locale.canada_french
+      |canada_french : Locale
+      |canada_french = here.from_language_tag "fr-CA"
+      |
+      |## A locale representing the PRC.
+      |
+      |   > Example
+      |     Get the PRC locale.
+      |         Locale.china
+      |china : Locale
+      |china = here.from_language_tag "zh-CN"
+      |
+      |## A locale representing France.
+      |
+      |   > Example
+      |     Get the French locale.
+      |         Locale.france
+      |france : Locale
+      |france = here.from_language_tag "fr-FR"
+      |
+      |## A locale representing Germany.
+      |
+      |   > Example
+      |     Get the German locale.
+      |         Locale.germany
+      |germany : Locale
+      |germany = here.from_language_tag "de-DE"
+      |
+      |## A locale representing India with language Hindi.
+      |
+      |   > Example
+      |     Get the Indian hindi locale.
+      |         Locale.india_hindi
+      |india_hindi : Locale
+      |india_hindi = here.from_language_tag "hi-IN"
+      |
+      |## A locale representing India with language English.
+      |
+      |   > Example
+      |     Get the Indian english locale.
+      |         Locale.indian_english
+      |india_english : Locale
+      |india_english = here.from_language_tag "en-IN"
+      |
+      |## A locale representing Indonesia.
+      |
+      |   > Example
+      |     Get the Indonesian locale.
+      |         Locale.indonesia
+      |indonesia : Locale
+      |indonesia = here.from_language_tag "id-ID"
+      |
+      |## A locale representing Italy.
+      |
+      |   > Example
+      |     Get the Italian locale.
+      |         Locale.italy
+      |italy : Locale
+      |italy = here.from_language_tag "it-IT"
+      |
+      |## A locale representing Japan.
+      |
+      |   > Example
+      |     Get the Japanese locale.
+      |         Locale.japan
+      |japan : Locale
+      |japan = here.from_language_tag "jp-JP"
+      |
+      |## A locale representing Mexico.
+      |
+      |   > Example
+      |     Get the Mexican locale.
+      |         Locale.mexico
+      |mexico : Locale
+      |mexico = here.from_language_tag "es-MX"
+      |
+      |## A locale representing Nigeria.
+      |
+      |   > Example
+      |     Get the Nigerian locale.
+      |         Locale.nigeria
+      |nigeria : Locale
+      |nigeria = here.from_language_tag "en-NG"
+      |
+      |## A locale representing paksitan with language Urdu.
+      |
+      |   > Example
+      |     Get the Pakistani urdu locale.
+      |         Locale.pakistan_urdu
+      |pakistan_urdu : Locale
+      |pakistan_urdu = here.from_language_tag "ur-PK"
+      |
+      |## A locale representing paksitan with language English.
+      |
+      |   > Example
+      |     Get the Pakistani english locale.
+      |         Locale.bangladesh
+      |pakistan_english : Locale
+      |pakistan_english = here.from_language_tag "en-PK"
+      |
+      |## A locale representing Russia.
+      |
+      |   > Example
+      |     Get the Russian locale.
+      |         Locale.russia
+      |russia : Locale
+      |russia = here.from_language_tag "ru-RU"
+      |
+      |## A locale representing South Korea.
+      |
+      |   > Example
+      |     Get the South Korean locale.
+      |         Locale.south_korea
+      |south_korea : Locale
+      |south_korea = here.from_language_tag "ko-KR"
+      |
+      |## A locale representing the UK.
+      |
+      |   > Example
+      |     Get the british locale.
+      |         Locale.uk
+      |uk : Locale
+      |uk = here.from_language_tag "en-GB"
+      |
+      |## A locale representing the United States.
+      |
+      |   > Example
+      |     Get the US locale.
+      |         Locale.us
+      |us : Locale
+      |us = here.from_language_tag "en-US"
+      |
+      |## Construct a new locale.
+      |
+      |   Arguments:
+      |   - language: The language tag for the locale.
+      |   - country: The country tag for the locale.
+      |   - variant: The variant for the locale.
+      |
+      |   > Example
+      |     A locale representing en-GB.UTF-8.
+      |         Locale.new "en" "GB" "UTF-8"
+      |new : Text -> Text | Nothing -> Text | Nothing -> Locale
+      |new language country=Nothing variant=Nothing =
+      |    country_text = if country.is_nothing then "" else country
+      |    variant_text = if variant.is_nothing then "" else variant
+      |    java_locale = JavaLocale.new language country_text variant_text
+      |    here.from_java java_locale
+      |
+      |## Returns the locale specified by the provided IETF BCP47 language tag string.
+      |
+      |   ? Language Tag Syntax
+      |     If the specified language tag contains any ill-formed subtags, the first
+      |     such subtag and all following subtags are ignored.
+      |
+      |     The following conversions are performed:
+      |     - The language code "und" is mapped to language "".
+      |     - The language codes "he", "yi", and "id" are mapped to "iw", "ji", and
+      |       "in" respectively.
+      |     - The portion of a private use subtag prefixed by "lvariant", if any, is
+      |       removed and appended to the variant field in the result locale (without
+      |       case normalization).
+      |     - When the languageTag argument contains an extlang subtag, the first such
+      |       subtag is used as the language, and the primary language subtag and other
+      |       extlang subtags are ignored.
+      |     - Case is normalized except for variant tags, which are left unchanged.
+      |       Language is normalized to lower case, script to title case, country to
+      |       upper case, and extensions to lower case.
+      |     - If, after processing, the locale would exactly match either ja_JP_JP or
+      |       th_TH_TH with no extensions, the appropriate extensions are added.
+      |
+      |     This implements the 'Language-Tag' production of BCP47, and so supports
+      |     grandfathered (regular and irregular) as well as private use language tags.
+      |
+      |   > Example
+      |     Creating the locale en_US.
+      |         Locale.from_language_tag "en_US"
+      |from_language_tag : Text -> Locale
+      |from_language_tag tag =
+      |    java_locale = JavaLocale.forLanguageTag tag
+      |    here.from_java java_locale
+      |
+      |## A type representing a locale.
+      |
+      |   A locale consists of three parts:
+      |   - A language, which is mandatory.
+      |   - A country code, which is optional.
+      |   - A variant, which is optional.
+      |type Locale
+      |
+      |    ## A type representing a locale.
+      |
+      |       Arguments:
+      |       - java_locale: The Java locale representation used internally.
+      |    type Locale java_locale
+      |
+      |    ## Gets the language from the locale.
+      |
+      |       > Example
+      |         Get the language tag from the default locale.
+      |             Locale.default.language
+      |    language : Text | Nothing
+      |    language =
+      |        lang = this.java_locale.getLanguage
+      |        if lang.is_empty then Nothing else lang
+      |
+      |    ## Gets the country from the locale.
+      |
+      |       > Example
+      |         Get the country tag from the default locale.
+      |             Locale.default.country
+      |    country : Text | Nothing
+      |    country =
+      |        place = this.java_locale.getCountry
+      |        if place.is_empty then Nothing else place
+      |
+      |    ## Gets the variant from the locale.
+      |
+      |       > Example
+      |         Get the variant tag from the default locale.
+      |             Locale.default.variant
+      |    variant : Text | Nothing
+      |    variant =
+      |        var = this.java_locale.getVariant
+      |        if var.is_empty then Nothing else var
+      |
+      |    ## Gets a representation of the language in the locale that can be shown to
+      |       the user.
+      |
+      |       > Example
+      |         Get the display language tag from the default locale.
+      |             Locale.default.display_language
+      |    display_language : Text | Nothing
+      |    display_language =
+      |        disp = this.java_locale.getDisplayLanguage
+      |        if disp.is_empty then Nothing else disp
+      |
+      |    ## Gets a representation of the country in the locale that can be shown to
+      |       the user.
+      |
+      |       > Example
+      |         Get the display country tag from the default locale.
+      |             Locale.default.display_country
+      |    display_country : Text | Nothing
+      |    display_country =
+      |        disp = this.java_locale.getDisplayCountry
+      |        if disp.is_empty then Nothing else disp
+      |
+      |    ## Gets a representation of the variant in the locale that can be shown to
+      |       the user.
+      |
+      |       > Example
+      |         Get the display variant tag from the default locale.
+      |             Locale.default.display_variant
+      |    display_variant : Text | Nothing
+      |    display_variant =
+      |        disp = this.java_locale.getDisplayVariant
+      |        if disp.is_empty then Nothing else disp
+      |
+      |    ## Converts the locale to text.
+      |
+      |       > Example
+      |         Convert the default locale to text.
+      |             Locale.default.to_text
+      |    to_text : Text | Nothing
+      |    to_text = this.java_locale.toLanguageTag
+      |
+      |    ## A Locale to Json conversion
+      |
+      |       > Example
+      |         Convert the default locale to JSON.
+      |             Locale.default.to_json
+      |    to_json : Json.Object
+      |    to_json =
+      |        b = Vector.new_builder
+      |        b.append ["type", "Locale"]
+      |        if this.language.is_nothing.not then b.append ["language", this.language]
+      |        if this.country.is_nothing.not then b.append ["country", this.country]
+      |        if this.variant.is_nothing.not then b.append ["variant", this.variant]
+      |        Json.from_pairs b.to_vector
+      |
+      |## PRIVATE
+      |
+      |   Convert a java locale to an Enso locale.
+      |
+      |   Arguments:
+      |   - java: The java locale value.
+      |from_java : JavaLocale -> Locale
+      |from_java java = Locale java
+      |
+      |## PRIVATE
+      |javaLocaleBuilder = JavaLocale.Builder
       |""".stripMargin
 
   println("--- PARSING ---")

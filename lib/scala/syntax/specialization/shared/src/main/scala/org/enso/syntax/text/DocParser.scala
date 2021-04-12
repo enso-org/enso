@@ -527,20 +527,24 @@ object DocParserHTMLGenerator {
     infix: AST.App.Infix,
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-    val nameStr  = infix.larg.show().split(" ").head
-    val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
-    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+    if (infix.larg.show().split(" ").nonEmpty) {
+      val nameStr  = infix.larg.show().split(" ").head
+      val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
+      val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
-    HTML.div(
-      HTML.div(HTML.`class` := "method")(
-        HTML.p(
-          HTML.span(HTML.`class` := "name")(nameStr),
-          " ",
-          HTML.span(HTML.`class` := "argument")(argsStr)
-        )
-      ),
-      tagsHtml
-    )
+      HTML.div(
+        HTML.div(HTML.`class` := "method")(
+          HTML.p(
+            HTML.span(HTML.`class` := "name")(nameStr),
+            " ",
+            HTML.span(HTML.`class` := "argument")(argsStr)
+          )
+        ),
+        tagsHtml
+      )
+    } else {
+      HTML.div()
+    }
   }
 
   /** Helper function for [[createDefWithBody]] to traverse through body's lines
