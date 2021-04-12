@@ -502,7 +502,7 @@ object DocParserHTMLGenerator {
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
     val nameStr  = name.show()
-    val argsStr  = args.map(_.show())
+    val argsStr  = args.map(_.show() + " ")
     val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
     HTML.div(
