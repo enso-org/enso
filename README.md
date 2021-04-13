@@ -29,7 +29,7 @@
 
 <br/>
 
-### [Enso.org](https://enso.org). Get insights you can rely on. In real time.
+# [Enso.org](https://enso.org). Get insights you can rely on. In real time.
 
 Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance.
 
