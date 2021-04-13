@@ -94,14 +94,16 @@ class ProjectFileRepository[
       pkg  <- pkgOpt
       meta <- metaOpt
     } yield {
+      val attributes = pkg.fileSystem.readAttributes(pkg.root)
       Project(
-        id            = meta.id,
-        name          = pkg.name,
-        kind          = meta.kind,
-        created       = meta.created,
-        engineVersion = pkg.config.ensoVersion,
-        lastOpened    = meta.lastOpened,
-        path          = Some(directory.toString)
+        id                    = meta.id,
+        name                  = pkg.name,
+        kind                  = meta.kind,
+        created               = meta.created,
+        engineVersion         = pkg.config.ensoVersion,
+        lastOpened            = meta.lastOpened,
+        path                  = Some(directory.toString),
+        directoryCreationTime = Some(attributes.creationTime())
       )
     }
   }
@@ -331,7 +333,7 @@ class ProjectFileRepository[
     projects.groupBy(_.id).foldRight(List.empty[(Boolean, Project)]) {
       case ((_, groupedProjects), acc) =>
         // groupBy always returns non-empty list
-        (groupedProjects: @unchecked) match {
+        (groupedProjects.sortBy(_.directoryCreationTime): @unchecked) match {
           case project :: clashingProjects =>
             (false, project) :: clashingProjects.map((true, _)) ::: acc
         }

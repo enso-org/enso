@@ -3,6 +3,7 @@ package org.enso.filesystem
 import scala.jdk.CollectionConverters._
 import java.io.{BufferedReader, BufferedWriter, File, IOException}
 import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.stream
 
 /** A generic specification of file operations based on an abstract notion
@@ -109,6 +110,12 @@ trait FileSystem[F] {
     */
   def isRegularFile(file: F): Boolean
 
+  /** Read basic file attributes.
+    *
+    * @param file the file to check
+    * @return the file attributes
+    */
+  def readAttributes(file: F): BasicFileAttributes
 }
 
 object FileSystem {
@@ -143,6 +150,8 @@ object FileSystem {
     def isDirectory: Boolean = fs.isDirectory(file)
 
     def isRegularFile: Boolean = fs.isRegularFile(file)
+
+    def readAttributes: BasicFileAttributes = fs.readAttributes(file)
   }
 
   /** A [[File]] based implementation of [[FileSystem]].
@@ -181,5 +190,8 @@ object FileSystem {
 
     override def isRegularFile(file: File): Boolean =
       Files.isRegularFile(file.toPath)
+
+    override def readAttributes(file: File): BasicFileAttributes =
+      Files.readAttributes(file.toPath, classOf[BasicFileAttributes])
   }
 }
