@@ -10,6 +10,7 @@ use crate::prelude::*;
 
 use enso_protocol::binary;
 use enso_protocol::language_server;
+use flo_stream::Subscriber;
 use mockall::automock;
 use parser::Parser;
 use uuid::Uuid;
@@ -24,6 +25,7 @@ use uuid::Uuid;
 #[automock]
 pub trait API:Debug {
     /// Project's name
+    // TODO [mwu] This should return Rc<ReferentName>.
     fn name(&self) -> ImString;
 
     /// Get Language Server JSON-RPC Connection for this project.
@@ -67,6 +69,26 @@ pub trait API:Debug {
     (&self, path:&model::module::Path) -> crate::model::module::QualifiedName {
         path.qualified_module_name(self.name().deref())
     }
+
+    /// Get qualified name of the project's `Main` module.
+    ///
+    /// This module is special, as it needs to be referred by the project name itself.
+    fn main_module(&self) -> FallibleResult<model::module::QualifiedName> {
+        let main = std::iter::once(crate::ide::INITIAL_MODULE_NAME);
+        model::module::QualifiedName::from_segments(self.name(),main)
+
+        // TODO [mwu] The code below likely should be preferred but does not work
+        //            because language server does not support using project name
+        //            for project's main module in some contexts.
+        //            This is tracked by: https://github.com/enso-org/enso/issues/1543
+        // use model::module::QualifiedName;
+        // ReferentName::try_from(self.name().as_str())
+        //     .map(QualifiedName::new_main)
+        //     .map_err(Into::into)
+    }
+
+    /// Subscribe for notifications about project-level events.
+    fn subscribe(&self) -> Subscriber<Notification>;
 }
 
 impl Debug for MockAPI {
@@ -79,6 +101,34 @@ impl Debug for MockAPI {
 pub type Project      = Rc<dyn API>;
 /// Project Model which synchronizes all changes with Language Server.
 pub type Synchronized = synchronized::Project;
+
+
+
+// ====================
+// === Notification ===
+// ====================
+
+/// Notification emitted by the project model.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum Notification {
+    /// One of the backend connections has been lost.
+    ConnectionLost(BackendConnection)
+}
+
+/// Denotes one of backend connections used by a project.
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum BackendConnection {
+    /// The text connection used to transfer JSON messages.
+    LanguageServerJson,
+    /// The binary conneection used to transfer FlatBuffers messages.
+    LanguageServerBinary,
+}
+
+
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 pub mod test {

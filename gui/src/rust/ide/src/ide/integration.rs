@@ -31,7 +31,6 @@ use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::EdgeEndpoint;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
-use utils::channel::process_stream_with_handle;
 use utils::iter::split_by_predicate;
 
 
@@ -183,6 +182,7 @@ struct Model {
     node_views              : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
     node_view_by_expression : RefCell<HashMap<ast::Id,graph_editor::NodeId>>,
     expression_views        : RefCell<HashMap<graph_editor::NodeId,graph_editor::component::node::Expression>>,
+    expression_types        : SharedHashMap<ExpressionId,Option<graph_editor::Type>>,
     connection_views        : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
     code_view               : CloneRefCell<ensogl_text::Text>,
     visualizations          : SharedHashMap<graph_editor::NodeId,VisualizationId>,
@@ -246,8 +246,8 @@ impl Integration {
         // === Setting Visualization Preprocessor ===
 
         frp::extend! { network
-            eval editor_outs.visualization_preprocessor_changed ([model]((node_id,code)) {
-                if let Err(err) = model.visualization_preprocessor_changed(*node_id,code) {
+            eval editor_outs.visualization_preprocessor_changed ([model]((node_id,preprocessor)) {
+                if let Err(err) = model.visualization_preprocessor_changed(*node_id,preprocessor) {
                     error!(model.logger, "Error when handling request for setting new \
                         visualization's preprocessor code: {err}");
                 }
@@ -340,39 +340,56 @@ impl Integration {
         }
 
 
-        Self::connect_frp_to_graph_controller_notifications(&model,handle_graph_notification.trigger);
-        Self::connect_frp_text_controller_notifications(&model,handle_text_notification.trigger);
-        Self {model,network}
+        let ret = Self {model,network};
+        ret.connect_frp_to_graph_controller_notifications(handle_graph_notification.trigger);
+        ret.connect_frp_text_controller_notifications(handle_text_notification.trigger);
+        ret.setup_handling_project_notifications();
+        ret
+    }
+
+    fn spawn_sync_stream_handler<Stream,Function>(&self, stream:Stream, handler:Function)
+    where Stream   : StreamExt + Unpin + 'static,
+          Function : Fn(Stream::Item,Rc<Model>) + 'static {
+        let model = Rc::downgrade(&self.model);
+        executor::global::spawn_stream_handler(model,stream,move |item,model| {
+            handler(item,model);
+            futures::future::ready(())
+        })
+    }
+
+    fn setup_handling_project_notifications(&self) {
+        let stream     = self.model.project.subscribe();
+        let logger     = self.model.logger.clone_ref();
+        let status_bar = self.model.view.status_bar().clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_| {
+            info!(logger,"Processing notification {notification:?}");
+            let message = match notification {
+                model::project::Notification::ConnectionLost(_) =>
+                    crate::BACKEND_DISCONNECTED_MESSAGE,
+            };
+            let message = ide_view::status_bar::event::Label::from(message);
+            status_bar.add_event(message);
+        })
     }
 
     fn connect_frp_to_graph_controller_notifications
-    ( model        : &Rc<Model>
-    , frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>
-    ) {
-        let stream  = model.graph.subscribe();
-        let weak    = Rc::downgrade(model);
-        let logger  = model.logger.clone_ref();
-        let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
+    (&self, frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>) {
+        let stream = self.model.graph.subscribe();
+        let logger = self.model.logger.clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_model| {
             info!(logger,"Processing notification {notification:?}");
             frp_endpoint.emit(&Some(notification));
-            futures::future::ready(())
-        });
-        executor::global::spawn(handler);
+        })
     }
 
     fn connect_frp_text_controller_notifications
-    ( model        : &Rc<Model>
-    , frp_endpoint : frp::Source<Option<controller::text::Notification>>
-    ) {
-        let stream  = model.text.subscribe();
-        let weak    = Rc::downgrade(model);
-        let logger  = model.logger.clone_ref();
-        let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
+    (&self, frp_endpoint : frp::Source<Option<controller::text::Notification>>) {
+        let stream  = self.model.text.subscribe();
+        let logger  = self.model.logger.clone_ref();
+        self.spawn_sync_stream_handler(stream, move |notification,_model| {
             info!(logger,"Processing notification {notification:?}");
             frp_endpoint.emit(&Some(notification));
-            futures::future::ready(())
         });
-        executor::global::spawn(handler);
     }
 
     /// Convert a function being a method of GraphEditorIntegratedWithControllerModel to a closure
@@ -411,13 +428,15 @@ impl Model {
         let node_view_by_expression = default();
         let connection_views        = default();
         let expression_views        = default();
+        let expression_types        = default();
         let code_view               = default();
         let visualizations          = default();
         let error_visualizations    = default();
         let searcher                = default();
         let this                    = Model
-            {view,graph,text,searcher,node_views,expression_views,connection_views,code_view,logger
-            ,visualization,visualizations,error_visualizations,project,node_view_by_expression};
+            {view,graph,text,searcher,node_views,expression_views,expression_types,connection_views
+            ,code_view,logger,visualization,visualizations,error_visualizations,project
+            ,node_view_by_expression};
 
         this.init_project_name();
         this.load_visualizations();
@@ -600,15 +619,16 @@ impl Model {
 
     /// Update the expression of the node and all related properties e.g., types, ports).
     fn refresh_node_expression(&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
-        let expression     = node.info.expression().repr();
-        let pattern        = node.info.pattern().map(|t|t.repr());
         let code_and_trees = graph_editor::component::node::Expression {
-            pattern,
-            code             : expression,
-            input_span_tree  : trees.inputs,
-            output_span_tree : trees.outputs.unwrap_or_else(default)
+            pattern             : node.info.pattern().map(|t|t.repr()),
+            code                : node.info.expression().repr(),
+            whole_expression_id : node.info.expression().id ,
+            input_span_tree     : trees.inputs,
+            output_span_tree    : trees.outputs.unwrap_or_else(default)
         };
-        if !self.expression_views.borrow().get(&id).contains(&&code_and_trees) {
+        let expression_changed =
+            !self.expression_views.borrow().get(&id).contains(&&code_and_trees);
+        if expression_changed {
             for sub_expression in node.info.ast().iter_recursive() {
                 if let Some(expr_id) = sub_expression.id {
                     self.node_view_by_expression.borrow_mut().insert(expr_id,id);
@@ -621,7 +641,7 @@ impl Model {
         // Set initially available type information on ports (identifiable expression's sub-parts).
         for expression_part in node.info.expression().iter_recursive() {
             if let Some(id) = expression_part.id {
-                self.refresh_computed_info(id);
+                self.refresh_computed_info(id,expression_changed);
             }
         }
     }
@@ -630,7 +650,7 @@ impl Model {
     fn refresh_computed_infos(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult {
         debug!(self.logger, "Refreshing type information for IDs: {expressions_to_refresh:?}.");
         for id in expressions_to_refresh {
-            self.refresh_computed_info(*id)
+            self.refresh_computed_info(*id,false)
         }
         Ok(())
     }
@@ -639,12 +659,12 @@ impl Model {
     /// graph editor view.
     ///
     /// The computed value information includes the expression type and the target method pointer.
-    fn refresh_computed_info(&self, id:ExpressionId) {
+    fn refresh_computed_info(&self, id:ExpressionId, force_type_info_refresh:bool) {
         let info     = self.lookup_computed_info(&id);
         let info     = info.as_ref();
         let typename = info.and_then(|info| info.typename.clone().map(graph_editor::Type));
         if let Some(node_id) = self.node_view_by_expression.borrow().get(&id).cloned() {
-            self.set_type(node_id,id,typename);
+            self.set_type(node_id,id,typename, force_type_info_refresh);
             let method_pointer = info.and_then(|info| {
                 info.method_call.and_then(|entry_id| {
                     let opt_method = self.project.suggestion_db().lookup_method_ptr(entry_id).ok();
@@ -662,9 +682,20 @@ impl Model {
     }
 
     /// Set given type (or lack of such) on the given sub-expression.
-    fn set_type(&self, node_id:graph_editor::NodeId, id:ExpressionId, typename:Option<graph_editor::Type>) {
-        let event = (node_id,id,typename);
-        self.view.graph().frp.input.set_expression_usage_type.emit(&event);
+    fn set_type
+    ( &self
+    , node_id       : graph_editor::NodeId
+    , id            : ExpressionId
+    , typename      : Option<graph_editor::Type>
+    , force_refresh : bool
+    ) {
+        // We suppress spurious type information updates here, as they were causing performance
+        // issues. See: https://github.com/enso-org/ide/issues/952
+        let previous_type_opt = self.expression_types.insert(id,typename.clone());
+        if force_refresh || previous_type_opt.as_ref() != Some(&typename) {
+            let event = (node_id,id,typename);
+            self.view.graph().frp.input.set_expression_usage_type.emit(&event);
+        }
     }
 
     /// Set given method pointer (or lack of such) on the given sub-expression.
@@ -675,15 +706,16 @@ impl Model {
 
     /// Mark node as erroneous if given payload contains an error.
     fn set_error
-    (&self, node_id:graph_editor::NodeId, error:Option<&ExpressionUpdatePayload>) -> FallibleResult {
+    (&self, node_id:graph_editor::NodeId, error:Option<&ExpressionUpdatePayload>)
+    -> FallibleResult {
         let error = self.convert_payload_to_error_view(error,node_id);
         self.view.graph().set_node_error_status(node_id,error.clone());
         if error.is_some() && !self.error_visualizations.contains_key(&node_id) {
-            let endpoint   = self.view.graph().frp.set_error_visualization_data.clone_ref();
-            let preprocessor = graph_editor::builtin::visualization::native::error::PREPROCESSOR;
-            let preprocessor = graph_editor::data::enso::Code::new(preprocessor);
-            let metadata     = visualization::Metadata {preprocessor};
-            self.attach_visualization(node_id,&metadata,endpoint,self.error_visualizations.clone_ref())?;
+            use graph_editor::builtin::visualization::native::error;
+            let endpoint = self.view.graph().frp.set_error_visualization_data.clone_ref();
+            let metadata = error::metadata();
+            let vis_map  = self.error_visualizations.clone_ref();
+            self.attach_visualization(node_id,&metadata,endpoint,vis_map)?;
         } else if error.is_none() && self.error_visualizations.contains_key(&node_id) {
             self.detach_visualization(node_id,self.error_visualizations.clone_ref())?;
         }
@@ -835,7 +867,7 @@ impl Model {
         use controller::graph::executed::Notification;
         use controller::graph::Notification::*;
 
-        debug!(self.logger, "Received notification {notification:?}");
+        debug!(self.logger, "Received graph notification {notification:?}");
         let result = match notification {
             Some(Notification::Graph(Invalidate))         => self.on_graph_invalidated(),
             Some(Notification::Graph(PortsUpdate))        => self.on_graph_expression_update(),
@@ -858,7 +890,7 @@ impl Model {
     pub fn handle_text_notification(&self, notification:Option<controller::text::Notification>) {
         use controller::text::Notification;
 
-        debug!(self.logger, "Received notification {notification:?}");
+        debug!(self.logger, "Received text notification {notification:?}");
         let result = match notification {
             Some(Notification::Invalidate) => self.on_text_invalidated(),
             other => {
@@ -876,6 +908,7 @@ impl Model {
     pub fn handle_searcher_notification(&self, notification:controller::searcher::Notification) {
         use controller::searcher::Notification;
         use controller::searcher::UserAction;
+        debug!(self.logger, "Received searcher notification {notification:?}");
         match notification {
             Notification::NewActionList => with(self.searcher.borrow(), |searcher| {
                 if let Some(searcher) = &*searcher {
@@ -1143,14 +1176,28 @@ impl Model {
         });
     }
 
-    fn visualization_preprocessor_changed(&self, node_id:graph_editor::NodeId, code:&graph_editor::data::enso::Code)
-    -> FallibleResult {
+    fn resolve_visualization_context
+    (&self, context:&visualization::instance::ContextModule)
+    -> FallibleResult<model::module::QualifiedName> {
+        use visualization::instance::ContextModule::*;
+        match context {
+            ProjectMain           => self.project.main_module(),
+            Specific(module_name) => model::module::QualifiedName::from_text(module_name),
+        }
+    }
+
+    fn visualization_preprocessor_changed
+    ( &self
+    , node_id      : graph_editor::NodeId
+    , preprocessor : &visualization::instance::PreprocessorConfiguration
+    ) -> FallibleResult {
         if let Some(visualization) = self.visualizations.get_copied(&node_id) {
             let logger      = self.logger.clone_ref();
             let controller  = self.graph.clone_ref();
-            let code_string = AsRef::<String>::as_ref(code).to_string();
+            let code        = preprocessor.code.deref().into();
+            let module      = self.resolve_visualization_context(&preprocessor.module)?;
             executor::global::spawn(async move {
-                let result = controller.set_visualization_preprocessor(visualization,code_string);
+                let result = controller.set_visualization_preprocessor(visualization,code,module);
                 if let Err(err) = result.await {
                     error!(logger, "Error when setting visualization preprocessor: {err}");
                 }
@@ -1274,21 +1321,10 @@ impl Model {
     fn prepare_visualization
     (&self, node_id:graph_editor::NodeId, metadata:&visualization::Metadata)
      -> FallibleResult<Visualization> {
-        use crate::model::module::QualifiedName;
-
-        // TODO [mwu]
-        //   Currently it is not possible to:
-        //    * enter other module than the initial (namely, "Main")
-        //    * describe that visualization's expression wishes to be evaluated in any other
-        //      context.
-        //   Because of that for now we will just hardcode the `visualization_module` using
-        //   fixed defaults. In future this will be changed, then the editor will also get access
-        //   to the customised values.
-        let project_name:String  = self.project.name().into();
-        let module_name          = crate::ide::INITIAL_MODULE_NAME;
-        let visualisation_module = QualifiedName::from_segments(project_name,&[module_name])?;
+        let module_designation   = &metadata.preprocessor.module;
+        let visualisation_module = self.resolve_visualization_context(module_designation)?;
         let id                   = VisualizationId::new_v4();
-        let expression           = metadata.preprocessor.to_string();
+        let expression           = metadata.preprocessor.code.to_string();
         let ast_id               = self.get_controller_node_id(node_id)?;
         Ok(Visualization{ast_id,expression,id,visualisation_module})
     }
@@ -1347,7 +1383,8 @@ impl DataProviderForView {
             suggestion_database::entry::Kind::Local    => "Local variable",
             suggestion_database::entry::Kind::Method   => "Method",
         };
-        format!("{} `{}`\n\nNo documentation available", title,suggestion.code_to_insert(None))
+        let code = suggestion.code_to_insert(None,true).code;
+        format!("{} `{}`\n\nNo documentation available", title,code)
     }
 }
 

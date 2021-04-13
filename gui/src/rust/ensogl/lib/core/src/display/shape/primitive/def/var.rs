@@ -39,7 +39,7 @@ impl VarInitializerMarker<Var<color::Rgba>> for color::Rgb {}
 
 impl VarInitializerMarker<Var<color::Rgba>> for color::Rgba {}
 
-impl<G> VarInitializerMarker<Var<color::Rgba>> for color::SdfSampler<G> {}
+impl<G> VarInitializerMarker<Var<color::Rgba>> for color::gradient::SdfSampler<G> {}
 
 impl<T,S1,S2> VarInitializerMarker<Var<Vector2<T>>> for (S1,S2)
     where T:Scalar, S1:VarInitializerMarkerNested<Var<T>>, S2:VarInitializerMarkerNested<Var<T>> {}
@@ -637,6 +637,48 @@ impl From<Var<Vector4<f32>>> for Var<color::Rgba> {
         match other {
             Var::Static  (t) => Var::Static(color::Rgba::new(t.x,t.y,t.z,t.w)),
             Var::Dynamic (t) => Var::Dynamic(format!("srgba({0}.x,{0}.y,{0}.z,{0}.w)",t).into()),
+        }
+    }
+}
+
+impl Var<color::Rgba> {
+    /// Return the color with the given alpha value.
+    pub fn with_alpha(self, alpha:&Var<f32>) -> Self {
+        match (self, alpha) {
+            (Var::Static  (t), Var::Static(alpha)) => {
+                Var::Static(color::Rgba::new(t.data.red,t.data.green,t.data.blue,*alpha))
+            },
+            (t, alpha) => {
+                let t     = t.glsl();
+                let alpha = alpha.glsl();
+                let var   = format!("srgba({0}.raw.x,{0}.raw.y,{0}.raw.z,{1})",t,alpha);
+                Var::Dynamic(var.into())
+            },
+        }
+    }
+
+    /// Return the color with the alpha value replaced by multiplying the colors' alpha value with
+    /// the given alpha value.
+    pub fn multiply_alpha(self, alpha:&Var<f32>) -> Self {
+        match (self, alpha) {
+            (Var::Static  (t), Var::Static(alpha)) => {
+                let var = color::Rgba::new(t.data.red,t.data.green,t.data.blue,*alpha*t.data.alpha);
+                Var::Static(var)
+            },
+            (t, alpha) => {
+                let t     = t.glsl();
+                let alpha = alpha.glsl();
+                let var   = format!("srgba({0}.raw.x,{0}.raw.y,{0}.raw.z,{0}.raw.w*{1})",t,alpha);
+                Var::Dynamic(var.into())
+            },
+        }
+    }
+
+    /// Transform to LinearRgba.
+    pub fn into_linear(self) -> Var<color::LinearRgba> {
+        match self {
+            Var::Static(c)  => Var::Static(c.into()),
+            Var::Dynamic(c) => Var::Dynamic(format!("rgba({0})",c.glsl()).into())
         }
     }
 }

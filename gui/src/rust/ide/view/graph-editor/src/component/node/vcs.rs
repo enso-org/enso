@@ -27,9 +27,9 @@ pub enum Status {
 impl Status {
     fn get_highlight_color_from_style(self, style:&StyleWatch) -> color::Lcha {
         match self {
-            Status::Unchanged => style.get_color(ensogl_theme::graph_editor::node::vcs::unchanged),
-            Status::Added     => style.get_color(ensogl_theme::graph_editor::node::vcs::added),
-            Status::Edited    => style.get_color(ensogl_theme::graph_editor::node::vcs::edited),
+            Status::Unchanged => style.get_color(ensogl_theme::graph_editor::node::vcs::unchanged).into(),
+            Status::Added     => style.get_color(ensogl_theme::graph_editor::node::vcs::added).into(),
+            Status::Edited    => style.get_color(ensogl_theme::graph_editor::node::vcs::edited).into(),
         }
     }
 }

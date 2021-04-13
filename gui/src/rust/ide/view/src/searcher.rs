@@ -7,12 +7,13 @@ use crate::prelude::*;
 use crate::documentation;
 
 use enso_frp as frp;
-use ensogl::application;
-use ensogl::application::{Application, shortcut};
-use ensogl::display;
 use ensogl::DEPRECATED_Animation;
-use ensogl_gui_components::list_view;
+use ensogl::application::{Application, shortcut};
+use ensogl::application;
+use ensogl::display::shape::*;
+use ensogl::display;
 use ensogl_gui_components::list_view::ListView;
+use ensogl_gui_components::list_view;
 
 pub use ensogl_gui_components::list_view::entry;
 
@@ -27,8 +28,8 @@ pub const SEARCHER_WIDTH:f32 = 480.0;
 /// Height of searcher panel in pixels.
 ///
 /// Because we don't implement clipping yet, the best UX is when searcher height is almost multiple
-/// of entry height.
-pub const SEARCHER_HEIGHT:f32 = 179.5;
+/// of entry height + padding.
+pub const SEARCHER_HEIGHT:f32 = 184.5;
 
 const ACTION_LIST_GAP     : f32 = 180.0;
 const LIST_DOC_GAP        : f32 = 15.0;
@@ -104,8 +105,16 @@ impl Model {
         scene.layers.below_main.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
+
+        // FIXME: StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        //  system (#795)
+        let style                = StyleWatch::new(&app.display.scene().style_sheet);
+        let action_list_gap_path = ensogl_theme::application::searcher::action_list_gap;
+        let action_list_gap      = style.get_number_or(action_list_gap_path,0.0);
+        list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
+        documentation.set_position_y(-action_list_gap);
         Self{app,logger,display_object,list,documentation,doc_provider}
     }
 

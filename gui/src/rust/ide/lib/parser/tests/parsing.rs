@@ -37,10 +37,14 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
     assert_eq!(*actual,expected);
 }
 
+fn roundtrip_program_with(parser:&parser::Parser, program:&str) {
+    let ast = parser.parse(program.to_string(), Default::default()).unwrap();
+    assert_eq!(ast.repr(), program, "{:#?}", ast);
+}
+
 fn roundtrip_program(program:&str) {
     let parser = parser::Parser::new_or_panic();
-    let ast    = parser.parse(program.to_string(), Default::default()).unwrap();
-    assert_eq!(ast.repr(), program, "{:#?}", ast);
+    roundtrip_program_with(&parser,program);
 }
 
 
@@ -49,7 +53,7 @@ fn roundtrip_program(program:&str) {
 // === Metadata ===
 // ================
 
-/// Wrapper for using ant serializable type as metadata.
+/// Wrapper for using any serializable type as metadata.
 #[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
 struct FauxMetadata<T>(T);
 
@@ -489,6 +493,37 @@ fn block_roundtrip() {
     for program in programs {
         roundtrip_program(program);
     }
+}
+
+/// Test case for https://github.com/enso-org/ide/issues/296
+#[wasm_bindgen_test]
+fn nested_macros() {
+    let parser = parser::Parser::new_or_panic();
+
+    // Generate nested brackets. Stop at 8 because it gets slower and slower.
+    // At 12 the deserialization fails on WASM.
+    // At 14 the parsing fails in parser-service.
+    for i in 0..8 {
+        let program = format!("{}{}{}","[".repeat(i), "foo", "]".repeat(i));
+        roundtrip_program_with(&parser,&program);
+    }
+
+    // Cases from https://github.com/enso-org/ide/issues/1351
+    let program = r#"from Standard.Base import all
+
+main =
+    operator13 = Json.from_pairs [["a", 42], ["foo", [1,2,3]]]
+    var1 = [operator13, operator13]"#;
+    roundtrip_program_with(&parser,&program);
+
+    let program = r#"triplets n = 1.up_to n . to_vector . flat_map a->
+    a+1 . up_to n . to_vector . flat_map b->
+        b+1 . up_to n . to_vector . flat_map c->
+            if a+b+c == n then [[a,b,c]] else []
+n = 10
+here.triplets n
+IO.println(here.triplets n)"#;
+    roundtrip_program_with(&parser,&program);
 }
 
 #[wasm_bindgen_test]

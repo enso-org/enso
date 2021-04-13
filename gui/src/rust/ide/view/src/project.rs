@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::code_editor;
 use crate::graph_editor::component::node;
 use crate::graph_editor::component::node::Expression;
+use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
 use crate::searcher;
@@ -18,6 +19,7 @@ use ensogl::display;
 use ensogl::DEPRECATED_Animation;
 use ensogl::system::web;
 use ensogl_theme::Theme as Theme;
+use enso_args::ARGS;
 
 
 
@@ -43,6 +45,7 @@ struct Model {
     searcher       : searcher::View,
     code_editor    : code_editor::View,
     status_bar     : status_bar::View,
+    fullscreen_vis : Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
 }
 
 impl Model {
@@ -53,13 +56,14 @@ impl Model {
         let graph_editor   = app.new_view::<GraphEditor>();
         let code_editor    = app.new_view::<code_editor::View>();
         let status_bar     = status_bar::View::new(app);
+        let fullscreen_vis = default();
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
         display_object.add_child(&status_bar);
         display_object.remove_child(&searcher);
         let app = app.clone_ref();
-        Self{app,logger,display_object,graph_editor,searcher,code_editor,status_bar}
+        Self{app,logger,display_object,graph_editor,searcher,code_editor,status_bar,fullscreen_vis}
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
@@ -129,6 +133,23 @@ impl Model {
         graph_editor_inputs.set_node_expression.emit(&(node_id,Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
     }
+
+    fn show_fullscreen_visualization(&self, node_id:NodeId) {
+        let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
+        if let Some(node) = node {
+            let visualization = node.view.model.visualization.fullscreen_visualization().clone_ref();
+            self.display_object.remove_child(&self.graph_editor);
+            self.display_object.add_child(&visualization);
+            *self.fullscreen_vis.borrow_mut() = Some(visualization);
+        }
+    }
+
+    fn hide_fullscreen_visualization(&self) {
+        if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
+            self.display_object.remove_child(&visualization);
+            self.display_object.add_child(&self.graph_editor);
+        }
+    }
 }
 
 
@@ -150,14 +171,15 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        adding_new_node               (bool),
-        node_being_edited             (Option<NodeId>),
-        editing_node                  (bool),
-        old_expression_of_edited_node (Expression),
-        editing_aborted               (NodeId),
-        editing_committed             (NodeId, Option<searcher::entry::Id>),
-        code_editor_shown             (bool),
-        style                         (Theme),
+        adding_new_node                (bool),
+        node_being_edited              (Option<NodeId>),
+        editing_node                   (bool),
+        old_expression_of_edited_node  (Expression),
+        editing_aborted                (NodeId),
+        editing_committed              (NodeId, Option<searcher::entry::Id>),
+        code_editor_shown              (bool),
+        style                          (Theme),
+        fullscreen_visualization_shown (bool)
     }
 }
 
@@ -185,11 +207,20 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-
         ensogl_theme::builtin::dark::register(app);
         ensogl_theme::builtin::light::register(app);
-        // Should not be needed after proper theme management will be introduced:
-        ensogl_theme::builtin::light::enable(app);
+        let theme = match ARGS.theme.as_ref().map(|s|s.as_str()) {
+            Some("dark") => {
+                ensogl_theme::builtin::dark::enable(app);
+                Theme::Dark
+            }
+            _ => {
+                ensogl_theme::builtin::light::enable(app);
+                Theme::Light
+            }
+        };
+
+        display::style::javascript::expose_to_window(&app.themes);
 
         let model                      = Model::new(app);
         let frp                        = Frp::new();
@@ -198,7 +229,12 @@ impl View {
         let network                    = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
 
-        model.set_style(Theme::Light);
+        // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
+        //   want shader recompilation. Model uses styles already.
+        model.set_style(theme);
+        // TODO[WD]: This should not be needed after the theme switching issue is implemented.
+        //   See: https://github.com/enso-org/ide/issues/795
+        app.themes.update();
 
         frp::extend!{ network
             // === Searcher Position and Size ===
@@ -297,6 +333,24 @@ impl View {
             });
             frp.source.style     <+ style_press_on_off;
             eval frp.style ((style) model.set_style(style.clone()));
+
+
+            // === Fullscreen Visualization ===
+
+            // TODO[ao]: All DOM elements in visualizations ale displayed below canvas, because
+            //     The mouse cursor must be displayed over them. But fullscreen visualization should
+            //     be displayed "above" nodes. The workaround is to hide whole graph editor except
+            //     fullscreen visualization, and bring it back when fullscreen is closed.
+            //
+            //     The workaround should be replaced with proper solution being a part of
+            //     https://github.com/enso-org/ide/issues/526
+            eval  graph.visualization_fullscreen ([model](node_id) {
+                if let Some(node_id) = node_id {
+                    model.show_fullscreen_visualization(*node_id)
+                } else {
+                    model.hide_fullscreen_visualization()
+                }
+            });
         }
 
         Self{model,frp}
@@ -334,10 +388,10 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press   , "!editing_node" , "tab"             , "add_new_node")
-          , (Press   , ""              , "escape"          , "abort_node_editing")
-          , (Press   , ""              , "cmd alt shift t" , "toggle_style")
-          , (Press   , ""              , "cmd s"           , "save_module")
+        (&[ (Press   , "!editing_node"                 , "tab"             , "add_new_node")
+          , (Press   , "editing_node"                  , "escape"          , "abort_node_editing")
+          , (Press   , ""                              , "cmd alt shift t" , "toggle_style")
+          , (Press   , ""                              , "cmd s"           , "save_module")
           ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
     }
 }

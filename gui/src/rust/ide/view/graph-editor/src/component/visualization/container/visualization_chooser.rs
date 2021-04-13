@@ -31,15 +31,17 @@ ensogl::define_endpoints! {
         hide_selection_menu (),
         set_selected        (Option<visualization::Path>),
         set_menu_offset_y   (f32),
+        set_vis_input_type  (Option<enso::Type>),
     }
 
     Output {
-        menu_visible  (bool),
-        menu_closed   (),
-        chosen_entry  (Option<visualization::Path>),
-        mouse_over    (),
-        mouse_out     (),
-        entries       (Rc<Vec<visualization::Path>>)
+        menu_visible   (bool),
+        menu_closed    (),
+        chosen_entry   (Option<visualization::Path>),
+        mouse_over     (),
+        mouse_out      (),
+        entries        (Rc<Vec<visualization::Path>>),
+        vis_input_type (Option<enso::Type>)
     }
 }
 
@@ -62,10 +64,9 @@ impl Model {
         Self{selection_menu,registry}
     }
 
-    pub fn entries(&self) -> Vec <visualization::Path> {
-        // TODO[ao]: The returned visualizations should take the current type on node into account.
-        //           See https://github.com/enso-org/ide/issues/837
-        let definitions_iter = self.registry.valid_sources(&enso::Type::any()).into_iter();
+    pub fn entries(&self, input_type:&Option<enso::Type>) -> Vec<visualization::Path> {
+        let input_type_or_any = input_type.clone().unwrap_or_else(enso::Type::any);
+        let definitions_iter  = self.registry.valid_sources(&input_type_or_any).into_iter();
         definitions_iter.map(|d| d.signature.path).collect_vec()
     }
 }
@@ -83,6 +84,7 @@ impl display::Object for Model {
 // ============================
 
 /// UI entity that shows a button that opens a list of visualisations that can be selected from.
+#[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct VisualizationChooser {
     pub frp : Frp,
@@ -90,6 +92,7 @@ pub struct VisualizationChooser {
 }
 
 impl VisualizationChooser {
+    /// Constructor.
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         let frp   = Frp::new();
         let model = Model::new(app,registry);
@@ -117,17 +120,6 @@ impl VisualizationChooser {
             eval set_selected_ix ((ix) menu.set_selected.emit(ix));
 
 
-            // === Showing Entries ===
-
-
-            frp.source.entries <+ menu.menu_visible.gate(&menu.menu_visible).map(f_!([model] {
-                let entries  = Rc::new(model.entries());
-                let provider = list_view::entry::AnyModelProvider::from(entries.clone_ref());
-                model.selection_menu.set_entries(provider);
-                entries
-            }));
-
-
             // === Output Processing ===
 
             frp.source.mouse_over   <+ menu.icon_mouse_over;
@@ -150,6 +142,20 @@ impl VisualizationChooser {
                     analytics::remote_log_value(event,field,data);
                 }
             });
+            frp.source.vis_input_type <+ frp.set_vis_input_type;
+
+
+            // === Showing Entries ===
+
+            menu_appears       <- menu.menu_visible.gate(&menu.menu_visible).constant(());
+            input_type_changed <- frp.set_vis_input_type.gate(&menu.menu_visible).constant(());
+            refresh_entries    <- any(menu_appears,input_type_changed);
+            frp.source.entries <+ refresh_entries.map2(&frp.vis_input_type,f!([model] ((),input_type){
+                let entries  = Rc::new(model.entries(input_type));
+                let provider = list_view::entry::AnyModelProvider::from(entries.clone_ref());
+                model.selection_menu.set_entries(provider);
+                entries
+            }));
         }
         self
     }

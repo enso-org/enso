@@ -16,6 +16,18 @@ im_string_newtype!{
     Name
 }
 
+/// Identifier to the project owning the visualizaiton.
+#[derive(Clone,CloneRef,Debug,Eq,Hash,PartialEq)]
+pub enum Project {
+    /// Temporary placeholder for the visualizations embedded in the IDE.
+    /// Eventually will be replaced with Standard Library.
+    Builtin,
+    /// The current project (i.e. the project that user has open in the project manager).
+    CurrentProject,
+    /// An external library (i.e. the dependency of the current project).
+    Library(enso::LibraryName),
+}
+
 
 
 // ============
@@ -27,22 +39,20 @@ im_string_newtype!{
 #[derive(Clone,CloneRef,Debug,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
 pub struct Path {
-    pub library : enso::LibraryName,
+    pub project : Project,
     pub name    : Name,
 }
 
 impl Path {
     /// Constructor.
-    pub fn new(library:impl Into<enso::LibraryName>, name:impl Into<Name>) -> Self {
-        let library = library.into();
+    pub fn new(project:Project, name:impl Into<Name>) -> Self {
         let name    = name.into();
-        Self {library,name}
+        Self {project,name}
     }
 
     /// Constructor for builtin visualizations.
     pub fn builtin(name:impl Into<Name>) -> Self {
-        let library = enso::builtin_library();
-        Self::new(library,name)
+        Self::new(Project::Builtin,name)
     }
 }
 

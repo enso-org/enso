@@ -141,8 +141,8 @@ impl Handle {
     /// Modify preprocessor code in visualization. See also
     /// [`model::ExecutionContext::modify_visualization`].
     pub async fn set_visualization_preprocessor
-    (&self, id:VisualizationId, code:String) -> FallibleResult {
-        self.execution_ctx.modify_visualization(id,Some(code),None).await
+    (&self, id:VisualizationId, code:String, module:model::module::QualifiedName) -> FallibleResult {
+        self.execution_ctx.modify_visualization(id,Some(code),Some(module)).await
     }
 
     /// Subscribe to updates about changes in this executed graph.
@@ -325,30 +325,20 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
-            info!(DefaultDebugLogger::new("Test"),"-- 1");
             let parser      = parser::Parser::new_or_panic();
-            info!(DefaultDebugLogger::new("Test"),"-- 2");
             let module      = self.module.plain(&parser);
-            info!(DefaultDebugLogger::new("Test"),"-- 3");
             let method      = self.graph.method();
-            info!(DefaultDebugLogger::new("Test"),"-- 4");
             let mut project = model::project::MockAPI::new();
-            info!(DefaultDebugLogger::new("Test"),"-- 5");
             let ctx         = Rc::new(self.ctx.create());
-            info!(DefaultDebugLogger::new("Test"),"-- 6");
             model::project::test::expect_name(&mut project,test::mock::data::PROJECT_NAME);
             model::project::test::expect_parser(&mut project,&parser);
             model::project::test::expect_module(&mut project,module);
             model::project::test::expect_execution_ctx(&mut project,ctx);
-            info!(DefaultDebugLogger::new("Test"),"-- 7");
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project,crate::test::mock::data::ROOT_ID);
             // Both graph controllers need suggestion DB to provide context to their span trees.
-            info!(DefaultDebugLogger::new("Test"),"-- 8");
             let suggestion_db = self.graph.suggestion_db();
-            info!(DefaultDebugLogger::new("Test"),"-- 9");
             model::project::test::expect_suggestion_db(&mut project,suggestion_db);
-            info!(DefaultDebugLogger::new("Test"),"-- 10");
             let project = Rc::new(project);
             Handle::new(Logger::new("test"),project.clone_ref(),method).boxed_local().expect_ok()
         }

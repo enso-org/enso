@@ -5,13 +5,16 @@ use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::graph::NewNodeInfo;
+
 use crate::double_representation::graph::GraphInfo;
 use crate::double_representation::graph::LocationHint;
 use crate::double_representation::module::QualifiedName;
 use crate::double_representation::node::NodeInfo;
+use crate::double_representation::tp;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
+use crate::model::suggestion_database::entry::CodeToInsert;
 use crate::notification;
 
 use data::text::TextLocation;
@@ -32,6 +35,9 @@ pub use action::Action;
 /// See: https://github.com/enso-org/ide/issues/1067
 pub const ASSIGN_NAMES_FOR_NODES:bool = true;
 
+/// The special module used for mock `Enso_Project.data` entry.
+/// See also [`Searcher::add_enso_project_entries`].
+const ENSO_PROJECT_SPECIAL_MODULE:&str = "Standard.Base.Enso_Project";
 
 
 // ==============
@@ -362,8 +368,13 @@ impl FragmentAddedByPickingSuggestion {
     /// Check if the picked fragment is still unmodified by user.
     fn is_still_unmodified
     (&self, input:&ParsedInput, current_module:&QualifiedName) -> bool {
-        let expected_code = &self.picked_suggestion.code_to_insert(Some(current_module));
-        input.completed_fragment(self.id).contains(expected_code)
+        let expected = self.code_to_insert(current_module,&None);
+        input.completed_fragment(self.id).contains(&expected.code)
+    }
+
+    fn code_to_insert(&self, current_module:&QualifiedName, this_node:&Option<ThisNode>) -> CodeToInsert {
+        let generate_this = self.id != CompletedFragmentId::Function || this_node.is_none();
+        self.picked_suggestion.code_to_insert(Some(&current_module),generate_this)
     }
 }
 
@@ -536,14 +547,8 @@ impl Searcher {
     ///
     /// Code depends on the location, as the first fragment can introduce `this` variable access,
     /// and then we don't want to put any module name.
-    fn code_to_insert
-    (&self, suggestion:&action::Suggestion, loc:CompletedFragmentId) -> String {
-        let current_module = self.module_qualified_name();
-        if loc == CompletedFragmentId::Function && self.this_arg.is_some() {
-            suggestion.code_to_insert_skip_module()
-        } else {
-            suggestion.code_to_insert(Some(&current_module))
-        }
+    fn code_to_insert(&self, fragment:&FragmentAddedByPickingSuggestion) -> CodeToInsert {
+        fragment.code_to_insert(&self.module_qualified_name(), self.this_arg.as_ref())
     }
 
     /// Pick a completion suggestion.
@@ -555,9 +560,9 @@ impl Searcher {
     (&self, picked_suggestion: action::Suggestion) -> FallibleResult<String> {
         info!(self.logger, "Picking suggestion: {picked_suggestion:?}");
         let id                = self.data.borrow().input.next_completion_id();
-        let code_to_insert    = self.code_to_insert(&picked_suggestion,id);
-        let added_ast         = self.parser.parse_line(&code_to_insert)?;
         let picked_completion = FragmentAddedByPickingSuggestion {id,picked_suggestion};
+        let code_to_insert    = self.code_to_insert(&picked_completion).code;
+        let added_ast         = self.parser.parse_line(&code_to_insert)?;
         let pattern_offset    = self.data.borrow().input.pattern_offset;
         let new_expression    = match self.data.borrow_mut().input.expression.take() {
             None => {
@@ -657,6 +662,9 @@ impl Searcher {
         };
         let intended_method = self.intended_method();
 
+        // We add the required imports before we create the node/edit its content. This way, we
+        // avoid an intermediate state where imports would already be in use but not yet available.
+        self.add_required_imports()?;
         let id = match *self.mode {
             Mode::NewNode {position} => {
                 let mut new_node           = NewNodeInfo::new_pushed_back(expression);
@@ -676,7 +684,6 @@ impl Searcher {
                 node_id
             }
         };
-        self.add_required_imports()?;
         Ok(id)
     }
 
@@ -730,13 +737,17 @@ impl Searcher {
         );
     }
 
+
     fn add_required_imports(&self) -> FallibleResult {
-        let data_borrowed = self.data.borrow();
-        let fragments     = data_borrowed.fragments_added_by_picking.iter();
-        let imports       = fragments.map(|frag| frag.picked_suggestion.module.clone());
-        let mut module    = self.module();
-        let here          = self.module_qualified_name();
-        for mut import in imports {
+        let data_borrowed        = self.data.borrow();
+        let fragments            = data_borrowed.fragments_added_by_picking.iter();
+        let imports              = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
+        let mut module           = self.module();
+        let here                 = self.module_qualified_name();
+        // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
+        //     documentation.
+        let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);
+        for mut import in without_enso_project {
             import.remove_main_module_segment();
             module.add_module_import(&here, &self.parser, &import);
         }
@@ -833,6 +844,7 @@ impl Searcher {
         let actions = action::List::new();
         if matches!(self.mode.deref(), Mode::NewNode{..}) && self.this_arg.is_none() {
             actions.extend(self.database.iterate_examples().map(Action::Example));
+            Self::add_enso_project_entries(&actions)?;
         }
         for response in completion_responses {
             let response = response?;
@@ -927,6 +939,27 @@ impl Searcher {
     pub fn current_user_action(&self) -> UserAction {
         self.data.borrow().input.user_action()
     }
+
+    /// Add to the action list the special mocked entry of `Enso_Project.data`.
+    ///
+    /// This is a workaround for Engine bug https://github.com/enso-org/enso/issues/1605.
+    //TODO[ao] this is a temporary workaround.
+    fn add_enso_project_entries(actions:&action::List) -> FallibleResult {
+        for method in &["data", "root"] {
+            let entry = model::suggestion_database::Entry {
+                name          : (*method).to_owned(),
+                kind          : model::suggestion_database::entry::Kind::Method,
+                module        : QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
+                arguments     : vec![],
+                return_type   : "Standard.Base.System.File.File".to_owned(),
+                documentation : None,
+                self_type     : Some(tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?),
+                scope         : model::suggestion_database::entry::Scope::Everywhere,
+            };
+            actions.extend(std::iter::once(Action::Suggestion(Rc::new(entry))));
+        }
+        Ok(())
+    }
 }
 
 /// A simple function call is an AST where function is a single identifier with optional
@@ -962,13 +995,13 @@ fn apply_this_argument(this_var:&str, ast:&Ast) -> Ast {
             opr: opr.into()
         };
         Ast::new(shape,None)
-    } else if let Some(mut infix_chain) = ast::opr::Chain::try_new(ast) {
-        if let Some(ref mut target) = &mut infix_chain.target {
-             target.arg = apply_this_argument(this_var,&target.arg);
+    } else if let Some(mut infix) = ast::opr::GeneralizedInfix::try_new(ast) {
+        if let Some(ref mut larg) = &mut infix.left {
+             larg.arg = apply_this_argument(this_var,&larg.arg);
         } else {
-            infix_chain.target = Some(ast::opr::ArgWithOffset {arg:Ast::var(this_var), offset:1});
+            infix.left = Some(ast::opr::ArgWithOffset {arg:Ast::var(this_var), offset:1});
         }
-        infix_chain.into_ast()
+        infix.into_ast()
     } else if let Some(mut prefix_chain) = ast::prefix::Chain::from_ast(ast) {
         prefix_chain.func = apply_this_argument(this_var, &prefix_chain.func);
         prefix_chain.into_ast()
@@ -995,6 +1028,7 @@ pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::SuggestionDatabase;
     use crate::model::suggestion_database::entry::Argument;
     use crate::model::suggestion_database::entry::Kind;
     use crate::model::suggestion_database::entry::Scope;
@@ -1006,7 +1040,6 @@ pub mod test {
     use json_rpc::expect_call;
     use utils::test::traits::*;
     use enso_protocol::language_server::SuggestionId;
-    use crate::model::SuggestionDatabase;
 
     pub fn completion_response(results:&[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
@@ -1068,39 +1101,26 @@ pub mod test {
         entry3   : action::Suggestion,
         entry4   : action::Suggestion,
         entry9   : action::Suggestion,
+        entry10  : action::Suggestion,
     }
 
     impl Fixture {
         fn new_custom<F>(client_setup:F) -> Self
         where F : FnOnce(&mut MockData,&mut language_server::MockClient) {
-            info!(DefaultDebugLogger::new("Test"),"1");
             let test       = TestWithLocalPoolExecutor::set_up();
-            info!(DefaultDebugLogger::new("Test"),"2");
             let mut data   = MockData::default();
-            info!(DefaultDebugLogger::new("Test"),"3");
             let mut client = language_server::MockClient::default();
-            info!(DefaultDebugLogger::new("Test"),"4");
             client.require_all_calls();
-            info!(DefaultDebugLogger::new("Test"),"5");
             client_setup(&mut data,&mut client);
-            info!(DefaultDebugLogger::new("Test"),"6");
             let end_of_code = TextLocation::at_document_end(&data.graph.module.code);
             let code_range  = TextLocation::at_document_begin()..=end_of_code;
-            info!(DefaultDebugLogger::new("Test"),"7");
             let graph       = data.graph.controller();
-            info!(DefaultDebugLogger::new("Test"),"8");
             let node        = &graph.graph().nodes().unwrap()[0];
-            info!(DefaultDebugLogger::new("Test"),"9");
             let this        = ThisNode::new(vec![node.info.id()],&graph.graph());
-            info!(DefaultDebugLogger::new("Test"),"10");
             let this        = data.selected_node.and_option(this);
-            info!(DefaultDebugLogger::new("Test"),"11");
             let logger      = Logger::new("Searcher");// new_empty
-            info!(DefaultDebugLogger::new("Test"),"12");
             let database    = Rc::new(SuggestionDatabase::new_empty(&logger));
-            info!(DefaultDebugLogger::new("Test"),"13");
             let module_name = QualifiedName::from_segments(PROJECT_NAME, &[MODULE_NAME]).unwrap();
-            info!(DefaultDebugLogger::new("Test"),"14");
             let searcher = Searcher {
                 graph,logger,database,
                 data             : default(),
@@ -1191,6 +1211,12 @@ pub mod test {
                 ],
                 ..entry1.clone()
             };
+            let entry10 = model::suggestion_database::Entry {
+                name   : "testFunction3".to_string(),
+                module : "Test.Other".to_owned().try_into().unwrap(),
+                scope  : Scope::Everywhere,
+                ..entry9.clone()
+            };
 
             searcher.database.put_entry(1,entry1);
             let entry1 = searcher.database.lookup(1).unwrap();
@@ -1202,7 +1228,9 @@ pub mod test {
             let entry4 = searcher.database.lookup(4).unwrap();
             searcher.database.put_entry(9,entry9);
             let entry9 = searcher.database.lookup(9).unwrap();
-            Fixture{data,test,searcher,entry1,entry2,entry3,entry4,entry9}
+            searcher.database.put_entry(10,entry10);
+            let entry10 = searcher.database.lookup(10).unwrap();
+            Fixture{data,test,searcher,entry1,entry2,entry3,entry4,entry9,entry10}
         }
 
         fn new() -> Self {
@@ -1380,8 +1408,10 @@ pub mod test {
         searcher.reload_list();
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
-        let expected_list = vec![Action::Suggestion(entry1), Action::Suggestion(entry9)];
-        assert_eq!(searcher.actions().list().unwrap().to_action_vec(), expected_list);
+        let list = searcher.actions().list().unwrap().to_action_vec();
+        assert_eq!(list.len(), 4); // we include two mocked entries
+        assert_eq!(list[2], Action::Suggestion(entry1));
+        assert_eq!(list[3], Action::Suggestion(entry9));
         let notification = subscriber.next().boxed_local().expect_ready();
         assert_eq!(notification, Some(Notification::NewActionList));
     }
@@ -1539,6 +1569,7 @@ pub mod test {
             , Case::new("+ 2 - 3", "foo + 2 - 3")
             , Case::new("+ bar baz", "foo + bar baz")
             , Case::new("map x-> x.characters.length", "foo.map x-> x.characters.length")
+            , Case::new("at 3 == y", "foo.at 3 == y")
             ];
 
         for case in &cases { case.run(); }
@@ -1600,6 +1631,43 @@ pub mod test {
             let updated_def = fixture.searcher.graph.graph().definition().unwrap().item;
             assert_eq!(updated_def.ast.repr(),case.result);
         }
+    }
+
+    #[wasm_bindgen_test]
+    fn adding_imports_with_nodes() {
+        fn expect_inserted_import_for(entry:&action::Suggestion, expected_import:Vec<&QualifiedName>) {
+            let Fixture{test:_test,mut searcher,..} = Fixture::new();
+            let module = searcher.graph.graph().module.clone_ref();
+            let parser = searcher.parser.clone_ref();
+
+            let picked_method = FragmentAddedByPickingSuggestion {
+                id                : CompletedFragmentId::Function,
+                picked_suggestion : entry.clone(),
+            };
+            with(searcher.data.borrow_mut(), |mut data| {
+                data.fragments_added_by_picking.push(picked_method);
+                data.input = ParsedInput::new(entry.name.to_string(),&parser).unwrap();
+            });
+
+            // Add new node.
+            searcher.mode = Immutable(Mode::NewNode {position:None});
+            searcher.commit_node().unwrap();
+
+            let module_info    = module.info();
+            let imported_names = module_info.iter_imports()
+                .map(|import| import.qualified_name().unwrap())
+                .collect_vec();
+
+            let expected_import = expected_import.into_iter().cloned().collect_vec();
+            assert_eq!(imported_names,expected_import);
+        }
+
+        let Fixture{entry1,entry2,entry3,entry4,entry10,..} = Fixture::new();
+        expect_inserted_import_for(&entry1, vec![]);
+        expect_inserted_import_for(&entry2, vec![]);
+        expect_inserted_import_for(&entry3, vec![]);
+        expect_inserted_import_for(&entry4, vec![&entry4.module]);
+        expect_inserted_import_for(&entry10, vec![&entry10.module]);
     }
 
     #[wasm_bindgen_test]

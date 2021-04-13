@@ -32,7 +32,9 @@ const ARROW_SIZE_Y       : f32 = 20.0;
 const HOVER_EXTENSION    : f32 = 10.0;
 
 const MOUSE_OFFSET       : f32 = 2.0;
-const NODE_PADDING       : f32 = node::SHADOW_SIZE;
+
+// It was node::SHADOW_SIZE; Should be moved to theme manager and linked to node::shadow.
+const NODE_PADDING       : f32 = 10.0;
 
 // The padding needs to be large enough to accommodate the extended hover area without clipping it.
 const PADDING            : f32 = 4.0 + HOVER_EXTENSION;
@@ -1287,7 +1289,7 @@ impl EdgeModelData {
         let color:color::Lcha = color.opaque.into();
         if !is_disabled {color} else {
             let styles = StyleWatch::new(&self.scene.style_sheet);
-            styles.get_color(theme::code::syntax::disabled)
+            styles.get_color(theme::code::syntax::disabled).into()
         }
     }
 
@@ -1295,7 +1297,7 @@ impl EdgeModelData {
         // We must never use alpha in edges, as it will show artifacts with overlapping sub-parts.
         let color:color::Lcha = color.opaque.into();
         let styles            = StyleWatch::new(&self.scene.style_sheet);
-        let bg_color          = styles.get_color(theme::application::background);
+        let bg_color          = styles.get_color(theme::application::background).into();
         color::mix(bg_color,color,0.25)
     }
 

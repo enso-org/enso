@@ -6,7 +6,6 @@ use crate::component::visualization::*;
 use crate::component::visualization;
 
 use enso_frp as frp;
-use ensogl::data::color;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -45,12 +44,12 @@ impl RawText {
         let path = Path::builtin("JSON");
         Definition::new(
             Signature::new_for_any_type(path,Format::Json),
-            |scene| { Ok(Self::new(scene).into()) }
+            |scene| { Ok(Self::new(scene.clone_ref()).into()) }
         )
     }
 
     /// Constructor.
-    pub fn new(scene:&Scene) -> Self {
+    pub fn new(scene:Scene) -> Self {
         let network = frp::Network::new("js_visualization_raw_text");
         let frp     = visualization::instance::Frp::new(&network);
         let model   = RawTextModel::new(scene);
@@ -63,11 +62,12 @@ impl RawText {
         let frp     = self.frp.clone_ref();
         frp::extend! { network
             eval frp.set_size  ((size) model.set_size(*size));
-            eval frp.send_data ([frp](data) {
+            eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
                 }
              });
+            eval frp.set_layer ((layer) model.set_layer(*layer));
         }
         self
     }
@@ -79,11 +79,12 @@ pub struct RawTextModel {
     logger : Logger,
     dom    : DomSymbol,
     size   : Rc<Cell<Vector2>>,
+    scene  : Scene,
 }
 
 impl RawTextModel {
     /// Constructor.
-    fn new(scene:&Scene) -> Self {
+    fn new(scene:Scene) -> Self {
         let logger = Logger::new("RawText");
         let div    = web::create_div();
         let dom    = DomSymbol::new(&div);
@@ -92,7 +93,6 @@ impl RawTextModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles       = StyleWatch::new(&scene.style_sheet);
         let text_color   = styles.get_color(ensogl_theme::graph_editor::visualization::text);
-        let text_color   = color::Rgba::from(text_color);
         let _red         = text_color.red * 255.0;
         let _green       = text_color.green * 255.0;
         let _blue        = text_color.blue * 255.0;
@@ -111,7 +111,7 @@ impl RawTextModel {
         dom.dom().set_style_or_warn("pointer-events","auto"               ,&logger);
 
         scene.dom.layers.back.manage(&dom);
-        RawTextModel{dom,logger,size}.init()
+        RawTextModel{dom,logger,size,scene}.init()
     }
 
     fn init(self) -> Self {
@@ -141,11 +141,15 @@ impl RawTextModel {
     fn reload_style(&self) {
         self.dom.set_size(self.size.get());
     }
+
+    fn set_layer(&self, layer:Layer) {
+        layer.apply_for_html_component(&self.scene,&self.dom)
+    }
 }
 
 impl From<RawText> for Instance {
     fn from(t:RawText) -> Self {
-        Self::new(&t,&t.frp,&t.network)
+        Self::new(&t,&t.frp,&t.network,Some(t.model.dom.clone_ref()))
     }
 }
 

@@ -111,7 +111,7 @@ impl ArgReader for bool {
 /// the conversion will fail, a warning will be raised.
 #[macro_export]
 macro_rules! read_args {
-    (js::$($path:ident).* { $($field:ident : $field_type:ty),* $(,)? }) => {
+    ([$($($path:tt)*).*] { $($field:ident : $field_type:ty),* $(,)? }) => {
 
         /// Reflection mechanism containing string representation of option names.
         #[derive(Clone,Copy,Debug,Default)]
@@ -137,7 +137,7 @@ macro_rules! read_args {
             fn new() -> Self {
                 let logger = Logger::new(stringify!{Args});
                 let window = web::window();
-                let path   = vec![$(stringify!($path)),*];
+                let path   = vec![$($($path)*),*];
                 match web::reflect_get_nested_object(&window,&path).ok() {
                     None => {
                         let path = path.join(".");

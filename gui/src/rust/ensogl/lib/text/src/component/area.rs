@@ -104,8 +104,8 @@ pub mod selection {
             let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
             let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
             let color          = style.get_color(theme::code::syntax::selection);
-            let color          = color::Rgba::from(color);
-            let color          = format!("srgba({},{},{},{})",color.red,color.green,color.blue,alpha.glsl());
+            let color          = format!("srgba({},{},{},{})",color.red.glsl(),color.green.glsl()
+                ,color.blue.glsl(),alpha.glsl());
             let shape          = shape.fill(color);
             shape.into()
         }
@@ -446,8 +446,8 @@ pub const LINE_HEIGHT : f32 = 14.0;
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Area {
-    data    : AreaModel,
-    pub frp : Frp,
+    data    : Rc<AreaModel>,
+    pub frp : Rc<Frp>,
 }
 
 impl Deref for Area {
@@ -460,8 +460,8 @@ impl Deref for Area {
 impl Area {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
-        let frp  = Frp::new();
-        let data = AreaModel::new(app,&frp.output);
+        let frp  = Rc::new(Frp::new());
+        let data = Rc::new(AreaModel::new(app,&frp.output));
         Self {data,frp} . init()
     }
 
@@ -569,7 +569,7 @@ impl Area {
             eval_ sels_cut (m.buffer.frp.delete_left());
 
             eval_ input.paste (m.paste());
-            eval input.paste_string ((s) m.buffer.frp.paste(m.decode_paste(s)));
+            eval input.paste_string((s) m.paste_string(s));
 
 
             eval_ m.buffer.frp.text_change (m.redraw(true));
@@ -954,8 +954,28 @@ impl AreaModel {
         clipboard::read_text(move |t| paste_string.emit(t));
     }
 
+    /// Paste new text in the place of current selections / cursors. In case of pasting multiple
+    /// chunks (e.g. after copying multiple selections), the chunks will be pasted into subsequent
+    /// selections. In case there are more chunks than selections, end chunks will be dropped. In
+    /// case there is more selections than chunks, end selections will be replaced with empty
+    /// strings. I `self.single_line` is set to true then each chunk will be truncated to its first
+    /// line.
+    fn paste_string(&self, s: &str) {
+        let mut chunks = self.decode_paste(s);
+        if self.single_line.get() {
+            for f in &mut chunks {
+                Self::drop_all_but_first_line(f);
+            }
+        }
+        self.buffer.frp.paste(chunks);
+    }
+
     fn decode_paste(&self, encoded:&str) -> Vec<String> {
         encoded.split(RECORD_SEPARATOR).map(|s|s.into()).collect()
+    }
+
+    fn drop_all_but_first_line(s: &mut String) {
+        *s = s.lines().nth(0).unwrap_or("").to_string();
     }
 
     fn key_to_string(&self, key:&Key) -> Option<String> {

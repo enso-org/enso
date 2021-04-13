@@ -44,7 +44,7 @@ pub type ExpressionId = ast::Id;
 #[derive(Clone,Debug)]
 pub struct ComputedValueInfo {
     /// The string representing the full qualified typename of the computed value, e.g.
-    /// "Base.Main.Number".
+    /// "Standard.Base.Number".
     pub typename    : Option<ImString>,
     pub payload     : ExpressionUpdatePayload,
     /// If the expression is a method call (i.e. can be entered), this points to the target method.

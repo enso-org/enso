@@ -9,7 +9,7 @@ import * as svg        from './svg'
 // === ProgressIndicator ===
 // =========================
 
-let bg_color     = "#f6f3f1"
+let bg_color     = "rgb(249,250,251)"
 let loader_color = "#303030"
 let top_layer_index = 1000
 

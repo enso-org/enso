@@ -4,8 +4,10 @@ use crate::prelude::*;
 
 use enso_frp as frp;
 use ensogl::application;
-use ensogl::application::{Application, shortcut};
+use ensogl::application::Application;
+use ensogl::application::shortcut;
 use ensogl::display;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::DEPRECATED_Animation;
 use ensogl_text as text;
 
@@ -50,8 +52,9 @@ ensogl::define_endpoints! {
 /// The View of IDE Code Editor.
 #[derive(Clone,CloneRef,Debug)]
 pub struct View {
-    model : text::Area,
-    frp   : Frp,
+    model  : text::Area,
+    styles : StyleWatchFrp,
+    frp    : Frp,
 }
 
 impl Deref for View {
@@ -65,6 +68,7 @@ impl View {
     /// Create Code Editor component.
     pub fn new(app:&Application) -> Self {
         let scene           = app.display.scene();
+        let styles          = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let frp             = Frp::new();
         let network         = &frp.network;
         let model           = app.new_view::<text::Area>();
@@ -72,7 +76,7 @@ impl View {
 
         model.set_position_x(PADDING_LEFT);
         model.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        model.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
+        model.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
         //  should be changed in the second part of focus management
         //  (https://github.com/enso-org/ide/issues/823)
@@ -104,9 +108,13 @@ impl View {
                 Vector2(x,y)
             });
             eval position ((pos) model.set_position_xy(*pos));
-        }
 
-        Self{model,frp}
+            let color = styles.get_color(ensogl_theme::code::syntax::base);
+            eval color ((color) model.set_default_color(color));
+        }
+        model.set_default_color(color.value());
+
+        Self{model,styles,frp}
     }
 
     /// Return the Text Area component inside this editor.

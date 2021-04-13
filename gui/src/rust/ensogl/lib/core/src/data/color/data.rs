@@ -291,3 +291,16 @@ impl<C:Default> Default for Alpha<C> {
         Self {alpha,opaque}
     }
 }
+
+impl<C> Alpha<C> {
+    /// Return the color with a multiplied alpha channel.
+    pub fn multiply_alpha(self, alpha:f32) -> Color<Self> {
+        let alpha = self.alpha * alpha;
+        Color(Alpha{alpha, opaque: self.opaque })
+    }
+
+    /// Modify the color's alpha channel.
+    pub fn mod_alpha<F:FnOnce(&mut f32)>(&mut self, f:F) {
+        f(&mut self.alpha)
+    }
+}

@@ -128,6 +128,15 @@ impl Network {
         self.register(OwnedGet2::new(label,event))
     }
 
+    /// Only if the input event has changed, emit the input event. This will hide multiple
+    /// consecutive events with the same value.
+    pub fn on_change<T,V>(&self, label:Label, t:&T) -> Stream<V>
+        where T:EventOutput<Output=V>, V:Data+PartialEq {
+        let prev    = self.previous(label,t);
+        let changed = self.map2(label,t,&prev,|t1,t2| t1!=t2);
+        self.gate(label,t,&changed)
+    }
+
 
     // === Bool Utils ===
 

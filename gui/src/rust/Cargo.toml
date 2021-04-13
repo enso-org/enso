@@ -23,6 +23,7 @@ members = [
   "ide/view/graph-editor",
   "lib/callback",
   "lib/code-builder",
+  "lib/config",
   "lib/eval-tt",
   "lib/frp",
   "lib/fuzzly",

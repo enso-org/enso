@@ -10,6 +10,86 @@ use super::super::component::*;
 // === Macros ===
 // ==============
 
+macro_rules! define_color_parsing {
+    ($name:ident) => {
+        impl std::str::FromStr for $name {
+            type Err = ParseError;
+            fn from_str(s:&str) -> Result<Self, Self::Err> {
+                let (head,args) = generic_parse(s)?;
+                if &head != stringify!($name) {
+                    return Err(ParseError::new(format!("No '{}' header found.",stringify!($name))))
+                }
+                Ok($name::from_slice(&args))
+            }
+        }
+    }
+}
+
+macro_rules! define_color_spaces {
+    ($($(#$meta:tt)* $name:ident $a_name:ident $data_name:ident $comps:tt)*) => {
+        $(define_color_space!{ $(#$meta)* $name $a_name $data_name $comps })*
+
+        /// A struct that can contain color in any supported format, like Rgba, or Lch.
+        #[derive(Clone,Copy,Debug,PartialEq)]
+        #[allow(missing_docs)]
+        pub enum AnyFormat {
+            $(
+                $name($name),
+                $a_name($a_name),
+            )*
+        }
+
+        impl std::str::FromStr for AnyFormat {
+            type Err = ParseError;
+            fn from_str(s:&str) -> Result<Self, Self::Err> {
+                let (head,args) = generic_parse(s)?;
+                match head.as_str() {
+                    $(
+                        stringify!($name)   => Ok(AnyFormat::$name($name::from_slice(&args))),
+                        stringify!($a_name) => Ok(AnyFormat::$a_name($a_name::from_slice(&args))),
+                    )*
+                    _ => panic!("Impossible.")
+                }
+            }
+        }
+
+        // TODO[WD]: This should be uncommented in the future. See the TODO comment below to
+        //   learn more.
+        // impl<C> From<AnyFormat> for Color<C>
+        // where $(
+        //     $name   : Into<Color<C>>,
+        //     $a_name : Into<Color<C>>,
+        // )* {
+        //     fn from(c:AnyFormat) -> Self {
+        //         match c {
+        //             $(
+        //                 AnyFormat::$name(t)   => t.into(),
+        //                 AnyFormat::$a_name(t) => t.into(),
+        //             )*
+        //         }
+        //     }
+        // }
+    }
+}
+
+impl<C> From<AnyFormat> for Color<C>
+where Rgb: Into<Color<C>>, Rgba: Into<Color<C>>,
+      Lch: Into<Color<C>>, Lcha: Into<Color<C>> {
+    fn from(c: AnyFormat) -> Self {
+        match c {
+            AnyFormat::Rgb(t)  => t.into(),
+            AnyFormat::Rgba(t) => t.into(),
+            AnyFormat::Lch(t)  => t.into(),
+            AnyFormat::Lcha(t) => t.into(),
+            // TODO[WD]: This should be implemented by the commented out macro above, however,
+            //   it requires a lot more conversions than we support currently. To be implemented
+            //   one day.
+            //   https://github.com/enso-org/ide/issues/1404
+            _ => panic!("Not implemented.")
+        }
+    }
+}
+
 macro_rules! define_color_space {
     ($(#[$($meta:tt)*])* $name:ident $a_name:ident $data_name:ident [$($comp:ident)*]) => {
         $(#[$($meta)*])*
@@ -44,6 +124,13 @@ macro_rules! define_color_space {
                 let data = $data_name::new($($comp),*);
                 Self {data}
             }
+
+            /// Constructor.
+            pub fn from_slice(comps:&[f32]) -> Self {
+                let mut iter = comps.iter().copied();
+                $(let $comp = iter.next().unwrap_or_default();)*
+                Self::new($($comp),*)
+            }
         }
 
         /// Constructor.
@@ -59,19 +146,39 @@ macro_rules! define_color_space {
                 let data   = Alpha {alpha,opaque};
                 Self {data}
             }
+
+            /// Constructor.
+            pub fn from_slice(comps:&[f32]) -> Self {
+                let mut iter = comps.iter().copied();
+                $(let $comp = iter.next().unwrap_or_default();)*
+                let alpha = iter.next().unwrap_or(1.0);
+                Self::new($($comp),*,alpha)
+            }
         }
 
-        impl Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        impl Display for $name {
+            fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let comps = vec![$(self.$comp.to_string()),*].join(",");
                 write!(f,"{}({})",stringify!($name),comps)
             }
         }
 
-        impl Debug for $a_name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        impl Display for $a_name {
+            fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let comps = vec![$(self.$comp.to_string()),*,self.alpha.to_string()].join(",");
                 write!(f,"{}({})",stringify!($a_name),comps)
+            }
+        }
+
+        impl Debug for $name {
+            fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                <Self as Display>::fmt(self,f)
+            }
+        }
+
+        impl Debug for $a_name {
+            fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                <Self as Display>::fmt(self,f)
             }
         }
 
@@ -97,16 +204,22 @@ macro_rules! define_color_space {
                 Self {$($comp),*}
             }
         }
+
+        define_color_parsing!{$name}
+        define_color_parsing!{$a_name}
     };
 }
 
 
 
-// ===========
-// === Rgb ===
-// ===========
+// ====================
+// === Color Spaces ===
+// ====================
 
-define_color_space! {
+define_color_spaces! {
+
+    // === Rgb ===
+
     /// The most common color space, when it comes to computer graphics, and it's defined as an
     /// additive mixture of red, green and blue light, where gray scale colors are created when
     /// these three channels are equal in strength.
@@ -128,60 +241,10 @@ define_color_space! {
     ///   The amount of green light, where 0.0 is no green light and 1.0 is the highest displayable
     ///   amount.
     Rgb Rgba RgbData [red green blue]
-}
-
-impl Rgb {
-    /// Converts the color to `LinearRgb` representation.
-    pub fn into_linear(self) -> LinearRgb {
-        self.into()
-    }
-}
-
-impl Rgba {
-    /// Constructor.
-    pub fn red() -> Self {
-        Self::new(1.0,0.0,0.0,1.0)
-    }
-
-    /// Constructor.
-    pub fn green() -> Self {
-        Self::new(0.0,1.0,0.0,1.0)
-    }
-
-    /// Constructor.
-    pub fn blue() -> Self {
-        Self::new(0.0,0.0,1.0,1.0)
-    }
-
-    /// Fully transparent color constructor.
-    pub fn transparent() -> Self {
-        Self::new(0.0,0.0,0.0,0.0)
-    }
-
-    /// Converts the color to `LinearRgba` representation.
-    pub fn into_linear(self) -> LinearRgba {
-        self.into()
-    }
-}
 
 
+    // === Hsl ===
 
-// =================
-// === LinearRgb ===
-// =================
-
-define_color_space! {
-    /// Linear sRGBv space. See `Rgb` to learn more.
-    LinearRgb LinearRgba LinearRgbData [red green blue]
-}
-
-
-
-// ===========
-// === Hsl ===
-// ===========
-
-define_color_space! {
     /// Linear HSL color space.
     ///
     /// The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle
@@ -206,15 +269,10 @@ define_color_space! {
     ///   Decides how light the color will look. 0.0 will be black, 0.5 will give a clear color,
     ///   and 1.0 will give white.
     Hsl Hsla HslData [hue saturation lightness]
-}
 
 
+    // === Xyz ===
 
-// ===========
-// === Xyz ===
-// ===========
-
-define_color_space! {
     /// The CIE 1931 XYZ color space.
     ///
     /// XYZ links the perceived colors to their wavelengths and simply makes it possible to describe
@@ -236,15 +294,10 @@ define_color_space! {
     /// - `z` [0.0 - 1.08883] for the default `D65` white point.
     ///   Scale of what can be seen as the blue stimulation. Its range depends on the white point.
     Xyz Xyza XyzData [x y z]
-}
 
 
+    // === Lab ===
 
-// ===========
-// === Lab ===
-// ===========
-
-define_color_space! {
     /// The CIE L*a*b* (CIELAB) color space.
     ///
     /// CIE L*a*b* is a device independent color space which includes all perceivable colors. It's
@@ -269,34 +322,10 @@ define_color_space! {
     ///   b* goes from yellow at -1.0 to blue at 1.0. Most implementations use value range of
     ///   [-128 .. 127] instead. It was rescaled for convenience.
     Lab Laba LabData [lightness a b]
-}
-
-impl LabData {
-    /// Computes the `hue` in degrees of the current color.
-    pub fn hue(&self) -> Option<f32> {
-        if self.a == 0.0 && self.b == 0.0 {
-            None
-        } else {
-            let mut hue = self.b.atan2(self.a) * 180.0 / std::f32::consts::PI;
-            if hue < 0.0 { hue += 360.0 }
-            Some(hue)
-        }
-    }
-}
 
 
+    // === Lch ===
 
-// ===========
-// === Lch ===
-// ===========
-
-/// The maximum value of chroma in LCH space that can be displayed in sRGB color space. The value
-/// uses scale used by popular color-conversion math equations, such as https://css.land/lch, or
-/// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html. Used internally for color
-/// conversions.
-pub(crate) const LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS : usize = 120;
-
-define_color_space! {
     /// CIE L*C*h°, a polar version of CIE L*a*b*.
     ///
     /// L*C*h° shares its range and perceptual uniformity with L*a*b*, but it's a cylindrical color
@@ -341,6 +370,104 @@ define_color_space! {
     Lch Lcha LchData [lightness chroma hue]
 }
 
+
+
+// ===========
+// === Rgb ===
+// ===========
+
+impl Rgb {
+    /// Converts the color to `LinearRgb` representation.
+    pub fn into_linear(self) -> LinearRgb {
+        self.into()
+    }
+
+    /// Convert the color to JavaScript representation.
+    pub fn to_javascript_string(&self) -> String {
+        let red   = (self.red*255.0).round() as i32;
+        let green = (self.green*255.0).round() as i32;
+        let blue  = (self.blue*255.0).round() as i32;
+        format!("rgb({},{},{})",red,green,blue)
+    }
+}
+
+impl Rgba {
+    /// Constructor.
+    pub fn red() -> Self {
+        Self::new(1.0,0.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn green() -> Self {
+        Self::new(0.0,1.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn blue() -> Self {
+        Self::new(0.0,0.0,1.0,1.0)
+    }
+
+    /// Fully transparent color constructor.
+    pub fn transparent() -> Self {
+        Self::new(0.0,0.0,0.0,0.0)
+    }
+
+    /// Convert the color to `LinearRgba` representation.
+    pub fn into_linear(self) -> LinearRgba {
+        self.into()
+    }
+
+    /// Convert the color to JavaScript representation.
+    pub fn to_javascript_string(&self) -> String {
+        let red   = (self.red*255.0).round() as i32;
+        let green = (self.green*255.0).round() as i32;
+        let blue  = (self.blue*255.0).round() as i32;
+        format!("rgba({},{},{},{})",red,green,blue,self.alpha)
+    }
+}
+
+
+
+// =================
+// === LinearRgb ===
+// =================
+
+define_color_space! {
+    /// Linear sRGBv space. See `Rgb` to learn more.
+    LinearRgb LinearRgba LinearRgbData [red green blue]
+}
+
+
+
+// ===========
+// === Lab ===
+// ===========
+
+impl LabData {
+    /// Computes the `hue` in degrees of the current color.
+    pub fn hue(&self) -> Option<f32> {
+        if self.a == 0.0 && self.b == 0.0 {
+            None
+        } else {
+            let mut hue = self.b.atan2(self.a) * 180.0 / std::f32::consts::PI;
+            if hue < 0.0 { hue += 360.0 }
+            Some(hue)
+        }
+    }
+}
+
+
+
+// ===========
+// === Lch ===
+// ===========
+
+/// The maximum value of chroma in LCH space that can be displayed in sRGB color space. The value
+/// uses scale used by popular color-conversion math equations, such as https://css.land/lch, or
+/// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html. Used internally for color
+/// conversions.
+pub(crate) const LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS : usize = 120;
+
 #[allow(missing_docs)]
 impl Lch {
     pub fn pink_hue       () -> f32 { 0.0   } // approx.   0.0 degrees
@@ -383,6 +510,11 @@ impl Lcha {
     pub fn blue_green  (l:f32, c:f32) -> Lcha { Lch::blue_green (l,c) . into() }
     pub fn blue        (l:f32, c:f32) -> Lcha { Lch::blue       (l,c) . into() }
     pub fn violet      (l:f32, c:f32) -> Lcha { Lch::violet     (l,c) . into() }
+
+    /// Convert the color to JavaScript representation.
+    pub fn to_javascript_string(&self) -> String {
+        Rgba::from(self).to_javascript_string()
+    }
 }
 
 
@@ -481,4 +613,65 @@ fn lch_lightness_to_max_chroma_in_srgb(l:f32) -> f32 {
     let c_scaled_ceil    = c_scaled_ceil_u.copied().unwrap_or(0) as f32;
     let c_scaled         = c_scaled_floor + (c_scaled_ceil - c_scaled_floor) * coeff;
     c_scaled / LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS as f32
+}
+
+
+
+// ===============
+// === Parsing ===
+// ===============
+
+/// String to color parse error.
+#[derive(Debug,Clone)]
+#[allow(missing_docs)]
+pub struct ParseError {
+    pub reason:String
+}
+
+impl ParseError {
+    /// Constructor.
+    pub fn new(reason:impl Into<String>) -> Self {
+        let reason = reason.into();
+        Self {reason}
+    }
+}
+
+impl From<std::num::ParseFloatError> for ParseError {
+    fn from(_:std::num::ParseFloatError) -> Self {
+        ParseError::new("Improper numeric argument.")
+    }
+}
+
+fn uppercase_first_letter(s:&str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None    => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+    }
+}
+
+/// Consume the input string and return the header and list of args. For example, for the input
+/// `rgba(1.0,0.0,0.0,0.5)`, the header will be `"rgba"`, and the nubers will be arguments.
+fn generic_parse(s:&str) -> Result<(String,Vec<f32>),ParseError> {
+    let mut splitter = s.splitn(2,'(');
+    match splitter.next() {
+        None       => Err(ParseError::new("Empty input.")),
+        Some(head) => {
+            match splitter.next() {
+                None       => Err(ParseError::new("No arguments provided.")),
+                Some(rest) => {
+                    let head = uppercase_first_letter(&head.to_lowercase());
+                    if !rest.ends_with(')') {
+                        Err(ParseError::new("Expression does not end with ')'."))
+                    } else {
+                        let rest = &rest[..rest.len()-1];
+                        let args : Result<Vec<f32>,std::num::ParseFloatError> =
+                            rest.split(',').map(|t|t.parse::<f32>()).collect();
+                        let args = args?;
+                        Ok((head,args))
+                    }
+                }
+            }
+        }
+    }
 }

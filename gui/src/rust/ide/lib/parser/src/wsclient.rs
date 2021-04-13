@@ -171,8 +171,9 @@ mod internal {
         pub fn recv_response<M:Metadata>(&mut self) -> Result<Response<M>> {
             let response = self.connection.recv_message()?;
             match response {
-                websocket::OwnedMessage::Text(text) => Ok(serde_json::from_str(&text)?),
-                _                                   => Err(Error::NonTextResponse(response)),
+                websocket::OwnedMessage::Text(text) =>
+                    crate::from_json_str_without_recursion_limit(&text).map_err(Into::into),
+                _ => Err(Error::NonTextResponse(response)),
             }
         }
 

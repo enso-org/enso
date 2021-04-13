@@ -59,6 +59,13 @@ impl QualifiedName {
         QualifiedName{project_name,module_segments,name}
     }
 
+    /// Create from the module's qualified name.
+    pub fn new_module_member(module:module::QualifiedName, name:String) -> Self {
+        let module::QualifiedName{project_name,id} = module;
+        let module_segments                        = id.into_segments();
+        QualifiedName{project_name,module_segments,name}
+    }
+
     /// Create from a text representation. May fail if the text is not valid Qualified name of any
     /// type.
     pub fn from_text(text:impl Str) -> FallibleResult<Self> {
@@ -73,6 +80,11 @@ impl QualifiedName {
             module_segments.push(ReferentName::new(segment)?);
         }
         Ok(QualifiedName {project_name,module_segments,name})
+    }
+
+    /// Check if the name is defined directly in the given module.
+    pub fn in_module(&self, module:&module::QualifiedName) -> bool {
+        self.project_name == module.project_name && &self.module_segments == module.id.segments()
     }
 }
 
