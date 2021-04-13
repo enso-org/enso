@@ -2,8 +2,16 @@
 <img src="https://user-images.githubusercontent.com/1623053/114557275-cbd27a80-9c69-11eb-9e4d-a60187cdb7a4.gif" width="640" height="640"/>
 </p>
 
-<a align="center" href="https://enso.org">
-enso.org
+<p align="center">
+<a href="https://enso.org">
+  enso.org
+</a>
+</p>
+
+<p align="center">
+<a href="https://enso.org">
+  <h3>enso.org</h3>
+</a>
 </p>
 
 [enso.org](https://enso.org) 
