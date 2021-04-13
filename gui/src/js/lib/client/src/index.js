@@ -165,7 +165,7 @@ optParser.options('theme', {
 optParser.options('node-labels', {
     group       : styleOptionsGroup,
     describe    : 'Show node labels. Defaults to `true`.',
-    default     : false,
+    default     : true,
     type        : `boolean`
 })
 

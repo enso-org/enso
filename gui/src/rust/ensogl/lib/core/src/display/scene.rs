@@ -650,11 +650,11 @@ impl HardcodedLayers {
         below_main.set_camera(layers.main.camera());
         layers.add_layers_order_dependency(&viz,&below_main);
         layers.add_layers_order_dependency(&below_main,&layers.main);
-        layers.add_layers_order_dependency(&layers.main,&label);
+        layers.add_layers_order_dependency(&layers.main,&cursor);
+        layers.add_layers_order_dependency(&cursor,&label);
         layers.add_layers_order_dependency(&label,&breadcrumbs_background);
         layers.add_layers_order_dependency(&breadcrumbs_background,&breadcrumbs_text);
-        layers.add_layers_order_dependency(&breadcrumbs_text,&cursor);
-        layers.add_layers_order_dependency(&cursor,&tooltip_background);
+        layers.add_layers_order_dependency(&breadcrumbs_text,&tooltip_background);
         layers.add_layers_order_dependency(&tooltip_background,&tooltip_text);
         layers.add_layers_order_dependency(&tooltip_text,&viz_fullscreen);
         Self {layers,viz,cursor,label,viz_fullscreen,below_main,breadcrumbs_background,
