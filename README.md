@@ -50,7 +50,7 @@ the way you can work with your data: it is interactive, provides intelligent
 assistance, and was designed on a strong mathematical foundation, so you can
 always trust the results you get.
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/web-apps-development/001-algorithm.svg">
 <ul><ul>
     <b>Intelligent suggestions of possible next steps. Build workflows in minutes instead of weeks.</b><br/>
     Enso analyses the data, suggests possible next steps, and displays related
