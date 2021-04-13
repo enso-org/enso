@@ -18,24 +18,24 @@ type Maybe
        Arguments:
        - default: The value to return if `this` is Nothing. This value is lazy
          and hence will not execute any provided computation unless it is used.
-       - function: The function to execute on the value inside the `Just`, if it
+       - function: The function to execute on the value inside the `Some`, if it
          is a just.
 
        > Example
-         Apply a function over a Just value to get 4.
-             (Just 2).maybe 0 *2
+         Apply a function over a Some value to get 4.
+             (Some 2).maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
     maybe ~default function = case this of
         Nothing -> default
         Some val -> function val
 
-    ## Check if the maybe value is `Just`.
+    ## Check if the maybe value is `Some`.
 
        > Example
-         Check if `Nothing` is `Just`.
-             Nothing.is_just
-    is_just : Boolean
-    is_just = case this of
+         Check if `Nothing` is `Some`.
+             Nothing.is_some
+    is_some : Boolean
+    is_some = case this of
         Nothing -> False
         Some _ -> True
 
@@ -45,5 +45,5 @@ type Maybe
          Check if `Nothing` is `Nothing`.
              Nothing.is_nothing
     is_nothing : Boolean
-    is_nothing = this.is_just.not
+    is_nothing = this.is_some.not
 
