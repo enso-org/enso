@@ -41,7 +41,8 @@ a single language.
 <ul><ul>
     <b>Intelligent next steps suggestions. Build workflows in minutes instead of weeks.</b><br/>
     Enso analyses the data, suggests possible next steps, and displays related help and examples. It lets you build dashboards, RPA workflows, and apps. No coding required. Enso ships with a robust set of libraries, allowing you to work with local
-    files, databases, HTTP services and other applications in a seamless fashion. <a href="https://enso.org">Learn more →<a/>
+    files, databases, HTTP services and other applications in a seamless fashion. 
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
