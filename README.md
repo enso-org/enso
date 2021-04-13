@@ -29,7 +29,7 @@
 
 <br/>
 
-### [Enso.org](https://enso.org) . Get insights you can rely on. In real time.
+### [Enso.org](https://enso.org). Get insights you can rely on. In real time.
 
 Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance.
 
@@ -41,35 +41,62 @@ a single language.
 <ul><ul>
     <b>Automate data-driven processes in minutes instead of weeks.</b><br/>
     Build dashboards, RPA workflows, and apps. No coding required. Enso ships with a robust set of libraries, allowing you to work with local
-    files, databases, HTTP services and other applications in a seamless fashion.
+    files, databases, HTTP services and other applications in a seamless fashion. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Cutting-edge visualization engine</b><br/>
-    Enso is equipped with a highly-tailored WebGL visualization engine capable of
-    displaying even millions of data points 60 frames per second in a web
-    browser.
+    <b>Graphs for explainable analytics.</b><br/>
+    Enso graphs allow business leaders, analysts, data scientists, and developers to design workflows together. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
+
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Intelligent next steps suggestions.</b><br/>
+    Enso analyses the data, suggests possible next steps, and displays related help and examples. <a href="https://enso.org">Learn more →<a/>
+</ul></ul>
+
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Reproducible, trustworthy results.</b><br/>
+    Versioning and visual data quality management allow you to trust the results you get. <a href="https://enso.org">Learn more →<a/>
+</ul></ul>
+  
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Switch from graphs to code. And back.</b><br/>
+    Enso is a programming language with two syntax representations, visual and textual. <a href="https://enso.org">Learn more →<a/>
+</ul></ul>
+
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Polyglot</b><br/>
-    Enso allows you to use any Java library in your code. Soon, it will also allow
-    you to copy-paste code from Python, JavaScript, Ruby, and R with close-to-zero
-    performance overhead at runtime.
+    <b>Mix languages with close-to-zero interop overhead.</b><br/>
+    Import any library from Enso, Java, JavaScript, R, or Python, and use
+    functions, callbacks, and data types without any wrappers. Enso compiles
+    them to the same instruction set and a unified memory model. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
 <ul><ul>
-    <b>High performance</b><br/>
-    Enso graphs and code can run up to 100x faster than the analoguous Python
-    code.
+    <b>Up to 80x faster than Python.</b><br/>
+    It can even run other languages faster than their official runtimes. Enso-R
+    is 36x faster than GNU-R. <a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
+</ul></ul>
+  
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Cutting-edge visualization engine.</b><br/>
+    Enso is equipped with a highly-tailored WebGL visualization engine capable of
+    displaying even millions of data points at 60 frames per second in a web
+    browser. Currently, Enso includes a set of core data visualizations out of the box, and you can
+              easily extend it with libraries such as D3.js, Three.js, Babylon.js, deck.gl, VTK.js,
+              Potree, and many more. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Results you can trust</b><br/>
+    <b>Powerful, purely functional language.</b><br/>
     Enso incorporates many recent innovations in data processing and programming
     language design to allow you to work quickly and trust the results that you
     get. It is a purely functional programming language with higher-order
