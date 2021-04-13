@@ -50,7 +50,7 @@ the way you can work with your data: it is interactive, provides intelligent
 assistance, and was designed on a strong mathematical foundation, so you can
 always trust the results you get.
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/web-apps-development/001-algorithm.svg">
 <ul><ul>
     <b>Intelligent suggestions of possible next steps. Build workflows in minutes instead of weeks.</b><br/>
     Enso analyses the data, suggests possible next steps, and displays related
@@ -61,7 +61,7 @@ always trust the results you get.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/badges/018-military.svg">
 <ul><ul>
     <b>Reproducible, trustworthy results.</b><br/>
     Versioning and visual data quality management allow you to trust the results
@@ -69,7 +69,7 @@ always trust the results you get.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/basic-ui/041-graph.svg">
 <ul><ul>
     <b>A powerful, purely functional language. Both visual and textual.</b><br/>
     Enso incorporates many recent innovations in data processing and programming
@@ -80,7 +80,7 @@ always trust the results you get.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/business/036-puzzle.svg">
 <ul><ul>
     <b>Mix languages with close-to-zero interop overhead.</b><br/>
     Import any library from Enso, Java, JavaScript, R, or Python, and use
@@ -89,7 +89,7 @@ always trust the results you get.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/startup-and-new-business/051-rocket.svg">
 <ul><ul>
     <b>Fast. Up to 80x faster than Python.</b><br/>
     It can even run other languages faster than their official runtimes. Enso-R
@@ -97,7 +97,7 @@ always trust the results you get.
   <br/><a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/school/063-palette.svg">
 <ul><ul>
     <b>A cutting-edge visualization engine.</b><br/>
     Enso is equipped with a highly-tailored WebGL visualization engine capable
@@ -108,7 +108,7 @@ always trust the results you get.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
+<img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/shipping/004-cargo-ship.svg">
 <ul><ul>
     <b>Runs everywhere.</b><br/>
     Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
