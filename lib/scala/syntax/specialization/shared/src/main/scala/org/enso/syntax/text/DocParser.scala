@@ -507,13 +507,11 @@ object DocParserHTMLGenerator {
     val argsStr  = args.map(_.show() + " ")
     val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
-    HTML.div(
-      HTML.div(HTML.`class` := "atom")(
-        HTML.p(
-          HTML.span(HTML.`class` := "name")(nameStr),
-          " ",
-          HTML.span(HTML.`class` := "parameter")(argsStr)
-        )
+    HTML.div(HTML.`class` := "atom flex")(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "parameter")(argsStr)
       ),
       tagsHtml
     )
@@ -534,13 +532,11 @@ object DocParserHTMLGenerator {
       val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
       val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
-      HTML.div(
-        HTML.div(HTML.`class` := "method")(
-          HTML.p(
-            HTML.span(HTML.`class` := "name")(nameStr),
-            " ",
-            HTML.span(HTML.`class` := "argument")(argsStr)
-          )
+      HTML.div(HTML.`class` := "method flex")(
+        HTML.p(
+          HTML.span(HTML.`class` := "name")(nameStr),
+          " ",
+          HTML.span(HTML.`class` := "argument")(argsStr)
         ),
         tagsHtml
       )
