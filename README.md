@@ -130,6 +130,9 @@ a single language.
     <b>Watch Video Podcasts</b><br/>
     <ul>
         <li><a href="https://www.youtube.com/watch?v=U3pb7HiZIBg&t=2996s&ab_channel=Enso">Enso Textual Language Basics</a></li>
+      <li><a href="https://youtu.be/bcpOEX1x06I">Using Java libraries in Enso</a></li>
+      <li><a href="https://youtu.be/wFkh5LgAZTs">Custom data visualizations</a></li>
+      <li><a href="https://youtu.be/BibjcUjdkO4">Enso vision. What is in the future?</a></li>
         <li><a href="https://www.youtube.com/c/Enso_org/videos?view=2&sort=dd&live_view=503&shelf_id=3">... other video podcasts</a></li>
     </ul>
 </ul></ul>
