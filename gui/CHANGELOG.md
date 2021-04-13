@@ -6,134 +6,140 @@
 
 #### Visual Environment
 
-- [Statusbar reports connectivity issues][1316]. IDE maintains a connection to
-  the Language Server. If this connection is lost, any unsaved and further work
-  will be lost. In this build we added notification in statusbar to signalize
-  that the connection was lost and IDE must be restarted. In future IDE will try
-  to automatically reconnect.
-- [Visualization can be extended to the whole screen][1355] by selecting the
-  node and pressing space twice. To quit this view, press space again.
-- [Visualization preview on output port hover.][1363] There is now a quick
-  preview for visualizations and error descriptions. Hovering a node output will
-  first show a tooltip with the type information and then after some time, will
-  show the visualization of the node. The preview visualization will be located
-  above other nodes, whereas the normal view, will be shown below nodes. Errors
-  will show the preview visualization immediately. Nodes without type
-  information will also show the visualization immediately. You can enter a
-  quick preview mode by pressing ctrl (or command on macOS), which will show the
-  preview visualization immediately for any hovered node output.
+- [The status bar reports connectivity issues][1316]. The IDE maintains a
+  connection to the Enso Language Server. If this connection is lost, any
+  unsaved and further work will be lost. In this build we have added a
+  notification in the status bar to signal that the connection has been lost and
+  that the IDE must be restarted. In future, the IDE will try to automatically
+  reconnect.
+- [Visualizations can now be maximised to fill the screen][1355] by selecting
+  the node and pressing space twice. To quit this view, press space again.
+- [Visualizations are previewed when you hover over an output port.][1363] There
+  is now a quick preview for visualizations and error descriptions. Hovering
+  over a node output will first show a tooltip with the type information and
+  then, after some time, will show the visualization of the node. This preview
+  visualization will be located above other nodes, whereas the normal view, will
+  be shown below nodes. Errors will show the preview visualization immediately.
+  Nodes without type information will also show the visualization immediately.
+  You can enter a quick preview mode by pressing ctrl (or command on macOS),
+  which will show the preview visualization immediately when hovering above a
+  node's output port.
 - [Database Visualizations][1335]. Visualizations for the Database library have
   been added. The Table visualization now automatically executes the underlying
-  query to display its results in a table. In addition, the SQL Query
+  query to display its results as a table. In addition, the SQL Query
   visualization allows the user to see the query that is going to be run against
   the database.
 - [Histogram and Scatter Plot now support Dataframes.][1377] The `Table` and
   `Column` datatypes are properly visualized. Scatter Plot can display points of
-  different color, shape and size, all as defined by the data within the
+  different colors, shapes and sizes, all as defined by the data within the
   `Table`.
 - [Many small visual improvements.][1419] See the source issue for more details.
 - The dark theme is officially supported now. You can start the IDE with the
   `--theme=dark` option to enable it.
-- You can hide the node labels with `--no-node-labels` option. This is useful
-  when creating demo videos.
-- [Added Heatmap visualization.][1438] Just as Scatter Plot, it supports
-  visualizing Table, and vectors.
-- [Added Heatmap visualization.][1438]
+- You can hide the node labels with the `--no-node-labels` option. This is
+  useful when creating demo videos.
+- [Added a Heatmap visualization.][1438] Just as for the Scatter Plot, it
+  supports visualizing `Table`, but also `Vector`.
 - [Add a background to the status bar][1447].
 - [Display breadcrumbs behind nodes and other objects][1471].
 - [Image visualization.][1367]. Visualizations for the Enso Image library. Now
-  You can display Image type and string with image encoded in base64. Histogram
-  visualization has been adjusted, allowing to display the values of the
-  precomputed bins, which is useful when the dataset is relatively big, and it's
-  cheaper to send the precomputed bins rather than the entire dataset.
+  you can display the `Image` type and a string with an image encoded in base64.
+  The histogram visualization has been adjusted, allowing you to display the
+  values of the precomputed bins, which is useful when the dataset is relatively
+  big, and it's cheaper to send the precomputed bins rather than the entire
+  dataset.
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
 #### Visual Environment
 
-- [Not adding spurious imports][1209]. Fixed cases when IDE was adding
-  unnecessary library imports when selecting hints from node searcher. This
-  makes the generated textual code easier to read and reduces likelihood of
-  accidental name collision.
-- [Hovering over an output port shows a pop-up with the result type of a node]
-  [1312]. This allows discovering the result type of a node which can help with
-  debugging and development.
-- [Visualizations can define context for preprocessor evaluation][1291]. Users
-  can now decide what module's context should be used for visualization
-  preprocessor. This allows providing visualization with standard library
+- [Not adding spurious imports][1209]. Fixed cases where the IDE was adding
+  unnecessary library imports when selecting hints from the node searcher. This
+  makes the generated textual code much easier to read, and reduces the
+  likelihood of accidental name collisions.
+- [Hovering over an output port shows a pop-up with the result type of a
+  node][1312]. This allows easy discovery of the result type of a node, which
+  can help with both debugging and development.
+- [Visualizations can define the context for preprocessor evaluation][1291].
+  Users can now decide which module's context should be used for visualization
+  preprocessor. This allows providing visualizations with standard library
   functionalities or defining utilities that are shared between multiple
   visualizations.
-- [Fix issue with multiple instances of the IDE running.][1314] This fixes an
-  issue where multiple instances of the IDE (or even other applications) could
-  lead to the IDE not working.
+- [Fixed an issue with multiple instances of the IDE running.][1314] This fixes
+  an issue where multiple instances of the IDE (or even other applications)
+  could lead to the IDE not working.
 - [Allow JS to log arbitrary objects.][1313] Previously using `console.log` in a
   visualisation or during development would crash the IDE. Now it correctly logs
-  the string representation of the object.
-- [Fix mouse cursor offset on systems with fractional display scaling][1064].
-  Instead of there being an offset between visible cursor and cursor selection
-  this works now with any display scaling.
+  the string representation of the object. This is great for debugging custom
+  visualizations.
+- [Fix the mouse cursor offset on systems with fractional display
+  scaling][1064]. The cursor now works with any display scaling, instead of
+  there being an offset between the visible cursor and the cursor selection.
 - [Disable area selection][1318]. The area selection was visible despite being
   non-functional. To avoid confusion, area selection has been disabled until it
   is [correctly implemented][479].
-- [Fix error after adding a node][1332]. Sometimes, after picking a suggestion
-  the inserted node was annotated with "The name could not be found" error.
+- [Fix an error after adding a node][1332]. Sometimes, after picking a
+  suggestion, the inserted node was spuriously annotated with "The name could
+  not be found" error.
 - [Handle syntax errors in custom-defined visualizations][1341]. The IDE is now
-  able to run properly, even if some of the custom-defined visualisations inside
-  a project contain syntax errors.
+  able to run properly, even if some of the custom visualizations inside a
+  project contain syntax errors.
 - [Fix issues with pasting multi-line text into single-line text fields][1348].
-  The first copied line will be inserted and all additional lines will be
+  The line in the copied text will be inserted and all additional lines will be
   ignored.
 - [Users can opt out of anonymous data gathering.][1328] This can be done with
-  the `--no-data-gathering` command-line flag during the startup of the IDE.
+  the `--no-data-gathering` command-line flag when starting the IDE.
 - [Provide a theming API for JavaScript visualizations][1358]. It is now
   possible to use the Enso theming engine while developing custom visualizations
   in JavaScript. You can query it for all IDE colors, including the colors used
   to represent types.
-- [You can now start the IDE service without window again.][1353] The command
+- [You can now start the IDE service without a window again.][1353] The command
   line argument `--no-window` now starts all the required backend services
-  again, and prints the port on the command line, allowing you to open the IDE
-  with a browser of your choice.
-- [JS visualizations have consistent gestures with the IDE][1291]. Panning and
-  zooming now works just as expected on trackpad and mouse.
+  again, and prints the port on the command line. This allows you to open the
+  IDE in a web browser of your choice.
+- [JS visualizations have gestures consistent with the IDE][1291]. Panning and
+  zooming now works just as expected using both a trackpad and mouse.
 - [Running `watch` command works on first try.][1395]. Running the build command
   `run watch` would fail if it was run as the first command on a clean
   repository. This now works.
-- [The `inputType` field of visualizations is actually taken into consideration]
-  [1384]. The visualization chooser shows entries accepting the node's output's
-  type only.
-- [Fix applying selected node output to the expression of new node][1385]. For
-  example, having selected node with Table output and adding a new node with
-  expression `at "x" == "y"` the selected node was applied to the right side of
-  `==`: `at "x" == operator1."y"` instead of `operator1.at "x" == "y"`.
-- [`Enso_Project.data` is visible in searcher][1393].
-- [Geo Map visualization recognizes columns regardless of their name letter
-  case][1392]. This allows visualizing tables with columns like `LONGITUDE` or
+- [The `inputType` field of visualizations is actually taken into
+  consideration][1384]. The visualization chooser shows only the entries that
+  work properly for the node's output type.
+- [Fix applying the output of the selected node to the expression of a new
+  node][1385]. For example, having selected a node with `Table` output and
+  adding a new node with expression `at "x" == "y"`, the selected node was
+  applied to the right side of `==`: `at "x" == operator1."y"` instead of
+  `operator1.at "x" == "y"`.
+- [`Enso_Project.data` is visible in the searcher][1393].
+- [The Geo Map visualization recognizes columns regardless of the case of their
+  name][1392]. This allows visualizing tables with columns like `LONGITUDE` or
   `Longitude`, where previously only `longitude` was recognized.
-- [It is possible now to switch themes][1390]. Also, theme manager was
-  integrated with the FRP event engine, which was a long-standing issue in the
-  IDE. Themes management was exposed to JavaScript with the `window.theme`
-  variable. It is even possible to change and develop themes live by editing
-  theme variables directly in the Chrome Inspector. Use the following command to
-  start: `theme.snapshot("t1"); theme.get("t1").interactiveMode()`.
+- [It is possible now to switch themes][1390]. Additionally, the theme manager
+  was integrated with the FRP event engine, which has been a long-standing issue
+  in the IDE. Themes management was exposed to JavaScript with the
+  `window.theme` variable. It is even possible to change and develop themes live
+  by editing theme variables directly in the Chrome Inspector. Use the following
+  command to give this a go:
+  `theme.snapshot("t1"); theme.get("t1").interactiveMode()`.
 - [The active visualization is highlighted.][1412] Now it is clearly visible
   when the mouse events are passed to the visualization.
-- [Fixed an issue when projects containing certain language constructs failed to
-  load.][1413]
+- [Fixed an issue where projects containing certain language constructs failed
+  to load.][1413]
 - [Fixed a case where IDE could lose connection to the backend after some
   time.][1428]
-- [Improved performance of the graph editor, particularly when opening a project
-  for a first time.][1445]
+- [Improved the performance of the graph editor, particularly when opening a
+  project for the first time.][1445]
 
 #### EnsoGL (rendering engine)
 
-- [Unified shadow generation][1411]. Added a toolset to create shadows for  
+- [Unified shadow generation][1411]. Added a toolset to create shadows for
   arbitrary UI components.
 
 #### Enso Compiler
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
-[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+[here](https://github.com/enso-org/enso/blob/main/RELEASES.md#enso-0210-2021-04-07).
 
 [1064]: https://github.com/enso-org/ide/pull/1064
 [1209]: https://github.com/enso-org/ide/pull/1209
