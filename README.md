@@ -37,6 +37,8 @@ Enso is an award-winning interactive programming language with double visual and
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
+[![Introducing Enso video](https://img.youtube.com/vi/fQvWMoOjmQk/0.jpg)](https://www.youtube.com/watch?v=fQvWMoOjmQk)
+
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
     <b>Intelligent next steps suggestions. Build workflows in minutes instead of weeks.</b><br/>
@@ -101,7 +103,7 @@ a single language.
 
 <br/>
 
-### Getting Started
+# Getting Started
 
 <img align="right" alt="An example Enso graph" src="https://user-images.githubusercontent.com/1623053/105841783-7c1ed400-5fd5-11eb-8493-7c6a629a84b7.png" width="380">
 
