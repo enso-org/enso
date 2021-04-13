@@ -48,7 +48,8 @@ a single language.
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
     <b>Reproducible, trustworthy results.</b><br/>
-    Versioning and visual data quality management allow you to trust the results you get. <a href="https://enso.org">Learn more →<a/>
+    Versioning and visual data quality management allow you to trust the results you get.
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
   
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
@@ -57,7 +58,8 @@ a single language.
     Enso incorporates many recent innovations in data processing and programming
     language design to allow you to work interactively and trust the results that you
     get. It is a purely functional programming language with higher-order
-    functions, user-defined algebraic datatypes, pattern-matching, and two representations that you can switch on-demand. <a href="https://enso.org">Learn more →<a/>
+    functions, user-defined algebraic datatypes, pattern-matching, and two representations that you can switch on-demand.
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
@@ -65,14 +67,16 @@ a single language.
     <b>Mix languages with close-to-zero interop overhead.</b><br/>
     Import any library from Enso, Java, JavaScript, R, or Python, and use
     functions, callbacks, and data types without any wrappers. Enso compiles
-    them to the same instruction set and a unified memory model. <a href="https://enso.org">Learn more →<a/>
+    them to the same instruction set and a unified memory model.
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
 <ul><ul>
     <b>Fast. Up to 80x faster than Python.</b><br/>
     It can even run other languages faster than their official runtimes. Enso-R
-    is 36x faster than GNU-R. <a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
+    is 36x faster than GNU-R.
+  <br/><a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
 </ul></ul>
   
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/editor/bubble_chart/materialiconsround/24px.svg">
@@ -82,7 +86,8 @@ a single language.
     displaying even millions of data points at 60 frames per second in a web
     browser. Currently, Enso includes a set of core data visualizations out of the box, and you can
               easily extend it with libraries such as D3.js, Three.js, Babylon.js, deck.gl, VTK.js,
-              Potree, and many more. <a href="https://enso.org">Learn more →<a/>
+              Potree, and many more.
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
@@ -90,7 +95,8 @@ a single language.
     <b>Runs everywhere</b><br/>
     Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
     web-native technologies. In time, you'll be able to run it in the web-browser,
-    giving even your tablet of phone access to your data. <a href="https://enso.org">Learn more →<a/>
+    giving even your tablet of phone access to your data.
+  <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <br/>
