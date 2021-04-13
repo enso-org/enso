@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           VERSION=$(cat build.sbt | grep 'val ensoVersion' | sed 's/.*"\([^)]*\)".*/\1/').$(date --iso-8601)
-          echo ::set-output name=proceed::$VERSION
+          echo ::set-output name=nightly-version::$VERSION
 
   # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
   build:
@@ -138,11 +138,13 @@ jobs:
         run: |
           echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
           echo "ENSO_VERSION=${{ needs.preflight-check.outputs.nightly-version }}" >> $GITHUB_ENV
+
       - name: Update the Version Number to the Nightly
         working-directory: repo
         shell: bash
         run: |
-          sed -i "s/val ensoVersion.*= \".*\"/val ensoVersion   = \"$ENSO_VERSION\"/" build.sbt
+          node tools/ci/nightly/bump-version.js $ENSO_VERSION
+
       - name: Bootstrap the Project
         working-directory: repo
         shell: bash
