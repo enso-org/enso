@@ -31,15 +31,16 @@
 
 # [Enso.org](https://enso.org). Get insights you can rely on. In real time.
 
-Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance.
-
 Enso is an award-winning interactive programming language with double visual and textual syntax. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 [![Introducing Enso video](https://img.youtube.com/vi/fQvWMoOjmQk/0.jpg)](https://www.youtube.com/watch?v=fQvWMoOjmQk)
+<br/>
 
-# Enso feautres
+# Enso features
+Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance. Enso redefines the way you can work with your data. It is interactive, provides intelligent assistance, and was designed on a strong mathematical foundation, so you can always trust the results you get.
+
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
     <b>Intelligent next steps suggestions. Build workflows in minutes instead of weeks.</b><br/>
