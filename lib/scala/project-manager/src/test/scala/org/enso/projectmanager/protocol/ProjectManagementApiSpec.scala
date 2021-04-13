@@ -445,6 +445,59 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
+    "deduplicate project ids" taggedAs Flaky in {
+      val projectName1 = "Foo"
+
+      implicit val client = new WsTestClient(address)
+
+      // given
+      val projectId1  = createProject(projectName1)
+      val projectDir1 = new File(userProjectDir, projectName1)
+      val projectDir2 = new File(userProjectDir, "Test")
+      FileUtils.copyDirectory(projectDir1, projectDir2)
+
+      // when
+      testClock.moveTimeForward()
+      openProject(projectId1)
+      val projectOpenTime = testClock.currentTime
+      //then
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/list",
+              "id": 0,
+              "params": { }
+            }
+          """)
+      val projectId2 = getGeneratedUUID
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": {
+              "projects": [
+                {
+                  "name": "Foo",
+                  "id": $projectId1,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": $projectOpenTime
+                },
+                {
+                  "name": "Foo",
+                  "id": $projectId2,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                }
+              ]
+            }
+          }
+          """)
+
+      // teardown
+      closeProject(projectId1)
+      deleteProject(projectId1)
+      deleteProject(projectId2)
+    }
+
   }
 
   "project/close" must {
@@ -613,6 +666,56 @@ class ProjectManagementApiSpec
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+    }
+
+    "resolve clashing ids" taggedAs Flaky in {
+      val projectName1 = "Foo"
+
+      implicit val client = new WsTestClient(address)
+
+      // given
+      val projectId1  = createProject(projectName1)
+      val projectDir1 = new File(userProjectDir, projectName1)
+      val projectDir2 = new File(userProjectDir, "Test")
+      FileUtils.copyDirectory(projectDir1, projectDir2)
+
+      // when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/list",
+              "id": 0,
+              "params": { }
+            }
+          """)
+
+      //then
+      val projectId2 = getGeneratedUUID
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": {
+              "projects": [
+                {
+                  "name": "Foo",
+                  "id": $projectId1,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                },
+                {
+                  "name": "Foo",
+                  "id": $projectId2,
+                  "engineVersion": $engineToInstall,
+                  "lastOpened": null
+                }
+              ]
+            }
+          }
+          """)
+
+      // teardown
+      deleteProject(projectId1)
+      deleteProject(projectId2)
     }
 
   }
