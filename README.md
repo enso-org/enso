@@ -2,6 +2,12 @@
 <img src="https://user-images.githubusercontent.com/1623053/114557275-cbd27a80-9c69-11eb-9e4d-a60187cdb7a4.gif" width="640" height="640"/>
 </p>
 
+<a align="center" href="https://enso.org">
+enso.org
+</p>
+
+[enso.org](https://enso.org) 
+
 <p align="center">
   <a href="https://discord.gg/PMtNMP46">
     <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
@@ -27,17 +33,18 @@
 
 <br/>
 
-### All your data and analytics. Unified. Interactive.
+### Enso. Get insights you can rely on. In real time.
 
-Enso is a general-purpose programming language and environment for interactive
-data processing. It is a tool that spans the entire stack, going from high-level
+Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance.
+
+Enso is an award-winning interactive programming language with double visual and textual syntax. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Connect to all the tools you're already using</b><br/>
-    Enso ships with a robust set of libraries, allowing you to work with local
+    <b>Automate data-driven processes in minutes instead of weeks.</b><br/>
+    Build dashboards, RPA workflows, and apps. No coding required. Enso ships with a robust set of libraries, allowing you to work with local
     files, databases, HTTP services and other applications in a seamless fashion.
 </ul></ul>
 
