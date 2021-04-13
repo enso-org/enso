@@ -39,21 +39,9 @@ a single language.
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Automate data-driven processes in minutes instead of weeks.</b><br/>
-    Build dashboards, RPA workflows, and apps. No coding required. Enso ships with a robust set of libraries, allowing you to work with local
+    <b>Intelligent next steps suggestions. Build workflows in minutes instead of weeks.</b><br/>
+    Enso analyses the data, suggests possible next steps, and displays related help and examples. It lets you build dashboards, RPA workflows, and apps. No coding required. Enso ships with a robust set of libraries, allowing you to work with local
     files, databases, HTTP services and other applications in a seamless fashion. <a href="https://enso.org">Learn more →<a/>
-</ul></ul>
-
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
-<ul><ul>
-    <b>Graphs for explainable analytics.</b><br/>
-    Enso graphs allow business leaders, analysts, data scientists, and developers to design workflows together. <a href="https://enso.org">Learn more →<a/>
-</ul></ul>
-
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
-<ul><ul>
-    <b>Intelligent next steps suggestions.</b><br/>
-    Enso analyses the data, suggests possible next steps, and displays related help and examples. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
@@ -67,7 +55,15 @@ a single language.
     <b>Switch from graphs to code. And back.</b><br/>
     Enso is a programming language with two syntax representations, visual and textual. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
-
+  
+<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
+<ul><ul>
+    <b>Powerful purely functional language. Both visual and textual</b><br/>
+    Enso incorporates many recent innovations in data processing and programming
+    language design to allow you to work interactively and trust the results that you
+    get. It is a purely functional programming language with higher-order
+    functions, user-defined algebraic datatypes, pattern-matching, and two representations that you can switch on-demand. <a href="https://enso.org">Learn more →<a/>
+</ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/action/translate/materialiconsround/24px.svg">
 <ul><ul>
@@ -92,16 +88,6 @@ a single language.
     browser. Currently, Enso includes a set of core data visualizations out of the box, and you can
               easily extend it with libraries such as D3.js, Three.js, Babylon.js, deck.gl, VTK.js,
               Potree, and many more. <a href="https://enso.org">Learn more →<a/>
-</ul></ul>
-
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
-<ul><ul>
-    <b>Powerful, purely functional language.</b><br/>
-    Enso incorporates many recent innovations in data processing and programming
-    language design to allow you to work quickly and trust the results that you
-    get. It is a purely functional programming language with higher-order
-    functions, user-defined algebraic datatypes, pattern-matching, and a rich set
-    of primitive types.
 </ul></ul>
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/device/devices/materialiconsround/24px.svg">
