@@ -1,9 +1,3 @@
-
-<p align="center">
-<img src="https://user-images.githubusercontent.com/1623053/114553528-020dfb00-9c66-11eb-8fb8-d37a9b0f7e22.gif" width="640" height="640"/>
-</p>
-
-
 <p align="center">
   <br/>
   <a href="http://enso.org">
@@ -25,6 +19,10 @@
   <br/>
   <br/>
   <br/>
+</p>
+
+<p align="center">
+<img src="https://user-images.githubusercontent.com/1623053/114553528-020dfb00-9c66-11eb-8fb8-d37a9b0f7e22.gif" width="640" height="640"/>
 </p>
 
 <p align="center">
