@@ -1,12 +1,7 @@
 
-
-
-<img src="https://user-images.githubusercontent.com/1623053/114548834-91b0ab00-9c60-11eb-85a9-e5644ceab0ee.gif" width="640" height="640"/>
-
 <p align="center">
-<img src="https://user-images.githubusercontent.com/1623053/114549828-cc671300-9c61-11eb-8e50-ad4e78d720a1.gif" width="640" height="640"/>
+<img src="https://user-images.githubusercontent.com/1623053/114553528-020dfb00-9c66-11eb-8fb8-d37a9b0f7e22.gif" width="640" height="640"/>
 </p>
-
 
 
 <p align="center">
