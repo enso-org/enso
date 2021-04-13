@@ -162,6 +162,11 @@ Turning your data into knowledge is slow and error-prone. You can’t trust tool
 
 <br/><br/>
 
+# Enso source code
+Enso is a community-driven open source project which is, and will always be, open and free to use. Join us, help us to build it, and spread the word!
+
+<br/>
+
 ### Project components
 
 Enso consists of several sub projects:
