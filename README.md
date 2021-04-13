@@ -36,6 +36,7 @@ visualisation and communication to the nitty-gritty of backend services, all in
 a single language.
 
 [![Introducing Enso video](https://img.youtube.com/vi/fQvWMoOjmQk/0.jpg)](https://www.youtube.com/watch?v=fQvWMoOjmQk)
+
 <br/>
 
 # Enso features
