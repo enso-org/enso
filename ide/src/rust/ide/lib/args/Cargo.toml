@@ -6,5 +6,6 @@ edition = "2018"
 
 [dependencies]
 ensogl = { path = "../../../ensogl" }
+enso-config = { path = "../../../lib/config" }
 enso-prelude = { version = "0.1.10" }
 enso-logger = { version = "0.2.2" }

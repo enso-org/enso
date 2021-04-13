@@ -69,7 +69,7 @@ pub struct NotDirectChild(ast::Crumbs);
 /// Example: `["Parent","Module_Name"]`
 ///
 /// Includes segments of module path but *NOT* the project name (see: `QualifiedName`).
-#[derive(Clone,Debug,Shrinkwrap,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,Shrinkwrap,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Id {
     /// The vector can be empty - in that case we point to the module called `Main`.
     segments:Vec<ReferentName>
@@ -115,6 +115,11 @@ impl Id {
             || ReferentName::new(PROJECTS_MAIN_MODULE).unwrap()
         )
     }
+
+    /// Access module name segments.
+    pub fn segments(&self) -> &Vec<ReferentName> {
+        &self.segments
+    }
 }
 
 
@@ -132,7 +137,7 @@ impl Id {
 ///
 /// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
 /// package structure.
-#[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,Deserialize,Serialize,PartialEq,Eq,PartialOrd,Ord,Hash)]
 #[serde(into="String")]
 #[serde(try_from="String")]
 pub struct QualifiedName {
@@ -148,10 +153,18 @@ impl QualifiedName {
         QualifiedName {project_name,id}
     }
 
+    /// Create a qualified name for the project's main module.
+    ///
+    /// It is special, as its name consists only from the project name, unlike other modules'
+    /// qualified names.
+    pub fn new_main(project_name:ReferentName) -> QualifiedName {
+        Self::new(project_name, Id::new(std::iter::empty()))
+    }
+
     /// Constructs a qualified name from its text representation.
     ///
     /// Fails, if the text is not a valid module's qualified name.
-    pub fn from_text(text:impl Str) -> FallibleResult<Self> {
+    pub fn from_text(text:impl AsRef<str>) -> FallibleResult<Self> {
         use ast::opr::predefined::ACCESS;
 
         let text     = text.as_ref();

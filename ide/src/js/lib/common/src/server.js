@@ -10,7 +10,7 @@ import * as portfinder    from 'portfinder'
 // === Port ===
 // ============
 
-export const DEFAULT_PORT = 8080
+const DEFAULT_PORT = 8080
 
 async function findPort(cfg) {
     if (!cfg.port) {

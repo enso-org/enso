@@ -224,6 +224,13 @@ where T:Into<Data> {
     }
 }
 
+impl TryFrom<String> for Value {
+    type Error = <Data as TryFrom<String>>::Error;
+    fn try_from(s:String) -> Result<Self,Self::Error> {
+        s.try_into().map(Self::Data)
+    }
+}
+
 impl PartialSemigroup<&Value> for Value {
     fn concat_mut(&mut self, other:&Self) {
         *self = other.clone()
@@ -245,9 +252,10 @@ impl PartialSemigroup<Value> for Value {
 /// Defines a change to a style sheet. Style sheets allow bulk-application of changes in order to
 /// optimize the amount of necessary computations.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct Change {
-    path  : Path,
-    value : Option<Value>
+    pub path  : Path,
+    pub value : Option<Value>
 }
 
 impl Change {
@@ -395,32 +403,32 @@ impl SheetData {
 
 impl SheetData {
     /// Sets the value by the given path. Returns indexes of all affected queries.
-    pub fn set<P,V>(&mut self, path:P, value:V) -> HashSet::<Index<Query>>
+    pub fn set<P,V>(&mut self, path:P, value:V) -> HashSet<Index<Query>>
     where P:Into<Path>, V:Into<Value> {
         let value = value.into();
         self.apply_change(Change::new(path,Some(value)))
     }
 
     /// Removes the value by the given path. Returns indexes of all affected queries.
-    pub fn unset<P>(&mut self, path:P) -> HashSet::<Index<Query>>
+    pub fn unset<P>(&mut self, path:P) -> HashSet<Index<Query>>
     where P:Into<Path> {
         self.apply_change(Change::new(path,None))
     }
 
     /// Changes the value by the given path. Providing `None` as the value means that the value
     /// will be removed. Returns indexes of all affected queries.
-    pub fn change<P>(&mut self, path:P, value:Option<Value>) -> HashSet::<Index<Query>>
+    pub fn change<P>(&mut self, path:P, value:Option<Value>) -> HashSet<Index<Query>>
     where P:Into<Path> {
         self.apply_change(Change::new(path,value))
     }
 
     /// Apply a `Change`. Returns indexes of all affected queries.
-    pub fn apply_change(&mut self, change:Change) -> HashSet::<Index<Query>> {
+    pub fn apply_change(&mut self, change:Change) -> HashSet<Index<Query>> {
         self.apply_changes(iter::once(change))
     }
 
     /// Apply a set of `Change`s. Returns indexes of all affected queries.
-    pub fn apply_changes<I>(&mut self, changes:I) -> HashSet::<Index<Query>>
+    pub fn apply_changes<I>(&mut self, changes:I) -> HashSet<Index<Query>>
     where I:IntoIterator<Item=Change> {
         let mut changed_queries  = HashSet::<Index<Query>>::new();
         let mut possible_orphans = Vec::<Index<SheetNode>>::new();
@@ -774,6 +782,30 @@ impl Var {
         let rc = Rc::new(VarData::new(sheet,query_index,callbacks));
         Self {rc}
     }
+
+    /// Return weak reference to this var.
+    pub fn downgrade(&self) -> WeakVar {
+        WeakVar {weak:Rc::downgrade(&self.rc)}
+    }
+}
+
+
+
+// ===============
+// === WeakVar ===
+// ===============
+
+/// Weak reference to [`Var`].
+#[derive(Clone,CloneRef,Debug,Deref)]
+pub struct WeakVar {
+    weak : Weak<VarData>
+}
+
+impl WeakVar {
+    /// Upgrade this weak reference to strong var reference.
+    pub fn upgrade(&self) -> Option<Var> {
+        self.weak.upgrade().map(|rc| Var{rc})
+    }
 }
 
 
@@ -789,6 +821,10 @@ impl Var {
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct Sheet {
     rc        : Rc<RefCell<SheetData>>,
+    /// Keeps already used variables. When dropping the last variable for a given path, it's
+    /// associated [`Query`] is dropped as well, so it's necessary to provide the same variable
+    /// for the given [`Path`]. See the [`var`] method to learn more.
+    cache     : Rc<RefCell<HashMap<String,WeakVar>>>,
     callbacks : Rc<RefCell<HashMap<Index<Query>,CallbackRegistry>>>
 }
 
@@ -801,12 +837,20 @@ impl Sheet {
         default()
     }
 
-    /// Creates a new style sheet `Var`.
+    /// Creates a new style sheet `Var`. It creates a clone-ref of an existing variable (in case not
+    /// all references were dropped so far).
     pub fn var<P>(&self, path:P) -> Var
     where P:Into<Path> {
-        let query_index  = self.rc.borrow_mut().unmanaged_query(path);
-        let callback_reg = self.callbacks.borrow_mut().entry(query_index).or_default().clone_ref();
-        Var::new(self,query_index,callback_reg)
+        let path     = path.into();
+        let path_str = path.to_string();
+        let opt_var = self.cache.borrow().get(&path_str).and_then(|t|t.upgrade());
+        opt_var.unwrap_or_else(|| {
+            let query_ix     = self.rc.borrow_mut().unmanaged_query(path);
+            let callback_reg = self.callbacks.borrow_mut().entry(query_ix).or_default().clone_ref();
+            let var          = Var::new(self,query_ix,callback_reg);
+            self.cache.borrow_mut().insert(path_str,var.downgrade());
+            var
+        })
     }
 
     /// Sets the value by the given path.
@@ -870,7 +914,8 @@ impl Sheet {
 impl Sheet {
     /// Runs callbacks registered for the given variable id.
     fn run_callbacks_for(&self, query_index:Index<Query>) {
-        if let Some(callbacks) = self.callbacks.borrow().get(&query_index).map(|t| t.clone_ref()) {
+        let callbacks_opt = self.callbacks.borrow().get(&query_index).map(|t| t.clone_ref());
+        if let Some(callbacks) = callbacks_opt {
             // FIXME: The value should not be cloned here.
             let value = self.rc.borrow().query_value(query_index).cloned();
             callbacks.run_all(&value)
@@ -957,10 +1002,46 @@ mod tests {
 
     #[test]
     pub fn single_variable() {
-        let sheet     = Sheet::new();
-        let val       = Rc::new(RefCell::new(None));
-        let var       = sheet.var("button.size");
-        let handle    = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
+        let sheet  = Sheet::new();
+        let val    = Rc::new(RefCell::new(None));
+        let var    = sheet.var("button_size");
+        let handle = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
+        assert_query_sheet_count(&sheet,1,1);
+        assert_eq!(var.value(),None);
+        sheet.set("size",data(1.0));
+        assert_query_sheet_count(&sheet,1,2);
+        assert_eq!(*val.borrow(),None);
+        assert_eq!(var.value(),None);
+        sheet.set("button_size",data(2.0));
+        assert_query_sheet_count(&sheet,1,2);
+        assert_eq!(*val.borrow(),Some(data(2.0)));
+        assert_eq!(var.value(),Some(data(2.0)));
+        drop(handle);
+        sheet.set("button_size",data(3.0));
+        assert_query_sheet_count(&sheet,1,2);
+        assert_eq!(*val.borrow(),Some(data(2.0)));
+        assert_eq!(var.value(),Some(data(3.0)));
+        sheet.unset("button_size");
+        assert_query_sheet_count(&sheet,1,2);
+        assert_eq!(*val.borrow(),Some(data(2.0)));
+        assert_eq!(var.value(),None);
+        drop(var);
+        assert_query_sheet_count(&sheet,0,1);
+        sheet.unset("size");
+        assert_query_sheet_count(&sheet,0,0);
+    }
+
+    #[test]
+    pub fn single_nested_variable() {
+        let sheet  = Sheet::new();
+        let val    = Rc::new(RefCell::new(None));
+        let var    = sheet.var("button.size");
+        let handle = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
+        assert_query_sheet_count(&sheet,1,2);
+        {
+            let var2 = sheet.var("button.size");
+            assert_query_sheet_count(&sheet,1,2);
+        }
         assert_query_sheet_count(&sheet,1,2);
         assert_eq!(var.value(),None);
         sheet.set("size",data(1.0));

@@ -30,33 +30,44 @@ impl<Color> ControlPoint<Color> {
 
 
 
-// ================
-// === Gradient ===
-// ================
+// ==============
+// === Linear ===
+// ==============
 
-/// A a range of position-dependent colors encoded as control points. Control points do not contain
+/// A range of position-dependent colors encoded as control points. Control points do not contain
 /// any information about incoming or outgoing slope, so the interpolation between them is linear.
 #[derive(Clone,Debug,Derivative)]
 #[derivative(Default(bound=""))]
-pub struct LinearGradient<Color> {
+pub struct Linear<Color> {
     control_points : Vec<ControlPoint<Color>>,
 }
 
-impl<Color> LinearGradient<Color> {
+impl<Color> Linear<Color> {
     /// Constructor.
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         default()
     }
 
+    /// Constructor.
+    pub fn new(start:impl Into<Color>, end:impl Into<Color>) -> Self {
+        let this = Self::empty();
+        this.add(0.0,start).add(1.0,end)
+    }
+
     /// Add a new control point. The offset needs to be in range [0..1].
-    pub fn add(mut self, offset:f32, color:Color) -> Self {
-        self.control_points.push(ControlPoint::new(offset,color));
+    pub fn add(mut self, offset:f32, color:impl Into<Color>) -> Self {
+        self.control_points.push(ControlPoint::new(offset,color.into()));
         self
+    }
+
+    /// Convert this gradient to SDF sampler gradient.
+    pub fn sdf_sampler(self) -> SdfSampler<Self> {
+        SdfSampler::new(self)
     }
 }
 
-impls! { [Color] From<&LinearGradient<Color>> for Glsl
-where [Color:Copy + RefInto<Glsl>] {
+impls! { [Color] From<&Linear<Color>> for Glsl
+where [Color:RefInto<Glsl>] {
     |t| {
         let args = t.control_points.iter().map(|control_point| {
             let offset = control_point.offset.glsl();
@@ -74,20 +85,20 @@ where [Color:Copy + RefInto<Glsl>] {
 // ==================
 
 /// Default start distance of the distance gradient.
-pub const DEFAULT_DISTANCE_GRADIENT_MIN_DISTANCE : f32 = 0.0;
+pub const DEFAULT_DISTANCE_GRADIENT_SPREAD : f32 = 0.0;
 
 /// Default end distance of the distance gradient.
-pub const DEFAULT_DISTANCE_GRADIENT_MAX_DISTANCE : f32 = 10.0;
+pub const DEFAULT_DISTANCE_GRADIENT_SIZE : f32 = 10.0;
 
 /// A gradient which transforms a linear gradient to a gradient along the signed distance field.
 /// The slope parameter modifies how fast the gradient values are changed, allowing for nice,
 /// smooth transitions.
-#[derive(Copy,Clone,Debug)]
+#[derive(Clone,Debug)]
 pub struct SdfSampler<Gradient> {
     /// The distance from the shape border at which the gradient should start.
-    pub min_distance : f32,
-    /// The distance from the shape border at which the gradient should finish.
-    pub max_distance : f32,
+    pub spread : f32,
+    /// The size of the gradient in the SDF space.
+    pub size : f32,
     /// The gradient slope modifier. Defines how fast the gradient values change.
     pub slope : Slope,
     /// The underlying gradient.
@@ -95,19 +106,24 @@ pub struct SdfSampler<Gradient> {
 }
 
 impl<Gradient> SdfSampler<Gradient> {
-    /// Constructs a new gradient with `min_distance` and `max_distance` set to
-    /// `DEFAULT_DISTANCE_GRADIENT_MIN_DISTANCE` and `DEFAULT_DISTANCE_GRADIENT_MAX_DISTANCE`
-    /// respectively.
+    /// Constructs a new gradient with `spread` and `size` set to
+    /// `DEFAULT_DISTANCE_GRADIENT_SPREAD` and `DEFAULT_DISTANCE_GRADIENT_SIZE` respectively.
     pub fn new(gradient:Gradient) -> Self {
-        let min_distance = DEFAULT_DISTANCE_GRADIENT_MIN_DISTANCE;
-        let max_distance = DEFAULT_DISTANCE_GRADIENT_MAX_DISTANCE;
-        let slope        = Slope::Smooth;
-        Self {min_distance,max_distance,slope,gradient}
+        let spread = DEFAULT_DISTANCE_GRADIENT_SPREAD;
+        let size   = DEFAULT_DISTANCE_GRADIENT_SIZE;
+        let slope  = Slope::Smooth;
+        Self {spread,size,slope,gradient}
     }
 
-    /// Constructor setter for the `max_distance` field.
-    pub fn max_distance(mut self, t:f32) -> Self {
-        self.max_distance = t;
+    /// Constructor setter for the `spread` field.
+    pub fn spread(mut self, t:f32) -> Self {
+        self.spread = t;
+        self
+    }
+
+    /// Constructor setter for the `size` field.
+    pub fn size(mut self, t:f32) -> Self {
+        self.size = t;
         self
     }
 
@@ -134,9 +150,9 @@ impl<Gradient> ContentRef for SdfSampler<Gradient> {
 impls! {[G:RefInto<Glsl>] From< SdfSampler<G>> for Glsl { |g| { (&g).into() } }}
 impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
     |g| {
-        let span   = iformat!("{g.max_distance.glsl()} - {g.min_distance.glsl()}");
-        let offset = iformat!("-shape.sdf.distance - {g.min_distance.glsl()}");
-        let norm   = iformat!("clamp(({offset}) / ({span}))");
+        let size   = iformat!("{g.size.glsl()}");
+        let offset = iformat!("-shape.sdf.distance + {g.spread.glsl()}");
+        let norm   = iformat!("clamp(({offset}) / ({size}))");
         let t      = match g.slope {
             Slope::Linear        => norm,
             Slope::Smooth        => iformat!("smoothstep(0.0,1.0,{norm})"),
@@ -148,19 +164,35 @@ impls! {[G:RefInto<Glsl>] From<&SdfSampler<G>> for Glsl {
     }
 }}
 
+macro_rules! define_slope {
+    ($($(#$docs:tt)* $name:ident $(($($arg:ident : $arg_type:ty),*))? $fn_name:ident),* $(,)?) => {
+        /// Defines how fast gradient values change.
+        #[derive(Copy,Clone,Debug)]
+        pub enum Slope {
+            $($(#$docs)* $name $(($($arg_type),*))? ),*
+        }
 
-/// Defines how fast gradient values change.
-#[derive(Copy,Clone,Debug)]
-pub enum Slope {
+        impl<Gradient> SdfSampler<Gradient> {
+            $(
+                /// Constructor setter for the `slope` field.
+                pub fn $fn_name(self, $($($arg : $arg_type),*)?) -> Self {
+                    self.slope(Slope::$name $(($($arg),*))? )
+                }
+            )*
+        }
+    };
+}
+
+define_slope! {
     /// Defines a linear gradient.
-    Linear,
+    Linear linear,
     /// Perform Hermite interpolation between gradient values. See `GLSL` `smoothstep` for
     /// reference.
-    Smooth,
+    Smooth smooth,
     /// Raises the normalized gradient offset to the given power and uses it as the interpolation
     /// step.
-    Exponent(f32),
+    Exponent(exp:f32) exponent,
     /// Raises the normalized gradient offset to the given power and uses it as the interpolation
     /// step.
-    InvExponent(f32),
+    InvExponent(exp:f32) inv_exponent,
 }

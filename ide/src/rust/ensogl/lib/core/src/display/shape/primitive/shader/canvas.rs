@@ -217,7 +217,7 @@ impl Canvas {
     pub fn translate<V:Into<Var<Vector2<Pixels>>>>
     (&mut self, num:usize, s1:Shape, v:V) -> Shape {
         self.if_not_defined(num, |this| {
-            let v:Glsl = v.into().glsl();
+            let v      = v.into().glsl();
             let trans  = iformat!("position = translate(position,{v});");
             let expr   = iformat!("return {s1.getter()};");
             this.add_current_function_code_line(trans);

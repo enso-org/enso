@@ -139,7 +139,6 @@ impl ProjectNameModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let style                 = StyleWatch::new(&scene.style_sheet);
         let base_color            = style.get_color(theme::graph_editor::breadcrumbs::transparent);
-        let base_color            = color::Rgba::from(base_color);
         let text_size:TextSize    = TEXT_SIZE.into();
         let text_field            = app.new_view::<text::Area>();
         text_field.set_default_color.emit(base_color);
@@ -147,13 +146,13 @@ impl ProjectNameModel {
         text_field.single_line(true);
 
         text_field.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        text_field.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
+        text_field.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
         text_field.hover();
 
         let view_logger = Logger::sub(&logger,"view_logger");
         let view        = background::View::new(&view_logger);
 
-        scene.layers.breadcrumbs.add_exclusive(&view);
+        scene.layers.breadcrumbs_background.add_exclusive(&view);
 
         let project_name = default();
         Self{app,logger,view,style,display_object,text_field,project_name}.init()
@@ -167,19 +166,22 @@ impl ProjectNameModel {
     }
 
     fn update_alignment(&self, content:&str) {
-        let width       = self.width(content);
-        let line_height = LINE_HEIGHT;
-        let height      = line_height+VERTICAL_MARGIN*2.0;
-        let x_position  = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
-        let y_position  = -VERTICAL_MARGIN - breadcrumb::TOP_MARGIN - breadcrumb::PADDING;
-        self.text_field.set_position(Vector3(x_position,y_position,0.0));
+        let width    = self.width(content);
+        let x_left   = breadcrumb::LEFT_MARGIN + breadcrumb::PADDING;
+        let x_center = x_left + width/2.0;
+
+        let height   = LINE_HEIGHT;
+        let y_top    = - VERTICAL_MARGIN - breadcrumb::VERTICAL_MARGIN - breadcrumb::PADDING;
+        let y_center = y_top - height/2.0;
+
+        self.text_field.set_position(Vector3(x_left,y_center+TEXT_SIZE/2.0,0.0));
         self.view.size.set(Vector2(width,height));
-        self.view.set_position(Vector3(width,-height,0.0)/2.0);
+        self.view.set_position(Vector3(x_center,y_center,0.0));
     }
 
     fn init(self) -> Self {
         self.add_child(&self.text_field);
-        self.text_field.add_child(&self.view);
+        self.add_child(&self.view);
         self.update_text_field_content(self.project_name.borrow().as_str());
         self
     }
@@ -252,11 +254,8 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles           = StyleWatch::new(&scene.style_sheet);
         let hover_color      = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let hover_color      = color::Rgba::from(hover_color);
         let deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let deselected_color = color::Rgba::from(deselected_color);
         let selected_color   = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color   = color::Rgba::from(selected_color);
         let animations       = Animations::new(&network);
 
         frp::extend! { network

@@ -35,9 +35,13 @@ pub mod builtin;
 pub mod data;
 
 use crate::component::node;
-use crate::component::visualization;
-use crate::component::visualization::MockDataGenerator3D;
+use crate::component::tooltip::Tooltip;
+use crate::component::visualization::instance::PreprocessorConfiguration;
+use crate::component::tooltip;
 use crate::component::type_coloring;
+use crate::component::visualization::MockDataGenerator3D;
+use crate::component::visualization;
+use crate::data::enso;
 
 use enso_args::ARGS;
 use enso_frp as frp;
@@ -75,12 +79,25 @@ pub mod prelude {
 // === Constants ===
 // =================
 
-const SNAP_DISTANCE_THRESHOLD          : f32 = 10.0;
-const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS  : f32 = 300.0;
-const MACOS_TRAFFIC_LIGHTS_CONTENT     : f32 = 52.0;
-const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET : f32 = 13.0;
-const MACOS_TRAFFIC_LIGHTS_WIDTH       : f32 =
-    MACOS_TRAFFIC_LIGHTS_CONTENT + 2.0 * MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
+const SNAP_DISTANCE_THRESHOLD              : f32 = 10.0;
+const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS      : f32 = 300.0;
+const MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH   : f32 = 52.0;
+const MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT  : f32 = 12.0;
+/// Horizontal and vertical offset between traffic lights and window border
+const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET     : f32 = 13.0;
+const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER : f32 =
+    - MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
+
+fn breadcrumbs_gap_width() -> f32 {
+    let is_macos     = ARGS.platform.map(|p|p.is_macos()) == Some(true);
+    let is_frameless = ARGS.frame == Some(false);
+    if is_macos && is_frameless {
+        MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
+    }
+    else {
+        0.0
+    }
+}
 
 
 
@@ -392,6 +409,8 @@ ensogl::define_endpoints! {
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
+        /// The visualization currently displayed as fullscreen is
+        close_fullscreen_visualization(),
 
 
         // === Scene Navigation ===
@@ -450,6 +469,10 @@ ensogl::define_endpoints! {
         reset_visualization_registry (),
         /// Reload visualization registry
         reload_visualization_registry(),
+        /// Show visualisation previews on nodes without delay.
+        enable_quick_visualization_preview(),
+        /// Show visualisation previews on nodes with delay.
+        disable_quick_visualization_preview(),
     }
 
     Output {
@@ -515,8 +538,9 @@ ensogl::define_endpoints! {
 
         visualization_enabled                   (NodeId,visualization::Metadata),
         visualization_disabled                  (NodeId),
-        visualization_enable_fullscreen         (NodeId),
-        visualization_preprocessor_changed      ((NodeId,data::enso::Code)),
+        visualization_fullscreen                (Option<NodeId>),
+        is_fs_visualization_displayed           (bool),
+        visualization_preprocessor_changed      ((NodeId,PreprocessorConfiguration)),
         visualization_registry_reload_requested (),
 
         on_visualization_select     (Switch<NodeId>),
@@ -666,7 +690,7 @@ impl Display for EdgeId {
 /// Typename information that may be associated with the given Port.
 ///
 /// `None` means that type for the port is unknown.
-#[derive(Clone,Debug,Default,Hash)]
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
 pub struct Type(pub ImString);
 
 impl Deref for Type {
@@ -858,6 +882,12 @@ impl Nodes {
     pub fn check_grid_magnet(&self, position:Vector2<f32>) -> Vector2<Option<f32>> {
         self.grid.borrow().close_to(position,SNAP_DISTANCE_THRESHOLD)
     }
+
+    pub fn set_quick_preview(&self, quick:bool) {
+        self.all.raw.borrow().values().for_each(|node|{
+            node.view.frp.quick_preview_vis.emit(quick)
+        })
+    }
 }
 
 
@@ -997,6 +1027,16 @@ impl Deref for GraphEditorModelWithNetwork {
     }
 }
 
+/// Context data required to create a new node.
+#[derive(Debug)]
+struct NodeCreationContext<'a> {
+    pointer_style  : &'a frp::Source<cursor::Style>,
+    tooltip_update : &'a frp::Source<tooltip::Style>,
+    output_press   : &'a frp::Source<EdgeEndpoint>,
+    input_press    : &'a frp::Source<EdgeEndpoint>,
+    output         : &'a FrpEndpoints,
+}
+
 impl GraphEditorModelWithNetwork {
     pub fn new(app:&Application, cursor:cursor::Cursor, frp:&Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
@@ -1004,14 +1044,7 @@ impl GraphEditorModelWithNetwork {
         Self {model,network}
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn new_node
-    ( &self
-    , pointer_style : &frp::Source<cursor::Style>
-    , output_press  : &frp::Source<EdgeEndpoint>
-    , input_press   : &frp::Source<EdgeEndpoint>
-    , output        : &FrpEndpoints
-    ) -> NodeId {
+    fn new_node(&self, ctx:&NodeCreationContext) -> NodeId {
         let view    = component::Node::new(&self.app,self.vis_registry.clone_ref());
         let node    = Node::new(view);
         let node_id = node.id();
@@ -1019,6 +1052,8 @@ impl GraphEditorModelWithNetwork {
 
         let touch = &self.touch_state;
         let model = &self.model;
+
+        let NodeCreationContext {pointer_style,tooltip_update,output_press,input_press,output} = ctx;
 
         frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
             eval_ node.frp.background_press(touch.nodes.down.emit(node_id));
@@ -1028,6 +1063,7 @@ impl GraphEditorModelWithNetwork {
 
             node.set_output_expression_visibility <+ self.frp.nodes_labels_visible;
 
+            eval node.frp.tooltip ((tooltip) tooltip_update.emit(tooltip));
             eval node.model.input.frp.pointer_style ((style) pointer_style.emit(style));
             eval node.model.output.frp.on_port_press ([output_press](crumbs){
                 let target = EdgeEndpoint::new(node_id,crumbs.clone());
@@ -1076,24 +1112,23 @@ impl GraphEditorModelWithNetwork {
 
             // === Visualizations ===
 
-            let vis_changed    =  node.model.visualization.frp.visualisation.clone_ref();
-            let vis_fullscreen =  node.model.visualization.frp.enable_fullscreen.clone_ref();
-
-            vis_enabled  <- node.visualization_enabled.gate(&node.visualization_enabled);
-            vis_disabled <- node.visualization_enabled.gate_not(&node.visualization_enabled);
+            let vis_changed =  node.model.visualization.frp.visualisation.clone_ref();
+            vis_enabled     <- node.visualization_enabled.gate(&node.visualization_enabled);
+            vis_disabled    <- node.visualization_enabled.gate_not(&node.visualization_enabled);
 
             let vis_is_selected = node.model.visualization.frp.is_selected.clone_ref();
 
             selected    <- vis_is_selected.on_true();
             deselected  <- vis_is_selected.on_false();
             output.source.visualization_preprocessor_changed <+
-                node.model.visualization.frp.preprocessor.map(move |code| (node_id,code.clone()));
+                node.model.visualization.frp.preprocessor.map(move |preprocessor|
+                    (node_id,preprocessor.clone()));
             output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 
             metadata  <- any(...);
-            metadata <+ node.model.visualization.frp.preprocessor.map(move |code| {
-                let preprocessor = code.clone();
+            metadata <+ node.model.visualization.frp.preprocessor.map(move |preprocessor| {
+                let preprocessor = preprocessor.clone();
                 visualization::Metadata{preprocessor}
             });
             // Ensure the graph editor knows about internal changes to the visualisation. If the
@@ -1101,14 +1136,13 @@ impl GraphEditorModelWithNetwork {
             // new one has been enabled.
             // TODO: Create a better API for updating the controller about visualisation changes
             // (see #896)
-            output.source.visualization_disabled          <+ vis_changed.constant(node_id);
-            output.source.visualization_enabled           <+
+            output.source.visualization_disabled <+ vis_changed.constant(node_id);
+            output.source.visualization_enabled  <+
                 vis_changed.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
 
-            output.source.visualization_enabled           <+
+            output.source.visualization_enabled <+
                 vis_enabled.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
-            output.source.visualization_disabled          <+ vis_disabled.constant(node_id);
-            output.source.visualization_enable_fullscreen <+ vis_fullscreen.constant(node_id);
+            output.source.visualization_disabled <+ vis_disabled.constant(node_id);
         }
         let initial_metadata = visualization::Metadata {
             preprocessor : node.model.visualization.frp.preprocessor.value()
@@ -1207,11 +1241,14 @@ pub struct GraphEditorModel {
     pub nodes          : Nodes,
     pub edges          : Edges,
     pub vis_registry   : visualization::Registry,
+    // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
+    //  currently work, however, because the `Application` lives in enso-core, and the tooltip
+    //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
+    tooltip            : Tooltip,
     touch_state        : TouchState,
     visualisations     : Visualisations,
     frp                : FrpEndpoints,
     navigator          : Navigator,
-
 }
 
 
@@ -1232,24 +1269,25 @@ impl GraphEditorModel {
         let vis_registry   = visualization::Registry::with_default_visualizations();
         let visualisations = default();
         let touch_state    = TouchState::new(network,&scene.mouse.frp);
-        let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref());
+        let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref(),breadcrumbs_gap_width());
         let app            = app.clone_ref();
         let frp            = frp.output.clone_ref();
         let navigator      = Navigator::new(&scene,&scene.camera());
+        let tooltip        = Tooltip::new(&app);
+
         Self {
             logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs,
-            vis_registry,visualisations,navigator
+            vis_registry,visualisations,navigator,tooltip,
         }.init()
     }
 
     fn init(self) -> Self {
         self.add_child(&self.breadcrumbs);
-        let is_macos     = ARGS.platform.map(|p|p.is_macos()) == Some(true);
-        let is_frameless = ARGS.frame == Some(false);
-        let x_offset     = if is_macos && is_frameless { MACOS_TRAFFIC_LIGHTS_WIDTH }
-                           else                        { MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET };
+        let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
+        let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
         self.breadcrumbs.set_position_x(x_offset);
-        self.breadcrumbs.set_position_y(-5.0);
+        self.breadcrumbs.set_position_y(y_offset);
+        self.scene().add_child(&self.tooltip);
         self
     }
 
@@ -1346,6 +1384,13 @@ impl GraphEditorModel {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.model.visualization.frp.enable_fullscreen.emit(());
+        }
+    }
+
+    fn disable_visualization_fullscreen(&self, node_id:impl Into<NodeId>) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.model.visualization.frp.disable_fullscreen.emit(());
         }
     }
 
@@ -1553,11 +1598,13 @@ impl GraphEditorModel {
     fn set_node_expression_usage_type(&self, node_id:impl Into<NodeId>, ast_id:ast::Id, maybe_type:Option<Type>) {
         let node_id  = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            // TODO[ao]: we must update root output port according to the whole expression type
-            //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
             if node.view.model.output.whole_expr_id().contains(&ast_id) {
+                // TODO[ao]: we must update root output port according to the whole expression type
+                //     due to a bug in engine https://github.com/enso-org/enso/issues/1038.
                 let crumbs = span_tree::Crumbs::default();
                 node.view.model.output.set_expression_usage_type(crumbs,maybe_type.clone());
+                let enso_type = maybe_type.as_ref().map(|tp| enso::Type::new(&tp.0));
+                node.view.model.visualization.frp.set_vis_input_type(enso_type);
             }
             let crumbs = node.view.model.get_crumbs_by_id(ast_id);
             if let Some(crumbs) = crumbs {
@@ -1751,7 +1798,7 @@ impl GraphEditorModel {
     /// Return a color for the edge.
     ///
     /// The algorithm works as follow:
-    /// 1. We query the type of the currently hovered port if any.
+    /// 1. We query the type of the currently hovered port, if any.
     /// 2. In case the previous point returns None, we query the edge target type, if any.
     /// 3. In case the previous point returns None, we query the edge source type, if any.
     /// 4. In case the previous point returns None, we use the generic type (gray color).
@@ -1766,7 +1813,9 @@ impl GraphEditorModel {
             .or_else(|| self.edge_target_type(edge_id))
             .or_else(|| self.edge_source_type(edge_id));
         let opt_color = edge_type.map(|t|type_coloring::compute(&t,&styles));
-        opt_color.unwrap_or_else(|| styles.get_color(theme::code::types::any::selection))
+        opt_color.unwrap_or_else(||
+            color::Lcha::from(styles.get_color(theme::code::types::any::selection))
+        )
     }
 
     fn first_detached_edge(&self) -> Option<EdgeId> {
@@ -1857,12 +1906,16 @@ impl application::View for GraphEditor {
           , (Press   , ""              , "cmd g"             , "collapse_selected_nodes")
 
           // === Visualization ===
-          , (Press       , "!node_editing" , "space" , "press_visualization_visibility")
-          // , (DoublePress , "!node_editing" , "space" , "double_press_visualization_visibility")
-          , (Release     , "!node_editing" , "space" , "release_visualization_visibility")
-          , (Press       , ""              , "cmd i" , "reload_visualization_registry")
+          , (Press       , "!node_editing"                 , "space" , "press_visualization_visibility"       )
+          , (DoublePress , "!node_editing"                 , "space" , "double_press_visualization_visibility")
+          , (Release     , "!node_editing"                 , "space" , "release_visualization_visibility"     )
+          , (Press       , ""                              , "cmd i" , "reload_visualization_registry"        )
+          , (Press       , "is_fs_visualization_displayed" , "space" , "close_fullscreen_visualization"       )
+          , (Press       , ""              , "cmd" , "enable_quick_visualization_preview")
+          , (Release     , ""              , "cmd" , "disable_quick_visualization_preview")
 
-          // === Selection ===
+
+            // === Selection ===
           , (Press   , "" , "shift"                   , "enable_node_multi_select")
           , (Press   , "" , "shift left-mouse-button" , "enable_node_multi_select")
           , (Release , "" , "shift"                   , "disable_node_multi_select")
@@ -1875,7 +1928,7 @@ impl application::View for GraphEditor {
           , (Release , "" , "shift ctrl alt"          , "toggle_node_inverse_select")
 
           // === Navigation ===
-          , (Press       , ""              , "ctrl space"        , "cycle_visualization_for_selected_node")
+          , (Press       , "!is_fs_visualization_displayed"              , "ctrl space"        , "cycle_visualization_for_selected_node")
           , (DoublePress , ""              , "left-mouse-button" , "enter_hovered_node")
           , (Press       , "!node_editing" , "enter"             , "enter_selected_node")
           , (Press       , ""              , "alt enter"         , "exit_node")
@@ -1969,7 +2022,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
     let styles             = StyleWatch::new(&scene.style_sheet);
-    let any_type_sel_color = styles.get_color(theme::code::types::any::selection);
+    let any_type_sel_color = color::Lcha::from(styles.get_color(theme::code::types::any::selection));
 
 
 
@@ -2135,18 +2188,16 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Cursor Selection ===
     frp::extend! { network
-
-    mouse_on_down_position <- mouse.position.sample(&mouse.down_primary);
-    selection_size_down    <- mouse.position.map2(&mouse_on_down_position,|m,n|{m-n});
-    selection_size         <- selection_size_down.gate(&touch.background.is_down);
-
     on_press_style   <- mouse.down_primary . constant(cursor::Style::new_press());
     on_release_style <- mouse.up_primary . constant(cursor::Style::default());
 
-
-    cursor_selection_start <- selection_size.map(|p| cursor::Style::new_with_all_fields_default().press().box_selection(Vector2::new(p.x,p.y)));
-    cursor_selection_end   <- mouse.up_primary . constant(cursor::Style::default());
-    cursor_selection       <- any (cursor_selection_start, cursor_selection_end);
+    // FIXME [mwu] Restore when implementing https://github.com/enso-org/ide/issues/479
+    // mouse_on_down_position <- mouse.position.sample(&mouse.down_primary);
+    // selection_size_down    <- mouse.position.map2(&mouse_on_down_position,|m,n|{m-n});
+    // selection_size         <- selection_size_down.gate(&touch.background.is_down);
+    // cursor_selection_start <- selection_size.map(|p| cursor::Style::new_with_all_fields_default().press().box_selection(Vector2::new(p.x,p.y)));
+    // cursor_selection_end   <- mouse.up_primary . constant(cursor::Style::default());
+    // cursor_selection       <- any (cursor_selection_start, cursor_selection_end);
 
     cursor_press     <- any (on_press_style, on_release_style);
 
@@ -2235,6 +2286,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     frp::extend! { network
 
     node_pointer_style <- source::<cursor::Style>();
+    node_tooltip       <- source::<tooltip::Style>();
 
     let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
     let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
@@ -2360,8 +2412,15 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     let add_node_at_cursor = inputs.add_node_at_cursor.clone_ref();
     add_node <- any (inputs.add_node,add_node_at_cursor);
-    new_node <- add_node.map(f_!([model,node_pointer_style,out] {
-        model.new_node(&node_pointer_style,&node_output_touch.down,&node_input_touch.down,&out)
+    new_node <- add_node.map(f_!([model,node_pointer_style,node_tooltip,out] {
+        let ctx = NodeCreationContext {
+            pointer_style  : &node_pointer_style,
+            tooltip_update : &node_tooltip,
+            output_press   : &node_output_touch.down,
+            input_press    : &node_input_touch.down,
+            output         : &out,
+        };
+        model.new_node(&ctx)
     }));
     out.source.node_added <+ new_node;
 
@@ -2695,6 +2754,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
        }
    }));
+   }
 
 
    // === Vis Selection ===
@@ -2715,6 +2775,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Vis Update Data ===
 
+    frp::extend! { network
     // TODO remove this once real data is available.
     let sample_data_generator = MockDataGenerator3D::default();
     def _set_dumy_data = inputs.debug_set_test_visualization_data_for_selected_node.map(f!([nodes,inputs](_) {
@@ -2738,21 +2799,13 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         }
     });
 
-     nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
-     node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
-
-    let cycle_count = Rc::new(Cell::new(0));
-    def _cycle_visualization = node_to_cycle.map(f!([inputs,vis_registry,logger](node_id) {
-        let visualizations = vis_registry.valid_sources(&"Any".into());
-        cycle_count.set(cycle_count.get() % visualizations.len());
-        if let Some(vis) = visualizations.get(cycle_count.get()) {
-            let path = vis.signature.path.clone();
-            inputs.set_visualization.emit((*node_id,Some(path)));
-        } else {
-            warning!(logger,"Failed to get visualization while cycling.");
-        };
-        cycle_count.set(cycle_count.get() + 1);
-    }));
+    nodes_to_cycle <= inputs.cycle_visualization_for_selected_node.map(f_!(model.selected_nodes()));
+    node_to_cycle  <- any(nodes_to_cycle,inputs.cycle_visualization);
+    eval node_to_cycle ([model](node_id) {
+        if let Some(node) = model.nodes.get_cloned_ref(node_id) {
+            node.view.model.visualization.frp.cycle_visualization();
+        }
+    });
 
 
     // === Visualization toggle ===
@@ -2765,16 +2818,17 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     let viz_press_ev      = inputs.press_visualization_visibility.clone_ref();
     let viz_d_press_ev    = inputs.double_press_visualization_visibility.clone_ref();
-    let viz_release       = inputs.release_visualization_visibility.clone_ref();
-    viz_pressed          <- bool(&viz_release,&viz_press_ev);
+    let viz_release_ev    = inputs.release_visualization_visibility.clone_ref();
+    viz_pressed          <- bool(&viz_release_ev,&viz_press_ev);
     viz_was_pressed      <- viz_pressed.previous();
     viz_press            <- viz_press_ev.gate_not(&viz_was_pressed);
+    viz_release          <- viz_release_ev.gate(&viz_was_pressed);
     viz_press_time       <- viz_press   . map(|_| web::performance().now() as f32);
     viz_release_time     <- viz_release . map(|_| web::performance().now() as f32);
     viz_press_time_diff  <- viz_release_time.map2(&viz_press_time,|t1,t0| t1-t0);
     viz_preview_mode     <- viz_press_time_diff.map(|t| *t > VIZ_PREVIEW_MODE_TOGGLE_TIME_MS);
-    viz_preview_mode_end <- viz_release.gate(&viz_preview_mode);
-    viz_tgt_nodes        <- viz_press.map(f_!(model.selected_nodes()));
+    viz_preview_mode_end <- viz_release.gate(&viz_preview_mode).gate_not(&out.is_fs_visualization_displayed);
+    viz_tgt_nodes        <- viz_press.gate_not(&out.is_fs_visualization_displayed).map(f_!(model.selected_nodes()));
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
@@ -2794,6 +2848,19 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     eval viz_disable         ((id) model.disable_visualization(id));
     eval viz_preview_disable ((id) model.disable_visualization(id));
     eval viz_fullscreen_on   ((id) model.enable_visualization_fullscreen(id));
+
+    viz_fs_to_close <- out.visualization_fullscreen.sample(&inputs.close_fullscreen_visualization);
+    eval viz_fs_to_close ([model](vis) {
+        if let Some(vis) = vis {
+            model.disable_visualization_fullscreen(vis);
+            model.enable_visualization(vis);
+        }
+    });
+
+    out.source.visualization_fullscreen <+ viz_fullscreen_on.map(|id| Some(*id));
+    out.source.visualization_fullscreen <+ inputs.close_fullscreen_visualization.constant(None);
+
+    out.source.is_fs_visualization_displayed <+ out.visualization_fullscreen.map(Option::is_some);
 
 
     // === Register Visualization ===
@@ -2948,7 +3015,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     pointer_style <- all
         [ pointer_on_drag
-        , cursor_selection
+        // FIXME [mwu] Restore when implementing https://github.com/enso-org/ide/issues/479
+        // , cursor_selection
         , cursor_press
         , node_pointer_style
         , cursor_style_edge_drag
@@ -2960,7 +3028,19 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
-    // let frp = Frp::deprecated_new(network.clone(),out); // fixme clone
+
+    // ===============
+    // === Tooltip ===
+    // ===============
+
+    frp::extend! { network
+        eval cursor.frp.scene_position ((pos)  model.tooltip.frp.set_location(pos.xy()) );
+        eval node_tooltip ((tooltip_update) model.tooltip.frp.set_style(tooltip_update) );
+
+        quick_visualization_preview <- bool(&frp.disable_quick_visualization_preview,
+                                            &frp.enable_quick_visualization_preview);
+        eval quick_visualization_preview((value) model.nodes.set_quick_preview(*value));
+    }
 
     GraphEditor {model,frp}
 }
@@ -2973,5 +3053,3 @@ impl display::Object for GraphEditor {
         self.model.display_object()
     }
 }
-
-

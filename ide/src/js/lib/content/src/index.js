@@ -6,6 +6,15 @@ import * as loader_module from 'enso-studio-common/src/loader'
 import * as html_utils    from 'enso-studio-common/src/html_utils'
 import * as animation     from 'enso-studio-common/src/animation'
 import * as globalConfig  from '../../../../config.yaml'
+import cfg                from '../../../config'
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const ALIVE_LOG_INTERVAL = 1000 * 60
 
 
 
@@ -15,8 +24,6 @@ import * as globalConfig  from '../../../../config.yaml'
 
 let API = {}
 window[globalConfig.windowAppScopeName] = API
-
-import cfg from '../../../config'
 
 
 
@@ -103,7 +110,7 @@ let wasm_entry_point_pfx = "entry_point_"
 
 /// Displays a debug screen which allows the user to run one of predefined debug examples.
 function show_debug_screen(wasm,msg) {
-    mixpanel.track("show_debug_screen")
+    API.remoteLog("show_debug_screen")
     let names = []
     for (let fn of Object.getOwnPropertyNames(wasm)) {
         if (fn.startsWith(wasm_entry_point_pfx)) {
@@ -172,41 +179,35 @@ function printScamWarning() {
 // === Remote Logging ===
 // ======================
 
-const mixpanel = require('mixpanel-browser');
-mixpanel.init("5b541aeab5e08f313cdc1d1bbebc12ac", { "api_host": "https://api-eu.mixpanel.com" }, "");
-
-const MAX_MESSAGE_LENGTH = 500;
-
-function trim_message(message) {
-    let trimmed = message.substr(0,MAX_MESSAGE_LENGTH)
-    if (trimmed.length < message.length) {
-        trimmed += "..."
+class MixpanelLogger {
+    constructor() {
+        this.mixpanel = require('mixpanel-browser');
+        this.mixpanel.init("5b541aeab5e08f313cdc1d1bbebc12ac", { "api_host": "https://api-eu.mixpanel.com" }, "");
     }
-    return trimmed
-}
 
-function remoteLog(event,data) {
-    if (mixpanel) {
-        event = trim_message(event)
-        if (data !== undefined && data !== null) {
-            data = trim_message(JSON.stringify(data))
-            mixpanel.track(event,{data});
+    log(event,data) {
+        if (this.mixpanel) {
+            event = MixpanelLogger.trim_message(event)
+            if (data !== undefined && data !== null) {
+                data = MixpanelLogger.trim_message(JSON.stringify(data))
+                this.mixpanel.track(event,{data});
+            } else {
+                this.mixpanel.track(event);
+            }
         } else {
-            mixpanel.track(event);
+            console.warn(`Failed to log the event '${event}'.`)
         }
-    } else {
-        console.warn(`Failed to log the event '${event}'.`)
+    }
+
+    static trim_message(message) {
+        const MAX_MESSAGE_LENGTH = 500;
+        let trimmed = message.substr(0,MAX_MESSAGE_LENGTH)
+        if (trimmed.length < message.length) {
+            trimmed += "..."
+        }
+        return trimmed
     }
 }
-
-window.enso.remoteLog = remoteLog
-
-window.setInterval(() =>{remoteLog("alive");}, 1000 * 60)
-
-//Build data injected during the build process. See `webpack.config.js` for the source.
-window.enso.remoteLog("git_hash", {hash: GIT_HASH})
-window.enso.remoteLog("build_information", BUILD_INFO)
-window.enso.remoteLog("git_status", {satus: GIT_STATUS})
 
 // ======================
 // === Logs Buffering ===
@@ -250,14 +251,19 @@ class LogRouter {
             this.handleError(...args)
         } else if (name == 'log') {
             let firstArg = args[0]
-            if (firstArg !== undefined && firstArg.startsWith("%c")) {
-                let firstArgBody = firstArg.slice(2);
-                let bodyStartIndex = firstArgBody.indexOf("%c");
-                if (bodyStartIndex !== -1) {
-                    let body = firstArgBody.slice(bodyStartIndex + 3);
-                    let is_error = body.startsWith("[E]");
-                    if (is_error) {
-                        this.handleError(body)
+            if (firstArg !== undefined) {
+                if (!(typeof firstArg === 'string' || firstArg instanceof String)) {
+                    firstArg = firstArg.toString()
+                }
+                if (firstArg.startsWith('%c')) {
+                    let firstArgBody = firstArg.slice(2)
+                    let bodyStartIndex = firstArgBody.indexOf('%c')
+                    if (bodyStartIndex !== -1) {
+                        let body = firstArgBody.slice(bodyStartIndex + 3)
+                        let is_error = body.startsWith('[E]')
+                        if (is_error) {
+                            this.handleError(body)
+                        }
                     }
                 }
             }
@@ -265,7 +271,7 @@ class LogRouter {
     }
 
     handleError(...args) {
-        remoteLog("error", args)
+        API.remoteLog("error", args)
     }
 }
 
@@ -339,7 +345,7 @@ function setupCrashDetection() {
 }
 
 function handleCrash(message) {
-    remoteLog("crash", message)
+    API.remoteLog("crash", message)
     if (document.getElementById(crashBannerId) === null) {
         storeLastCrashMessage(message)
         location.reload()
@@ -394,7 +400,7 @@ function showCrashBanner(message) {
 }
 
 async function reportCrash(message) {
-    const crashReportHost = getUrlParams().crashReportHost || cfg.defaultLogServerHost
+    const crashReportHost = API[globalConfig.windowAppScopeConfigName].crashReportHost
     await fetch(`http://${crashReportHost}/`, {
         method: 'POST',
         mode: 'no-cors',
@@ -413,18 +419,7 @@ async function reportCrash(message) {
 
 function style_root() {
     let root = document.getElementById('root')
-    root.style.backgroundColor = '#f6f3f1'
-}
-
-function getUrlParams() {
-    let url    = window.location.search
-    let query  = url.substr(1)
-    let result = {}
-    query.split("&").forEach(function(part) {
-        let item = part.split("=")
-        result[item[0]] = decodeURIComponent(item[1])
-    })
-    return result
+    root.style.backgroundColor = 'rgb(249,250,251)'
 }
 
 /// Waits for the window to finish its show animation. It is used when the website is run in
@@ -445,16 +440,30 @@ function ok(value) {
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 API.main = async function (inputConfig) {
-    remoteLog("main")
     let defaultConfig = {
-        use_loader    : true,
-        wasm_url      : '/assets/ide.wasm',
-        wasm_glue_url : '/assets/wasm_imports.js'
+        use_loader     : true,
+        wasm_url       : '/assets/ide.wasm',
+        wasm_glue_url  : '/assets/wasm_imports.js',
+        crashReportHost: cfg.defaultLogServerHost,
+        noDataGathering: false,
     }
     let urlParams = new URLSearchParams(window.location.search);
     let urlConfig = Object.fromEntries(urlParams.entries())
     let config    = Object.assign(defaultConfig,inputConfig,urlConfig)
     API[globalConfig.windowAppScopeConfigName] = config
+
+    if (config.noDataGathering) {
+        API.remoteLog = function (_event, _data) {}
+    } else {
+        let logger = new MixpanelLogger
+        API.remoteLog = function (event,data) {logger.log(event,data)}
+    }
+
+    window.setInterval(() =>{API.remoteLog("alive");}, ALIVE_LOG_INTERVAL)
+    //Build data injected during the build process. See `webpack.config.js` for the source.
+    API.remoteLog("git_hash", {hash: GIT_HASH})
+    API.remoteLog("build_information", BUILD_INFO)
+    API.remoteLog("git_status", {satus: GIT_STATUS})
 
     //initCrashHandling()
     style_root()
@@ -465,11 +474,11 @@ API.main = async function (inputConfig) {
     let entryTarget = ok(config.entry) ? config.entry : main_entry_point
     config.use_loader = config.use_loader && (entryTarget === main_entry_point)
 
-    remoteLog("window_show_animation")
+    API.remoteLog("window_show_animation")
     await windowShowAnimation()
-    remoteLog("download_content")
+    API.remoteLog("download_content")
     let {wasm,loader} = await download_content(config)
-    remoteLog("wasm_loaded")
+    API.remoteLog("wasm_loaded")
     if (entryTarget) {
         let fn_name = wasm_entry_point_pfx + entryTarget
         let fn      = wasm[fn_name]

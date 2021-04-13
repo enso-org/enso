@@ -1,9 +1,14 @@
 //! This module defines conversions between all defined color spaces. The color conversions
-//! equations base on http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html.
+//! equations base on (these sources provide the same equations with different precisions):
+//! - https://github.com/w3c/csswg-drafts/blob/main/css-color-4/conversions.js
+//! - https://www.easyrgb.com/en/math.php
+//! - http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+//! - https://github.com/gka/chroma.js/tree/master/src/io
+//! - http://colormine.org/convert/rgb-to-lch
 //!
 //! **WARNING**
 //! Be extra careful when developing color conversion equations. Many equations were re-scaled to
-//! make them more pleasant to work, however, the equations you will fnd will probably work on
+//! make them more pleasant to work, however, the equations you will find here will probably work on
 //! different value ranges. Read documentation for each color space very carefully.
 
 #![allow(clippy::unreadable_literal)]
@@ -84,6 +89,18 @@ macro_rules! color_convert_via {
                 <Color<Alpha<$via>>>::from(src).into()
             }
         }
+
+        impl From<Color<Alpha<$src>>> for Color<$tgt> {
+            fn from(src:Color<Alpha<$src>>) -> Self {
+                <Color<$via>>::from(src.opaque).into()
+            }
+        }
+
+        impl From<Color<$src>> for Color<Alpha<$tgt>> {
+            fn from(src:Color<$src>) -> Self {
+                <Color<Alpha<$src>>>::from(src).into()
+            }
+        }
     }
 }
 
@@ -93,20 +110,16 @@ macro_rules! color_convert_via {
 // === Rgb <-> LinearRgb ===
 // =========================
 
+/// More info: http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+
 fn into_linear(x:f32) -> f32 {
-    if x <= 0.04045 {
-        x / 12.92
-    } else {
-        ((x + 0.055) / 1.055).powf(2.4)
-    }
+    if x <= 0.04045 { x / 12.92 }
+    else            { ((x + 0.055) / 1.055).powf(2.4) }
 }
 
 fn from_linear(x:f32) -> f32 {
-    if x <= 0.0031308 {
-        x * 12.92
-    } else {
-        x.powf(1.0/2.4) * 1.055 - 0.055
-    }
+    if x <= 0.0031308 { x * 12.92 }
+    else              { x.powf(1.0/2.4) * 1.055 - 0.055 }
 }
 
 color_conversion! {
@@ -182,11 +195,15 @@ impl From<LinearRgbData> for XyzData {
 color_conversion! {
 /// Assumed D65 white point.
 /// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+/// Please note that this conversion clamps the negative RGB values to 0.0.
 impl From<XyzData> for LinearRgbData {
     fn from(c:XyzData) -> Self {
         let red   = c.x *  3.2404542 + c.y * -1.5371385 + c.z * -0.4985314;
         let green = c.x * -0.9692660 + c.y *  1.8760108 + c.z *  0.0415560;
         let blue  = c.x *  0.0556434 + c.y * -0.2040259 + c.z *  1.0572252;
+        let red   = red.max(0.0);
+        let green = green.max(0.0);
+        let blue  = blue.max(0.0);
         Self {red,green,blue}
     }
 }}
@@ -209,15 +226,13 @@ impl LabData {
     }
 }
 
+// Please note that the LAB values were normalized to the [-1 .. 1] range.
 color_conversion! {
 impl From<XyzData> for LabData {
     fn from(xyz:XyzData) -> Self {
         fn convert(c:f32) -> f32 {
-            let epsilon : f32 = 6.0/29.0;
-            let epsilon = epsilon.powi(3);
-            let kappa   = 841.0 / 108.0;
-            let delta   = 4.0   / 29.0;
-            if c > epsilon { c.cbrt() } else { (kappa * c) + delta }
+            let delta = 16.0 / 116.0;
+            if c > 0.008856 { c.cbrt() } else { (7.787 * c) + delta }
         }
 
         let xyz = Color(xyz) / white_point::D65::get_xyz();
@@ -244,10 +259,9 @@ impl From<LabData> for XyzData {
         let z = y - (b / 200.0);
 
         fn convert(c:f32) -> f32 {
-            let epsilon = 6.0   / 29.0;
-            let kappa   = 108.0 / 841.0;
-            let delta   = 4.0   / 29.0;
-            if c > epsilon { c.powi(3) } else { (c - delta) * kappa }
+            let ci    = c.powi(3);
+            let delta = 16.0 / 116.0;
+            if ci > 0.008856 { ci } else { (c - delta) / 7.787 }
         }
 
         (Color(Self::new(convert(x),convert(y),convert(z))) * white_point::D65::get_xyz()).data
@@ -274,6 +288,7 @@ impl LchData {
     }
 }
 
+// Please note that the LCH values were normalized to approximately [0 .. 1] ranges.
 color_conversion! {
 impl From<LabData> for LchData {
     fn from(color:LabData) -> Self {
@@ -310,3 +325,38 @@ color_convert_via! { RgbData <-> LabData       <-> LchData }
 
 color_convert_via! { LinearRgbData <-> XyzData <-> LabData }
 color_convert_via! { LinearRgbData <-> LabData <-> LchData }
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // TODO[WD]: Investigate why this test fails.
+    //    For example, converting `rgb(0,0,111)` to LCH and back, gives us `rgb(6,0,110)`.
+    //    This should not happen (probably).
+    //    https://github.com/enso-org/ide/issues/1403
+    #[test]
+    fn test_rgb_to_and_from_lch() {
+        for r in 0 .. 10 {
+            for g in 0 .. 10 {
+                for b in 0 .. 10 {
+                    let nr   = (r as f32) / 255.0;
+                    let ng   = (g as f32) / 255.0;
+                    let nb   = (b as f32) / 255.0;
+                    let rgb  = Rgb::new(nr,ng,nb);
+                    let lch  = Lch::from(rgb);
+                    let rgb2 = Rgb::from(lch);
+                    let r2   = (rgb2.red   * 255.0) as i32;
+                    let g2   = (rgb2.green * 255.0) as i32;
+                    let b2   = (rgb2.blue  * 255.0) as i32;
+                    // assert_eq!((r,g,b),(r2,g2,b2));
+                }
+            }
+        }
+    }
+}

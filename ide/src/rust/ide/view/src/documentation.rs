@@ -9,7 +9,6 @@ pub use visualization::container::overlay;
 
 use ast::prelude::FallibleResult;
 use enso_frp as frp;
-use ensogl::data::color;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -19,6 +18,7 @@ use ensogl::system::web::AttributeSetter;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web::clipboard;
 use ensogl::system::web;
+use ensogl_gui_components::shadow;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use web_sys::HtmlElement;
@@ -92,27 +92,20 @@ impl Model {
         let overlay        = overlay::View::new(&logger);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles   = StyleWatch::new(&scene.style_sheet);
-        let bg_color = styles.get_color(ensogl_theme::graph_editor::visualization::background);
-        let bg_color = color::Rgba::from(bg_color);
-        let bg_hex   = format!("rgba({},{},{},{})",
-            bg_color.red*255.0,bg_color.green*255.0,bg_color.blue*255.0,bg_color.alpha);
-
-        let shadow_alpha_path = ensogl_theme::graph_editor::visualization::shadow::html::alpha;
-        let shadow_alpha_size = ensogl_theme::graph_editor::visualization::shadow::html::size;
-        let shadow_alpha = styles.get_number_or(shadow_alpha_path,0.16);
-        let shadow_size  = styles.get_number_or(shadow_alpha_size,16.0);
-        let shadow       = format!("0 0 {}px rgba(0, 0, 0, {})",shadow_size,shadow_alpha);
+        let styles     = StyleWatch::new(&scene.style_sheet);
+        let style_path = ensogl_theme::application::documentation::background;
+        let bg_color   = styles.get_color(style_path);
+        let bg_color   = bg_color.to_javascript_string();
 
         dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
         dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
         dom.dom().set_style_or_warn("overflow-y"      ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("overflow-x"      ,"auto"                       ,&logger);
-        dom.dom().set_style_or_warn("background-color",bg_hex                       ,&logger);
+        dom.dom().set_style_or_warn("background-color",bg_color                     ,&logger);
         dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
         dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
-        dom.dom().set_style_or_warn("box-shadow"      ,shadow                       ,&logger);
+        shadow::add_to_dom_element(&dom,&styles,&logger);
 
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);
@@ -205,7 +198,8 @@ impl Model {
                     return Err(visualization::DataError::InternalComputationError);
                 }
             }
-            _ => return Err(visualization::DataError::InvalidDataType),
+            visualization::Data::Binary =>
+                return Err(visualization::DataError::BinaryNotSupported),
         };
         self.display_doc(&string, InputFormat::Docstring);
         Ok(())
@@ -347,7 +341,9 @@ impl View {
 }
 
 impl From<View> for visualization::Instance {
-    fn from(t: View) -> Self { Self::new(&t,&t.visualization_frp,&t.frp.network) }
+    fn from(t: View) -> Self {
+        Self::new(&t,&t.visualization_frp,&t.frp.network,Some(t.model.dom.clone_ref()))
+    }
 }
 
 impl display::Object for View {

@@ -105,8 +105,12 @@ impl From<serde_json::Value> for Data {
 /// violates some other assumption of the visualization.
 #[derive(Copy,Clone,Debug)]
 pub enum DataError {
-    /// Indicates that that the provided data type does not match the expected data type.
+    /// Visualization received a binary data package, which is currently not supported.
+    BinaryNotSupported,
+    /// Indicates that that the provided data type does not match the expected data format.
     InvalidDataType,
+    /// Received text data is not valid JSON while it is required.
+    InvalidJsonText,
     /// The data caused an error in the computation of the visualization.
     InternalComputationError,
 }

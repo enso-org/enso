@@ -10,19 +10,20 @@ pub use breadcrumb::Breadcrumb;
 pub use project_name::ProjectName;
 
 use crate::LocalCall;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 
 use enso_frp as frp;
 use enso_protocol::language_server::MethodPointer;
 use ensogl::application::Application;
-use ensogl::data::color;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
+use ensogl::display::Scene;
 use ensogl::display::shape::*;
+use ensogl::display::style;
 use ensogl::display;
 use ensogl::gui::cursor;
 use logger::Logger;
 use std::cmp::Ordering;
-
 
 
 // =================
@@ -30,10 +31,22 @@ use std::cmp::Ordering;
 // =================
 
 // FIXME[dg] hardcoded literal for glyph of height 12.0. Copied from port.rs
-const GLYPH_WIDTH       : f32 = 7.224_609_4;
-const VERTICAL_MARGIN   : f32 = GLYPH_WIDTH;
-const HORIZONTAL_MARGIN : f32 = GLYPH_WIDTH;
-const TEXT_SIZE         : f32 = 12.0;
+const GLYPH_WIDTH        : f32 = 7.224_609_4;
+const VERTICAL_MARGIN    : f32 = GLYPH_WIDTH;
+const HORIZONTAL_MARGIN  : f32 = GLYPH_WIDTH;
+const BACKGROUND_PADDING : f32 = 8.0;
+const TEXT_SIZE          : f32 = 12.0;
+/// The height of the breadcrumb bar's content. The background may be higher.
+pub const HEIGHT         : f32 = VERTICAL_MARGIN
+                               + breadcrumb::VERTICAL_MARGIN
+                               + breadcrumb::PADDING
+                               + LINE_HEIGHT
+                               + breadcrumb::PADDING
+                               + breadcrumb::VERTICAL_MARGIN
+                               + VERTICAL_MARGIN;
+
+// This should be as large as the shadow around the background.
+const MAGIC_SHADOW_MARGIN : f32 = 40.0;
 
 
 
@@ -57,10 +70,22 @@ mod background {
     use super::*;
 
     ensogl::define_shape_system! {
-        () {
-            let gray     = 34.0/255.0;
-            let bg_color = color::Rgba::new(gray,gray,gray,1.0);
-            Plane().fill(bg_color).into()
+        (style:Style) {
+            let theme             = ensogl_theme::graph_editor::breadcrumbs::background;
+            let theme             = style::Path::from(&theme);
+            let width             = Var::<Pixels>::from("input_size.x");
+            let height            = Var::<Pixels>::from("input_size.y");
+
+            let corner_radius     = style.get_number(theme.sub("corner_radius"));
+            let shape_width       = width  - MAGIC_SHADOW_MARGIN.px() * 2.0;
+            let shape_height      = height - MAGIC_SHADOW_MARGIN.px() * 2.0;
+            let shape             = Rect((&shape_width,&shape_height));
+            let shape             = shape.corners_radius(corner_radius.px());
+
+            let bg_color          = style.get_color(&theme);
+            let bg                = shape.fill(bg_color);
+
+            bg.into()
         }
     }
 }
@@ -138,7 +163,7 @@ pub struct BreadcrumbsModel {
     display_object        : display::object::Instance,
     background            : background::View,
     project_name          : ProjectName,
-    root                   : display::object::Instance,
+    root                  : display::object::Instance,
     /// A container for all the breadcrumbs after project name. This contained and all its
     /// breadcrumbs are moved when project name component is resized.
     breadcrumbs_container : display::object::Instance,
@@ -147,11 +172,16 @@ pub struct BreadcrumbsModel {
     frp_inputs            : FrpInputs,
     current_index         : Rc<Cell<usize>>,
     camera                : Camera2d,
+    /// Describes an empty space on the left of all the content. This space will be covered by the
+    /// background and is intended to make room for windows control buttons.
+    gap_width             : f32,
 }
 
 impl BreadcrumbsModel {
     /// Constructor.
-    pub fn new(app:Application, frp:&Frp) -> Self {
+    /// The `gap_width` describes an empty space on the left of all the content. This space will be
+    /// covered by the background and is intended to make room for windows control buttons.
+    pub fn new(app:Application, frp:&Frp, gap_width:f32) -> Self {
         let scene                 = app.display.scene();
         let project_name          = app.new_view();
         let logger                = Logger::new("Breadcrumbs");
@@ -165,14 +195,26 @@ impl BreadcrumbsModel {
         let camera                = scene.camera().clone_ref();
         let background            = background::View::new(&logger);
 
-        Self{logger,display_object,root,app,breadcrumbs,project_name,breadcrumbs_container,
-            frp_inputs,current_index,camera,background}.init()
+        scene.layers.breadcrumbs_background.add_exclusive(&background);
+
+        Self{logger,display_object, root,app,breadcrumbs,project_name,breadcrumbs_container,
+            frp_inputs,current_index,camera,background,gap_width}.init(&scene)
     }
 
-    fn init(self) -> Self {
+    fn init(self, scene:&Scene) -> Self {
         self.add_child(&self.root);
         self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
+        self.root.add_child(&self.background);
+
+        ensogl::shapes_order_dependencies! {
+            scene => {
+                background -> breadcrumb::background;
+            }
+        }
+
+        self.update_layout();
+
         self
     }
 
@@ -180,16 +222,32 @@ impl BreadcrumbsModel {
         let camera     = &self.camera;
         let screen     = camera.screen();
         let x_position = -screen.width/2.0;
-        let y_position = screen.height/2.0;
-        self.root.set_position(Vector3(x_position.round(),y_position.round(),0.0));
+        // We add half a pixel to the y offset as a quick fix for misaligned text.
+        let y_position = screen.height/2.0 - 0.5;
+        self.root.set_position(Vector3(x_position.round(), y_position.round(), 0.0));
     }
 
-    fn width(&self) -> f32 {
+    fn breadcrumbs_container_width(&self) -> f32 {
         self.breadcrumbs.borrow().iter().map(|breadcrumb| breadcrumb.width()).sum()
     }
 
-    fn relayout_for_project_name_width(&self, width:f32) {
-        self.breadcrumbs_container.set_position_x(width.round());
+    fn update_layout(&self) {
+        let project_name_width = self.project_name.width.value().round();
+
+        self.project_name.set_position_x(self.gap_width);
+        self.breadcrumbs_container.set_position_x(self.gap_width + project_name_width);
+
+        let width              = self.gap_width
+                               + project_name_width
+                               + self.breadcrumbs_container_width();
+        let background_width   = width + 2.0 * BACKGROUND_PADDING;
+        let background_height  =
+            crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
+        let width_with_shadow  = background_width  + MAGIC_SHADOW_MARGIN * 2.0;
+        let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
+        self.background.size.set(Vector2(width_with_shadow,height_with_shadow));
+        self.background.set_position_x(width/2.0);
+        self.background.set_position_y(-HEIGHT/2.0);
     }
 
     fn get_breadcrumb(&self, index:usize) -> Option<Breadcrumb> {
@@ -259,11 +317,12 @@ impl BreadcrumbsModel {
                 }
 
                 debug!(self.logger, "Pushing {breadcrumb.info.method_pointer.name} breadcrumb.");
-                breadcrumb.set_position_x(self.width().round());
+                breadcrumb.set_position_x(self.breadcrumbs_container_width().round());
                 self.breadcrumbs_container.add_child(&breadcrumb);
                 self.breadcrumbs.borrow_mut().push(breadcrumb);
             }
             self.current_index.set(new_index);
+            self.update_layout();
             (old_index,new_index)
         })
     }
@@ -324,6 +383,7 @@ impl BreadcrumbsModel {
             let old_index = self.current_index.get();
             let new_index = old_index - 1;
             self.current_index.set(new_index);
+            self.update_layout();
             (old_index,new_index)
         })
     }
@@ -333,6 +393,7 @@ impl BreadcrumbsModel {
             debug!(self.logger, "Removing {breadcrumb.info.method_pointer.name}.");
             breadcrumb.unset_parent();
         }
+        self.update_layout();
     }
 }
 
@@ -358,10 +419,12 @@ pub struct Breadcrumbs {
 
 impl Breadcrumbs {
     /// Constructor.
-    pub fn new(app:Application) -> Self {
+    /// The `gap_width` describes an empty space on the left of all the content. This space will be
+    /// covered by the background and is intended to make room for windows control buttons.
+    pub fn new(app:Application,gap_width:f32) -> Self {
         let scene   = app.display.scene().clone_ref();
         let frp     = Frp::new();
-        let model   = Rc::new(BreadcrumbsModel::new(app,&frp));
+        let model   = Rc::new(BreadcrumbsModel::new(app,&frp,gap_width));
         let network = &frp.network;
 
         // === Breadcrumb selection ===
@@ -420,12 +483,6 @@ impl Breadcrumbs {
             frp.source.project_name_hovered <+ model.project_name.is_hovered;
             frp.source.project_mouse_down   <+ model.project_name.mouse_down;
 
-            // === GUI Update ===
-
-            eval model.project_name.frp.output.width((width)
-                model.relayout_for_project_name_width(*width)
-            );
-
 
             // === User Interaction ===
 
@@ -458,10 +515,7 @@ impl Breadcrumbs {
             // === Relayout ===
 
             eval_ scene.frp.camera_changed(model.camera_changed());
-
-            eval model.project_name.frp.output.width ((width) {
-                model.relayout_for_project_name_width(*width)
-            });
+            eval_ model.project_name.frp.output.width (model.update_layout());
 
 
             // === Pointer style ===

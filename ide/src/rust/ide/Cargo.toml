@@ -13,7 +13,7 @@ enso-args = { path = "lib/args" }
 enso-callback = { path = "../lib/callback" }
 enso-data = { version = "0.1.4" }
 enso-frp = { path = "../lib/frp" }
-enso-logger = { version = "0.2.2" }
+enso-logger = { version = "0.2.3" }
 enso-prelude = { version = "0.1.10" }
 enso-shapely = { version = "0.1.4" }
 ensogl = { path = "../ensogl" }
@@ -36,7 +36,7 @@ console_error_panic_hook = { version = "0.1.6" }
 failure = { version = "0.1.6" }
 flo_stream = { version = "0.4.0" }
 futures = { version = "0.3.1" }
-itertools = { version = "0.8.1" }
+itertools = { version = "0.10.0" }
 js-sys = { version = "0.3.28" }
 mockall = { version = "0.7.1", features = ["nightly"] }
 nalgebra = { version = "0.21.1", features = ["serde-serialize"] }

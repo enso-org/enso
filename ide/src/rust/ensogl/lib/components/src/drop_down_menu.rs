@@ -44,7 +44,7 @@ pub mod arrow {
             let triangle_down    = triangle.rotate(Var::<f32>::from(std::f32::consts::PI));
             let color_path       = ensogl_theme::graph_editor::visualization::action_bar::icon;
             let icon_color       = style.get_color(color_path);
-            let triangle_colored = triangle_down.fill(color::Rgba::from(icon_color));
+            let triangle_colored = triangle_down.fill(icon_color);
 
             triangle_colored.into()
         }
@@ -226,10 +226,13 @@ impl DropDownMenu {
 
             let menu_height = DEPRECATED_Animation::<f32>::new(&network);
 
+
             eval menu_height.value ([model](height) {
                 model.selection_menu.frp.resize.emit(Vector2::new(MENU_WIDTH,*height));
                 if *height <= 0.0 {
                     model.hide_selection_menu();
+                } else if *height > 0.0 {
+                    model.show_selection_menu();
                 }
             });
 
@@ -268,7 +271,6 @@ impl DropDownMenu {
             show_menu <- source::<()>();
 
             eval_ hide_menu (model.selection_menu.deselect_entries.emit(()));
-            eval_ show_menu (model.show_selection_menu());
 
             frp.source.menu_visible <+ hide_menu.constant(false);
             frp.source.menu_visible <+ show_menu.constant(true);
@@ -355,7 +357,7 @@ impl DropDownMenu {
         // shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(theme::widget::list_view::text);
-        model.label.set_default_color(color::Rgba::from(text_color));
+        model.label.set_default_color(text_color);
 
         self
     }

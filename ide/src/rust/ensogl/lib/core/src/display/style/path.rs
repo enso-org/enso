@@ -64,13 +64,24 @@ impl Path {
         Self { rev_segments : default() }
     }
 
+    /// Return a new one with the segment appended to the end.
+    pub fn sub(&self, segment:impl Into<String>) -> Self {
+        self.clone().into_sub(segment)
+    }
+
     /// Consume the path and return a new one with the segment appended to the end.
     pub fn into_sub(mut self, segment:impl Into<String>) -> Self {
-        let segment = segment.into();
-        // TODO: this can be done more efficient by storing non-reversed segments and using
-        //       Iterator::rev to iterate segments in reverse order when needed.
         self.rev_segments.reverse();
-        self.rev_segments.push(segment);
+        self.rev_segments.push(segment.into());
+        self.rev_segments.reverse();
+        self
+    }
+
+    /// Consume the path and return a new one with the segments appended to the end.
+    pub fn into_subs<I>(mut self, segment:I) -> Self
+    where I:IntoIterator, I::Item:Into<String> {
+        self.rev_segments.reverse();
+        self.rev_segments.extend(segment.into_iter().map(|t|t.into()));
         self.rev_segments.reverse();
         self
     }

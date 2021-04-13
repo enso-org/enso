@@ -149,8 +149,11 @@ impl display::Object for System {
 
 
 // === Material ===
-
+#[cfg(target_os="macos")]
+const FUNCTIONS : &str = include_str!("glsl/glyph_mac.glsl");
+#[cfg(not(target_os="macos"))]
 const FUNCTIONS : &str = include_str!("glsl/glyph.glsl");
+
 const MAIN      : &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
 
 impl System {

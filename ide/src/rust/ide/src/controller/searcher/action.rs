@@ -40,7 +40,7 @@ impl Action {
             } else {
                 completion.name.clone()
             }
-            Self::Example(example) => format!("Example: {}", example.name)
+            Self::Example(example) => format!("Example: {}", example.name),
         }
     }
 }

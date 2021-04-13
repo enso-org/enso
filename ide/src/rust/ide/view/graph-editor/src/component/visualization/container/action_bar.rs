@@ -67,7 +67,7 @@ mod background {
             let background         = background_rounded + background_sharp;
             let color_path         = theme::graph_editor::visualization::action_bar::background;
             let fill_color         = style.get_color(color_path);
-            let background         = background.fill(color::Rgba::from(fill_color));
+            let background         = background.fill(fill_color);
             background.into()
         }
     }
@@ -111,7 +111,7 @@ mod four_arrow_icon {
 
             let color_path = theme::graph_editor::visualization::action_bar::icon;
             let fill_color = style.get_color(color_path);
-            let icon       = (arrow_heads + cross).fill(color::Rgba::from(fill_color));
+            let icon       = (arrow_heads + cross).fill(fill_color);
 
             (background + icon).into()
         }
@@ -146,9 +146,9 @@ mod pin_icon {
 
             let color_path = theme::graph_editor::visualization::action_bar::icon;
             let fill_color = style.get_color(color_path);
-            let icon       = (pin_thorn + pin_head).fill(color::Rgba::from(fill_color));
+            let icon       = (pin_thorn + pin_head).fill(fill_color);
             let icon       = icon.rotate((PI/4.0).radians());
-            let icon       = icon.fill(color::Rgba::from(fill_color));
+            let icon       = icon.fill(fill_color);
 
             (background + icon).into()
         }
@@ -340,6 +340,7 @@ impl display::Object for Model {
 ///    |--------------------------------|
 ///
 /// ```
+#[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct ActionBar {
     pub frp : Frp,
@@ -407,6 +408,9 @@ impl ActionBar {
         }
         self
     }
+
+    /// Visualization Chooser component getter.
+    pub fn visualization_chooser(&self) -> &VisualizationChooser { &self.model.visualization_chooser }
 }
 
 impl display::Object for ActionBar {

@@ -252,7 +252,7 @@ impl Model {
         self.label.single_line(true);
         self.label.disable_command("cursor_move_up");
         self.label.disable_command("cursor_move_down");
-        self.label.set_default_color(color::Rgba::from(text_color));
+        self.label.set_default_color(text_color);
         self.label.set_default_text_size(text::Size(TEXT_SIZE));
         self.label.remove_all_cursors();
 
@@ -289,7 +289,7 @@ impl Model {
 
 fn select_color(styles:&StyleWatch, tp:Option<&Type>) -> color::Lcha {
     let opt_color = tp.as_ref().map(|tp| type_coloring::compute(tp,styles));
-    opt_color.unwrap_or_else(||styles.get_color(theme::code::types::any::selection))
+    opt_color.unwrap_or_else(||styles.get_color(theme::code::types::any::selection).into())
 }
 
 
@@ -537,7 +537,7 @@ impl Area {
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
                 let styles             = StyleWatch::new(&self.model.app.display.scene().style_sheet);
-                let any_type_sel_color = styles.get_color(theme::code::types::any::selection);
+                let any_type_sel_color = color::Lcha::from(styles.get_color(theme::code::types::any::selection));
                 let crumbs             = port.crumbs.clone_ref();
                 let port_network       = &port.network;
                 let frp                = &self.frp.output;
@@ -627,9 +627,9 @@ impl Area {
     /// this way, rather than delegate it to every port.
     fn init_port_frp_on_new_expression(&self, expression:&mut Expression) {
         let model          = &self.model;
-        let selected_color = model.styles.get_color(theme::code::types::selected);
-        let disabled_color = model.styles.get_color(theme::code::syntax::disabled);
-        let expected_color = model.styles.get_color(theme::code::syntax::expected);
+        let selected_color = color::Lcha::from(model.styles.get_color(theme::code::types::selected));
+        let disabled_color = color::Lcha::from(model.styles.get_color(theme::code::syntax::disabled));
+        let expected_color = color::Lcha::from(model.styles.get_color(theme::code::syntax::expected));
 
         let parent_tp : Option<frp::Stream<Option<Type>>> = None;
         expression.root_ref_mut().dfs_with_layer_data(parent_tp,|node,parent_tp| {

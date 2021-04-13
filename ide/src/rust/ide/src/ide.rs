@@ -22,6 +22,10 @@ pub use initializer::Initializer;
 // === Constants ===
 // =================
 
+/// Text that shows up in the statusbar when any of the backend connections is lost.
+pub const BACKEND_DISCONNECTED_MESSAGE:&str =
+    "Connection to the backend has been lost. Please try restarting IDE.";
+
 /// The name of the module initially opened in the project view.
 ///
 /// Currently this name is hardcoded in the engine services and is populated for each project
@@ -93,7 +97,8 @@ impl Ide {
         let visualization = project.visualization().clone();
 
         let status_bar = view.status_bar().clone_ref();
-        status_bar.add_process(status_bar::process::Label::new("Compiling standard library..."));
+        let intro_msg  = "Compiling standard library. It can take up to 1 minute.";
+        status_bar.add_process(status_bar::process::Label::new(intro_msg));
         let compiling_process                = status_bar.last_process.value();
         let notifications                    = graph.subscribe();
         let mut computed_value_notifications = notifications.filter(|notification|

@@ -2,7 +2,6 @@
 use crate::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
@@ -15,15 +14,15 @@ use ensogl_theme;
 // =================
 
 /// Padding inside entry in pixels.
-pub const PADDING:f32 = 7.0;
+pub const PADDING:f32 = 14.0;
 /// The overall entry's height (including padding).
 pub const HEIGHT:f32 = 30.0;
 /// The text size of entry's labe.
 pub const LABEL_SIZE:f32 = 12.0;
 /// The size in pixels of icons inside entries.
-pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when created some icons for searcher.
+pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
 /// The gap between icon and label.
-pub const ICON_LABEL_GAP:f32 = 7.0;
+pub const ICON_LABEL_GAP:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
 
 
 
@@ -250,7 +249,7 @@ impl Entry {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
         let styles     = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(ensogl_theme::widget::list_view::text);
-        label.set_default_color(color::Rgba::from(text_color));
+        label.set_default_color(text_color);
         label.set_default_text_size(text::Size(LABEL_SIZE));
         Entry{app,id,label,icon,display_object}
     }
@@ -272,9 +271,8 @@ impl Entry {
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
-        let styles                = StyleWatch::new(&self.app.display.scene().style_sheet);
-        let highlight             = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
-        let highlight:color::Rgba = highlight.into();
+        let styles    = StyleWatch::new(&self.app.display.scene().style_sheet);
+        let highlight = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
         for highlighted in &model.highlighted {
             self.label.set_color_bytes(highlighted,highlight);
         }

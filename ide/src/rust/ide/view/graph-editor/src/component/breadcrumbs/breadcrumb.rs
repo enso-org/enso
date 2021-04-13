@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 use super::GLYPH_WIDTH;
 use super::HORIZONTAL_MARGIN;
-use super::VERTICAL_MARGIN;
 use super::TEXT_SIZE;
 use super::RelativePosition;
-
+use crate::component::breadcrumbs;
+use crate::component::breadcrumbs::project_name::LINE_HEIGHT;
 use crate::MethodPointer;
 
 use enso_frp as frp;
@@ -29,8 +29,8 @@ use ensogl::application::Application;
 // === Constants ===
 // =================
 
-/// Breadcrumb top margin.
-pub const TOP_MARGIN:f32 = 0.0;
+/// Breadcrumb vertical margin.
+pub const VERTICAL_MARGIN:f32 = 0.0;
 /// Breadcrumb left margin.
 pub const LEFT_MARGIN:f32 = 0.0;
 /// Breadcrumb right margin.
@@ -52,7 +52,8 @@ const SEPARATOR_MARGIN : f32 = 10.0;
 // === Background ===
 // ==================
 
-mod background {
+/// A transparent "background" of single breadcrumb, set for capturing mouse events.
+pub mod background {
     use super::*;
 
     ensogl::define_shape_system! {
@@ -290,23 +291,23 @@ impl BreadcrumbModel {
         let relative_position = default();
         let outputs           = frp.outputs.clone_ref();
 
-        scene.layers.breadcrumbs.add_exclusive(&view);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_background.add_exclusive(&view);
+        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
             (scene,PhantomData::<background::DynamicShape>);
-        scene.layers.breadcrumbs.add_symbol_exclusive(&shape_system.shape_system.symbol);
+        scene.layers.breadcrumbs_background.add_symbol_exclusive(&shape_system.shape_system.symbol);
 
-        scene.layers.breadcrumbs.add_exclusive(&icon);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_text.add_exclusive(&icon);
+        let shape_system = scene.layers.breadcrumbs_text.shape_system_registry.shape_system
             (scene,PhantomData::<icon::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        scene.layers.breadcrumbs.add_exclusive(&separator);
-        let shape_system = scene.layers.breadcrumbs.shape_system_registry.shape_system
+        scene.layers.breadcrumbs_background.add_exclusive(&separator);
+        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
             (scene,PhantomData::<separator::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
         label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs);
+        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)
@@ -323,9 +324,7 @@ impl BreadcrumbModel {
 
         let styles            = &self.style;
         let full_color        = styles.get_color(theme::graph_editor::breadcrumbs::full);
-        let full_color        = color::Rgba::from(full_color);
         let transparent_color = styles.get_color(theme::graph_editor::breadcrumbs::transparent);
-        let transparent_color = color::Rgba::from(transparent_color);
 
         let color  = if self.is_selected() { full_color } else { transparent_color };
 
@@ -369,14 +368,14 @@ impl BreadcrumbModel {
 
     /// Get the height of the view.
     pub fn height(&self) -> f32 {
-        TEXT_SIZE + VERTICAL_MARGIN * 2.0
+        LINE_HEIGHT + breadcrumbs::VERTICAL_MARGIN * 2.0
     }
 
     fn fade_in(&self, value:f32) {
         let width      = self.width();
         let height     = self.height();
         let x_position = width*value/2.0;
-        let y_position = -height/2.0-TOP_MARGIN-PADDING;
+        let y_position = -height/2.0-VERTICAL_MARGIN-PADDING;
         self.view.set_position(Vector3(x_position.round(),y_position.round(),0.0));
     }
 
@@ -400,9 +399,7 @@ impl BreadcrumbModel {
     fn select(&self) {
         let styles          = &self.style;
         let selected_color  = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color  = color::Rgba::from(selected_color);
         let left_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let left_deselected = color::Rgba::from(left_deselected);
 
         self.animations.color.set_target_value(selected_color.into());
         self.animations.separator_color.set_target_value(left_deselected.into());
@@ -420,11 +417,8 @@ impl BreadcrumbModel {
     fn deselected_color(&self) -> color::Rgba {
         let styles           = &self.style;
         let selected_color   = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let selected_color   = color::Rgba::from(selected_color);
         let left_deselected  = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let left_deselected  = color::Rgba::from(left_deselected);
         let right_deselected = styles.get_color(theme::graph_editor::breadcrumbs::deselected::right);
-        let right_deselected = color::Rgba::from(right_deselected);
 
         match self.relative_position.get() {
             Some(RelativePosition::RIGHT) => right_deselected,
@@ -471,7 +465,6 @@ impl Breadcrumb {
         //         system (#795)
         let styles      = StyleWatch::new(&scene.style_sheet);
         let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let hover_color = color::Rgba::from(hover_color);
 
         frp::extend! { network
             eval_ frp.fade_in(model.animations.fade_in.set_target_value(1.0));

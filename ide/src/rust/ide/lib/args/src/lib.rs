@@ -1,4 +1,4 @@
-//! Enso startup arguments definition.
+//! Startup arguments definition.
 
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -26,7 +26,7 @@ use ensogl::system::web;
 // during compilation time. This is not possible by using macro rules, as there is no way to plug in
 // the output of `include_str!` macro to another macro input.
 ensogl::read_args! {
-    js::enso.config {
+    [enso_config::window_app_scope_name,enso_config::window_app_scope_config_name] {
         entry                : String,
         project              : String,
         project_manager      : String,
@@ -34,10 +34,12 @@ ensogl::read_args! {
         language_server_data : String,
         platform             : web::platform::Platform,
         frame                : bool,
+        theme                : String,
         dark_theme           : bool,
         high_contrast        : bool,
         use_loader           : bool,
         wasm_url             : String,
         wasm_glue_url        : String,
+        node_labels          : bool,
     }
 }

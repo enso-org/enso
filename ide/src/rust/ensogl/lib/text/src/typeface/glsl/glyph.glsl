@@ -15,11 +15,6 @@ highp vec2 get_texture_coord() {
     return offset + get_scaled_uv() * msdf_fragment_size;
 }
 
-// FIXME
-// The following function uses non-standard font adjustiments (lines marked with FIXME). They make
-// the font bolder and more crisp. It was designed to look nice on nodes in the GUI but leaves the
-// fonts with a non-standard look (not the one defined by the font author). This should be
-// revisited, generalized, and refactored out in the future.
 highp float msdf_alpha() {
     highp vec2  tex_coord        = get_texture_coord();
     highp vec2  msdf_unit_tex    = input_msdf_range / vec2(textureSize(input_atlas,0));
@@ -34,9 +29,7 @@ highp float msdf_alpha() {
     highp float sig_dist         = median(msdf_sample) - 0.5;
     highp float sig_dist_px      = sig_dist * avg_msdf_unit_px;
     highp float opacity          = 0.5 + sig_dist_px + dpi_dilate * 0.08;
-    opacity += 0.6;                      // FIXME: Widen + sharpen
     opacity = clamp(opacity, 0.0, 1.0);
-    opacity = pow(opacity,3.0);          // FIXME: sharpen
     return opacity;
 }
 

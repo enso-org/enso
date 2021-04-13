@@ -16,7 +16,6 @@ use crate::animation;
 use crate::control::callback;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
-use crate::data::color;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
@@ -335,7 +334,7 @@ impl Mouse {
         let on_move         = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
                 let shape       = scene_frp.shape.value();
-                let pixel_ratio = shape.pixel_ratio as i32;
+                let pixel_ratio = shape.pixel_ratio;
                 let screen_x    = event.client_x();
                 let screen_y    = event.client_y();
 
@@ -343,7 +342,7 @@ impl Mouse {
                 let pos_changed = new_pos != last_position.get();
                 if pos_changed {
                     last_position.set(new_pos);
-                    let new_canvas_position = new_pos * pixel_ratio;
+                    let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
                     position.set(new_canvas_position);
                     let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
                     frp.position.emit(position);
@@ -458,9 +457,12 @@ impl Dom {
 #[derive(Clone,CloneRef,Debug)]
 pub struct DomLayers {
     /// Back DOM scene layer.
-    pub back: DomScene,
+    pub back : DomScene,
+    /// Back DOM scene layer with fullscreen visualization. Kept separately from `back`, because the
+    /// fullscreen visualizations should not share camera with main view.
+    pub fullscreen_vis : DomScene,
     /// Front DOM scene layer.
-    pub front: DomScene,
+    pub front : DomScene,
     /// The WebGL scene layer.
     pub canvas : web_sys::HtmlCanvasElement,
 
@@ -469,25 +471,29 @@ pub struct DomLayers {
 impl DomLayers {
     /// Constructor.
     pub fn new(logger:&Logger, dom:&web_sys::HtmlDivElement) -> Self {
-        let canvas = web::create_canvas();
-        let front  = DomScene::new(logger);
-        let back   = DomScene::new(logger);
+        let canvas         = web::create_canvas();
+        let front          = DomScene::new(logger);
+        let fullscreen_vis = DomScene::new(logger);
+        let back           = DomScene::new(logger);
         canvas.set_style_or_warn("height"        , "100vh"   , &logger);
         canvas.set_style_or_warn("width"         , "100vw"   , &logger);
         canvas.set_style_or_warn("display"       , "block"   , &logger);
         // Position must not be "static" to have z-index working.
         canvas.set_style_or_warn("position"      , "absolute", &logger);
-        canvas.set_style_or_warn("z-index"       , "1"       , &logger);
+        canvas.set_style_or_warn("z-index"       , "2"       , &logger);
         canvas.set_style_or_warn("pointer-events", "none"    , &logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "1", &logger);
+        front.dom.set_style_or_warn("z-index", "3", &logger);
         back.dom.set_class_name("back");
         back.dom.set_style_or_warn("pointer-events", "auto", &logger);
         back.dom.set_style_or_warn("z-index"       , "0"   , &logger);
+        fullscreen_vis.dom.set_class_name("fullscreen_vis");
+        fullscreen_vis.dom.set_style_or_warn("z-index"       , "1"   , &logger);
         dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
         dom.append_or_panic(&back.dom);
-        Self {front,canvas,back}
+        dom.append_or_panic(&fullscreen_vis.dom);
+        Self {front,canvas,back,fullscreen_vis}
     }
 }
 
@@ -603,14 +609,19 @@ impl Renderer {
 /// should be abstracted away in the future.
 #[derive(Clone,CloneRef,Debug)]
 pub struct HardcodedLayers {
-    pub viz            : Layer,
-    pub below_main     : Layer,
+    pub viz                    : Layer,
+    pub below_main             : Layer,
     // main <- here is the 'main` layer inserted.
-    pub cursor         : Layer,
-    pub label          : Layer,
-    pub viz_fullscreen : Layer,
-    pub breadcrumbs    : Layer,
-    layers             : Layers,
+    pub cursor                 : Layer,
+    pub label                  : Layer,
+
+    pub tooltip_background     : Layer,
+    pub tooltip_text           : Layer,
+
+    pub viz_fullscreen         : Layer,
+    pub breadcrumbs_background : Layer,
+    pub breadcrumbs_text       : Layer,
+    layers                     : Layers,
 }
 
 impl Deref for HardcodedLayers {
@@ -622,23 +633,32 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new(logger:impl AnyLogger) -> Self {
-        let layers         = Layers::new(logger);
-        let viz            = layers.new_layer();
-        let cursor         = layers.new_layer();
-        let label          = layers.new_layer();
-        let viz_fullscreen = layers.new_layer();
-        let below_main     = layers.new_layer();
-        let breadcrumbs    = layers.new_layer();
+        let layers                 = Layers::new(logger);
+        let viz                    = layers.new_layer();
+        let cursor                 = layers.new_layer();
+        let label                  = layers.new_layer();
+        let tooltip_background     = layers.new_layer();
+        let tooltip_text           = layers.new_layer();
+        let viz_fullscreen         = layers.new_layer();
+        let below_main             = layers.new_layer();
+        let breadcrumbs_background = layers.new_layer();
+        let breadcrumbs_text       = layers.new_layer();
         viz.set_camera(layers.main.camera());
         label.set_camera(layers.main.camera());
+        tooltip_background.set_camera(layers.main.camera());
+        tooltip_text.set_camera(layers.main.camera());
         below_main.set_camera(layers.main.camera());
+        layers.add_layers_order_dependency(&breadcrumbs_background,&breadcrumbs_text);
+        layers.add_layers_order_dependency(&breadcrumbs_text,&viz);
         layers.add_layers_order_dependency(&viz,&below_main);
         layers.add_layers_order_dependency(&below_main,&layers.main);
         layers.add_layers_order_dependency(&layers.main,&cursor);
         layers.add_layers_order_dependency(&cursor,&label);
-        layers.add_layers_order_dependency(&label,&viz_fullscreen);
-        layers.add_layers_order_dependency(&viz_fullscreen,&breadcrumbs);
-        Self {layers,viz,cursor,label,viz_fullscreen,below_main,breadcrumbs}
+        layers.add_layers_order_dependency(&label,&tooltip_background);
+        layers.add_layers_order_dependency(&tooltip_background,&tooltip_text);
+        layers.add_layers_order_dependency(&tooltip_text,&viz_fullscreen);
+        Self {layers,viz,cursor,label,viz_fullscreen,below_main,breadcrumbs_background,
+            breadcrumbs_text,tooltip_background,tooltip_text}
     }
 }
 
@@ -772,12 +792,7 @@ impl SceneData {
         let bg_color_var         = style_sheet.var("application.background");
         let bg_color_change      = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
-                let color = color::Rgba::from(color);
-                let red   = 255.0*color.red;
-                let green = 255.0*color.green;
-                let blue  = 255.0*color.blue;
-                let alpha = 255.0*color.alpha;
-                let color = iformat!("rgba({red},{green},{blue},{alpha})");
+                let color = color.to_javascript_string();
                 dom.root.set_style_or_panic("background-color",color);
             })
         }));
@@ -843,13 +858,18 @@ impl SceneData {
     fn update_camera(&self, scene:&Scene) {
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
-        let camera  = self.camera();
-        let changed = camera.update(scene);
+        let camera                = self.camera();
+        let fullscreen_vis_camera = self.layers.viz_fullscreen.camera();
+        let changed               = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(&camera);
             self.dom.layers.front.update_view_projection(&camera);
             self.dom.layers.back.update_view_projection(&camera);
+        }
+        let fs_vis_camera_changed = fullscreen_vis_camera.update(scene);
+        if fs_vis_camera_changed {
+            self.dom.layers.fullscreen_vis.update_view_projection(&fullscreen_vis_camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).

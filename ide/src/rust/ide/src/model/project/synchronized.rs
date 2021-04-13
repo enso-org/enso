@@ -7,6 +7,7 @@ use crate::model::execution_context;
 use crate::model::module;
 use crate::model::SuggestionDatabase;
 use crate::model::traits::*;
+use crate::notification;
 
 use enso_protocol::binary;
 use enso_protocol::binary::message::VisualisationContext;
@@ -14,6 +15,7 @@ use enso_protocol::language_server;
 use enso_protocol::language_server::CapabilityRegistration;
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::project_manager;
+use flo_stream::Subscriber;
 use parser::Parser;
 
 
@@ -136,6 +138,7 @@ pub struct Project {
     pub suggestion_db       : Rc<SuggestionDatabase>,
     pub parser              : Parser,
     pub logger              : Logger,
+    pub notifications       : notification::Publisher<model::project::Notification>,
 }
 
 impl Project {
@@ -164,11 +167,13 @@ impl Project {
         let language_server         = &*language_server_rpc;
         let suggestion_db           = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db           = Rc::new(suggestion_db.await?);
+        let notifications           = notification::Publisher::default();
         
         let data = Rc::new(Data {id,name});
 
         let ret = Project {data,parser,project_manager,language_server_rpc,language_server_bin
-            ,engine_version,module_registry,execution_contexts,logger,visualization,suggestion_db};
+            ,engine_version,module_registry,execution_contexts,logger,visualization,suggestion_db
+            ,notifications};
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
@@ -202,6 +207,7 @@ impl Project {
     pub fn binary_event_handler
     (&self) -> impl Fn(enso_protocol::binary::Event) -> futures::future::Ready<()> {
         let logger                  = self.logger.clone_ref();
+        let publisher               = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         move |event| {
             debug!(logger, "Received an event from the binary protocol: {event:?}");
@@ -209,6 +215,7 @@ impl Project {
             use enso_protocol::binary::Notification;
             match event {
                 Event::Notification(Notification::VisualizationUpdate {context,data}) => {
+                    debug!(logger, "Visualization binary data: {String::from_utf8_lossy(data.as_ref())}");
                     let data = VisualizationUpdateData::new(data);
                     if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
                         let result = execution_contexts.dispatch_visualization_update(context,data);
@@ -222,9 +229,12 @@ impl Project {
                 }
                 Event::Closed => {
                     error!(logger,"Lost binary connection with the Language Server!");
+                    let which        = model::project::BackendConnection::LanguageServerBinary;
+                    let notification = model::project::Notification::ConnectionLost(which);
+                    publisher.notify(notification);
                     // TODO [wmu]
-                    //  The problem should be reported to the user and the connection should be
-                    //  reestablished, see https://github.com/enso-org/ide/issues/145
+                    //   The connection should be reestablished, see
+                    //   https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
                     error!(logger,"Error emitted by the binary data connection: {error}.");
@@ -246,6 +256,7 @@ impl Project {
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
         let logger                  = self.logger.clone_ref();
+        let publisher               = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         let weak_suggestion_db      = Rc::downgrade(&self.suggestion_db);
         move |event| {
@@ -278,12 +289,15 @@ impl Project {
                 }
                 Event::Closed => {
                     error!(logger,"Lost JSON-RPC connection with the Language Server!");
+                    let which        = model::project::BackendConnection::LanguageServerJson;
+                    let notification = model::project::Notification::ConnectionLost(which);
+                    publisher.notify(notification);
                     // TODO [wmu]
-                    //  The problem should be reported to the user and the connection should be
-                    //  reestablished, see https://github.com/enso-org/ide/issues/145
+                    //  The connection should be reestablished, 
+                    //  see https://github.com/enso-org/ide/issues/145
                 }
                 Event::Error(error) => {
-                    error!(logger,"Error emitted by the binary data connection: {error}.");
+                    error!(logger,"Error emitted by the JSON-RPC data connection: {error}.");
                 }
                 _ => {}
             }
@@ -365,7 +379,13 @@ impl model::project::API for Project {
     fn content_root_id(&self) -> Uuid {
         self.language_server_rpc.content_root()
     }
+
+    fn subscribe(&self) -> Subscriber<model::project::Notification> {
+        self.notifications.subscribe()
+    }
 }
+
+
 
 // =============
 // === Tests ===
@@ -382,6 +402,9 @@ mod test {
     use enso_protocol::language_server::response;
     use json_rpc::expect_call;
     use enso_protocol::language_server::Notification::ExpressionUpdates;
+    use utils::test::traits::*;
+    use futures::SinkExt;
+
 
     #[allow(unused)]
     struct Fixture {
@@ -430,6 +453,31 @@ mod test {
             let project = test.expect_completion(project_fut).unwrap();
             Fixture {test,project,binary_events_sender,json_events_sender}
         }
+    }
+
+    #[wasm_bindgen_test]
+    fn notify_backend_connection_lost() {
+        use crate::model::project::Notification;
+        use crate::model::project::BackendConnection::*;
+
+        fn run(expected_event:Notification, close_socket:impl FnOnce(&mut Fixture)) {
+            let mut f = Fixture::new(|_| {}, |_|{});
+            let mut events = f.project.subscribe().boxed_local();
+            events.expect_pending();
+            close_socket(&mut f);
+            events.expect_pending();
+            f.test.run_until_stalled();
+            let event = events.expect_next();
+            assert_eq!(event,expected_event);
+        }
+
+        run(Notification::ConnectionLost(LanguageServerBinary), |f| {
+            f.binary_events_sender.send(binary::Event::Closed).boxed_local().expect_ok();
+        });
+
+        run(Notification::ConnectionLost(LanguageServerJson), |f| {
+            f.json_events_sender.send(json_rpc::Event::Closed).boxed_local().expect_ok();
+        });
     }
 
     #[wasm_bindgen_test]
