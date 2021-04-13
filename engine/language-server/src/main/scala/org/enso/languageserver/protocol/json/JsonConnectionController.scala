@@ -222,6 +222,22 @@ class JsonConnectionController(
         ExecutionContextExecutionStatus.Params(contextId, diagnostics)
       )
 
+    case ContextRegistryProtocol.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          expressionId,
+          message
+        ) =>
+      webActor ! Notification(
+        VisualisationEvaluationFailed,
+        VisualisationEvaluationFailed.Params(
+          contextId,
+          visualisationId,
+          expressionId,
+          message
+        )
+      )
+
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
           version,
           updates
@@ -230,6 +246,7 @@ class JsonConnectionController(
         SearchApi.SuggestionsDatabaseUpdates,
         SearchApi.SuggestionsDatabaseUpdates.Params(updates, version)
       )
+
     case InputOutputProtocol.OutputAppended(output, outputKind) =>
       outputKind match {
         case StandardOutput =>

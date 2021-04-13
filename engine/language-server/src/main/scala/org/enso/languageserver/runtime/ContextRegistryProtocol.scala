@@ -396,8 +396,14 @@ object ContextRegistryProtocol {
     * visualisation data failed.
     *
     * @param contextId a context identifier
+    * @param visualisationId a visualisation identifier
+    * @param expressionId an identifier of a visualised expression
     * @param message the reason of the failure
     */
-  case class VisualisationEvaluationFailed(contextId: UUID, message: String)
-
+  case class VisualisationEvaluationFailed(
+    contextId: UUID,
+    visualisationId: UUID,
+    expressionId: UUID,
+    message: String
+  )
 }

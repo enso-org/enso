@@ -898,10 +898,14 @@ object Runtime {
       * visualisation data failed.
       *
       * @param contextId the context's id.
+      * @param visualisationId the visualisation identifier
+      * @param expressionId the identifier of a visualised expression
       * @param message the reason of the failure
       */
     case class VisualisationEvaluationFailed(
       contextId: ContextId,
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId,
       message: String
     ) extends ApiNotification
 

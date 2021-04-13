@@ -31,10 +31,7 @@ import org.enso.languageserver.requesthandler.file.{
   ReadBinaryFileHandler,
   WriteBinaryFileHandler
 }
-import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  VisualisationEvaluationFailed,
-  VisualisationUpdate
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -121,10 +118,6 @@ class BinaryConnectionController(
     case update: VisualisationUpdate =>
       val updatePacket = convertVisualisationUpdateToOutPacket(update)
       outboundChannel ! updatePacket
-
-    case VisualisationEvaluationFailed(_, msg) =>
-      val errorPacket = ErrorFactory.createVisualisationEvaluationError(msg)
-      outboundChannel ! errorPacket
   }
 
   private def connectionEndHandler(

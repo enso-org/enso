@@ -13,8 +13,9 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnost
   */
 object ExecutionApi {
 
-  type ContextId    = UUID
-  type ExpressionId = UUID
+  type ContextId       = UUID
+  type ExpressionId    = UUID
+  type VisualisationId = UUID
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
@@ -122,6 +123,21 @@ object ExecutionApi {
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ExecutionContextExecutionStatus.Params
+    }
+  }
+
+  case object VisualisationEvaluationFailed
+      extends Method("executionContext/visualisationEvaluationFailed") {
+
+    case class Params(
+      contextId: ContextId,
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId,
+      message: String
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = VisualisationEvaluationFailed.Params
     }
   }
 

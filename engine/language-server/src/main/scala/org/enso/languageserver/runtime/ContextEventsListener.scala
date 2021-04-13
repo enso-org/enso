@@ -98,9 +98,19 @@ final class ContextEventsListener(
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
-    case Api.VisualisationEvaluationFailed(`contextId`, msg) =>
+    case Api.VisualisationEvaluationFailed(
+          `contextId`,
+          visualisationId,
+          expressionId,
+          msg
+        ) =>
       val payload =
-        ContextRegistryProtocol.VisualisationEvaluationFailed(contextId, msg)
+        ContextRegistryProtocol.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          expressionId,
+          msg
+        )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
