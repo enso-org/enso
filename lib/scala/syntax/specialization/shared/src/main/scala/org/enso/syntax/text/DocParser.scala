@@ -293,9 +293,9 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs += HTML
+          allDocs = HTML
             .div(HTML.`class` := "mb-20")(file.code)
-            .toString() //`class` := "root"
+            .toString() + allDocs
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -457,16 +457,18 @@ object DocParserHTMLGenerator {
     val methods = generatedCode.filter(
       _.toString().contains("class=\"method\"")
     )
-    println("ATOMS +++++++++")
-    println(atoms.map(x => x.render + "\n"))
-    println("METHODS +++++++++")
-    println(methods)
-    val head = createDocTitle(name, args, tags)
-    val lines =
-      HTML.div(
-        HTML.div(HTML.`class` := "atoms")(atomsHeader, atoms),
+
+    val head         = createDocTitle(name, args, tags)
+    var methodsLines = HTML.div()
+    var atomsLines   = HTML.div()
+    if (methods.nonEmpty) {
+      methodsLines =
         HTML.div(HTML.`class` := "methods")(extMethodsHeader, methods)
-      )
+    }
+    if (atoms.nonEmpty) {
+      atomsLines = HTML.div(HTML.`class` := "atoms")(atomsHeader, atoms)
+    }
+    val lines = HTML.div(atomsLines, methodsLines)
     astHtmlRepr(head, lines)
   }
 
