@@ -1,28 +1,5 @@
 <p align="center">
-  <br/>
-  <a href="http://enso.org">
-      <img
-          src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png"
-          alt="Enso Visual Environmment"
-          width="136"
-      />
-  </a>
-  <br/>
-  <br/>
-  <a href="http://enso.org">
-      <img
-          src="https://user-images.githubusercontent.com/1623053/75661125-05664300-5c6d-11ea-9bd3-8a5355db9609.png"
-          alt="Enso Language"
-          width="240"
-      />
-  </a>
-  <br/>
-  <br/>
-  <br/>
-</p>
-
-<p align="center">
-<img src="https://user-images.githubusercontent.com/1623053/114553528-020dfb00-9c66-11eb-8fb8-d37a9b0f7e22.gif" width="640" height="640"/>
+<img src="https://user-images.githubusercontent.com/1623053/114556966-8150fe00-9c69-11eb-883e-d33c2ab215b7.gif" width="640" height="640"/>
 </p>
 
 <p align="center">
