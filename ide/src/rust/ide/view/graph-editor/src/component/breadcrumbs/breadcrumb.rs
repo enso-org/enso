@@ -52,7 +52,8 @@ const SEPARATOR_MARGIN : f32 = 10.0;
 // === Background ===
 // ==================
 
-mod background {
+/// A transparent "background" of single breadcrumb, set for capturing mouse events.
+pub mod background {
     use super::*;
 
     ensogl::define_shape_system! {

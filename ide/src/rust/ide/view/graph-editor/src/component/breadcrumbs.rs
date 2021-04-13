@@ -17,6 +17,7 @@ use enso_protocol::language_server::MethodPointer;
 use ensogl::application::Application;
 use ensogl::display::camera::Camera2d;
 use ensogl::display::object::ObjectOps;
+use ensogl::display::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display;
@@ -197,14 +198,20 @@ impl BreadcrumbsModel {
         scene.layers.breadcrumbs_background.add_exclusive(&background);
 
         Self{logger,display_object, root,app,breadcrumbs,project_name,breadcrumbs_container,
-            frp_inputs,current_index,camera,background,gap_width}.init()
+            frp_inputs,current_index,camera,background,gap_width}.init(&scene)
     }
 
-    fn init(self) -> Self {
+    fn init(self, scene:&Scene) -> Self {
         self.add_child(&self.root);
         self.root.add_child(&self.project_name);
         self.root.add_child(&self.breadcrumbs_container);
         self.root.add_child(&self.background);
+
+        ensogl::shapes_order_dependencies! {
+            scene => {
+                background -> breadcrumb::background;
+            }
+        }
 
         self.update_layout();
 
