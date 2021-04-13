@@ -196,6 +196,7 @@ final class SuggestionsTable(tag: Tag)
         module,
         name,
         selfType,
+        returnType,
         scopeStartLine,
         scopeStartOffset,
         scopeEndLine,
