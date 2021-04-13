@@ -295,7 +295,7 @@ define_themes! { [light:0, dark:1]
                 left  = Lcha(0.0,0.0,0.0,0.5) , Lcha(1.0,0.0,0.0,0.5);
                 right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
             }
-            background = graph_editor::node::background , graph_editor::node::background;
+            background = application::background , application::background;
             background {
                 corner_radius = 8.0 , 8.0;
                 shadow = shadow , shadow;

@@ -39,8 +39,8 @@
 - [Added Heatmap visualization.][1438] Just as Scatter Plot, it supports
   visualizing Table, and vectors.
 - [Added Heatmap visualization.][1438]
-- [Add backgrounds to the project name and status bar][1447]. Both now have a
-  background with drop shadow for better readability.
+- [Add a background to the status bar][1447].
+- [Display breadcrumbs behind nodes and other objects][1471].
 - [Image visualization.][1367]. Visualizations for the Enso Image library. Now
   You can display Image type and string with image encoded in base64. Histogram
   visualization has been adjusted, allowing to display the values of the
