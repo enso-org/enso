@@ -508,10 +508,10 @@ object Main extends scala.App {
       |""".stripMargin
   val inC =
     """## ADDED in 2.0
-      |  MODIFIED in 2.1
-      |  UNSTABLE
-      |  Optional values.
-      |
+      |   MODIFIED in 2.1
+      |   UNSTABLE
+      |   Optional values.
+      |   
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
       |   in Enso code, as they have a number of uses:
@@ -523,39 +523,39 @@ object Main extends scala.App {
       |      - Optional function arguments.
       |   `Option`s are commonly paired with pattern matching to query the presence of
       |   a value and take action, always accounting for the None case.
-      |
       |type Option a
+      |    
       |    ## ADVANCED
       |       The `Some` type indicates a presence of a value.
       |    type Some a
       |
       |    ## MODIFIED
-      |     The `None` type indicates a lack of a value.
-      |
-      |     It is a very common type and is used by such types as `Maybe` or `List`.
-      |     Also, `None` is the return value of functions which do not return an
-      |     explicit value.
+      |       The `None` type indicates a lack of a value.
+      |       
+      |       It is a very common type and is used by such types as `Maybe` or `List`.
+      |       Also, `None` is the return value of functions which do not return an
+      |       explicit value.
       |    type None
       |    
       |    ## DEPRECATED
       |       PRIVATE
       |       UNSTABLE
       |       TEXTONLY
-      |     The `Nothing` is previous `None`.
+      |       The `Nothing` is previous `None`.
       |    type Nothing
       |
       |    ## The pow function calculates power of integers.
       |    
-      |        ! Important
-      |          This function, if used wildly, will break space-time continuum.
+      |       ! Important
+      |         This function, if used wildly, will break space-time continuum.
       |    pow x y = x ** y
       |
       |## TEXTONLY
-      |  PRIVATE
-      |  This is a testing framework for `Option`.
+      |   PRIVATE
+      |   This is a testing framework for `Option`.
       |  
-      |  ? Info
-      |  It doesn't do too much in current state.
+      |   ? Info
+      |     It doesn't do too much in current state.
       |type Option_Testing
       |    type Foo
       |    type Bar
