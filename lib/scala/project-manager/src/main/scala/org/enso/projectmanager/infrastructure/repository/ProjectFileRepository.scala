@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
@@ -85,16 +86,20 @@ class ProjectFileRepository[
   private def tryLoadProject(
     directory: File
   ): F[ProjectRepositoryFailure, Option[Project]] = {
-    val noop: F[ProjectRepositoryFailure, Option[ProjectMetadata]] =
+    def noop[A]: F[ProjectRepositoryFailure, Option[A]] =
       Applicative[F].pure(None)
     for {
-      pkgOpt  <- loadPackage(directory)
-      metaOpt <- pkgOpt.fold(noop)(_ => loadMetadata(directory))
+      pkgOpt <- loadPackage(directory)
+      metaOpt <- pkgOpt.fold(noop[ProjectMetadata])(_ =>
+        loadMetadata(directory)
+      )
+      attributesOpt <- pkgOpt.fold(noop[BasicFileAttributes])(
+        readAttributes(_).map(Some(_))
+      )
     } yield for {
       pkg  <- pkgOpt
       meta <- metaOpt
     } yield {
-      val attributes = pkg.fileSystem.readAttributes(pkg.root)
       Project(
         id                    = meta.id,
         name                  = pkg.name,
@@ -103,7 +108,7 @@ class ProjectFileRepository[
         engineVersion         = pkg.config.ensoVersion,
         lastOpened            = meta.lastOpened,
         path                  = Some(directory.toString),
-        directoryCreationTime = Some(attributes.creationTime())
+        directoryCreationTime = attributesOpt.map(_.creationTime())
       )
     }
   }
@@ -155,6 +160,13 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Option[Package[File]]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
+      .mapError(th => StorageFailure(th.toString))
+
+  private def readAttributes(
+    pkg: Package[File]
+  ): F[ProjectRepositoryFailure, BasicFileAttributes] =
+    Sync[F]
+      .blockingOp(pkg.fileSystem.readAttributes(pkg.root))
       .mapError(th => StorageFailure(th.toString))
 
   private def getPackage(
