@@ -33,7 +33,8 @@
 
 Enso is an award-winning interactive programming language with double visual and textual syntax. It is a tool that spans the entire stack, going from high-level
 visualisation and communication to the nitty-gritty of backend services, all in
-a single language.
+a single language. Watch the following introduction video to learn what is Enso and how it helps companies build
+data workflows in minutes instead of weeks.
 
 [![Introducing Enso video](https://img.youtube.com/vi/fQvWMoOjmQk/0.jpg)](https://www.youtube.com/watch?v=fQvWMoOjmQk)
 
