@@ -1,20 +1,8 @@
 <p align="center">
+  <a href="https://enso.org">
 <img src="https://user-images.githubusercontent.com/1623053/114557275-cbd27a80-9c69-11eb-9e4d-a60187cdb7a4.gif" width="640" height="640"/>
+  </a>
 </p>
-
-<p align="center">
-<a href="https://enso.org">
-  enso.org
-</a>
-</p>
-
-<p align="center">
-<a href="https://enso.org">
-  <h3>enso.org</h3>
-</a>
-</p>
-
-[enso.org](https://enso.org) 
 
 <p align="center">
   <a href="https://discord.gg/PMtNMP46">
@@ -41,7 +29,7 @@
 
 <br/>
 
-### Enso. Get insights you can rely on. In real time.
+### [Enso.org](https://enso.org) . Get insights you can rely on. In real time.
 
 Turning your data into knowledge is slow and error-prone. You can’t trust tools that don’t embrace best practices and provide quality assurance.
 
