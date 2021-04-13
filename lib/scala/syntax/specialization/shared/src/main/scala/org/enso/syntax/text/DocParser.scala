@@ -452,10 +452,10 @@ object DocParserHTMLGenerator {
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val atoms = generatedCode.filter(
-      _.toString().contains("class=\"atom\"")
+      _.toString().contains("class=\"atom flex\"")
     )
     val methods = generatedCode.filter(
-      _.toString().contains("class=\"method\"")
+      _.toString().contains("class=\"method flex\"")
     )
 
     val head         = createDocTitle(name, args, tags)
