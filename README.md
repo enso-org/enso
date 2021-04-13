@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/PMtNMP46">
+  <a href="https://discord.gg/enso">
     <img src="https://img.shields.io/discord/401396655599124480.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2"
          alt="Chat">
   </a>
@@ -69,7 +69,7 @@ a single language.
 
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/av/speed/materialiconsround/24px.svg">
 <ul><ul>
-    <b>Up to 80x faster than Python.</b><br/>
+    <b>Fast. Up to 80x faster than Python.</b><br/>
     It can even run other languages faster than their official runtimes. Enso-R
     is 36x faster than GNU-R. <a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
 </ul></ul>
@@ -89,7 +89,7 @@ a single language.
     <b>Runs everywhere</b><br/>
     Enso is available on MacOS, Windows, and Linux, and the Enso IDE runs on
     web-native technologies. In time, you'll be able to run it in the web-browser,
-    giving even your tablet of phone access to your data.
+    giving even your tablet of phone access to your data. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
 
 <br/>
