@@ -88,7 +88,7 @@ class RuntimeSuggestionUpdatesTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(6, TimeUnit.SECONDS))
+      Option(messageQueue.poll(10, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -161,6 +161,20 @@ class RuntimeSuggestionUpdatesTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Atom(
+                    None,
+                    moduleName,
+                    "Main",
+                    Seq(),
+                    moduleName,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
@@ -723,6 +737,20 @@ class RuntimeSuggestionUpdatesTest
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
             Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Atom(
+                    None,
+                    moduleName,
+                    "Main",
+                    Seq(),
+                    moduleName,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
               Tree.Node(
                 Api.SuggestionUpdate(
                   Suggestion.Method(
