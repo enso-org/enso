@@ -50,12 +50,6 @@ a single language.
     Versioning and visual data quality management allow you to trust the results you get. <a href="https://enso.org">Learn more →<a/>
 </ul></ul>
   
-<img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/content/link/materialiconsround/24px.svg">
-<ul><ul>
-    <b>Switch from graphs to code. And back.</b><br/>
-    Enso is a programming language with two syntax representations, visual and textual. <a href="https://enso.org">Learn more →<a/>
-</ul></ul>
-  
 <img align="left" width="36px" src="https://github.com/google/material-design-icons/blob/master/src/hardware/security/materialiconsround/24px.svg">
 <ul><ul>
     <b>Powerful purely functional language. Both visual and textual</b><br/>
