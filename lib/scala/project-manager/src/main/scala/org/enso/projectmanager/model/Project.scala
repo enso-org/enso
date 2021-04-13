@@ -1,5 +1,6 @@
 package org.enso.projectmanager.model
 
+import java.nio.file.attribute.FileTime
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -20,7 +21,8 @@ case class Project(
   name: String,
   kind: ProjectKind,
   created: OffsetDateTime,
-  engineVersion: EnsoVersion         = DefaultEnsoVersion,
-  lastOpened: Option[OffsetDateTime] = None,
-  path: Option[String]               = None
+  engineVersion: EnsoVersion              = DefaultEnsoVersion,
+  lastOpened: Option[OffsetDateTime]      = None,
+  path: Option[String]                    = None,
+  directoryCreationTime: Option[FileTime] = None
 )

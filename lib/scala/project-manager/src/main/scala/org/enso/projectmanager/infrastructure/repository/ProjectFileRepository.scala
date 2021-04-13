@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.attribute.FileTime
 import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
@@ -57,7 +58,7 @@ class ProjectFileRepository[
     getAll().map(_.filter(predicate))
 
   /** @inheritdoc */
-  override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
+  override def getAll(): F[ProjectRepositoryFailure, List[Project]] = {
     fileSystem
       .list(storageConfig.userProjectsPath)
       .map(_.filter(_.isDirectory))
@@ -65,7 +66,11 @@ class ProjectFileRepository[
         Nil
       }
       .mapError(th => StorageFailure(th.toString))
-      .flatMap(s => Traverse[List].traverse(s)(tryLoadProject).map(_.flatten))
+      .flatMap { dirs =>
+        Traverse[List].traverse(dirs)(tryLoadProject).map(_.flatten)
+      }
+      .flatMap(resolveClashingIds)
+  }
 
   /** @inheritdoc */
   override def findById(
@@ -81,23 +86,31 @@ class ProjectFileRepository[
   private def tryLoadProject(
     directory: File
   ): F[ProjectRepositoryFailure, Option[Project]] = {
-    val noop: F[ProjectRepositoryFailure, Option[ProjectMetadata]] =
+    def noop[A]: F[ProjectRepositoryFailure, Option[A]] =
       Applicative[F].pure(None)
     for {
-      pkgOpt  <- loadPackage(directory)
-      metaOpt <- pkgOpt.fold(noop)(_ => loadMetadata(directory))
+      pkgOpt <- loadPackage(directory)
+      metaOpt <- pkgOpt.fold(noop[ProjectMetadata])(_ =>
+        loadMetadata(directory)
+      )
+      directoryCreationTime <- pkgOpt.fold(noop[FileTime])(
+        getDirectoryCreationTime(_)
+          .map(Some(_))
+          .recoverWith(_ => noop)
+      )
     } yield for {
       pkg  <- pkgOpt
       meta <- metaOpt
     } yield {
       Project(
-        id            = meta.id,
-        name          = pkg.name,
-        kind          = meta.kind,
-        created       = meta.created,
-        engineVersion = pkg.config.ensoVersion,
-        lastOpened    = meta.lastOpened,
-        path          = Some(directory.toString)
+        id                    = meta.id,
+        name                  = pkg.name,
+        kind                  = meta.kind,
+        created               = meta.created,
+        engineVersion         = pkg.config.ensoVersion,
+        lastOpened            = meta.lastOpened,
+        path                  = Some(directory.toString),
+        directoryCreationTime = directoryCreationTime
       )
     }
   }
@@ -149,6 +162,13 @@ class ProjectFileRepository[
   ): F[ProjectRepositoryFailure, Option[Package[File]]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
+      .mapError(th => StorageFailure(th.toString))
+
+  private def getDirectoryCreationTime(
+    pkg: Package[File]
+  ): F[ProjectRepositoryFailure, FileTime] =
+    Sync[F]
+      .blockingOp(pkg.fileSystem.getCreationTime(pkg.root))
       .mapError(th => StorageFailure(th.toString))
 
   private def getPackage(
@@ -291,4 +311,46 @@ class ProjectFileRepository[
       fileSystem,
       gen
     )
+
+  /** Resolve id clashes and return a list of projects with unique identifiers
+    * by assigning random ids to clashing projects.
+    *
+    * @param projects the list of projects
+    * @return return the list of projects with unique ids
+    */
+  private def resolveClashingIds(
+    projects: List[Project]
+  ): F[ProjectRepositoryFailure, List[Project]] = {
+    val clashing = markProjectsWithClashingIds(projects)
+    Traverse[List].traverse(clashing) { case (isClashing, project) =>
+      if (isClashing) {
+        for {
+          newId <- gen.randomUUID()
+          updatedProject = project.copy(id = newId)
+          _ <- update(updatedProject)
+        } yield updatedProject
+      } else {
+        Applicative[F].pure(project)
+      }
+    }
+  }
+
+  /** Take a list of projects and mark the projects that have duplicate ids.
+    *
+    * @param projects the list of projects
+    * @return the list of pairs. Fist element of the pair indicates if the
+    * project has clashing id.
+    */
+  private def markProjectsWithClashingIds(
+    projects: List[Project]
+  ): List[(Boolean, Project)] = {
+    projects.groupBy(_.id).foldRight(List.empty[(Boolean, Project)]) {
+      case ((_, groupedProjects), acc) =>
+        // groupBy always returns non-empty list
+        (groupedProjects.sortBy(_.directoryCreationTime): @unchecked) match {
+          case project :: clashingProjects =>
+            (false, project) :: clashingProjects.map((true, _)) ::: acc
+        }
+    }
+  }
 }
