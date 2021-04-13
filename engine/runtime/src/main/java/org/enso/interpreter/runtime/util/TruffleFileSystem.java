@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,5 +92,10 @@ public class TruffleFileSystem implements FileSystem<TruffleFile> {
   @Override
   public boolean isRegularFile(TruffleFile file) {
     return file.isRegularFile();
+  }
+
+  @Override
+  public FileTime getCreationTime(TruffleFile file) throws IOException {
+    return file.getCreationTime();
   }
 }

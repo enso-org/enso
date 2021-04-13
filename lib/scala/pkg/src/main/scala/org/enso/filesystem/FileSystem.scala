@@ -3,7 +3,7 @@ package org.enso.filesystem
 import scala.jdk.CollectionConverters._
 import java.io.{BufferedReader, BufferedWriter, File, IOException}
 import java.nio.file.Files
-import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.{BasicFileAttributes, FileTime}
 import java.util.stream
 
 /** A generic specification of file operations based on an abstract notion
@@ -110,12 +110,13 @@ trait FileSystem[F] {
     */
   def isRegularFile(file: F): Boolean
 
-  /** Read basic file attributes.
+  /** Get creation time of the file.
     *
-    * @param file the file to check
-    * @return the file attributes
+    * @param file the file to check.
+    * @return the file creation time.
     */
-  def readAttributes(file: F): BasicFileAttributes
+  @throws[IOException]
+  def getCreationTime(file: F): FileTime
 }
 
 object FileSystem {
@@ -151,7 +152,7 @@ object FileSystem {
 
     def isRegularFile: Boolean = fs.isRegularFile(file)
 
-    def readAttributes: BasicFileAttributes = fs.readAttributes(file)
+    def getCreationTime: FileTime = fs.getCreationTime(file)
   }
 
   /** A [[File]] based implementation of [[FileSystem]].
@@ -191,7 +192,9 @@ object FileSystem {
     override def isRegularFile(file: File): Boolean =
       Files.isRegularFile(file.toPath)
 
-    override def readAttributes(file: File): BasicFileAttributes =
-      Files.readAttributes(file.toPath, classOf[BasicFileAttributes])
+    override def getCreationTime(file: File): FileTime =
+      Files
+        .readAttributes(file.toPath, classOf[BasicFileAttributes])
+        .creationTime()
   }
 }

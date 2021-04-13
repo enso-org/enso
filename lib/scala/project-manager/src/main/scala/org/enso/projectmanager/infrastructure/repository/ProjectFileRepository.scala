@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.FileTime
 import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
@@ -93,8 +93,10 @@ class ProjectFileRepository[
       metaOpt <- pkgOpt.fold(noop[ProjectMetadata])(_ =>
         loadMetadata(directory)
       )
-      attributesOpt <- pkgOpt.fold(noop[BasicFileAttributes])(
-        readAttributes(_).map(Some(_))
+      directoryCreationTime <- pkgOpt.fold(noop[FileTime])(
+        getDirectoryCreationTime(_)
+          .map(Some(_))
+          .recoverWith(_ => noop)
       )
     } yield for {
       pkg  <- pkgOpt
@@ -108,7 +110,7 @@ class ProjectFileRepository[
         engineVersion         = pkg.config.ensoVersion,
         lastOpened            = meta.lastOpened,
         path                  = Some(directory.toString),
-        directoryCreationTime = attributesOpt.map(_.creationTime())
+        directoryCreationTime = directoryCreationTime
       )
     }
   }
@@ -162,11 +164,11 @@ class ProjectFileRepository[
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
       .mapError(th => StorageFailure(th.toString))
 
-  private def readAttributes(
+  private def getDirectoryCreationTime(
     pkg: Package[File]
-  ): F[ProjectRepositoryFailure, BasicFileAttributes] =
+  ): F[ProjectRepositoryFailure, FileTime] =
     Sync[F]
-      .blockingOp(pkg.fileSystem.readAttributes(pkg.root))
+      .blockingOp(pkg.fileSystem.getCreationTime(pkg.root))
       .mapError(th => StorageFailure(th.toString))
 
   private def getPackage(
