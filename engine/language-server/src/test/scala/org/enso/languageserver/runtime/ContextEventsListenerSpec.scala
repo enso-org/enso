@@ -351,7 +351,8 @@ class ContextEventsListenerSpec
           contextId,
           visualisationId,
           expressionId,
-          message
+          message,
+          None
         )
 
         router.expectMsg(
@@ -361,7 +362,8 @@ class ContextEventsListenerSpec
               contextId,
               visualisationId,
               expressionId,
-              message
+              message,
+              None
             )
           )
         )

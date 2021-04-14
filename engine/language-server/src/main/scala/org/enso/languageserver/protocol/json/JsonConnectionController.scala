@@ -226,7 +226,8 @@ class JsonConnectionController(
           contextId,
           visualisationId,
           expressionId,
-          message
+          message,
+          diagnostic
         ) =>
       webActor ! Notification(
         VisualisationEvaluationFailed,
@@ -234,7 +235,8 @@ class JsonConnectionController(
           contextId,
           visualisationId,
           expressionId,
-          message
+          message,
+          diagnostic
         )
       )
 

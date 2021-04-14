@@ -35,7 +35,8 @@ import org.enso.interpreter.service.error.{
   ConstructorNotFoundException,
   MethodNotFoundException,
   ModuleNotFoundForExpressionIdException,
-  ServiceException
+  ServiceException,
+  VisualisationException
 }
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
@@ -421,7 +422,6 @@ trait ProgramExecutionSupport {
             expressionValue
           )
         }
-        .leftMap(_.getMessage)
         .flatMap {
           case text: String =>
             Right(text.getBytes("UTF-8"))
@@ -430,18 +430,23 @@ trait ProgramExecutionSupport {
           case bytes: Array[Byte] =>
             Right(bytes)
           case other =>
-            Left(s"Cannot encode ${other.getClass} to byte array")
+            Left(
+              new VisualisationException(
+                s"Cannot encode ${other.getClass} to byte array"
+              )
+            )
         }
 
     errorMsgOrVisualisationData match {
-      case Left(msg) =>
+      case Left(error) =>
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationEvaluationFailed(
               contextId,
               visualisation.id,
               expressionId,
-              msg
+              error.getMessage,
+              getExecutionOutcome(error)
             )
           )
         )

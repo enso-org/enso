@@ -133,7 +133,8 @@ object ExecutionApi {
       contextId: ContextId,
       visualisationId: VisualisationId,
       expressionId: ExpressionId,
-      message: String
+      message: String,
+      diagnostic: Option[ExecutionDiagnostic]
     )
 
     implicit val hasParams = new HasParams[this.type] {

@@ -102,14 +102,18 @@ final class ContextEventsListener(
           `contextId`,
           visualisationId,
           expressionId,
-          msg
+          message,
+          diagnostic
         ) =>
       val payload =
         ContextRegistryProtocol.VisualisationEvaluationFailed(
           contextId,
           visualisationId,
           expressionId,
-          msg
+          message,
+          diagnostic.collect { case m: Api.ExecutionResult.Diagnostic =>
+            toProtocolDiagnostic(m)
+          }
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 

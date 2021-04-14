@@ -906,7 +906,8 @@ object Runtime {
       contextId: ContextId,
       visualisationId: VisualisationId,
       expressionId: ExpressionId,
-      message: String
+      message: String,
+      diagnostic: Option[ExecutionResult]
     ) extends ApiNotification
 
     /** Signals that visualisation cannot be found.

@@ -2946,6 +2946,11 @@ interface VisualisationEvaluationFailed {
    * An error message.
    */
   message: string;
+
+  /**
+   * Detailed information about the error.
+   */
+  diagnostic?: Diagnostic;
 }
 ```
 
