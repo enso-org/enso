@@ -18,7 +18,7 @@ RUN mkdir -p /volumes
 RUN chown -hR ensodev:ensodev /volumes
 RUN chmod -R u=rwX,g=rwX /volumes
 
-USER enso:enso
+USER ensodev:ensodev
 
 WORKDIR /opt/enso
 
