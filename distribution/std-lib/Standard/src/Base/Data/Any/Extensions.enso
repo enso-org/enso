@@ -223,6 +223,7 @@ Any.map_error _ = this
 
    > Example
      Checking if the provided value is an error.
+
          1.is_error
 Any.is_error : Boolean
 Any.is_error = False
@@ -239,6 +240,7 @@ Any.is_error = False
 
    > Example
      Applying a function to a block.
+
          (x -> x + 1) <|
             y = 1 ^ 3
             3 + y
@@ -261,6 +263,7 @@ Any.<| ~argument = this argument
    > Example
      Applying multiple functions in a pipeline to compute a number and transform
      it to text.
+
          1 |> (* 2) |> (/ 100) |> .to_text
 Any.|> : (Any -> Any) -> Any
 Any.|> ~function = function this
@@ -273,6 +276,7 @@ Any.|> ~function = function this
 
    > Example
      Multiply by 2 and then add 1 as a function applied to 2.
+
          (+1 << *2) 2
 Any.<< : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.<< ~that = x -> this (that x)
@@ -285,6 +289,7 @@ Any.<< ~that = x -> this (that x)
 
    > Example
      Add one and then multiply by two as a function applied to 2.
+
          (+1 >> *2) 2
 Any.>> : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.>> ~that = x -> that (this x)
@@ -303,6 +308,7 @@ Any.>> ~that = x -> that (this x)
 
    > Example
      Converting the number `2` into visualization data.
+
          2.to_default_visualization_data
 Any.to_default_visualization_data : Text
 Any.to_default_visualization_data = this.to_json.to_text

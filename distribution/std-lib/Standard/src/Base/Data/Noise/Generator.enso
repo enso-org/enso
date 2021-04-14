@@ -55,7 +55,10 @@ type Deterministic_Random
 
        > Example
          Step the generator with the input 1 and range 0 to 1
-             Deterministic_Random.step 1 (Interval.inclusive 0 1)
+
+             from Standard.Base.Data.Noise.Generator import Deterministic_Random
+
+             example_det_random = Deterministic_Random.step 1 (Interval.inclusive 0 1)
     step : Number -> Interval -> Number
     step input interval =
         max_long = Long.MAX_VALUE
