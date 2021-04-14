@@ -1108,16 +1108,6 @@ lazy val `engine-runner` = project
       case x =>
         MergeStrategy.first
     },
-    assemblyOption in assembly := (assemblyOption in assembly).value
-      .copy(
-        prependShellScript = Some(
-          defaultUniversalScript(
-            shebang = false,
-            javaOpts = truffleRunOptions ++
-              Seq("-Dtruffle.class.path.append=runtime.jar")
-          )
-        )
-      ),
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
