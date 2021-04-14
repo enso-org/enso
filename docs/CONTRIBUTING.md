@@ -661,7 +661,7 @@ Below are options uses by the Language Server:
 To run the Language Server on 127.0.0.1:8080 type:
 
 ```bash
-./runner.jar \
+distribution/bin/enso \
   --server \
   --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
   --path /tmp/content-root
