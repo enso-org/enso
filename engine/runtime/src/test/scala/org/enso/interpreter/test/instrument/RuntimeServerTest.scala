@@ -3761,6 +3761,75 @@ class RuntimeServerTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
+  it should "return visualisation evaluation errors" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            moduleName,
+            "x -> x.visualise_me"
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(
+        Api.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          idMain,
+          "Method `visualise_me` of 50 (Integer) could not be found."
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "rename a project" in {
     val contents  = context.Main.code
     val mainFile  = context.writeMain(contents)
