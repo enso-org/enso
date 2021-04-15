@@ -2,6 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
+import io.circe.Encoder
+import io.circe.generic.auto._
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
@@ -156,10 +158,18 @@ object ExecutionApi {
   case object VisualisationNotFoundError
       extends Error(2006, s"Visualisation not found")
 
-  case class VisualisationExpressionError(msg: String)
-      extends Error(
+  case class VisualisationExpressionError(
+    msg: String,
+    executionFailure: Option[ContextRegistryProtocol.ExecutionFailure]
+  ) extends Error(
         2007,
         s"Evaluation of the visualisation expression failed [$msg]"
+      ) {
+
+    override def payload =
+      executionFailure.map(
+        Encoder[ContextRegistryProtocol.ExecutionFailure].apply(_)
       )
+  }
 
 }

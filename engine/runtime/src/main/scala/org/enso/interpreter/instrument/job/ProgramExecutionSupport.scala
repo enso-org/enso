@@ -16,10 +16,6 @@ import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
 }
-import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
-  ExecutionFrame,
-  LocalCallFrame
-}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
@@ -47,7 +43,7 @@ import scala.jdk.OptionConverters._
 /** Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
   */
-trait ProgramExecutionSupport {
+object ProgramExecutionSupport {
 
   /** Runs an Enso program.
     *
@@ -272,48 +268,49 @@ trait ProgramExecutionSupport {
     * @param ctx the runtime context
     * @return the API message describing the error
     */
-  private def getExecutionOutcome(
+  def getExecutionOutcome(
     t: Throwable
-  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] = {
-    t match {
-      case ex: AbstractTruffleException
-          if Option(ctx.executionService.getLanguage(ex))
-            .forall(_ == LanguageInfo.ID) =>
-        val section = Option(ctx.executionService.getSourceLocation(ex))
-        Some(
-          Api.ExecutionResult.Diagnostic.error(
-            ex.getMessage,
-            section.flatMap(sec => findFileByModuleName(sec.getSource.getName)),
-            section.map(LocationResolver.sectionToRange),
-            section
-              .flatMap(LocationResolver.getExpressionId(_))
-              .map(_.externalId),
-            ErrorResolver.getStackTrace(ex)
-          )
-        )
+  )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] =
+    getDiagnosticOutcome.orElse(getFailureOutcome).lift(t)
 
-      case ex: ConstructorNotFoundException =>
-        Some(
-          Api.ExecutionResult.Failure(
-            ex.getMessage,
-            findFileByModuleName(ex.getModule)
-          )
-        )
+  /** Extract diagnostic information from the provided exception. */
+  def getDiagnosticOutcome(implicit
+    ctx: RuntimeContext
+  ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
+    case ex: AbstractTruffleException
+        if Option(ctx.executionService.getLanguage(ex))
+          .forall(_ == LanguageInfo.ID) =>
+      val section = Option(ctx.executionService.getSourceLocation(ex))
+      val source  = section.flatMap(sec => Option(sec.getSource))
+      Api.ExecutionResult.Diagnostic.error(
+        ex.getMessage,
+        source.flatMap(src => findFileByModuleName(src.getName)),
+        section.map(LocationResolver.sectionToRange),
+        section
+          .flatMap(LocationResolver.getExpressionId(_))
+          .map(_.externalId),
+        ErrorResolver.getStackTrace(ex)
+      )
+  }
 
-      case ex: MethodNotFoundException =>
-        Some(
-          Api.ExecutionResult.Failure(
-            ex.getMessage,
-            findFileByModuleName(ex.getModule)
-          )
-        )
+  /** Extract information about the failure from the provided exception. */
+  def getFailureOutcome(implicit
+    ctx: RuntimeContext
+  ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
+    case ex: ConstructorNotFoundException =>
+      Api.ExecutionResult.Failure(
+        ex.getMessage,
+        findFileByModuleName(ex.getModule)
+      )
 
-      case ex: ServiceException =>
-        Some(Api.ExecutionResult.Failure(ex.getMessage, None))
+    case ex: MethodNotFoundException =>
+      Api.ExecutionResult.Failure(
+        ex.getMessage,
+        findFileByModuleName(ex.getModule)
+      )
 
-      case _ =>
-        None
-    }
+    case ex: ServiceException =>
+      Api.ExecutionResult.Failure(ex.getMessage, None)
   }
 
   private def sendErrorUpdate(contextId: ContextId, error: Exception)(implicit
@@ -323,7 +320,13 @@ trait ProgramExecutionSupport {
       Api.Response(
         Api.ExecutionUpdate(
           contextId,
-          Seq(Api.ExecutionResult.Diagnostic.error(error.getMessage))
+          Seq(
+            getDiagnosticOutcome.applyOrElse(
+              error,
+              (ex: Exception) =>
+                Api.ExecutionResult.Diagnostic.error(ex.getMessage)
+            )
+          )
         )
       )
     )
@@ -377,6 +380,13 @@ trait ProgramExecutionSupport {
     }
   }
 
+  /** Find visualisations for the provided expression value, compute and send
+    * the updates.
+    *
+    * @param contextId the identifier of an execution context
+    * @param value the computed value
+    * @param ctx the runtime context
+    */
   private def fireVisualisationUpdates(
     contextId: ContextId,
     value: ExpressionValue
@@ -436,7 +446,6 @@ trait ProgramExecutionSupport {
               )
             )
         }
-
     errorMsgOrVisualisationData match {
       case Left(error) =>
         ctx.endpoint.sendToClient(
@@ -446,7 +455,7 @@ trait ProgramExecutionSupport {
               visualisation.id,
               expressionId,
               error.getMessage,
-              getExecutionOutcome(error)
+              getDiagnosticOutcome.lift(error)
             )
           )
         )
@@ -471,6 +480,11 @@ trait ProgramExecutionSupport {
     }
   }
 
+  /** Extract method pointer information from the expression value.
+    *
+    * @param value the expression value.
+    * @return the method pointer info
+    */
   private def toMethodPointer(
     value: ExpressionValue
   ): Option[Api.MethodPointer] =
@@ -497,10 +511,6 @@ trait ProgramExecutionSupport {
       module <- ctx.executionService.getContext.findModule(module).toScala
       path   <- Option(module.getPath)
     } yield new File(path)
-
-}
-
-object ProgramExecutionSupport {
 
   /** An execution frame.
     *

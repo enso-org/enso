@@ -1,12 +1,62 @@
 package org.enso.languageserver.runtime
 
+import org.enso.jsonrpc.Error
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.jsonrpc.Error
 
+final class RuntimeFailureMapper(config: Config) {
+
+  /** Maps runtime Api error into a registry error.
+    *
+    * @param error runtime Api error
+    * @return registry error
+    */
+  def mapApiError(error: Api.Error): ContextRegistryProtocol.Failure =
+    error match {
+      case Api.ContextNotExistError(contextId) =>
+        ContextRegistryProtocol.ContextNotFound(contextId)
+      case Api.EmptyStackError(contextId) =>
+        ContextRegistryProtocol.EmptyStackError(contextId)
+      case Api.InvalidStackItemError(contextId) =>
+        ContextRegistryProtocol.InvalidStackItemError(contextId)
+      case Api.ModuleNotFound(moduleName) =>
+        ContextRegistryProtocol.ModuleNotFound(moduleName)
+      case Api.VisualisationExpressionFailed(message, result) =>
+        ContextRegistryProtocol.VisualisationExpressionFailed(
+          message,
+          result.map(toProtocolError)
+        )
+      case Api.VisualisationNotFound() =>
+        ContextRegistryProtocol.VisualisationNotFound
+    }
+
+  /** Convert the runtime failure message to the context registry protocol
+    * representation.
+    *
+    * @param error the error message
+    * @return the registry protocol representation fo the diagnostic message
+    */
+  private def toProtocolError(
+    error: Api.ExecutionResult.Failure
+  ): ContextRegistryProtocol.ExecutionFailure =
+    ContextRegistryProtocol.ExecutionFailure(
+      error.message,
+      error.file.flatMap(config.findRelativePath)
+    )
+
+}
 object RuntimeFailureMapper {
+
+  /** Create runtime failure mapper instance.
+    *
+    * @param config the language server config
+    * @return a new instance of [[RuntimeFailureMapper]]
+    */
+  def apply(config: Config): RuntimeFailureMapper =
+    new RuntimeFailureMapper(config)
 
   /** Maps registry error into JSON RPC error.
     *
@@ -29,29 +79,7 @@ object RuntimeFailureMapper {
         VisualisationNotFoundError
       case ContextRegistryProtocol.ModuleNotFound(name) =>
         ModuleNotFoundError(name)
-      case ContextRegistryProtocol.VisualisationExpressionFailed(msg) =>
-        VisualisationExpressionError(msg)
+      case ContextRegistryProtocol.VisualisationExpressionFailed(msg, result) =>
+        VisualisationExpressionError(msg, result)
     }
-
-  /** Maps runtime Api error into a registry error.
-    *
-    * @param error runtime Api error
-    * @return registry error
-    */
-  def mapApiError(error: Api.Error): ContextRegistryProtocol.Failure =
-    error match {
-      case Api.ContextNotExistError(contextId) =>
-        ContextRegistryProtocol.ContextNotFound(contextId)
-      case Api.EmptyStackError(contextId) =>
-        ContextRegistryProtocol.EmptyStackError(contextId)
-      case Api.InvalidStackItemError(contextId) =>
-        ContextRegistryProtocol.InvalidStackItemError(contextId)
-      case Api.ModuleNotFound(moduleName: String) =>
-        ContextRegistryProtocol.ModuleNotFound(moduleName)
-      case Api.VisualisationExpressionFailed(message: String) =>
-        ContextRegistryProtocol.VisualisationExpressionFailed(message)
-      case Api.VisualisationNotFound() =>
-        ContextRegistryProtocol.VisualisationNotFound
-    }
-
 }

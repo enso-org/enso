@@ -281,7 +281,7 @@ final class SuggestionsHandler(
         .getOrElse(SearchProtocol.SuggestionNotFoundError)
 
       val handler = context.system
-        .actorOf(ImportModuleHandler.props(timeout, runtimeConnector))
+        .actorOf(ImportModuleHandler.props(config, timeout, runtimeConnector))
       action.pipeTo(handler)(sender())
 
     case FileDeletedEvent(path) =>
@@ -326,7 +326,9 @@ final class SuggestionsHandler(
       } yield SearchProtocol.InvalidateModulesIndex
 
       val handler = context.system
-        .actorOf(InvalidateModulesIndexHandler.props(timeout, runtimeConnector))
+        .actorOf(
+          InvalidateModulesIndexHandler.props(config, timeout, runtimeConnector)
+        )
       action.pipeTo(handler)(sender())
 
     case ProjectNameChangedEvent(oldName, newName) =>

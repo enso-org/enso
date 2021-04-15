@@ -111,9 +111,7 @@ final class ContextEventsListener(
           visualisationId,
           expressionId,
           message,
-          diagnostic.collect { case m: Api.ExecutionResult.Diagnostic =>
-            toProtocolDiagnostic(m)
-          }
+          diagnostic.map(toProtocolDiagnostic)
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
