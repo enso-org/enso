@@ -4,22 +4,21 @@ USER root
 
 ENV LOG_LEVEL=INFO
 
-RUN groupadd -g 1001 enso
-RUN useradd --system --create-home --uid 1001 --gid 1001 enso
+RUN useradd -u 2000 -c 'Enso Developer' -U -M ensodev
 
 ADD bin /opt/enso/bin
 ADD component /opt/enso/component
 ADD std-lib /opt/enso/std-lib
 
-RUN chown -hR enso:enso /opt/enso
+RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*
 
 RUN mkdir -p /volumes
-RUN chown -hR enso:enso /volumes
+RUN chown -hR ensodev:ensodev /volumes
 RUN chmod -R u=rwX,g=rwX /volumes
 
-USER enso:enso
+USER ensodev:ensodev
 
 WORKDIR /opt/enso
 
