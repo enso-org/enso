@@ -38,11 +38,11 @@ services, all in a single language. Watch the following introduction video to
 learn what Enso is, and how it helps companies build data workflows in minutes
 instead of weeks.
 
-<p align="center">
+<br/>
+
 <a href="https://www.youtube.com/watch?v=fQvWMoOjmQk" rel="nofollow">
 <img width="692" alt="Screenshot 2021-04-15 at 12 16 32" src="https://user-images.githubusercontent.com/1623053/114854125-c8173300-9de4-11eb-9b10-99a331eb2251.png">  
 </a>
-</p>
 
 
 
