@@ -166,7 +166,7 @@ public class Text_Utils {
    * Checks whether {@code suffix} is a suffix of {@code str}.
    *
    * @param str the string to check
-   * @param prefix the potential suffix
+   * @param suffix the potential suffix
    * @return whether {@code suffix} is a suffix of {@code str}
    */
   public static boolean ends_with(String str, String suffix) {

@@ -1,9 +1,9 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Locale
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Locale
-import Standard.Base.Data.Time.Time
 import Standard.Base.Data.Time.Zone
 
 polyglot java import java.time.format.DateTimeFormatter
@@ -124,7 +124,7 @@ type Time_Of_Day
          example, "HH-mm-ss.SSS" will format "16:21:10" as "16-21-10.323".
 
          For the list of accepted symbols in pattern refer to the
-         `Base.Data.Time.Time.format` doc.
+         `Base.Data.Time.format` doc.
 
        > Example
          Format "16:21:10" as "16:21:00.1234"
@@ -201,7 +201,7 @@ parse text =
 
    ? Pattern Syntax
      For the list of accepted symbols in pattern refer to the
-     `Base.Data.Time.Time.format` doc.
+     `Base.Data.Time.format` doc.
 
    > Example
      Parse "04:30:20" as Time_Of_Day.

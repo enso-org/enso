@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time
+
 # Can do the top-level examples directory.
 
 # Fine to not provide examples for some APIs (e.g. Database).
@@ -28,4 +31,8 @@ type Example_Error_Type message
 ## An example CSV file for experimenting with Table and its APIs.
 example_csv : File
 example_csv = Enso_Project.data / "food_shop_inventory.csv"
+
+## An example duration for experimenting with duration APIs.
+duration : Duration
+duration = 10
 

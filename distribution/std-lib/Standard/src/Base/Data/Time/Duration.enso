@@ -1,9 +1,26 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Time
+import Standard.Base.Data.Time
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
+
+## Create an interval representing the duration between two points in time.
+
+   Arguments:
+   - start_inclusive: The start time of the duration.
+   - end_inclusife: The end time of the duration.
+
+   > Example
+     An hour interval between two points in time.
+
+         import Standard.Base.Data.Time.Duration
+         import Standard.Base.Data.Time
+
+         example_between = Duration.between Time.now (Time.new 2010 10 20)
+between : Time -> Time -> Duration
+between start_inclusive end_exclusive =
+   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
 
 type Duration
 
@@ -23,11 +40,17 @@ type Duration
 
        > Example
          Add 6 seconds to a duration of 3 minutes
-             3.minutes + 6.seconds
+
+             import Standard.Base.Data.Time.Duration
+
+             example_add = 3.minutes + 6.seconds
 
        > Example
          Add 12 hours to a duration of a month.
-             1.month + 12.hours
+
+             import Standard.Base.Data.Time.Duration
+
+             example_add = 1.month + 12.hours
     + : Duration -> Duration
     + that = Duration (this.internal_period . plus that.internal_period . normalized) (this.internal_duration . plus that.internal_duration)
 
@@ -38,11 +61,17 @@ type Duration
 
        > Example
          Subtract 11 months from a duration of 3 years
-             3.years - 11.months
+
+             import Standard.Base.Data.Time.Date
+
+             example_subtract = 3.years - 11.months
 
        > Example
          Substract 30 minutes from a duration of 7 months.
-             7.months - 30.minutes
+
+             import Standard.Base.Data.Time.Date
+
+             example_subtract = 7.months - 30.minutes
     - : Duration -> Duration
     - that = Duration (this.internal_period . minus that.internal_period . normalized) (this.internal_duration . minus that.internal_duration)
 
@@ -50,7 +79,11 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in nanoseconds.
-             1.nanosecond.nanoseconds
+
+             import Standard.Base.Data.Time.Date
+             import Standard.Examples
+
+             example_nanos = Examples.duration.nanoseconds
     nanoseconds : Integer
     nanoseconds = this.internal_duration . toNanosPart
 
@@ -58,7 +91,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in milliseconds.
-             1.millisecond.milliseconds
+
+             import Standard.Base.Data.Time.Date
+
+             example_millis = 1.millisecond.milliseconds
     milliseconds : Integer
     milliseconds = this.internal_duration . toMillisPart
 
@@ -66,7 +102,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in seconds.
-             1.second.seconds
+
+             import Standard.Base.Data.Time.Date
+
+             example_seconds = 1.second.seconds
     seconds : Integer
     seconds = this.internal_duration . toSecondsPart
 
@@ -74,7 +113,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in minutes.
-             1.minute.minutes
+
+             import Standard.Base.Data.Time.Date
+
+             example_minutes = 1.minute.minutes
     minutes : Integer
     minutes = this.internal_duration . toMinutesPart
 
@@ -82,7 +124,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in hours.
-             1.hour.hours
+
+             import Standard.Base.Data.Time.Date
+
+             example_hours = 1.hour.hours
     hours : Integer
     hours = this.internal_duration . toHours
 
@@ -239,17 +284,3 @@ Integer.year = Duration (Java_Period.ofYears this . normalized) (Java_Duration.o
 ## Duration in years.
 Integer.years : Duration
 Integer.years = this.year
-
-## Create an interval representing the duration between two points in time.
-
-   Arguments:
-   - start_inclusive: The start time of the duration.
-   - end_inclusife: The end time of the duration.
-
-   > Example
-     An hour interval between two points in time.
-         Duration.between Time.now (Time.new 2010 10 20)
-between : Time -> Time -> Duration
-between start_inclusive end_exclusive =
-   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
-

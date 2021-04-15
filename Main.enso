@@ -1,6 +1,10 @@
 from Standard.Base import all
 
-example = "a".compare_to "b"
+import Standard.Base.Data.Time.Duration
+import Standard.Base.Data.Time
+import Standard.Examples
+
+example = Duration.between (Time.new 2020 10 20) Time.now
 
 main =
     result = here.example
