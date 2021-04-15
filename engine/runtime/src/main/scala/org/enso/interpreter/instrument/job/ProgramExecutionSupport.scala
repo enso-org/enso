@@ -258,7 +258,7 @@ object ProgramExecutionSupport {
       )
     executionUpdate.getOrElse(
       Api.ExecutionResult
-        .Failure(s"Error in function $itemName.", None)
+        .Failure(s"Error in function $itemName. ${error.getMessage}", None)
     )
   }
 

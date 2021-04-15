@@ -109,7 +109,7 @@ class RuntimeServerTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
+      Option(messageQueue.poll(12, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
@@ -3818,6 +3818,80 @@ class RuntimeServerTest
     )
     context.receive(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
+    )
+  }
+
+  it should "return VisualisationExpressionFailed error when attaching visualisation" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Main",
+            "here.does_not_exist"
+          )
+        )
+      )
+    )
+    context.receive(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.VisualisationExpressionFailed(
+          "Method `does_not_exist` of Main could not be found.",
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              message = "Method `does_not_exist` of Main could not be found.",
+              stack = Vector(
+                Api.StackTraceElement("<eval>", None, None, None),
+                Api.StackTraceElement("Debug.eval", None, None, None)
+              )
+            )
+          )
+        )
+      )
     )
   }
 

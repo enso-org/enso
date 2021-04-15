@@ -389,11 +389,11 @@ object ContextRegistryProtocol {
     * a [[ModifyVisualisation]] cannot be evaluated.
     *
     * @param message the reason of the failure
-    * @param failure the detailed information about the failure
+    * @param diagnostic the detailed information about the failure
     */
   case class VisualisationExpressionFailed(
     message: String,
-    failure: Option[ExecutionFailure]
+    diagnostic: Option[ExecutionDiagnostic]
   ) extends Failure
 
   /** Signals that an evaluation of a code responsible for generating

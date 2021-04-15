@@ -895,7 +895,7 @@ object Runtime {
       */
     case class VisualisationExpressionFailed(
       message: String,
-      failure: Option[ExecutionResult.Failure]
+      failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
 
     /** Signals that an evaluation of a code responsible for generating

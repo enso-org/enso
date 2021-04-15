@@ -102,7 +102,7 @@ class UpsertVisualisationJob(
 
   private def replyWithExpressionFailedError(
     message: String,
-    executionResult: Option[Api.ExecutionResult.Failure]
+    executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(
@@ -141,7 +141,7 @@ class UpsertVisualisationJob(
         .leftMap { error =>
           EvaluationFailed(
             error.getMessage,
-            ProgramExecutionSupport.getFailureOutcome.lift(error)
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
           )
         }
     }
@@ -167,7 +167,7 @@ object UpsertVisualisationJob {
     */
   case class EvaluationFailed(
     message: String,
-    failure: Option[Api.ExecutionResult.Failure]
+    failure: Option[Api.ExecutionResult.Diagnostic]
   ) extends EvalFailure
 
 }

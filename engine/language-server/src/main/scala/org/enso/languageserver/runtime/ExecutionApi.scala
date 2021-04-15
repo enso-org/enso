@@ -160,15 +160,15 @@ object ExecutionApi {
 
   case class VisualisationExpressionError(
     msg: String,
-    executionFailure: Option[ContextRegistryProtocol.ExecutionFailure]
+    diagnostic: Option[ContextRegistryProtocol.ExecutionDiagnostic]
   ) extends Error(
         2007,
         s"Evaluation of the visualisation expression failed [$msg]"
       ) {
 
     override def payload =
-      executionFailure.map(
-        Encoder[ContextRegistryProtocol.ExecutionFailure].apply(_)
+      diagnostic.map(
+        Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
       )
   }
 

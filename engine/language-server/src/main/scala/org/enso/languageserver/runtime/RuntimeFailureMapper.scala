@@ -27,7 +27,7 @@ final class RuntimeFailureMapper(config: Config) {
       case Api.VisualisationExpressionFailed(message, result) =>
         ContextRegistryProtocol.VisualisationExpressionFailed(
           message,
-          result.map(toProtocolError)
+          result.map(toProtocolDiagnostic)
         )
       case Api.VisualisationNotFound() =>
         ContextRegistryProtocol.VisualisationNotFound
@@ -39,12 +39,62 @@ final class RuntimeFailureMapper(config: Config) {
     * @param error the error message
     * @return the registry protocol representation fo the diagnostic message
     */
-  private def toProtocolError(
+  def toProtocolFailure(
     error: Api.ExecutionResult.Failure
   ): ContextRegistryProtocol.ExecutionFailure =
     ContextRegistryProtocol.ExecutionFailure(
       error.message,
       error.file.flatMap(config.findRelativePath)
+    )
+
+  /** Convert the runtime diagnostic message to the context registry protocol
+    * representation.
+    *
+    * @param diagnostic the diagnostic message
+    * @return the registry protocol representation of the diagnostic message
+    */
+  def toProtocolDiagnostic(
+    diagnostic: Api.ExecutionResult.Diagnostic
+  ): ContextRegistryProtocol.ExecutionDiagnostic =
+    ContextRegistryProtocol.ExecutionDiagnostic(
+      toDiagnosticType(diagnostic.kind),
+      diagnostic.message,
+      diagnostic.file.flatMap(config.findRelativePath),
+      diagnostic.location,
+      diagnostic.expressionId,
+      diagnostic.stack.map(toStackTraceElement)
+    )
+
+  /** Convert the runtime diagnostic type to the context registry protocol
+    * representation.
+    *
+    * @param kind the diagnostic type
+    * @return the registry protocol representation of the diagnostic type
+    */
+  private def toDiagnosticType(
+    kind: Api.DiagnosticType
+  ): ContextRegistryProtocol.ExecutionDiagnosticKind =
+    kind match {
+      case Api.DiagnosticType.Error() =>
+        ContextRegistryProtocol.ExecutionDiagnosticKind.Error
+      case Api.DiagnosticType.Warning() =>
+        ContextRegistryProtocol.ExecutionDiagnosticKind.Warning
+    }
+
+  /** Convert the runtime stack trace element to the context registry protocol
+    * representation.
+    *
+    * @param element the runtime stack trace element
+    * @return the registry protocol representation of the stack trace element
+    */
+  private def toStackTraceElement(
+    element: Api.StackTraceElement
+  ): ContextRegistryProtocol.ExecutionStackTraceElement =
+    ContextRegistryProtocol.ExecutionStackTraceElement(
+      element.functionName,
+      element.file.flatMap(config.findRelativePath),
+      element.location,
+      element.expressionId
     )
 
 }
