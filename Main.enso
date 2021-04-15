@@ -1,10 +1,9 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration
 import Standard.Base.Data.Time
 import Standard.Examples
 
-example = Duration.between (Time.new 2020 10 20) Time.now
+example = Examples.duration
 
 main =
     result = here.example

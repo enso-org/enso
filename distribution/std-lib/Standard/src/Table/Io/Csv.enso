@@ -38,7 +38,7 @@ File.File.read_csv has_header=True prefix='C' =
          import Standard.Examples
 
          example_csv_to_table =
-             file = Examples.example_csv
+             file = Examples.csv
              Table.from_csv file
 
    > Example
