@@ -3502,6 +3502,9 @@ null;
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
 
+Besides the required `code` and `message` fields, the errors may have a `data`
+field which can store additional error-specific payload.
+
 ### `AccessDeniedError`
 
 It signals that a user doesn't have access to a resource.
@@ -3649,12 +3652,30 @@ It signals that the visualisation cannot be found.
 ### `VisualisationExpressionError`
 
 It signals that the expression specified in the `VisualisationConfiguration`
-cannot be evaluated.
+cannot be evaluated. The error contains an optional `data` field of type
+[`Diagnostic`](#diagnostic) providing error details.
 
 ```typescript
 "error" : {
   "code" : 2007,
   "message" : "Evaluation of the visualisation expression failed [i is not defined]"
+  "data" : {
+    "kind" : "Error",
+    "message" : "i is not defined",
+    "path" : null,
+    "location" : {
+      "start" : {
+        "line" : 0,
+        "character" : 8
+      },
+      "end" : {
+        "line" : 0,
+        "character" : 9
+      }
+    },
+    "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
+    "stack" : []
+  }
 }
 ```
 

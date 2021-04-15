@@ -113,7 +113,7 @@ object Errors {
   case class UnknownError(
     override val code: Int,
     override val message: String,
-    override val payload: Option[Json] = None
+    override val payload: Option[Json]
   ) extends Error(code, message)
 }
 

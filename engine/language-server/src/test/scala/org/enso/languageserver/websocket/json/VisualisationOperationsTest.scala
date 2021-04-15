@@ -4,8 +4,7 @@ import java.util.UUID
 import io.circe.literal._
 import org.enso.languageserver.runtime.VisualisationConfiguration
 import org.enso.polyglot.runtime.Runtime.Api
-
-import scala.annotation.nowarn
+import org.enso.text.editing.model
 
 class VisualisationOperationsTest extends BaseServerTest {
 
@@ -19,21 +18,14 @@ class VisualisationOperationsTest extends BaseServerTest {
       val contextId = createExecutionContext(client)
       val visualisationConfig =
         VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
-            "id": 1,
-            "params": {
-              "visualisationId": $visualisationId,
-              "expressionId": $expressionId,
-              "visualisationConfig": {
-                  "executionContextId": $contextId,
-                  "visualisationModule": ${visualisationConfig.visualisationModule},
-                  "expression": ${visualisationConfig.expression}
-              }
-            }
-          }
-          """)
+      client.send(
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
+      )
 
       val requestId =
         runtimeConnectorProbe.receiveN(1).head match {
@@ -68,21 +60,14 @@ class VisualisationOperationsTest extends BaseServerTest {
       val client          = getInitialisedWsClient()
       val visualisationConfig =
         VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
-      client.send(json"""
-          {  "jsonrpc": "2.0",
-            "method": "executionContext/attachVisualisation",
-            "id": 1,
-            "params": {
-              "visualisationId": $visualisationId,
-              "expressionId": $expressionId,
-              "visualisationConfig": {
-                  "executionContextId": $contextId,
-                  "visualisationModule": ${visualisationConfig.visualisationModule},
-                  "expression": ${visualisationConfig.expression}
-              }
-            }
-          }
-          """)
+      client.send(
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
+      )
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id" : 1,
@@ -92,6 +77,138 @@ class VisualisationOperationsTest extends BaseServerTest {
             }
           }
           """)
+    }
+
+    "reply with ModuleNotFound error when attaching a visualisation" in {
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+
+      val client    = getInitialisedWsClient()
+      val contextId = createExecutionContext(client)
+      val visualisationConfig =
+        VisualisationConfiguration(contextId, "Foo.Bar", "_")
+      client.send(
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
+      )
+
+      val requestId =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  config
+                )
+              ) =>
+            config.expression shouldBe visualisationConfig.expression
+            config.visualisationModule shouldBe visualisationConfig.visualisationModule
+            config.executionContextId shouldBe visualisationConfig.executionContextId
+            requestId
+
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.ModuleNotFound(visualisationConfig.visualisationModule)
+      )
+      client.expectJson(
+        ExecutionContextJsonMessages.executionContextModuleNotFound(
+          1,
+          visualisationConfig.visualisationModule
+        )
+      )
+    }
+
+    "reply with VisualisationExpressionFailed error when attaching a visualisation" in {
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+
+      val client    = getInitialisedWsClient()
+      val contextId = createExecutionContext(client)
+      val visualisationConfig =
+        VisualisationConfiguration(contextId, "Foo.Bar", "_")
+      val expressionFailureMessage = "Method `to_json` could not be found."
+      client.send(
+        ExecutionContextJsonMessages.executionContextAttachVisualisationRequest(
+          1,
+          visualisationId,
+          expressionId,
+          visualisationConfig
+        )
+      )
+
+      val requestId =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  config
+                )
+              ) =>
+            config.expression shouldBe visualisationConfig.expression
+            config.visualisationModule shouldBe visualisationConfig.visualisationModule
+            config.executionContextId shouldBe visualisationConfig.executionContextId
+            requestId
+
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.VisualisationExpressionFailed(
+          expressionFailureMessage,
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              expressionFailureMessage,
+              location = Some(
+                model.Range(model.Position(0, 0), model.Position(0, 15))
+              ),
+              expressionId = Some(expressionId)
+            )
+          )
+        )
+      )
+      val errorMessage =
+        s"Evaluation of the visualisation expression failed [$expressionFailureMessage]"
+      client.expectJson(
+        json"""
+          { "jsonrpc" : "2.0",
+            "id" : 1,
+            "error" : {
+              "code" : 2007,
+              "message" : $errorMessage,
+              "data": {
+                "kind" : "Error",
+                "message" : $expressionFailureMessage,
+                "path" : null,
+                "location" : {
+                  "start" : {
+                    "line" : 0,
+                    "character" : 0
+                  },
+                  "end" : {
+                    "line" : 0,
+                    "character" : 15
+                  }
+                },
+                "expressionId" : $expressionId,
+                "stack" : []
+              }
+            }
+          }
+          """
+      )
     }
 
   }
@@ -142,9 +259,6 @@ class VisualisationOperationsTest extends BaseServerTest {
       val expressionId    = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
-      @nowarn("cat=unused-locals")
-      val visualisationConfig =
-        VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
       client.send(json"""
           {  "jsonrpc": "2.0",
             "method": "executionContext/detachVisualisation",

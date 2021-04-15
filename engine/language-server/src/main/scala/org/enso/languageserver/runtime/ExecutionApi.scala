@@ -2,7 +2,7 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.auto._
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
@@ -166,7 +166,7 @@ object ExecutionApi {
         s"Evaluation of the visualisation expression failed [$msg]"
       ) {
 
-    override def payload =
+    override def payload: Option[Json] =
       diagnostic.map(
         Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
       )
