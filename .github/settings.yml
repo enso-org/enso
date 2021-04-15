@@ -7,7 +7,7 @@ repository:
   homepage: https://enso.org
   topics:
     enso, visual, textual, hybrid, functional, language, compiler, interpreter,
-    rts, jit, polyglot
+    graalvm, rts, jit, polyglot
 
   private: false
 
