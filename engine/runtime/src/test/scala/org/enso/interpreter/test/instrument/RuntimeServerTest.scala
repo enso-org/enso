@@ -3992,7 +3992,7 @@ class RuntimeServerTest
         |encode x = x.visualise_me
         |
         |inc_and_encode x = here.encode x+1
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     val visualisationFile =
       context.writeInSrcDir("Visualisation", visualisationCode)
