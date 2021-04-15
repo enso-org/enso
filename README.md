@@ -100,8 +100,8 @@ always trust the results you get.
 <ul><ul>
     <b>Fast. Up to 80x faster than Python.</b><br/>
     It can even run other languages faster than their official runtimes.
-    <a href="https://github.com/oracle/fastr">Enso-R (GraalVM - FastR)</a> is
-    36x faster than GNU-R.
+    <a href="https://github.com/oracle/fastr">Enso-R (using FastR on the GraalVM)</a>
+    is 36x faster than GNU-R.
   <br/><a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
 </ul></ul>
 
