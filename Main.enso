@@ -1,11 +1,8 @@
 from Standard.Base import all
 
-foreign python test_python a b = """
-    print(f"Type of `a`: {type(a)}")
-    print(f"Type of `67`: {type(67)}")
-    print(f"Type of `b`: {type(b)}")
-    print(f"Type of `'p'`: {type('p')}")
+example = "a".compare_to "b"
 
 main =
-    here.test_python 65 "a"
+    result = here.example
+    IO.println result
 

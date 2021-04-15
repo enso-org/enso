@@ -23,10 +23,9 @@ from Standard.Base import all
 
    Arguments:
    - message: The message contained in the error type.
-
-   > Example
-     Constructing the error.
-
-         Example_Error_Type "My message"
 type Example_Error_Type message
+
+## An example CSV file for experimenting with Table and its APIs.
+example_csv : File
+example_csv = Enso_Project.data / "food_shop_inventory.csv"
 

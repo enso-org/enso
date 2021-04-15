@@ -7,6 +7,8 @@ import Standard.Base.Meta
 
 from Builtins export Text
 
+export Standard.Base.Data.Text.Split_Kind
+
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import org.enso.base.Text_Utils
@@ -20,6 +22,7 @@ polyglot java import org.enso.base.Text_Utils
 
    > Example
      Getting the length of the string "건반(Korean)".
+
          "건반(Korean)".length
 Text.length : Integer
 Text.length =
@@ -45,6 +48,7 @@ Text.length =
 
    > Example
      Print each character in the text "aaa".
+
          "aaa".each IO.println
 Text.each : (Text -> Any) -> Nothing
 Text.each function =
@@ -70,8 +74,9 @@ Text.each function =
 
    > Example
      Get the individual characters in the text "건반(Korean)".
+
          "건반(Korean)".characters
-Text.characters : Vector.Vector
+Text.characters : Vector.Vector Text
 Text.characters =
     bldr = Vector.new_builder
     this.each bldr.append
@@ -85,12 +90,14 @@ Text.characters =
 
    > Example
      Split the comma-separated text into a vector of items.
+
          "ham,eggs,cheese,tomatoes".split ","
 
    > Example
      Split the string on whitespace into a vector of items.
+
          "ham eggs cheese tomatoes".split Split_Kind.Whitespace
-Text.split : Split_Kind -> Vector.Vector
+Text.split : Split_Kind -> Vector.Vector Text
 Text.split (separator = Split_Kind.Whitespace) =
     result = case separator of
         Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
@@ -113,8 +120,9 @@ Text.split (separator = Split_Kind.Whitespace) =
 
    > Example
      Getting the words in the sentence "I have not one, but two cats."
+
         "I have not one, but two cats.".words
-Text.words : Boolean -> Vector.Vector
+Text.words : Boolean -> Vector.Vector Text
 Text.words keep_whitespace=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText this
@@ -151,6 +159,7 @@ Text.words keep_whitespace=False =
      The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
      is canonically the same as the string 'e\u0301' (i.e. the letter `e`
      followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
+
          ('é' == 'e\u0301') == True
 Text.== : Any -> Boolean
 Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
@@ -176,6 +185,7 @@ Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Te
      LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
      string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
      ACCENT). Therefore:
+
          (('É' . equals_ignore_case 'é') && ('é' == 'e\u0301')) == True
 Text.equals_ignore_case : Text -> Boolean
 Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
@@ -187,6 +197,7 @@ Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
 
    > Example
      Checking how "a" orders in relation to "b".
+
          "a".compare_to "b"
 Text.compare_to : Text -> Ordering
 Text.compare_to that = if this == that then Ordering.Equal else
@@ -222,6 +233,7 @@ Text.not_empty = this.is_empty.not
 
    > Example
      Get the UTF-8 bytes of the text "Hello".
+
          "Hello".utf_8
 Text.utf_8 : Vector.Vector
 Text.utf_8 = Vector.from_array (Text_Utils.get_bytes this)

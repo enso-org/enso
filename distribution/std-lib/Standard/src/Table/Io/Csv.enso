@@ -29,6 +29,30 @@ File.File.read_csv has_header=True prefix='C' =
      names. For example, if `prefix` is set to `X`, the columns will be named
      `X0`, `X1`, etc. This argument has no effect if the storage name is
      inferred from the CSV header row or set manually.
+
+   > Example
+     Read a CSV from disk and convert it into a table.
+
+         from Standard.Base import all
+         import Standard.Table
+         import Standard.Examples
+
+         example_csv_to_table =
+             file = Examples.example_csv
+             Table.from_csv file
+
+   > Example
+     Read a CSV from memory and convert it into a table.
+
+         from Standard.Base import all
+         import Standard.Table
+
+         example_csv_to_table =
+             csv = """
+                 column_1, column_2, column_3
+                 1       , 2       , 3
+                 4       , 5       , 6
+             Table.from_csv csv
 from_csv : File.File | Text -> Boolean -> Text -> Table ! Parse_Error
 from_csv csv has_header=True prefix='C' =
     parser_inst = Parser.create has_header prefix
