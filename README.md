@@ -39,9 +39,11 @@ learn what Enso is, and how it helps companies build data workflows in minutes
 instead of weeks.
 
 <p align="center">
-<a href="https://www.youtube.com/watch?v=fQvWMoOjmQk" rel="nofollow"><img src="https://camo.githubusercontent.com/43e50b5f62a5e600b811b6371c28c0963c3baa9efb4f94ac5c407b18a88095bd/68747470733a2f2f696d672e796f75747562652e636f6d2f76692f665176574d6f4f6a6d516b2f302e6a7067" alt="Introducing Enso video" data-canonical-src="https://user-images.githubusercontent.com/1623053/114854125-c8173300-9de4-11eb-9b10-99a331eb2251.png" style="max-width:100%;"></a>
+<a href="https://www.youtube.com/watch?v=fQvWMoOjmQk" rel="nofollow">
+<img width="692" alt="Screenshot 2021-04-15 at 12 16 32" src="https://user-images.githubusercontent.com/1623053/114854125-c8173300-9de4-11eb-9b10-99a331eb2251.png">  
+</a>
 </p>
-<img width="692" alt="Screenshot 2021-04-15 at 12 16 32" src="https://user-images.githubusercontent.com/1623053/114854125-c8173300-9de4-11eb-9b10-99a331eb2251.png">
+
 
 
 <br/>
