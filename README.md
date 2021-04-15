@@ -84,7 +84,7 @@ always trust the results you get.
 <ul><ul>
     <b>Mix languages with close-to-zero interop overhead.</b><br/>
     Import any library from Enso, Java, JavaScript, R, or Python, and use
-    functions, callbacks, and data types without any wrappers. Enso compiles
+    functions, callbacks, and data types without any wrappers. Enso uses <a href="https://www.graalvm.org">GraalVM</a> to compile
     them to the same instruction set with a unified memory model.
   <br/><a href="https://enso.org">Learn more →<a/>
 </ul></ul>
@@ -92,7 +92,7 @@ always trust the results you get.
 <img align="left" width="44px" src="https://raw.githubusercontent.com/enso-org/icons/master/blue/with-bg/it/startup-and-new-business/051-rocket.svg">
 <ul><ul>
     <b>Fast. Up to 80x faster than Python.</b><br/>
-    It can even run other languages faster than their official runtimes. Enso-R
+    It can even run other languages faster than their official runtimes. <a href="https://github.com/oracle/fastr">Enso-R (GraalVM - FastR)</a>
     is 36x faster than GNU-R.
   <br/><a href="https://github.com/enso-org/benchmarks">See benchmarks →<a/>
 </ul></ul>
@@ -187,8 +187,8 @@ open and free to use. Join us, help us to build it, and spread the word!
 Enso consists of several sub projects:
 
 - **Enso Engine:** The Enso Engine is the set of tools that implement the Enso
-  language and its associated services. These include a just-in-time compiler,
-  runtime, and language server. These components can be used on their own as
+  language and its associated services. These include a just-in-time compiler and runtime, powered by <a href="https://www.graalvm.org">GraalVM</a>,
+  and a language server. These components can be used on their own as
   command line tools.
 
 - **Enso IDE:** The [Enso IDE](https://github.com/enso-org/ide) is the desktop
