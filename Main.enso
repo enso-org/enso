@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time
-import Standard.Examples
+import Standard.Base.Data.Time.Duration
 
-example = Examples.duration
+example = 10.nanoseconds
 
 main =
     result = here.example

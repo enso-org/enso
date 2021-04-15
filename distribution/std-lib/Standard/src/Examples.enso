@@ -1,6 +1,7 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Duration as Frob
+# Renamed to avoid clashing with an uppercase name resolution for `duration`.
+import Standard.Base.Data.Time.Duration as Enso_Duration
 import Standard.Base.Data.Time
 
 # Can do the top-level examples directory.
@@ -34,5 +35,5 @@ csv = Enso_Project.data / "food_shop_inventory.csv"
 
 ## An example duration for experimenting with duration APIs.
 # duration : Duration
-duration = Frob.between (Time.new 2020 10 20) Time.now
+duration = Enso_Duration.between (Time.new 2020 10 20) Time.now
 
