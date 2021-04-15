@@ -109,7 +109,7 @@ class RuntimeServerTest
     }
 
     def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(12, TimeUnit.SECONDS))
+      Option(messageQueue.poll(10, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
