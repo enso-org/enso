@@ -373,7 +373,7 @@ jobs:
         with:
           tag_name: enso-${{ env.DIST_VERSION }}
           release_name: Enso Nightly ${{ env.DIST_VERSION }}
-          body_path: release_notes.md
+          body_path: repo/release_notes.md
           draft: true
           prerelease: true
 
