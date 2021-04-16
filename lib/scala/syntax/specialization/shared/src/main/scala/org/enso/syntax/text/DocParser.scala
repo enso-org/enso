@@ -310,7 +310,7 @@ object DocParserHTMLGenerator {
           documented.ast match {
             case AST.App.Infix.any(_) =>
               extensionMethods += HTML
-                .div(HTML.`class` := "mb-20")(file.code)
+                .div(HTML.`class` := "ml-20 mb-20")(file.code)
                 .toString()
             case _ =>
               allDocs += HTML
