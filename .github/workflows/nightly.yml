@@ -30,6 +30,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Debug Print commit message
+        shell: bash
+        run: |
+          echo ${{ github.event.head_commit.message }}
       - id: check-assumptions
         name: Check If The Build Should Proceed
         shell: bash
@@ -49,7 +53,7 @@ jobs:
           VERSION=$(cat build.sbt | grep 'val ensoVersion' | sed 's/.*"\([^)]*\)".*/\1/').$(date --iso-8601)
           echo ::set-output name=nightly-version::$VERSION
 
-  # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
+  # This job should be kept up-to-date with scala.yml#build (but keep the relevant changes)
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -66,10 +70,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: repo
-      - name: Debug Print commit message
-        shell: bash
-        run: |
-          echo ${{ github.event.head_commit.message }}
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.5.0
       - name: Disable TCP/UDP Offloading (macOS)
@@ -226,8 +226,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
+          refversion=${{ env.ENSO_VERSION }}
           binversion=${{ env.DIST_VERSION }}
           engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
@@ -237,8 +236,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
+          refversion=${{ env.ENSO_VERSION }}
           binversion=${{ env.DIST_VERSION }}
           engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
@@ -291,7 +289,7 @@ jobs:
   create-release:
     name: Prepare Release
     runs-on: ubuntu-18.04
-    needs: build
+    needs: [build, preflight-check]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -301,6 +299,10 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           path: repo/built-distribution
+      - name: Prepare Nodejs
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: npm install
 
       # This jobs can be used to debug errors, it may be removed
       - name: Display Structure of Downloaded Files
@@ -334,8 +336,7 @@ jobs:
       - name: Save Version to Environment
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          DIST_VERSION=${ref#"refs/tags/enso-"}
+          DIST_VERSION=${{ needs.preflight-check.outputs.nightly-version }}
           echo "Preparing release for $DIST_VERSION"
           echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
 
@@ -364,82 +365,6 @@ jobs:
           body: "Please fill-in the release description"
           draft: true
           prerelease: true
-
-      - name: Login to ACR
-        uses: docker/login-action@v1
-        with:
-          registry: ensosharedwus2acr.azurecr.io
-          username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
-          password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
-
-      - name: Copy the docker entrypoint script
-        shell: bash
-        run: |
-          sleep 1
-          cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
-
-      - name: Publish Runtime Docker Image
-        shell: bash
-        run: |
-          sleep 1
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
-          docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
-
-      # Publish the launcher packages to the backup/fallback S3 bucket
-      - name: Prepare AWS Session
-        shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
-          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
-          eu-central-1
-          text
-          EOF
-      - name: Upload the Linux Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-linux-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the macOS Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-macos-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Windows Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-windows-amd64.zip s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Launcher Manifest to S3
-        shell: bash
-        run: >
-          aws s3 cp
-          repo/built-distribution/launcher-manifest/launcher-manifest.yaml
-          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION
-          }}/launcher-manifest.yaml --profile s3-upload --acl public-read
-      - name: Update the Release List in S3
-        shell: bash
-        run: |
-          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
-          TAG="enso-${{ env.DIST_VERSION }}"
-          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
-          launcher-manifest.yaml \
-          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
-          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
-      - name: Teardown AWS Session
-        shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          null
-          null
-          null
-          text
-          EOF
 
       # Upload the assets to the created release
       - name: Publish the Engine (Linux)
@@ -600,10 +525,6 @@ jobs:
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
 
-      - name: Prepare Nodejs
-        shell: bash
-        working-directory: repo/tools/ci/nightly
-        run: npm install
       - name: Publish Release
         shell: bash
         working-directory: repo/tools/ci/nightly
