@@ -306,7 +306,7 @@ jobs:
 
       # This jobs can be used to debug errors, it may be removed
       - name: Display Structure of Downloaded Files
-        run: ls -R
+        run: ls
         working-directory: repo/built-distribution
 
       - name: Setup GraalVM Environment
@@ -339,6 +339,11 @@ jobs:
           DIST_VERSION=${{ needs.preflight-check.outputs.nightly-version }}
           echo "Preparing release for $DIST_VERSION"
           echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+      - name: Update the Version Number to the Nightly
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/bump-version.js $DIST_VERSION
 
       - name: Prepare Packages
         shell: bash
@@ -354,6 +359,12 @@ jobs:
           sleep 1
           sbt makeBundles
 
+      - name: Prepare Release Notes
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/extract-release-notes.js RELEASES.md release_notes.md
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -362,7 +373,7 @@ jobs:
         with:
           tag_name: enso-${{ env.DIST_VERSION }}
           release_name: Enso Nightly ${{ env.DIST_VERSION }}
-          body: "Please fill-in the release description"
+          body_path: release_notes.md
           draft: true
           prerelease: true
 

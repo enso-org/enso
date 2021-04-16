@@ -1,3 +1,9 @@
+# Nightly
+
+## Miscellaneous
+
+- Adding a pipeline for automatic nightly builds.
+
 # Enso 0.2.11 (2021-04-28)
 
 ## Tooling

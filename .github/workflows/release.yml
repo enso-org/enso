@@ -253,11 +253,6 @@ jobs:
         with:
           path: repo/built-distribution
 
-      # This jobs can be used to debug errors, it may be removed
-      - name: Display Structure of Downloaded Files
-        run: ls -R
-        working-directory: repo/built-distribution
-
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
