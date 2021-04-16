@@ -295,7 +295,7 @@ object DocParserHTMLGenerator {
   def generateHTMLForEveryDocumented(ast: AST): String = {
     var allDocs = new String
     val extMethodsHeader = HTML.h2(
-      HTML.div(HTML.`class` := "flex")(
+      HTML.div(HTML.`class` := "ml-20 flex")(
         HTML.raw(
           "<MethodsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
         ),
