@@ -27,3 +27,22 @@ jobs:
         run: npm install
       - name: Check Docs
         run: npx prettier --check .
+  changelog-check:
+    name: Changelog Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout Sources
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      # TODO how to indicate that we don't want to check? Is it enough that any commit of the PR has `no-changelog` ?
+      - name: Check If Changelog Was Modified
+        shell: bash
+        run: |
+          ! git --no-pager diff --exit-code ${{ }} RELEASES.md
