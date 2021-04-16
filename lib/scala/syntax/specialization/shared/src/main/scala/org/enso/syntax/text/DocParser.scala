@@ -202,7 +202,12 @@ object DocParserRunner {
     * @return - Documentation.
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
-    val in = comment.lines.mkString("\n")
+    var indentSecondLine = 0
+    if (comment.lines.tail.nonEmpty) {
+      val s = comment.lines.tail.head
+      indentSecondLine = s.indexOf(s.trim())
+    }
+    val in = " " * indentSecondLine + comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 

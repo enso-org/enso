@@ -506,7 +506,7 @@ object Main extends scala.App {
       |    ## The pow function calculates power of integers.
       |    pow x y = x ** y
       |""".stripMargin
-  val inC =
+  val inCdeprecated =
     """## ADDED in 2.0
       |   MODIFIED in 2.1
       |   UNSTABLE
@@ -560,6 +560,37 @@ object Main extends scala.App {
       |    type Foo
       |    type Bar
       |""".stripMargin
+
+  val inC =
+    """
+      |## A type representing computations that may fail.
+      |type Maybe
+      |
+      |    ## No contained value.
+      |    Nothing
+      |
+      |    ## A value.
+      |
+      |       Arguments:
+      |       - value: The contained value in the maybe.
+      |    type Some value
+      |
+      |        ## Applies the provided function to the contained value if it exists,
+      |           otherwise returning the provided default value.
+      |        
+      |           Arguments:
+      |           - default: The value to return if `this` is Nothing. This value is lazy
+      |             and hence will not execute any provided computation unless it is used.
+      |           - function: The function to execute on the value inside the `Some`, if it
+      |             is a just.
+      |        
+      |           > Example
+      |             Apply a function over a Some value to get 4.
+      |                 (Some 2).maybe 0 *2
+      |        maybe : Any -> (Any -> Any) -> Any
+      |        maybe ~default function = case this of
+      |            Nothing -> default
+      |            Some val -> function val""".stripMargin
 
   println("--- PARSING ---")
 

@@ -522,18 +522,13 @@ case class DocParserDef() extends Parser[Doc] {
       typ: Elem.List.Type,
       content: String
     ): Unit = {
-      if (list.inListFlag) {
-        list.addContent(Elem.List.Indent.Invalid(indent, typ, content))
-      } else {
+      if (!list.inListFlag && typ == Elem.List.Ordered) {
         onPushingNewLine()
-        if (typ == Elem.List.Ordered) {
-          formatter.onPushing(Elem.Formatter.Bold)
-          result.current = Some(content)
-          result.push()
-        } else {
-          result.current = Some(" " * indent + typ.marker + content)
-          result.push()
-        }
+        formatter.onPushing(Elem.Formatter.Bold)
+        result.current = Some(content)
+        result.push()
+      } else {
+        list.addContent(Elem.List.Indent.Invalid(indent, typ, content))
       }
     }
 
