@@ -2,14 +2,25 @@ const { Octokit } = require("@octokit/core");
 const octokit = new Octokit();
 
 const organization = "enso-org";
-const repo = "enso";
-const token = process.env.GITHUB_TOKEN;
+function determineRepositoryName() {
+  const fallback = "enso";
+  const fallbackMessage = "Could not determine the repository name, falling back to the default.";
+  const fullName = process.env.GITHUB_REPOSITORY;
+  if (!fullName) {
+    console.log(fallbackMessage);
+    return fallback;
+  }
 
-const graphqlWithAuth = octokit.graphql.defaults({
-  headers: {
-    authorization: "token " + token,
-  },
-});
+  const prefix = organization + "/";
+  if (fullName.startsWith(prefix)) {
+    return fullName.substring(prefix.length);
+  } else {
+    console.log(fallbackMessage);
+    return fallback;
+  }
+}
+const repo = determineRepositoryName();
+const token = process.env.GITHUB_TOKEN;
 
 function isNightly(release) {
   const nightlyInfix = "Nightly";
@@ -17,23 +28,11 @@ function isNightly(release) {
 }
 
 async function fetchAllReleases() {
-  const query = `
-  query getNightlies($owner: String!, $repo: String!) {
-    repository(owner: $owner, name: $repo) {
-      releases(first: 100, orderBy: {direction: DESC, field: CREATED_AT}) {
-        nodes {
-          tagCommit {
-            oid
-          }
-          name
-          id
-        }
-      }
-    }
-  }
-  `;
-  const { repository } = await graphqlWithAuth(query, {owner: organization, repo: repo});
-  return repository.releases.nodes;
+  const res =  await octokit.request('GET /repos/{owner}/{repo}/releases', {
+    owner: organization,
+    repo: repo
+  });
+  return res.data;
 }
 
 async function fetchNightlies() {
@@ -43,7 +42,7 @@ async function fetchNightlies() {
 }
 
 async function removeRelease(id) {
-  await octokit.request('DELETE /repos/{owner}/{repo}/releases/{release_id}', {
+  return await octokit.request('DELETE /repos/{owner}/{repo}/releases/{release_id}', {
     owner: organization,
     repo: repo,
     release_id: id
@@ -51,7 +50,7 @@ async function removeRelease(id) {
 }
 
 async function publishRelease(id) {
-  await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
+  return await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
     owner: organization,
     repo: repo,
     release_id: id,

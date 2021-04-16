@@ -28,4 +28,7 @@ async function main() {
   console.log("Cleanup complete.")
 }
 
-main();
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
