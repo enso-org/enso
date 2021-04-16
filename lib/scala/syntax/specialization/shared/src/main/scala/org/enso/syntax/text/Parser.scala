@@ -562,7 +562,8 @@ object Main extends scala.App {
       |""".stripMargin
 
   val inC =
-    """
+    """from Standard.Base import all
+      |
       |## A type representing computations that may fail.
       |type Maybe
       |
@@ -575,22 +576,42 @@ object Main extends scala.App {
       |       - value: The contained value in the maybe.
       |    type Some value
       |
-      |        ## Applies the provided function to the contained value if it exists,
-      |           otherwise returning the provided default value.
-      |        
-      |           Arguments:
-      |           - default: The value to return if `this` is Nothing. This value is lazy
-      |             and hence will not execute any provided computation unless it is used.
-      |           - function: The function to execute on the value inside the `Some`, if it
-      |             is a just.
-      |        
-      |           > Example
-      |             Apply a function over a Some value to get 4.
-      |                 (Some 2).maybe 0 *2
-      |        maybe : Any -> (Any -> Any) -> Any
-      |        maybe ~default function = case this of
-      |            Nothing -> default
-      |            Some val -> function val""".stripMargin
+      |    ## Applies the provided function to the contained value if it exists,
+      |       otherwise returning the provided default value.
+      |
+      |       Arguments:
+      |       - default: The value to return if `this` is Nothing. This value is lazy
+      |         and hence will not execute any provided computation unless it is used.
+      |       - function: The function to execute on the value inside the `Some`, if it
+      |         is a just.
+      |
+      |       > Example
+      |         Apply a function over a Some value to get 4.
+      |             (Some 2).maybe 0 *2
+      |    maybe : Any -> (Any -> Any) -> Any
+      |    maybe ~default function = case this of
+      |        Nothing -> default
+      |        Some val -> function val
+      |
+      |    ## Check if the maybe value is `Some`.
+      |
+      |       > Example
+      |         Check if `Nothing` is `Some`.
+      |             Nothing.is_some
+      |    is_some : Boolean
+      |    is_some = case this of
+      |        Nothing -> False
+      |        Some _ -> True
+      |
+      |    ## Check if the maybe value is `Nothing`.
+      |
+      |       > Example
+      |         Check if `Nothing` is `Nothing`.
+      |             Nothing.is_nothing
+      |    is_nothing : Boolean
+      |    is_nothing = this.is_some.not
+      |
+      |""".stripMargin
 
   println("--- PARSING ---")
 

@@ -581,14 +581,7 @@ object DocParserHTMLGenerator {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
         val docHtml = DocumentedToHtml(doc.ast, doc.doc)
         HTML.div(docHtml) :: renderHTMLOnLine(rest)
-      case x :: rest =>
-        x match {
-          case Line(Some(d), _) =>
-            val astHtml = createHTMLFromAST(d)
-            val div     = HTML.div(astHtml.header, astHtml.body)
-            div :: renderHTMLOnLine(rest)
-          case _ => renderHTMLOnLine(rest)
-        }
+      case _ :: rest => renderHTMLOnLine(rest)
       case other =>
         other match {
           case Nil       => List()
