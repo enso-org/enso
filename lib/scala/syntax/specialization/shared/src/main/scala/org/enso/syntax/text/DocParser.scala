@@ -294,13 +294,29 @@ object DocParserHTMLGenerator {
     */
   def generateHTMLForEveryDocumented(ast: AST): String = {
     var allDocs = new String
+    val extMethodsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "flex")(
+        HTML.raw(
+          "<MethodsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
+        HTML.p("Extension Methods")
+      )
+    )
+    var extensionMethods = new String
     ast.map { elem =>
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs = HTML
-            .div(HTML.`class` := "mb-20")(file.code)
-            .toString() + allDocs
+          documented.ast match {
+            case AST.App.Infix.any(_) =>
+              extensionMethods += HTML
+                .div(HTML.`class` := "mb-20")(file.code)
+                .toString()
+            case _ =>
+              allDocs += HTML
+                .div(HTML.`class` := "mb-20")(file.code)
+                .toString()
+          }
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -311,7 +327,10 @@ object DocParserHTMLGenerator {
       }
       elem
     }
-    "<div>" + allDocs + "</div>"
+    if (extensionMethods.length > 0) {
+      extensionMethods = extMethodsHeader.render + extensionMethods
+    }
+    "<div>" + allDocs + extensionMethods + "</div>"
   }
 
   /** Function to generate HTML File from pure doc comment w/o connection to AST
