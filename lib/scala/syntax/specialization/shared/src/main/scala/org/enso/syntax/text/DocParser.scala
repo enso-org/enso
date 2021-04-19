@@ -339,7 +339,15 @@ object DocParserHTMLGenerator {
     * @return - HTML Code from Doc
     */
   def generateHTMLPureDoc(doc: Doc): String = {
-    HTML.html(createHTMLHead(""), HTML.body(doc.html)).toString()
+    HTML
+      .html(
+        HTML.body(
+          HTML.div(HTML.`class` := "doc")(
+            HTML.div(HTML.`class` := "main")(doc.html)
+          )
+        )
+      )
+      .toString()
   }
 
   //////////////////////////////////////////////////////////////////////////////
