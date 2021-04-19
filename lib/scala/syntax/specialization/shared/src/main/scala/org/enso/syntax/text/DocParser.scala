@@ -342,7 +342,7 @@ object DocParserHTMLGenerator {
     HTML
       .html(
         HTML.body(
-          HTML.div(HTML.`class` := "doc")(
+          HTML.div(HTML.`class` := "doc")(HTML.style := "font-size: 13px;")(
             HTML.div(HTML.`class` := "main")(doc.html)
           )
         )
