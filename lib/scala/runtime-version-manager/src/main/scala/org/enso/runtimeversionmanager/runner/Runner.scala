@@ -1,7 +1,6 @@
 package org.enso.runtimeversionmanager.runner
 
 import java.nio.file.Path
-
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
@@ -55,6 +54,14 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
+      // TODO [RW] this warning will not be clearly visible in the IDE, do we want some other mechanism there? It would most likely require modifying the protocol.
+      if (Engine.isNightly(engineVersion)) {
+        Logger[Runner].warn(
+          "Creating a new project using a nightly build. Nightly builds may " +
+          "disappear after a while, so you may need to upgrade. Consider " +
+          "using a stable version."
+        )
+      }
       RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
     }
 
