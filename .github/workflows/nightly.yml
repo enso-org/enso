@@ -4,7 +4,7 @@ name: Nightly Release CI
 on:
   push:
   schedule:
-    - cron: '0 4 * * 2-6' # 4am from Tuesday to Saturday (i.e. after every workday)
+    - cron: "0 4 * * 2-6" # 4am from Tuesday to Saturday (i.e. after every workday)
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
@@ -23,7 +23,8 @@ jobs:
     timeout-minutes: 10
     # That true here is for debugging on staging
     if: >
-      ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message,'[release: nightly]') || true }}
+      ${{ github.event_name == 'schedule' ||
+      contains(github.event.head_commit.message,'[release: nightly]') || true }}
     outputs:
       proceed: ${{ steps.check-assumptions.outputs.proceed }}
       nightly-version: ${{ steps.compute-version.outputs.nightly-version }}
@@ -374,7 +375,7 @@ jobs:
           tag_name: enso-${{ env.DIST_VERSION }}
           release_name: Enso Nightly ${{ env.DIST_VERSION }}
           body_path: repo/release_notes.md
-          draft: true
+          draft: false
           prerelease: true
 
       # Upload the assets to the created release
@@ -536,21 +537,21 @@ jobs:
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
 
-      # TODO what to do about this issue
-      - name: Publish Release
-        shell: bash
-        working-directory: repo/tools/ci/nightly
-        run: node publish-release.js ${{ steps.create_release.outputs.id }}
-        # TODO: secrets.GITHUB_TOKEN may not be allowed to publish releases.
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      #      # TODO what to do about this issue, temporarily I just publish immediately
+      #      - name: Publish Release
+      #        shell: bash
+      #        working-directory: repo/tools/ci/nightly
+      #        run: node publish-release.js ${{ steps.create_release.outputs.id }}
+      #        # TODO: secrets.GITHUB_TOKEN may not be allowed to publish releases.
+      #        env:
+      #          GITHUB_TOKEN: ${{ github.token }}
       # TODO enable this once IDE supports triggers
-#      - name: Trigger IDE Build
-#        shell: bash
-#        working-directory: repo/tools/ci/nightly
-#        run: node trigger-workflow.js ide gui-ci develop
-#        env:
-#          GITHUB_TOKEN: ${{ github.token }}
+      #      - name: Trigger IDE Build
+      #        shell: bash
+      #        working-directory: repo/tools/ci/nightly
+      #        run: node trigger-workflow.js ide gui-ci develop
+      #        env:
+      #          GITHUB_TOKEN: ${{ github.token }}
       - name: Remove Old Releases
         shell: bash
         working-directory: repo/tools/ci/nightly
