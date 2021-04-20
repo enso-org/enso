@@ -180,10 +180,20 @@ abstract class LoggingServiceSetupHelper(implicit
             }
         case Success(serverBinding) =>
           val uri = serverBinding.toUri()
-          loggingServiceEndpointPromise.success(Some(uri))
-          logger.trace(
-            s"Logging service has been set-up and is listening at `$uri`."
-          )
+          try {
+            loggingServiceEndpointPromise.success(Some(uri))
+            logger.trace(
+              s"Logging service has been set-up and is listening at `$uri`."
+            )
+          } catch {
+            case _: IllegalStateException =>
+              val earlierValue = loggingServiceEndpointPromise.future.value
+              logger.warn(
+                s"The logging service has been set-up at `$uri`, but the " +
+                s"logging URI has been initialized before that to " +
+                s"$earlierValue."
+              )
+          }
       }
   }
 
@@ -214,10 +224,20 @@ abstract class LoggingServiceSetupHelper(implicit
           loggingServiceEndpointPromise.trySuccess(None)
         case Success(connected) =>
           if (connected) {
-            loggingServiceEndpointPromise.success(Some(uri))
-            System.err.println(
-              s"Log messages are forwarded to `$uri`."
-            )
+            try {
+              loggingServiceEndpointPromise.success(Some(uri))
+              System.err.println(
+                s"Log messages are forwarded to `$uri`."
+              )
+            } catch {
+              case _: IllegalStateException =>
+                val earlierValue = loggingServiceEndpointPromise.future.value
+                logger.warn(
+                  s"The logging service has been set-up at `$uri`, but the " +
+                  s"logging URI has been initialized before that to " +
+                  s"$earlierValue."
+                )
+            }
           } else {
             loggingServiceEndpointPromise.trySuccess(None)
           }
