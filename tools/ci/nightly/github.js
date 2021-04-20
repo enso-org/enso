@@ -58,7 +58,17 @@ async function publishRelease(id) {
   });
 }
 
+async function triggerWorkflow(repo, workflow_id, ref) {
+  await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
+    owner: organization,
+    repo: repo,
+    workflow_id: workflow_id,
+    ref: ref
+  })
+}
+
 exports.fetchAllReleases = fetchAllReleases;
 exports.fetchNightlies = fetchNightlies;
 exports.removeRelease = removeRelease;
 exports.publishRelease = publishRelease;
+exports.repository = repo;

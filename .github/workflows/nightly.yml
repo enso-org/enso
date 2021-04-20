@@ -536,6 +536,7 @@ jobs:
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
 
+      # TODO what to do about this issue
       - name: Publish Release
         shell: bash
         working-directory: repo/tools/ci/nightly
@@ -543,6 +544,13 @@ jobs:
         # TODO: secrets.GITHUB_TOKEN may not be allowed to publish releases.
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      # TODO enable this once IDE supports triggers
+#      - name: Trigger IDE Build
+#        shell: bash
+#        working-directory: repo/tools/ci/nightly
+#        run: node trigger-workflow.js ide gui-ci develop
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
       - name: Remove Old Releases
         shell: bash
         working-directory: repo/tools/ci/nightly
