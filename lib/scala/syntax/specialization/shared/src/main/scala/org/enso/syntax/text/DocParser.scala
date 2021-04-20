@@ -54,7 +54,16 @@ object DocParser {
 
   /** Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def runMatched(input: String): Doc = {
+    val lines            = input.split("\n")
+    var indentSecondLine = 0
+    if (lines.tail.nonEmpty) {
+      val s = lines.tail.head
+      indentSecondLine = s.indexOf(s.trim())
+    }
+    val in = " " * indentSecondLine + lines.mkString("\n")
+    new DocParser().runMatched(in)
+  }
   def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
@@ -202,12 +211,7 @@ object DocParserRunner {
     * @return - Documentation.
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
-    var indentSecondLine = 0
-    if (comment.lines.tail.nonEmpty) {
-      val s = comment.lines.tail.head
-      indentSecondLine = s.indexOf(s.trim())
-    }
-    val in = " " * indentSecondLine + comment.lines.mkString("\n")
+    val in = comment.lines.mkString("\n")
     DocParser.runMatched(in)
   }
 
@@ -338,17 +342,16 @@ object DocParserHTMLGenerator {
     * @param doc - Doc from Doc Parser
     * @return - HTML Code from Doc
     */
-  def generateHTMLPureDoc(doc: Doc): String = {
+  def generateHTMLPureDoc(doc: Doc): String =
     HTML
       .html(
         HTML.body(
           HTML.div(HTML.`class` := "doc")(HTML.style := "font-size: 13px;")(
-            HTML.div(HTML.`class` := "main")(doc.html)
+            doc.html
           )
         )
       )
       .toString()
-  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////
