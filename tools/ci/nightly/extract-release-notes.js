@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require("fs");
 
 const inputPath = process.argv[2];
 const outputPath = process.argv[3];
@@ -6,8 +6,8 @@ const outputPath = process.argv[3];
 console.log("Extracting release notes from " + inputPath + " to " + outputPath);
 
 /** Returns the part of the text until the second top-level heading (exclusive)
-  * in Markdown formatting.
-  */
+ * in Markdown formatting.
+ */
 function cutFirstSection(content) {
   // TODO [RW] can we assume that '# ' is always the start of a section?
   // This requires that there are no code snippets with comments starting at the
@@ -28,11 +28,14 @@ function cutFirstSection(content) {
     return content;
   }
   const secondHeadingOffsetInContent = restStart + secondHeading;
-  const firstSectionContent = content.substring(0, secondHeadingOffsetInContent);
+  const firstSectionContent = content.substring(
+    0,
+    secondHeadingOffsetInContent
+  );
   return firstSectionContent;
 }
 
-const content = fs.readFileSync(inputPath, {encoding: "utf-8"});
+const content = fs.readFileSync(inputPath, { encoding: "utf-8" });
 const nightlyPart = cutFirstSection(content);
 fs.writeFileSync(outputPath, nightlyPart);
 

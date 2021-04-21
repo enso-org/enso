@@ -4,7 +4,8 @@ const octokit = new Octokit();
 const organization = "enso-org";
 function determineRepositoryName() {
   const fallback = "enso";
-  const fallbackMessage = "Could not determine the repository name, falling back to the default.";
+  const fallbackMessage =
+    "Could not determine the repository name, falling back to the default.";
   const fullName = process.env.GITHUB_REPOSITORY;
   if (!fullName) {
     console.log(fallbackMessage);
@@ -28,9 +29,9 @@ function isNightly(release) {
 }
 
 async function fetchAllReleases() {
-  const res =  await octokit.request('GET /repos/{owner}/{repo}/releases', {
+  const res = await octokit.request("GET /repos/{owner}/{repo}/releases", {
     owner: organization,
-    repo: repo
+    repo: repo,
   });
   return res.data;
 }
@@ -42,20 +43,26 @@ async function fetchNightlies() {
 }
 
 async function removeRelease(id) {
-  return await octokit.request('DELETE /repos/{owner}/{repo}/releases/{release_id}', {
-    owner: organization,
-    repo: repo,
-    release_id: id
-  });
+  return await octokit.request(
+    "DELETE /repos/{owner}/{repo}/releases/{release_id}",
+    {
+      owner: organization,
+      repo: repo,
+      release_id: id,
+    }
+  );
 }
 
 async function triggerWorkflow(repo, workflow_id, ref) {
-  await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
-    owner: organization,
-    repo: repo,
-    workflow_id: workflow_id,
-    ref: ref
-  })
+  await octokit.request(
+    "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
+    {
+      owner: organization,
+      repo: repo,
+      workflow_id: workflow_id,
+      ref: ref,
+    }
+  );
 }
 
 exports.fetchAllReleases = fetchAllReleases;
