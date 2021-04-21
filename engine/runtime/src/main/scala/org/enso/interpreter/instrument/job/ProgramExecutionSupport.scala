@@ -448,13 +448,15 @@ object ProgramExecutionSupport {
         }
     errorMsgOrVisualisationData match {
       case Left(error) =>
+        val message =
+          Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
         ctx.endpoint.sendToClient(
           Api.Response(
             Api.VisualisationEvaluationFailed(
               contextId,
               visualisation.id,
               expressionId,
-              error.getMessage,
+              message,
               getDiagnosticOutcome.lift(error)
             )
           )
