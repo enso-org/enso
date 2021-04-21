@@ -57,14 +57,17 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     * releases if applicable.
     */
   private def wrapFetchError[A](result: Try[A]): Try[A] = result.recoverWith {
-    case ReleaseNotFound(tag, cause) if tag.contains(Engine.nightlyInfix) =>
+    case ReleaseNotFound(tag, _, cause) if tag.contains(Engine.nightlyInfix) =>
       // TODO [RW] shouldn't we somehow explain *how* to upgrade? Ideally the
       //  launcher should include a command for that.
       Failure(
         ReleaseNotFound(
-          s"Cannot find release `$tag`. Nightly releases expire after some " +
-          s"time. Consider upgrading to a stable release or a newer nightly " +
-          s"build.",
+          tag,
+          Some(
+            s"Cannot find release `$tag`. Nightly releases expire after some " +
+            s"time. Consider upgrading to a stable release or a newer " +
+            s"nightly build."
+          ),
           cause
         )
       )

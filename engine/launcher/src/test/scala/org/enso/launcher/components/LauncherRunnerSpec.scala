@@ -2,7 +2,6 @@ package org.enso.launcher.components
 
 import java.nio.file.{Files, Path}
 import java.util.UUID
-
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
@@ -10,7 +9,7 @@ import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{LogLevel, TestLogger}
 
 import scala.concurrent.Future
 
@@ -136,6 +135,31 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       commandLine should include("--new-project-name ProjectName")
       commandLine should include(s"--new-project-author-name $authorName")
       commandLine should include(s"--new-project-author-email $authorEmail")
+    }
+
+    "warn when creating a project using a nightly version" in {
+      val runner         = makeFakeRunner()
+      val projectPath    = getTestDirectory / "project2"
+      val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
+      val logs = TestLogger.gatherLogs {
+        runner
+          .newProject(
+            path                = projectPath,
+            name                = "ProjectName2",
+            engineVersion       = nightlyVersion,
+            authorName          = None,
+            authorEmail         = None,
+            additionalArguments = Seq()
+          )
+          .get
+      }
+      assert(
+        logs.exists(msg =>
+          msg.logLevel == LogLevel.Warning && msg.message.contains(
+            "Consider using a stable version."
+          )
+        )
+      )
     }
 
     "run repl with default version and additional arguments" in {

@@ -36,6 +36,7 @@ object TestLogger {
     )
     Await.ready(future, 1.second)
     action
+    Thread.sleep(100)
     LoggingServiceManager.tearDown()
     printer.getLoggedMessages
   }

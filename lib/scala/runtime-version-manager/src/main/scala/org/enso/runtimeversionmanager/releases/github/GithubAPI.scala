@@ -109,7 +109,7 @@ object GithubAPI {
           .map(err =>
             handleError(
               response,
-              ReleaseNotFound(tag, err)
+              ReleaseNotFound(tag, cause = err)
             )
           )
           .toTry

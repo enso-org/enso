@@ -27,5 +27,9 @@ object ReleaseProviderException {
   */
 case class ReleaseNotFound(
   tag: String,
-  cause: Throwable = null
-) extends ReleaseProviderException(s"Cannot find release `$tag`.", cause)
+  message: Option[String] = None,
+  cause: Throwable        = null
+) extends ReleaseProviderException(
+      message.getOrElse(s"Cannot find release `$tag`."),
+      cause
+    )
