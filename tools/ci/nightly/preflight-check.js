@@ -15,7 +15,7 @@ async function main() {
   }
 
   const first = nightlies[0];
-  const firstNightlySha = first.tagCommit.oid;
+  const firstNightlySha = first.target_commitish;
   if (firstNightlySha == currentHeadSha) {
     console.log("Current commit (" + currentHeadSha + ") is the same as for the most recent nightly build. A new build is not needed.")
     setProceed(false);

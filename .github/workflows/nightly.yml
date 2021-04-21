@@ -537,14 +537,6 @@ jobs:
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
 
-      #      # TODO what to do about this issue, temporarily I just publish immediately
-      #      - name: Publish Release
-      #        shell: bash
-      #        working-directory: repo/tools/ci/nightly
-      #        run: node publish-release.js ${{ steps.create_release.outputs.id }}
-      #        # TODO: secrets.GITHUB_TOKEN may not be allowed to publish releases.
-      #        env:
-      #          GITHUB_TOKEN: ${{ github.token }}
       # TODO enable this once IDE supports triggers
       #      - name: Trigger IDE Build
       #        shell: bash

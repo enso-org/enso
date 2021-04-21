@@ -24,7 +24,7 @@ const token = process.env.GITHUB_TOKEN;
 
 function isNightly(release) {
   const nightlyInfix = "Nightly";
-  return release.name.indexOf(nightlyInfix) >= 0;
+  return release.name.indexOf(nightlyInfix) >= 0 && !release.draft;
 }
 
 async function fetchAllReleases() {
@@ -49,15 +49,6 @@ async function removeRelease(id) {
   });
 }
 
-async function publishRelease(id) {
-  return await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
-    owner: organization,
-    repo: repo,
-    release_id: id,
-    draft: false
-  });
-}
-
 async function triggerWorkflow(repo, workflow_id, ref) {
   await octokit.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
     owner: organization,
@@ -70,5 +61,4 @@ async function triggerWorkflow(repo, workflow_id, ref) {
 exports.fetchAllReleases = fetchAllReleases;
 exports.fetchNightlies = fetchNightlies;
 exports.removeRelease = removeRelease;
-exports.publishRelease = publishRelease;
 exports.repository = repo;
