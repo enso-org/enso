@@ -45,4 +45,4 @@ jobs:
       - name: Check If Changelog Was Modified
         shell: bash
         run: |
-          node tools/ci/check-changelog.js RELEASES.md ${{ github.base_ref }}
+          node tools/ci/check-changelog.js RELEASES.md ${{ github.event.pull_request.base.sha }}
