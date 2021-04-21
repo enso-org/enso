@@ -41,7 +41,6 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ env.nodeVersion }}
-      # TODO how to indicate that we don't want to check? Is it enough that any commit of the PR has `no-changelog` ?
       - name: Check If Changelog Was Modified
         shell: bash
         run: |
