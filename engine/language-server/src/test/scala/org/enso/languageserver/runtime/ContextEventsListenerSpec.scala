@@ -344,13 +344,27 @@ class ContextEventsListenerSpec
 
     "send visualisation evaluation failed notification" taggedAs Retry in withDb {
       (clientId, contextId, _, router, listener) =>
-        val message = "Test visualisation evaluation failed"
-        listener ! Api.VisualisationEvaluationFailed(contextId, message)
+        val message         = "Test visualisation evaluation failed"
+        val visualisationId = UUID.randomUUID()
+        val expressionId    = UUID.randomUUID()
+        listener ! Api.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          expressionId,
+          message,
+          None
+        )
 
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            VisualisationEvaluationFailed(contextId, message)
+            VisualisationEvaluationFailed(
+              contextId,
+              visualisationId,
+              expressionId,
+              message,
+              None
+            )
           )
         )
     }

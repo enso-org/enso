@@ -3,6 +3,7 @@ package org.enso.languageserver.runtime.handler
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
@@ -15,10 +16,12 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for modify visualisation commands.
   *
+  * @param config the language server config
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
   */
 class ModifyVisualisationHandler(
+  config: Config,
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -50,7 +53,7 @@ class ModifyVisualisationHandler(
       context.stop(self)
 
     case Api.Response(_, error: Api.Error) =>
-      replyTo ! RuntimeFailureMapper.mapApiError(error)
+      replyTo ! RuntimeFailureMapper(config).mapApiError(error)
       cancellable.cancel()
       context.stop(self)
   }
@@ -61,10 +64,11 @@ object ModifyVisualisationHandler {
 
   /** Creates configuration object used to create a [[ModifyVisualisationHandler]].
     *
+    * @param config the language server config
     * @param timeout request timeout
     * @param runtime reference to the runtime connector
     */
-  def props(timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new ModifyVisualisationHandler(timeout, runtime))
+  def props(config: Config, timeout: FiniteDuration, runtime: ActorRef): Props =
+    Props(new ModifyVisualisationHandler(config, timeout, runtime))
 
 }

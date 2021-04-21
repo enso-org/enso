@@ -25,8 +25,7 @@ class ExecuteJob(
       // TODO[MK]: make this interruptible when https://github.com/oracle/graal/issues/3273
       // is resolved
       mayInterruptIfRunning = false
-    )
-    with ProgramExecutionSupport {
+    ) {
 
   def this(exe: Executable) =
     this(
@@ -43,7 +42,7 @@ class ExecuteJob(
     ctx.executionService.getContext.getThreadManager.enter()
     try {
       val outcome =
-        runProgram(
+        ProgramExecutionSupport.runProgram(
           contextId,
           stack,
           updatedVisualisations,

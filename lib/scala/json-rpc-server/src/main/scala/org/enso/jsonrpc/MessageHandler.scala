@@ -63,7 +63,11 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     webConnection: ActorRef
   ): Unit = {
     val bareError =
-      JsonProtocol.ErrorData(response.error.code, response.error.message)
+      JsonProtocol.ErrorData(
+        response.error.code,
+        response.error.message,
+        response.error.payload
+      )
     val bareResponse = JsonProtocol.ResponseError(response.id, bareError)
     webConnection ! MessageHandler.WebMessage(JsonProtocol.encode(bareResponse))
   }

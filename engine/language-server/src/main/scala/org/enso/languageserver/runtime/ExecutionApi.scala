@@ -2,6 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
+import io.circe.{Encoder, Json}
+import io.circe.generic.auto._
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
@@ -13,8 +15,9 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.ExecutionDiagnost
   */
 object ExecutionApi {
 
-  type ContextId    = UUID
-  type ExpressionId = UUID
+  type ContextId       = UUID
+  type ExpressionId    = UUID
+  type VisualisationId = UUID
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
@@ -125,6 +128,22 @@ object ExecutionApi {
     }
   }
 
+  case object VisualisationEvaluationFailed
+      extends Method("executionContext/visualisationEvaluationFailed") {
+
+    case class Params(
+      contextId: ContextId,
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId,
+      message: String,
+      diagnostic: Option[ExecutionDiagnostic]
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = VisualisationEvaluationFailed.Params
+    }
+  }
+
   case object StackItemNotFoundError extends Error(2001, "Stack item not found")
 
   case object ContextNotFoundError extends Error(2002, "Context not found")
@@ -139,10 +158,18 @@ object ExecutionApi {
   case object VisualisationNotFoundError
       extends Error(2006, s"Visualisation not found")
 
-  case class VisualisationExpressionError(msg: String)
-      extends Error(
+  case class VisualisationExpressionError(
+    msg: String,
+    diagnostic: Option[ContextRegistryProtocol.ExecutionDiagnostic]
+  ) extends Error(
         2007,
         s"Evaluation of the visualisation expression failed [$msg]"
+      ) {
+
+    override def payload: Option[Json] =
+      diagnostic.map(
+        Encoder[ContextRegistryProtocol.ExecutionDiagnostic].apply(_)
       )
+  }
 
 }

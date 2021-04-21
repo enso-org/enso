@@ -891,18 +891,28 @@ object Runtime {
       * a [[ModifyVisualisation]] cannot be evaluated.
       *
       * @param message the reason of the failure
+      * @param failure the detailed information about the failure
       */
-    case class VisualisationExpressionFailed(message: String) extends Error
+    case class VisualisationExpressionFailed(
+      message: String,
+      failure: Option[ExecutionResult.Diagnostic]
+    ) extends Error
 
     /** Signals that an evaluation of a code responsible for generating
       * visualisation data failed.
       *
       * @param contextId the context's id.
+      * @param visualisationId the visualisation identifier
+      * @param expressionId the identifier of a visualised expression
       * @param message the reason of the failure
+      * @param diagnostic the detailed information about the failure
       */
     case class VisualisationEvaluationFailed(
       contextId: ContextId,
-      message: String
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId,
+      message: String,
+      diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
 
     /** Signals that visualisation cannot be found.

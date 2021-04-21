@@ -31,7 +31,7 @@ object JsonProtocol {
   case class ResponseError(id: Option[Id], error: ErrorData) extends JsonMessage
 
   /** The error response details. */
-  case class ErrorData(code: Int, message: String, data: Option[Json] = None)
+  case class ErrorData(code: Int, message: String, data: Option[Json])
 
   object Constants {
     val jsonrpc: String              = "jsonrpc"

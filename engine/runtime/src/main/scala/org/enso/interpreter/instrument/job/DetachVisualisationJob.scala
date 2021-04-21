@@ -23,8 +23,7 @@ class DetachVisualisationJob(
   expressionId: ExpressionId,
   contextId: ContextId,
   response: ApiResponse
-) extends Job[Unit](List(contextId), true, false)
-    with ProgramExecutionSupport {
+) extends Job[Unit](List(contextId), true, false) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {

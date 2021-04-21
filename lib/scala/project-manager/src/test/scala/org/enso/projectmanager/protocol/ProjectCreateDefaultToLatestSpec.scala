@@ -29,7 +29,13 @@ class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
           {
             "jsonrpc":"2.0",
             "id":1,
-            "error": { "code": 4022, "message": $message }
+            "error": {
+              "code": 4022, 
+              "message": $message,
+              "data" : {
+                "minimumRequiredVersion" : "999.0.0"
+              }
+            }
           }
           """)
     }
