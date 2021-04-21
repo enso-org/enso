@@ -21,20 +21,21 @@ jobs:
     name: Check If The Build Should Proceed
     runs-on: ubuntu-18.04
     timeout-minutes: 10
-    # That true here is for debugging on staging
-    if: >
-      ${{ github.event_name == 'schedule' ||
-      contains(github.event.head_commit.message,'[release: nightly]') || true }}
+    if:
+      "${{ github.event_name == 'schedule' ||
+      contains(github.event.head_commit.message,'[release: nightly]') }}"
     outputs:
       proceed: ${{ steps.check-assumptions.outputs.proceed }}
       nightly-version: ${{ steps.compute-version.outputs.nightly-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Debug Print commit message
+      - name: Debug Print
         shell: bash
         run: |
           echo ${{ github.event.head_commit.message }}
+          echo ${{ github.event_name }}
+          echo ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message,'[release: nightly]') }}
       - id: check-assumptions
         name: Check If The Build Should Proceed
         shell: bash
