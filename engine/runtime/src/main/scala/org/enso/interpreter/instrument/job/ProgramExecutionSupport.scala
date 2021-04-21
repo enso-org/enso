@@ -278,6 +278,8 @@ object ProgramExecutionSupport {
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Diagnostic] = {
     case ex: AbstractTruffleException
+        // The empty language is allowed because `getLanguage` return null when
+        // the error originates in builtin node.
         if Option(ctx.executionService.getLanguage(ex))
           .forall(_ == LanguageInfo.ID) =>
       val section = Option(ctx.executionService.getSourceLocation(ex))
