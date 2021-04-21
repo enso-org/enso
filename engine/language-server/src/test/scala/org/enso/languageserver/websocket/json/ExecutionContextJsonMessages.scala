@@ -2,6 +2,7 @@ package org.enso.languageserver.websocket.json
 
 import org.enso.polyglot.runtime.Runtime.Api
 import io.circe.literal._
+import org.enso.languageserver.runtime.VisualisationConfiguration
 
 object ExecutionContextJsonMessages {
 
@@ -91,4 +92,110 @@ object ExecutionContextJsonMessages {
             }
           }
           """
+
+  def executionContextAttachVisualisationRequest(
+    reqId: Int,
+    visualisationId: Api.VisualisationId,
+    expressionId: Api.ExpressionId,
+    configuration: VisualisationConfiguration
+  ) =
+    json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/attachVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "visualisationModule": ${configuration.visualisationModule},
+                "expression": ${configuration.expression}
+              }
+            }
+          }
+          """
+
+  def executionContextModuleNotFound(
+    reqId: Int,
+    module: String
+  ) = {
+    val errorMessage =
+      s"Module not found [$module]"
+    json"""
+          { "jsonrpc": "2.0",
+            "id": $reqId,
+            "error": {
+              "code": 2005,
+              "message": $errorMessage
+            }
+          }
+          """
+  }
+
+  def executionContextVisualisationNotFound(reqId: Int) =
+    json"""
+          { "jsonrpc": "2.0",
+            "id": $reqId,
+            "error": {
+              "code": 2006,
+              "message": "Visualisation not found"
+            }
+          }
+          """
+
+  def executionContextVisualisationExpressionFailed(
+    reqId: Int,
+    message: String
+  ) = {
+    val errorMessage =
+      s"Evaluation of the visualisation expression failed [$message]"
+    json"""
+          { "jsonrpc": "2.0",
+            "id": $reqId,
+            "error": {
+              "code": 2007,
+              "message": $errorMessage
+            }
+          }
+          """
+  }
+
+  def executionContextDetachVisualisationRequest(
+    reqId: Int,
+    contextId: Api.ContextId,
+    visualisationId: Api.VisualisationId,
+    expressionId: Api.ExpressionId
+  ) =
+    json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/detachVisualisation",
+            "id": $reqId,
+            "params": {
+              "contextId": $contextId,
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId
+            }
+          }
+          """
+
+  def executionContextModifyVisualisationRequest(
+    reqId: Int,
+    visualisationId: Api.VisualisationId,
+    configuration: VisualisationConfiguration
+  ) =
+    json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/modifyVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "visualisationModule": ${configuration.visualisationModule},
+                "expression": ${configuration.expression}
+              }
+            }
+          }
+          """
+
 }

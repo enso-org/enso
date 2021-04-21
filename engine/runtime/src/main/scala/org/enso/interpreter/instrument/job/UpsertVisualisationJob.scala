@@ -15,8 +15,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 }
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
-import scala.util.control.NonFatal
-
 /** A job that upserts a visualisation.
   *
   * @param requestId maybe a request id
@@ -35,8 +33,7 @@ class UpsertVisualisationJob(
       List(config.executionContextId),
       true,
       false
-    )
-    with ProgramExecutionSupport {
+    ) {
 
   /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
@@ -51,8 +48,8 @@ class UpsertVisualisationJob(
           replyWithModuleNotFoundError()
           None
 
-        case Left(EvaluationFailed(msg)) =>
-          replyWithExpressionFailedError(msg)
+        case Left(EvaluationFailed(message, result)) =>
+          replyWithExpressionFailedError(message, result)
           None
 
         case Right(callable) =>
@@ -63,7 +60,7 @@ class UpsertVisualisationJob(
             .flatMap(frame => Option(frame.cache.get(expressionId)))
           cachedValue match {
             case Some(value) =>
-              emitVisualisationUpdate(
+              ProgramExecutionSupport.emitVisualisationUpdate(
                 config.executionContextId,
                 visualisation,
                 expressionId,
@@ -104,12 +101,13 @@ class UpsertVisualisationJob(
   }
 
   private def replyWithExpressionFailedError(
-    msg: String
+    message: String,
+    executionResult: Option[Api.ExecutionResult.Diagnostic]
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(
         requestId,
-        Api.VisualisationExpressionFailed(msg)
+        Api.VisualisationExpressionFailed(message, executionResult)
       )
     )
   }
@@ -136,11 +134,16 @@ class UpsertVisualisationJob(
       else Left(ModuleNotFound)
 
     notFoundOrModule.flatMap { module =>
-      try {
-        ctx.executionService.evaluateExpression(module, expression).asRight
-      } catch {
-        case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft
-      }
+      Either
+        .catchNonFatal {
+          ctx.executionService.evaluateExpression(module, expression)
+        }
+        .leftMap { error =>
+          EvaluationFailed(
+            error.getMessage,
+            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+          )
+        }
     }
 
   }
@@ -159,8 +162,12 @@ object UpsertVisualisationJob {
 
   /** Signals that an evaluation of an expression failed.
     *
-    * @param msg the textual reason of a failure
+    * @param message the textual reason of a failure
+    * @param failure the error description
     */
-  case class EvaluationFailed(msg: String) extends EvalFailure
+  case class EvaluationFailed(
+    message: String,
+    failure: Option[Api.ExecutionResult.Diagnostic]
+  ) extends EvalFailure
 
 }

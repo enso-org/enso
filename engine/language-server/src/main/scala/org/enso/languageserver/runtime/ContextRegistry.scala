@@ -108,7 +108,7 @@ final class ContextRegistry(
     case CreateContextRequest(client) =>
       val contextId = UUID.randomUUID()
       val handler =
-        context.actorOf(CreateContextHandler.props(timeout, runtime))
+        context.actorOf(CreateContextHandler.props(config, timeout, runtime))
       val listener =
         context.actorOf(
           ContextEventsListener.props(
@@ -129,7 +129,7 @@ final class ContextRegistry(
     case DestroyContextRequest(client, contextId) =>
       if (store.hasContext(client.clientId, contextId)) {
         val handler =
-          context.actorOf(DestroyContextHandler.props(timeout, runtime))
+          context.actorOf(DestroyContextHandler.props(config, timeout, runtime))
         store.getListener(contextId).foreach(context.stop)
         handler.forward(Api.DestroyContextRequest(contextId))
         context.become(
@@ -145,7 +145,7 @@ final class ContextRegistry(
       if (store.hasContext(client.clientId, contextId)) {
         val item = getRuntimeStackItem(stackItem)
         val handler =
-          context.actorOf(PushContextHandler.props(timeout, runtime))
+          context.actorOf(PushContextHandler.props(config, timeout, runtime))
         handler.forward(Api.PushContextRequest(contextId, item))
 
       } else {
@@ -154,7 +154,8 @@ final class ContextRegistry(
 
     case PopContextRequest(client, contextId) =>
       if (store.hasContext(client.clientId, contextId)) {
-        val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
+        val handler =
+          context.actorOf(PopContextHandler.props(config, timeout, runtime))
         handler.forward(Api.PopContextRequest(contextId))
       } else {
         sender() ! AccessDenied
@@ -163,7 +164,9 @@ final class ContextRegistry(
     case RecomputeContextRequest(client, contextId, expressions) =>
       if (store.hasContext(client.clientId, contextId)) {
         val handler =
-          context.actorOf(RecomputeContextHandler.props(timeout, runtime))
+          context.actorOf(
+            RecomputeContextHandler.props(config, timeout, runtime)
+          )
         val invalidatedExpressions =
           expressions.map(toRuntimeInvalidatedExpressions)
         handler.forward(
@@ -173,12 +176,14 @@ final class ContextRegistry(
         sender() ! AccessDenied
       }
 
-    case AttachVisualisation(clientId, visualisationId, expressionId, config) =>
-      if (store.hasContext(clientId, config.executionContextId)) {
+    case AttachVisualisation(clientId, visualisationId, expressionId, cfg) =>
+      if (store.hasContext(clientId, cfg.executionContextId)) {
         val handler =
-          context.actorOf(AttachVisualisationHandler.props(timeout, runtime))
+          context.actorOf(
+            AttachVisualisationHandler.props(config, timeout, runtime)
+          )
 
-        val configuration = convertVisualisationConfig(config)
+        val configuration = convertVisualisationConfig(cfg)
 
         handler.forward(
           Api.AttachVisualisation(visualisationId, expressionId, configuration)
@@ -195,7 +200,9 @@ final class ContextRegistry(
         ) =>
       if (store.hasContext(clientId, contextId)) {
         val handler =
-          context.actorOf(DetachVisualisationHandler.props(timeout, runtime))
+          context.actorOf(
+            DetachVisualisationHandler.props(config, timeout, runtime)
+          )
 
         handler.forward(
           Api.DetachVisualisation(contextId, visualisationId, expressionId)
@@ -204,12 +211,14 @@ final class ContextRegistry(
         sender() ! AccessDenied
       }
 
-    case ModifyVisualisation(clientId, visualisationId, config) =>
-      if (store.hasContext(clientId, config.executionContextId)) {
+    case ModifyVisualisation(clientId, visualisationId, cfg) =>
+      if (store.hasContext(clientId, cfg.executionContextId)) {
         val handler =
-          context.actorOf(ModifyVisualisationHandler.props(timeout, runtime))
+          context.actorOf(
+            ModifyVisualisationHandler.props(config, timeout, runtime)
+          )
 
-        val configuration = convertVisualisationConfig(config)
+        val configuration = convertVisualisationConfig(cfg)
 
         handler.forward(
           Api.ModifyVisualisation(visualisationId, configuration)

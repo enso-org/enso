@@ -72,5 +72,6 @@ object JsonRpc {
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
+    .registerNotification(VisualisationEvaluationFailed)
 
 }

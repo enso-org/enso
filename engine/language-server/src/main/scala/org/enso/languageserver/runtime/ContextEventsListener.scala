@@ -4,10 +4,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  ExecutionDiagnostic,
-  ExecutionDiagnosticKind,
-  ExecutionFailure,
-  ExecutionStackTraceElement,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -51,6 +47,8 @@ final class ContextEventsListener(
   import ContextEventsListener.RunExpressionUpdates
   import context.dispatcher
 
+  private val failureMapper = RuntimeFailureMapper(config)
+
   override def preStart(): Unit = {
     if (updatesSendRate.length > 0) {
       context.system.scheduler.scheduleWithFixedDelay(
@@ -86,7 +84,7 @@ final class ContextEventsListener(
       val payload =
         ContextRegistryProtocol.ExecutionFailedNotification(
           contextId,
-          toProtocolError(error)
+          failureMapper.toProtocolFailure(error)
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
@@ -94,13 +92,25 @@ final class ContextEventsListener(
       val payload =
         ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
-          diagnostics.map(toProtocolDiagnostic)
+          diagnostics.map(failureMapper.toProtocolDiagnostic)
         )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
-    case Api.VisualisationEvaluationFailed(`contextId`, msg) =>
+    case Api.VisualisationEvaluationFailed(
+          `contextId`,
+          visualisationId,
+          expressionId,
+          message,
+          diagnostic
+        ) =>
       val payload =
-        ContextRegistryProtocol.VisualisationEvaluationFailed(contextId, msg)
+        ContextRegistryProtocol.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          expressionId,
+          message,
+          diagnostic.map(failureMapper.toProtocolDiagnostic)
+        )
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
@@ -198,68 +208,6 @@ final class ContextEventsListener(
       case Api.ProfilingInfo.ExecutionTime(t) =>
         ProfilingInfo.ExecutionTime(t)
     }
-
-  /** Convert the runtime failure message to the context registry protocol
-    * representation.
-    *
-    * @param error the error message
-    * @return the registry protocol representation fo the diagnostic message
-    */
-  private def toProtocolError(
-    error: Api.ExecutionResult.Failure
-  ): ExecutionFailure =
-    ExecutionFailure(
-      error.message,
-      error.file.flatMap(config.findRelativePath)
-    )
-
-  /** Convert the runtime diagnostic message to the context registry protocol
-    * representation.
-    *
-    * @param diagnostic the diagnostic message
-    * @return the registry protocol representation of the diagnostic message
-    */
-  private def toProtocolDiagnostic(
-    diagnostic: Api.ExecutionResult.Diagnostic
-  ): ExecutionDiagnostic =
-    ExecutionDiagnostic(
-      toDiagnosticType(diagnostic.kind),
-      diagnostic.message,
-      diagnostic.file.flatMap(config.findRelativePath),
-      diagnostic.location,
-      diagnostic.expressionId,
-      diagnostic.stack.map(toStackTraceElement)
-    )
-
-  /** Convert the runtime diagnostic type to the context registry protocol
-    * representation.
-    *
-    * @param kind the diagnostic type
-    * @return the registry protocol representation of the diagnostic type
-    */
-  private def toDiagnosticType(
-    kind: Api.DiagnosticType
-  ): ExecutionDiagnosticKind =
-    kind match {
-      case Api.DiagnosticType.Error()   => ExecutionDiagnosticKind.Error
-      case Api.DiagnosticType.Warning() => ExecutionDiagnosticKind.Warning
-    }
-
-  /** Convert the runtime stack trace element to the context registry protocol
-    * representation.
-    *
-    * @param element the runtime stack trace element
-    * @return the registry protocol representation of the stack trace element
-    */
-  private def toStackTraceElement(
-    element: Api.StackTraceElement
-  ): ExecutionStackTraceElement =
-    ExecutionStackTraceElement(
-      element.functionName,
-      element.file.flatMap(config.findRelativePath),
-      element.location,
-      element.expressionId
-    )
 }
 
 object ContextEventsListener {
