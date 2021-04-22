@@ -3,6 +3,7 @@ package org.enso.languageserver.websocket.json
 import java.util.UUID
 
 import io.circe.literal._
+import org.enso.languageserver.runtime.VisualisationConfiguration
 import org.enso.languageserver.websocket.json.{
   ExecutionContextJsonMessages => json
 }
@@ -451,6 +452,322 @@ class ContextRegistryTest extends BaseServerTest {
       )
       client.expectJson(json.ok(3))
     }
+
+    "successfully attach visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // attach visualisation
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+      val config =
+        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+      client.send(
+        json.executionContextAttachVisualisationRequest(
+          2,
+          visualisationId,
+          expressionId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  _
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualisationAttached()
+      )
+      client.expectJson(json.ok(2))
+    }
+
+    "return ModuleNotFound error when attaching visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // attach visualisation
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+      val config =
+        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+      client.send(
+        json.executionContextAttachVisualisationRequest(
+          2,
+          visualisationId,
+          expressionId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  _
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.ModuleNotFound(config.visualisationModule)
+      )
+      client.expectJson(
+        json.executionContextModuleNotFound(
+          2,
+          config.visualisationModule
+        )
+      )
+    }
+
+    "return VisualisationExpressionFailed error when attaching visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // attach visualisation
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+      val config =
+        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+      val expressionFailureMessage = "Method `to_json` could not be found."
+      client.send(
+        json.executionContextAttachVisualisationRequest(
+          2,
+          visualisationId,
+          expressionId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.AttachVisualisation(
+                  `visualisationId`,
+                  `expressionId`,
+                  _
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualisationExpressionFailed(expressionFailureMessage, None)
+      )
+      client.expectJson(
+        json.executionContextVisualisationExpressionFailed(
+          2,
+          expressionFailureMessage
+        )
+      )
+    }
+
+    "successfully detach visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // detach visualisation
+      val visualisationId = UUID.randomUUID()
+      val expressionId    = UUID.randomUUID()
+      client.send(
+        json.executionContextDetachVisualisationRequest(
+          2,
+          contextId,
+          visualisationId,
+          expressionId
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.DetachVisualisation(
+                  `contextId`,
+                  `visualisationId`,
+                  `expressionId`
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualisationDetached()
+      )
+      client.expectJson(json.ok(2))
+    }
+
+    "successfully modify visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // modify visualisation
+      val visualisationId = UUID.randomUUID()
+      val config =
+        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+      client.send(
+        json.executionContextModifyVisualisationRequest(
+          2,
+          visualisationId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.ModifyVisualisation(
+                  `visualisationId`,
+                  _
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualisationModified()
+      )
+      client.expectJson(json.ok(2))
+    }
+
+    "return VisualisationNotFound error when modifying visualisation" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // modify visualisation
+      val visualisationId = UUID.randomUUID()
+      val config =
+        VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
+      client.send(
+        json.executionContextModifyVisualisationRequest(
+          2,
+          visualisationId,
+          config
+        )
+      )
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+                requestId,
+                Api.ModifyVisualisation(
+                  `visualisationId`,
+                  _
+                )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.VisualisationNotFound()
+      )
+      client.expectJson(json.executionContextVisualisationNotFound(2))
+    }
+
   }
 
 }

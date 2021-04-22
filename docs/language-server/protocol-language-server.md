@@ -119,6 +119,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
+  - [`executionContext/visualisationEvaluationFailed`](#executioncontextvisualisationevaluationfailed)
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestions-database-example)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
@@ -151,7 +152,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`ModuleNotFoundError`](#modulenotfounderror)
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
-  - [`VisualisationEvaluationError`](#visualisationevaluationerror)
   - [`FileNotOpenedError`](#filenotopenederror)
   - [`TextEditValidationError`](#texteditvalidationerror)
   - [`InvalidVersionError`](#invalidversionerror)
@@ -1284,6 +1284,7 @@ destroying the context.
 - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
 - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
 - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
+- [`executionContext/visualisationEvaluationFailed`](#executioncontextvisualisationevaluationfailed)
 
 #### Disables
 
@@ -2912,6 +2913,51 @@ root_type VisualisationUpdate;
 
 N/A
 
+### `executionContext/visualisationEvaluationFailed`
+
+Signals that an evaluation of a visualisation expression on the computed value
+has failed.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface VisualisationEvaluationFailed {
+  /**
+   * An execution context identifier.
+   */
+  contextId: ContextId;
+
+  /**
+   * A visualisation identifier.
+   */
+  visualisationId: UUID;
+
+  /**
+   * An identifier of a visualised expression.
+   */
+  expressionId: UUID;
+
+  /**
+   * An error message.
+   */
+  message: string;
+
+  /**
+   * Detailed information about the error.
+   */
+  diagnostic?: Diagnostic;
+}
+```
+
+#### Errors
+
+N/A
+
 ## Search Operations
 
 Search operations allow requesting for the autocomplete suggestions and search
@@ -3456,6 +3502,9 @@ null;
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
 
+Besides the required `code` and `message` fields, the errors may have a `data`
+field which can store additional error-specific payload.
+
 ### `AccessDeniedError`
 
 It signals that a user doesn't have access to a resource.
@@ -3603,24 +3652,30 @@ It signals that the visualisation cannot be found.
 ### `VisualisationExpressionError`
 
 It signals that the expression specified in the `VisualisationConfiguration`
-cannot be evaluated.
+cannot be evaluated. The error contains an optional `data` field of type
+[`Diagnostic`](#diagnostic) providing error details.
 
 ```typescript
 "error" : {
   "code" : 2007,
   "message" : "Evaluation of the visualisation expression failed [i is not defined]"
-}
-```
-
-### `VisualisationEvaluationError`
-
-It is a push message. It signals that an evaluation of a code responsible for
-generating visualisation data failed.
-
-```typescript
-"error" : {
-  "code" : 2008,
-  "message" : "Evaluation of the visualisation failed [cannot execute foo]"
+  "data" : {
+    "kind" : "Error",
+    "message" : "i is not defined",
+    "path" : null,
+    "location" : {
+      "start" : {
+        "line" : 0,
+        "character" : 8
+      },
+      "end" : {
+        "line" : 0,
+        "character" : 9
+      }
+    },
+    "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
+    "stack" : []
+  }
 }
 ```
 

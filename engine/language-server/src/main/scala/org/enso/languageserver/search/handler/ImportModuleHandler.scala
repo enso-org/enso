@@ -3,6 +3,7 @@ package org.enso.languageserver.search.handler
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol
@@ -13,10 +14,12 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for import module command.
   *
+  * @param config the language server config
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
   */
 final class ImportModuleHandler(
+  config: Config,
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -60,7 +63,7 @@ final class ImportModuleHandler(
       context.stop(self)
 
     case Api.Response(_, error: Api.Error) =>
-      replyTo ! RuntimeFailureMapper.mapApiError(error)
+      replyTo ! RuntimeFailureMapper(config).mapApiError(error)
       cancellable.cancel()
       context.stop(self)
   }
@@ -78,9 +81,10 @@ object ImportModuleHandler {
 
   /** Creates a configuration object used to create [[ImportModuleHandler]].
     *
+    * @param config the language server config
     * @param timeout request timeout
     * @param runtime reference to the runtime conector
     */
-  def props(timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new ImportModuleHandler(timeout, runtime))
+  def props(config: Config, timeout: FiniteDuration, runtime: ActorRef): Props =
+    Props(new ImportModuleHandler(config, timeout, runtime))
 }

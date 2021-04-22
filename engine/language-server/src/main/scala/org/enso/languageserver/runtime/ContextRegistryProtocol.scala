@@ -389,15 +389,27 @@ object ContextRegistryProtocol {
     * a [[ModifyVisualisation]] cannot be evaluated.
     *
     * @param message the reason of the failure
+    * @param diagnostic the detailed information about the failure
     */
-  case class VisualisationExpressionFailed(message: String) extends Failure
+  case class VisualisationExpressionFailed(
+    message: String,
+    diagnostic: Option[ExecutionDiagnostic]
+  ) extends Failure
 
   /** Signals that an evaluation of a code responsible for generating
     * visualisation data failed.
     *
     * @param contextId a context identifier
+    * @param visualisationId a visualisation identifier
+    * @param expressionId an identifier of a visualised expression
     * @param message the reason of the failure
+    * @param diagnostic the detailed information about the error
     */
-  case class VisualisationEvaluationFailed(contextId: UUID, message: String)
-
+  case class VisualisationEvaluationFailed(
+    contextId: UUID,
+    visualisationId: UUID,
+    expressionId: UUID,
+    message: String,
+    diagnostic: Option[ExecutionDiagnostic]
+  )
 }

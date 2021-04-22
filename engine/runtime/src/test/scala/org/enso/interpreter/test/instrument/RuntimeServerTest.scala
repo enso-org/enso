@@ -3761,6 +3761,341 @@ class RuntimeServerTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
+  it should "return ModuleNotFound error when attaching visualisation" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Undefined",
+            "x -> x"
+          )
+        )
+      )
+    )
+    context.receive(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
+    )
+  }
+
+  it should "return VisualisationExpressionFailed error when attaching visualisation" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Main",
+            "here.does_not_exist"
+          )
+        )
+      )
+    )
+    context.receive(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.VisualisationExpressionFailed(
+          "Method `does_not_exist` of Main could not be found.",
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              message = "Method `does_not_exist` of Main could not be found.",
+              stack = Vector(
+                Api.StackTraceElement("<eval>", None, None, None),
+                Api.StackTraceElement("Debug.eval", None, None, None)
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  it should "return visualisation evaluation errors with diagnostic info" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            moduleName,
+            "x -> x.visualise_me"
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(
+        Api.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          idMain,
+          "Method `visualise_me` of 50 (Integer) could not be found.",
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method `visualise_me` of 50 (Integer) could not be found.",
+              None,
+              Some(model.Range(model.Position(0, 5), model.Position(0, 19))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "<anonymous>",
+                  None,
+                  Some(
+                    model.Range(model.Position(0, 5), model.Position(0, 19))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "return visualisation error with a stack trace" in {
+    val idMain     = context.Main.metadata.addItem(78, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Test.Main"
+    val visualisationCode =
+      """
+        |encode x = x.visualise_me
+        |
+        |inc_and_encode x = here.encode x+1
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", visualisationCode)
+
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          visualisationCode,
+          true
+        )
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "here.inc_and_encode"
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(
+        Api.VisualisationEvaluationFailed(
+          contextId,
+          visualisationId,
+          idMain,
+          "Method `visualise_me` of 51 (Integer) could not be found.",
+          Some(
+            Api.ExecutionResult.Diagnostic.error(
+              "Method `visualise_me` of 51 (Integer) could not be found.",
+              Some(visualisationFile),
+              Some(model.Range(model.Position(1, 11), model.Position(1, 25))),
+              None,
+              Vector(
+                Api.StackTraceElement(
+                  "Visualisation.encode",
+                  Some(visualisationFile),
+                  Some(
+                    model.Range(model.Position(1, 11), model.Position(1, 25))
+                  ),
+                  None
+                ),
+                Api.StackTraceElement(
+                  "Visualisation.inc_and_encode",
+                  Some(visualisationFile),
+                  Some(
+                    model.Range(model.Position(3, 19), model.Position(3, 34))
+                  ),
+                  None
+                )
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "rename a project" in {
     val contents  = context.Main.code
     val mainFile  = context.writeMain(contents)

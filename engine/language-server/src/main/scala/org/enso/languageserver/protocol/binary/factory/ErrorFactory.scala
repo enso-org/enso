@@ -32,17 +32,6 @@ object ErrorFactory {
   ): ByteBuffer =
     createGenericError(0, "Service error", maybeCorrelationId)
 
-  /** Creates a visualisation expression error as a binary packet.
-    *
-    * @param msg an error message
-    * @return an FlatBuffer representation of the created error
-    */
-  def createVisualisationEvaluationError(msg: String): ByteBuffer =
-    createGenericError(
-      2008,
-      s"Evaluation of the visualisation failed [$msg]"
-    )
-
   /** Creates a generic error inside a [[FlatBufferBuilder]].
     *
     * @param code an error code
