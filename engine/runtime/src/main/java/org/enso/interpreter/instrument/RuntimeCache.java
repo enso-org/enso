@@ -1,7 +1,10 @@
 package org.enso.interpreter.instrument;
 
 import java.lang.ref.SoftReference;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /** A storage for computed values. */
 public final class RuntimeCache {
@@ -86,6 +89,15 @@ public final class RuntimeCache {
   /** @return the cached method calls. */
   public Set<UUID> getCalls() {
     return calls.keySet();
+  }
+
+  /**
+   * Remove the function call from the cache.
+   *
+   * @param key the expression associated with the function call.
+   */
+  public void removeCall(UUID key) {
+    calls.remove(key);
   }
 
   /** Clear the cached calls. */
