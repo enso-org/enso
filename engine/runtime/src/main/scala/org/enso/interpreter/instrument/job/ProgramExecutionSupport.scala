@@ -243,15 +243,14 @@ object ProgramExecutionSupport {
       case ExecutionItem.CallData(_, call)      => call.getFunction.getName
     }
     val executionUpdate = getExecutionOutcome(error)
-    ctx.executionService.getLogger
-      .log(
-        Level.WARNING,
-        s"Error executing a function $itemName. ${error.getMessage}"
-      )
-    executionUpdate.getOrElse(
-      Api.ExecutionResult
-        .Failure(s"Error in function $itemName. ${error.getMessage}", None)
-    )
+    val message = error match {
+      case _: ThreadInterruptedException =>
+        s"Execution of function $itemName interrupted."
+      case _ =>
+        s"Execution of function $itemName failed. ${error.getMessage}"
+    }
+    ctx.executionService.getLogger.log(Level.WARNING, message)
+    executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
   }
 
   /** Convert the runtime exception to the corresponding API error messages.
