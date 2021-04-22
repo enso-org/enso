@@ -506,16 +506,12 @@ object Main extends scala.App {
       |    ## The pow function calculates power of integers.
       |    pow x y = x ** y
       |""".stripMargin
-  val inC =
-    """
-      |## DEPRECATED
-      |  REMOVED - replaced by Foo Bar
-      |  ADDED
-      |  MODIFIED
-      |  UPCOMING
-      |  ALAMAKOTA a kot ma Ale
-      |  Optional values.
-      |
+  val inCdeprecated =
+    """## ADDED in 2.0
+      |   MODIFIED in 2.1
+      |   UNSTABLE
+      |   Optional values.
+      |   
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
       |   in Enso code, as they have a number of uses:
@@ -527,20 +523,94 @@ object Main extends scala.App {
       |      - Optional function arguments.
       |   `Option`s are commonly paired with pattern matching to query the presence of
       |   a value and take action, always accounting for the None case.
-      |
       |type Option a
-      |    ## The `Some` type indicates a presence of a value.
+      |    
+      |    ## ADVANCED
+      |       The `Some` type indicates a presence of a value.
       |    type Some a
       |
-      |    ## The `None` type indicates a lack of a value.
-      |
-      |     It is a very common type and is used by such types as `Maybe` or `List`.
-      |     Also, `None` is the return value of functions which do not return an
-      |     explicit value.
+      |    ## MODIFIED
+      |       The `None` type indicates a lack of a value.
+      |       
+      |       It is a very common type and is used by such types as `Maybe` or `List`.
+      |       Also, `None` is the return value of functions which do not return an
+      |       explicit value.
       |    type None
+      |    
+      |    ## DEPRECATED
+      |       PRIVATE
+      |       UNSTABLE
+      |       TEXTONLY
+      |       The `Nothing` is previous `None`.
+      |    type Nothing
       |
       |    ## The pow function calculates power of integers.
+      |    
+      |       ! Important
+      |         This function, if used wildly, will break space-time continuum.
       |    pow x y = x ** y
+      |
+      |## TEXTONLY
+      |   PRIVATE
+      |   This is a testing framework for `Option`.
+      |  
+      |   ? Info
+      |     It doesn't do too much in current state.
+      |type Option_Testing
+      |    type Foo
+      |    type Bar
+      |""".stripMargin
+
+  val inC =
+    """from Standard.Base import all
+      |
+      |## A type representing computations that may fail.
+      |type Maybe
+      |
+      |    ## No contained value.
+      |    Nothing
+      |
+      |    ## A value.
+      |
+      |       Arguments:
+      |       - value: The contained value in the maybe.
+      |    type Some value
+      |
+      |    ## Applies the provided function to the contained value if it exists,
+      |       otherwise returning the provided default value.
+      |
+      |       Arguments:
+      |       - default: The value to return if `this` is Nothing. This value is lazy
+      |         and hence will not execute any provided computation unless it is used.
+      |       - function: The function to execute on the value inside the `Some`, if it
+      |         is a just.
+      |
+      |       > Example
+      |         Apply a function over a Some value to get 4.
+      |             (Some 2).maybe 0 *2
+      |    maybe : Any -> (Any -> Any) -> Any
+      |    maybe ~default function = case this of
+      |        Nothing -> default
+      |        Some val -> function val
+      |
+      |    ## Check if the maybe value is `Some`.
+      |
+      |       > Example
+      |         Check if `Nothing` is `Some`.
+      |             Nothing.is_some
+      |    is_some : Boolean
+      |    is_some = case this of
+      |        Nothing -> False
+      |        Some _ -> True
+      |
+      |    ## Check if the maybe value is `Nothing`.
+      |
+      |       > Example
+      |         Check if `Nothing` is `Nothing`.
+      |             Nothing.is_nothing
+      |    is_nothing : Boolean
+      |    is_nothing = this.is_some.not
+      |
       |""".stripMargin
 
   println("--- PARSING ---")
@@ -608,6 +678,7 @@ object Main extends scala.App {
       |  Here is a small test of Example Section
       |      Import Foo
       |      def Bar a
+      |          Foo x y
       |""".stripMargin
   val doc2      = DocParser.runMatched(inpOnlyDoc)
   val htmlCode2 = DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
