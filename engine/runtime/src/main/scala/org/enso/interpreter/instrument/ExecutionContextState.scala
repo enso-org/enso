@@ -27,11 +27,16 @@ object ExecutionContextState {
   *
   * @param item the stack item.
   * @param cache the cache of this stack frame.
+  * @param syncState the synchronization state of runtime updates.
   */
-case class InstrumentFrame(item: StackItem, cache: RuntimeCache)
+case class InstrumentFrame(
+  item: StackItem,
+  cache: RuntimeCache,
+  syncState: UpdatesSynchronizationState
+)
 
 case object InstrumentFrame {
 
   def apply(item: StackItem): InstrumentFrame =
-    new InstrumentFrame(item, new RuntimeCache)
+    new InstrumentFrame(item, new RuntimeCache, new UpdatesSynchronizationState)
 }

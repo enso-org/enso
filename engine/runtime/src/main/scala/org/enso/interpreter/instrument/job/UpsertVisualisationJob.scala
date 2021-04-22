@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import cats.implicits._
-import org.enso.interpreter.instrument.Visualisation
+import org.enso.interpreter.instrument.{InstrumentFrame, Visualisation}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvalFailure,
@@ -60,29 +60,31 @@ class UpsertVisualisationJob(
             .flatMap(frame => Option(frame.cache.get(expressionId)))
           cachedValue match {
             case Some(value) =>
-              ProgramExecutionSupport.emitVisualisationUpdate(
+              ProgramExecutionSupport.sendVisualisationUpdate(
                 config.executionContextId,
+                stack.headOption.get.syncState,
                 visualisation,
                 expressionId,
                 value
               )
               None
             case None =>
-              Some(
-                Executable(
-                  config.executionContextId,
-                  stack,
-                  Seq(expressionId),
-                  sendMethodCallUpdates = false
-                )
-              )
+              val stack = ctx.contextManager.getStack(config.executionContextId)
+              requireVisualisationSynchronization(stack, expressionId)
+              Some(Executable(config.executionContextId, stack))
           }
       }
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       ctx.locking.releaseContextLock(config.executionContextId)
     }
+  }
 
+  private def requireVisualisationSynchronization(
+    stack: Iterable[InstrumentFrame],
+    expressionId: ExpressionId
+  ): Unit = {
+    stack.foreach(_.syncState.setVisualisationUnsync(expressionId))
   }
 
   private def updateVisualisation(

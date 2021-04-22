@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
@@ -61,22 +62,21 @@ class PopContextCmd(
   ): Future[Unit] = {
     val stack = ctx.contextManager.getStack(request.contextId)
     if (stack.nonEmpty) {
-      val executable =
-        Executable(
-          request.contextId,
-          stack,
-          Seq(),
-          sendMethodCallUpdates = true
-        )
+      val executable = Executable(request.contextId, stack)
       for {
-        _ <- Future {
-          ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-        }
+        _ <- Future(requireMethodPointersSynchronization(stack))
+        _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
       } yield ()
     } else {
       Future.successful(())
     }
+  }
+
+  private def requireMethodPointersSynchronization(
+    stack: Iterable[InstrumentFrame]
+  ): Unit = {
+    stack.foreach(_.syncState.clearMethodPointersState())
   }
 
 }

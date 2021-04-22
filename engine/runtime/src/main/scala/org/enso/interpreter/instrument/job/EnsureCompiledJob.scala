@@ -418,7 +418,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     stack: Iterable[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
     stack.lastOption flatMap {
-      case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _) =>
+      case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _, _) =>
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
