@@ -8,9 +8,22 @@ import java.util.UUID;
  * The synchronization state of runtime updates.
  *
  * <p>The thread executing the program can be interrupted at any moment. For example, the interrupt
- * may happen when expression is computed and the runtime state is updated but before the update is
- * prepared and sent to the user. This class is supposed to keep in sync the runtime state and the
- * update messages. The update is marked as synchronized when it is sent to the user.
+ * may happen when an expression is computed and the runtime state is changed, but before the update
+ * is sent to the user. And since the runtime state has changed, the server won't send the updates
+ * during the next execution. This class is supposed to address this issue keeping in sync the
+ * runtime state and the update messages.
+ *
+ * <h1>Implementation
+ *
+ * <p>When implementing the synchronization, keep in mind the following principles:
+ *
+ * <ul>
+ *   <li>Remove the synchronization flag before changing the server state.
+ *   <li>Set the synchronization flag after the update is sent to the user.
+ * </ul>
+ *
+ * This way the server is guaranteed to send the update message at least once, regardless of when
+ * the thread interrupt has occurred.
  *
  * <p>The state consists of the following components:
  *
@@ -18,9 +31,11 @@ import java.util.UUID;
  *   <li>Expressions state. Tracks all message updates that are sent when the expression metadata
  *       (e.g. the type or the underlying method pointer) is changed.
  *   <li>Method pointers state. Tracks message updates containing method pointers. Messages with
- *       method pointers are tracked separately because they have different invalidation rules. E.g.
- *       they should be always re-sent when the execution item is popped from the stack.
+ *       method pointers are tracked separately from the expressions state because they have
+ *       different invalidation rules. E.g., they should always be re-sent when the execution item
+ *       is popped from the stack.
  *   <li>Visualisations state. Tracks the state of visualisation updates.
+ * </ul>
  */
 public class UpdatesSynchronizationState {
 
