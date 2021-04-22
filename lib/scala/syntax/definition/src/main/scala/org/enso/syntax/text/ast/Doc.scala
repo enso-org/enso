@@ -30,10 +30,14 @@ final case class Doc(
 ) extends Doc.Symbol {
   val repr: Repr.Builder = R + tags + synopsis + body
   val htmlWoTags: Doc.HTML = Seq(
-    HTML.div(htmlCls())(synopsis.html)(body.html)
+    HTML.div(synopsis.html)(body.html)
   )
+  val htmlWoTagsMain: Doc.HTML = synopsis match {
+    case Some(s) => Seq(HTML.div(s.htmlBig)(body.html))
+    case None    => Seq(HTML.div(body.html))
+  }
   val html: Doc.HTML = Seq(
-    HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
+    HTML.div(tags.html)(synopsis.html)(body.html)
   )
 }
 
@@ -179,13 +183,12 @@ object Doc {
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
         val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
-        val btnStyle     = HTML.`style` := "display: flex"
-        val copyClass    = HTML.`class` := "copyCodeBtn"
-        val copyBtn      = HTML.button(htmlIdBtn)(copyClass)(btnStyle)("Copy")
-        val htmlStyle    = HTML.`style` := "display: block"
+        val copyClass    = HTML.`class` := "doc-copy-btn flex"
+        val codeClass    = HTML.`class` := "doc-code-container"
+        val copyBtn      = HTML.button(htmlIdBtn)(copyClass)("Copy")
         Seq(
           HTML.div(
-            HTML.div(htmlCls())(htmlStyle)(htmlIdCode)(elemsHTML),
+            HTML.div(codeClass)(htmlIdCode)(HTML.pre(elemsHTML)),
             copyBtn
           )
         )
@@ -354,7 +357,11 @@ object Doc {
       */
     final case class Header(elems: List[Elem]) extends Elem {
       val repr: Repr.Builder = R + elems.map(_.repr)
-      val html: HTML         = Seq(HTML.div(htmlCls())(elems.map(_.html)))
+      val html: HTML = Seq(
+        HTML.div(HTML.`class` := "summary")(
+          elems.map(_.html)
+        )
+      )
     }
     object Header {
       def apply(elem: Elem): Header   = Header(elem :: Nil)
@@ -380,7 +387,7 @@ object Doc {
 
       val repr: Repr.Builder = R + firstIndentRepr + elemsRepr
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := typ.toString
+        HTML.`class` := typ.toString.toLowerCase
       }
 
       override def indent: Int =
@@ -432,6 +439,12 @@ object Doc {
       }
 
       val repr: Repr.Builder = R + indent + elemsRepr
+
+      override def htmlCls(): generic.AttrPair[Builder, String] = {
+        HTML.`class` := ""
+      }
+
+      override val html: HTML = Seq(HTML.p(elems.map(_.html)))
     }
 
     object Raw {
@@ -457,7 +470,18 @@ object Doc {
     val newLn: Elem        = Elem.Newline
     val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
-      Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
+      Seq(
+        HTML.div(HTML.`class` := "")(
+          elems.toList.map(_.html)
+        )
+      )
+    }
+    val htmlBig: HTML = {
+      Seq(
+        HTML.div(HTML.`class` := "summary")(
+          elems.toList.map(_.html)
+        )
+      )
     }
   }
   object Synopsis {
@@ -480,7 +504,7 @@ object Doc {
       R + newLn + _
     )
     val html: HTML = Seq(
-      HTML.div(htmlCls())(elems.toList.map(_.html))
+      HTML.div(elems.toList.map(_.html))
     )
   }
 
@@ -502,7 +526,11 @@ object Doc {
     val newLn: Elem = Elem.Newline
     val repr: Repr.Builder =
       R + elems.head + elems.tail.map(R + newLn + _) + newLn
-    val html: HTML = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
+    val html: HTML = Seq(
+      HTML.div(HTML.`class` := "tags")(
+        elems.toList.map(_.html)
+      )
+    )
   }
   object Tags {
     def apply(elem: Tag): Tags   = Tags(List1(elem))
@@ -516,15 +544,35 @@ object Doc {
       */
     final case class Tag(indent: Int, typ: Tag.Type, details: Option[String])
         extends Elem {
-      val name: String = typ.toString.toUpperCase
+      val name: String  = typ.toString.toUpperCase
+      val cName: String = typ.toString.toLowerCase
       val repr: Repr.Builder = typ match {
         case Tag.Unrecognized => R + indent + details
         case _                => R + indent + name + details
       }
-      val html: HTML = typ match {
-        case Tag.Unrecognized =>
-          Seq(HTML.div(HTML.`class` := name)(details.html))
-        case _ => Seq(HTML.div(HTML.`class` := name)(name)(details.html))
+      val html: HTML = {
+        typ match {
+          case Tag.Unrecognized =>
+            Seq(
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)(details.html)
+              )
+            )
+          case Tag.Type.TextOnly =>
+            Seq(
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)("TEXT ONLY")(
+                  details.html
+                )
+              )
+            )
+          case _ =>
+            Seq(
+              HTML.p(HTML.`class` := "tag")(
+                HTML.span(HTML.`class` := cName)(name)(details.html)
+              )
+            )
+        }
       }
     }
     object Tag {
@@ -554,10 +602,7 @@ object Doc {
     }
 
     implicit final class ExtForTagDetails(val self: Option[String]) {
-      val html: HTML = {
-        val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
-        Seq(self.map(HTML.div(htmlCls)(_)))
-      }
+      val html: HTML = Seq(self.map(HTML.span(HTML.`class` := "details")(_)))
     }
   }
 }

@@ -54,7 +54,16 @@ object DocParser {
 
   /** Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def runMatched(input: String): Doc = {
+    val lines            = input.split("\n")
+    var indentSecondLine = 0
+    if (lines.tail.nonEmpty) {
+      val s = lines.tail.head
+      indentSecondLine = s.indexOf(s.trim())
+    }
+    val in = " " * indentSecondLine + lines.mkString("\n")
+    new DocParser().runMatched(in)
+  }
   def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
@@ -289,13 +298,29 @@ object DocParserHTMLGenerator {
     */
   def generateHTMLForEveryDocumented(ast: AST): String = {
     var allDocs = new String
+    val extMethodsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "ml-20 flex")(
+        HTML.raw(
+          "<MethodsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
+        HTML.p("Extension Methods")
+      )
+    )
+    var extensionMethods = new String
     ast.map { elem =>
       elem match {
         case AST.Documented.any(documented) =>
           val file = onHTMLRendering(documented)
-          allDocs += file.code.toString() + generateHTMLForEveryDocumented(
-            documented
-          ) + HTML.hr + HTML.br
+          documented.ast match {
+            case AST.App.Infix.any(_) =>
+              extensionMethods += HTML
+                .div(HTML.`class` := "ml-20 mb-20")(file.code)
+                .toString()
+            case _ =>
+              allDocs += HTML
+                .div(HTML.`class` := "mb-20")(file.code)
+                .toString()
+          }
         case AST.Def.any(tp) =>
           tp.body match {
             case Some(body) => allDocs += generateHTMLForEveryDocumented(body)
@@ -306,7 +331,10 @@ object DocParserHTMLGenerator {
       }
       elem
     }
-    allDocs
+    if (extensionMethods.length > 0) {
+      extensionMethods = extMethodsHeader.render + extensionMethods
+    }
+    "<div>" + allDocs + extensionMethods + "</div>"
   }
 
   /** Function to generate HTML File from pure doc comment w/o connection to AST
@@ -314,9 +342,16 @@ object DocParserHTMLGenerator {
     * @param doc - Doc from Doc Parser
     * @return - HTML Code from Doc
     */
-  def generateHTMLPureDoc(doc: Doc): String = {
-    HTML.html(createHTMLHead(""), HTML.body(doc.html)).toString()
-  }
+  def generateHTMLPureDoc(doc: Doc): String =
+    HTML
+      .html(
+        HTML.body(
+          HTML.div(HTML.`class` := "doc")(HTML.style := "font-size: 13px;")(
+            doc.html
+          )
+        )
+      )
+      .toString()
 
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////
@@ -329,7 +364,7 @@ object DocParserHTMLGenerator {
     * @return - HTML code with file name
     */
   def onHTMLRendering(documented: AST.Documented): htmlFile = {
-    val htmlCode = renderHTML(documented.ast, documented.doc)
+    val htmlCode = DocumentedToHtml(documented.ast, documented.doc)
     val astLines = documented.ast.show().split("\n")
     val fileName =
       astLines.head
@@ -341,19 +376,6 @@ object DocParserHTMLGenerator {
   }
   case class htmlFile(code: TypedTag[String], name: String)
 
-  /** Function invoked by [[onHTMLRendering]] to render HTML File
-    *
-    * @param ast - AST from Parser
-    * @param doc - Doc from Doc Parser
-    * @return - HTML Code from Doc and contents of [[AST.Def]] or
-    *           [[AST.App.Infix]], with optional title made from AST
-    */
-  def renderHTML(ast: AST, doc: Doc): TypedTag[String] = {
-    val title         = ast.show().split("\n").head.split("=").head
-    val documentation = DocumentedToHtml(ast, doc)
-    HTML.html(createHTMLHead(title), HTML.body(documentation))
-  }
-
   /** This function is used to get HTML content of Doc and try to render AST,
     * by finding if it also contains Documented to retrieve Doc and it's AST,
     * or simply call show() method on other element of AST.
@@ -363,49 +385,23 @@ object DocParserHTMLGenerator {
     * @return -  HTML Code from Doc and contents of [[AST.Def]] or
     *            [[AST.App.Infix]]
     */
-  def DocumentedToHtml(
-    ast: AST,
-    doc: Doc,
-    isInOtherDoc: Boolean = false
-  ): TypedTag[String] = {
-    val docClass       = HTML.`class` := "Documentation"
-    val astHeadCls     = HTML.`class` := "ASTHead"
-    val astHTML        = createHTMLFromAST(ast)
-    var astName        = HTML.div(astHeadCls)(astHTML.header)
-    val strikeoutStyle = HTML.`style` := "text-decoration-line:line-through;"
-    if (doc.tags.html.mkString.contains("DEPRECATED")) {
-      astName = HTML.div(astHeadCls)(strikeoutStyle)(astHTML.header)
-    }
+  def DocumentedToHtml(ast: AST, doc: Doc): TypedTag[String] = {
+    val astHTML = createHTMLFromAST(ast, doc.tags)
+    val astName = HTML.div(astHTML.header)
     astHTML.body match {
-      case Some(b) =>
-        val astBodyCls = HTML.`class` := "ASTData"
-        val astBody    = Seq(HTML.div(astBodyCls)(b))
+      case Some(body) =>
         // Case when producing main page
-        HTML.div(docClass)(
-          doc.tags.html,
+        HTML.div(HTML.`class` := "main ml-20")(
           astName,
-          doc.htmlWoTags,
-          astBody
+          doc.htmlWoTagsMain,
+          body
         )
       case None =>
-        // Case when listing constructors/methods | Name | Synopsis | Tags |
-        var content = HTML.div(doc.htmlWoTags)
-        if (doc.tags.html.mkString.contains("DEPRECATED")) {
-          content = HTML.div(strikeoutStyle)(doc.htmlWoTags)
-        }
-        if (isInOtherDoc) {
-          HTML.div(docClass)(
-            astName,
-            content,
-            doc.tags.html
-          )
-        } else {
-          HTML.div(docClass)(
-            doc.tags.html,
-            astName,
-            content
-          )
-        }
+        // Case when listing atoms or methods
+        HTML.div(
+          astName,
+          doc.htmlWoTags
+        )
     }
   }
 
@@ -433,20 +429,29 @@ object DocParserHTMLGenerator {
     * @param ast - AST
     * @return - HTML Code
     */
-  def createHTMLFromAST(ast: AST): astHtmlRepr = {
+  def createHTMLFromAST(
+    ast: AST,
+    tags: Option[Doc.Tags] = None
+  ): astHtmlRepr = {
     ast match {
       case AST.Def.any(d) =>
         d.body match {
           case Some(body) =>
             body match {
-              case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
+              case AST.Block.any(b) =>
+                createDefWithBody(d.name, d.args, b, tags)
               case _ =>
-                astHtmlRepr(createDefWithoutBody(d.name, d.args))
+                astHtmlRepr(createAtomHtmlRepr(d.name, d.args, tags))
             }
-          case None => astHtmlRepr(createDefWithoutBody(d.name, d.args))
+          case None => astHtmlRepr(createAtomHtmlRepr(d.name, d.args, tags))
         }
-      case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i))
-      case _                    => astHtmlRepr()
+      case AST.App.Infix.any(i) =>
+        if (i.larg.show().split(" ").nonEmpty) {
+          astHtmlRepr(createInfixHtmlRepr(i, tags))
+        } else {
+          astHtmlRepr()
+        }
+      case _ => astHtmlRepr()
     }
   }
 
@@ -462,59 +467,94 @@ object DocParserHTMLGenerator {
   def createDefWithBody(
     name: AST.Cons,
     args: List[AST],
-    body: AST.Block
+    body: AST.Block,
+    tags: Option[Doc.Tags]
   ): astHtmlRepr = {
-    val firstLine          = Line(Option(body.firstLine.elem), body.firstLine.off)
-    val constructorsHeader = HTML.h2(`class` := "constr")("Constructors")
-    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
-    val allLines           = firstLine :: body.lines
-    val generatedCode      = renderHTMLOnLine(allLines)
-    val typesList =
-      generatedCode.filter(_.toString().contains("class=\"DefTitle\""))
-    val infixList =
-      generatedCode.filter(_.toString().contains("class=\"Infix\""))
-    val head    = createDefTitle(name, args)
-    val clsBody = HTML.`class` := "DefBody"
-    val lines =
-      HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
-    val cls = HTML.`class` := "Def"
-    astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
-  }
+    val firstLine = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val atomsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "flex")(
+        HTML.raw(
+          "<AtomsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
+        HTML.p("Atoms")
+      )
+    )
 
-  /** Helper function for [[createHTMLFromAST]] to generate appropriate code
-    * from [[AST.Def]] when it doesn't contain anything in it's body
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - HTML code generated from Def
-    */
-  def createDefWithoutBody(
-    name: AST.Cons,
-    args: List[AST]
-  ): TypedTag[String] = {
-    val cls = HTML.`class` := "DefNoBody"
-    HTML.div(cls)(createDefTitle(name, args))
-  }
+    val extMethodsHeader = HTML.h2(
+      HTML.div(HTML.`class` := "flex")(
+        HTML.raw(
+          "<MethodsIcon className=\"-ml-16 -mb-3 mr-4 self-center h-12 p-2 text-content-title-on-dark bg-accent-important fill-current rounded-xl\" />"
+        ),
+        HTML.p("Methods")
+      )
+    )
 
-  /** Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
-    * to generate [[AST.Def]] title form it's name and args
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - Def title in HTML
-    */
-  def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    val clsTitle   = HTML.`class` := "DefTitle"
-    val clsArgs    = HTML.`class` := "DefArgs"
-    val nameStr    = name.show()
-    val argsStr    = args.map(_.show())
-    var argsStrUrl = argsStr.mkString("_")
-    if (argsStr.nonEmpty) {
-      argsStrUrl = "_" + argsStrUrl
+    val allLines      = firstLine :: body.lines
+    val generatedCode = renderHTMLOnLine(allLines)
+    val atoms = generatedCode.filter(
+      _.toString().contains("class=\"atom flex\"")
+    )
+    val methods = generatedCode.filter(
+      _.toString().contains("class=\"method flex\"")
+    )
+
+    val head         = createDocTitle(name, args, tags)
+    var methodsLines = HTML.div()
+    var atomsLines   = HTML.div()
+    if (methods.nonEmpty) {
+      methodsLines =
+        HTML.div(HTML.`class` := "methods")(extMethodsHeader, methods)
     }
-    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
-    val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
-    HTML.a(pageHref)(innerDiv)
+    if (atoms.nonEmpty) {
+      atomsLines = HTML.div(HTML.`class` := "atoms")(atomsHeader, atoms)
+    }
+    val lines = HTML.div(atomsLines, methodsLines)
+    astHtmlRepr(head, lines)
+  }
+
+  def createDocTitle(
+    name: AST.Cons,
+    args: List[AST],
+    tags: Option[Doc.Tags]
+  ): TypedTag[String] = {
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show())
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+
+    HTML.h1(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "parameter")(argsStr)
+      ),
+      tagsHtml
+    )
+  }
+
+  /** Function to generate Atoms from it's name and tags.
+    *
+    * @param name - Atom Name
+    * @param args - Atom Arguments
+    * @param tags - Atom Tags
+    * @return - HTMl doc of atom.
+    */
+  def createAtomHtmlRepr(
+    name: AST.Cons,
+    args: List[AST],
+    tags: Option[Doc.Tags]
+  ): TypedTag[String] = {
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show() + " ")
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+
+    HTML.div(HTML.`class` := "atom flex")(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "parameter")(argsStr)
+      ),
+      tagsHtml
+    )
   }
 
   /** Helper function for [[createHTMLFromAST]] to generate appropriate HTML
@@ -523,13 +563,22 @@ object DocParserHTMLGenerator {
     * @param infix - AST Infix
     * @return - HTML code generated from Infix
     */
-  def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
-    val cls = HTML.`class` := "Infix"
-    val pageHref = HTML.`href` := infix.larg
-      .show()
-      .replaceAll(" ", "_") + ".html"
-    val innerDiv = HTML.div(cls)(infix.larg.show())
-    HTML.a(pageHref)(innerDiv)
+  def createInfixHtmlRepr(
+    infix: AST.App.Infix,
+    tags: Option[Doc.Tags]
+  ): TypedTag[String] = {
+    val nameStr  = infix.larg.show().split(" ").head
+    val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+
+    HTML.div(HTML.`class` := "method flex")(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "argument")(argsStr)
+      ),
+      tagsHtml
+    )
   }
 
   /** Helper function for [[createDefWithBody]] to traverse through body's lines
@@ -542,18 +591,9 @@ object DocParserHTMLGenerator {
   def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        val cls     = HTML.`class` := "DefDoc"
-        val docHtml = DocumentedToHtml(doc.ast, doc.doc, true)
-        HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
-      case x :: rest =>
-        x match {
-          case Line(Some(d), _) =>
-            val cls     = HTML.`class` := "DefNoDoc"
-            val astHtml = createHTMLFromAST(d)
-            val div     = HTML.div(cls)(astHtml.header, astHtml.body)
-            div :: renderHTMLOnLine(rest)
-          case _ => renderHTMLOnLine(rest)
-        }
+        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
+        HTML.div(docHtml) :: renderHTMLOnLine(rest)
+      case _ :: rest => renderHTMLOnLine(rest)
       case other =>
         other match {
           case Nil       => List()
