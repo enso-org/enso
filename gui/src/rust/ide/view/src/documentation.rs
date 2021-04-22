@@ -38,18 +38,24 @@ pub const VIEW_HEIGHT : f32 = 300.0;
 /// Content in the documentation view when there is no data available.
 const PLACEHOLDER_STR   : &str = "<h3>Documentation Viewer</h3><p>No documentation available</p>";
 const CORNER_RADIUS     : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
-const PADDING           : f32  = 5.0;
-const CODE_BLOCK_CLASS  : &str = "CodeBlock";
-const COPY_BUTTON_CLASS : &str = "copyCodeBtn";
+const PADDING           : f32  = 15.0;
+const CODE_BLOCK_CLASS  : &str = "doc-code-container";
+const COPY_BUTTON_CLASS : &str = "doc-copy-btn";
 
 /// Get documentation view stylesheet from a CSS file.
 ///
-/// TODO [MM] : This file is generated currently from SASS file, and generated code should never
-///             be included in a codebase, so it will be moved to rust-based generator to achieve
-///             compatibility with IDE's theme manager.
-///             Expect them to land with https://github.com/enso-org/ide/issues/709
+/// TODO [MM] : This file is generated currently from Tailwind CSS file.
+///             It should be somehow gathered from website repo.
 fn documentation_style() -> String {
     format!("<style>{}</style>", include_str!("documentation/style.css"))
+        .replace("theme-light", "light-theme")
+        .replace("theme-dark", "dark-theme")
+        .replace("body,html{font-family:var(--global-font)}", "body,html{font-family:\"DejaVuSansMonoBook\"}")
+        .replace(".doc .tags{display:flex;font-size:16px}", ".doc .tags{display:flex;font-size:13px}")
+        .replace("margin-left:15px", "margin-left:0px")
+        .replace("doc-copy-btn{display:none", "doc-copy-btn{")
+        .replace("padding:2px 6px 3px;", "padding:2px 6px;line-height:1.35")
+        .replace("font-size:15px;", "font-size:13px;")
 }
 
 
@@ -103,6 +109,7 @@ impl Model {
         dom.dom().set_style_or_warn("overflow-x"      ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("background-color",bg_color                     ,&logger);
         dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
+        dom.dom().set_style_or_warn("padding-top"     ,"5px"                        ,&logger);
         dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
         dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
         shadow::add_to_dom_element(&dom,&styles,&logger);
@@ -147,7 +154,9 @@ impl Model {
 
     /// Create a container for generated content and embed it with stylesheet.
     fn push_to_dom(&self, content:String) {
-        let data_str = format!(r#"<div class="docVis">{}{}</div>"#,documentation_style(),content);
+        let no_doc_txt = "<p style=\"color: #a3a6a9;\">No documentation available</p>";
+        let content    = content.replace("<p>No documentation available</p>",no_doc_txt);
+        let data_str   = format!(r#"{}{}"#,documentation_style(),content);
         self.dom.dom().set_inner_html(&data_str);
     }
 
@@ -227,11 +236,10 @@ impl Model {
 
     fn reload_style(&self) {
         let size        = self.size.get();
-        let real_width  = (size.x - 2.0 * PADDING).max(0.0);
-        let real_height = (size.y - 2.0 * PADDING).max(0.0);
         let padding     = (size.x.min(size.y) / 2.0).min(PADDING);
-        self.dom.set_size(Vector2(real_width,real_height));
+        self.dom.set_size(Vector2(size.x,size.y));
         self.dom.dom().set_style_or_warn("padding",format!("{}px",padding),&self.logger);
+        self.dom.dom().set_style_or_warn("padding-top","5px",&self.logger);
     }
 }
 
