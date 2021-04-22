@@ -445,8 +445,13 @@ object DocParserHTMLGenerator {
             }
           case None => astHtmlRepr(createAtomHtmlRepr(d.name, d.args, tags))
         }
-      case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i, tags))
-      case _                    => astHtmlRepr()
+      case AST.App.Infix.any(i) =>
+        if (i.larg.show().split(" ").nonEmpty) {
+          astHtmlRepr(createInfixHtmlRepr(i, tags))
+        } else {
+          astHtmlRepr()
+        }
+      case _ => astHtmlRepr()
     }
   }
 
@@ -562,22 +567,18 @@ object DocParserHTMLGenerator {
     infix: AST.App.Infix,
     tags: Option[Doc.Tags]
   ): TypedTag[String] = {
-    if (infix.larg.show().split(" ").nonEmpty) {
-      val nameStr  = infix.larg.show().split(" ").head
-      val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
-      val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
+    val nameStr  = infix.larg.show().split(" ").head
+    val argsStr  = infix.larg.show().split(" ").tail.mkString(" ")
+    val tagsHtml = tags.getOrElse(Doc.Elem.Text("")).html
 
-      HTML.div(HTML.`class` := "method flex")(
-        HTML.p(
-          HTML.span(HTML.`class` := "name")(nameStr),
-          " ",
-          HTML.span(HTML.`class` := "argument")(argsStr)
-        ),
-        tagsHtml
-      )
-    } else {
-      HTML.div()
-    }
+    HTML.div(HTML.`class` := "method flex")(
+      HTML.p(
+        HTML.span(HTML.`class` := "name")(nameStr),
+        " ",
+        HTML.span(HTML.`class` := "argument")(argsStr)
+      ),
+      tagsHtml
+    )
   }
 
   /** Helper function for [[createDefWithBody]] to traverse through body's lines
