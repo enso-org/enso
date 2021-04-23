@@ -478,13 +478,13 @@ jobs:
         run: >-
           aws s3 cp ./artifacts/content/assets/style.css
           s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/style.css
-          --profile s3-upload --acl public-read --content-encoding gzip
+          --profile s3-upload --acl public-read
       - name: Upload 'ide.wasm' to CDN
         shell: bash
         run: >-
           aws s3 cp ./artifacts/content/assets/ide.wasm
           s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/ide.wasm
-          --profile s3-upload --acl public-read --content-encoding gzip
+          --profile s3-upload --acl public-read
       - name: Upload 'wasm_imports.js.gz' to CDN
         shell: bash
         run: >-
