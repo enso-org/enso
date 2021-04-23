@@ -605,7 +605,10 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val editFileResponse = context.receive(1)
+    val editFileResponse = context.receive(2)
+    editFileResponse should contain(
+      context.executionComplete(contextId)
+    )
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
@@ -725,7 +728,10 @@ class RuntimeVisualisationsTest
       )
     )
 
-    val editFileResponse = context.receive(1)
+    val editFileResponse = context.receive(2)
+    editFileResponse should contain(
+      context.executionComplete(contextId)
+    )
     val Some(data1) = editFileResponse.collectFirst {
       case Api.Response(
             None,
@@ -865,7 +871,7 @@ class RuntimeVisualisationsTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
-  it should "not emit visualisation updates when visualisation is detached" in {
+  it should "not emit visualisation update when visualisation is detached" in {
     val contents = context.Main.code
     val mainFile = context.writeMain(contents)
     val visualisationFile =
@@ -995,6 +1001,113 @@ class RuntimeVisualisationsTest
     )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "not emit visualisation update when expression is not affected by the change" in {
+    val contents   = context.Main.code
+    val moduleName = "Test.Main"
+    val mainFile   = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // open files
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          true
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "here.encode"
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(6, 12), model.Position(6, 13)),
+              "6"
+            )
+          )
+        )
+      )
+    )
+
+    context.receive(1) should contain theSameElementsAs Seq(
       context.executionComplete(contextId)
     )
   }
