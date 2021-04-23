@@ -332,7 +332,10 @@ function uploadToCDN(...names) {
             shell: "bash",
             run: `aws s3 cp ./artifacts/content/assets/${name} `
                + `s3://ensocdn/ide/\${{fromJson(steps.changelog.outputs.content).version}}/${name} --profile `
-               + `s3-upload --acl public-read --content-encoding gzip`
+               + `s3-upload --acl public-read`
+        }
+        if (name.endsWith(".gz")) {
+            action.run += " --content-encoding gzip";
         }
         actions.push(action)
     }
