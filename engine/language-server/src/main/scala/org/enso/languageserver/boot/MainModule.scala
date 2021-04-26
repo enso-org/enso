@@ -50,7 +50,7 @@ import scala.concurrent.duration._
 class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val log = LoggerFactory.getLogger(this.getClass)
-  log.trace("Initializing...")
+  log.info("Creating components ...")
 
   val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
   val languageServerConfig = Config(
@@ -282,10 +282,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     )
   log.trace("Created BinaryWebSocketServer")
 
+  log.info("All components created.")
+
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
-    log.trace("Closed MainModule")
+    log.info("Closed.")
   }
 }
