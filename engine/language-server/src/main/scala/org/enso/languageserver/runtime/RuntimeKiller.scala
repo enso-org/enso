@@ -61,7 +61,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
 
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
-      log.info("Shutting down the Truffle context")
+      log.info(s"Shutting down the Truffle context. Attempt #${retryCount + 1}")
       truffleContext.close()
       replyTo ! RuntimeGracefullyStopped
       context.stop(self)
