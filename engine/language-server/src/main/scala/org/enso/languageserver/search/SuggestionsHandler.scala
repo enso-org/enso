@@ -92,6 +92,7 @@ final class SuggestionsHandler(
   private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
+    log.info("Starting ...")
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
@@ -115,16 +116,19 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
+      log.info(s"Initializing: project name changed from $oldName to $newName.")
       suggestionsRepo
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
 
     case ProjectNameUpdated(name, updates) =>
+      log.info(s"Initializing: project name is updated to $name.")
       updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
+      log.info(s"Initializing: suggestions repo initialized.")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -132,12 +136,14 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
+      log.info(s"Initializing: Truffle context initialized.")
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
         .pipeTo(self)
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
+      log.info(s"Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case _ => stash()
@@ -148,12 +154,14 @@ final class SuggestionsHandler(
     graph: TypeGraph
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
+      log.info(s"Verifying: got verification response.")
       suggestionsRepo
         .removeModules(toRemove)
         .map(_ => SuggestionsHandler.Verified)
         .pipeTo(self)
 
     case SuggestionsHandler.Verified =>
+      log.info(s"Verified.")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
 
@@ -392,7 +400,7 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
-        log.debug("Initialized")
+        log.info("Initialized.")
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
           .flatMap { modules =>
