@@ -91,6 +91,7 @@ macro_rules! _define_theme_wrapper_and_literals {
             use super::*;
             use ensogl_core::application::Application;
             use ensogl_core::data::color::Lcha;
+            use ensogl_core::data::color::Rgb;
             use ensogl_core::data::color::Rgba;
             use ensogl_core::display::style::theme;
 
@@ -173,6 +174,48 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
+
+        window_control_buttons {
+            radius  = 6.5, 6.5;
+            spacing = application::window_control_buttons::radius, application::window_control_buttons::radius;
+            padding {
+                left   = 13.0, 13.0;
+                top    = 13.0, 13.0;
+                right  = 13.0, 13.0;
+                bottom = 13.0, 13.0;
+            }
+
+            close {
+                normal {
+                    background_color = Rgb::new(1.0, 0.33, 0.33),  Rgb::new(1.0, 0.33, 0.33);
+                    icon_color       = Rgba::new(0.0,0.0,0.0,0.0), Rgba::new(0.0,0.0,0.0,0.0);
+                }
+                hovered {
+                    background_color = application::window_control_buttons::close::normal::background_color, application::window_control_buttons::close::normal::background_color;
+                    icon_color       = Rgba::new(0.385,0.0,0.0,1.0), Rgba::new(0.385,0.0,0.0,1.0);
+                }
+                pressed {
+                    background_color = Rgb::new(1.0, 0.5, 0.5),     Rgb::new(1.0, 0.5, 0.5);
+                    icon_color       = Rgb::new(0.549,0.098,0.063), Rgb::new(0.549,0.098,0.063);
+                }
+            }
+
+            fullscreen {
+                normal {
+                    background_color = Rgb::new(0.18, 0.75, 0.25), Rgb::new(0.18, 0.75, 0.25);
+                    icon_color       = Rgba::new(0.0,0.,0.0,0.0),  Rgba::new(0.0,0.0,0.0,0.0);
+                }
+                hovered {
+                    background_color = application::window_control_buttons::fullscreen::normal::background_color, application::window_control_buttons::fullscreen::normal::background_color;
+                    icon_color       = Rgba::new(0.0,0.37,0.0,1.0), Rgba::new(0.0,0.37,0.0,1.0);
+                }
+                pressed {
+                    background_color = Rgb::new(0.3, 0.96, 0.39), Rgb::new(0.3, 0.96, 0.39);
+                    icon_color       = Rgb::new(0.0,0.38,0.0),    Rgb::new(0.0,0.38,0.0);
+                }
+            }
+        }
+
         documentation {
             background = graph_editor::node::background, graph_editor::node::background;
         }

@@ -3,6 +3,7 @@
 //! This crate has the all code for displaying GUI of Enso IDE application. The views provides
 //! the FRP endpoints to communicate with controllers. It also have a mocked debug scenes of IDE.
 
+#![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]
 #![feature(clamp)]
 #![feature(drain_filter)]
@@ -36,6 +37,7 @@ pub mod documentation;
 pub mod project;
 pub mod searcher;
 pub mod status_bar;
+pub mod window_control_buttons;
 
 pub use ide_view_graph_editor as graph_editor;
 

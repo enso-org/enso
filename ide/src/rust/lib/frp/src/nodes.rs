@@ -85,7 +85,7 @@ impl Network {
         self.register(OwnedSample::new(label,behavior,event))
     }
 
-    /// Passes the incoming event of the fisrt stream only if the value of the second stream is
+    /// Passes the incoming event of the first stream only if the value of the second stream is
     /// true.
     pub fn gate<T1,T2>(&self, label:Label, event:&T1, behavior:&T2) -> Stream<Output<T1>>
         where T1:EventOutput, T2:EventOutput<Output=bool> {
@@ -308,37 +308,37 @@ impl Network {
 
     pub fn all_vec5<Out,T1,T2,T3,T4,T5>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Stream<Vec<Out>>
-        where Out : Data,
-              T1  : EventOutput<Output=Out>,
-              T2  : EventOutput<Output=Out>,
-              T3  : EventOutput<Output=Out>,
-              T4  : EventOutput<Output=Out>,
-              T5  : EventOutput<Output=Out> {
+    where Out : Data,
+          T1  : EventOutput<Output=Out>,
+          T2  : EventOutput<Output=Out>,
+          T3  : EventOutput<Output=Out>,
+          T4  : EventOutput<Output=Out>,
+          T5  : EventOutput<Output=Out> {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5))
     }
 
     pub fn all_vec6<Out,T1,T2,T3,T4,T5,T6>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6) -> Stream<Vec<Out>>
-        where Out : Data,
-              T1  : EventOutput<Output=Out>,
-              T2  : EventOutput<Output=Out>,
-              T3  : EventOutput<Output=Out>,
-              T4  : EventOutput<Output=Out>,
-              T5  : EventOutput<Output=Out>,
-              T6  : EventOutput<Output=Out> {
+    where Out : Data,
+          T1  : EventOutput<Output=Out>,
+          T2  : EventOutput<Output=Out>,
+          T3  : EventOutput<Output=Out>,
+          T4  : EventOutput<Output=Out>,
+          T5  : EventOutput<Output=Out>,
+          T6  : EventOutput<Output=Out> {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6))
     }
 
     pub fn all_vec7<Out,T1,T2,T3,T4,T5,T6,T7>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7) -> Stream<Vec<Out>>
-        where Out : Data,
-              T1  : EventOutput<Output=Out>,
-              T2  : EventOutput<Output=Out>,
-              T3  : EventOutput<Output=Out>,
-              T4  : EventOutput<Output=Out>,
-              T5  : EventOutput<Output=Out>,
-              T6  : EventOutput<Output=Out>,
-              T7  : EventOutput<Output=Out>{
+    where Out : Data,
+          T1  : EventOutput<Output=Out>,
+          T2  : EventOutput<Output=Out>,
+          T3  : EventOutput<Output=Out>,
+          T4  : EventOutput<Output=Out>,
+          T5  : EventOutput<Output=Out>,
+          T6  : EventOutput<Output=Out>,
+          T7  : EventOutput<Output=Out>{
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6)
             .with(t7))
     }
@@ -346,15 +346,15 @@ impl Network {
     pub fn all_vec8<Out,T1,T2,T3,T4,T5,T6,T7,T8>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7, t8:&T8)
     -> Stream<Vec<Out>>
-        where Out : Data,
-              T1  : EventOutput<Output=Out>,
-              T2  : EventOutput<Output=Out>,
-              T3  : EventOutput<Output=Out>,
-              T4  : EventOutput<Output=Out>,
-              T5  : EventOutput<Output=Out>,
-              T6  : EventOutput<Output=Out>,
-              T7  : EventOutput<Output=Out>,
-              T8  : EventOutput<Output=Out>{
+    where Out : Data,
+          T1  : EventOutput<Output=Out>,
+          T2  : EventOutput<Output=Out>,
+          T3  : EventOutput<Output=Out>,
+          T4  : EventOutput<Output=Out>,
+          T5  : EventOutput<Output=Out>,
+          T6  : EventOutput<Output=Out>,
+          T7  : EventOutput<Output=Out>,
+          T8  : EventOutput<Output=Out>{
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6)
             .with(t7).with(t8))
     }
@@ -362,16 +362,16 @@ impl Network {
     pub fn all_vec9<Out,T1,T2,T3,T4,T5,T6,T7,T8,T9>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6, t7:&T7, t8:&T8, t9:&T9)
     -> Stream<Vec<Out>>
-        where Out : Data,
-              T1  : EventOutput<Output=Out>,
-              T2  : EventOutput<Output=Out>,
-              T3  : EventOutput<Output=Out>,
-              T4  : EventOutput<Output=Out>,
-              T5  : EventOutput<Output=Out>,
-              T6  : EventOutput<Output=Out>,
-              T7  : EventOutput<Output=Out>,
-              T8  : EventOutput<Output=Out>,
-              T9  : EventOutput<Output=Out>{
+    where Out : Data,
+          T1  : EventOutput<Output=Out>,
+          T2  : EventOutput<Output=Out>,
+          T3  : EventOutput<Output=Out>,
+          T4  : EventOutput<Output=Out>,
+          T5  : EventOutput<Output=Out>,
+          T6  : EventOutput<Output=Out>,
+          T7  : EventOutput<Output=Out>,
+          T8  : EventOutput<Output=Out>,
+          T9  : EventOutput<Output=Out>{
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6)
             .with(t7).with(t8).with(t9))
     }
@@ -402,6 +402,14 @@ impl Network {
     -> Stream<(Output<T1>,Output<T2>,Output<T3>,Output<T4>)>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
         self.register(OwnedAll4::new(label,t1,t2,t3,t4))
+    }
+
+    /// Specialized version of `all`.
+    pub fn all5<T1,T2,T3,T4,T5>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5)
+     -> Stream<(Output<T1>,Output<T2>,Output<T3>,Output<T4>,Output<T5>)>
+    where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+        self.register(OwnedAll5::new(label,t1,t2,t3,t4,t5))
     }
 
 
@@ -481,6 +489,14 @@ impl Network {
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T:Data,
           F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>)->T {
         self.register(OwnedAllWith4::new(label,t1,t2,t3,t4,f))
+    }
+
+    /// Specialized version `all_with`.
+    pub fn all_with5<T1,T2,T3,T4,T5,F,T>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, f:F) -> Stream<T>
+    where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput,
+          T:Data, F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>,&Output<T5>)->T {
+        self.register(OwnedAllWith5::new(label,t1,t2,t3,t4,t5,f))
     }
 }
 
@@ -662,6 +678,13 @@ impl DynamicNetwork {
         OwnedAll4::new(label,t1,t2,t3,t4).into()
     }
 
+    pub fn all5<T1,T2,T3,T4,T5>
+    (self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5)
+     -> OwnedStream<(Output<T1>,Output<T2>,Output<T3>,Output<T4>,Output<T5>)>
+        where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+        OwnedAll5::new(label,t1,t2,t3,t4,t5).into()
+    }
+
 
     // === Filter ===
     pub fn filter<T,P>(self, label:Label, src:&T, p:P) -> Stream<Output<T>>
@@ -724,6 +747,13 @@ impl DynamicNetwork {
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T:Data,
           F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>)->T {
         OwnedAllWith4::new(label,t1,t2,t3,t4,f).into()
+    }
+
+    pub fn apply5<T1,T2,T3,T4,T5,F,T>
+    (self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, f:F) -> OwnedStream<T>
+    where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput,
+          T:Data, F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>,&Output<T5>)->T {
+        OwnedAllWith5::new(label,t1,t2,t3,t4,t5,f).into()
     }
 }
 
@@ -1801,6 +1831,67 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
 
 
 
+// ============
+// === All5 ===
+// ============
+
+#[derive(Debug)]
+pub struct All5Data <T1,T2,T3,T4,T5>
+{src1:watch::Ref<T1>, src2:watch::Ref<T2>, src3:watch::Ref<T3>, src4:watch::Ref<T4>, src5:watch::Ref<T5>}
+pub type   OwnedAll5 <T1,T2,T3,T4,T5> = stream::Node     <All5Data<T1,T2,T3,T4,T5>>;
+pub type   WeakAll5  <T1,T2,T3,T4,T5> = stream::WeakNode <All5Data<T1,T2,T3,T4,T5>>;
+
+impl<T1,T2,T3,T4,T5> HasOutput for All5Data<T1,T2,T3,T4,T5>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+    type Output = (Output<T1>,Output<T2>,Output<T3>,Output<T4>,Output<T5>);
+}
+
+impl<T1,T2,T3,T4,T5> OwnedAll5<T1,T2,T3,T4,T5>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+    /// Constructor.
+    pub fn new(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Self {
+        let src1 = watch_stream(t1);
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let def   = All5Data {src1,src2,src3,src4,src5};
+        let this  = Self::construct(label,def);
+        let weak  = this.downgrade();
+        t1.register_target(weak.clone_ref().into());
+        t2.register_target(weak.clone_ref().into());
+        t3.register_target(weak.clone_ref().into());
+        t4.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1,T2,T3,T4,T5,Out> stream::EventConsumer<Out> for OwnedAll5<T1,T2,T3,T4,T5>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+    fn on_event(&self, stack:CallStack, _:&Out) {
+        let value1 = self.src1.value();
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        self.emit_event(stack,&(value1,value2,value3,value4,value5));
+    }
+}
+
+impl<T1,T2,T3,T4,T5> stream::InputBehaviors for All5Data<T1,T2,T3,T4,T5>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![ Link::mixed(&self.src1)
+            , Link::mixed(&self.src2)
+            , Link::mixed(&self.src3)
+            , Link::mixed(&self.src4)
+            , Link::mixed(&self.src5)
+            ]
+    }
+}
+
+
+
 // ==============
 // === Filter ===
 // ==============
@@ -2239,5 +2330,65 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, Out:Data,
 impl<T1,T2,T3,T4,F> Debug for AllWith4Data<T1,T2,T3,T4,F> {
     fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"AllWith4Data")
+    }
+}
+
+
+
+// ================
+// === AllWith5 ===
+// ================
+
+pub struct AllWith5Data <T1,T2,T3,T4,T5,F>
+{ src1:watch::Ref<T1>, src2:watch::Ref<T2>, src3:watch::Ref<T3>, src4:watch::Ref<T4>
+    , src5:watch::Ref<T5>, function:F }
+pub type   OwnedAllWith5 <T1,T2,T3,T4,T5,F> = stream::Node     <AllWith5Data<T1,T2,T3,T4,T5,F>>;
+pub type   AllWith5      <T1,T2,T3,T4,T5,F> = stream::WeakNode <AllWith5Data<T1,T2,T3,T4,T5,F>>;
+
+impl<T1,T2,T3,T4,T5,F,Out> HasOutput for AllWith5Data<T1,T2,T3,T4,T5,F>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput, Out:Data,
+      F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>,&Output<T5>)->Out {
+    type Output = Out;
+}
+
+impl<T1,T2,T3,T4,T5,F,Out> OwnedAllWith5<T1,T2,T3,T4,T5,F>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput, Out:Data,
+      F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>,&Output<T5>)->Out {
+    /// Constructor.
+    pub fn new(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, function:F) -> Self {
+        let src1 = watch_stream(t1);
+        let src2 = watch_stream(t2);
+        let src3 = watch_stream(t3);
+        let src4 = watch_stream(t4);
+        let src5 = watch_stream(t5);
+        let def     = AllWith5Data {src1,src2,src3,src4,src5,function};
+        let this    = Self::construct(label,def);
+        let weak    = this.downgrade();
+        t1.register_target(weak.clone_ref().into());
+        t2.register_target(weak.clone_ref().into());
+        t3.register_target(weak.clone_ref().into());
+        t4.register_target(weak.clone_ref().into());
+        t5.register_target(weak.into());
+        this
+    }
+}
+
+impl<T1,T2,T3,T4,T5,F,Out,T> stream::EventConsumer<T> for OwnedAllWith5<T1,T2,T3,T4,T5,F>
+where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput, Out:Data,
+      F:'static+Fn(&Output<T1>,&Output<T2>,&Output<T3>,&Output<T4>,&Output<T5>)->Out {
+    fn on_event(&self, stack:CallStack, _:&T) {
+        let value1 = self.src1.value();
+        let value2 = self.src2.value();
+        let value3 = self.src3.value();
+        let value4 = self.src4.value();
+        let value5 = self.src5.value();
+        let out    = (self.function)(&value1,&value2,&value3,&value4,&value5);
+        self.emit_event(stack,&out);
+    }
+}
+
+impl<T1,T2,T3,T4,T5,F> Debug for AllWith5Data<T1,T2,T3,T4,T5,F> {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"AllWith5Data")
     }
 }

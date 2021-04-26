@@ -496,14 +496,14 @@ function createWindow() {
     }
 
     let urlCfg = {
-        platform        : process.platform,
-        frame           : args.frame,
-        theme           : args.theme,
-        dark_theme      : Electron.nativeTheme.shouldUseDarkColors,
-        high_contrast   : Electron.nativeTheme.shouldUseHighContrastColors,
-        crashReportHost : args.crashReportHost,
-        noDataGathering : args.noDataGathering,
-        node_labels     : args.nodeLabels,
+        platform          : process.platform,
+        frame             : args.frame,
+        theme             : args.theme,
+        dark_theme        : Electron.nativeTheme.shouldUseDarkColors,
+        high_contrast     : Electron.nativeTheme.shouldUseHighContrastColors,
+        crash_report_host : args.crashReportHost,
+        no_data_gathering : args.noDataGathering,
+        node_labels       : args.nodeLabels,
     }
 
     if (args.project)    { urlCfg.project = args.project }

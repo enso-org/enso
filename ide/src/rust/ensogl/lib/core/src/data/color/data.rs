@@ -57,6 +57,15 @@ impl<D> Deref for Color<D> {
 }
 
 
+// === DerefMut ===
+
+impl<D> DerefMut for Color<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+
+
 // === Color Model ===
 
 /// Type family for accessing color models.

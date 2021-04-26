@@ -1,3 +1,31 @@
+# Next Release
+
+<br/>![New Learning Resources](/docs/assets/tags/new_learning_resources.svg)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [Window management buttons.][1511]. The IDE now has components for
+  "fullscreen" nad "close" buttons. They will be available only when running IDE
+  in a cloud environment.
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+#### EnsoGL (rendering engine)
+
+#### Enso Compiler
+
+If you're interested in the enhancements and fixes made to the Enso compiler,
+you can find their release notes
+[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1511]: https://github.com/enso-org/ide/pull/1511
+
+<br/>
+
 # Enso 2.0.0-alpha.3 (2020-04-13)
 
 <br/>![New Learning Resources](/docs/assets/tags/new_learning_resources.svg)
@@ -175,6 +203,9 @@ you can find their release notes
 [1438]: https://github.com/enso-org/ide/pull/1438
 [1367]: https://github.com/enso-org/ide/pull/1367
 [1445]: https://github.com/enso-org/ide/pull/1445
+[1447]: https://github.com/enso-org/ide/pull/1447
+[1471]: https://github.com/enso-org/ide/pull/1471
+[1511]: https://github.com/enso-org/ide/pull/1511
 
 <br/>
 

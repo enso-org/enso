@@ -377,6 +377,11 @@ define_color_spaces! {
 // ===========
 
 impl Rgb {
+    /// Construct RGB color by mapping [0 – 255] value range into [0.0 – 1.0].
+    pub fn from_base_255(r:impl Into<f32>, g:impl Into<f32>, b:impl Into<f32>) -> Self {
+        Self::new(r.into() / 255.0, g.into() / 255.0, b.into() / 255.0)
+    }
+
     /// Converts the color to `LinearRgb` representation.
     pub fn into_linear(self) -> LinearRgb {
         self.into()

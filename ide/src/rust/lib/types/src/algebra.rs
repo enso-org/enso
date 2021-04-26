@@ -163,6 +163,60 @@ gen_abs!([f32,f64,i32,i64]);
 
 
 // ===========
+// === Min ===
+// ===========
+
+/// Types where minimum of the values can be found.
+pub trait Min {
+    /// Lesser of the two values.
+    fn min(a:Self, b:Self) -> Self;
+}
+
+
+// === Impls ===
+
+macro_rules! gen_min {
+    ([$($ty:ident),*]) => {$(
+        impl Min for $ty {
+            fn min(a:Self, b:Self) -> Self {
+                min(a,b)
+            }
+        }
+    )*};
+}
+
+gen_min!([f32,f64,i32,i64,usize]);
+
+
+
+// ===========
+// === Max ===
+// ===========
+
+/// Types where maximum of the values can be found.
+pub trait Max {
+    /// Greater of the two values.
+    fn max(a:Self, b:Self) -> Self;
+}
+
+
+// === Impls ===
+
+macro_rules! gen_max {
+    ([$($ty:ident),*]) => {$(
+        impl Max for $ty {
+            fn max(a:Self, b:Self) -> Self {
+                max(a,b)
+            }
+        }
+    )*};
+}
+
+gen_max!([f32,f64,i32,i64,usize]);
+
+
+
+// ===========
 // === Pow ===
 // ===========
 

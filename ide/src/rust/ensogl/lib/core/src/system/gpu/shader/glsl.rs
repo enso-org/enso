@@ -946,14 +946,5 @@ pub mod traits {
         }
     }
     impl<'a,T> IntoGlsl<'a> for T where T:'a, &'a T:Into<Glsl> {}
-
-// TODO [WD]: I left it commented out as we need to decide soon what to do with it.
-//            It should disappear in next few commits.
-//    pub trait IntoGlsl2 where Self:Into<Glsl> {
-//        fn glsl(self) -> Glsl {
-//            self.into()
-//        }
-//    }
-//    impl<T> IntoGlsl2 for T where T:Into<Glsl> {}
 }
 pub use traits::*;
