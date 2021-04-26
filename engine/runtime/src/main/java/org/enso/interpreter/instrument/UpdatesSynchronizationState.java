@@ -61,9 +61,11 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void invalidate(UUID key) {
-    expressionsState.remove(key);
-    visualisationsState.remove(key);
-    methodPointersState.remove(key);
+    synchronized (this) {
+      expressionsState.remove(key);
+      visualisationsState.remove(key);
+      methodPointersState.remove(key);
+    }
   }
 
   /* Expressions */
@@ -75,7 +77,9 @@ public class UpdatesSynchronizationState {
    * @return {@code true} if the expression update is synchronized.
    */
   public boolean isExpressionSync(UUID key) {
-    return expressionsState.contains(key);
+    synchronized (expressionsState) {
+      return expressionsState.contains(key);
+    }
   }
 
   /**
@@ -84,7 +88,9 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void setExpressionUnsync(UUID key) {
-    expressionsState.remove(key);
+    synchronized (expressionsState) {
+      expressionsState.remove(key);
+    }
   }
 
   /**
@@ -93,7 +99,9 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void setExpressionSync(UUID key) {
-    expressionsState.add(key);
+    synchronized (expressionsState) {
+      expressionsState.add(key);
+    }
   }
 
   /* Visualisations */
@@ -105,7 +113,9 @@ public class UpdatesSynchronizationState {
    * @return {@code true} if the visualisation update is synchronized.
    */
   public boolean isVisualisationSync(UUID key) {
-    return visualisationsState.contains(key);
+    synchronized (visualisationsState) {
+      return visualisationsState.contains(key);
+    }
   }
 
   /**
@@ -114,7 +124,9 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void setVisualisationUnsync(UUID key) {
-    visualisationsState.remove(key);
+    synchronized (visualisationsState) {
+      visualisationsState.remove(key);
+    }
   }
 
   /**
@@ -123,7 +135,9 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void setVisualisationSync(UUID key) {
-    visualisationsState.add(key);
+    synchronized (visualisationsState) {
+      visualisationsState.add(key);
+    }
   }
 
   /* Method pointers */
@@ -135,7 +149,9 @@ public class UpdatesSynchronizationState {
    * @return {@code true} if the method pointer update is synchronized.
    */
   public boolean isMethodPointerSync(UUID key) {
-    return methodPointersState.contains(key);
+    synchronized (methodPointersState) {
+      return methodPointersState.contains(key);
+    }
   }
 
   /**
@@ -144,11 +160,15 @@ public class UpdatesSynchronizationState {
    * @param key the expression id.
    */
   public void setMethodPointerSync(UUID key) {
-    methodPointersState.add(key);
+    synchronized (methodPointersState) {
+      methodPointersState.add(key);
+    }
   }
 
   /** Clears the synchronization state of all method pointers. */
   public void clearMethodPointersState() {
-    methodPointersState.clear();
+    synchronized (methodPointersState) {
+      methodPointersState.clear();
+    }
   }
 }
