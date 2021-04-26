@@ -67,17 +67,10 @@ class RecomputeContextCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     if (isStackNonEmpty) {
-      val stack = ctx.contextManager.getStack(request.contextId)
-      val executable = Executable(
-        request.contextId,
-        stack,
-        Seq(),
-        sendMethodCallUpdates = false
-      )
+      val stack      = ctx.contextManager.getStack(request.contextId)
+      val executable = Executable(request.contextId, stack)
       for {
-        _ <- Future {
-          ctx.jobProcessor.run(EnsureCompiledJob(executable.stack))
-        }
+        _ <- Future(ctx.jobProcessor.run(EnsureCompiledJob(executable.stack)))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
       } yield ()
     } else {

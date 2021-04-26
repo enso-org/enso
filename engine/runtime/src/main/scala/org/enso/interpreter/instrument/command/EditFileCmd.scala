@@ -1,7 +1,5 @@
 package org.enso.interpreter.instrument.command
 
-import java.util.logging.Level
-
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
@@ -25,8 +23,6 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     ctx.locking.acquireFileLock(request.path)
     ctx.locking.acquirePendingEditsLock()
     try {
-      ctx.executionService.getLogger
-        .log(Level.FINE, s"EditFileCmd ${request.path}")
       ctx.state.pendingEdits.enqueue(request.path, request.edits)
       ctx.jobControlPlane.abortAllJobs()
       ctx.jobProcessor.run(new EnsureCompiledJob(Seq(request.path)))
@@ -45,7 +41,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .map { case (contextId, stack) =>
-        new ExecuteJob(contextId, stack, Seq(), sendMethodCallUpdates = false)
+        new ExecuteJob(contextId, stack)
       }
   }
 

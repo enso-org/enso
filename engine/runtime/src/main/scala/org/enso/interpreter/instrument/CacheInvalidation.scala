@@ -145,17 +145,19 @@ object CacheInvalidation {
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit = {
-    frames.foreach(frame => run(frame.cache, command, indexes))
+    frames.foreach(frame => run(frame.cache, frame.syncState, command, indexes))
   }
 
   /** Run cache invalidation of a single instrument frame.
     *
     * @param cache the cache to invalidate
+    * @param syncState the synchronization state of runtime updates
     * @param command the invalidation instruction
     * @param indexes the list of indexes to invalidate
     */
   private def run(
     cache: RuntimeCache,
+    syncState: UpdatesSynchronizationState,
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit =
@@ -166,13 +168,14 @@ object CacheInvalidation {
       case Command.InvalidateKeys(keys) =>
         keys.foreach { key =>
           cache.remove(key)
-          indexes.foreach(clearIndex(_, cache))
+          indexes.foreach(clearIndexKey(key, _, cache))
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
           cache.remove(key)
-          indexes.foreach(clearIndex(_, cache))
+          indexes.foreach(clearIndexKey(key, _, cache))
+          syncState.invalidate(key)
         }
       case Command.SetMetadata(metadata) =>
         cache.setWeights(metadata.asJavaWeights)
@@ -196,4 +199,29 @@ object CacheInvalidation {
       case IndexSelector.Calls =>
         cache.clearCalls()
     }
+
+  /** Clear the key in the selected index.
+    *
+    * @param key the index key
+    * @param selector the selected index
+    * @param cache the cache to invalidate
+    */
+  private def clearIndexKey(
+    key: UUID,
+    selector: IndexSelector,
+    cache: RuntimeCache
+  ): Unit =
+    selector match {
+      case IndexSelector.All =>
+        cache.removeType(key)
+        cache.removeWeight(key)
+        cache.removeCall(key)
+      case IndexSelector.Weights =>
+        cache.removeWeight(key)
+      case IndexSelector.Types =>
+        cache.removeType(key)
+      case IndexSelector.Calls =>
+        cache.removeCall(key)
+    }
+
 }

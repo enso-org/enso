@@ -54,13 +54,13 @@ class RenameProjectCmd(
     stack: mutable.Stack[InstrumentFrame]
   ): Unit = {
     stack.mapInPlace {
-      case InstrumentFrame(call: Api.StackItem.ExplicitCall, cache) =>
+      case InstrumentFrame(call: Api.StackItem.ExplicitCall, cache, sync) =>
         val moduleName = QualifiedName
           .fromString(call.methodPointer.module)
           .renameProject(projectName)
           .toString
         val methodPointer = call.methodPointer.copy(module = moduleName)
-        InstrumentFrame(call.copy(methodPointer = methodPointer), cache)
+        InstrumentFrame(call.copy(methodPointer = methodPointer), cache, sync)
       case item => item
     }
   }

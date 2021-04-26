@@ -10,6 +10,7 @@ import org.enso.compiler.context.ChangesetBuilder;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.execution.LocationFilter;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
@@ -92,6 +93,7 @@ public class ExecutionService {
    * @param call the call metadata.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
+   * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
@@ -103,6 +105,7 @@ public class ExecutionService {
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
@@ -122,6 +125,7 @@ public class ExecutionService {
             locationFilter,
             cache,
             methodCallsCache,
+            syncState,
             nextExecutionItem,
             funCallCallback,
             onComputedCallback,
@@ -143,6 +147,7 @@ public class ExecutionService {
    * @param methodName the method name.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
+   * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
@@ -155,6 +160,7 @@ public class ExecutionService {
       String methodName,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
@@ -171,6 +177,7 @@ public class ExecutionService {
         call,
         cache,
         methodCallsCache,
+        syncState,
         nextExecutionItem,
         funCallCallback,
         onComputedCallback,
