@@ -341,6 +341,7 @@ mod tests {
     //    This should not happen (probably).
     //    https://github.com/enso-org/ide/issues/1403
     #[test]
+    #[allow(unused_variables)]
     fn test_rgb_to_and_from_lch() {
         for r in 0 .. 10 {
             for g in 0 .. 10 {

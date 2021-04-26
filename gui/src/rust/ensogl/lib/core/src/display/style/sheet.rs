@@ -1039,7 +1039,7 @@ mod tests {
         let handle = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
         assert_query_sheet_count(&sheet,1,2);
         {
-            let var2 = sheet.var("button.size");
+            let _var2 = sheet.var("button.size");
             assert_query_sheet_count(&sheet,1,2);
         }
         assert_query_sheet_count(&sheet,1,2);

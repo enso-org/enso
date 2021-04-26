@@ -400,7 +400,7 @@ function showCrashBanner(message) {
 }
 
 async function reportCrash(message) {
-    const crashReportHost = API[globalConfig.windowAppScopeConfigName].crashReportHost
+    const crashReportHost = API[globalConfig.windowAppScopeConfigName].crash_report_host
     await fetch(`http://${crashReportHost}/`, {
         method: 'POST',
         mode: 'no-cors',
@@ -441,18 +441,19 @@ function ok(value) {
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 API.main = async function (inputConfig) {
     let defaultConfig = {
-        use_loader     : true,
-        wasm_url       : '/assets/ide.wasm',
-        wasm_glue_url  : '/assets/wasm_imports.js',
-        crashReportHost: cfg.defaultLogServerHost,
-        noDataGathering: false,
+        use_loader        : true,
+        wasm_url          : '/assets/ide.wasm',
+        wasm_glue_url     : '/assets/wasm_imports.js',
+        crash_report_host : cfg.defaultLogServerHost,
+        no_data_gathering : false,
+        is_in_cloud       : false,
     }
     let urlParams = new URLSearchParams(window.location.search);
     let urlConfig = Object.fromEntries(urlParams.entries())
     let config    = Object.assign(defaultConfig,inputConfig,urlConfig)
     API[globalConfig.windowAppScopeConfigName] = config
 
-    if (config.noDataGathering) {
+    if (config.no_data_gathering) {
         API.remoteLog = function (_event, _data) {}
     } else {
         let logger = new MixpanelLogger

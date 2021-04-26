@@ -126,7 +126,10 @@ ensogl::define_endpoints! {
         /// Selects the breadcrumb by its index without sending signals to the controller.
         debug_select_breadcrumb     (usize),
         /// Indicates the IDE is in text edit mode.
-        ide_text_edit_mode          (bool)
+        ide_text_edit_mode          (bool),
+        /// The `gap_width` describes an empty space on the left of all the content. This space will
+        /// be covered by the background and is intended to make room for windows control buttons.
+        gap_width                   (f32),
     }
     Output {
         /// Signalizes when a new breadcrumb is pushed.
@@ -174,14 +177,14 @@ pub struct BreadcrumbsModel {
     camera                : Camera2d,
     /// Describes an empty space on the left of all the content. This space will be covered by the
     /// background and is intended to make room for windows control buttons.
-    gap_width             : f32,
+    gap_width             : Rc<Cell<f32>>,
 }
 
 impl BreadcrumbsModel {
     /// Constructor.
     /// The `gap_width` describes an empty space on the left of all the content. This space will be
     /// covered by the background and is intended to make room for windows control buttons.
-    pub fn new(app:Application, frp:&Frp, gap_width:f32) -> Self {
+    pub fn new(app:Application, frp:&Frp) -> Self {
         let scene                 = app.display.scene();
         let project_name          = app.new_view();
         let logger                = Logger::new("Breadcrumbs");
@@ -194,6 +197,7 @@ impl BreadcrumbsModel {
         let current_index         = default();
         let camera                = scene.camera().clone_ref();
         let background            = background::View::new(&logger);
+        let gap_width             = default();
 
         scene.layers.breadcrumbs_background.add_exclusive(&background);
 
@@ -231,13 +235,19 @@ impl BreadcrumbsModel {
         self.breadcrumbs.borrow().iter().map(|breadcrumb| breadcrumb.width()).sum()
     }
 
+    fn set_gap_width(&self, gap_width:f32) {
+        self.gap_width.set(gap_width);
+        self.update_layout();
+    }
+
     fn update_layout(&self) {
+        let gap_width          = self.gap_width.get();
         let project_name_width = self.project_name.width.value().round();
 
-        self.project_name.set_position_x(self.gap_width);
-        self.breadcrumbs_container.set_position_x(self.gap_width + project_name_width);
+        self.project_name.set_position_x(gap_width);
+        self.breadcrumbs_container.set_position_x(gap_width + project_name_width);
 
-        let width              = self.gap_width
+        let width              = gap_width
                                + project_name_width
                                + self.breadcrumbs_container_width();
         let background_width   = width + 2.0 * BACKGROUND_PADDING;
@@ -419,12 +429,10 @@ pub struct Breadcrumbs {
 
 impl Breadcrumbs {
     /// Constructor.
-    /// The `gap_width` describes an empty space on the left of all the content. This space will be
-    /// covered by the background and is intended to make room for windows control buttons.
-    pub fn new(app:Application,gap_width:f32) -> Self {
+    pub fn new(app:Application) -> Self {
         let scene   = app.display.scene().clone_ref();
         let frp     = Frp::new();
-        let model   = Rc::new(BreadcrumbsModel::new(app,&frp,gap_width));
+        let model   = Rc::new(BreadcrumbsModel::new(app,&frp));
         let network = &frp.network;
 
         // === Breadcrumb selection ===
@@ -513,7 +521,7 @@ impl Breadcrumbs {
 
 
             // === Relayout ===
-
+            eval frp.input.gap_width((gap_width) model.set_gap_width(*gap_width));
             eval_ scene.frp.camera_changed(model.camera_changed());
             eval_ model.project_name.frp.output.width (model.update_layout());
 

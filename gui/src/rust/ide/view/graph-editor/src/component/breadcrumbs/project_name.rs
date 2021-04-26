@@ -69,9 +69,9 @@ ensogl::define_endpoints! {
        /// Commit current project name.
        commit             (),
        outside_press      (),
-       /// Indicates that this is the currenlty active breadcrumb.
+       /// Indicates that this is the currently active breadcrumb.
        select             (),
-       /// Indicates that this is not the currenlty active breadcrumb.
+       /// Indicates that this is not the currently active breadcrumb.
        deselect           (),
        /// Indicates the IDE is in edit mode. This means a click on some editable text should
        /// start editing it.

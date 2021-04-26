@@ -20,11 +20,6 @@ use ensogl::system::web;
 // === Args ===
 // ============
 
-// Please note that the path at which the config is accessible (`enso.config`) is hardcoded below.
-// This needs to be synchronised with the `src/config.yaml` configuration file. In the future, we
-// could write a procedural macro, which loads the configuration and splits Rust variables from it
-// during compilation time. This is not possible by using macro rules, as there is no way to plug in
-// the output of `include_str!` macro to another macro input.
 ensogl::read_args! {
     [enso_config::window_app_scope_name,enso_config::window_app_scope_config_name] {
         entry                : String,
@@ -41,5 +36,8 @@ ensogl::read_args! {
         wasm_url             : String,
         wasm_glue_url        : String,
         node_labels          : bool,
+        crash_report_host    : String,
+        no_data_gathering    : bool,
+        is_in_cloud          : bool,
     }
 }

@@ -93,6 +93,18 @@ impl StyleWatchFrp {
         source.emit(current);
         sampler
     }
+
+    /// Queries style sheet number.
+    pub fn get_number_or<T:Into<Path>>(&self, path:T, fallback:f32) -> frp::Sampler<f32> {
+        let network          = &self.network;
+        let (source,current) = self.get_internal(path);
+        frp::extend! { network
+            value   <- source.map(move |t| t.number().unwrap_or(fallback));
+            sampler <- value.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
 }
 
 

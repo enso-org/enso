@@ -79,6 +79,26 @@ pub enum Var<T> {
 
 // === Constructors ===
 
+impl Var<Pixels> {
+    /// Get the current shape's sizes.
+    pub fn canvas_size() -> Var<Vector2<Pixels>> {
+        "input_size".into()
+    }
+}
+
+impl Var<color::Rgba> {
+    /// Build a color from its components.
+    pub fn rgba(r:impl Into<Var<f32>>, g:impl Into<Var<f32>>, b:impl Into<Var<f32>>, a:impl Into<Var<f32>>)
+    -> Var<color::Rgba> {
+        format!("srgba({},{},{},{})",
+                r.into().glsl(),
+                g.into().glsl(),
+                b.into().glsl(),
+                a.into().glsl()
+        ).into()
+    }
+}
+
 impl<T,S> From<T> for Var<S>
     where T : VarInitializer<Var<S>> {
     default fn from(t:T) -> Self {
@@ -123,6 +143,34 @@ where T:Abs {
         match self {
             Self::Static  (t) => Var::Static(t.abs()),
             Self::Dynamic (t) => Var::Dynamic(format!("abs({})",t).into())
+        }
+    }
+}
+
+impl<T> Min for Var<T>
+where T:Min+Into<Glsl> {
+    fn min(a:Self, b:Self) -> Self {
+        match (a,b) {
+            (Var::Static(a), Var::Static(b)) => Var::Static(Min::min(a,b)),
+            (a,b) => {
+                let a:Glsl = a.into();
+                let b:Glsl = b.into();
+                Var::Dynamic(format!("min({},{})", a.glsl(), b.glsl()).into())
+            },
+        }
+    }
+}
+
+impl<T> Max for Var<T>
+where T:Max+Into<Glsl> {
+    fn max(a:Self, b:Self) -> Self {
+        match (a,b) {
+            (Var::Static(a), Var::Static(b)) => Var::Static(Max::max(a,b)),
+            (a,b) => {
+                let a:Glsl = a.into();
+                let b:Glsl = b.into();
+                Var::Dynamic(format!("max({},{})", a.glsl(), b.glsl()).into())
+            },
         }
     }
 }

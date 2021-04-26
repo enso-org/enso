@@ -648,8 +648,11 @@ pub fn reflect_get_nested_object(target:&JsValue, keys:&[&str]) -> Result<js_sys
 /// [`reflect_get_nested`] to learn more.
 pub fn reflect_get_nested_string(target:&JsValue, keys:&[&str]) -> Result<String> {
     let tgt = reflect_get_nested(target,keys)?;
-    let val = tgt.dyn_into::<js_sys::JsString>()?;
-    Ok(val.into())
+    if tgt.is_undefined() {
+        Err(Error("Key was not present in the target."))
+    } else {
+        Ok(js_to_string(tgt))
+    }
 }
 
 /// Get all the keys of the provided [`Object`].

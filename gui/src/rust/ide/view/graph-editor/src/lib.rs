@@ -88,7 +88,7 @@ const MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET     : f32 = 13.0;
 const MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER : f32 =
     - MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET - MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT / 2.0;
 
-fn breadcrumbs_gap_width() -> f32 {
+fn traffic_lights_gap_width() -> f32 {
     let is_macos     = ARGS.platform.map(|p|p.is_macos()) == Some(true);
     let is_frameless = ARGS.frame == Some(false);
     if is_macos && is_frameless {
@@ -327,6 +327,10 @@ ensogl::define_endpoints! {
         // === General ===
         /// Cancel the operation being currently performed. Often mapped to the escape key.
         cancel(),
+
+
+        // === Layout ===
+        space_for_window_buttons (Vector2<f32>),
 
 
         // === Node Selection ===
@@ -1269,7 +1273,7 @@ impl GraphEditorModel {
         let vis_registry   = visualization::Registry::with_default_visualizations();
         let visualisations = default();
         let touch_state    = TouchState::new(network,&scene.mouse.frp);
-        let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref(),breadcrumbs_gap_width());
+        let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref());
         let app            = app.clone_ref();
         let frp            = frp.output.clone_ref();
         let navigator      = Navigator::new(&scene,&scene.camera());
@@ -1287,6 +1291,7 @@ impl GraphEditorModel {
         let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
         self.breadcrumbs.set_position_x(x_offset);
         self.breadcrumbs.set_position_y(y_offset);
+        self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
         self
     }
@@ -2049,11 +2054,22 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
 
 
-    // =============================
-    // === Breadcrumbs Debugging ===
-    // =============================
+    // ===================
+    // === Breadcrumbs ===
+    // ===================
 
     frp::extend! { network
+        // === Layout ===
+        eval inputs.space_for_window_buttons([model](size) {
+            // The breadcrumbs apply their own spacing next to the gap, so we need to omit padding.
+            let width         = size.x;
+            let path          = theme::application::window_control_buttons::padding::right;
+            let right_padding = styles.get_number(path);
+            model.breadcrumbs.gap_width.emit(width - right_padding)
+        });
+
+
+        // === Debugging ===
         eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.debug_push_breadcrumb.emit(None));
         eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.debug_pop_breadcrumb.emit(()));
     }
