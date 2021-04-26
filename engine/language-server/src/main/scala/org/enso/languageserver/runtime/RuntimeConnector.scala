@@ -16,9 +16,13 @@ class RuntimeConnector
     with UnhandledLogging
     with Stash {
 
+  override def preStart(): Unit = {
+    log.info("Starting ...")
+  }
+
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      log.info("Engine connection established.")
+      log.info("Initialized. Engine connection established.")
       unstashAll()
       context.become(initialized(engine, Map()))
     case _ => stash()
