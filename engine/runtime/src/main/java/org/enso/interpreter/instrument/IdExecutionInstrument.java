@@ -192,6 +192,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
     public boolean wasCached() {
       return wasCached;
     }
+
+    /** @return {@code true} when the type differs from the cached value. */
+    public boolean isTypeChanged() {
+      return !Objects.equals(type, cachedType);
+    }
+
+    /** @return {@code true} when the function call differs from the cached value. */
+    public boolean isFunctionCallChanged() {
+      return !Objects.equals(callInfo, cachedCallInfo);
+    }
   }
 
   /** Information about the function call. */
@@ -273,6 +283,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<Exception> onExceptionalCallback;
     private final RuntimeCache cache;
     private final MethodCallsCache callsCache;
+    private final UpdatesSynchronizationState syncState;
     private final UUID nextExecutionItem;
     private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
     private final Timer timer;
@@ -284,6 +295,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param entryCallTarget the call target being observed.
      * @param cache the precomputed expression values.
      * @param methodCallsCache the storage tracking the executed method calls.
+     * @param syncState the synchronization state of runtime updates.
      * @param nextExecutionItem the next item scheduled for execution.
      * @param functionCallCallback the consumer of function call events.
      * @param onComputedCallback the consumer of the computed value events.
@@ -295,6 +307,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         CallTarget entryCallTarget,
         RuntimeCache cache,
         MethodCallsCache methodCallsCache,
+        UpdatesSynchronizationState syncState,
         UUID nextExecutionItem, // The expression ID
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
@@ -304,6 +317,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
       this.callsCache = methodCallsCache;
+      this.syncState = syncState;
       this.nextExecutionItem = nextExecutionItem;
       this.functionCallCallback = functionCallCallback;
       this.onComputedCallback = onComputedCallback;
@@ -382,20 +396,29 @@ public class IdExecutionInstrument extends TruffleInstrument {
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
 
+        String cachedType = cache.getType(nodeId);
+        FunctionCallInfo call = calls.get(nodeId);
+        FunctionCallInfo cachedCall = cache.getCall(nodeId);
+        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+
+        ExpressionValue expressionValue =
+            new ExpressionValue(
+                nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+        if (expressionValue.isTypeChanged() || expressionValue.isFunctionCallChanged()) {
+          syncState.setExpressionUnsync(nodeId);
+        }
+        syncState.setVisualisationUnsync(nodeId);
+
         // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
         // like imports, and the invalidation mechanism can not always track those changes and
         // appropriately invalidate all dependent expressions.
         if (!isPanic) {
           cache.offer(nodeId, result);
         }
-        String cachedType = cache.putType(nodeId, resultType);
-        FunctionCallInfo call = calls.get(nodeId);
-        FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
-        ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(nanoTimeElapsed)};
+        cache.putType(nodeId, resultType);
+        cache.putCall(nodeId, call);
 
-        onComputedCallback.accept(
-            new ExpressionValue(
-                nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false));
+        onComputedCallback.accept(expressionValue);
         if (isPanic) {
           throw context.createUnwind(result);
         }
@@ -474,6 +497,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param locationFilter the location filter.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
+   * @param syncState the synchronization state of runtime updates.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
@@ -486,6 +510,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       LocationFilter locationFilter,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
+      UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
@@ -505,6 +530,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 entryCallTarget,
                 cache,
                 methodCallsCache,
+                syncState,
                 nextExecutionItem,
                 functionCallCallback,
                 onComputedCallback,
