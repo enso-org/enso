@@ -11,6 +11,107 @@ polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
 
+## Obtains the current time from the system clock in the default time-zone.
+
+   > Example
+     Get the current time in the default time zone.
+         Time_Of_Day.now
+now : Time_Of_Day
+now = Time_Of_Day LocalTime.now
+
+## Obtains an instance of `Time_Of_Day` from an hour, minute, second
+   and nanosecond.
+
+   Arguments:
+   - hour: The hour-of-day to represent, from 0 to 23.
+   - minute: The minute-of-hour to represent, from 0 to 59.
+   - second: The second-of-minute to represent, from 0 to 59.
+   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
+
+   Returns a `Time_Error` if the provided time is not a valid time.
+
+   > Example
+     Create a new local time at Unix epoch.
+         Time_Of_Day.new
+
+   > Example
+     Get the local time at 9:30.
+         Time_Of_Day.new 9 30
+new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
+new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
+    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
+        x -> x
+
+## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
+
+   Arguments:
+   - text: The text to parse as a time of day.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   default format.
+
+   ? Valid Time Format
+     The text must represent a valid time and is parsed using the ISO-8601
+     extended local time format. The format consists of:
+
+     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
+       digits.
+     - A colon
+     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
+       two digits.
+     - If the second-of-minute is not available then the format is complete.
+     - A colon
+     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
+       two digits.
+     - If the nano-of-second is zero or not available then the format is
+       complete.
+     - A decimal point
+     - One to nine digits for the nano-of-second. As many digits will be output
+       as required.
+
+   > Example
+     Get the time 15:05:30.
+         Time_Of_Day.parse "15:05:30"
+
+   > Example
+     Recover from the parse error.
+         Time_Of_Day.parse "half past twelve" . catch e-> case e of
+             Time.Error _ -> Time_Of_Day.new
+parse : Text -> Time_Of_Day ! Time.Time_Error
+parse text =
+    Panic.recover (Time_Of_Day (LocalTime.parse text)) . catch e-> case e of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
+        x -> x
+
+## Obtains an instance of Time_Of_Day from a text using custom format.
+
+   Arguments:
+   - text: The text to parse as a time of day, using the specified pattern.
+   - pattern: The pattern to use for parsing the input text.
+   - locale: The locale in which the pattern should be interpreted.
+
+   Returns a `Time_Error` if the provided text cannot be parsed using the
+   provided pattern and locale.
+
+   ? Pattern Syntax
+     For the list of accepted symbols in pattern refer to the
+     `Base.Data.Time.format` doc.
+
+   > Example
+     Parse "04:30:20" as Time_Of_Day.
+         Date.parse_format "04:30:20" "HH:mm:ss"
+
+   > Example
+     Parse "4:30AM" as Time_Of_Day
+         Date.parse_format "4:30AM" "h:mma"
+parse_format : Text -> Text -> Locale -> Time_Of_Day ! Time.Time_Error
+parse_format text pattern locale=Locale.default =
+    format = (DateTimeFormatter.ofPattern pattern).withLocale locale.java_locale
+    Panic.recover (Time_Of_Day (LocalTime.parse text format)) . catch e-> case e of
+        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
+        x -> x
+
 type Time_Of_Day
 
     ## This type is a date-time object that represents a time, often viewed
@@ -147,104 +248,3 @@ type Time_Of_Day
              Time_Of_Day.new 16 21 10 . format "'hour:'h"
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_time
-
-## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
-
-   Arguments:
-   - text: The text to parse as a time of day.
-
-   Returns a `Time_Error` if the provided text cannot be parsed using the
-   default format.
-
-   ? Valid Time Format
-     The text must represent a valid time and is parsed using the ISO-8601
-     extended local time format. The format consists of:
-
-     - Two digits for the hour-of-day. This is pre-padded by zero to ensure two
-       digits.
-     - A colon
-     - Two digits for the minute-of-hour. This is pre-padded by zero to ensure
-       two digits.
-     - If the second-of-minute is not available then the format is complete.
-     - A colon
-     - Two digits for the second-of-minute. This is pre-padded by zero to ensure
-       two digits.
-     - If the nano-of-second is zero or not available then the format is
-       complete.
-     - A decimal point
-     - One to nine digits for the nano-of-second. As many digits will be output
-       as required.
-
-   > Example
-     Get the time 15:05:30.
-         Time_Of_Day.parse "15:05:30"
-
-   > Example
-     Recover from the parse error.
-         Time_Of_Day.parse "half past twelve" . catch e-> case e of
-             Time.Error _ -> Time_Of_Day.new
-parse : Text -> Time_Of_Day ! Time.Time_Error
-parse text =
-    Panic.recover (Time_Of_Day (LocalTime.parse text)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
-
-## Obtains an instance of Time_Of_Day from a text using custom format.
-
-   Arguments:
-   - text: The text to parse as a time of day, using the specified pattern.
-   - pattern: The pattern to use for parsing the input text.
-   - locale: The locale in which the pattern should be interpreted.
-
-   Returns a `Time_Error` if the provided text cannot be parsed using the
-   provided pattern and locale.
-
-   ? Pattern Syntax
-     For the list of accepted symbols in pattern refer to the
-     `Base.Data.Time.format` doc.
-
-   > Example
-     Parse "04:30:20" as Time_Of_Day.
-         Date.parse_format "04:30:20" "HH:mm:ss"
-
-   > Example
-     Parse "4:30AM" as Time_Of_Day
-         Date.parse_format "4:30AM" "h:mma"
-parse_format : Text -> Text -> Locale -> Time_Of_Day ! Time.Time_Error
-parse_format text pattern locale=Locale.default =
-    format = (DateTimeFormatter.ofPattern pattern).withLocale locale.java_locale
-    Panic.recover (Time_Of_Day (LocalTime.parse text format)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x
-
-## Obtains the current time from the system clock in the default time-zone.
-
-   > Example
-     Get the current time in the default time zone.
-         Time_Of_Day.now
-now : Time_Of_Day
-now = Time_Of_Day LocalTime.now
-
-## Obtains an instance of `Time_Of_Day` from an hour, minute, second
-   and nanosecond.
-
-   Arguments:
-   - hour: The hour-of-day to represent, from 0 to 23.
-   - minute: The minute-of-hour to represent, from 0 to 59.
-   - second: The second-of-minute to represent, from 0 to 59.
-   - nanosecond: The nano-of-second to represent, from 0 to 999,999,999.
-
-   Returns a `Time_Error` if the provided time is not a valid time.
-
-   > Example
-     Create a new local time at Unix epoch.
-         Time_Of_Day.new
-
-   > Example
-     Get the local time at 9:30.
-         Time_Of_Day.new 9 30
-new : Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time.Time_Error
-new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
-    Panic.recover (Time_Of_Day (LocalTime.of hour minute second nanosecond)) . catch e-> case e of
-        Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
-        x -> x

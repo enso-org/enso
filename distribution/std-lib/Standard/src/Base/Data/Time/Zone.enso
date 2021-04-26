@@ -3,62 +3,14 @@ from Standard.Base import all
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
-type Zone
-
-    ## A type representing a time zone.
-
-       Arguments:
-       - internal_zone_id: The identifier for the internal zone of the
-         representation.
-
-       A time zone can be eiter offset-based like "-06:00" or id-based like
-       "Europe/Paris".
-    type Zone internal_zone_id
-
-    ## Get the unique timezone ID.
-
-       > Example
-         Get the unique identifier for your system's current timezone.
-             Zone.system.zone_id
-    zone_id : Text
-    zone_id = this.internal_zone_id . getId
-
-    ## Convert the time zone to JSON.
-
-       > Example
-         Convert your system's current timezone to JSON.
-             Zone.system.to_json
-    to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
-
-## This method parses the ID producing a `Zone`.
-
-   Arguments:
-   - text: The text representing a zone identifier.
-
-   > Example
-     Get Central European Time.
-         Zone.parse "CET"
-
-   > Example
-     Get Moscow time.
-         Zone.parse "Europe/Moscow"
-
-   > Example
-     Get time zone -06:00.
-         Zone.parse "-06:00"
-
-   > Example
-     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
-         Zone.parse "+03:02:01"
-parse : Text -> Zone
-parse text = Zone (ZoneId.of text)
-
 ## The system default timezone.
 
    > Example
      Get the system default timezone.
-         Zone.system
+
+         import Standard.Base.Data.Time.Zone
+
+         example_system = Zone.system
 system : Zone
 system = Zone ZoneId.systemDefault
 
@@ -94,3 +46,54 @@ utc = here.parse "UTC"
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
     Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
+
+## This method parses the ID producing a `Zone`.
+
+   Arguments:
+   - text: The text representing a zone identifier.
+
+   > Example
+     Get Central European Time.
+         Zone.parse "CET"
+
+   > Example
+     Get Moscow time.
+         Zone.parse "Europe/Moscow"
+
+   > Example
+     Get time zone -06:00.
+         Zone.parse "-06:00"
+
+   > Example
+     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+         Zone.parse "+03:02:01"
+parse : Text -> Zone
+parse text = Zone (ZoneId.of text)
+
+type Zone
+
+    ## A type representing a time zone.
+
+       Arguments:
+       - internal_zone_id: The identifier for the internal zone of the
+         representation.
+
+       A time zone can be eiter offset-based like "-06:00" or id-based like
+       "Europe/Paris".
+    type Zone internal_zone_id
+
+    ## Get the unique timezone ID.
+
+       > Example
+         Get the unique identifier for your system's current timezone.
+             Zone.system.zone_id
+    zone_id : Text
+    zone_id = this.internal_zone_id . getId
+
+    ## Convert the time zone to JSON.
+
+       > Example
+         Convert your system's current timezone to JSON.
+             Zone.system.to_json
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
