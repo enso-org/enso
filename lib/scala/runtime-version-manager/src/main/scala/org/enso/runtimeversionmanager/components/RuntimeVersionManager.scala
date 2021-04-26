@@ -65,23 +65,31 @@ class RuntimeVersionManager(
     */
   def findGraalRuntime(version: GraalVMVersion): Option[GraalRuntime] = {
     val name = graalRuntimeNameForVersion(version)
-    firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
-      .map { path =>
-        // TODO [RW] for now an exception is thrown if the installation is
-        //  corrupted, in #1052 offer to repair the broken installation
-        loadGraalRuntime(path).recoverWith { case e: Exception =>
-          Failure(
-            UnrecognizedComponentError(
-              s"The runtime $version is already installed, but cannot be " +
-              s"loaded due to $e. Until the launcher gets an auto-repair " +
-              s"feature, please try reinstalling the runtime by " +
-              s"uninstalling all engines that use it and installing them " +
-              s"again, or manually removing `$path`.",
-              e
+    val graalRuntimeOpt =
+      firstExisting(distributionManager.paths.runtimeSearchPaths.map(_ / name))
+        .map { path =>
+          // TODO [RW] for now an exception is thrown if the installation is
+          //  corrupted, in #1052 offer to repair the broken installation
+          loadGraalRuntime(path).recoverWith { case e: Exception =>
+            Failure(
+              UnrecognizedComponentError(
+                s"The runtime $version is already installed, but cannot be " +
+                s"loaded due to $e. Until the launcher gets an auto-repair " +
+                s"feature, please try reinstalling the runtime by " +
+                s"uninstalling all engines that use it and installing them " +
+                s"again, or manually removing `$path`.",
+                e
+              )
             )
-          )
-        }.get
-      }
+          }.get
+        }
+    graalRuntimeOpt match {
+      case Some(graalRuntime) =>
+        logger.info(s"Found GraalVM runtime $graalRuntime.")
+      case None =>
+        logger.info(s"GraalVM runtime $version not found.")
+    }
+    graalRuntimeOpt
   }
 
   /** Executes the provided action with a requested engine version.
@@ -248,7 +256,9 @@ class RuntimeVersionManager(
     */
   def findOrInstallEngine(version: SemVer): Engine =
     findEngine(version) match {
-      case Some(found) => found
+      case Some(found) =>
+        logger.info(s"The engine $version found.")
+        found
       case None =>
         if (userInterface.shouldInstallMissingEngine(version)) {
           resourceManager.withResources(
@@ -258,12 +268,14 @@ class RuntimeVersionManager(
           ) {
             findEngine(version) match {
               case Some(engine) =>
-                userInterface.logInfo(
-                  "The engine has already been installed by a different " +
-                  "process."
-                )
+                val message =
+                  s"The engine $version has already been installed by a " +
+                  s"different process."
+                logger.info(message)
+                userInterface.logInfo(message)
                 engine
               case None =>
+                logger.info(s"The engine $version not found.")
                 installEngine(version)
             }
           }
@@ -402,6 +414,7 @@ class RuntimeVersionManager(
     * [[Resource.Runtime]], but it is released before it returns.
     */
   private def installEngine(version: SemVer): Engine = {
+    logger.info(s"Installing the engine $version.")
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
     val isCompatible = isEngineVersionCompatibleWithThisInstaller(
       engineRelease.manifest
@@ -667,7 +680,7 @@ class RuntimeVersionManager(
     runtimeVersion: GraalVMVersion
   ): GraalRuntime =
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
-      logger.debug(s"Installing runtime $runtimeVersion.")
+      logger.info(s"Installing GraalVM runtime $runtimeVersion.")
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
       val downloadTask =
