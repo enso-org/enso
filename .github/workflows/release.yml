@@ -15,6 +15,8 @@ env:
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
 
+concurrency: "releases"
+
 jobs:
   # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
   build:

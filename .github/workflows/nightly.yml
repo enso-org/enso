@@ -3,6 +3,8 @@ name: Nightly Release CI
 
 on:
   push:
+    branches:
+      - main
   schedule:
     - cron: "0 4 * * 2-6" # 4am from Tuesday to Saturday (i.e. after every workday)
 
@@ -15,6 +17,8 @@ env:
   sbtVersion: 1.4.9
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
+
+concurrency: "releases"
 
 jobs:
   preflight-check:
