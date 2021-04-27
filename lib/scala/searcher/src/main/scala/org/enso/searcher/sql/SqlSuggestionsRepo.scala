@@ -157,6 +157,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def close(): Unit =
     db.close()
 
+  /** Get the database schema version.
+    *
+    * @return the schema version of the database
+    */
+  def getSchemaVersion: Future[Long] =
+    db.run(currentSchemaVersionQuery)
+
   /** Set the database schema version.
     *
     * @param version the database schema version
@@ -164,6 +171,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   def setSchemaVersion(version: Long): Future[Long] =
     db.run(setSchemaVersionQuery(version))
+
+  /** Remove the database schema version. */
+  def clearSchemaVersion: Future[Unit] =
+    db.run(clearSchemaVersionQuery)
 
   /** Insert suggestions in a batch.
     *
@@ -775,6 +786,12 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield version
     query
   }
+
+  /** The query to delete the schema version. */
+  private def clearSchemaVersionQuery: DBIO[Unit] =
+    for {
+      _ <- SchemaVersion.delete
+    } yield ()
 
   /** The query to insert suggestions in a batch.
     *
