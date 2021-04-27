@@ -35,6 +35,12 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
     javaHome / "bin" / executableName
   }
 
+  /** The path to the `gu` executable associated with this runtime. */
+  def guExecutable: Path = {
+    val executableName = if (OS.isWindows) "gu.cmd" else "gu"
+    javaHome / "bin" / executableName
+  }
+
   /** Checks if the installation is not corrupted and reports any issues as
     * failures.
     */

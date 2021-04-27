@@ -3,7 +3,6 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.runtimeversionmanager.OS
 
 import scala.sys.process._
 import scala.util.{Success, Try}
@@ -11,9 +10,8 @@ import scala.util.{Success, Try}
 /** Module that manages components of the GraalVM distribution.
   *
   * @param runtime the GraalVM runtime
-  * @param os the operating system
   */
-class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
+class GraalVMComponentUpdater(runtime: GraalRuntime)
     extends RuntimeComponentUpdater {
 
   import GraalVMComponentUpdater._
@@ -25,18 +23,18 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
     * @return the list of installed GraalVM components
     */
   override def list: Try[Seq[GraalVMComponent]] = {
-    val command: Seq[String] = Seq(Paths.gu, "list", "-v")
+    val command: Seq[String] = Seq(runtime.guExecutable, "list", "-v")
     val process = Process(
       command,
-      Some(runtime.path.toFile),
-      ("JAVA_HOME", runtime.path),
-      ("GRAALVM_HOME", runtime.path)
+      Some(runtime.javaHome.toFile),
+      ("JAVA_HOME", runtime.javaHome),
+      ("GRAALVM_HOME", runtime.javaHome)
     )
 
     logger.trace(
       s"command=${command.mkString(" ")}; " +
-      s"JAVA_HOME=${Properties(runtime.path)}" +
-      s"gu=${Properties(Paths.gu)}"
+      s"JAVA_HOME=${Properties(runtime.javaHome)}" +
+      s"gu=${Properties(runtime.guExecutable)}"
     )
     for {
       stdout <- Try(process.lazyLines(stderrLogger))
@@ -51,17 +49,17 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
   override def install(components: Seq[GraalVMComponent]): Try[Unit] = {
     if (components.nonEmpty) {
       val command: Seq[String] =
-        Seq[String](Paths.gu, "install") ++ components.map(_.id)
+        Seq[String](runtime.guExecutable, "install") ++ components.map(_.id)
       val process = Process(
         command,
         Some(runtime.path.toFile),
-        ("JAVA_HOME", runtime.path),
-        ("GRAALVM_HOME", runtime.path)
+        ("JAVA_HOME", runtime.javaHome),
+        ("GRAALVM_HOME", runtime.javaHome)
       )
       logger.trace(
         s"command=${command.mkString(" ")}; " +
         s"JAVA_HOME=${Properties(runtime.path)}" +
-        s"gu=${Properties(Paths.gu)}"
+        s"gu=${Properties(runtime.guExecutable)}"
       )
       for {
         stdout <- Try(process.lazyLines(stderrLogger))
@@ -74,26 +72,11 @@ class GraalVMComponentUpdater(runtime: GraalRuntime, os: OS)
 
   private def stderrLogger =
     ProcessLogger(err => logger.trace(s"[stderr] $err"))
-
-  private object Paths {
-
-    /** Path to `gu` executable. */
-    val gu: Path = os match {
-      case OS.Linux   => runtime.path / "bin" / "gu"
-      case OS.MacOS   => runtime.path / "bin" / "gu"
-      case OS.Windows => runtime.path / "bin" / "gu.cmd"
-    }
-  }
 }
 object GraalVMComponentUpdater {
 
   implicit private def pathToString(path: Path): String =
     path.toAbsolutePath.toString
-
-  implicit private class PathExtensions(path: Path) {
-
-    def /(child: String): Path = path.resolve(child)
-  }
 
   /** Debug file properties. */
   private case class Properties(path: Path) {

@@ -29,7 +29,14 @@ class GraalVMComponentUpdaterSpec extends AnyWordSpec with Matchers {
     for {
       javaHome       <- javaHomeOpt
       graalVMVersion <- graalVMVersionOpt
-    } yield GraalRuntime(graalVMVersion, javaHome)
+    } yield {
+      val path = os match {
+        case OS.Linux   => javaHome
+        case OS.MacOS   => javaHome.getParent.getParent
+        case OS.Windows => javaHome
+      }
+      GraalRuntime(graalVMVersion, path)
+    }
 
   def isCI: Boolean = sys.env.contains("CI")
 
@@ -54,7 +61,7 @@ class GraalVMComponentUpdaterSpec extends AnyWordSpec with Matchers {
 
     "list components" in {
       val graal = getOrElseFail(graalRuntime)
-      val ru    = new GraalVMComponentUpdater(graal, os)
+      val ru    = new GraalVMComponentUpdater(graal)
 
       ru.list match {
         case Success(components) =>

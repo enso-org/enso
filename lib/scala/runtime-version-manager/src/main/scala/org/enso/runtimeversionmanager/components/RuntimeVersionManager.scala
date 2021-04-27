@@ -601,11 +601,12 @@ class RuntimeVersionManager(
         .toTry
       runtime = GraalRuntime(version, path)
       _ <- runtime.ensureValid()
-      _ <- installRequiredRuntimeComponents(runtime, os).recover { _ =>
-        logger.warn(
-          s"Failed to install required components on the existing $runtime. " +
-          "Some language features may be unavailable."
-        )
+      _ <- installRequiredRuntimeComponents(runtime).recover {
+        case NonFatal(error) =>
+          logger.warn(
+            s"Failed to install required components on the existing $runtime. " +
+            s"Some language features may be unavailable. ${error.getMessage}"
+          )
       }
     } yield runtime
   }
@@ -725,7 +726,7 @@ class RuntimeVersionManager(
             )
           }
         logger.debug(s"Installing GraalVM components to $temporaryRuntime.")
-        installRequiredRuntimeComponents(temporaryRuntime, os).getOrElse {
+        installRequiredRuntimeComponents(temporaryRuntime).getOrElse {
           throw InstallationError(
             "fatal: Cannot install the required runtime components."
           )
@@ -757,23 +758,24 @@ class RuntimeVersionManager(
   /** Install components required for the specified runtime on the specified OS.
     *
     * @param runtime the GraalVM runtime
-    * @param os the operating system
     */
   private def installRequiredRuntimeComponents(
-    runtime: GraalRuntime,
-    os: OS
+    runtime: GraalRuntime
   ): Try[Unit] = {
     logger.debug(s"Installing GraalVM components $runtime on $os.")
-    val cu = componentUpdaterFactory.build(runtime, os)
+    val cu = componentUpdaterFactory.build(runtime)
     val requiredComponents =
       componentConfig.getRequiredComponents(runtime.version, os)
 
-    for {
-      installedComponents <- cu.list
-      _                 = logger.debug(s"Available GraalVM components: $installedComponents.")
-      missingComponents = requiredComponents.diff(installedComponents)
-      _ <- cu.install(missingComponents)
-    } yield ()
+    if (requiredComponents.isEmpty) Success(())
+    else {
+      for {
+        installedComponents <- cu.list
+        _                 = logger.debug(s"Available GraalVM components: $installedComponents.")
+        missingComponents = requiredComponents.diff(installedComponents)
+        _ <- cu.install(missingComponents)
+      } yield ()
+    }
   }
 
   private def engineDirectoryNameForVersion(version: SemVer): Path =
