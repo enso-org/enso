@@ -141,10 +141,9 @@ class RepoInitializationSpec
         )
     }
 
-    "recreate corrupted suggestion database file" in withDb {
-      (config, suggestionsRepo, versionsRepo) =>
-        system.eventStream.subscribe(self, classOf[InitializedEvent])
-
+    "recreate corrupted suggestion database file" in withConfig { config =>
+      // initialize
+      withRepos(config) { (suggestionsRepo, versionsRepo) =>
         val component =
           new RepoInitialization(
             config.directories,
@@ -153,7 +152,6 @@ class RepoInitializationSpec
             versionsRepo
           )
 
-        // initialize
         val init =
           for {
             _       <- component.init()
@@ -162,26 +160,33 @@ class RepoInitializationSpec
 
         val version1 = Await.result(init, Timeout)
         version1 shouldEqual SchemaVersion.CurrentVersion
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
+      }
 
-        // corrupt
-        val bytes: Array[Byte] = Array(1, 2, 3)
-        Files.write(
-          config.directories.suggestionsDatabaseFile.toPath,
-          bytes,
-          StandardOpenOption.WRITE,
-          StandardOpenOption.TRUNCATE_EXISTING,
-          StandardOpenOption.SYNC
-        )
+      // corrupt
+      val bytes: Array[Byte] = Array(1, 2, 3)
+      Files.write(
+        config.directories.suggestionsDatabaseFile.toPath,
+        bytes,
+        StandardOpenOption.WRITE,
+        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.SYNC
+      )
+
+      // re-initialize
+      withRepos(config) { (suggestionsRepo, versionsRepo) =>
+        val component =
+          new RepoInitialization(
+            config.directories,
+            system.eventStream,
+            suggestionsRepo,
+            versionsRepo
+          )
+
         an[SQLiteException] should be thrownBy Await.result(
           suggestionsRepo.getSchemaVersion,
           Timeout
         )
 
-        // re-initialize
         val action =
           for {
             _       <- component.init()
@@ -194,6 +199,7 @@ class RepoInitializationSpec
           InitializedEvent.SuggestionsRepoInitialized,
           InitializedEvent.FileVersionsRepoInitialized
         )
+      }
     }
 
   }
@@ -208,6 +214,29 @@ class RepoInitializationSpec
     )
   }
 
+  def withConfig(test: Config => Any): Unit = {
+    val testContentRoot = Files.createTempDirectory(null).toRealPath()
+    sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
+    val config = newConfig(testContentRoot.toFile)
+
+    test(config)
+  }
+
+  def withRepos(
+    config: Config
+  )(test: (SqlSuggestionsRepo, SqlVersionsRepo) => Any): Unit = {
+    val sqlDatabase = SqlDatabase(
+      config.directories.suggestionsDatabaseFile.toString
+    )
+    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
+    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
+
+    try test(suggestionsRepo, versionsRepo)
+    finally {
+      sqlDatabase.close()
+    }
+  }
+
   def withDb(
     test: (
       Config,
@@ -215,18 +244,10 @@ class RepoInitializationSpec
       SqlVersionsRepo
     ) => Any
   ): Unit = {
-    val testContentRoot = Files.createTempDirectory(null).toRealPath()
-    sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config = newConfig(testContentRoot.toFile)
-    val sqlDatabase = SqlDatabase(
-      config.directories.suggestionsDatabaseFile.toString
-    )
-    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
-    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
-
-    try test(config, suggestionsRepo, versionsRepo)
-    finally {
-      sqlDatabase.close()
+    withConfig { config =>
+      withRepos(config) { (suggestionsRepo, versionsRepo) =>
+        test(config, suggestionsRepo, versionsRepo)
+      }
     }
   }
 }
