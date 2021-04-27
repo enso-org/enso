@@ -29,8 +29,8 @@ jobs:
       "${{ github.event_name == 'schedule' ||
       contains(github.event.head_commit.message,'[release: nightly]') }}"
     outputs:
-      proceed: ${{ steps.check-assumptions.outputs.proceed }}
-      nightly-version: ${{ steps.compute-version.outputs.nightly-version }}
+      proceed: ${{ steps.preparations.outputs.proceed }}
+      nightly-version: ${{ steps.preparations.outputs.nightly-version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -40,24 +40,17 @@ jobs:
           echo ${{ github.event.head_commit.message }}
           echo ${{ github.event_name }}
           echo ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message,'[release: nightly]') }}
-      - id: check-assumptions
-        name: Check If The Build Should Proceed
+      - id: preparations
+        name: Check If The Build Should Proceed And Prepare Version String
         shell: bash
+        working-directory: repo/tools/ci/nightly
         env:
           GITHUB_TOKEN: ${{ github.token }}
         # The script below sets an output 'proceed' to true or false depending on whether the nightly build should proceed.
         # Nightly builds are skipped if no new changes are present since the last one.
         run: |
-          cd tools/ci/nightly/
           npm install
           node preflight-check.js ${{ github.sha }}
-      - name: Compute Version
-        id: compute-version
-        if: ${{ steps.check-assumptions.outputs.proceed == 'true' }}
-        shell: bash
-        run: |
-          VERSION=$(cat build.sbt | grep 'val ensoVersion' | sed 's/.*"\([^)]*\)".*/\1/').$(date --iso-8601)
-          echo ::set-output name=nightly-version::$VERSION
 
   # This job should be kept up-to-date with scala.yml#build (but keep the relevant changes)
   build:
