@@ -636,13 +636,14 @@ object Main extends scala.App {
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
   val droppedMeta = parser.dropMacroMeta(mod)
-  val doc         = DocParserRunner.createDocs(droppedMeta)
+  val doc         = DocParser.DocParserRunner.createDocs(droppedMeta)
 
   println(Debug.pretty(doc.toString))
   println("------")
   println(doc.show())
   println("=========================")
-  val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+  val htmlCode =
+    DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
   println("========== HTML ===========")
   println(htmlCode)
   println("=========================")
@@ -680,8 +681,8 @@ object Main extends scala.App {
       |      def Bar a
       |          Foo x y
       |""".stripMargin
-  val doc2      = DocParser.runMatched(inpOnlyDoc)
-  val htmlCode2 = DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
+  val doc2      = DocParserMain.runMatched(inpOnlyDoc)
+  val htmlCode2 = DocParser.DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
   println(htmlCode2)
 
   AST.main()

@@ -2,15 +2,16 @@ package org.enso
 
 import java.io._
 
-import org.enso.syntax.text.{DocParserHTMLGenerator, DocParserRunner, Parser}
+import org.enso.syntax.text.{DocParser, Parser}
 
 object DocsGenerator {
   def generate(program: String): String = {
     val parser   = new Parser()
     val module   = parser.run(program)
     val dropMeta = parser.dropMacroMeta(module)
-    val doc      = DocParserRunner.createDocs(dropMeta)
-    val code     = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+    val doc      = DocParser.DocParserRunner.createDocs(dropMeta)
+    val code =
+      DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
     code
   }
 
@@ -25,11 +26,10 @@ object DocsGenerator {
 
 object DocsGeneratorMain extends App {
   import DocsGenerator._
-//  println("Enso Docs Generator")
+
   val path = "./distribution/std-lib/Standard/src"
   val allFiles = traverse(new File(path))
     .filter(f => f.isFile && f.getName.endsWith(".enso"))
-//  allFiles.foreach(println)
   val allPrograms =
     allFiles.map(f =>
       scala.io.Source.fromFile(f, "UTF-8").getLines().mkString("\n")
