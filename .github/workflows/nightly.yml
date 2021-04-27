@@ -43,7 +43,7 @@ jobs:
       - id: preparations
         name: Check If The Build Should Proceed And Prepare Version String
         shell: bash
-        working-directory: repo/tools/ci/nightly
+        working-directory: tools/ci/nightly
         env:
           GITHUB_TOKEN: ${{ github.token }}
         # The script below sets an output 'proceed' to true or false depending on whether the nightly build should proceed.
@@ -542,9 +542,17 @@ jobs:
       #        run: node trigger-workflow.js ide gui-ci develop
       #        env:
       #          GITHUB_TOKEN: ${{ github.token }}
-      - name: Remove Old Releases
-        shell: bash
-        working-directory: repo/tools/ci/nightly
-        run: node clean-old-releases.js
+#      - name: Remove Old Releases
+#        shell: bash
+#        working-directory: repo/tools/ci/nightly
+#        run: node clean-old-releases.js
+#        env:
+#          GITHUB_TOKEN: ${{ github.token }}
+      - uses: dev-drprasad/delete-older-releases@v0.2.0
+        name: Remove Old Releases
+        with:
+          keep_latest: 3
+          delete_tag_pattern: SNAPSHOT
+          delete_tags: true
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
