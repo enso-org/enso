@@ -229,7 +229,6 @@ type Vector
                     @Tail_Call go idx+1
         go 0
 
-
     ## Checks whether a predicate holds for at least one element of this vector.
 
        Arguments:
