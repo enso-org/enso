@@ -105,7 +105,12 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   val initializationComponent = SequentialResourcesInitialization(
     new DirectoriesInitialization(config.directories),
-    new RepoInitialization(system.eventStream, suggestionsRepo, versionsRepo)
+    new RepoInitialization(
+      config.directories,
+      system.eventStream,
+      suggestionsRepo,
+      versionsRepo
+    )
   )
 
   override def clientControllerFactory: ClientControllerFactory = {

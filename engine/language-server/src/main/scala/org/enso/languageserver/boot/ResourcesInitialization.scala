@@ -37,7 +37,12 @@ object ResourcesInitialization {
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),
-      new RepoInitialization(eventStream, suggestionsRepo, versionsRepo),
+      new RepoInitialization(
+        directoriesConfig,
+        eventStream,
+        suggestionsRepo,
+        versionsRepo
+      ),
       new TruffleContextInitialization(eventStream, truffleContext)
     )
     new SequentialResourcesInitialization(resources)
