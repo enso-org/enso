@@ -1,6 +1,6 @@
 package org.enso
 
-import java.io.File
+import java.io._
 
 import org.enso.syntax.text.{DocParserHTMLGenerator, DocParserRunner, Parser}
 
@@ -34,9 +34,18 @@ object DocsGeneratorMain extends App {
     allFiles.map(f =>
       scala.io.Source.fromFile(f, "UTF-8").getLines().mkString("\n")
     )
-//  allPrograms.foreach(println)
   val allDocs = allPrograms.map(generate)
-//  allDocs.foreach(println)
-  val zipped = allFiles.zip(allDocs)
-//  save R to L.replace("src","docs").replace(".enso",".html")
+  val allDocFiles = allFiles.map(x =>
+    x.getPath.replace(".enso", ".html").replace("Standard/src", "docs")
+  )
+  val zipped = allDocFiles.zip(allDocs)
+  zipped.foreach(x => {
+    val file = new File(x._1)
+    val dir  = new File(x._1.replaceAll("\\/[a-zA-Z_]*\\.[a-zA-Z]*", ""))
+    dir.mkdirs()
+    file.createNewFile();
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(x._2)
+    bw.close()
+  })
 }
