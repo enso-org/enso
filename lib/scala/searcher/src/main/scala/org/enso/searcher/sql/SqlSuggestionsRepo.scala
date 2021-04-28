@@ -39,7 +39,7 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(DBIO.seq(initQuery, checkQuery))
+    db.run(initQuery)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
@@ -183,13 +183,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     */
   private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
     db.run(insertBatchQuery(suggestions))
-
-  /** The query checking that the database is not corrupted. */
-  private def checkQuery: DBIO[Unit] = {
-    for {
-      _ <- Suggestions.length.result
-    } yield ()
-  }
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
