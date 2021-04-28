@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Terminated}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquisitionBadRequest,
@@ -8,6 +8,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   ReleaseCapability
 }
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration}
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
@@ -66,10 +67,27 @@ class BufferRegistry(
 )(implicit
   versionCalculator: ContentBasedVersioning
 ) extends Actor
+    with Stash
     with ActorLogging
     with UnhandledLogging {
 
-  override def receive: Receive = running(Map.empty)
+  override def preStart(): Unit = {
+    log.info("Starting initialization.")
+    context.system.eventStream
+      .subscribe(self, InitializedEvent.FileVersionsRepoInitialized.getClass)
+  }
+
+  override def receive: Receive = initializing
+
+  private def initializing: Receive = {
+    case InitializedEvent.FileVersionsRepoInitialized =>
+      log.info("Initiaized.")
+      context.become(running(Map.empty))
+      unstashAll()
+
+    case _ =>
+      stash()
+  }
 
   private def running(registry: Map[Path, ActorRef]): Receive = {
     case Ping =>

@@ -408,12 +408,16 @@ class ContextEventsListenerSpec
         updatesSendRate
       )
     )
-    repo.init.onComplete {
+    val repoInit = repo.init
+    repoInit.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize Suggestions repo")
+        system.log.error(
+          s"ContextEventsListenerSpec failed to initialize Suggestions repo. $ex"
+        )
     }
+    Await.ready(repoInit, Timeout)
 
     try test(clientId, contextId, repo, router, listener)
     finally {
