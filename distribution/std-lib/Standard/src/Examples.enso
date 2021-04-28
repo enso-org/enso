@@ -3,9 +3,10 @@ from Standard.Base import all
 import Standard.Base.Data.Time
 
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
-import Standard.Base.Data.Time.Duration as Enso_Duration
 import Standard.Base.Data.Json as Enso_Json
 import Standard.Base.Data.List as Enso_List
+import Standard.Base.Data.Map as Enso_Map
+import Standard.Base.Data.Time.Duration as Enso_Duration
 
 # Can do the top-level examples directory.
 
@@ -68,13 +69,18 @@ json_text = """
     ]
 
 ## Example JSON for working with.
-json : Json
+json : Enso_Json.Json
 json = Enso_Json.parse here.json_text
 
 ## An example JSON object.
-json_object : Json.Object
+json_object : Enso_Json.Object
 json_object = here.json.items.head
 
 ## An example cons-list.
-list : List
+list : Enso_List.List
 list = Cons 1 (Cons 2 (Cons 3 Nil))
+
+## A simple map that contains some numbers mapped to their word equivalents.
+map : Enso_Map.Map
+map = Enso_Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+

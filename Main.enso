@@ -1,8 +1,9 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Locale
+import Standard.Base.Data.Map
+import Standard.Examples
 
-example = Locale.default.to_text
+example = Examples.map.fold_with_key "" (l -> k -> v -> l + k.to_text + v)
 
 main =
     result = here.example
