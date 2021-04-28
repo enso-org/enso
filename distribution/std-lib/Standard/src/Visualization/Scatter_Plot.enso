@@ -23,7 +23,7 @@ label_field = 'label'
 
 ## PRIVATE
    Represents a recognized point data field for a scatter plot visualization.
-type PointData 
+type PointData
     ## PRIVATE
     type PointData
     ## PRIVATE
@@ -72,15 +72,13 @@ type PointData
     ## PRIVATE
        Returns a vector of subsequent integers beginning from 0.
     iota : Number -> Vector
-    iota count = 
-        # FIXME [mwu]: Adjust once https://github.com/enso-org/enso/issues/1439
-        #              is addressed.
-        range = 0.up_to <| count + 1
+    iota count =
+        range = 0.up_to count
         Column.from_vector here.index_name range.to_vector
 
     ## PRIVATE
     lookup_in : Table -> Column
-    lookup_in table = 
+    lookup_in table =
         named = table.lookup_ignore_case this.name
         named.catch_ <| this.fallback_column table
 
@@ -90,7 +88,7 @@ Table.Table.point_data : Table -> Object
 Table.Table.point_data =
     get_point_data field = field.lookup_in this . rename field.name
     columns = PointData.all_fields.filter_map get_point_data
-    (0.up_to <| this.row_count + 1).to_vector.map <| row_n-> 
+    (0.up_to this.row_count).to_vector.map <| row_n->
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
             [column.name, value]
@@ -100,7 +98,7 @@ Table.Table.point_data =
     Generates JSON that describes plot axes.
 Table.Table.axes : Table -> Object
 Table.Table.axes =
-    describe_axis field = 
+    describe_axis field =
         col_name = field.lookup_in this . name
         label = Json.from_pairs [[here.label_field, col_name]]
         [field.name, label]
@@ -114,19 +112,19 @@ Table.Table.axes =
 
 ## PRIVATE
 Vector.Vector.point_data : Vector -> Object
-Vector.Vector.point_data = 
-        this.map_with_index <| i-> elem-> 
+Vector.Vector.point_data =
+        this.map_with_index <| i-> elem->
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE
 
-json_from_table table = 
+json_from_table table =
     data = table.point_data
     axes = table.axes
     Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
 
 ## PRIVATE
-json_from_vector vec = 
+json_from_vector vec =
     data = [here.data_field, vec.point_data]
     axes = [here.axis_field, Nothing]
     Json.from_pairs [data, axes]
@@ -134,13 +132,13 @@ json_from_vector vec =
 ## PRIVATE
 
    Default preprocessor for the scatterplot visualization.
-   
+
    Generates JSON text describing the scatterplot visualization.
-   
+
    Arguments:
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = 
+process_to_json_text value =
     json = case value of
         Column.Column _ -> here.json_from_table  value.to_table
         Table.Table _   -> here.json_from_table  value

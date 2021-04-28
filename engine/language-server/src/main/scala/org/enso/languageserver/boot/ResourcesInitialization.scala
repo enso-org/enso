@@ -9,10 +9,10 @@ import org.enso.languageserver.boot.resource.{
   TruffleContextInitialization
 }
 import org.enso.languageserver.data.DirectoriesConfig
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 /** Helper object for the initialization of the Language Server resources.
   * Creates the directories, initializes the databases, and the Truffle context.
@@ -31,13 +31,18 @@ object ResourcesInitialization {
   def apply(
     eventStream: EventStream,
     directoriesConfig: DirectoriesConfig,
-    suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: FileVersionsRepo[Future],
+    suggestionsRepo: SqlSuggestionsRepo,
+    versionsRepo: SqlVersionsRepo,
     truffleContext: Context
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),
-      new RepoInitialization(eventStream, suggestionsRepo, versionsRepo),
+      new RepoInitialization(
+        directoriesConfig,
+        eventStream,
+        suggestionsRepo,
+        versionsRepo
+      ),
       new TruffleContextInitialization(eventStream, truffleContext)
     )
     new SequentialResourcesInitialization(resources)

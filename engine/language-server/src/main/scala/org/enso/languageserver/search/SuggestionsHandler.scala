@@ -411,6 +411,7 @@ final class SuggestionsHandler(
           }
           .pipeTo(self)
         context.become(verifying(name, graph))
+        unstashAll()
     }
   }
 
