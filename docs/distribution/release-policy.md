@@ -79,23 +79,58 @@ Cutting a release for Enso proceeds as follows:
 
 1.  If no release branch exists for the current major version, one should be
     created.
-2.  Release notes should be made up to date in `RELEASES.md` and committed to
-    the release branch.
-3.  Ensure that the project version is set to the version that you want to
-    release.
-4.  A commit representing the release should be tagged on the release branch,
-    and the tag pushed to GitHub. The tag should have a description that
-    consists of the release notes for that tag, replacing hashes with `=`.
-5.  CI will create a draft release for this tag, as well as build and upload the
-    appropriate artefacts. **Do not** create a release for your tag manually.
-6.  The release notes for the version being released should be copied into the
-    release body on GitHub.
-7.  The release must be verified by two members of the engine team, and the QA
-    team.
-8.  Once approval has been gained from these members, the release may be made
-    official.
-9.  Push a commit to `main` bumping the version number and ensuring that it
-    remains a `SNAPSHOT` version.
+2.  Create a branch called `wip/<initials/release-bump`. On this branch, ensure
+    that the release notes are up to date in `RELEASES.md` (follow the existing
+    format), and that the new version number has been set in `build.sbt`. This
+    version should _not_ contain `SNAPSHOT`.
+3.  Open a PR for this branch into `main`.
+4.  Once the changes have been reviewed, merge the PR into main (getting commit
+    hash `xxxxxxx`). The message should be `Prepare for the $version release`.
+5.  Immediately push a commit to `main` that updates the version in `build.sbt`
+    to the new snapshot version. If unclear, bump the patch version by one and
+    append `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The message
+    should be `Bump the snapshot version`.
+6.  Find the commit hash of the last "Bump the snapshot version" commit. Let's
+    say this is `yyyyyyy`.
+7.  Run a `rebase --onto` the release branch from the `yyyyyyy` commit to the
+    `xxxxxxx` commit. For example:
+
+```
+git rebase --onto origin/release/0.x yyyyyyy~1 xxxxxxx
+```
+
+8.  This will put you into a "detached HEAD" state at commit `zzzzzzz`, so you
+    need to make a new branch: `git branch release-update zzzzzzz`
+9.  This new branch is a fast-forward merge away from the release branch. Check
+    out the release branch and then fast-forward merge `release-update` into it.
+    For example:
+
+```
+git checkout release/0.x
+git merge --ff-only release-update
+```
+
+10. As long as the fast-forward proceeds cleanly, you can push the updated
+    release branch to the origin.
+11. Create a tag for the commit at the HEAD of the release branch. It should be
+    named as above. For example:
+
+```
+git tag --sign enso-0.2.11
+```
+
+12. Push the tag to the remote. This will start the release build.
+13. CI will create a draft release for this tag, as well as build and upload the
+    appropriate artefacts. **Do not** create a release for this tag manually.
+14. The release notes for the version being released should be copied from the
+    new section in `RELEASES.md` into the GitHub release description with the
+    line breaks removed.
+15. The title of the release should be `Enso Engine <version>` (e.g.
+    `Enso Engine 0.2.11`).
+16. The release must be verified by at least one member of the engine team and
+    the QA team.
+17. Once verification has been performed, the release can be published. It
+    should _not_ be a pre-releases as we reserve these for nightly builds.
 
 ### Tag Naming
 
