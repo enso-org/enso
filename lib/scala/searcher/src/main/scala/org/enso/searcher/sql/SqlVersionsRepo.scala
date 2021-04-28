@@ -9,7 +9,7 @@ import slick.jdbc.meta.MTable
 
 import scala.concurrent.{ExecutionContext, Future}
 
-final class SqlVersionsRepo(val db: SqlDatabase)(implicit ec: ExecutionContext)
+final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     extends FileVersionsRepo[Future] {
 
   /** Initialize the repo. */

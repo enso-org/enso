@@ -67,9 +67,7 @@ class RepoInitialization(
         _ <- Future {
           log.info("Initializing versions repo.")
         }
-        _ <- versionsRepo.init.recoverWith { case NonFatal(error) =>
-          recoverInitError(error, versionsRepo.db)
-        }
+        _ <- versionsRepo.init
         _ <- Future {
           log.info("Initialized Versions repo.")
         }
