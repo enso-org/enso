@@ -69,7 +69,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   log.trace(s"Created ZIO executor $zioExec.")
 
   val fileSystem: FileSystem = new FileSystem
-  log.trace("Created file system $fileSystem.")
+  log.trace(s"Created file system $fileSystem.")
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
