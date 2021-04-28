@@ -89,6 +89,9 @@ class ProjectService[
     creationTime <- clock.nowInUtc()
     project = Project(projectId, name, UserProject, creationTime)
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
+    _ <- log.debug(
+      s"Found a path '$path' for a new project $name $projectId."
+    )
     _ <- projectCreationService.createProject(
       progressTracker,
       path,
@@ -96,9 +99,14 @@ class ProjectService[
       engineVersion,
       missingComponentAction
     )
+    _ <- log.debug(
+      s"Project $projectId structure created with " +
+      s"$path, $name, $engineVersion."
+    )
     _ <- repo
       .update(project.copy(path = Some(path.toString)))
       .mapError(toServiceFailure)
+    _ <- log.debug(s"Project $projectId updated in repository $repo.")
     _ <- log.info(s"Project $project created.")
   } yield projectId
 
@@ -152,8 +160,20 @@ class ProjectService[
     val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
     CovariantFlatMap[F]
       .ifM(isServerRunning(projectId))(
-        ifTrue  = languageServerGateway.registerShutdownHook(projectId, cmd),
-        ifFalse = cmd.execute()
+        ifTrue = for {
+          _ <- log.debug(
+            s"Registering shutdown hook to rename the project $projectId " +
+            s"with a new name '$newName''"
+          )
+          _ <- languageServerGateway.registerShutdownHook(projectId, cmd)
+        } yield (),
+        ifFalse = for {
+          _ <- log.debug(
+            s"Running a command to rename the project $projectId " +
+            s"with a new name '$newName"
+          )
+          _ <- cmd.execute()
+        } yield ()
       )
   }
 
@@ -185,6 +205,12 @@ class ProjectService[
         case ServerUnresponsive =>
           LanguageServerFailure("The language server is unresponsive")
       }
+      .flatMap { _ =>
+        log.debug(
+          s"Language Server replied to the project $projectId rename command " +
+          s"from $oldPackage to $newPackage."
+        )
+      }
 
   private def checkIfProjectExists(
     projectId: UUID
@@ -195,6 +221,12 @@ class ProjectService[
       .flatMap {
         case None    => ErrorChannel[F].fail(ProjectNotFound)
         case Some(_) => CovariantFlatMap[F].pure(())
+      }
+      .flatMap { _ =>
+        log.debug(
+          s"Checked if the project $projectId exists " +
+          s"in repo $repo."
+        )
       }
 
   /** @inheritdoc */
@@ -331,6 +363,11 @@ class ProjectService[
         case None          => ErrorChannel[F].fail(ProjectNotFound)
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
+      .flatMap { project =>
+        log
+          .debug(s"Found project $projectId in the $repo.")
+          .map(_ => project)
+      }
 
   private def checkIfNameExists(
     name: String
@@ -341,6 +378,12 @@ class ProjectService[
       .flatMap { exists =>
         if (exists) raiseError(ProjectExists)
         else unit
+      }
+      .flatMap { _ =>
+        log.debug(
+          s"Checked if the project name '$name' exists " +
+          s"in the $repo."
+        )
       }
 
   private val toServiceFailure
@@ -377,6 +420,9 @@ class ProjectService[
           ProjectServiceFailure.ValidationFailure(
             s"Project name should be in upper snake case: $validName"
           )
+      }
+      .flatMap { _ =>
+        log.debug(s"Project name '$name' validated by $validator.")
       }
 
 }
