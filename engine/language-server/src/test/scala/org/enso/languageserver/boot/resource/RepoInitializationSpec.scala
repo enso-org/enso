@@ -177,6 +177,16 @@ class RepoInitializationSpec
           Timeout
         )
       }
+      // check file ownership
+      println("!! checking file ownership")
+      //FileUtils.forceDelete(config.directories.suggestionsDatabaseFile)
+      Files.delete(config.directories.suggestionsDatabaseFile.toPath)
+      Files.write(
+        config.directories.suggestionsDatabaseFile.toPath,
+        bytes,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.DSYNC
+      )
       // re-initialize
       withRepos(config) { (suggestionsRepo, versionsRepo) =>
         val component =
