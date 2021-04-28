@@ -17,13 +17,14 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
   import GraalVMComponentUpdater._
 
   private val logger = Logger[GraalVMComponentUpdater]
+  private val gu     = runtime.findExecutable("gu")
 
   /** List the installed GraalVM components.
     *
     * @return the list of installed GraalVM components
     */
   override def list: Try[Seq[GraalVMComponent]] = {
-    val command: Seq[String] = Seq(runtime.guExecutable, "list", "-v")
+    val command: Seq[String] = Seq(gu, "list", "-v")
     val process = Process(
       command,
       Some(runtime.javaHome.toFile),
@@ -34,7 +35,7 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
     logger.trace(
       s"command=${command.mkString(" ")}; " +
       s"JAVA_HOME=${Properties(runtime.javaHome)}" +
-      s"gu=${Properties(runtime.guExecutable)}"
+      s"gu=${Properties(gu)}"
     )
     for {
       stdout <- Try(process.lazyLines(stderrLogger))
@@ -49,7 +50,7 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
   override def install(components: Seq[GraalVMComponent]): Try[Unit] = {
     if (components.nonEmpty) {
       val command: Seq[String] =
-        Seq[String](runtime.guExecutable, "install") ++ components.map(_.id)
+        Seq[String](gu, "install") ++ components.map(_.id)
       val process = Process(
         command,
         Some(runtime.path.toFile),
@@ -59,7 +60,7 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
       logger.trace(
         s"command=${command.mkString(" ")}; " +
         s"JAVA_HOME=${Properties(runtime.path)}" +
-        s"gu=${Properties(runtime.guExecutable)}"
+        s"gu=${Properties(gu)}"
       )
       for {
         stdout <- Try(process.lazyLines(stderrLogger))
