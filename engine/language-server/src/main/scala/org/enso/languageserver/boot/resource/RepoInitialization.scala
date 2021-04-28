@@ -75,7 +75,7 @@ class RepoInitialization(
       case Success(()) =>
         eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
-        log.error("Failed to initialize versions repo", ex)
+        log.error("Failed to initialize SQL versions repo", ex)
     }
     initAction
   }

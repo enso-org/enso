@@ -169,9 +169,14 @@ class RepoInitializationSpec
         bytes,
         StandardOpenOption.WRITE,
         StandardOpenOption.TRUNCATE_EXISTING,
-        StandardOpenOption.SYNC
+        StandardOpenOption.DSYNC
       )
-
+      withRepos(config) { (suggestionsRepo, _) =>
+        an[SQLiteException] should be thrownBy Await.result(
+          suggestionsRepo.getSchemaVersion,
+          Timeout
+        )
+      }
       // re-initialize
       withRepos(config) { (suggestionsRepo, versionsRepo) =>
         val component =
@@ -181,11 +186,6 @@ class RepoInitializationSpec
             suggestionsRepo,
             versionsRepo
           )
-
-        an[SQLiteException] should be thrownBy Await.result(
-          suggestionsRepo.getSchemaVersion,
-          Timeout
-        )
 
         val action =
           for {
