@@ -70,7 +70,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
 
   /** Specifies if the engine version comes from a nightly release.
     *
-    * See `docs/distribution/nightly.md` for more information. TODO [RW] docs
+    * See `docs/distribution/nightly.md` for more information.
     */
   def isNightly: Boolean = Engine.isNightly(version)
 }
