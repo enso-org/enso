@@ -1,3 +1,43 @@
+# Enso 0.2.11 (2021-04-28)
+
+## Tooling
+
+- Added a feature that allows the tooling to install
+  [GraalVM](https://graalvm.org) language implementations to existing runtimes
+  ([#1660](https://github.com/enso-org/enso/pull/1660)).
+- Fixed an issue that would prevent the language server from starting if
+  projects had clashing identifiers
+  ([#1665](https://github.com/enso-org/enso/pull/1665)).
+- Added support to the language server for suggesting the module types
+  themselves.
+- Added support for reporting errors in visualisation code, making it much
+  simpler to write new visualisation preprocessors
+  ([#1671](https://github.com/enso-org/enso/pull/1671)). Previously the
+  preprocessor would fail without any information as to what went wrong.
+- Fixed an issue where the language server's update state could become
+  desynchronised with the IDE's one
+  ([#1691](https://github.com/enso-org/enso/pull/1691)). This meant that the IDE
+  and language server didn't agree on what had been sent, and hence the IDE
+  would miss out on certain updates.
+- Added a schema version to the suggestions database, allowing the tooling to
+  detect out-of-date versions and upgrade them
+  ([#1703](https://github.com/enso-org/enso/pull/1703)).
+- Added detailed logging to the tooling boot sequence to help us debug issues
+  that users are seeing ([#1704](https://github.com/enso-org/enso/pull/1704)).
+
+## Libraries
+
+- Fixed some inconsistent naming around the `Maybe` type
+  ([#1666](https://github.com/enso-org/enso/pull/1666)).
+- Added the `.sum` method for vectors of numeric types
+  ([#1702](https://github.com/enso-org/enso/pull/1702)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-04-28)
+  for issues opened before the release date.
+
 # Enso 0.2.10 (2021-04-07)
 
 ## Interpreter/Runtime
