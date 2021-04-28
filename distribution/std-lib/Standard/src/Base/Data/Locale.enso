@@ -18,7 +18,10 @@ default = here.from_java JavaLocale.ROOT
 
    > Example
      Get the Bangladeshi locale.
-         Locale.bangladesh
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.bangladesh
 bangladesh : Locale
 bangladesh = here.from_language_tag "bn-BD"
 
@@ -26,7 +29,10 @@ bangladesh = here.from_language_tag "bn-BD"
 
    > Example
      Get the Brazilian locale.
-         Locale.brazil
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.brazil
 brazil : Locale
 brazil = here.from_language_tag "pt-BR"
 
@@ -34,7 +40,10 @@ brazil = here.from_language_tag "pt-BR"
 
    > Example
      Get the Canadian english locale.
-         Locale.canada_english
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.canada_english
 canada_english : Locale
 canada_english = here.from_language_tag "en-CA"
 
@@ -42,7 +51,10 @@ canada_english = here.from_language_tag "en-CA"
 
    > Example
      Get the Canadian french locale.
-         Locale.canada_french
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.canada_french
 canada_french : Locale
 canada_french = here.from_language_tag "fr-CA"
 
@@ -50,7 +62,10 @@ canada_french = here.from_language_tag "fr-CA"
 
    > Example
      Get the PRC locale.
-         Locale.china
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.china
 china : Locale
 china = here.from_language_tag "zh-CN"
 
@@ -58,7 +73,10 @@ china = here.from_language_tag "zh-CN"
 
    > Example
      Get the French locale.
-         Locale.france
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.france
 france : Locale
 france = here.from_language_tag "fr-FR"
 
@@ -66,7 +84,10 @@ france = here.from_language_tag "fr-FR"
 
    > Example
      Get the German locale.
-         Locale.germany
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.germany
 germany : Locale
 germany = here.from_language_tag "de-DE"
 
@@ -74,7 +95,10 @@ germany = here.from_language_tag "de-DE"
 
    > Example
      Get the Indian hindi locale.
-         Locale.india_hindi
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.india_hindi
 india_hindi : Locale
 india_hindi = here.from_language_tag "hi-IN"
 
@@ -82,7 +106,10 @@ india_hindi = here.from_language_tag "hi-IN"
 
    > Example
      Get the Indian english locale.
-         Locale.indian_english
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.india_english
 india_english : Locale
 india_english = here.from_language_tag "en-IN"
 
@@ -90,7 +117,10 @@ india_english = here.from_language_tag "en-IN"
 
    > Example
      Get the Indonesian locale.
-         Locale.indonesia
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.indonesia
 indonesia : Locale
 indonesia = here.from_language_tag "id-ID"
 
@@ -98,7 +128,10 @@ indonesia = here.from_language_tag "id-ID"
 
    > Example
      Get the Italian locale.
-         Locale.italy
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.italy
 italy : Locale
 italy = here.from_language_tag "it-IT"
 
@@ -106,7 +139,10 @@ italy = here.from_language_tag "it-IT"
 
    > Example
      Get the Japanese locale.
-         Locale.japan
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.japan
 japan : Locale
 japan = here.from_language_tag "jp-JP"
 
@@ -114,7 +150,10 @@ japan = here.from_language_tag "jp-JP"
 
    > Example
      Get the Mexican locale.
-         Locale.mexico
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.mexico
 mexico : Locale
 mexico = here.from_language_tag "es-MX"
 
@@ -122,7 +161,10 @@ mexico = here.from_language_tag "es-MX"
 
    > Example
      Get the Nigerian locale.
-         Locale.nigeria
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.nigeria
 nigeria : Locale
 nigeria = here.from_language_tag "en-NG"
 
@@ -130,7 +172,10 @@ nigeria = here.from_language_tag "en-NG"
 
    > Example
      Get the Pakistani urdu locale.
-         Locale.pakistan_urdu
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.pakistan_urdu
 pakistan_urdu : Locale
 pakistan_urdu = here.from_language_tag "ur-PK"
 
@@ -138,7 +183,10 @@ pakistan_urdu = here.from_language_tag "ur-PK"
 
    > Example
      Get the Pakistani english locale.
-         Locale.bangladesh
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.pakistan_english
 pakistan_english : Locale
 pakistan_english = here.from_language_tag "en-PK"
 
@@ -146,7 +194,10 @@ pakistan_english = here.from_language_tag "en-PK"
 
    > Example
      Get the Russian locale.
-         Locale.russia
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.russia
 russia : Locale
 russia = here.from_language_tag "ru-RU"
 
@@ -154,7 +205,10 @@ russia = here.from_language_tag "ru-RU"
 
    > Example
      Get the South Korean locale.
-         Locale.south_korea
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.south_korea
 south_korea : Locale
 south_korea = here.from_language_tag "ko-KR"
 
@@ -162,7 +216,10 @@ south_korea = here.from_language_tag "ko-KR"
 
    > Example
      Get the british locale.
-         Locale.uk
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.uk
 uk : Locale
 uk = here.from_language_tag "en-GB"
 
@@ -170,7 +227,10 @@ uk = here.from_language_tag "en-GB"
 
    > Example
      Get the US locale.
-         Locale.us
+
+         import Standard.Base.Data.Locale
+
+         example_locale = Locale.us
 us : Locale
 us = here.from_language_tag "en-US"
 
@@ -183,7 +243,10 @@ us = here.from_language_tag "en-US"
 
    > Example
      A locale representing en-GB.UTF-8.
-         Locale.new "en" "GB" "UTF-8"
+
+         import Standard.Base.Data.Locale
+
+         example_new = Locale.new "en" "GB" "UTF-8"
 new : Text -> Text | Nothing -> Text | Nothing -> Locale
 new language country=Nothing variant=Nothing =
     country_text = if country.is_nothing then "" else country
@@ -218,7 +281,10 @@ new language country=Nothing variant=Nothing =
 
    > Example
      Creating the locale en_US.
-         Locale.from_language_tag "en_US"
+
+         import Standard.Base.Data.Locale
+
+         example_from_tag = Locale.from_language_tag "en_US"
 from_language_tag : Text -> Locale
 from_language_tag tag =
     java_locale = JavaLocale.forLanguageTag tag
@@ -232,7 +298,8 @@ from_language_tag tag =
    - A variant, which is optional.
 type Locale
 
-    ## A type representing a locale.
+    ## PRIVATE
+       A type representing a locale.
 
        Arguments:
        - java_locale: The Java locale representation used internally.
@@ -242,7 +309,10 @@ type Locale
 
        > Example
          Get the language tag from the default locale.
-             Locale.default.language
+
+             import Standard.Base.Data.Locale
+
+             example_language = Locale.default.language
     language : Text | Nothing
     language =
         lang = this.java_locale.getLanguage
@@ -252,7 +322,10 @@ type Locale
 
        > Example
          Get the country tag from the default locale.
-             Locale.default.country
+
+             import Standard.Base.Data.Locale
+
+             example_country = Locale.default.country
     country : Text | Nothing
     country =
         place = this.java_locale.getCountry
@@ -262,7 +335,10 @@ type Locale
 
        > Example
          Get the variant tag from the default locale.
-             Locale.default.variant
+
+             import Standard.Base.Data.Locale
+
+             example_variant = Locale.default.variant
     variant : Text | Nothing
     variant =
         var = this.java_locale.getVariant
@@ -273,7 +349,10 @@ type Locale
 
        > Example
          Get the display language tag from the default locale.
-             Locale.default.display_language
+
+             import Standard.Base.Data.Locale
+
+             example_display_language = Locale.default.display_language
     display_language : Text | Nothing
     display_language =
         disp = this.java_locale.getDisplayLanguage
@@ -284,7 +363,10 @@ type Locale
 
        > Example
          Get the display country tag from the default locale.
-             Locale.default.display_country
+
+             import Standard.Base.Data.Locale
+
+             example_display_country = Locale.default.display_country
     display_country : Text | Nothing
     display_country =
         disp = this.java_locale.getDisplayCountry
@@ -295,7 +377,10 @@ type Locale
 
        > Example
          Get the display variant tag from the default locale.
-             Locale.default.display_variant
+
+             import Standard.Base.Data.Locale
+
+             example_display_variant = Locale.default.display_variant
     display_variant : Text | Nothing
     display_variant =
         disp = this.java_locale.getDisplayVariant
@@ -305,7 +390,10 @@ type Locale
 
        > Example
          Convert the default locale to text.
-             Locale.default.to_text
+
+             import Standard.Base.Data.Locale
+
+             example_to_text = Locale.default.to_text
     to_text : Text | Nothing
     to_text = this.java_locale.toLanguageTag
 
@@ -313,7 +401,10 @@ type Locale
 
        > Example
          Convert the default locale to JSON.
-             Locale.default.to_json
+
+             import Standard.Base.Data.Locale
+
+             example_to_json = Locale.default.to_json
     to_json : Json.Object
     to_json =
         b = Vector.new_builder
@@ -334,3 +425,4 @@ from_java java = Locale java
 
 ## PRIVATE
 javaLocaleBuilder = JavaLocale.Builder
+

@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Examples
+import Standard.Base.Data.Locale
 
-example = Examples.list.reverse
+example = Locale.default.to_text
 
 main =
     result = here.example
