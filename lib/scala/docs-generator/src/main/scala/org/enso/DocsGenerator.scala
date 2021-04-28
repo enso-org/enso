@@ -72,4 +72,23 @@ object DocsGeneratorMain extends App {
     bw.write(x._2)
     bw.close()
   })
+
+  val jsTemplate = new File(
+    "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/template.js"
+  )
+  val templateCode =
+    scala.io.Source.fromFile(jsTemplate, "UTF-8").getLines().mkString("\n")
+  val allDocJSFiles = allFiles.map(x =>
+    x.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
+  )
+  val zippedJS = allDocJSFiles.zip(allDocs)
+  zippedJS.foreach(x => {
+    val file = new File(x._1)
+    val dir  = new File(x._1.replaceAll("\\/[a-zA-Z_]*\\.[a-zA-Z]*", ""))
+    dir.mkdirs()
+    file.createNewFile();
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(templateCode.replace("{/*PAGE*/}", x._2))
+    bw.close()
+  })
 }
