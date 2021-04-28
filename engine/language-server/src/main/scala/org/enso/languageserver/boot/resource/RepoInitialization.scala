@@ -93,7 +93,10 @@ class RepoInitialization(
           s"${error.getMessage}"
         )
       }
-      _ <- Future(db.close())
+      _ <- Future {
+        db.close()
+        System.gc()
+      }
       _ <- clearDatabaseFile()
       _ <- Future(db.open())
       _ <- Future {
