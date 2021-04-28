@@ -60,6 +60,78 @@ new year (month = 1) (day = 1) =
     Panic.recover (Date (LocalDate.of year month day)) . catch e-> case e of
         Polyglot_Error err -> Error.throw (Time.Time_Error err.getMessage)
         x -> x
+
+## Converts text containing a date into a Date object.
+
+   Arguments:
+   - text: The text to try and parse as a date.
+   - pattern: An optional pattern describing how to parse the text.
+
+   Returns a `Time_Error` if the provided `text` cannot be parsed using the
+   provided `pattern`.
+
+   ? Pattern Syntax
+     Patterns are based on a simple sequence of letters and symbols. For
+     example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
+
+   ? Default Date Formatting
+     Unless you provide a custom format, the text must represent a valid date
+     that can be parsed using the ISO-8601 extended local date format. The
+     format consists of:
+
+     - Four digits or more for the year. Years in the range 0000 to 9999
+       will be pre-padded by zero to ensure four digits. Years outside
+       that range will have a prefixed positive or negative symbol.
+     - A dash
+     - Two digits for the month-of-year. This is pre-padded by zero to ensure
+       two digits.
+     - A dash
+     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
+       digits.
+
+   > Example
+     Parse the date of 23rd December 2020.
+
+         import Standard.Base.Data.Time.Date
+
+         example_parse = Date.parse "2020-12-23"
+
+   > Example
+     Recover from an error due to a wrong format.
+
+         import Standard.Base.Data.Time.Date
+         import Standard.Base.Data.Time
+
+         example_parse_err = Date.parse "my birthday" . catch e-> case e of
+             Time.Time_Error _ -> Date.new 2000 1 1
+
+   > Example
+     Parse "1999-1-1" as Date using a custom format.
+
+         import Standard.Base.Data.Time.Date
+
+         example_parse = Date.parse "1999-1-1" "yyyy-M-d"
+
+   > Example
+     Recover from the parse error.
+
+         import Standard.Base.Data.Time.Date
+         import Standard.base.Data.Time
+
+         example_parse_err =
+             date = Date.parse "1999-1-1" "yyyy-MM-dd"
+             date.catch e-> case e of
+                 Time.Time_Error _ -> Date.new 2000 1 1
+parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
+parse text pattern=Nothing =
+    result = Panic.recover <| case pattern of
+        Nothing -> LocalDate.parse text
+        Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
+        _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
+    Date result . map_error <| case _ of
+        Polyglot_Error err -> Time.Time_Error err.getMessage
+        x -> x
+
 type Date
 
     ## This type represents a date, often viewed as year-month-day.
@@ -189,9 +261,6 @@ type Date
          Patterns are based on a simple sequence of letters and symbols. For
          example, "d MMM yyyy" will format "2011-12-03" as "3 Dec 2011".
 
-         For the list of accepted symbols in pattern refer to the
-         `Base.Data.Time.format` doc.
-
        > Example
          Format "2020-06-02" as "2 June 2020"
 
@@ -228,71 +297,4 @@ type Date
              example_format = Date.new 2020 6 2 . format "yyyyGG"
     format : Text -> Text
     format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_local_date
-
-## Converts text containing a date into a Date object.
-
-   Arguments:
-   - text: The text to try and parse as a date.
-   - pattern: An optional pattern describing how to parse the text.
-
-   Returns a `Time_Error` if the provided `text` cannot be parsed using the
-   provided `pattern`.
-
-   ? Default Date Formatting
-     Unless you provide a custom format, the text must represent a valid date
-     that can be parsed using the ISO-8601 extended local date format. The
-     format consists of:
-
-     - Four digits or more for the year. Years in the range 0000 to 9999
-       will be pre-padded by zero to ensure four digits. Years outside
-       that range will have a prefixed positive or negative symbol.
-     - A dash
-     - Two digits for the month-of-year. This is pre-padded by zero to ensure
-       two digits.
-     - A dash
-     - Two digits for the day-of-month. This is pre-padded by zero to ensure two
-       digits.
-
-   > Example
-     Parse the date of 23rd December 2020.
-
-         import Standard.Base.Data.Time.Date
-
-         example_parse = Date.parse "2020-12-23"
-
-   > Example
-     Recover from an error due to a wrong format.
-
-         import Standard.Base.Data.Time.Date
-         import Standard.Base.Data.Time
-
-         example_parse_err = Date.parse "my birthday" . catch e-> case e of
-             Time.Time_Error _ -> Date.new 2000 1 1
-
-   > Example
-     Parse "1999-1-1" as Date.
-
-         import Standard.Base.Data.Time.Date
-
-         example_parse = Date.parse "1999-1-1" "yyyy-M-d"
-
-   > Example
-     Recover from the parse error.
-
-         import Standard.Base.Data.Time.Date
-         import Standard.base.Data.Time
-
-         example_parse_err =
-             date = Date.parse "1999-1-1" "yyyy-MM-dd"
-             date.catch e-> case e of
-                 Time.Time_Error _ -> Date.new 2000 1 1
-parse : Text -> (Text | Nothing) -> Date ! Time.Time_Error
-parse text pattern=Nothing =
-    result = Panic.recover <| case pattern of
-        Nothing -> LocalDate.parse text
-        Text -> LocalDate.parse text (DateTimeFormatter.ofPattern pattern)
-        _ -> Panic.throw (Time.Time_Error "An invalid pattern was provided.")
-    Date result . map_error <| case _ of
-        Polyglot_Error err -> Time.Time_Error err.getMessage
-        x -> x
 
