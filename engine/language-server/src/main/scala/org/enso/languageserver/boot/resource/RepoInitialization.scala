@@ -6,7 +6,7 @@ import java.nio.file.{Files, NoSuchFileException}
 import akka.event.EventStream
 import org.enso.languageserver.data.DirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -23,8 +23,8 @@ import scala.util.{Failure, Success}
 class RepoInitialization(
   directoriesConfig: DirectoriesConfig,
   eventStream: EventStream,
-  suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: FileVersionsRepo[Future]
+  suggestionsRepo: SqlSuggestionsRepo,
+  versionsRepo: SqlVersionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent {
 
@@ -44,7 +44,7 @@ class RepoInitialization(
           log.info("Initializing suggestions repo.")
         }
         _ <- suggestionsRepo.init.recoverWith { case NonFatal(error) =>
-          recoverInitError(error)
+          recoverInitError(error, suggestionsRepo.db)
         }
         _ <- Future {
           log.info("Initialized Suggestions repo.")
@@ -68,7 +68,7 @@ class RepoInitialization(
           log.info("Initializing versions repo.")
         }
         _ <- versionsRepo.init.recoverWith { case NonFatal(error) =>
-          recoverInitError(error)
+          recoverInitError(error, versionsRepo.db)
         }
         _ <- Future {
           log.info("Initialized Versions repo.")
@@ -83,7 +83,10 @@ class RepoInitialization(
     initAction
   }
 
-  private def recoverInitError(error: Throwable): Future[Unit] =
+  private def recoverInitError(
+    error: Throwable,
+    db: SqlDatabase
+  ): Future[Unit] =
     for {
       _ <- Future {
         log.warn(
@@ -92,7 +95,9 @@ class RepoInitialization(
           s"${error.getMessage}"
         )
       }
+      _ <- Future(db.close())
       _ <- clearDatabaseFile()
+      _ <- Future(db.open())
       _ <- Future {
         log.info("Retrying database initialization.")
       }
