@@ -50,7 +50,10 @@ import scala.concurrent.duration._
 class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val log = LoggerFactory.getLogger(this.getClass)
-  log.trace("Initializing...")
+  log.info(
+    s"Initializing main module of the Language Server from " +
+    s"$serverConfig $logLevel."
+  )
 
   val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
   val languageServerConfig = Config(
@@ -60,17 +63,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     ExecutionContextConfig(),
     directoriesConfig
   )
-  log.trace("Created Language Server config")
+  log.trace(s"Created Language Server config $languageServerConfig.")
 
   val zioExec = ZioExec(zio.Runtime.default)
-  log.trace("Created ZioExec")
+  log.trace(s"Created ZIO executor $zioExec.")
 
   val fileSystem: FileSystem = new FileSystem
-  log.trace("Created FileSystem")
+  log.trace(s"Created file system $fileSystem.")
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
-  log.trace("Created Version Calculator")
+  log.trace(s"Created Version Calculator $versionCalculator.")
 
   implicit val system =
     ActorSystem(
@@ -79,7 +82,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace("Created ActorSystem")
+  log.trace(s"Created ActorSystem $system.")
 
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {
@@ -97,7 +100,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  log.trace("Created SQL Repos")
+  log.trace(s"Created SQL repos: $suggestionsRepo, $versionsRepo.")
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -194,10 +197,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       } else null
     })
     .build()
-  log.trace("Runtime context created")
+  log.trace(s"Created Runtime context $context.")
 
   system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
-  log.trace(s"Set akka log level to $logLevel")
+  log.trace(s"Set akka log level to $logLevel.")
 
   val runtimeKiller =
     system.actorOf(
@@ -245,7 +248,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     stdInController,
     runtimeConnector
   )
-  log.trace("Created JsonConnectionControllerFactory")
+  log.trace(
+    s"Created JSON connection controller factory $jsonRpcControllerFactory."
+  )
 
   val pingHandlerProps =
     PingHandler.props(
@@ -272,7 +277,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
       List(healthCheckEndpoint)
     )
-  log.trace("Created JsonRpcServer")
+  log.trace(s"Created JSON RPC Server $jsonRpcServer.")
 
   val binaryServer =
     new BinaryWebSocketServer(
@@ -280,12 +285,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)
     )
-  log.trace("Created BinaryWebSocketServer")
+  log.trace(s"Created Binary WebSocket Server $binaryServer.")
+
+  log.info(
+    s"Main module of the Language Server initialized " +
+    s"with config $languageServerConfig."
+  )
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
-    log.trace("Closed MainModule")
+    log.info("Closed Language Server main module.")
   }
 }

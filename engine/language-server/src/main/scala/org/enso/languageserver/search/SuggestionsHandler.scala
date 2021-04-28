@@ -92,6 +92,11 @@ final class SuggestionsHandler(
   private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
+    log.info(
+      s"Starting suggestions handler from $config " +
+      s"$suggestionsRepo $fileVersionsRepo " +
+      s"$sessionRouter $runtimeConnector"
+    )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
@@ -115,16 +120,19 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
+      log.info(s"Initializing: project name changed from $oldName to $newName.")
       suggestionsRepo
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
 
     case ProjectNameUpdated(name, updates) =>
+      log.info(s"Initializing: project name is updated to $name.")
       updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
+      log.info(s"Initializing: suggestions repo initialized.")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -132,12 +140,14 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
+      log.info(s"Initializing: Truffle context initialized.")
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
         .pipeTo(self)
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
+      log.info(s"Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case _ => stash()
@@ -148,12 +158,14 @@ final class SuggestionsHandler(
     graph: TypeGraph
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
+      log.info(s"Verifying: got verification response.")
       suggestionsRepo
         .removeModules(toRemove)
         .map(_ => SuggestionsHandler.Verified)
         .pipeTo(self)
 
     case SuggestionsHandler.Verified =>
+      log.info(s"Verified.")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
 
@@ -201,15 +213,15 @@ final class SuggestionsHandler(
           case Success(None) =>
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error applying suggestion database updates: {}",
-              msg.file
+              s"Error applying suggestion database updates" +
+              s" ${msg.file} ${msg.version}. ${ex.getMessage}"
             )
         }
 
     case Api.ExpressionUpdates(_, updates) =>
       log.debug(
-        s"ExpressionValuesComputed ${updates.map(u => (u.expressionId, u.expressionType))}"
+        s"Received expression updates: " +
+        s"${updates.map(u => (u.expressionId, u.expressionType))}"
       )
       val types = updates.toSeq
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
@@ -234,9 +246,8 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error applying changes from computed values: {}",
-              updates
+              s"Error applying changes from computed values: $updates. " +
+              s"${ex.getMessage}"
             )
         }
 
@@ -309,13 +320,13 @@ final class SuggestionsHandler(
             }
           case Success(Left(err)) =>
             log.error(
-              "Error cleaning the index after file delete event: {}",
-              err
+              s"Error cleaning the index after file delete event. " +
+              s"$err"
             )
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error cleaning the index after file delete event"
+              s"Error cleaning the index after file delete event. " +
+              s"${ex.getMessage}"
             )
         }
 
@@ -392,7 +403,7 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
-        log.debug("Initialized")
+        log.debug(s"Initialized with state $state.")
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
           .flatMap { modules =>

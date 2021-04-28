@@ -28,7 +28,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
   override def receive: Receive = idle()
 
   private def idle(): Receive = { case ShutDownRuntime =>
-    log.info("Shutting down the runtime server")
+    log.info("Shutting down the runtime server.")
     runtimeConnector ! Api.Request(
       UUID.randomUUID(),
       Api.ShutDownRuntimeServer()
@@ -44,7 +44,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
     cancellable: Cancellable
   ): Receive = {
     case ResourceDisposalTimeout =>
-      log.error("Disposal of runtime resources timed out")
+      log.error("Disposal of runtime resources timed out.")
       shutDownTruffle(replyTo)
 
     case Api.Response(_, Api.RuntimeServerShutDown()) =>
@@ -61,13 +61,20 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
 
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
-      log.info("Shutting down the Truffle context")
+      log.info(
+        s"Shutting down the Truffle context $truffleContext. " +
+        s"Attempt #${retryCount + 1}."
+      )
       truffleContext.close()
       replyTo ! RuntimeGracefullyStopped
       context.stop(self)
     } catch {
       case NonFatal(ex) =>
-        log.error(ex, "An error occurred during stopping Truffle context")
+        log.error(
+          ex,
+          s"An error occurred during stopping Truffle context " +
+          s"$truffleContext. ${ex.getMessage}"
+        )
         if (retryCount < MaxRetries) {
           context.system.scheduler
             .scheduleOnce((retryCount + 1).seconds, self, TryToStopTruffle)

@@ -14,6 +14,14 @@ import scala.util.{Failure, Success, Try}
   */
 case class GraalRuntime(version: GraalVMVersion, path: Path) {
 
+  /** The list of executable file extensions of the GraalVM distribution. */
+  private val extensions: Seq[String] =
+    OS.operatingSystem match {
+      case OS.Linux   => Seq()
+      case OS.MacOS   => Seq()
+      case OS.Windows => Seq("exe", "cmd")
+    }
+
   /** @inheritdoc
     */
   override def toString: String =
@@ -33,6 +41,24 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
   def javaExecutable: Path = {
     val executableName = if (OS.isWindows) "java.exe" else "java"
     javaHome / "bin" / executableName
+  }
+
+  /** The path to the executables. */
+  def binaryPath: Path = javaHome / "bin"
+
+  /** Find the executable by name.
+    *
+    * @param name the executable name.
+    * @return the path to the executable.
+    */
+  def findExecutable(name: String): Path = {
+    val possibleExecutableNames =
+      if (extensions.isEmpty) Seq(name)
+      else extensions.map(ext => s"$name.$ext")
+    possibleExecutableNames
+      .map(binaryPath / _)
+      .find(Files.isExecutable)
+      .getOrElse(throw ExecutableNotFoundError(binaryPath, name))
   }
 
   /** Checks if the installation is not corrupted and reports any issues as
