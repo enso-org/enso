@@ -15,7 +15,7 @@ import org.enso.searcher.sql.{
   SqlSuggestionsRepo,
   SqlVersionsRepo
 }
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.FlakySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -30,7 +30,7 @@ class RepoInitializationSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with RetrySpec {
+    with FlakySpec {
 
   import system.dispatcher
 
@@ -141,75 +141,66 @@ class RepoInitializationSpec
         )
     }
 
-    "recreate corrupted suggestion database file" in withConfig { config =>
-      // initialize
-      withRepos(config) { (suggestionsRepo, versionsRepo) =>
-        val component =
-          new RepoInitialization(
-            config.directories,
-            system.eventStream,
-            suggestionsRepo,
-            versionsRepo
-          )
+    "recreate corrupted suggestion database file" taggedAs Flaky in withConfig {
+      config =>
+        // initialize
+        withRepos(config) { (suggestionsRepo, versionsRepo) =>
+          val component =
+            new RepoInitialization(
+              config.directories,
+              system.eventStream,
+              suggestionsRepo,
+              versionsRepo
+            )
 
-        val init =
-          for {
-            _       <- component.init()
-            version <- suggestionsRepo.getSchemaVersion
-          } yield version
+          val init =
+            for {
+              _       <- component.init()
+              version <- suggestionsRepo.getSchemaVersion
+            } yield version
 
-        val version1 = Await.result(init, Timeout)
-        version1 shouldEqual SchemaVersion.CurrentVersion
-      }
+          val version1 = Await.result(init, Timeout)
+          version1 shouldEqual SchemaVersion.CurrentVersion
+        }
 
-      // corrupt
-      val bytes: Array[Byte] = Array(1, 2, 3)
-      Files.delete(config.directories.suggestionsDatabaseFile.toPath)
-      Files.write(
-        config.directories.suggestionsDatabaseFile.toPath,
-        bytes,
-        StandardOpenOption.CREATE,
-        StandardOpenOption.DSYNC
-      )
-      withRepos(config) { (suggestionsRepo, _) =>
-        an[SQLiteException] should be thrownBy Await.result(
-          suggestionsRepo.getSchemaVersion,
-          Timeout
+        // corrupt
+        val bytes: Array[Byte] = Array(1, 2, 3)
+        Files.delete(config.directories.suggestionsDatabaseFile.toPath)
+        Files.write(
+          config.directories.suggestionsDatabaseFile.toPath,
+          bytes,
+          StandardOpenOption.CREATE
         )
-      }
-      // check file ownership
-      println("!! checking file ownership")
-      //FileUtils.forceDelete(config.directories.suggestionsDatabaseFile)
-      Files.delete(config.directories.suggestionsDatabaseFile.toPath)
-      Files.write(
-        config.directories.suggestionsDatabaseFile.toPath,
-        bytes,
-        StandardOpenOption.CREATE,
-        StandardOpenOption.DSYNC
-      )
-      // re-initialize
-      withRepos(config) { (suggestionsRepo, versionsRepo) =>
-        val component =
-          new RepoInitialization(
-            config.directories,
-            system.eventStream,
-            suggestionsRepo,
-            versionsRepo
+        withRepos(config) { (suggestionsRepo, _) =>
+          an[SQLiteException] should be thrownBy Await.result(
+            suggestionsRepo.getSchemaVersion,
+            Timeout
           )
+        }
 
-        val action =
-          for {
-            _       <- component.init()
-            version <- suggestionsRepo.getSchemaVersion
-          } yield version
+        // re-initialize
+        withRepos(config) { (suggestionsRepo, versionsRepo) =>
+          val component =
+            new RepoInitialization(
+              config.directories,
+              system.eventStream,
+              suggestionsRepo,
+              versionsRepo
+            )
 
-        val version2 = Await.result(action, Timeout)
-        version2 shouldEqual SchemaVersion.CurrentVersion
-        expectMsgAllOf(
-          InitializedEvent.SuggestionsRepoInitialized,
-          InitializedEvent.FileVersionsRepoInitialized
-        )
-      }
+          val action =
+            for {
+              _       <- component.init()
+              version <- suggestionsRepo.getSchemaVersion
+            } yield version
+
+          val version2 = Await.result(action, Timeout)
+          version2 shouldEqual SchemaVersion.CurrentVersion
+          expectMsgAllOf(
+            InitializedEvent.SuggestionsRepoInitialized,
+            InitializedEvent.FileVersionsRepoInitialized
+          )
+        }
     }
 
   }

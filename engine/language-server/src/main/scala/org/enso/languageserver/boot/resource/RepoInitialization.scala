@@ -1,9 +1,10 @@
 package org.enso.languageserver.boot.resource
 
 import java.io.IOException
-import java.nio.file.{Files, NoSuchFileException}
+import java.nio.file.{FileSystemException, Files, NoSuchFileException}
 
 import akka.event.EventStream
+import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.DirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -93,10 +94,7 @@ class RepoInitialization(
           s"${error.getMessage}"
         )
       }
-      _ <- Future {
-        db.close()
-        System.gc()
-      }
+      _ <- Future(db.close())
       _ <- clearDatabaseFile()
       _ <- Future(db.open())
       _ <- Future {
@@ -117,6 +115,15 @@ class RepoInitialization(
           s"${directoriesConfig.suggestionsDatabaseFile}"
         )
         Future.successful(())
+      case error: FileSystemException =>
+        log.error(
+          s"Failed to delete the database file. Attempt #${retries + 1}." +
+          s"The file will be removed during the shutdown. ${error.getMessage}."
+        )
+        sys.addShutdownHook(
+          FileUtils.deleteQuietly(directoriesConfig.suggestionsDatabaseFile)
+        )
+        Future.failed(error)
       case error: IOException =>
         log.error(
           s"Failed to delete the database file. Attempt #${retries + 1}. " +
