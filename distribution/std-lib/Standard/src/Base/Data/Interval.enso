@@ -8,7 +8,10 @@ export Standard.Base.Data.Interval.Bound
 
    > Example
      Create the bounds-exclusive range from 1 to 5.
-         Interval.exclusive 1 5
+
+         import Standard.Base.Data.Interval
+
+         example_exclusive = Interval.exclusive 1 5
 exclusive : Any -> Any -> Interval
 exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
 
@@ -16,7 +19,10 @@ exclusive start end = Interval (Bound.Exclusive start) (Bound.Exclusive end)
 
    > Example
      Create the start-exclusive range from 1 to 5.
-         Interval.start_exclusive 1 5
+
+         import Standard.Base.Data.Interval
+
+         example_start_exclusive = Interval.start_exclusive 1 5
 start_exclusive : Any -> Any -> Interval
 start_exclusive start end = Interval (Bound.Exclusive start) (Bound.Inclusive end)
 
@@ -24,22 +30,30 @@ start_exclusive start end = Interval (Bound.Exclusive start) (Bound.Inclusive en
 
    > Example
      Create the end-exclusive range from 1 to 5.
-         Interval.end_exclusive 1 5
+
+         import Standard.Base.Data.Interval
+
+         example_end_exclusive = Interval.end_exclusive 1 5
 end_exclusive : Any -> Any -> Interval
 end_exclusive start end = Interval (Bound.Inclusive start) (Bound.Exclusive end)
 
-## Creates an interval that includes its upper bound.
+## Creates an interval that includes both of its bounds.
 
    > Example
      Create the inclusive range from 1 to 5.
-         Interval.inclusive 1 5
+
+         import Standard.Base.Data.Interval
+
+         example_inclusive = Interval.inclusive 1 5
 inclusive : Any -> Any -> Interval
 inclusive start end = Interval (Bound.Inclusive start) (Bound.Inclusive end)
 
 ## An interval type
 type Interval
 
-    ## A type representing an interval over orderable types.
+    ## PRIVATE
+
+       A type representing an interval over orderable types.
 
        Arguments:
        - start: The start of the interval.
@@ -53,7 +67,10 @@ type Interval
 
        > Example
          Checking if the interval 1 to 5 contains 7.
-             (Interval.inclusive 1 5) . contains 7
+
+             import Standard.Base.Data.Interval
+
+             example_contains = (Interval.inclusive 1 5) . contains 7
     contains : Any -> Boolean
     contains that = if this.start.n > this.end.n then False else
         case this.start of
@@ -68,7 +85,10 @@ type Interval
 
        > Example
          Check if the interval from 0 to 0 is empty.
-             Interval.inclusive 0 0 . is_empty
+
+             import Standard.Base.Data.Interval
+
+             example_is_empty = Interval.inclusive 0 0 . is_empty
     is_empty : Boolean
     is_empty = case this.start of
         Bound.Exclusive s -> case this.end of
@@ -82,7 +102,10 @@ type Interval
 
        > Example
          Check if the interval from 0 to 1 is not empty.
-             Interval.inclusive 0 1 . not_empty
+
+             import Standard.Base.Data.Interval
+
+             example_not_empty = Interval.inclusive 0 1 . not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 

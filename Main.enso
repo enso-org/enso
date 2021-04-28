@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Zone
+import Standard.Base.Data.Interval
 
-example = Zone.system.to_json
+example = Interval.exclusive 1 5 . not_empty
 
 main =
     result = here.example
