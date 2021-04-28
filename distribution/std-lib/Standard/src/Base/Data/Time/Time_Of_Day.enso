@@ -65,7 +65,7 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
    ? Pattern Syntax
      For the list of accepted symbols in pattern refer to `Time.format` doc.
 
-   ? Valid Time Format
+   ? Default Time Format
      The text must represent a valid time and is parsed using the ISO-8601
      extended local time format. The format consists of:
 

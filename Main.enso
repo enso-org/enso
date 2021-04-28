@@ -1,6 +1,8 @@
 from Standard.Base import all
 
-example = 10.up_to 100 . all (> 5)
+import Standard.Base.Data.Time
+
+example = Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "yyyy-MM-dd'T'HH:mm:ssZZZZ'['VV']'"
 
 main =
     result = here.example
