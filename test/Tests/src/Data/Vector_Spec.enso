@@ -38,6 +38,11 @@ spec = Test.group "Vectors" <|
         [1,2,3].reduce (+) . should_equal 6
         [].reduce (+) . should_fail_with Nothing
 
+    Test.specify "should allow summing elements if they define +" <|
+        [1,2,3].sum . should_equal 6
+        [].sum . should_fail_with Nothing
+        [T 1 2, T 3 4].sum . should_fail_with Nothing
+
     Test.specify "should check exists" <|
         vec = [1, 2, 3, 4, 5]
         vec.exists (ix -> ix > 3) . should_be_true

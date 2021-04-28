@@ -173,6 +173,24 @@ type Vector
             True -> this.tail.fold this.head function
             False -> Error.throw Nothing
 
+    ## Computes the sum of the values in the vector.
+
+       For this method to be defined, the elements of the vector must be able to
+       have the `+` operator used to combine them.
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         vector.
+
+             [0, 1, 2].sum
+    sum : (Any ! Nothing)
+    sum =
+        result = Panic.recover <| this.reduce (+)
+        result.map_error x->case x of
+            No_Such_Method_Error _ _ -> Nothing
+            Nothing -> Nothing
+            _ -> Panic.throw x
+
     ## Checks whether a predicate holds for at least one element of this vector.
 
        Arguments:
