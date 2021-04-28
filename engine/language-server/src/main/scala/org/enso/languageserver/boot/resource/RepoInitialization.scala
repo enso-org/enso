@@ -1,5 +1,6 @@
 package org.enso.languageserver.boot.resource
 
+import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException}
 
 import akka.event.EventStream
@@ -53,7 +54,9 @@ class RepoInitialization(
       case Success(()) =>
         eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
-        log.error("Failed to initialize SQL suggestions repo", ex)
+        log.error(
+          s"Failed to initialize SQL suggestions repo. ${ex.getMessage}"
+        )
     }
     initAction
   }
@@ -75,7 +78,7 @@ class RepoInitialization(
       case Success(()) =>
         eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
-        log.error("Failed to initialize SQL versions repo", ex)
+        log.error(s"Failed to initialize SQL versions repo. ${ex.getMessage}")
     }
     initAction
   }
@@ -89,21 +92,42 @@ class RepoInitialization(
           s"${error.getMessage}"
         )
       }
-      _ <- clearDatabaseFile
+      _ <- clearDatabaseFile()
       _ <- Future {
         log.info("Retrying database initialization.")
       }
       _ <- suggestionsRepo.init
     } yield ()
 
-  private def clearDatabaseFile: Future[Unit] =
+  private def clearDatabaseFile(retries: Int = 0): Future[Unit] = {
     Future {
+      log.info(s"Clear database file. Attempt #${retries + 1}.")
       Files.delete(directoriesConfig.suggestionsDatabaseFile.toPath)
-    }.recover { case _: NoSuchFileException =>
-      log.warn(
-        s"Failed to delete the database file. File does not exist " +
-        s"${directoriesConfig.suggestionsDatabaseFile}"
-      )
+    }.recoverWith {
+      case _: NoSuchFileException =>
+        log.warn(
+          s"Failed to delete the database file. Attempt #${retries + 1}. " +
+          s"File does not exist " +
+          s"${directoriesConfig.suggestionsDatabaseFile}"
+        )
+        Future.successful(())
+      case error: IOException =>
+        log.error(
+          s"Failed to delete the database file. Attempt #${retries + 1}. " +
+          s"${error.getMessage}"
+        )
+        if (retries < RepoInitialization.MaxRetries) {
+          Thread.sleep(1000)
+          clearDatabaseFile(retries + 1)
+        } else {
+          Future.failed(error)
+        }
     }
+  }
 
+}
+
+object RepoInitialization {
+
+  val MaxRetries = 3
 }
