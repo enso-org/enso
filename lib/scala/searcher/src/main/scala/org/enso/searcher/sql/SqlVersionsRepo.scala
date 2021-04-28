@@ -5,6 +5,7 @@ import java.util
 
 import org.enso.searcher.FileVersionsRepo
 import slick.jdbc.SQLiteProfile.api._
+import slick.jdbc.meta.MTable
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -50,8 +51,11 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
-    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
-    FileVersions.schema.createIfNotExists.asTry >> DBIO.successful(())
+    val table = FileVersions
+    for {
+      tables <- MTable.getTables(table.shaped.value.tableName)
+      _      <- if (tables.isEmpty) table.schema.create else DBIO.successful(())
+    } yield ()
   }
 
   /** The query to clean the repo. */

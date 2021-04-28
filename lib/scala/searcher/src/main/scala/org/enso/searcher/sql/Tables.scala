@@ -65,6 +65,12 @@ case class SuggestionRow(
   */
 case class SuggestionsVersionRow(id: Option[Long])
 
+/** A row in the schema_version table.
+  *
+  * @param id the row id
+  */
+case class SchemaVersionRow(id: Option[Long])
+
 /** A row in the file_versions table
   *
   * @param path the file path
@@ -206,16 +212,6 @@ final class SuggestionsTable(tag: Tag)
     )
 }
 
-/** The schema of the suggestions_version table. */
-@nowarn("msg=multiarg infix syntax")
-final class SuggestionsVersionTable(tag: Tag)
-    extends Table[SuggestionsVersionRow](tag, "suggestions_version") {
-
-  def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
-
-  def * = id.? <> (SuggestionsVersionRow.apply, SuggestionsVersionRow.unapply)
-}
-
 /** The schema of the file_versions table. */
 @nowarn("msg=multiarg infix syntax")
 final class FileVersionsTable(tag: Tag)
@@ -227,10 +223,36 @@ final class FileVersionsTable(tag: Tag)
   def * = (path, digest) <> (FileVersionRow.tupled, FileVersionRow.unapply)
 }
 
+/** The schema of the suggestions_version table. */
+@nowarn("msg=multiarg infix syntax")
+final class SuggestionsVersionTable(tag: Tag)
+    extends Table[SuggestionsVersionRow](tag, "suggestions_version") {
+
+  def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+
+  def * = id.? <> (SuggestionsVersionRow.apply, SuggestionsVersionRow.unapply)
+}
+
+/** The schema of the schema_version table. */
+@nowarn("msg=multiarg infix syntax")
+final class SchemaVersionTable(tag: Tag)
+    extends Table[SchemaVersionRow](tag, "schema_version") {
+
+  def id = column[Long]("id", O.PrimaryKey)
+
+  def * = id.? <> (SchemaVersionRow.apply, SchemaVersionRow.unapply)
+}
+
 object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
+object FileVersions extends TableQuery(new FileVersionsTable(_))
+
 object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
 
-object FileVersions extends TableQuery(new FileVersionsTable(_))
+object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
+
+  /** The current schema version. */
+  val CurrentVersion: Long = 1
+}

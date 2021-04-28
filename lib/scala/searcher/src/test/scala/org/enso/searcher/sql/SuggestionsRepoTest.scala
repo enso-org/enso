@@ -45,6 +45,19 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       Await.result(repo.init, Timeout)
     }
 
+    "check the schema version when init" taggedAs Retry in withRepo { repo =>
+      val wrongSchemaVersion = Long.MinValue
+      val action =
+        for {
+          version <- repo.setSchemaVersion(wrongSchemaVersion)
+          _       <- repo.init
+        } yield version
+
+      val thrown =
+        the[InvalidSchemaVersion] thrownBy Await.result(action, Timeout)
+      thrown.version shouldEqual wrongSchemaVersion
+    }
+
     "get all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
