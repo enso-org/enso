@@ -2,7 +2,7 @@ package org.enso
 
 import java.io._
 
-import org.enso.syntax.text.{DocParser, Parser}
+import org.enso.syntax.text.{DocParser, DocParserMain, Parser}
 
 object DocsGenerator {
   def generate(program: String): String = {
@@ -13,6 +13,29 @@ object DocsGenerator {
     val code =
       DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
     code
+  }
+
+  def generatePure(comment: String): String = {
+    val doc  = DocParserMain.runMatched(comment)
+    val html = DocParser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+    html
+  }
+
+  def mapIfEmpty(doc: String): String = {
+    var tmp = doc
+    if (doc.replace("<div>", "").replace("</div>", "").length == 0) {
+      tmp =
+        "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
+      tmp = generatePure(tmp)
+    }
+    tmp
+  }
+
+  def removeUnnecessaryDivs(doc: String): String = {
+    var tmp = doc
+    while (tmp.contains("<div></div>"))
+      tmp = tmp.replace("<div></div>", "")
+    tmp
   }
 
   def traverse(root: File, skipHidden: Boolean = false): LazyList[File] =
@@ -34,7 +57,8 @@ object DocsGeneratorMain extends App {
     allFiles.map(f =>
       scala.io.Source.fromFile(f, "UTF-8").getLines().mkString("\n")
     )
-  val allDocs = allPrograms.map(generate)
+  val allDocs =
+    allPrograms.map(generate).map(mapIfEmpty).map(removeUnnecessaryDivs)
   val allDocFiles = allFiles.map(x =>
     x.getPath.replace(".enso", ".html").replace("Standard/src", "docs")
   )
