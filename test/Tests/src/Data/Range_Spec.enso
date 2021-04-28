@@ -20,6 +20,11 @@ spec = Test.group "Range" <|
         0.up_to -100 . not_empty . should_be_false
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
+    Test.specify "should be able to be mapped over to make a Vector" <|
+        empty = 0.up_to 0
+        empty.map *2 . should_equal []
+        elements = 0.up_to 10
+        elements.map *2 . should_equal [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
     Test.specify "should allow iteration" <|
         vec_mut = Vector.new_builder
         1.up_to 6 . each (i -> vec_mut.append i)
