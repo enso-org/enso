@@ -5,6 +5,7 @@ import Standard.Base.Data.Time
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
 import Standard.Base.Data.Time.Duration as Enso_Duration
 import Standard.Base.Data.Json as Enso_Json
+import Standard.Base.Data.List as Enso_List
 
 # Can do the top-level examples directory.
 
@@ -74,3 +75,6 @@ json = Enso_Json.parse here.json_text
 json_object : Json.Object
 json_object = here.json.items.head
 
+## An example cons-list.
+list : List
+list = Cons 1 (Cons 2 (Cons 3 Nil))

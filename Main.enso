@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Json
+import Standard.Examples
 
-example = Json.from_pairs [["foo", 533], ["bar", False]]
+example = Examples.list.reverse
 
 main =
     result = here.example
