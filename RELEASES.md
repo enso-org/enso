@@ -1,4 +1,4 @@
-# Nightly
+# Enso Next
 
 ## Miscellaneous
 

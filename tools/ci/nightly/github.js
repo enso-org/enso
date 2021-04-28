@@ -1,5 +1,4 @@
 const { Octokit } = require("@octokit/core");
-const octokit = new Octokit();
 
 const organization = "enso-org";
 function determineRepositoryName() {
@@ -20,8 +19,10 @@ function determineRepositoryName() {
     return fallback;
   }
 }
+
 const repo = determineRepositoryName();
 const token = process.env.GITHUB_TOKEN;
+const octokit = new Octokit({auth: token});
 
 function isNightly(release) {
   const nightlyInfix = "Nightly";
@@ -42,17 +43,6 @@ async function fetchNightlies() {
   return nightlies;
 }
 
-async function removeRelease(id) {
-  return await octokit.request(
-    "DELETE /repos/{owner}/{repo}/releases/{release_id}",
-    {
-      owner: organization,
-      repo: repo,
-      release_id: id,
-    }
-  );
-}
-
 async function triggerWorkflow(repo, workflow_id, ref) {
   await octokit.request(
     "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches",
@@ -65,7 +55,16 @@ async function triggerWorkflow(repo, workflow_id, ref) {
   );
 }
 
+async function publishRelease(id) {
+  return await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
+    owner: organization,
+    repo: repo,
+    release_id: id,
+    draft: false
+  });
+}
+
 exports.fetchAllReleases = fetchAllReleases;
 exports.fetchNightlies = fetchNightlies;
-exports.removeRelease = removeRelease;
+exports.publishRelease = publishRelease;
 exports.repository = repo;

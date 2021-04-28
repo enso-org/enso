@@ -373,7 +373,7 @@ jobs:
           tag_name: enso-${{ env.DIST_VERSION }}
           release_name: Enso Nightly ${{ env.DIST_VERSION }}
           body_path: repo/release_notes.md
-          draft: false
+          draft: true
           prerelease: true
 
       # Upload the assets to the created release
@@ -534,6 +534,12 @@ jobs:
           asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
+      - name: Publish Release
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: node publish-release.js ${{ steps.create_release.outputs.id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # TODO enable this once IDE supports triggers
       #      - name: Trigger IDE Build
@@ -542,12 +548,6 @@ jobs:
       #        run: node trigger-workflow.js ide gui-ci develop
       #        env:
       #          GITHUB_TOKEN: ${{ github.token }}
-#      - name: Remove Old Releases
-#        shell: bash
-#        working-directory: repo/tools/ci/nightly
-#        run: node clean-old-releases.js
-#        env:
-#          GITHUB_TOKEN: ${{ github.token }}
       - uses: dev-drprasad/delete-older-releases@v0.2.0
         name: Remove Old Releases
         with:

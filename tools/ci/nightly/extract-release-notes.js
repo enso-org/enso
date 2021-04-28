@@ -2,6 +2,7 @@ const fs = require("fs");
 
 const inputPath = process.argv[2];
 const outputPath = process.argv[3];
+const version = process.env.DIST_VERSION;
 
 console.log("Extracting release notes from " + inputPath + " to " + outputPath);
 
@@ -9,35 +10,54 @@ console.log("Extracting release notes from " + inputPath + " to " + outputPath);
  * in Markdown formatting.
  */
 function cutFirstSection(content) {
-  // TODO [RW] can we assume that '# ' is always the start of a section?
-  // This requires that there are no code snippets with comments starting at the
-  // beginning of the line.
-  function findSectionStart(text) {
-    return text.search(/^# /gm);
+  const nightlySectionRegex = /^# Enso Next$/gm;
+  function findNightlySectionStart(text) {
+    return text.search(nightlySectionRegex);
+  }
+  const regularSectionRegex = /^# Enso .*? \(\d+-\d+-\d+\)$/gm;
+  function findFirstRegularSectionStart(text) {
+    return text.search(regularSectionRegex);
+  }
+  function findNewline(text) {
+    return text.indexOf("\n");
   }
 
-  const firstHeading = findSectionStart(content);
+  const firstHeading = findNightlySectionStart(content);
   if (firstHeading < 0) {
-    throw "No sections in file!";
+    throw "Could not find the nightly section, matching " + nightlySectionRegex;
   }
-  const restStart = firstHeading + 2;
+
+  const restOffset = firstHeading + 2;
+  const newLineOffset = findNewline(content.substring(restOffset));
+  if (newLineOffset < 0) {
+    throw "No content after the section heading"
+  }
+  const restStart = restOffset + newLineOffset + 1;
+
   const rest = content.substring(restStart);
-  const secondHeading = findSectionStart(rest);
+  const secondHeading = findFirstRegularSectionStart(rest);
   if (secondHeading < 0) {
-    // There is only one section.
-    return content;
+    throw "Could not find the first released section, matching" + regularSectionRegex;
   }
-  const secondHeadingOffsetInContent = restStart + secondHeading;
-  const firstSectionContent = content.substring(
+
+  const firstSectionContent = rest.substring(
     0,
-    secondHeadingOffsetInContent
+    secondHeading
   );
-  return firstSectionContent;
+
+  const firstSectionHeader = "# Enso Nightly " + version + "\n";
+
+  return firstSectionHeader + firstSectionContent;
 }
 
-const content = fs.readFileSync(inputPath, { encoding: "utf-8" });
-const nightlyPart = cutFirstSection(content);
-fs.writeFileSync(outputPath, nightlyPart);
+try {
+  const content = fs.readFileSync(inputPath, { encoding: "utf-8" });
+  const nightlyPart = cutFirstSection(content);
+  fs.writeFileSync(outputPath, nightlyPart);
 
-console.log("Created " + outputPath + " with the following content:");
-console.log(nightlyPart);
+  console.log("Created " + outputPath + " with the following content:");
+  console.log(nightlyPart);
+} catch (exc) {
+  console.error(exc);
+  process.exit(1);
+}
