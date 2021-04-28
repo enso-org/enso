@@ -42,13 +42,19 @@ class RepoInitialization(
     val initAction =
       for {
         _ <- Future {
-          log.info("Initializing suggestions repo.")
+          log.info(
+            s"Initializing suggestions repo " +
+            s"${directoriesConfig.suggestionsDatabaseFile}."
+          )
         }
         _ <- suggestionsRepo.init.recoverWith { case NonFatal(error) =>
           recoverInitError(error, suggestionsRepo.db)
         }
         _ <- Future {
-          log.info("Initialized Suggestions repo.")
+          log.info(
+            s"Initialized Suggestions repo " +
+            s"${directoriesConfig.suggestionsDatabaseFile}."
+          )
         }
       } yield ()
     initAction.onComplete {
@@ -56,7 +62,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         log.error(
-          s"Failed to initialize SQL suggestions repo. ${ex.getMessage}"
+          s"Failed to initialize SQL suggestions repo " +
+          s"${directoriesConfig.suggestionsDatabaseFile}. " +
+          s"${ex.getMessage}"
         )
     }
     initAction
@@ -66,18 +74,28 @@ class RepoInitialization(
     val initAction =
       for {
         _ <- Future {
-          log.info("Initializing versions repo.")
+          log.info(
+            s"Initializing versions repo " +
+            s"${directoriesConfig.suggestionsDatabaseFile}."
+          )
         }
         _ <- versionsRepo.init
         _ <- Future {
-          log.info("Initialized Versions repo.")
+          log.info(
+            s"Initialized Versions repo " +
+            s"${directoriesConfig.suggestionsDatabaseFile}."
+          )
         }
       } yield ()
     initAction.onComplete {
       case Success(()) =>
         eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
-        log.error(s"Failed to initialize SQL versions repo. ${ex.getMessage}")
+        log.error(
+          s"Failed to initialize SQL versions repo " +
+          s"${directoriesConfig.suggestionsDatabaseFile}. " +
+          s"${ex.getMessage}"
+        )
     }
     initAction
   }
