@@ -22,7 +22,7 @@ function determineRepositoryName() {
 
 const repo = determineRepositoryName();
 const token = process.env.GITHUB_TOKEN;
-const octokit = new Octokit({auth: token});
+const octokit = new Octokit({ auth: token });
 
 function isNightly(release) {
   const nightlyInfix = "Nightly";
@@ -56,12 +56,15 @@ async function triggerWorkflow(repo, workflow_id, ref) {
 }
 
 async function publishRelease(id) {
-  return await octokit.request('PATCH /repos/{owner}/{repo}/releases/{release_id}', {
-    owner: organization,
-    repo: repo,
-    release_id: id,
-    draft: false
-  });
+  return await octokit.request(
+    "PATCH /repos/{owner}/{repo}/releases/{release_id}",
+    {
+      owner: organization,
+      repo: repo,
+      release_id: id,
+      draft: false,
+    }
+  );
 }
 
 exports.fetchAllReleases = fetchAllReleases;

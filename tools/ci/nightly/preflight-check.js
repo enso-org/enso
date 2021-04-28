@@ -30,8 +30,8 @@ function setVersionString(name) {
 }
 
 /** Checks if there are any new changes to see if the nightly build should
-  * proceed.
-  */
+ * proceed.
+ */
 function checkProceed(nightlies) {
   if (nightlies.length == 0) {
     console.log(
@@ -62,11 +62,11 @@ function checkProceed(nightlies) {
 }
 
 /** Prepares a version string for the nightly build.
-  *
-  * A '-SNAPSHOT' suffix is added if it is not already present, next the current
-  * date is appended. If this is not the first nightly build on that date, an
-  * increasing numeric suffix is added.
-  */
+ *
+ * A '-SNAPSHOT' suffix is added if it is not already present, next the current
+ * date is appended. If this is not the first nightly build on that date, an
+ * increasing numeric suffix is added.
+ */
 function prepareVersionString(nightlies) {
   function isTaken(name) {
     const tagName = "enso-" + name;

@@ -30,20 +30,20 @@ function cutFirstSection(content) {
   const restOffset = firstHeading + 2;
   const newLineOffset = findNewline(content.substring(restOffset));
   if (newLineOffset < 0) {
-    throw "No content after the section heading"
+    throw "No content after the section heading";
   }
   const restStart = restOffset + newLineOffset + 1;
 
   const rest = content.substring(restStart);
   const secondHeading = findFirstRegularSectionStart(rest);
   if (secondHeading < 0) {
-    throw "Could not find the first released section, matching" + regularSectionRegex;
+    throw (
+      "Could not find the first released section, matching" +
+      regularSectionRegex
+    );
   }
 
-  const firstSectionContent = rest.substring(
-    0,
-    secondHeading
-  );
+  const firstSectionContent = rest.substring(0, secondHeading);
 
   const firstSectionHeader = "# Enso Nightly " + version + "\n";
 

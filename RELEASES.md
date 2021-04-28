@@ -2,7 +2,8 @@
 
 ## Miscellaneous
 
-- Adding a pipeline for automatic nightly builds.
+- Adding a pipeline for automatic nightly builds
+  ([#1689](https://github.com/enso-org/enso/pull/1689)).
 
 # Enso 0.2.11 (2021-04-28)
 
