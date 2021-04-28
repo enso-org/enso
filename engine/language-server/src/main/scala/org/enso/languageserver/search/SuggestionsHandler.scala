@@ -93,7 +93,9 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     log.info(
-      s"Starting suggestions handler with $config $suggestionsRepo $fileVersionsRepo $sessionRouter $runtimeConnector"
+      s"Starting suggestions handler from $config " +
+      s"$suggestionsRepo $fileVersionsRepo " +
+      s"$sessionRouter $runtimeConnector"
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])

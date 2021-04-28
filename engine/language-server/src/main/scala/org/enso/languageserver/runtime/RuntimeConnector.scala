@@ -17,7 +17,7 @@ class RuntimeConnector
     with Stash {
 
   override def preStart(): Unit = {
-    log.info("Starting ...")
+    log.info("Starting the runtime connector.")
   }
 
   override def receive: Receive = {
