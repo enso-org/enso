@@ -35,6 +35,20 @@ type Range
     not_empty : Boolean
     not_empty = this.is_empty.not
 
+    ## Applies a function to each element in the range, producing a vector of
+       results.
+
+       Arguments:
+       - function: The function to apply to each integer in the range.
+
+       > Example
+         Create a vector that contains the numbers twice that of the numbers in
+         the range.
+
+             1.up_to 10 . map (*2)
+    map : (Number -> Any) -> Vector Any
+    map function = this.to_vector.map function
+
     ## Applies a function for each element in the range.
 
        Arguments:
@@ -42,7 +56,7 @@ type Range
 
        > Example
          To print all the numbers from 1 to 100 use:
-         1.up_to 101 . each IO.println
+             1.up_to 101 . each IO.println
     each : (Number -> Any) -> Nothing
     each function =
         it start end = if start == end then Nothing else
@@ -130,5 +144,7 @@ type Range
          Getting a vector of the numbers 1 to 5.
              1.up_to 6 . to_vector == [1, 2, 3, 4, 5]
     to_vector : Vector.Vector
-    to_vector = Vector.new (this.end - 1) (i -> i + this.start)
+    to_vector =
+        length = Math.max 0 (this.end - this.start)
+        Vector.new length (i -> i + this.start)
 
