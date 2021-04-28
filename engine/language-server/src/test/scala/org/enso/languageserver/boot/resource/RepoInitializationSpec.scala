@@ -164,11 +164,11 @@ class RepoInitializationSpec
 
       // corrupt
       val bytes: Array[Byte] = Array(1, 2, 3)
+      Files.delete(config.directories.suggestionsDatabaseFile.toPath)
       Files.write(
         config.directories.suggestionsDatabaseFile.toPath,
         bytes,
-        StandardOpenOption.WRITE,
-        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.CREATE,
         StandardOpenOption.DSYNC
       )
       withRepos(config) { (suggestionsRepo, _) =>
