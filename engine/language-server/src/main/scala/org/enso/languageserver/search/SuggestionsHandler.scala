@@ -92,7 +92,9 @@ final class SuggestionsHandler(
   private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
-    log.info("Starting ...")
+    log.info(
+      s"Starting suggestions handler with $config $suggestionsRepo $fileVersionsRepo $sessionRouter $runtimeConnector"
+    )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
@@ -209,15 +211,15 @@ final class SuggestionsHandler(
           case Success(None) =>
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error applying suggestion database updates: {}",
-              msg.file
+              s"Error applying suggestion database updates" +
+              s" ${msg.file} ${msg.version}. ${ex.getMessage}"
             )
         }
 
     case Api.ExpressionUpdates(_, updates) =>
       log.debug(
-        s"ExpressionValuesComputed ${updates.map(u => (u.expressionId, u.expressionType))}"
+        s"Received expression updates: " +
+        s"${updates.map(u => (u.expressionId, u.expressionType))}"
       )
       val types = updates.toSeq
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
@@ -242,9 +244,8 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error applying changes from computed values: {}",
-              updates
+              s"Error applying changes from computed values: $updates. " +
+              s"${ex.getMessage}"
             )
         }
 
@@ -317,13 +318,13 @@ final class SuggestionsHandler(
             }
           case Success(Left(err)) =>
             log.error(
-              "Error cleaning the index after file delete event: {}",
-              err
+              s"Error cleaning the index after file delete event. " +
+              s"$err"
             )
           case Failure(ex) =>
             log.error(
-              ex,
-              "Error cleaning the index after file delete event"
+              s"Error cleaning the index after file delete event. " +
+              s"${ex.getMessage}"
             )
         }
 
@@ -400,7 +401,7 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
-        log.info("Initialized.")
+        log.debug(s"Initialized with state $state.")
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
           .flatMap { modules =>
