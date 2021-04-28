@@ -1,8 +1,10 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
+
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
 import Standard.Base.Data.Time.Duration as Enso_Duration
-import Standard.Base.Data.Time
+import Standard.Base.Data.Json as Enso_Json
 
 # Can do the top-level examples directory.
 
@@ -34,6 +36,41 @@ csv : File
 csv = Enso_Project.data / "food_shop_inventory.csv"
 
 ## An example duration for experimenting with duration APIs.
-# duration : Duration
+duration : Duration
 duration = Enso_Duration.between (Time.new 2020 10 20) Time.now
+
+## An example amount of JSON as text.
+json_text : Text
+json_text = """
+    [
+      {
+        "title": "Lord of the Rings",
+        "author": {
+          "name": "J. R. R. Tolkien",
+          "year_of_birth": 1892
+        }
+      },
+      {
+        "title": "The Little Prince",
+        "author": {
+          "name": "Antoine de Saint-Exupéry",
+          "year_of_birth": 1900
+        }
+      },
+      {
+        "title": "And Then There Were None",
+        "author": {
+          "name": "Agatha Christie",
+          "year_of_birth": 1890
+        }
+      }
+    ]
+
+## Example JSON for working with.
+json : Json
+json = Enso_Json.parse here.json_text
+
+## An example JSON object.
+json_object : Json.Object
+json_object = here.json.items.head
 

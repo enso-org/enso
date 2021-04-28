@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Interval
+import Standard.Base.Data.Json
 
-example = Interval.exclusive 1 5 . not_empty
+example = Json.from_pairs [["foo", 533], ["bar", False]]
 
 main =
     result = here.example
