@@ -1,6 +1,5 @@
 package org.enso.runtimeversionmanager.test
 
-import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.components.{
   GraalRuntime,
   RuntimeComponentUpdater,
@@ -11,6 +10,6 @@ import org.enso.runtimeversionmanager.components.{
 object NoopComponentUpdaterFactory extends RuntimeComponentUpdaterFactory {
 
   /** @inheritdoc */
-  override def build(runtime: GraalRuntime, os: OS): RuntimeComponentUpdater =
+  override def build(runtime: GraalRuntime): RuntimeComponentUpdater =
     NoopComponentUpdater
 }

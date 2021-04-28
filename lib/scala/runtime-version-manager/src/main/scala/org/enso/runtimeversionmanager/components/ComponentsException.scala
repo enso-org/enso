@@ -1,5 +1,7 @@
 package org.enso.runtimeversionmanager.components
 
+import java.nio.file.Path
+
 import nl.gn0s1s.bump.SemVer
 
 /** A base class for exceptions caused by [[RuntimeVersionManager]] logic.
@@ -69,3 +71,9 @@ case class UpgradeRequiredError(
 /** Indicates uninstallation failure. */
 case class UninstallationError(message: String)
     extends ComponentsException(message)
+
+/** Indicates that the required executable was not found. */
+case class ExecutableNotFoundError(path: Path, name: String)
+    extends ComponentsException(
+      s"Executable with the name '$name' does not found on $path."
+    )
