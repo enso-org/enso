@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Map
-import Standard.Examples
+import Standard.Base.Data.Ordering
 
-example = Examples.map.fold_with_key "" (l -> k -> v -> l + k.to_text + v)
+example = Ordering.Less.to_sign
 
 main =
     result = here.example
