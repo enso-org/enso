@@ -1,8 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Ordering
-
-example = Ordering.Less.to_sign
+example = 10.up_to 100 . all (> 5)
 
 main =
     result = here.example
