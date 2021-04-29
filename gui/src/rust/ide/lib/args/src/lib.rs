@@ -39,5 +39,6 @@ ensogl::read_args! {
         crash_report_host    : String,
         no_data_gathering    : bool,
         is_in_cloud          : bool,
+        verbose              : bool,
     }
 }

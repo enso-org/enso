@@ -9,6 +9,11 @@
 - [Window management buttons.][1511]. The IDE now has components for
   "fullscreen" nad "close" buttons. They will be available only when running IDE
   in a cloud environment.
+- [Customizable backend options][1531]. When invoking Enso IDE through command
+  line interface, it is possible to give `--` argument separator. All arguments
+  following the separator will be passed to the backend.
+- [Added `--verbose` parameter][1531]. If `--verbose` is given as command line
+  argument, the IDE and the backend will produce more detailed logs.
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
@@ -23,6 +28,7 @@ you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
 [1511]: https://github.com/enso-org/ide/pull/1511
+[1531]: https://github.com/enso-org/ide/pull/1531
 
 <br/>
 
