@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+import Standard.Examples
+
+example = Panic.rethrow (Examples.throw_error)
+
+main =
+    result = here.example
+    IO.println result
