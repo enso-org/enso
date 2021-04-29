@@ -4,8 +4,18 @@ from Standard.Base import all
 type Sort_Order
 
     ## Elements should be sorted in ascending order.
+
+       > Example
+         Create an ascending order.
+
+             Sort_Order.Ascending
     type Ascending
 
     ## Elements should be sorted in descending order.
+
+       > Example
+         Create a descending order.
+
+             Sort_Order.Descending
     type Descending
 

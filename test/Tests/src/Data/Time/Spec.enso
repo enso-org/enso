@@ -7,8 +7,8 @@ import Tests.Data.Time.Time_Spec
 import Tests.Data.Time.Zone_Spec
 
 spec =
-    Zone_Spec.spec
-    Time_Of_Day_Spec.spec
     Date_Spec.spec
-    Time_Spec.spec
     Duration_Spec.spec
+    Time_Of_Day_Spec.spec
+    Time_Spec.spec
+    Zone_Spec.spec

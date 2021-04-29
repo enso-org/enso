@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Data.Json
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time
+import Standard.Base.Data.Time
 import Standard.Base.Network.Http.Form
 import Standard.Base.Network.Http.Header
 import Standard.Base.Network.Http.Method

@@ -23,8 +23,13 @@ from Standard.Base import all
      their own equality operations that will be more efficient than these.
 
    > Example
-     Checking if 1 is equal to 2.
-         1 == 2
+     Checking if the variable `a` is equal to `147`.
+
+         from Standard.Base import all
+
+         example_equality =
+             a = 7 * 21
+             a == 147
 Any.== : Any -> Boolean
 Any.== that = if Meta.is_same_object this that then True else
     this_meta = Meta.meta this
@@ -57,8 +62,13 @@ Any.== that = if Meta.is_same_object this that then True else
      satisfy universal equality, as described in the documentation for `Any.==`.
 
    > Example
-     Checking if 1 is not equal to 2.
-         1 != 2
+     Checking if the variable `a` is not equal to `147`.
+
+         from Standard.Base import all
+
+         example_inequality =
+             a = 7 * 21
+             a != 147
 Any.!= : Any -> Boolean
 Any.!= that = (this == that).not
 
@@ -75,8 +85,13 @@ Any.!= that = (this == that).not
      please ensure that it is semantically equivalent to using `.compare_to`.
 
    > Example
-     Checking if 1 is greater than 10.
-         1 > 10
+     Checking if the variable `a` is greater than `147`.
+
+         from Standard.Base import all
+
+         example_greater =
+             a = 7 * 28
+             a > 147
 Any.> : Any -> Boolean
 Any.> that = this.compare_to that == Ordering.Greater
 
@@ -94,8 +109,13 @@ Any.> that = this.compare_to that == Ordering.Greater
      greater than and equal to operations.
 
    > Example
-     Checking if 1 is greater than or equal to 10.
-         1 >= 10
+     Checking if the variable `a` is greater than or equal to `147`.
+
+         from Standard.Base import all
+
+         example_greater_eq =
+             a = 6 * 21
+             a >= 147
 Any.>= : Any -> Boolean
 Any.>= that = (this > that) || (this == that)
 
@@ -112,8 +132,13 @@ Any.>= that = (this > that) || (this == that)
      please ensure that it is semantically equivalent to using `.compare_to`.
 
    > Example
-     Checking if 1 is less than 10.
-         1 < 10
+     Checking if the variable `a` is less than `147`.
+
+         from Standard.Base import all
+
+         example_less =
+             a = 7 * 21
+             a < 147
 Any.< : Any -> Boolean
 Any.< that = this.compare_to that == Ordering.Less
 
@@ -131,8 +156,13 @@ Any.< that = this.compare_to that == Ordering.Less
      less than than and equal to operations.
 
    > Example
-     Checking if 1 is less than or equal to 10.
-         1 <= 10
+     Checking if the variable `a` is less than or equal to `147`.
+
+         from Standard.Base import all
+
+         example_less_eq =
+             a = 7 * 21
+             a < 147
 Any.<= : Any -> Boolean
 Any.<= that = (this < that) || (this == that)
 
@@ -143,14 +173,15 @@ Any.<= that = (this < that) || (this == that)
 
    > Example
      Checking if the value 1 is nothing.
+
          1.is_nothing
 Any.is_nothing : Boolean
 Any.is_nothing = case this of
     Nothing -> True
     _ -> False
 
-## Executes the provided handler on a dataflow error, or returns a non-error
-   value unchanged.
+## Executes the provided handler on an error, or returns a non-error value
+   unchanged.
 
    Arguments:
    - handler: The function to call on this if it is an error value. By default
@@ -158,7 +189,12 @@ Any.is_nothing = case this of
 
    > Example
      Catching an erroneous value and getting the length of its message.
-       (Time.Time_Error "Message").catch (err -> err.error_message.length)
+
+         from Standard.Base import all
+
+         example_catch =
+             error = Error.throw "My message"
+             error.catch (err -> err.length)
 Any.catch : (Error -> Any) -> Any
 Any.catch (handler = x->x) = this.catch_primitive handler
 
@@ -171,12 +207,24 @@ Any.catch (handler = x->x) = this.catch_primitive handler
    is an error, the error is transformed using the provided function.
 
    > Example
-     Wrapping an error value.
-       map.get "x" . map_error (_ -> ElementNotFound "x")
+     Transforming an error value to provide more information.
+
+         from Standard.Base import all
+         from Standard.Examples import Example_Error_Type
+
+         example_map_error =
+            my_map = Map.empty
+            error = my_map.get "x"
+            error.map_error (_ -> Example_Error_Type "x is missing")
 Any.map_error : (Error -> Error) -> Any
 Any.map_error _ = this
 
 ## Checks if `this` is an error.
+
+   > Example
+     Checking if the provided value is an error.
+
+         1.is_error
 Any.is_error : Boolean
 Any.is_error = False
 
@@ -192,6 +240,7 @@ Any.is_error = False
 
    > Example
      Applying a function to a block.
+
          (x -> x + 1) <|
             y = 1 ^ 3
             3 + y
@@ -214,6 +263,7 @@ Any.<| ~argument = this argument
    > Example
      Applying multiple functions in a pipeline to compute a number and transform
      it to text.
+
          1 |> (* 2) |> (/ 100) |> .to_text
 Any.|> : (Any -> Any) -> Any
 Any.|> ~function = function this
@@ -226,6 +276,7 @@ Any.|> ~function = function this
 
    > Example
      Multiply by 2 and then add 1 as a function applied to 2.
+
          (+1 << *2) 2
 Any.<< : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.<< ~that = x -> this (that x)
@@ -238,6 +289,7 @@ Any.<< ~that = x -> this (that x)
 
    > Example
      Add one and then multiply by two as a function applied to 2.
+
          (+1 >> *2) 2
 Any.>> : (Any -> Any) -> (Any -> Any) -> Any -> Any
 Any.>> ~that = x -> that (this x)
@@ -256,6 +308,7 @@ Any.>> ~that = x -> that (this x)
 
    > Example
      Converting the number `2` into visualization data.
+
          2.to_default_visualization_data
 Any.to_default_visualization_data : Text
 Any.to_default_visualization_data = this.to_json.to_text

@@ -13,11 +13,12 @@ from Builtins import Array
    is the recommended data structure for most applications.
 
    > Example
-     To create a vector containing the numbers 1 through 50:
+     Create a vector containing the numbers 1 through 50.
          Vector.new 50 (ix -> ix + 1)
 
    > Example
-     To create a copy of the given vector (`my_vec`):
+     Create a copy of the given vector (`my_vec`).
+
          Vector.new my_vec.length (ix -> my_vec.at ix)
 new : Number -> (Number -> Any) -> Vector
 new length constructor =
@@ -36,8 +37,8 @@ new length constructor =
    is the recommended data structure for most applications.
 
    > Example
-     A vector containing 50 elements, each being the number `42`, can be
-     created by:
+     Create a vector containing 50 elements, each being the number `42`.
+
          Vector.fill length=50 item=42
 fill : Number -> Any -> Vector
 fill length ~item =
@@ -55,25 +56,22 @@ fill length ~item =
    is the recommended data structure for most applications.
 
    > Example
-     In the following example we'll read items from the standard input,
-     until the string "end" is entered by the user and then return a vector
-     containing all items.
-         from Standard.Base import all
+     Construct a vector using a builder that contains the items 1 to 10.
 
-         main =
+         example_new_builder =
               builder = Vector.new_builder
-              do_read =
-                  item = IO.readln
-                  if item == "end" then Nothing else
-                      builder.append item
-                      do_read
-              do_read
-              vec = builder.to_vector
-              IO.println vec
+              do_build start stop =
+                  builder.append start
+                  if start >= stop then Nothing else
+                      @Tail_Call do_build start+1 stop
+              do_build 1 10
+              builder.to_vector
 new_builder : Builder
 new_builder = Builder.new
 
-## Converts a polyglot value representing an array into a vector.
+## ADVANCED
+
+   Converts a polyglot value representing an array into a vector.
 
    Arguments:
    - arr: The polyglot array value to wrap into a vector.
@@ -87,7 +85,7 @@ new_builder = Builder.new
      As Enso vectors implement immutable semantics, this constructor function
      makes a copy of each value in the argument array.
 
-     If this didn't happen then it would be possible for the underlyinf array to
+     If this didn't happen then it would be possible for the underlying array to
      be mutated under the hood, and sneak mutability into our immutable data.
 from_array : Any -> Vector.Vector
 from_array arr = here.new (Polyglot.get_array_size arr) (arr.at _)
@@ -119,7 +117,8 @@ type Vector
 
        > Example
          Checking the length of a vector.
-             [1, 2, 3, 4].length == 4
+
+             [1, 2, 3, 4].length
     length : Number
     length = Polyglot.get_array_size this.to_array
 
@@ -129,7 +128,8 @@ type Vector
        - index: The location in the vector to get the element from.
 
        > Example
-         To get the second element of the vector `[1, 2, 3]`, use:
+         Get the second element of a vector.
+
              [1, 2, 3].at 1
     at : Number -> Any
     at index = this.to_array.at index
@@ -147,8 +147,8 @@ type Vector
            f (...(f (f init l0) l1)...) ln
 
        > Example
-         In the following example, we'll compute the sum of all elements of a
-         vector:
+         Compute the sum of all of the elements in a vector.
+
              [0, 1, 2] . fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init function =
@@ -164,8 +164,8 @@ type Vector
        If the vector is empty, it throws Nothing.
 
        > Example
-         In the following example, we'll compute the sum of all elements of a
-         vector:
+         Compute the sum of all the elements in a vector.
+
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any ! Nothing
     reduce function =
@@ -179,8 +179,7 @@ type Vector
        have the `+` operator used to combine them.
 
        > Example
-         In the following example, we'll compute the sum of all elements of a
-         vector.
+         Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
     sum : (Any ! Nothing)
@@ -199,8 +198,9 @@ type Vector
          function.
 
        > Example
-         Checking if any element of the list is larger than 3.
-             [1,2,3,4,5].exists (> 3)
+         Check if any element of the list is larger than 3.
+
+             [1, 2, 3, 4, 5].exists (> 3)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
         len = this.length
@@ -218,7 +218,8 @@ type Vector
 
        > Example
          Finding a first element of the list that is larger than 3.
-             [1,2,3,4,5].find (> 3)
+
+             [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find predicate =
         len = this.length
@@ -229,7 +230,6 @@ type Vector
                     @Tail_Call go idx+1
         go 0
 
-
     ## Checks whether a predicate holds for at least one element of this vector.
 
        Arguments:
@@ -239,7 +239,8 @@ type Vector
 
        > Example
          Checking if any element of the list is larger than 3.
-             [1,2,3,4,5].any (> 3)
+
+             [1, 2, 3, 4, 5].any (> 3)
     any : (Any -> Boolean) -> Boolean
     any predicate = this.exists predicate
 
@@ -252,6 +253,7 @@ type Vector
 
        > Example
          Check if all elements in the vector are less than zero.
+
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
     all predicate = this.fold True (l -> r -> l && predicate r)
@@ -263,6 +265,7 @@ type Vector
 
        > Example
          Checking if the vector contains the number 72.
+
              [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
     contains elem = this.exists ix-> ix == elem
@@ -271,8 +274,8 @@ type Vector
 
        > Example
          Checking for emptiness.
-             [].is_empty == True
-             [1].is_empty == False
+
+             [].is_empty
     is_empty : Boolean
     is_empty = this.length == 0
 
@@ -280,8 +283,8 @@ type Vector
 
        > Example
          Checking for non-emptiness.
-             [].not_empty == False
-             [1].not_empty == True
+
+             [1].not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 
@@ -294,6 +297,7 @@ type Vector
 
        > Example
          Selecting all elements that are greater than 3.
+
              [1, 2, 3, 4, 5].filter (> 3)
     filter : (Any -> Boolean) -> Vector
     filter predicate =
@@ -308,10 +312,9 @@ type Vector
          some transformation of that element.
 
        > Example
-         In the following example, we add `1` to each element of the vector:
+         Add 1 to each element of the vector.
+
              [1, 2, 3] . map +1
-         The result of running the code above is:
-             [2, 3, 4]
     map : (Any -> Any) -> Vector
     map function =
         here.new this.length i-> function (this.at i)
@@ -324,8 +327,8 @@ type Vector
          it, and returns a vector.
 
        > Example
-         In the following example, we replace each number `n` with itself
-         repeated `n` times:
+         Replace each number `n` in the vector with itself repeated n times.
+
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
     flat_map : (Any -> Vector) -> Vector
     flat_map function =
@@ -348,7 +351,8 @@ type Vector
        element itself.
 
        > Example
-         Summing numbers with their indices in a vector.
+         Sum numbers with their indices in a vector.
+
              [1, 2, 3].map_with_index (+)
     map_with_index : (Integer -> Any -> Any) -> Vector
     map_with_index function = here.new this.length i-> function i (this.at i)
@@ -362,8 +366,8 @@ type Vector
        therefore it is only useful for side-effecting computations.
 
        > Example
-         In the following example, we're printing each element of the vector
-         to the standard output:
+         Print each element in the vector to standard output.
+
              [1, 2, 3, 4, 5] . each IO.println
     each : (Any -> Any) -> Nothing
     each f =
@@ -374,7 +378,8 @@ type Vector
        the opposite order.
 
        > Example
-         Reversing a two-element vector.
+         Reverse a two-element vector.
+
              [1, 2].reverse
     reverse : Vector
     reverse = here.new this.length (i -> this.at (this.length - (1 + i)))
@@ -382,7 +387,8 @@ type Vector
     ## Generates a human-readable text representation of the vector.
 
        > Example
-         Converting a vector of numbers to text.
+         Convert a vector of numbers to text.
+
              [1, 2, 3].to_text == "[1, 2, 3]"
     to_text : Text
     to_text =
@@ -401,7 +407,8 @@ type Vector
        their items are pairwise equal.
 
        > Example
-         Comparing two vectors for equality (this case is false).
+         Compare two vectors for equality (this case is false).
+
              [1, 2, 3] == [2, 3, 4]
     == : Vector -> Boolean
     == that =
@@ -415,8 +422,9 @@ type Vector
        - that: The vector to concatenate to the end of `this`.
 
        > Example
-         Concatenating two single-element vectors.
-             [1] + [2] == [1, 2]
+         Concatenate two single-element vectors.
+
+             [1] + [2]
     + : Vector -> Vector
     + that =
         this_len = this.length
@@ -433,8 +441,9 @@ type Vector
        - `element`: An element to add to this vector.
 
        > Example
-         Add one element in front:
-             [2, 3].prepend 1 == [1, 2, 3]
+         Add 1 to the start of the vector.
+
+             [2, 3].prepend 1
     prepend : Any -> Vector
     prepend element = [element] + this
 
@@ -444,8 +453,9 @@ type Vector
        - `element`: An element to add to this vector.
 
        > Example
-         Add one element to the end:
-             [1, 2].append 3 == [1, 2, 3]
+         Add 3 to the end of the vector.
+
+             [1, 2].append 3
     append : Any -> Vector
     append element = this + [element]
 
@@ -456,7 +466,8 @@ type Vector
        - separator: The text to use to join the textual elements of the vector.
 
        > Example
-         The following code returns "foo, bar, baz"
+         Join the elements of the vector together as a string.
+
              ["foo", "bar", "baz"].join ", "
     join : String -> Text
     join separator =
@@ -470,7 +481,8 @@ type Vector
        - count: The number of elements to drop from the start of `this`.
 
        > Example
-         The following code returns [2, 3, 4, 5]
+         Remove the first element from the start of the vector.
+
              [1, 2, 3, 4, 5].drop_start 1
     drop_start : Integer -> Vector
     drop_start count = if count >= this.length then here.new 0 (x -> x) else
@@ -482,7 +494,8 @@ type Vector
        - count: The number of elements to drop from the end of `this`.
 
        > Example
-         The following code returns [1, 2, 3]
+         Remove the last two elements from the end of the vector.
+
              [1, 2, 3, 4, 5].drop_end 2
     drop_end : Integer -> Vector
     drop_end count = if count >= this.length then here.new 0 (x -> x) else
@@ -495,7 +508,8 @@ type Vector
        - count: The number of elements to take from the start of `this`.
 
        > Example
-         The following code returns [1, 2]
+         Create a new vector from the first two elements of the vector.
+
              [1, 2, 3, 4, 5].take_start 2
     take_start : Integer -> Vector
     take_start count = if count >= this.length then this else
@@ -508,7 +522,8 @@ type Vector
        - count: The number of elements to take from the end of `this`.
 
        > Example
-         The following code returns [3, 4, 5]
+         Create a new vector from the last two elements of the vector.
+
              [1, 2, 3, 4, 5].take_end 3
     take_end : Integer -> Vector
     take_end count = if count >= this.length then this else
@@ -526,12 +541,14 @@ type Vector
        `this` and `that`, containing results of calling `function`.
 
        > Example
-         To pairwise-sum two vectors:
-             [1, 2, 3].zip [4, 5, 6] (+) == [5, 7, 9]
+         Calculate the pairwise sum of two vectors.
+
+             [1, 2, 3].zip [4, 5, 6] (+)
 
        > Example
          When the `function` is not provided, it defaults to creating a pair
-         of both elements:
+         of both elements.
+
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
     zip : Vector -> (Any -> Any -> Any) -> Vector
     zip that function=[_,_] =
@@ -550,10 +567,12 @@ type Vector
 
        > Example
          Extending vector to the length of 5 returns `[1, 2, 3, 0, 0]`
+
              [1, 2, 3].pad 5 0
 
        > Example
          Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
+
              [1, 2, 3, 4, 5].pad 5 0
     pad : Integer -> Any -> Vector
     pad n elem =
@@ -564,6 +583,7 @@ type Vector
 
        > Example
          Convert a vector of numbers to JSON.
+
              [1, 2, 3].to_json
     to_json : Json.Array
     to_json = Json.Array (this.map .to_json)
@@ -573,6 +593,7 @@ type Vector
 
        > Example
          The following code returns 1.
+
              [1, 2, 3, 4].head
     head : Any ! Nothing
     head = if this.length >= 1 then this.at 0 else Error.throw Nothing
@@ -581,6 +602,7 @@ type Vector
 
        > Example
          The following code returns [2, 3, 4].
+
              [1, 2, 3, 4].tail
     tail : Vector ! Nothing
     tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
@@ -589,6 +611,7 @@ type Vector
 
        > Example
          The following code returns [1, 2, 3].
+
              [1, 2, 3, 4].init
     init : Vector ! Nothing
     init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
@@ -598,6 +621,7 @@ type Vector
 
        > Example
          The following code returns 4.
+
              [1, 2, 3, 4].last
     last : Vector ! Nothing
     last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
@@ -607,6 +631,7 @@ type Vector
 
        > Example
          The following code returns 1.
+
              [1, 2, 3, 4].first
     first : Vector ! Nothing
     first = this.head
@@ -618,6 +643,7 @@ type Vector
 
        > Example
          The following code returns 2.
+
              [1, 2, 3, 4].second
     second : Vector ! Nothing
     second = if this.length >= 2 then this.at 1 else Error.throw Nothing
@@ -630,6 +656,7 @@ type Vector
 
        > Example
          Empty vectors return `Nothing`.
+
              [].rest == Nothing
     rest : Vector ! Nothing
     rest = this.tail
@@ -668,10 +695,12 @@ type Vector
 
        > Example
          Sorting a vector of numbers.
+
              [5, 2, 3, 45, 15].sort == [2, 3, 5, 15, 45]
 
        > Example
          Sorting a vector of `Pair`s on the first element, descending.
+
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
     sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
@@ -702,7 +731,9 @@ type Vector
         json.to_text
 
 type Builder
-    ## A builder type for Enso vectors.
+    ## PRIVATE
+
+       A builder type for Enso vectors.
 
        Arguments:
        - to_array: The accumulator for the new vector.
@@ -716,24 +747,24 @@ type Builder
          In the following example we'll read items from the standard input,
          until the string "end" is entered by the user and then return a vector
          containing all items.
-             from Standard.Base import all
 
-             main =
-                  builder = Vector.new_builder
-                  do_read =
-                      item = IO.readln
-                      if item == "end" then Nothing else
-                          builder.append item
-                          do_read
-                  do_read
-                  vec = builder.to_vector
-                  IO.println vec
+             Construct a vector using a builder that contains the items 1 to 10.
+
+                 example_new_builder =
+                      builder = Vector.new_builder
+                      do_build start stop =
+                          builder.append start
+                          if start >= stop then Nothing else
+                              @Tail_Call do_build start+1 stop
+                      do_build 1 10
+                      builder.to_vector
     type Builder to_array length
 
     ## Creates a new builder.
 
        > Example
          Make a new builder
+
              Vector.new_builder
     new : Builder
     new = Builder (Array.new 1) 0
@@ -743,6 +774,7 @@ type Builder
 
        > Example
          Get the capacity of a new builder.
+
              Vector.new_builder.capacity
     capacity : Integer
     capacity = this.to_array.length
@@ -754,6 +786,7 @@ type Builder
 
        > Example
          Append an item to a vector builder.
+
              Vector.new_builder.append 10
     append : Any -> Nothing
     append item = case this.capacity > this.length of
@@ -774,11 +807,13 @@ type Builder
 
        > Example
          Use a builder to add elements to and then create a vector.
-             bldr = Vector.new_builder
-             bldr.append 1
-             bldr.append 10
-             bldr.append 100
-             bldr.to_vector
+
+            example_to_vector =
+                bldr = Vector.new_builder
+                bldr.append 1
+                bldr.append 10
+                bldr.append 100
+                bldr.to_vector
     to_vector : Vector
     to_vector =
         old_array = this.to_array
@@ -803,3 +838,4 @@ type Index_Out_Of_Bounds_Error index length
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text =
     "The index " + this.index.to_text + " is out of bounds in a vector with length " + this.length.to_text + "."
+

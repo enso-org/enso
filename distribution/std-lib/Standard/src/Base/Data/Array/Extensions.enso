@@ -11,6 +11,7 @@ from Standard.Base import all
 
    > Example
      Converting an array to its default visualization representation.
+
          [1, 2, 3, 4].to_array.to_default_visualization_data
 Array.to_default_visualization_data : Text
 Array.to_default_visualization_data =

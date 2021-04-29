@@ -1,8 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
 import Standard.Test
@@ -44,12 +44,12 @@ spec =
             date . month . should_equal 1
             date . day . should_equal 1
         Test.specify "should parse custom format" <|
-            date = Date.parse_format "1999 1 1" "yyyy M d"
+            date = Date.parse "1999 1 1" "yyyy M d"
             date . year . should_equal 1999
             date . month . should_equal 1
             date . day . should_equal 1
         Test.specify "should throw error when parsing custom format" <|
-            date = Date.parse_format "1999-01-01" "yyyy M d"
+            date = Date.parse "1999-01-01" "yyyy M d"
             case date.catch (x -> x) of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '1999-01-01' could not be parsed at index 4"
