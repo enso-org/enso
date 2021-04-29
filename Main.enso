@@ -1,8 +1,13 @@
 from Standard.Base import all
 
-import Standard.Examples
+import Standard.Base.Network.Http
+import Standard.Base.Network.Http.Header
+import Standard.Base.Network.Http.Request.Body
 
-example = Examples.get_response.headers
+example = 
+    body = Body.Bytes "Hello".utf_8
+    header_binary = Header.content_type "application/octet-stream"
+    Http.post "http://httpbin.org/post" body [header_binary]
 
 main =
     result = here.example

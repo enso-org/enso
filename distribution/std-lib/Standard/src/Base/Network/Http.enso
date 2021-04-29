@@ -24,20 +24,6 @@ polyglot java import java.net.URI
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import org.enso.base.Http_Utils
 
-## UNSTABLE
-
-   An error when sending an Http request.
-
-   Arguments:
-   - message: The message for the error.
-type Request_Error message
-
-## UNSTABLE
-
-   Convert a request error to a human-readable form.
-Request_Error.to_display_text =
-    "Error when sending request: " + this.message
-
 ## Create a new instance of the HTTP client.
 
    Arguments:
@@ -56,7 +42,13 @@ Request_Error.to_display_text =
 
    > Example
      Create an HTTP client with extended timeout and proxy settings.
-         Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
+
+         import Standard.Base.Data.Time.Duration
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Proxy
+
+         example_new =
+            Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http timeout follow_redirects proxy version
@@ -68,8 +60,11 @@ new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (ver
    - headers: Any headers for the options request.
 
    > Example
-     Send an Options request.
-         Http.options "http://httpbin.org"
+     Send an Options request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_options = Http.options "http://httpbin.org"
 options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 options uri (headers = []) = here.new.options uri headers
 
@@ -80,18 +75,33 @@ options uri (headers = []) = here.new.options uri headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Get request.
-         Http.get "http://httpbin.org/get"
+     Send a Get request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_get = Http.get "http://httpbin.org/get"
 
    > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+     Send authenticated Get request (note the use of TLS). NOTE: This example
+     will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_get =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.get "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.get "http://httpbin.org/bytes/1024"
-         res.body.to_file out_file
+        Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_get =
+             out_file = Examples.scratch_file
+             res = Http.get "http://httpbin.org/bytes/1024"
+             res.body.to_file out_file
 get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 get uri (headers = []) = here.new.get uri headers
 
@@ -102,17 +112,33 @@ get uri (headers = []) = here.new.get uri headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Get request.
-         Http.fetch "http://httpbin.org/get"
+     Send a Get request and return the body. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+
+         example_fetch = Http.fetch "http://httpbin.org/get"
 
    > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.fetch "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+     Send authenticated Get request (note the use of TLS) and return the body.
+     NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_fetch =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.fetch "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+     Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_fetch =
+             out_file = Examples.scratch_file
+             res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
 fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 fetch uri (headers = []) =
     here.new.get uri headers . body
@@ -124,9 +150,11 @@ fetch uri (headers = []) =
    - headers: Any headers for the options request.
 
    > Example
-     Send a Head request.
-         res = Http.head "http://httpbin.org"
-         IO.println res.headers
+     Send a Head request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_head = Http.head "http://httpbin.org"
 head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 head uri (headers = []) = here.new.options uri headers
 
@@ -139,9 +167,15 @@ head uri (headers = []) = here.new.options uri headers
 
    > Example
      Send a Post request with binary data.
-         body = Body.Bytes "Hello".utf_8
-         header_binary = Header.content_type "application/octet-stream"
-         Http.post "http://httpbin.org/post" body [header_binary]
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+         import Standard.Base.Network.Http.Request.Body
+
+         example_post =
+             body = Body.Bytes "Hello".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.post "http://httpbin.org/post" body [header_binary]
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
 post uri body (headers = []) = here.new.post uri body headers
 
@@ -484,3 +518,17 @@ type Http
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
+
+## UNSTABLE
+
+   An error when sending an Http request.
+
+   Arguments:
+   - message: The message for the error.
+type Request_Error message
+
+## UNSTABLE
+
+   Convert a request error to a human-readable form.
+Request_Error.to_display_text = "Error when sending request: " + this.message
+
