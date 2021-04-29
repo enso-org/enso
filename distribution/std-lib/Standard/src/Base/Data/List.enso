@@ -61,8 +61,7 @@ type List
          function.
 
        > Example
-         In the following example, we'll check if any element of the list is
-         larger than `5`.
+         Check if any element of the list is larger than 5.
 
              import Standard.Examples
 
@@ -87,8 +86,7 @@ type List
        a Boolean value.
 
        > Example
-         In the following example, we'll check if any element of the list is
-         larger than `5`.
+         Check if any element of the list is larger than 5.
 
              import Standard.Examples
 
@@ -104,7 +102,7 @@ type List
          function.
 
        > Example
-         Check if all elements in the list are less than zero.
+         Check if all elements in the list are greater than zero.
 
              import Standard.Examples
 
@@ -305,7 +303,7 @@ type List
     ## Get the last element of the list.
 
        > Example
-         Getting the final element, in this case 2.
+         Getting the final element of the list.
 
              import Standard.Examples
 
@@ -318,7 +316,7 @@ type List
     ## Get the first element from the list.
 
        > Example
-         This returns 1.
+         Getting the first element in the list.
 
              import Standard.Examples
 
@@ -329,7 +327,7 @@ type List
     ## Get all elements from the list except the first.
 
        > Example
-         This returns (Cons 2 Nil).
+         Getting all elements in the list except the first.
 
              import Standard.Examples
 

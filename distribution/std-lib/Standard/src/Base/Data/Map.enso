@@ -66,7 +66,7 @@ type Map
     ## Checks if the map is empty.
 
        > Example
-         Check if a singleton map is empty.
+         Check if a map is empty.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -80,7 +80,7 @@ type Map
     ## Checks if the map is not empty.
 
        > Example
-         Check if a singleton map is not empty.
+         Check if a map is not empty.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -92,7 +92,7 @@ type Map
     ## Returns the number of entries in this map.
 
        > Example
-         Get the size of a singleton map.
+         Get the size of a map.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -108,7 +108,7 @@ type Map
        The returned vector is sorted in the increasing order of keys.
 
        > Example
-         Convert a singleton map to a vector.
+         Convert a map to a vector.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -131,7 +131,7 @@ type Map
     ## Returns a text representation of this map.
 
        > Example
-         Convert an empty map to text.
+         Convert a map to text.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -149,7 +149,7 @@ type Map
        associated with each key are pairwise equal.
 
        > Example
-         Checking two singleton maps for equality.
+         Checking two maps for equality.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -168,7 +168,7 @@ type Map
        - value: The value to associate with `key`.
 
        > Example
-         Insert the value 3 into a map for the key 1.
+         Insert the value "seven" into the map for the key 7.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -287,7 +287,7 @@ type Map
          and returning a key.
 
        > Example
-         Doubling all keys in the map `m`.
+         Doubling all keys in the map.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -308,7 +308,7 @@ type Map
        computations with side-effects.
 
        > Example
-         Printing each value in the map `m`.
+         Printing each value in the map.
 
              import Standard.Base.Data.Map
              import Standard.Examples
@@ -329,7 +329,7 @@ type Map
        computations with side-effects.
 
        > Example
-         Printing each key and value in the map `m`.
+         Printing each key and value in the map.
 
              import Standard.Base.Data.Map
              import Standard.Examples
