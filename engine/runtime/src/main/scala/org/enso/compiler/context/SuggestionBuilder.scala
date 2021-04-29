@@ -330,6 +330,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             .getOrElse(QualifiedName.simpleName(typeName))
           val tdef = TypeArg.Value(qualifiedTypeName)
           go(body, args :+ tdef)
+        case IR.Application.Prefix(tfun, targs, _, _, _, _) =>
+          val appFunction = go(tfun, Vector()).head
+          val appArgs     = targs.flatMap(arg => go(arg.value, Vector()))
+          args :+ TypeArg.Application(appFunction, appArgs.toVector)
         case tname: IR.Name =>
           val typeName = tname.name
           val qualifiedTypeName = resolveTypeName(bindings, typeName)
@@ -468,11 +472,20 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     def go(targ: TypeArg, level: Int): String =
       targ match {
         case TypeArg.Value(name) => name.toString
+        case TypeArg.Function(Vector(typeArg)) =>
+          val typeName = go(typeArg, level)
+          if (level > 0) s"($typeName)" else typeName
         case TypeArg.Function(types) =>
           val typeList = types.map(go(_, level + 1))
           if (level > 0) typeList.mkString("(", " -> ", ")")
           else typeList.mkString(" -> ")
+        case TypeArg.Application(fun, args) =>
+          val funText  = go(fun, level)
+          val argsList = args.map(go(_, level + 1)).mkString(" ")
+          val typeName = s"$funText $argsList"
+          if (level > 0) s"($typeName)" else typeName
       }
+
     go(targ, 0)
   }
 
@@ -569,6 +582,16 @@ object SuggestionBuilder {
       * @param signature the list of types defining the function
       */
     case class Function(signature: Vector[TypeArg]) extends TypeArg
+
+    /** Function application, like `Either A B`.
+      *
+      * @param function the function type
+      * @param arguments the list of argument types
+      */
+    case class Application(
+      function: TypeArg,
+      arguments: Vector[TypeArg]
+    ) extends TypeArg
 
   }
 
