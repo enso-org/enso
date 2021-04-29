@@ -461,6 +461,9 @@ type Http
                         Pair req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
+                Request_Body.Bytes bytes ->
+                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                    Pair req (body_publishers.ofByteArray bytes.to_array)
             # method
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"

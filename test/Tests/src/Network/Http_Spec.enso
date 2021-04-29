@@ -234,3 +234,23 @@ spec =
             res = Http.post_json "http://localhost:8080/post" json
             res.code.should_equal Status_Code.ok
             res.body.to_json.should_equal expected_response
+        Test.specify "should Post binary" <|
+            expected_response = Json.parse <| '''
+                {
+                  "headers": {
+                    "Content-Length": "12",
+                    "Content-Type": "application/octet-stream",
+                    "User-Agent": "Java-http-client/11.0.10"
+                  },
+                  "origin": "127.0.0.1",
+                  "url": "",
+                  "args": {},
+                  "data": "Hello World!",
+                  "files": null,
+                  "form": null,
+                  "json": null
+                }
+            body_bytes = Request_Body.Bytes "Hello World!".utf_8
+            res = Http.new.post "http://localhost:8080/post" body_bytes
+            res.code.should_equal Status_Code.ok
+            res.body.to_json.should_equal expected_response
