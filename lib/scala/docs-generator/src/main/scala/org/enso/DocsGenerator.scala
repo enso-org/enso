@@ -1,7 +1,6 @@
 package org.enso
 
 import java.io._
-
 import org.enso.syntax.text.{DocParser, DocParserMain, Parser}
 
 object DocsGenerator {
@@ -38,13 +37,36 @@ object DocsGenerator {
     tmp
   }
 
-  def traverse(root: File, skipHidden: Boolean = false): LazyList[File] =
-    if (!root.exists || (skipHidden && root.isHidden)) LazyList.empty
+  def traverse(root: File): LazyList[File] =
+    if (!root.exists) LazyList.empty
     else
       LazyList.apply(root) ++ (root.listFiles match {
         case null  => LazyList.empty
-        case files => files.view.flatMap(traverse(_, skipHidden))
+        case files => files.view.flatMap(traverse)
       })
+
+  def groupByPrefix(
+    strings: List[String]
+  ): scala.collection.mutable.Map[String, Any] = {
+    var stringsByPrefix = scala.collection.mutable.Map[String, Any]()
+    for (string <- strings) {
+      if (string.split('/').length <= 1) {
+        stringsByPrefix = stringsByPrefix ++ Map(string -> ())
+      } else {
+        val arr = string.split('/').map(_.strip())
+        if (stringsByPrefix.contains(arr.head)) {
+          stringsByPrefix(arr.head) = stringsByPrefix(arr.head) +: arr.tail
+        } else
+          stringsByPrefix = stringsByPrefix ++ scala.collection.mutable.Map(
+            arr.head -> arr.tail
+          )
+      }
+    }
+//    for (elem <- stringsByPrefix) {
+//      stringsByPrefix(elem._1) = groupByPrefix(elem._2)
+//    }
+    stringsByPrefix
+  }
 }
 
 object DocsGeneratorMain extends App {
@@ -53,14 +75,15 @@ object DocsGeneratorMain extends App {
   val path = "./distribution/std-lib/Standard/src"
   val allFiles = traverse(new File(path))
     .filter(f => f.isFile && f.getName.endsWith(".enso"))
+//  val allFileNames =
+//    allFiles.map(_.getPath.replace(path + "/", "").replace(".enso", ""))
+//  print(groupByPrefix(allFileNames.toList))
   val allPrograms =
-    allFiles.map(f =>
-      scala.io.Source.fromFile(f, "UTF-8").getLines().mkString("\n")
-    )
+    allFiles.map(scala.io.Source.fromFile(_, "UTF-8").getLines().mkString("\n"))
   val allDocs =
     allPrograms.map(generate).map(mapIfEmpty).map(removeUnnecessaryDivs)
-  val allDocFiles = allFiles.map(x =>
-    x.getPath.replace(".enso", ".html").replace("Standard/src", "docs")
+  val allDocFiles = allFiles.map(
+    _.getPath.replace(".enso", ".html").replace("Standard/src", "docs")
   )
   val zipped = allDocFiles.zip(allDocs)
   zipped.foreach(x => {
@@ -78,8 +101,8 @@ object DocsGeneratorMain extends App {
   )
   val templateCode =
     scala.io.Source.fromFile(jsTemplate, "UTF-8").getLines().mkString("\n")
-  val allDocJSFiles = allFiles.map(x =>
-    x.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
+  val allDocJSFiles = allFiles.map(
+    _.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
   )
   val zippedJS = allDocJSFiles.zip(allDocs)
   zippedJS.foreach(x => {
@@ -88,7 +111,15 @@ object DocsGeneratorMain extends App {
     dir.mkdirs()
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(templateCode.replace("{/*PAGE*/}", x._2))
+    bw.write(
+      templateCode.replace(
+        "{/*PAGE*/}",
+        x._2
+          .replace("display: flex", "display: none")
+          .replace("{", "&#123;")
+          .replace("}", "&#125;")
+      )
+    )
     bw.close()
   })
 }
