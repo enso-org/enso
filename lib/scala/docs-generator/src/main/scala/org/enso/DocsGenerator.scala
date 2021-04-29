@@ -45,26 +45,44 @@ object DocsGenerator {
         case files => files.view.flatMap(traverse)
       })
 
+  case class StringList(value: List[String])
+
+  def flattenTailRec(ls: List[Any]): List[Any] = {
+    def flattenR(res: List[Any], rem: List[Any]): List[Any] = rem match {
+      case Nil                     => res
+      case (head: List[_]) :: tail => flattenR(res, head ::: tail)
+      case element :: tail         => flattenR(res ::: List(element), tail)
+    }
+    flattenR(List(), ls)
+  }
+
   def groupByPrefix(
     strings: List[String]
   ): scala.collection.mutable.Map[String, Any] = {
     var stringsByPrefix = scala.collection.mutable.Map[String, Any]()
     for (string <- strings) {
       if (string.split('/').length <= 1) {
-        stringsByPrefix = stringsByPrefix ++ Map(string -> ())
+        stringsByPrefix = stringsByPrefix ++ Map(string -> List())
       } else {
-        val arr = string.split('/').map(_.strip())
+        val arr = string.split('/')
         if (stringsByPrefix.contains(arr.head)) {
-          stringsByPrefix(arr.head) = stringsByPrefix(arr.head) +: arr.tail
-        } else
-          stringsByPrefix = stringsByPrefix ++ scala.collection.mutable.Map(
-            arr.head -> arr.tail
-          )
+          stringsByPrefix(arr.head) =
+            stringsByPrefix(arr.head) +: List(arr.tail.mkString("/"))
+        } else {
+          stringsByPrefix += (arr.head -> List(arr.tail.mkString("/")))
+        }
       }
     }
-//    for (elem <- stringsByPrefix) {
-//      stringsByPrefix(elem._1) = groupByPrefix(elem._2)
-//    }
+    for (elem <- stringsByPrefix) {
+      if (elem._2.isInstanceOf[List[Any]]) {
+        stringsByPrefix(elem._1) =
+          elem._2 :: flattenTailRec(elem._2.asInstanceOf[List[Any]])
+      }
+      elem._2 match {
+        case StringList(xs) => stringsByPrefix(elem._1) = groupByPrefix(xs)
+        case _              =>
+      }
+    }
     stringsByPrefix
   }
 }
@@ -75,9 +93,11 @@ object DocsGeneratorMain extends App {
   val path = "./distribution/std-lib/Standard/src"
   val allFiles = traverse(new File(path))
     .filter(f => f.isFile && f.getName.endsWith(".enso"))
-//  val allFileNames =
-//    allFiles.map(_.getPath.replace(path + "/", "").replace(".enso", ""))
-//  print(groupByPrefix(allFileNames.toList))
+  val allFileNames =
+    allFiles.map(_.getPath.replace(path + "/", "").replace(".enso", ""))
+  val treeNames = groupByPrefix(allFileNames.toList)
+  print(treeNames)
+
   val allPrograms =
     allFiles.map(scala.io.Source.fromFile(_, "UTF-8").getLines().mkString("\n"))
   val allDocs =
