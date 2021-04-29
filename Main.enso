@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Examples
 
-example = Panic.rethrow (Examples.throw_error)
+example = Examples.get_response.headers
 
 main =
     result = here.example

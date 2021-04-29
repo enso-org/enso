@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time
+import Standard.Base.Network.Http
 
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
 import Standard.Base.Data.Json as Enso_Json
@@ -36,6 +37,13 @@ type Example_Error_Type message
 ## An example CSV file for experimenting with Table and its APIs.
 csv : File
 csv = Enso_Project.data / "food_shop_inventory.csv"
+
+## A file that is used for writing temporary data as part of tests.
+scratch_file : File
+scratch_file =
+    file = Enso_Project.data / "scratch_file"
+    if file.exists then file.delete else Nothing
+    file
 
 ## An example duration for experimenting with duration APIs.
 duration : Duration
@@ -101,4 +109,25 @@ throw_error = Error.throw <| My_Error "Example error."
 ## Throws a panic.
 throw_panic : Nothing
 throw_panic = Panic.throw <| My_Error "Example panic."
+
+## A URL for open-source geographic data about the locations of bus-stop ads in
+   Los Angeles.
+geo_data_url : Text
+geo_data_url = "https://opendata.arcgis.com/datasets/0f77c86999a440178f2be3650d00f7f6_2.geojson"
+
+## Gets an HTTP response from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_response : Http.Response
+get_response = Http.get here.geo_data_url
+
+## Gets HTTP data from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_geo_data : Http.Response.Body
+get_geo_data = Http.fetch here.geo_data_url
 
