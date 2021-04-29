@@ -20,7 +20,10 @@ type Ordering
 
        > Example
          Converting equal ordering to a signed number.
-             Ordering.Equal.to_sign
+
+             import Standard.Base.Data.Ordering
+
+             example_to_sign = Ordering.Equal.to_sign
     to_sign : Integer
     to_sign = case this of
         Less -> -1

@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Zone
 import Standard.Test
 
@@ -101,7 +101,7 @@ spec =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
         Test.specify "should parse custom format of zoned time" <|
-            time = Time.parse_format "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss z"
+            time = Time.parse "2020-05-06 04:30:20 UTC" "yyyy-MM-dd HH:mm:ss z"
             time . year . should_equal 2020
             time . month . should_equal 5
             time . day . should_equal 6
@@ -111,7 +111,7 @@ spec =
             time . nanosecond . should_equal 0
             time . zone . zone_id . should_equal "Etc/UTC"
         Test.specify "should parse custom format of local time" <|
-            time = Time.parse_format "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
+            time = Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
             time . year . should_equal 2020
             time . month . should_equal 5
             time . day . should_equal 6
@@ -120,7 +120,7 @@ spec =
             time . second . should_equal 0
             time . nanosecond . should_equal 0
         Test.specify "should throw error when parsing custom format" <|
-            time = Time.parse_format "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
+            time = Time.parse "2008-01-01" "yyyy-MM-dd'T'HH:mm:ss'['z']'"
             case time.catch (x -> x) of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '2008-01-01' could not be parsed at index 10"

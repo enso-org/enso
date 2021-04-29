@@ -1,0 +1,86 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Time
+
+# Renamed to avoid clashing with an uppercase name resolution for `duration`.
+import Standard.Base.Data.Json as Enso_Json
+import Standard.Base.Data.List as Enso_List
+import Standard.Base.Data.Map as Enso_Map
+import Standard.Base.Data.Time.Duration as Enso_Duration
+
+# Can do the top-level examples directory.
+
+# Fine to not provide examples for some APIs (e.g. Database).
+
+# Examples with HTTP should note this clearly in the example text.
+
+# Image source should only download if it doesn't exist. We can say that the #
+# user can put it there.
+
+# > Example
+#   Frobnicate the doobly do
+#
+#       import Standard.Examples
+#
+#       my_example =
+#           x = dlksaldjks
+#           y = x + 1
+#           ...
+
+## An example error type used in a number of examples.
+
+   Arguments:
+   - message: The message contained in the error type.
+type Example_Error_Type message
+
+## An example CSV file for experimenting with Table and its APIs.
+csv : File
+csv = Enso_Project.data / "food_shop_inventory.csv"
+
+## An example duration for experimenting with duration APIs.
+duration : Duration
+duration = Enso_Duration.between (Time.new 2020 10 20) Time.now
+
+## An example amount of JSON as text.
+json_text : Text
+json_text = """
+    [
+      {
+        "title": "Lord of the Rings",
+        "author": {
+          "name": "J. R. R. Tolkien",
+          "year_of_birth": 1892
+        }
+      },
+      {
+        "title": "The Little Prince",
+        "author": {
+          "name": "Antoine de Saint-Exupéry",
+          "year_of_birth": 1900
+        }
+      },
+      {
+        "title": "And Then There Were None",
+        "author": {
+          "name": "Agatha Christie",
+          "year_of_birth": 1890
+        }
+      }
+    ]
+
+## Example JSON for working with.
+json : Enso_Json.Json
+json = Enso_Json.parse here.json_text
+
+## An example JSON object.
+json_object : Enso_Json.Object
+json_object = here.json.items.head
+
+## An example cons-list.
+list : Enso_List.List
+list = Cons 1 (Cons 2 (Cons 3 Nil))
+
+## A simple map that contains some numbers mapped to their word equivalents.
+map : Enso_Map.Map
+map = Enso_Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+

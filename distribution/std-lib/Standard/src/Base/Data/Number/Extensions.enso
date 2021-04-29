@@ -10,6 +10,7 @@ polyglot java import java.lang.String
 
    > Example
      Calculate the inverse sine of 1.
+
          1.asin
 Number.asin : Decimal
 Number.asin = Math.asin this.to_decimal
@@ -20,6 +21,7 @@ Number.asin = Math.asin this.to_decimal
 
    > Example
      Calculate the inverse cosine of 1.
+
          1.acos
 Number.acos : Decimal
 Number.acos = Math.acos this.to_decimal
@@ -30,7 +32,8 @@ Number.acos = Math.acos this.to_decimal
 
    > Example
      Calculate the inverse tangent of 1.
-         1.acos
+
+         1.atan
 Number.atan : Decimal
 Number.atan = Math.atan this.to_decimal
 
@@ -44,6 +47,7 @@ Number.atan = Math.atan this.to_decimal
 
    > Example
      Convert the coordinates 1 and 2 to polar form.
+
          1.atan_2 2
 Number.atan_2 : Number -> Decimal
 Number.atan_2 y = Math.atan2 this.to_decimal y.to_decimal
@@ -52,6 +56,7 @@ Number.atan_2 y = Math.atan2 this.to_decimal y.to_decimal
 
    > Example
      Calculate the sine of 2.
+
          2.sin
 Number.sin : Decimal
 Number.sin = Math.sin this.to_decimal
@@ -60,6 +65,7 @@ Number.sin = Math.sin this.to_decimal
 
    > Example
      Calculate the cosine of 2.
+
          2.cos
 Number.cos : Decimal
 Number.cos = Math.cos this.to_decimal
@@ -68,6 +74,7 @@ Number.cos = Math.cos this.to_decimal
 
    > Example
      Calculate the tangent of 2.
+
          2.tan
 Number.tan : Decimal
 Number.tan = Math.tan this.to_decimal
@@ -76,6 +83,7 @@ Number.tan = Math.tan this.to_decimal
 
    > Example
      Calculate the hyperbolic sine of 1.
+
          1.sinh
 Number.sinh : Decimal
 Number.sinh = Math.sinh this.to_decimal
@@ -84,6 +92,7 @@ Number.sinh = Math.sinh this.to_decimal
 
    > Example
      Calcualte the hyperbolic cosine of 1.
+
          1.cosh
 Number.cosh : Decimal
 Number.cosh = Math.cosh this.to_decimal
@@ -92,6 +101,7 @@ Number.cosh = Math.cosh this.to_decimal
 
    > Example
      Calculate the hyperbolic tangent of 1.
+
          1.tanh
 Number.tanh : Decimal
 Number.tanh = Math.tanh this.to_decimal
@@ -101,6 +111,7 @@ Number.tanh = Math.tanh this.to_decimal
 
    > Example
      Calculate e to the 4th power.
+
          4.exp
 Number.exp : Decimal
 Number.exp = Math.exp this.to_decimal
@@ -109,6 +120,7 @@ Number.exp = Math.exp this.to_decimal
 
    > Example
      Calculate the natural logarithm of 2.
+
          2.ln
 Number.ln : Decimal
 Number.ln = Math.log this.to_decimal
@@ -117,6 +129,7 @@ Number.ln = Math.log this.to_decimal
 
    > Example
      Calculate the square root of 8.
+
          8.sqrt
 Number.sqrt : Decimal
 Number.sqrt = Math.sqrt this.to_decimal
@@ -128,13 +141,14 @@ Number.sqrt = Math.sqrt this.to_decimal
 
    > Example
      Calculate log 2 of 4.
+
          4.log 2
 Number.log : Number -> Decimal
 Number.log base = this.ln / base.ln
 
-## UNSTABLE The API will become more user-friendly in future.
+## UNSTABLE This API is not user-friendly and will be improved in the future.
 
-   Converts a decimal value to a string, using the Java string formatting
+   Converts a numeric value to a string, using the Java string formatting
    syntax.
 
    Arguments:
@@ -142,9 +156,10 @@ Number.log base = this.ln / base.ln
 
    > Example
      Convert the value 5 to a string.
-         5.fmt "%d"
-Decimal.format : Text -> Text
-Decimal.format fmt = String.format fmt this
+
+         5.format "%x"
+Number.format : Text -> Text
+Number.format fmt = String.format fmt this
 
 ## Creates a new right-exclusive range of integers from `this` to `n`.
 
@@ -152,8 +167,9 @@ Decimal.format fmt = String.format fmt this
    - n: The end of the range.
 
    > Example
-     Create a range from 1 to 5.
-         1.up_to 5
+     Create a range containing the numbers 0, 1, 2, 3, 4.
+
+         0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to n = Range this n
 
@@ -166,6 +182,7 @@ Integer.up_to n = Range this n
 
    > Example
      Check if 1 is equal to 1.0000001 within 0.001.
+
          1.equals 1.0000001 epsilon=0.001
 Number.equals : Number -> Number -> Boolean
 Number.equals that epsilon=0.0 = (this - that).abs <= epsilon
@@ -175,8 +192,14 @@ Number.equals that epsilon=0.0 = (this - that).abs <= epsilon
    Arguments:
    - that: The number to compare `this` against.
 
+   ? Math.min or Number.min
+     While we provide the min method on `Number`, we find it more intuitive to
+     write `Math.min a b` rather than `a.min b`. To that end, we recommend using
+     the first style.
+
    > Example
      Find the minimum of 2 and 5.
+
          2.min 5
 Number.min : Number -> Number
 Number.min that = if this < that then this else that
@@ -186,8 +209,14 @@ Number.min that = if this < that then this else that
    Arguments:
    - that: The number to compare `this` against.
 
+   ? Math.max or Number.max
+     While we provide the max method on `Number`, we find it more intuitive to
+     write `Math.max a b` rather than `a.max b`. To that end, we recommend using
+     the first style.
+
    > Example
      Find the maximum of 2 and 5.
+
          2.max 5
 Number.max : Number -> Number
 Number.max that = if this > that then this else that
@@ -196,6 +225,7 @@ Number.max that = if this > that then this else that
 
    > Example
      Convert the number 8 to JSON.
+
          8.to_json
 Number.to_json : Json.Number
 Number.to_json = Json.Number this
@@ -208,6 +238,7 @@ Number.to_json = Json.Number this
 
    > Example
      Parse the text "7.6" into a decimal number.
+
          Decimal.parse 7.6
 Decimal.parse : Text -> Decimal ! Nothing
 Decimal.parse text =

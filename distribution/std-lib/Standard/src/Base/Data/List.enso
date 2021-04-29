@@ -1,24 +1,6 @@
 from Builtins import all
 from Builtins export Nil, Cons
 
-## PRIVATE
-   A helper for the `map` function.
-
-   Arguments:
-   - list: The list to map over.
-   - cons: The current field to set.
-   - f: The function to apply to the value.
-
-   Uses unsafe field mutation under the hood, to rewrite `map` in
-   a tail-recursive manner. The mutation is purely internal and does not leak
-   to the user-facing API.
-map_helper list cons f = case list of
-    Cons h t ->
-        res = Cons (f h) Nil
-        Unsafe.set_atom_field cons 1 res
-        @Tail_Call here.map_helper t res f
-    Nil -> Unsafe.set_atom_field cons 1 Nil
-
 ## The basic cons-list type.
 
    A cons-list allows storage of an arbitrary number of elements.
@@ -37,7 +19,10 @@ type List
 
        > Example
          Get the length of a two item list.
-             (Cons 1 (Cons 2 Nil)).length
+
+             import Standard.Examples
+
+             example_length = Examples.list.length
     length : Number
     length = this.fold 0 (acc -> _ -> acc + 1)
 
@@ -55,8 +40,11 @@ type List
 
        > Example
          In the following example, we'll compute the sum of all elements of a
-         list:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . fold 0 (+)
+         list.
+
+             import Standard.Eamples
+
+             example_fold = Examples.list.fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init f =
         go acc list = case list of
@@ -73,9 +61,11 @@ type List
          function.
 
        > Example
-         In the following example, we'll check if any element of the list is
-         larger than `5`:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . exists (> 5)
+         Check if any element of the list is larger than 5.
+
+             import Standard.Examples
+
+             example_exists = Examples.list.exists (> 5)
     exists : (Any -> Boolean) -> Boolean
     exists predicate =
         go list = case list of
@@ -96,9 +86,11 @@ type List
        a Boolean value.
 
        > Example
-         In the following example, we'll check if any element of the list is
-         larger than `5`:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
+         Check if any element of the list is larger than 5.
+
+             import Standard.Examples
+
+             example_any = Examples.list.any (> 5)
     any : (Any -> Boolean) -> Boolean
     any predicate = this.exists predicate
 
@@ -110,8 +102,11 @@ type List
          function.
 
        > Example
-         Check if all elements in the list are less than zero.
-             (Cons 1 (Cons 2 Nil)).all (< 0)
+         Check if all elements in the list are greater than zero.
+
+             import Standard.Examples
+
+             example_all = Examples.list.all (> 0)
     all : (Any -> Boolean) -> Boolean
     all predicate = this.fold True (l -> r -> l && predicate r)
 
@@ -121,8 +116,11 @@ type List
        - elem: The element to check if it is in the list.
 
        > Example
-         Checking if the list contains the number 72.
-             (Cons 1 (Cons 72 Nil)).contains 72
+         Checking if the list contains the number 3.
+
+             import Standard.Examples
+
+             example_contains = Examples.list.contains 3
     contains : Any -> Boolean
     contains elem = this.exists ix-> ix == elem
 
@@ -130,8 +128,10 @@ type List
 
        > Example
          Checking for emptiness.
-             Nil.is_empty == true
-             Cons 1 Nil . is_empty == false
+
+             import Standard.Examples
+
+             example_empty = Examples.list.is_empty
     is_empty : Boolean
     is_empty = this.length == 0
 
@@ -139,8 +139,10 @@ type List
 
        > Example
          Checking for emptiness.
-             Nil.not_empty == false
-             Cons 1 Nil . not_empty == true
+
+             import Standard.Examples
+
+             example_not_empty = Examples.list.not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 
@@ -152,8 +154,11 @@ type List
          function.
 
        > Example
-         Selecting all elements that are greater than 3.
-             (Cons 1 Nil).filter (> 3)
+         Selecting all elements that are less than 3.
+
+             import Standard.Examples
+
+             example_filter = Examples.list.filter (< 3)
     filter : (Any -> Boolean) -> List
     filter predicate =
         case this of
@@ -170,7 +175,10 @@ type List
 
        > Example
          Add `1` to each element of the list:
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . map +1
+
+             import Standard.Examples
+
+             example_map = Examples.list.map +1
     map : (Any -> Any) -> List
     map f = case this of
         Nil -> Nil
@@ -189,7 +197,10 @@ type List
 
        > Example
          Print each of the list elements to the standard output.
-             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . each IO.println
+
+             import Standard.Examples
+
+             example_each = Examples.list.each IO.println
     each : (Any -> Any) -> Nothing
     each f =
         go list = case list of
@@ -205,7 +216,10 @@ type List
 
        > Example
          Reversing a small list.
-             (Cons 1 (Cons 2 Nil)).reverse == (Cons 2 (Cons 1 Nil))
+
+             import Standard.Examples
+
+             example_reverse = Examples.list.reverse
     reverse : List
     reverse = this.fold Nil (l -> el -> Cons el l)
 
@@ -217,7 +231,10 @@ type List
 
        > Example
          Removing the first element from a list.
-             (Cons 1 (Cons 2 (Nil))).drop_start 1
+
+             import Standard.Examples
+
+             example_drop_start = Examples.list.drop_start 1
     drop_start : Integer -> List
     drop_start count = if count <= 0 then this else case this of
         Cons _ b -> b.drop_start count-1
@@ -231,7 +248,10 @@ type List
 
        > Example
          Obtaining the first 2 elements of a list.
-             (Cons 1 (Cons 2 (Cons 3 Nil))).take_start 2
+
+             import Standard.Examples
+
+             example_take_start = Examples.list.take_start 2
     take_start : Integer -> List
     take_start count = if count <= 0 then Nil else case this of
         Cons a b -> Cons a (b.take_start count-1)
@@ -241,7 +261,10 @@ type List
 
        > Example
          This returns 1.
-             (Cons 1 (Cons 2 Nil)).head
+
+             import Standard.Examples
+
+             example_head = Examples.list.head
     head : Any ! Nothing
     head = case this of
         Cons a _ -> a
@@ -251,7 +274,10 @@ type List
 
        > Example
          This returns (Cons 2 Nil).
-             (Cons 1 (Cons 2 Nil)).tail
+
+             import Standard.Examples
+
+             example_tail = Examples.list.tail
     tail : List ! Nothing
     tail = case this of
         Cons _ b -> b
@@ -261,7 +287,10 @@ type List
 
        > Example
          Removing the last element of the list to give (Cons 1 Nil).
-             (Cons 1 (Cons 2 Nil)).init
+
+             import Standard.Examples
+
+             example_init = Examples.list.init
     init : List ! Nothing
     init =
         init' x y = case y of
@@ -274,8 +303,11 @@ type List
     ## Get the last element of the list.
 
        > Example
-         Getting the final element, in this case 2.
-             (Cons 1 (Cons 2 Nil)).last
+         Getting the final element of the list.
+
+             import Standard.Examples
+
+             example_last = Examples.list.last
     last : Any | Nothing
     last = case this.fold Nothing (_ -> r -> r) of
         Nothing -> Error.throw Nothing
@@ -284,15 +316,40 @@ type List
     ## Get the first element from the list.
 
        > Example
-         This returns 1.
-             (Cons 1 (Cons 2 Nil)).first
+         Getting the first element in the list.
+
+             import Standard.Examples
+
+             example_first = Examples.list.first
     first : Any ! Nothing
     first = this.head
 
     ## Get all elements from the list except the first.
 
        > Example
-         This returns (Cons 2 Nil).
-             (Cons 1 (Cons 2 Nil)).rest
+         Getting all elements in the list except the first.
+
+             import Standard.Examples
+
+             example_rest = Examples.list.rest
     rest : List ! Nothing
     rest = this.tail
+
+## PRIVATE
+   A helper for the `map` function.
+
+   Arguments:
+   - list: The list to map over.
+   - cons: The current field to set.
+   - f: The function to apply to the value.
+
+   Uses unsafe field mutation under the hood, to rewrite `map` in
+   a tail-recursive manner. The mutation is purely internal and does not leak
+   to the user-facing API.
+map_helper list cons f = case list of
+    Cons h t ->
+        res = Cons (f h) Nil
+        Unsafe.set_atom_field cons 1 res
+        @Tail_Call here.map_helper t res f
+    Nil -> Unsafe.set_atom_field cons 1 Nil
+

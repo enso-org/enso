@@ -2,6 +2,47 @@ from Standard.Base import all
 
 import Standard.Base.Data.Json.Internal
 
+## A smart constructor, building an object representation based on a vector
+   of key-value pairs.
+
+   Arguments:
+   - contents: A vector of key-value pairs.
+
+   All values used as keys must define a `to_json_key : Text` method.
+
+   > Example
+     The following code returns a JSON object, that after serialization becomes
+     { "foo": 533, "bar": false }
+
+         import Standard.Base.Data.Json
+
+         example_from_pairs = Json.from_pairs [["foo", 533], ["bar", False]]
+from_pairs : Vector.Vector -> Object
+from_pairs contents =
+    fs = contents.fold Map.empty map-> kv_pair->
+        key = kv_pair . at 0 . to_json_key
+        val = kv_pair . at 1 . to_json
+        map.insert key val
+    Object fs
+
+## Parses an RFC-8259 compliant JSON text into a `Json` structure.
+
+   Arguments:
+   - json_text: The RFC-8259-compliant JSON text.
+
+   > Example
+     Convert some text representing a JSON object into JSON.
+
+         import Standard.Base.Data.Json
+
+         example_parse = Json.parse '{ "a": 1 }'
+parse : Text -> Json ! Parse_Error
+parse json_text =
+    r = Panic.recover (Internal.parse_helper json_text)
+    r.catch e-> case e of
+        Polyglot_Error err -> Error.throw (Parse_Error err.getMessage)
+        p -> Panic.throw p
+
 ## Represents a JSON structure.
 type Json
 
@@ -50,51 +91,37 @@ type Json
          The following shows an example of reading a nested JSON into a desired
          type. It will return a vector of `Book` objects containing data from
          `json_string`.
+
+             import Standard.Base.Data.Json
+             import Standard.Examples
+
              type Book title author
              type Author name year_of_birth
 
-             read_data =
-                 json_string = '''
-                     [
-                       {
-                         "title": "Lord of the Rings",
-                         "author": {
-                           "name": "J. R. R. Tolkien",
-                           "year_of_birth": 1892
-                         }
-                       },
-                       {
-                         "title": "The Little Prince",
-                         "author": {
-                           "name": "Antoine de Saint-Exupéry",
-                           "year_of_birth": 1900
-                         }
-                       },
-                       {
-                         "title": "And Then There Were None",
-                         "author": {
-                           "name": "Agatha Christie",
-                           "year_of_birth": 1890
-                         }
-                       }
-                     ]
-                 parsed = Json.parse json_string
-                 parsed.into (Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+             example_into =
+                 json = Examples.json
+                 format = (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
+                 json.into format
     into : Any -> Any ! Marshalling_Error
     into type_descriptor =
         Panic.recover (Internal.into_helper type_descriptor this)
 
     ## Returns this Json object.
 
-       Included to implement the `to_json` interface.
+       This is a no-op on a JSON object, but is included to implement the
+       `to_json` interface.
     to_json : Json
     to_json = this
 
     ## Renders this JSON into an RFC-8259 compliant text.
 
        > Example
-         Convert a JSON number to text.
-             Json.Number 3 . to_text
+         Convert some JSON to text.
+
+             import Standard.Base.Data.Json
+             import Standard.Examples
+
+             example_to_text = Examples.json.to_text
     to_text : Text
     to_text = Internal.render_helper "" this
 
@@ -102,7 +129,10 @@ type Json
 
        > Example
          Unwrap the JSON number 3 to the primitive number 3.
-             Json.Number 3 . unwrap
+
+             import Standard.Base.Data.Json
+
+             example_unwrap = Json.Number 3 . unwrap
     unwrap : Any
     unwrap = case this of
         Json.Array its -> its.map .unwrap
@@ -131,23 +161,16 @@ Parse_Error.to_display_text = "Parse error in parsing JSON: " + this.message.to_
    - field: The name of the field from which to get the value.
 
    Throws `Nothing` if the associated key is not defined.
-Object.get : Text -> Json ! Nothing
-Object.get field = this.fields.get field
-
-## Parses an RFC-8259 compliant JSON text into a `Json` structure.
-
-   Arguments:
-   - json_text: The RFC-8259-compliant JSON text.
 
    > Example
-     Convert some text representing a JSON object into JSON.
-         "{ "a": 1 }".parse
-parse : Text -> Json ! Parse_Error
-parse json_text =
-    r = Panic.recover (Internal.parse_helper json_text)
-    r.catch e-> case e of
-        Polyglot_Error err -> Error.throw (Parse_Error err.getMessage)
-        p -> Panic.throw p
+     Get the "title" field from this JSON representing a book.
+
+         import Standard.Base.Data.Json
+         import Standard.Examples
+
+         example_get = Examples.json_object.get "title"
+Object.get : Text -> Json ! Nothing
+Object.get field = this.fields.get field
 
 ## UNSTABLE
 
@@ -215,6 +238,7 @@ Any.to_json =
             Object with_tp
         Meta.Constructor _ ->
             Object (Map.empty . insert "type" (String m.name))
+
         ## The following two cases cannot be handled generically and should
            instead define their own `to_json` implementations.
         Meta.Polyglot _ -> Null
@@ -243,24 +267,3 @@ Base.Boolean.to_json = Boolean this
          Nothing.to_json
 Nothing.to_json : Null
 Nothing.to_json = Null
-
-## A smart constructor, building an object representation based on a vector
-   of key-value pairs.
-
-   Arguments:
-   - contents: A vector of key-value pairs.
-
-   All values used as keys must define a `to_json_key : Text` method.
-
-   > Example
-     The following code:
-         Json.from_pairs [["foo", 533], ["bar", False]]
-     Returns a JSON object, that after serialization becomes:
-         { "foo": 533, "bar": false }
-from_pairs : Vector.Vector -> Object
-from_pairs contents =
-    fs = contents.fold Map.empty map-> kv_pair->
-        key = kv_pair . at 0 . to_json_key
-        val = kv_pair . at 1 . to_json
-        map.insert key val
-    Object fs

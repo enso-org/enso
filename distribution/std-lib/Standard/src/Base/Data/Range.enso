@@ -15,23 +15,26 @@ type Range
 
        > Example
          The following range has 100 elements.
-            0.up_to 100
+
+            0.up_to 100 . length
     length : Number
     length = this.end - this.start
 
     ## Checks if this range is empty.
 
        > Example
-             0.up_to 0 . is_empty == True
-             0.up_to 100 . is_empty == False
+         Checking if the range from 0 to 100 is empty.
+
+             0.up_to 100 . is_empty
     is_empty : Boolean
     is_empty = this.end <= this.start
 
     ## Checks if this range is not empty.
 
        > Example
-             0.up_to 0 . not_empty == False
-             0.up_to 100 . not_empty == True
+         Checking if the range from 0 to 100 is not empty.
+
+             0.up_to 100 . not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 
@@ -55,8 +58,8 @@ type Range
        - function: The function to apply to each integer in the range.
 
        > Example
-         To print all the numbers from 1 to 100 use:
-             1.up_to 101 . each IO.println
+         To print all the numbers from 1 to 10 use:
+             1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
     each function =
         it start end = if start == end then Nothing else
@@ -79,9 +82,10 @@ type Range
            f (...(f (f init start) start+1)...) end-1
 
        > Example
-         In the following example, we'll compute the sum of all elements of a
-         range:
-             Range 0 100 . fold 0 (+)
+         In the following example, we'll compute the sum of all integers less
+         than 100.
+
+             0.up_to 100 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold init function =
         it acc start end = if start == end then acc else
@@ -99,6 +103,7 @@ type Range
 
        > Example
          Checking that all numbers in the range are greater than 5.
+
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
     all predicate =
@@ -117,6 +122,7 @@ type Range
 
        > Example
          Checking that at least one number in the range is greater than 10.
+
              1.up_to 100 . exists (> 10)
     exists : (Number -> Boolean) -> Boolean
     exists predicate =
@@ -134,6 +140,7 @@ type Range
 
        > Example
          Checking that at least one number in the range is greater than 10.
+
              1.up_to 100 . any (> 10)
     any : (Number -> Boolean) -> Boolean
     any predicate = this.exists predicate
@@ -142,7 +149,8 @@ type Range
 
        > Example
          Getting a vector of the numbers 1 to 5.
-             1.up_to 6 . to_vector == [1, 2, 3, 4, 5]
+
+             1.up_to 6 . to_vector
     to_vector : Vector.Vector
     to_vector =
         length = Math.max 0 (this.end - this.start)

@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+import Standard.Table
+import Standard.Table.Io.Csv
+import Standard.Test
+
+spec =
+    c_1_data = [1, 4, 7, 10]
+    c_2_data = [2, Nothing, 8, 11]
+    c_3_data = [Nothing, 6, 9, 12]
+
+    c_1 = Json.from_pairs [["name", "a"], ["data", c_1_data]]
+    c_2 = Json.from_pairs [["name", "b"], ["data", c_2_data]]
+    c_3 = Json.from_pairs [["name", "c"], ["data", c_3_data]]
+
+    Test.group "Table.from_csv" <|
+        Test.specify "should create a table from a textual CSV" <|
+            file_contents = (Enso_Project.data / "simple_empty.csv") . read
+            table = Table.from_csv file_contents
+
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
+
+            table.to_json.should_equal expected
+
+        Test.specify "should create a table from a CSV in a file" <|
+            file_contents = (Enso_Project.data / "simple_empty.csv")
+            table = Table.from_csv file_contents
+
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
+
+            table.to_json.should_equal expected
+
+        Test.specify "should create an error when given the wrong input" <|
+            Table.from_csv [] . should_fail_with Csv.Parse_Error
+
+    Test.group "Parsing" <|
+        Test.specify "should parse a simple numeric table" <|
+            simple_empty = (Enso_Project.data / "simple_empty.csv") . read_csv
+
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3]]]
+
+            simple_empty.to_json.should_equal expected
+
+        Test.specify "should correctly infer types of varied-type columns" <|
+            varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
+            c_1_data = ["2005-02-25", "2005-02-28", "4", "2005-03-02", Nothing, "2005-03-04", "2005-03-07", "2005-03-08"]
+            c_2_data = ["2005-02-25", "2005-02-28", "2005-03-01", Nothing, "2005-03-03", "2005-03-04", "2005-03-07", "2005-03-08"]
+            c_3_data = [1, 2, 3, 4, 5, Nothing, 7, 8]
+            c_4_data = [1, 2, 3, 4, 5, 6, 7, 8]
+            c_5_data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.25, 7.0, 8.0]
+            c_6_data = ['1', '2', '3', '4', '5', '6.25', '7', 'osiem']
+
+            c_1 = Json.from_pairs [["name", "C0"], ["data", c_1_data]]
+            c_2 = Json.from_pairs [["name", "C1"], ["data", c_2_data]]
+            c_3 = Json.from_pairs [["name", "C2"], ["data", c_3_data]]
+            c_4 = Json.from_pairs [["name", "C3"], ["data", c_4_data]]
+            c_5 = Json.from_pairs [["name", "C4"], ["data", c_5_data]]
+            c_6 = Json.from_pairs [["name", "C5"], ["data", c_6_data]]
+
+            expected = Json.from_pairs [["columns", [c_1, c_2, c_3, c_4, c_5, c_6]]]
+            varied_column.to_json.should_equal expected
+

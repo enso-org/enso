@@ -16,9 +16,14 @@ these libraries, as well as notes on how they should be used.
 
 - [Base](#base)
   - [Builtins](#builtins)
+- [Database](#database)
+- [Geo](#geo)
+- [Image](#image)
 - [Table](#table)
 - [Test](#test)
+- [Visualization](#visualization)
 - [Documentation](#documentation)
+  - [Examples](#examples)
 - [General Libraries Notes](#general-libraries-notes)
 
 <!-- /MarkdownTOC -->
@@ -28,7 +33,7 @@ these libraries, as well as notes on how they should be used.
 `Base` is the core library of Enso. It contains core types and data structures,
 as well as basic functionality for interacting with the outside world. It can be
 found in
-[`distribution/std-lib/Standard/src/`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/std-lib/Standard/src/Base.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
 `Base` is intended to be imported unqualified at the top of the file:
 `from Standard.Base import all`. Items not included in this unqualified import
@@ -46,22 +51,44 @@ For the purposes of documentation, there is a
 file that provides stub definitions for these builtin functions. It is used for
 documentation purposes, and must be kept up to date as the builtins change.
 
+These methods are re-exported from `Base` where appropriate, and should not be
+imported directly.
+
 > #### Note: Shadow Definitions
 >
 > In time this file will be replaced by true shadow definitions for the language
 > builtins. It is only a stop-gap measure to allow documenting this
 > functionality at this point in time.
 
+## Database
+
+`Database` is a library that provides utilities for accessing data in databases
+and processing that data efficiently. It is part of the Enso standard libraries
+and is located in
+[`distribution/std-lib/Standard/src/Database.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+
+It is designed to be imported _qualified_.
+
+## Geo
+
+`Geo` is a library that contains very basic functionality for working with
+geographic data. We hope to expand it greatly in the future. It is located in
+[`distribution/std-lib/Standard/src/Geo.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+
+## Image
+
+`Image` is a library that contains bindings to [OpenCV](https://opencv.org/)
+that allows users to work with image data. It is located in
+[`distribution/std-lib/Standard/src/Image.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+
 ## Table
 
 `Table` is Enso's dataframes library, providing functionality for loading and
 analysing tabular data. It is a core data-science toolkit, that integrates
 deeply with Enso and its IDE. It can be found in
-[`distribution/std-lib/Table`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Table).
+[`distribution/std-lib/Standard/src/Table.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
-`Table` is designed to be imported unqualified: `from Table import all`. Items
-not included in this unqualified import are considered to be more specialist or
-internal, and should be intentionally imported by users.
+`Table` is designed to be imported qualified: `import Table`.
 
 ## Test
 
@@ -69,11 +96,17 @@ internal, and should be intentionally imported by users.
 time it is _very_ rudimentary, and needs significant improvement before we can
 consider it an "official" part of the Enso standard libraries. It can be found
 in
-[`distribution/std-lib/Test`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Test).
+[`distribution/std-lib/Standard/src/Test.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
 `Test` is intended to be imported qualified: `import Test`. This ensures that
 there aren't spurious name clashes between user-defined functionality and the
 testing library.
+
+## Visualization
+
+`Visualization` is a semi-internal library that provides visualization-specific
+utilities for displaying data in the IDE. It is located in
+[`distribution/std-lib/Standard/src/Visualization.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
 
 ## Documentation
 
@@ -81,15 +114,15 @@ These libraries are comprehensively documented, with all functionality
 accompanied by comprehensive documentation comments. These are located _above_
 each definition, for example:
 
-```
+```enso
 ## Sort the Vector.
 
    Arguments:
-   - `on`: A projection from the element type to the value of that element
+   - on: A projection from the element type to the value of that element
      being sorted on.
-   - `by`: A function that compares the result of applying `on` to two
+   - by: A function that compares the result of applying `on` to two
      elements, returning an Ordering to compare them.
-   - `order`: The order in which the vector elements are sorted.
+   - order: The order in which the vector elements are sorted.
 
    By default, elements are sorted in ascending order, using the comparator
    `compare_to`. A custom comparator may be passed to the sort function.
@@ -97,11 +130,12 @@ each definition, for example:
    This is a stable sort, meaning that items that compare the same will not
    have their order changed by the sorting process.
 
-   The complexities for this sort are:
-   - *Worst-Case Time:* `O(n * log n)`
-   - *Best-Case Time:* `O(n)`
-   - *Average Time:* `O(n * log n)`
-   - *Worst-Case Space:* `O(n)` additional
+   ! Computational Complexity
+     The complexities for this sort are:
+     - *Worst-Case Time:* `O(n * log n)`
+     - *Best-Case Time:* `O(n)`
+     - *Average Time:* `O(n * log n)`
+     - *Worst-Case Space:* `O(n)` additional
 
    ? Implementation Note
      The sort implementation is based upon an adaptive, iterative mergesort
@@ -115,13 +149,13 @@ each definition, for example:
 
    > Example
      Sorting a vector of numbers.
+
          [5, 2, 3, 45, 15].sort == [2, 3, 5, 15, 45]
 
    > Example
      Sorting a vector of `Pair`s on the first element, descending.
+
          [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
-sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
-sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) = ...
 ```
 
 Such documentation blocks describe:
@@ -137,12 +171,31 @@ In addition, a function will have a type signature that describes the expected
 types of the function arguments. It may also have defaults for its arguments,
 which will be shown in the
 
+### Examples
+
+All documentation blocks in Enso should contain comprehensive examples for how
+to use the associated functionality. These documentation blocks fall into two
+types:
+
+1. **Stand-Alone:** A stand-alone example is a single Enso expression that can
+   be pasted into any method body and will execute.
+2. **Example Method:** An example method is a method named `example_*` that
+   provides the example. They are used when specific imports are necessary to
+   run the example, or when multiple lines are needed to provide an effective
+   example.
+
+All examples assume that the prelude is imported using
+`from Standard.Base import all` in the file into which it is being pasted.
+
+The
+[`Standard.Examples`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src/Examples.enso)
+file contains example data for use in examples. If an example requires
+non-trivial data on which to operate, it should be placed here.
+
 ## General Libraries Notes
 
 Some notes on the general structure of these libraries.
 
-- All of these libraries are considered to be WIP as they are missing many
-  pieces of functionality that they should have.
 - As the language doesn't currently have built-in support for access modifiers
   (e.g. `private`), so we instead use `PRIVATE` annotations at the top of
   documentation blocks. Any functionality annotated in such a form is not for

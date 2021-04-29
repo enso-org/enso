@@ -10,6 +10,13 @@ type Maybe
 
        Arguments:
        - value: The contained value in the maybe.
+
+       > Example
+         Construct a some value.
+
+             import Standard.Base.Data.Maybe
+
+             example_some = Maybe.Some "yes!"
     type Some value
 
     ## Applies the provided function to the contained value if it exists,
@@ -23,7 +30,10 @@ type Maybe
 
        > Example
          Apply a function over a Some value to get 4.
-             (Some 2).maybe 0 *2
+
+             import Standard.Base.Data.Maybe
+
+             example_maybe = Maybe.Some 2 . maybe 0 *2
     maybe : Any -> (Any -> Any) -> Any
     maybe ~default function = case this of
         Nothing -> default
@@ -33,7 +43,10 @@ type Maybe
 
        > Example
          Check if `Nothing` is `Some`.
-             Nothing.is_some
+
+             import Standard.Base.Data.Maybe
+
+             example_is_some = Maybe.Some "yes!" . is_some
     is_some : Boolean
     is_some = case this of
         Nothing -> False
@@ -43,7 +56,10 @@ type Maybe
 
        > Example
          Check if `Nothing` is `Nothing`.
-             Nothing.is_nothing
+
+             import Standard.Base.Data.Maybe
+
+             example_is_nothing = Maybe.Some "yes!" . is_nothing
     is_nothing : Boolean
     is_nothing = this.is_some.not
 
