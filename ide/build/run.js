@@ -206,9 +206,10 @@ commands.start.rust = async function(argv) {
 commands.start.js = async function (argv) {
     await installJsDeps()
     console.log(`Building JS target.` + argv)
-    const args = targetArgs.concat([
-        `--backend-path ${paths.get_project_manager_path(paths.dist.bin)}`,
-    ])
+    // The backend path is being prepended here, as appending would be incorrect.
+    // That is because `targetArgs` might include `-- …` and appended args could
+    // end up being passed to the spawned backend process.
+    const args = ['--backend-path', paths.get_project_manager_path(paths.dist.bin)].concat(targetArgs)
     if (argv.dev) { args.push('--dev') }
     await cmd.with_cwd(paths.js.root, async () => {
         await run('npm', ['run', 'start', '--'].concat(args))

@@ -61,12 +61,17 @@ const execFile = util.promisify(child_process.execFile);
 let usage = `
 ${pkg.build.productName} ${rootCfg.version} command line interface.
 
-Usage: ${pkg.build.productName} [options]
+Usage: ${pkg.build.productName} [options] [--] [backend args]...
 `
+
+let epilogue = `
+Arguments that follow the two dashes (\`--\`) will be passed to the backend process. They are used\
+ if IDE spawns backend, i.e. if '--backend false' has not been set.`
 
 let optParser = yargs
     .scriptName("")
     .usage(usage)
+    .epilogue(epilogue)
     .help()
     .version(false)
     .parserConfiguration({'populate--':true})
@@ -115,6 +120,13 @@ optParser.options('backend-path', {
 // === Debug Options ===
 
 let debugOptionsGroup = 'Debug Options:'
+
+optParser.options('verbose', {
+    group    : debugOptionsGroup,
+    describe : `Increase logs verbosity. Affects both IDE and the backend.`,
+    default  : false,
+    type     : `boolean`
+})
 
 optParser.options('entry-point', {
     group       : debugOptionsGroup,
@@ -401,8 +413,12 @@ function spawnProjectManager(args) {
 
 function runBackend() {
     if(args.backend !== false) {
-        console.log("Starting the backend process.")
-        return spawnProjectManager()
+        let opts = args['--'] ? args['--'] : []
+        if(args.verbose === true) {
+            opts.push('-vv')
+        }
+        console.log("Starting the backend process with the following options:", opts)
+        return spawnProjectManager(opts)
     }
 }
 
@@ -504,6 +520,7 @@ function createWindow() {
         crash_report_host : args.crashReportHost,
         no_data_gathering : args.noDataGathering,
         node_labels       : args.nodeLabels,
+        verbose           : args.verbose,
     }
 
     if (args.project)    { urlCfg.project = args.project }
