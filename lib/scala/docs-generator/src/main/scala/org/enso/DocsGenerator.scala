@@ -1,9 +1,46 @@
 package org.enso
 
 import java.io._
+
+import scala.util.Using
+import scala.io.Source
 import org.enso.syntax.text.{DocParser, DocParserMain, Parser}
 
+object TreeOfCommonPrefixes {
+  case class Node(name: String, var elems: List[Node])
+
+  def groupNodesByPrefix(le: List[Node]): List[Node] =
+    groupByPrefix(le.map(_.name))
+
+  def groupByPrefix(ls: List[String]): List[Node] = {
+    var nodes = List[Node]()
+    for (string <- ls) {
+      if (string.split('/').length <= 1) {
+        nodes = nodes :+ Node(string, List())
+      } else {
+        val arr      = string.split('/')
+        val filtered = nodes.filter(x => x.name == arr.head)
+        if (filtered.nonEmpty && nodes.contains(filtered.head)) {
+          nodes.map(n =>
+            if (n == filtered.head) {
+              n.elems = n.elems :+ Node(arr.tail.mkString("/"), List())
+            }
+          )
+        } else {
+          nodes =
+            nodes :+ Node(arr.head, List(Node(arr.tail.mkString("/"), List())))
+        }
+      }
+    }
+    for (node <- nodes) {
+      node.elems = groupNodesByPrefix(node.elems)
+    }
+    nodes
+  }
+}
+
 object DocsGenerator {
+
   def generate(program: String): String = {
     val parser   = new Parser()
     val module   = parser.run(program)
@@ -44,51 +81,11 @@ object DocsGenerator {
         case null  => LazyList.empty
         case files => files.view.flatMap(traverse)
       })
-
-  case class StringList(value: List[String])
-
-  def flattenTailRec(ls: List[Any]): List[Any] = {
-    def flattenR(res: List[Any], rem: List[Any]): List[Any] = rem match {
-      case Nil                     => res
-      case (head: List[_]) :: tail => flattenR(res, head ::: tail)
-      case element :: tail         => flattenR(res ::: List(element), tail)
-    }
-    flattenR(List(), ls)
-  }
-
-  def groupByPrefix(
-    strings: List[String]
-  ): scala.collection.mutable.Map[String, Any] = {
-    var stringsByPrefix = scala.collection.mutable.Map[String, Any]()
-    for (string <- strings) {
-      if (string.split('/').length <= 1) {
-        stringsByPrefix = stringsByPrefix ++ Map(string -> List())
-      } else {
-        val arr = string.split('/')
-        if (stringsByPrefix.contains(arr.head)) {
-          stringsByPrefix(arr.head) =
-            stringsByPrefix(arr.head) +: List(arr.tail.mkString("/"))
-        } else {
-          stringsByPrefix += (arr.head -> List(arr.tail.mkString("/")))
-        }
-      }
-    }
-    for (elem <- stringsByPrefix) {
-      if (elem._2.isInstanceOf[List[Any]]) {
-        stringsByPrefix(elem._1) =
-          elem._2 :: flattenTailRec(elem._2.asInstanceOf[List[Any]])
-      }
-      elem._2 match {
-        case StringList(xs) => stringsByPrefix(elem._1) = groupByPrefix(xs)
-        case _              =>
-      }
-    }
-    stringsByPrefix
-  }
 }
 
 object DocsGeneratorMain extends App {
   import DocsGenerator._
+  import TreeOfCommonPrefixes._
 
   val path = "./distribution/std-lib/Standard/src"
   val allFiles = traverse(new File(path))
@@ -96,12 +93,17 @@ object DocsGeneratorMain extends App {
   val allFileNames =
     allFiles.map(_.getPath.replace(path + "/", "").replace(".enso", ""))
   val treeNames = groupByPrefix(allFileNames.toList)
-  print(treeNames)
 
   val allPrograms =
-    allFiles.map(scala.io.Source.fromFile(_, "UTF-8").getLines().mkString("\n"))
+    allFiles
+      .map(f => Using(Source.fromFile(f, "UTF-8")) { s => s.mkString })
+      .toList
+
   val allDocs =
-    allPrograms.map(generate).map(mapIfEmpty).map(removeUnnecessaryDivs)
+    allPrograms
+      .map(s => generate(s.getOrElse("")))
+      .map(mapIfEmpty)
+      .map(removeUnnecessaryDivs)
   val allDocFiles = allFiles.map(
     _.getPath.replace(".enso", ".html").replace("Standard/src", "docs")
   )
@@ -119,8 +121,9 @@ object DocsGeneratorMain extends App {
   val jsTemplate = new File(
     "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/template.js"
   )
-  val templateCode =
-    scala.io.Source.fromFile(jsTemplate, "UTF-8").getLines().mkString("\n")
+  val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) { s =>
+    s.mkString
+  }
   val allDocJSFiles = allFiles.map(
     _.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
   )
@@ -132,13 +135,15 @@ object DocsGeneratorMain extends App {
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
     bw.write(
-      templateCode.replace(
-        "{/*PAGE*/}",
-        x._2
-          .replace("display: flex", "display: none")
-          .replace("{", "&#123;")
-          .replace("}", "&#125;")
-      )
+      templateCode
+        .getOrElse("")
+        .replace(
+          "{/*PAGE*/}",
+          x._2
+            .replace("display: flex", "display: none")
+            .replace("{", "&#123;")
+            .replace("}", "&#125;")
+        )
     )
     bw.close()
   })
