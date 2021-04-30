@@ -16,8 +16,8 @@ function runGit(args) {
 }
 
 /** Checks if the changelog file was changed in any commits that are part of the
-  * PR.
-  */
+ * PR.
+ */
 function wasChangelogModified() {
   const diffArgs = [
     "--no-pager",

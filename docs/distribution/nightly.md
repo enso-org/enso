@@ -38,8 +38,8 @@ proceed because there are no changes.
 Thanks to
 [GitHub's concurrency settings](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#concurrency),
 only one nightly or regular release job may be running at a given time. If a
-build is triggered while another one is in progress, it will be pending until the
-first one finishes.
+build is triggered while another one is in progress, it will be pending until
+the first one finishes.
 
 ## Nightly Build Versions
 
@@ -58,7 +58,8 @@ subsequent build based off of the same version is triggered on the same day it
 will be `1.2.3-SNAPSHOT.2021-02-01.1` etc.
 
 Only the 3 most recent nightly builds are kept in the repository, any older
-builds are removed from the releases page and their corresponding tags are also removed.
+builds are removed from the releases page and their corresponding tags are also
+removed.
 
 ## Release Notes
 
