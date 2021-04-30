@@ -57,9 +57,9 @@ class Runner(
       // TODO [RW] reporting warnings to the IDE (#1710)
       if (Engine.isNightly(engineVersion)) {
         Logger[Runner].warn(
-          "Creating a new project using a nightly build. Nightly builds may " +
-          "disappear after a while, so you may need to upgrade. Consider " +
-          "using a stable version."
+          s"Creating a new project using a nightly build ($engineVersion). " +
+          "Nightly builds may disappear after a while, so you may need to " +
+          "upgrade. Consider using a stable version."
         )
       }
       RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)

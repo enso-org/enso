@@ -6,7 +6,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "0 4 * * 2-6" # 4am from Tuesday to Saturday (i.e. after every workday)
+    - cron: "0 4 * * 2-6" # 4am (UTC) from Tuesday to Saturday (i.e. after every workday)
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
@@ -22,7 +22,7 @@ concurrency: "releases"
 
 jobs:
   preflight-check:
-    name: Check If The Build Should Proceed
+    name: Nightly Preflight Check
     runs-on: ubuntu-18.04
     timeout-minutes: 10
     if:
@@ -34,12 +34,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Debug Print
-        shell: bash
-        run: |
-          echo ${{ github.event.head_commit.message }}
-          echo ${{ github.event_name }}
-          echo ${{ github.event_name == 'schedule' || contains(github.event.head_commit.message,'[release: nightly]') }}
       - id: preparations
         name: Check If The Build Should Proceed And Prepare Version String
         shell: bash
@@ -52,7 +46,9 @@ jobs:
           npm install
           node preflight-check.js ${{ github.sha }}
 
-  # This job should be kept up-to-date with scala.yml#build (but keep the relevant changes)
+  # This job should be kept up-to-date with release.yml#build (but keep the relevant changes)
+  # The difference is the version bump which modifies the version in build.sbt to the output of the preflight check.
+  # It should be done before any actual SBT builds steps.
   build:
     name: Build
     runs-on: ${{ matrix.os }}

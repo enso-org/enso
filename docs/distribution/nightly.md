@@ -8,7 +8,7 @@ order: 10
 
 # Nightly Builds
 
-This document describes the infrastructure for automated nightly builds.
+This document describes the infrastructure for Enso's automated nightly builds.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -20,7 +20,7 @@ This document describes the infrastructure for automated nightly builds.
 
 ## Triggering the Build
 
-The build may be triggered on two possible events:
+The build can be triggered by two possible events:
 
 - automatically, at 4am UTC after each working day (that is, on Tuesday to
   Saturday),
@@ -33,12 +33,12 @@ when it was triggered.
 However, when a nightly build is triggered (by any of the two above conditions),
 it will only proceed if there are any changes. That is, if the current commit is
 the same as the one used for the previous nightly build, the build will not
-proceed, because there are no changes.
+proceed because there are no changes.
 
 Thanks to
 [GitHub's concurrency settings](https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#concurrency),
 only one nightly or regular release job may be running at a given time. If a
-build is triggered when another one is in progress, it will be pending until the
+build is triggered while another one is in progress, it will be pending until the
 first one finishes.
 
 ## Nightly Build Versions
@@ -58,7 +58,7 @@ subsequent build based off of the same version is triggered on the same day it
 will be `1.2.3-SNAPSHOT.2021-02-01.1` etc.
 
 Only the 3 most recent nightly builds are kept in the repository, any older
-builds are removed from releases.
+builds are removed from the releases page and their corresponding tags are also removed.
 
 ## Release Notes
 

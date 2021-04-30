@@ -2,7 +2,6 @@ const fs = require("fs");
 
 const inputPath = process.argv[2];
 const outputPath = process.argv[3];
-const version = process.env.DIST_VERSION;
 
 console.log("Extracting release notes from " + inputPath + " to " + outputPath);
 
@@ -14,7 +13,7 @@ function cutFirstSection(content) {
   function findNightlySectionStart(text) {
     return text.search(nightlySectionRegex);
   }
-  const regularSectionRegex = /^# Enso .*? \(\d+-\d+-\d+\)$/gm;
+  const regularSectionRegex = /^# Enso .*? \(\d\d\d\d-\d\d-\d\d\)$/gm;
   function findFirstRegularSectionStart(text) {
     return text.search(regularSectionRegex);
   }
@@ -44,10 +43,7 @@ function cutFirstSection(content) {
   }
 
   const firstSectionContent = rest.substring(0, secondHeading);
-
-  const firstSectionHeader = "# Enso Nightly " + version + "\n";
-
-  return firstSectionHeader + firstSectionContent;
+  return firstSectionContent;
 }
 
 try {

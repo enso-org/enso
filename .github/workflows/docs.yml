@@ -27,6 +27,7 @@ jobs:
         run: npm install
       - name: Check Docs
         run: npx prettier --check .
+
   changelog-check:
     name: Changelog Check
     runs-on: ubuntu-latest
