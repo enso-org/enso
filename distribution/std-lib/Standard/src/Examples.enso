@@ -131,3 +131,6 @@ get_response = Http.get here.geo_data_url
 get_geo_data : Http.Response.Body
 get_geo_data = Http.fetch here.geo_data_url
 
+## A simple HTTP client for eamples.
+http_client : Http
+http_client = Http.new (timeout = 30.seconds)
