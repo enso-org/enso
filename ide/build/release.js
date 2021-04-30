@@ -33,12 +33,14 @@ class NextReleaseVersion {
 }
 
 class Version {
-    constructor(major,minor,patch,tag,tagVersion) {
-        this.major      = major
-        this.minor      = minor
-        this.patch      = patch
-        this.tag        = tag
-        this.tagVersion = tagVersion
+    constructor(major,minor,patch,tag,tagVersion,rcTag,rcTagVersion) {
+        this.major        = major
+        this.minor        = minor
+        this.patch        = patch
+        this.tag          = tag
+        this.tagVersion   = tagVersion
+        this.rcTag        = rcTag
+        this.rcTagVersion = rcTagVersion
     }
 
     lt(that) {
@@ -48,7 +50,8 @@ class Version {
         if (this.tag === 'alpha' && that.tag === 'beta') { return true }
         if (this.tag === 'alpha' && that.tag === 'rc')   { return true }
         if (this.tag === 'beta'  && that.tag === 'rc')   { return true }
-        if (this.tagVersion < that.tagVersion)           { return true }
+        if (this.tagVersion   < that.tagVersion)         { return true }
+        if (this.rcTagVersion < that.rcTagVersion)       { return true }
         return false
     }
 
@@ -60,6 +63,9 @@ class Version {
         let suffix = ''
         if (this.tag) {
             suffix = `-${this.tag}.${this.tagVersion}`
+            if (this.rcTag) {
+                suffix += `.${this.rcTag}.${this.rcTagVersion}`
+            }
         }
         return `${this.major}.${this.minor}.${this.patch}${suffix}`
     }
@@ -140,13 +146,13 @@ function changelogEntries() {
             let version = new NextReleaseVersion
             entries.push(new ChangelogEntry(version,body))
         } else {
-            let headerReg  = /^ Enso (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)(-(?<tag>alpha|beta|rc)\.(?<tagVersion>[0-9]+))? \((?<year>[0-9][0-9][0-9][0-9])-(?<month>[0-9][0-9])-(?<day>[0-9][0-9])\)/
+            let headerReg  = /^ Enso (?<major>[0-9]+)\.(?<minor>[0-9]+)\.(?<patch>[0-9]+)(-(?<tag>alpha|beta|rc)\.(?<tagVersion>[0-9]+))?(.(?<rcTag>rc)\.(?<rcTagVersion>[0-9]+))? \((?<year>[0-9][0-9][0-9][0-9])-(?<month>[0-9][0-9])-(?<day>[0-9][0-9])\)/
             let match      = header.match(headerReg)
             if (!match) {
                 throw `Improper changelog entry header: '${header}'. See the 'CHANGELOG_TEMPLATE.md' for details.`
             }
             let grps    = match.groups
-            let version = new Version(grps.major,grps.minor,grps.patch,grps.tag,grps.tagVersion)
+            let version = new Version(grps.major,grps.minor,grps.patch,grps.tag,grps.tagVersion,grps.rcTag,grps.rcTagVersion)
             entries.push(new ChangelogEntry(version,body))
         }
         firstSection = false
