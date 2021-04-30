@@ -1,8 +1,10 @@
 from Standard.Base import all
 
-import Standard.Examples
+import Standard.Base.Network.Uri
 
-example = Examples.http_client.head "http://httpbin.org"
+example =
+    addr = "http://user:pass@example.com/foo/bar?key=val"
+    Uri.parse addr . scheme
 
 main =
     result = here.example
