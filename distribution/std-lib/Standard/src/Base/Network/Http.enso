@@ -509,6 +509,7 @@ type Http
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"
                 Method.Get -> "GET"
+                Method.Head -> "HEAD"
                 Method.Post -> "POST"
                 Method.Put -> "PUT"
                 Method.Delete -> "DELETE"
