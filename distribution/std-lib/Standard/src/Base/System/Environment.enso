@@ -12,7 +12,9 @@ polyglot java import java.lang.System
 
    > Example
      Look up the value of the `PATH` environment variable.
-         Environment.get "PATH"
+
+         import Standard.Base.System.Environment
+
+         example_get = Environment.get "PATH"
 get : Text -> Text | Nothing
-get key =
-    System.getenv key
+get key = System.getenv key

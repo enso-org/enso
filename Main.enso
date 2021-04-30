@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Uri
+import Standard.Base.System.Process
 
-example =
-    addr = "http://user:pass@example.com/foo/bar?key=val"
-    Uri.parse addr . scheme
+example = 
+    builder = Process.new_builder "echo"
+    builder.set_arguments ["hello, world!"] . create
 
 main =
     result = here.example
