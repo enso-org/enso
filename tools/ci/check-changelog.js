@@ -15,6 +15,10 @@ function wasChangelogModified() {
     changelogPath,
   ];
   const result = proc.spawnSync("git", diffArgs);
+  if (result.error) {
+    console.log("Cannot access git", result.error);
+    process.exit(1);
+  }
   const exitCode = result.status;
   console.log(result.stdout.toString("utf-8"));
   const noDifference = exitCode == 0;
@@ -23,7 +27,13 @@ function wasChangelogModified() {
 
 function isChangelogSkipped() {
   const logArgs = ["--no-pager", "log", "HEAD~3...HEAD", "--pretty=oneline"];
-  const output = proc.spawnSync("git", logArgs).stdout.toString("utf-8");
+  const result = proc.spawnSync("git", logArgs);
+  if (result.error) {
+    console.log("Cannot access git", result.error);
+    process.exit(1);
+  }
+
+  const output = result.stdout.toString("utf-8");
   const containsSkipCommit = output.indexOf(skipChangelogInfix) >= 0;
   return containsSkipCommit;
 }
