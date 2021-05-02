@@ -75,5 +75,5 @@ case class UninstallationError(message: String)
 /** Indicates that the required executable was not found. */
 case class ExecutableNotFoundError(path: Path, name: String)
     extends ComponentsException(
-      s"Executable with the name '$name' does not found on $path."
+      s"Executable with the name '$name' was not found on $path."
     )

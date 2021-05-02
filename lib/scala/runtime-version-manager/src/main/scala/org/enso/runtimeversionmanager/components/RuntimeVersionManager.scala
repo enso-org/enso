@@ -719,18 +719,25 @@ class RuntimeVersionManager(
           s"Loading temporary runtime ${runtimeTemporaryPath.toAbsolutePath}."
         )
         val temporaryRuntime =
-          loadGraalRuntime(runtimeTemporaryPath).getOrElse {
-            throw InstallationError(
-              "Cannot load the installed runtime. The package may have been " +
-              "corrupted. Reverting installation."
+          loadGraalRuntime(runtimeTemporaryPath).recoverWith { error =>
+            Failure(
+              InstallationError(
+                "Cannot load the installed runtime. The package may have " +
+                s"been corrupted. Reverting installation.",
+                error
+              )
             )
-          }
+          }.get
         logger.debug(s"Installing GraalVM components to $temporaryRuntime.")
-        installRequiredRuntimeComponents(temporaryRuntime).getOrElse {
-          throw InstallationError(
-            "fatal: Cannot install the required runtime components."
-          )
-        }
+        installRequiredRuntimeComponents(temporaryRuntime).recoverWith {
+          error =>
+            Failure(
+              InstallationError(
+                s"fatal: Cannot install the required runtime components.",
+                error
+              )
+            )
+        }.get
 
         val runtimePath =
           distributionManager.paths.runtimes / runtimeDirectoryName
@@ -738,12 +745,15 @@ class RuntimeVersionManager(
           s"Moving ${runtimeTemporaryPath.toAbsolutePath} to ${runtimePath.toAbsolutePath}."
         )
         FileSystem.atomicMove(runtimeTemporaryPath, runtimePath)
-        val runtime = loadGraalRuntime(runtimePath).getOrElse {
+        val runtime = loadGraalRuntime(runtimePath).recoverWith { error =>
           FileSystem.removeDirectory(runtimePath)
-          throw InstallationError(
-            "fatal: Cannot load the installed runtime."
+          Failure(
+            InstallationError(
+              s"fatal: Cannot load the installed runtime.",
+              error
+            )
           )
-        }
+        }.get
         logger.debug(s"Installed $runtime.")
         userInterface.logInfo(s"Installed $runtime.")
 
