@@ -1,8 +1,8 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Time
 import Standard.Base.Data.Time.Date
 import Standard.Base.Data.Time.Duration
-import Standard.Base.Data.Time.Time
 import Standard.Base.Data.Time.Time_Of_Day
 import Standard.Base.Data.Time.Zone
 import Standard.Test
@@ -15,7 +15,7 @@ spec =
             time . minute . should_equal 0
             time . second . should_equal 0
             time . to_seconds . should_equal 3600
-        Test.specify "should handle erros when creating time" <|
+        Test.specify "should handle errors when creating a time" <|
             case Time_Of_Day.new 24 0 0 . catch (x -> x) of
                 Time.Time_Error msg ->
                     msg . should_equal "Invalid value for HourOfDay (valid values 0 - 23): 24"
@@ -46,10 +46,10 @@ spec =
                 result ->
                     Test.fail ("Unexpected result: " + result.to_text)
         Test.specify "should parse custom format" <|
-            time = Time_Of_Day.parse_format "12:30AM" "hh:mma"
+            time = Time_Of_Day.parse "12:30AM" "hh:mma"
             time.to_seconds . should_equal 1800
         Test.specify "should throw error when parsing custom format" <|
-            time = Time_Of_Day.parse_format "12:30" "HH:mm:ss"
+            time = Time_Of_Day.parse "12:30" "HH:mm:ss"
             case time.catch (x -> x) of
                 Time.Time_Error msg ->
                     msg . should_equal "Text '12:30' could not be parsed at index 5"

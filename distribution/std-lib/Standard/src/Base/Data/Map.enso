@@ -2,19 +2,14 @@ from Standard.Base import all
 
 import Standard.Base.Data.Map.Internal
 
-## UNSTABLE
-
-   An error for getting a missing value from a map.
-
-   Arguments:
-   - key: The key that was asked for.
-type No_Value_For_Key key
-
 ## Returns an empty map.
 
    > Example
      Create an empty map.
-         Map.empty
+
+         import Standard.Base.Data.Map.Internal
+
+         example_empty = Map.empty
 empty : Map
 empty = Tip
 
@@ -26,7 +21,10 @@ empty = Tip
 
    > Example
      Create a single element map storing the key 1 and the value 2.
-         Map.singleton 1 2
+
+         import Standard.Base.Data.Map.Internal
+
+         example_singleton = Map.singleton 1 2
 singleton : Any -> Any -> Map
 singleton key value = Bin 1 key value Tip Tip
 
@@ -37,7 +35,10 @@ singleton key value = Bin 1 key value Tip Tip
 
    > Example
      Building a map containing two key-value pairs.
-         Map.from_vector [[1, 2], [3, 4]]
+
+         import Standard.Base.Data.Map.Internal
+
+         example_from_vector = Map.from_vector [[1, 2], [3, 4]]
 from_vector : Vector.Vector -> Map
 from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
@@ -65,8 +66,12 @@ type Map
     ## Checks if the map is empty.
 
        > Example
-         Check if a singleton map is empty.
-             Map.singleton 1 2 . is_empty
+         Check if a map is empty.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_is_empty = Examples.map.is_empty
     is_empty : Boolean
     is_empty = case this of
         Bin _ _ _ _ _ -> False
@@ -75,16 +80,24 @@ type Map
     ## Checks if the map is not empty.
 
        > Example
-         Check if a singleton map is not empty.
-             Map.singleton 1 2 . not_empty
+         Check if a map is not empty.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_not_empty = Examples.map.not_empty
     not_empty : Boolean
     not_empty = this.is_empty.not
 
     ## Returns the number of entries in this map.
 
        > Example
-         Get the size of a singleton map.
-             Map.singleton 1 2 . size
+         Get the size of a map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_size = Examples.map.size
     size : Integer
     size = case this of
         Bin s _ _ _ _ -> s
@@ -95,8 +108,12 @@ type Map
        The returned vector is sorted in the increasing order of keys.
 
        > Example
-         Convert a singleton map to a vector.
-             Map.singleton 1 2 . to_vector
+         Convert a map to a vector.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_to_vector = Examples.map.to_vector
     to_vector : Vector.Vector
     to_vector =
         builder = Vector.new_builder
@@ -114,8 +131,12 @@ type Map
     ## Returns a text representation of this map.
 
        > Example
-         Convert an empty map to text.
-             Map.empty.to_text
+         Convert a map to text.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_to_text = Examples.map.to_text
     to_text : Text
     to_text = this.to_vector.to_text
 
@@ -128,8 +149,14 @@ type Map
        associated with each key are pairwise equal.
 
        > Example
-         Checking two singleton maps for equality.
-             (Map.singleton 1 2) == (Map.singleton 2 3)
+         Checking two maps for equality.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_equals =
+                other = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+                Examples.map == other
     == : Map -> Boolean
     == that = this.to_vector == that.to_vector
 
@@ -141,8 +168,12 @@ type Map
        - value: The value to associate with `key`.
 
        > Example
-         Insert the value 3 into a map for the key 1.
-             Map.empty.insert 1 3
+         Insert the value "seven" into the map for the key 7.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_insert = Examples.map.insert 7 "seven"
     insert : Any -> Any -> Map
     insert key value = Internal.insert this key value
 
@@ -153,8 +184,12 @@ type Map
        - key: The key to look up in the map.
 
        > Example
-         Get the value for the key 2 in a map.
-             Map.empty.get 2
+         Get the value for the key 1 in a map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_get = Examples.map.get 1
     get : Any -> Any ! Nothing
     get key =
         go map = case map of
@@ -173,9 +208,13 @@ type Map
        - other: The value to use if the key isn't present.
 
        > Example
-         Get the value for the key 2 in a map or instead return 10 if it isn't
-         present.
-             Map.empty.get_or_else 2 10
+         Get the value for the key 2 in a map or instead return "zero" if it
+         isn't present.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_get_or_else = Examples.map.get_or_else 2 "zero"
     get_or_else : Any -> Any -> Any
     get_or_else key ~other =
         this.get key . catch (_ -> other)
@@ -187,8 +226,13 @@ type Map
          value and returning a pair of `[key, value]`.
 
        > Example
-         Turn all keys into `Text` and double the values for a map `m`.
-             m.transform (k -> v -> [k.to_text, v*2])
+         Turn all keys into `Text` and append "_word" to the values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_transform =
+                Examples.map.transform (k -> v -> [k.to_text, v + "_word"])
     transform : (Any -> Any -> [Any, Any]) -> Map
     transform function =
         func_pairs = p -> function (p.at 0) (p.at 1)
@@ -202,8 +246,12 @@ type Map
          value and returning a value.
 
        > Example
-         Turn all values into `Text` for a map `m`.
-             m.map (v -> v.to_text)
+         Append "_word" to all values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map = Examples.map.map (+ "_word")
     map : (Any -> Any) -> Map
     map function =
         kv_func = _ -> function
@@ -217,8 +265,13 @@ type Map
          taking a key and a value and returning a value.
 
        > Example
-         Adding the key to the value in a map `m`.
-             m.map_with_key (k -> v -> k + v)
+         Prepend the keys to the values in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map_with_key =
+                Examples.map.map_with_key (k -> v -> k.to_text + "-" + v)
     map_with_key : (Any -> Any -> Any) -> Map
     map_with_key function =
         go map = case map of
@@ -234,8 +287,12 @@ type Map
          and returning a key.
 
        > Example
-         Doubling all keys in the map `m`.
-             m.map_keys (k -> k*2)
+         Doubling all keys in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_map_keys = Examples.map.map_keys *2
     map_keys : (Any -> Any) -> Map
     map_keys function =
         trans_function = k -> v -> [function k, v]
@@ -251,8 +308,12 @@ type Map
        computations with side-effects.
 
        > Example
-         Printing each value in the map `m`.
-             m.each IO.println
+         Printing each value in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_each = Examples.map.each IO.println
     each : (Any -> Any) -> Nothing
     each function =
         kv_func = _ -> function
@@ -268,8 +329,14 @@ type Map
        computations with side-effects.
 
        > Example
-         Printing each key and value in the map `m`.
-             m.each (k -> v -> IO.println (k.to_text + v.to_text))
+         Printing each key and value in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_each_with_key = Examples.map.each_with_key k->v->
+                IO.println k
+                IO.println v
     each_with_key : (Any -> Any -> Any) -> Nothing
     each_with_key function =
         go map = case map of
@@ -288,8 +355,12 @@ type Map
        - function: A binary function to apply to pairs of values in the map.
 
        > Example
-         Summing all of the values in the map `m`.
-             m.fold 0 (+)
+         Find the length of the longest word in the map.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_fold = Examples.map.fold 0 (l -> r -> Math.max l r.length)
     fold : Any -> (Any -> Any -> Any) -> Any
     fold init function =
         go map init = case map of
@@ -308,8 +379,13 @@ type Map
          current value, and combining them to yield a single value.
 
        > Example
-         Sum the keys and values in the map `m`.
-             m.fold_with_key 0 (l -> k -> v -> l + k + v)
+         Glue the values in the map together with the keys.
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_fold_with_key =
+                Examples.map.fold_with_key "" (l -> k -> v -> l + k.to_text + v)
     fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
     fold_with_key init function =
         go map init = case map of
@@ -324,7 +400,11 @@ type Map
 
        > Example
          Get the keys from the map `m`.
-             m.keys
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_keys = Examples.map.keys
     keys : Vector
     keys =
         builder = Vector.new_builder
@@ -342,7 +422,11 @@ type Map
 
        > Example
          Get the values from the map `m`.
-             m.values
+
+             import Standard.Base.Data.Map
+             import Standard.Examples
+
+             example_values = Examples.map.values
     values : Vector
     values =
         builder = Vector.new_builder
@@ -355,3 +439,12 @@ type Map
             Tip -> Nothing
         to_vector_with_builder this
         builder.to_vector
+
+## UNSTABLE
+
+   An error for getting a missing value from a map.
+
+   Arguments:
+   - key: The key that was asked for.
+type No_Value_For_Key key
+

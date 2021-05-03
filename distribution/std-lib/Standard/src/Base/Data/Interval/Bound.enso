@@ -12,7 +12,10 @@ type Bound
 
        > Example
          Create a bound that includes the value 2.
-             Inclusive 2
+
+             import Standard.Base.Data.Interval.Bound
+
+             example_bound_inclusive = Bound.Inclusive 2
     type Inclusive n
 
     ## A bound that excludes the value `n`.
@@ -22,5 +25,8 @@ type Bound
 
        > Example
          Create a bound that excludes the value 2.
-             Exclusive 2
+
+             import Standard.Base.Data.Interval.Bound
+
+             example_bound_exclusive = Bound.Exclusive 2.
     type Exclusive n

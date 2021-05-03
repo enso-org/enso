@@ -1,9 +1,26 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Time.Time
+import Standard.Base.Data.Time
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period
+
+## Create an interval representing the duration between two points in time.
+
+   Arguments:
+   - start_inclusive: The start time of the duration.
+   - end_inclusife: The end time of the duration.
+
+   > Example
+     An hour interval between two points in time.
+
+         import Standard.Base.Data.Time.Duration
+         import Standard.Base.Data.Time
+
+         example_between = Duration.between Time.now (Time.new 2010 10 20)
+between : Time -> Time -> Duration
+between start_inclusive end_exclusive =
+   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
 
 type Duration
 
@@ -23,11 +40,17 @@ type Duration
 
        > Example
          Add 6 seconds to a duration of 3 minutes
-             3.minutes + 6.seconds
+
+             import Standard.Base.Data.Time.Duration
+
+             example_add = 3.minutes + 6.seconds
 
        > Example
          Add 12 hours to a duration of a month.
-             1.month + 12.hours
+
+             import Standard.Base.Data.Time.Duration
+
+             example_add = 1.month + 12.hours
     + : Duration -> Duration
     + that = Duration (this.internal_period . plus that.internal_period . normalized) (this.internal_duration . plus that.internal_duration)
 
@@ -38,11 +61,17 @@ type Duration
 
        > Example
          Subtract 11 months from a duration of 3 years
-             3.years - 11.months
+
+             import Standard.Base.Data.Time.Duration
+
+             example_subtract = 3.years - 11.months
 
        > Example
          Substract 30 minutes from a duration of 7 months.
-             7.months - 30.minutes
+
+             import Standard.Base.Data.Time.Duration
+
+             example_subtract = 7.months - 30.minutes
     - : Duration -> Duration
     - that = Duration (this.internal_period . minus that.internal_period . normalized) (this.internal_duration . minus that.internal_duration)
 
@@ -50,7 +79,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in nanoseconds.
-             1.nanosecond.nanoseconds
+
+             import Standard.Examples
+
+             example_nanos = Examples.duration.nanoseconds
     nanoseconds : Integer
     nanoseconds = this.internal_duration . toNanosPart
 
@@ -58,7 +90,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in milliseconds.
-             1.millisecond.milliseconds
+
+             import Standard.Examples
+
+             example_millis = Examples.duration.milliseconds
     milliseconds : Integer
     milliseconds = this.internal_duration . toMillisPart
 
@@ -66,7 +101,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in seconds.
-             1.second.seconds
+
+             import Standard.Examples
+
+             example_seconds = Examples.duration.milliseconds
     seconds : Integer
     seconds = this.internal_duration . toSecondsPart
 
@@ -74,7 +112,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in minutes.
-             1.minute.minutes
+
+             import Standard.Examples
+
+             example_minutes = Examples.duration.milliseconds
     minutes : Integer
     minutes = this.internal_duration . toMinutesPart
 
@@ -82,7 +123,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in hours.
-             1.hour.hours
+
+             import Standard.Examples
+
+             example_hours = Examples.duration.milliseconds
     hours : Integer
     hours = this.internal_duration . toHours
 
@@ -90,7 +134,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in days.
-             1.day.days
+
+             import Standard.Examples
+
+             example_days = Examples.duration.milliseconds
     days : Integer
     days = this.internal_period . getDays
 
@@ -98,7 +145,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in months.
-             1.month.months
+
+             import Standard.Examples
+
+             example_months = Examples.duration.months
     months : Integer
     months = this.internal_period . getMonths
 
@@ -106,7 +156,10 @@ type Duration
 
        > Example
          Get the portion of the duration expressed in years.
-             1.year.years
+
+             import Standard.Examples
+
+             example_years = Examples.duration.years
     years : Integer
     years = this.internal_period . getYears
 
@@ -115,19 +168,27 @@ type Duration
 
        > Example
          Convert duration of a year and a hour to a vector returning `[1, 0, 0, 1, 0, 0, 0]`.
-             1.year . plus 1.hour . to_vector
+             import Standard.Base.Data.Time.Duration
+
+             example_to_vec = (1.year + 1.hour).to_vector
 
        > Example
          Convert duration of 800 nanoseconds to a vector returning `[0, 0, 0, 0, 0, 0, 800]`
-             800.nanoseconds . to_vector
-    to_vector : Vector.Vector
+
+             import Standard.Base.Data.Time.Duration
+
+             example_to_vec = 800.nanoseconds . to_vector
+    to_vector : Vector.Vector Integer
     to_vector = [this.years, this.months, this.days, this.hours, this.minutes, this.seconds, this.nanoseconds]
 
     ## A Duration to Json conversion.
 
        > Example
          Convert a duration of 10 seconds to Json.
-             10.seconds.to_json
+
+             import Standard.Base.Data.Time.Duration
+
+             example_to_json = 10.seconds.to_json
     to_json : Json.Object
     to_json =
         b = Vector.new_builder
@@ -145,7 +206,10 @@ type Duration
 
        > Example
          Check if the duration of 10 seconds is date-based.
-             10.seconds.is_date
+
+             import Standard.Base.Data.Time.Duration
+
+             example_is_date = 10.seconds.is_date
     is_date : Boolean
     is_date = (this.years==0 . not) || (this.months==0 . not) || (this.days==0 . not)
 
@@ -153,7 +217,10 @@ type Duration
 
        > Example
          Check if the duration of 10 seconds is time-based.
-             10.seconds.is_time
+
+             import Standard.Base.Data.Time.Duration
+
+             example_is_time = 10.seconds.is_time
     is_time : Boolean
     is_time = (this.hours==0 . not) || (this.minutes==0 . not) || (this.seconds==0 . not) || (this.nanoseconds==0 . not)
 
@@ -161,7 +228,10 @@ type Duration
 
        > Example
          Check if the duration of 10 seconds is empty.
-             10.seconds.is_empty
+
+             import Standard.Base.Data.Time.Duration
+
+             example_is_empty = 10.seconds.is_empty
     is_empty : Boolean
     is_empty = this.is_date.not && this.is_time.not
 
@@ -172,84 +242,186 @@ type Duration
 
        > Examples
          Check if 60 seconds and 1 minute are equal.
-             60.seconds == 1.minute
+
+             import Standard.Base.Data.Time.Duration
+
+             example_eq = 60.seconds == 1.minute
     == : Duration -> Boolean
     == that = this.to_vector == that.to_vector
 
-## Duration in nanoseconds.
+## Create a duration of `this` nanoseconds.
+
+   > Examples
+     Create a duration of 1 nanosecond.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_nano = 1.nanosecond
 Integer.nanosecond : Duration
 Integer.nanosecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofNanos this)
 
-## Duration in nanoseconds.
+## Create a duration of `this` nanoseconds.
+
+   > Examples
+     Create a duration of 20 nanoseconds.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_nano = 20.nanoseconds
 Integer.nanoseconds : Duration
 Integer.nanoseconds = this.nanosecond
 
-## Duration in milliseconds.
+## Create a duration of `this` milliseconds.
+
+   > Example
+     Create a duration of 1 millisecond.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_milli = 1.millisecond
 Integer.millisecond : Duration
 Integer.millisecond = Duration (Java_Period.ofDays 0) (Java_Duration.ofMillis this)
 
-## Duration in milliseconds.
+## Create a duration of `this` milliseconds.
+
+   > Example
+     Create a duration of 20 milliseconds.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_milli = 20.milliseconds
 Integer.milliseconds : Duration
 Integer.milliseconds = this.millisecond
 
-## Duration in seconds.
+## Create a duration of `this` seconds.
+
+   > Example
+     Create a duration of 1 second.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_second = 1.second
 Integer.second : Duration
 Integer.second = Duration (Java_Period.ofDays 0) (Java_Duration.ofSeconds this)
 
-## Duration in seconds.
+## Create a duration of `this` seconds.
+
+   > Example
+     Create a duration of 20 seconds.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_second = 20.seconds
 Integer.seconds : Duration
 Integer.seconds = this.second
 
-## Duration in minutes.
+## Create a duration of `this` minutes.
+
+   > Example
+     Create a duration of 1 minute.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_min = 1.minute
 Integer.minute : Duration
 Integer.minute = Duration (Java_Period.ofDays 0) (Java_Duration.ofMinutes this)
 
-## Duration in minutes.
+## Create a duration of `this` minutes.
+
+   > Example
+     Create a duration of 20 minutes.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_min = 20.minutes
 Integer.minutes : Duration
 Integer.minutes = this.minute
 
-## Duration in hours.
+## Create a duration of `this` hours.
+
+   > Example
+     Create a duration of 1 hour.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_hour = 1.hour
 Integer.hour : Duration
 Integer.hour = Duration (Java_Period.ofDays 0) (Java_Duration.ofHours this)
 
-## Duration in hours.
+## Create a duration of `this` hours.
+
+   > Example
+     Create a duration of 20 hours.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_hour = 20.hours
 Integer.hours : Duration
 Integer.hours = this.hour
 
-## Duration in days.
+## Create a duration of `this` days.
+
+   > Example
+     Create a duration of 1 day.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_day = 1.day
 Integer.day : Duration
 Integer.day = Duration (Java_Period.ofDays this . normalized) (Java_Duration.ofSeconds 0)
 
-## Duration in days.
+## Create a duration of `this` days.
+
+   > Example
+     Create a duration of 20 days.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_day = 20.days
 Integer.days : Duration
 Integer.days = this.day
 
-## Duration in months.
+## Create a duration of `this` months.
+
+   > Example
+     Create a duration of 1 month.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_month = 1.month
 Integer.month : Duration
 Integer.month = Duration (Java_Period.ofMonths this . normalized) (Java_Duration.ofSeconds 0)
 
-## Duration in months.
+## Create a duration of `this` months.
+
+   > Example
+     Create a duration of 6 months.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_month = 6.months
 Integer.months : Duration
 Integer.months = this.month
 
-## Duration in years.
+## Create a duration of `this` years.
+
+   > Example
+     Create a duration of 1 year.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_year = 1.year
 Integer.year : Duration
 Integer.year = Duration (Java_Period.ofYears this . normalized) (Java_Duration.ofSeconds 0)
 
-## Duration in years.
-Integer.years : Duration
-Integer.years = this.year
-
-## Create an interval representing the duration between two points in time.
-
-   Arguments:
-   - start_inclusive: The start time of the duration.
-   - end_inclusife: The end time of the duration.
+## Create a duration of `this` years.
 
    > Example
-     An hour interval between two points in time.
-         Duration.between Time.now (Time.new 2010 10 20)
-between : Time -> Time -> Duration
-between start_inclusive end_exclusive =
-   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
+     Create a duration of 20 years.
+
+         import Standard.Base.Data.Time.Duration
+
+         example_year = 20.years
+Integer.years : Duration
+Integer.years = this.year
 

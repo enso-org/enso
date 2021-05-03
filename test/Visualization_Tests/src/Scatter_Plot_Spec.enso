@@ -8,7 +8,7 @@ import Standard.Visualization.Scatter_Plot
 import Visualization_Tests
 
 spec =
-    expect value axis_expected_text data_expected_text = 
+    expect value axis_expected_text data_expected_text =
         text = Scatter_Plot.process_to_json_text value
         json = Json.parse text
         json.fields.keys.should_equal ['axis','data']
@@ -24,37 +24,37 @@ spec =
     no_labels  = 'null'
 
     Test.group "Scatter Plot Visualization" <|
-    
+
         Test.specify "deals with an empty table" <|
             table  = Table.from_rows [] []
             expect table 'null' '[]'
-    
+
         Test.specify "plots first column if none recognized" <|
             header = ['α', 'ω']
             row_1  = [11 , 10 ]
             row_2  = [21 , 20 ]
             table  = Table.from_rows header [row_1, row_2]
             expect table (labels index 'α') '[{"x":0,"y":11},{"x":1,"y":21}]'
-    
+
         Test.specify "plots 'y' against indices when no 'x' recognized" <|
             header = ['α', 'y']
             row_1 =  [11 , 10 ]
             row_2 =  [21 , 20 ]
             table = Table.from_rows header [row_1, row_2]
             expect table (labels index 'y') '[{"x":0,"y":10},{"x":1,"y":20}]'
-            
+
         Test.specify "recognizes all relevant columns" <|
             header = ['x' , 'y' , 'size' , 'shape'  , 'label' , 'color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
             expect table (labels 'x' 'y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
-            
+
         Test.specify "is case insensitive" <|
             header = ['X' , 'Y' , 'Size' , 'Shape'  , 'Label' , 'Color' ]
             row_1 =  [11  , 10  , 50     , 'square' , 'label' , 'ff0000']
             table = Table.from_rows header [row_1]
             expect table (labels 'X' 'Y') '[{"color":"ff0000","label":"label","shape":"square","size":50,"x":11,"y":10}]'
-            
+
         Test.specify "uses first unrecognized numeric column as `y` fallback" <|
             header = ['x' , 'size' , 'name'   , 'z' , 'ω']
             row_1 =  [11  , 50     , 'circul' ,  20 ,  30]
@@ -99,5 +99,5 @@ spec =
             expect column (labels 'index' 'some_col') '[{"x":0,"y":10},{"x":1,"y":2},{"x":2,"y":3}]'
 
         Test.specify "using indices for x if given a range" <|
-            value = 2.up_to 4
+            value = 2.up_to 5
             expect value no_labels '[{"x":0,"y":2},{"x":1,"y":3},{"x":2,"y":4}]'

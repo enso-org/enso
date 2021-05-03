@@ -89,6 +89,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
+        logger.trace(
+          s"Executing a command that creates a new project: $command"
+        )
         command.run().get
       }
 
@@ -210,6 +213,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
+        logger.trace(s"Executing a command that starts the REPL: $command")
         command.run().get
       }
     exitCode
@@ -246,6 +250,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runner.run(path, versionOverride, logLevel, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
+        logger.trace(
+          s"Executing a command that runs the Enso program: $command"
+        )
         command.run().get
       }
     exitCode
@@ -288,6 +295,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
+        logger.trace(
+          s"Executing a command that starts the Language Server: $command"
+        )
         command.run().get
       }
     exitCode
@@ -431,6 +441,10 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runtimeVersionRunSettings,
         JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
       ) { runtimeVersionCommand =>
+        logger.trace(
+          s"Executing a command that gets the runtime version: " +
+          s"$runtimeVersionCommand"
+        )
         runtimeVersionCommand.captureOutput().get
       }
 

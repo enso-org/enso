@@ -5,7 +5,6 @@ import org.enso.searcher.Database
 import org.enso.searcher.sqlite.LockingMode
 import slick.dbio.DBIO
 import slick.jdbc.SQLiteProfile
-import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.Future
 
@@ -16,20 +15,26 @@ import scala.concurrent.Future
 final class SqlDatabase(config: Option[Config] = None)
     extends Database[DBIO, Future] {
 
-  val db = SQLiteProfile.backend.Database
-    .forConfig(SqlDatabase.configPath, config.orNull)
+  private var db: SQLiteProfile.backend.Database = _
+
+  open()
 
   /** @inheritdoc */
   override def run[A](query: DBIO[A]): Future[A] =
     db.run(query)
 
   /** @inheritdoc */
-  override def transaction[A](query: DBIO[A]): Future[A] =
-    db.run(query.transactionally)
+  override def open(): Unit =
+    this.synchronized {
+      db = SQLiteProfile.backend.Database
+        .forConfig(SqlDatabase.configPath, config.orNull)
+    }
 
   /** @inheritdoc */
   override def close(): Unit =
-    db.close()
+    this.synchronized {
+      db.close()
+    }
 }
 
 object SqlDatabase {

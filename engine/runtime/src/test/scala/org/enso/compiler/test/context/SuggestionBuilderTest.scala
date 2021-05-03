@@ -120,6 +120,135 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
+    "build method with a qualified type" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """
+          |foo : Foo.Bar
+          |foo = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleAtomNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Foo.Bar",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with an argument" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """
+          |foo : Text -> Number
+          |foo a = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleAtomNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument("a", "Text", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with a type containing higher kinds" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """
+          |foo : Either (Vector Number) Text -> Number
+          |foo a = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleAtomNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None),
+                Suggestion.Argument(
+                  "a",
+                  "Either (Vector Number) Text",
+                  false,
+                  false,
+                  None
+                )
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
+    "build method with a type containing qualified higher kinds" in {
+      pending // issue #1711
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """
+          |foo : Foo.Bar Baz
+          |foo = 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleAtomNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId = None,
+              module     = "Unnamed.Test",
+              name       = "foo",
+              arguments = Seq(
+                Suggestion.Argument("this", "Unnamed.Test", false, false, None)
+              ),
+              selfType      = "Unnamed.Test",
+              returnType    = "Foo.Bar Baz",
+              documentation = None
+            ),
+            Vector()
+          )
+        )
+      )
+    }
+
     "build method with complex body" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 

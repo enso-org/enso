@@ -1,5 +1,8 @@
 package org.enso.searcher.sql
 
+import java.io.File
+import java.util.UUID
+
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api.{
@@ -10,18 +13,18 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 }
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
-import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
+import slick.jdbc.meta.MTable
+import slick.relational.RelationalProfile
 
-import java.io.File
-import java.util.UUID
 import scala.collection.immutable.HashMap
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /** The object for accessing the suggestions database. */
-final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
-    extends SuggestionsRepo[Future] {
+final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
+  ec: ExecutionContext
+) extends SuggestionsRepo[Future] {
 
   /** The query returning the arguments joined with the corresponding
     * suggestions.
@@ -155,6 +158,25 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def close(): Unit =
     db.close()
 
+  /** Get the database schema version.
+    *
+    * @return the schema version of the database
+    */
+  def getSchemaVersion: Future[Long] =
+    db.run(currentSchemaVersionQuery)
+
+  /** Set the database schema version.
+    *
+    * @param version the database schema version
+    * @return the schema version of the database
+    */
+  def setSchemaVersion(version: Long): Future[Long] =
+    db.run(setSchemaVersionQuery(version))
+
+  /** Remove the database schema version. */
+  def clearSchemaVersion: Future[Unit] =
+    db.run(clearSchemaVersionQuery)
+
   /** Insert suggestions in a batch.
     *
     * @param suggestions the list of suggestions to insert
@@ -165,12 +187,33 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
-    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
-    def initSchema(schema: SQLiteProfile.SchemaDescription) =
-      schema.createIfNotExists.asTry >> DBIO.successful(())
-    val schemas =
-      Seq(Suggestions.schema, Arguments.schema, SuggestionsVersions.schema)
-    DBIO.sequence(schemas.map(initSchema)) >> DBIO.successful(())
+    type RelationalTable[A] = RelationalProfile#Table[A]
+    def checkVersion(version: Long) =
+      if (version == SchemaVersion.CurrentVersion) {
+        DBIO.successful(())
+      } else {
+        DBIO.failed(new InvalidSchemaVersion(version))
+      }
+    def createSchema(table: TableQuery[RelationalTable[_]]) =
+      for {
+        tables <- MTable.getTables(table.shaped.value.tableName)
+        _      <- if (tables.isEmpty) table.schema.create else DBIO.successful(())
+      } yield ()
+
+    val tables: Seq[TableQuery[RelationalTable[_]]] =
+      Seq(Suggestions, Arguments, SuggestionsVersions, SchemaVersion)
+        .asInstanceOf[Seq[TableQuery[RelationalTable[_]]]]
+    val initSchemas =
+      for {
+        _       <- DBIO.sequence(tables.map(createSchema))
+        version <- initSchemaVersionQuery
+      } yield version
+
+    for {
+      versionAttempt <- currentSchemaVersionQuery.asTry
+      version        <- versionAttempt.fold(_ => initSchemas, DBIO.successful)
+      _              <- checkVersion(version)
+    } yield ()
   }
 
   /** The query to clean the repo. */
@@ -712,6 +755,37 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield version
     incrementQuery
   }
+
+  /** The query to get current version of the repo. */
+  private def currentSchemaVersionQuery: DBIO[Long] = {
+    for {
+      versionOpt <- SchemaVersion.result.headOption
+    } yield versionOpt.flatMap(_.id).getOrElse(0L)
+  }
+
+  /** The query to initialize the [[SchemaVersion]] table. */
+  private def initSchemaVersionQuery: DBIO[Long] = {
+    setSchemaVersionQuery(SchemaVersion.CurrentVersion)
+  }
+
+  /** The query setting the schema version.
+    *
+    * @param version the schema version.
+    * @return the current value of the schema version
+    */
+  private def setSchemaVersionQuery(version: Long): DBIO[Long] = {
+    val query = for {
+      _ <- SchemaVersion.delete
+      _ <- SchemaVersion += SchemaVersionRow(Some(version))
+    } yield version
+    query
+  }
+
+  /** The query to delete the schema version. */
+  private def clearSchemaVersionQuery: DBIO[Unit] =
+    for {
+      _ <- SchemaVersion.delete
+    } yield ()
 
   /** The query to insert suggestions in a batch.
     *

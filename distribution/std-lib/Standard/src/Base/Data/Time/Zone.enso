@@ -3,62 +3,14 @@ from Standard.Base import all
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 
-type Zone
-
-    ## A type representing a time zone.
-
-       Arguments:
-       - internal_zone_id: The identifier for the internal zone of the
-         representation.
-
-       A time zone can be eiter offset-based like "-06:00" or id-based like
-       "Europe/Paris".
-    type Zone internal_zone_id
-
-    ## Get the unique timezone ID.
-
-       > Example
-         Get the unique identifier for your system's current timezone.
-             Zone.system.zone_id
-    zone_id : Text
-    zone_id = this.internal_zone_id . getId
-
-    ## Convert the time zone to JSON.
-
-       > Example
-         Convert your system's current timezone to JSON.
-             Zone.system.to_json
-    to_json : Json.Object
-    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
-
-## This method parses the ID producing a `Zone`.
-
-   Arguments:
-   - text: The text representing a zone identifier.
-
-   > Example
-     Get Central European Time.
-         Zone.parse "CET"
-
-   > Example
-     Get Moscow time.
-         Zone.parse "Europe/Moscow"
-
-   > Example
-     Get time zone -06:00.
-         Zone.parse "-06:00"
-
-   > Example
-     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
-         Zone.parse "+03:02:01"
-parse : Text -> Zone
-parse text = Zone (ZoneId.of text)
-
 ## The system default timezone.
 
    > Example
      Get the system default timezone.
-         Zone.system
+
+         import Standard.Base.Data.Time.Zone
+
+         example_system = Zone.system
 system : Zone
 system = Zone ZoneId.systemDefault
 
@@ -66,7 +18,10 @@ system = Zone ZoneId.systemDefault
 
    > Example
      Get the system's local timezone.
-         Zone.local
+
+         import Standard.Base.Data.Time.Zone
+
+         example_local = Zone.local
 local : Zone
 local = here.system
 
@@ -74,7 +29,10 @@ local = here.system
 
    > Example
      Get the UTC timezone.
-         Zone.utc
+
+         import Standard.Base.Data.Time.Zone
+
+         example_utc = Zone.utc
 utc : Zone
 utc = here.parse "UTC"
 
@@ -90,7 +48,81 @@ utc = here.parse "UTC"
 
    > Example
      Get time zone 1 hour 1 minute and 50 seconds from UTC.
-         Zone.new 1 1 50
+
+         import Standard.Base.Data.Time.Zone
+
+         example_new = Zone.new 1 1 50
 new : Integer -> Integer -> Integer -> Zone
 new (hours = 0) (minutes = 0) (seconds = 0) =
     Zone (ZoneOffset.ofHoursMinutesSeconds hours minutes seconds . normalized)
+
+## This method parses the ID producing a `Zone`.
+
+   Arguments:
+   - text: The text representing a zone identifier.
+
+   > Example
+     Get Central European Time.
+
+         import Standard.Base.Data.Time.Zone
+
+         example_parse = Zone.parse "CET"
+
+   > Example
+     Get Moscow time.
+
+         import Standard.Base.Data.Time.Zone
+
+         example_parse = Zone.parse "Europe/Moscow"
+
+   > Example
+     Get time zone -06:00.
+
+         import Standard.Base.Data.Time.Zone
+
+         example_parse = Zone.parse "-06:00"
+
+   > Example
+     Get custom offset +03:02:01 of 3 hours 2 minutes an 1 second.
+
+         import Standard.Base.Data.Time.Zone
+
+         example_parse = Zone.parse "+03:02:01"
+parse : Text -> Zone
+parse text = Zone (ZoneId.of text)
+
+type Zone
+
+    ## PRIVATE
+
+       A type representing a time zone.
+
+       Arguments:
+       - internal_zone_id: The identifier for the internal zone of the
+         representation.
+
+       A time zone can be eiter offset-based like "-06:00" or id-based like
+       "Europe/Paris".
+    type Zone internal_zone_id
+
+    ## Get the unique timezone ID.
+
+       > Example
+         Get the unique identifier for your system's current timezone.
+
+             import Standard.Base.Data.Time.Zone
+
+             example_zone_id = Zone.system.zone_id
+    zone_id : Text
+    zone_id = this.internal_zone_id . getId
+
+    ## Convert the time zone to JSON.
+
+       > Example
+         Convert your system's current timezone to JSON.
+
+             import Standard.Base.Data.Time.Zone
+
+             example_to_json = Zone.system.to_json
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "Zone"], ["id", this.zone_id]]
