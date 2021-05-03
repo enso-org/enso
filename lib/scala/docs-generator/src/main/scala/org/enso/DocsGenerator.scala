@@ -5,9 +5,13 @@ import java.io._
 import scala.util.Using
 import scala.io.Source
 import org.enso.syntax.text.{DocParser, DocParserMain, Parser}
+import scalatags.Text.{all => HTML}
+import HTML._
 
 object TreeOfCommonPrefixes {
-  case class Node(name: String, var elems: List[Node])
+  case class Node(name: String, var elems: List[Node]) {
+    val html: Modifier = HTML.div(HTML.p(name))(elems.map(_.html))
+  }
 
   def groupNodesByPrefix(le: List[Node]): List[Node] =
     groupByPrefix(le.map(_.name))
@@ -87,18 +91,18 @@ object DocsGeneratorMain extends App {
   import DocsGenerator._
   import TreeOfCommonPrefixes._
 
+  /// Files
   val path = "./distribution/std-lib/Standard/src"
   val allFiles = traverse(new File(path))
     .filter(f => f.isFile && f.getName.endsWith(".enso"))
   val allFileNames =
     allFiles.map(_.getPath.replace(path + "/", "").replace(".enso", ""))
-  val treeNames = groupByPrefix(allFileNames.toList)
-
   val allPrograms =
     allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { s => s.mkString })
       .toList
 
+  /// HTML's w/o react & tree (for IDE)
   val allDocs =
     allPrograms
       .map(s => generate(s.getOrElse("")))
@@ -118,6 +122,8 @@ object DocsGeneratorMain extends App {
     bw.close()
   })
 
+  /// HTML's for syntax website.
+  val treeNames = groupByPrefix(allFileNames.toList)
   val jsTemplate = new File(
     "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/template.js"
   )
@@ -143,6 +149,10 @@ object DocsGeneratorMain extends App {
             .replace("display: flex", "display: none")
             .replace("{", "&#123;")
             .replace("}", "&#125;")
+        )
+        .replace(
+          "{/*BREADCRUMBS*/}",
+          treeNames.map(_.html).mkString
         )
     )
     bw.close()
