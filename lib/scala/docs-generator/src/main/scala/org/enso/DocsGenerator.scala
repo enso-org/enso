@@ -130,6 +130,13 @@ object DocsGeneratorMain extends App {
   val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) { s =>
     s.mkString
   }
+  val treeStyleFile = new File(
+    "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/treeStyle.css"
+  )
+  val treeStyleCode = Using(Source.fromFile(treeStyleFile, "UTF-8")) { s =>
+    s.mkString
+  }
+  val treeStyle = "<style jsx>{`" + treeStyleCode.getOrElse("") + "`}</style>"
   val allDocJSFiles = allFiles.map(
     _.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
   )
@@ -140,6 +147,8 @@ object DocsGeneratorMain extends App {
     dir.mkdirs()
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
+    val treeCode =
+      "<div>" + treeStyle + treeNames.map(_.html).mkString + "</div>"
     bw.write(
       templateCode
         .getOrElse("")
@@ -150,10 +159,7 @@ object DocsGeneratorMain extends App {
             .replace("{", "&#123;")
             .replace("}", "&#125;")
         )
-        .replace(
-          "{/*BREADCRUMBS*/}",
-          treeNames.map(_.html).mkString
-        )
+        .replace("{/*BREADCRUMBS*/}", treeCode)
     )
     bw.close()
   })
