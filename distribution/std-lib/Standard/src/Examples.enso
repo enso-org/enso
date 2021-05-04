@@ -148,3 +148,19 @@ http_client = Http.new (timeout = 30.seconds)
 ## A basic URI for examples.
 uri : Uri
 uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
+
+## A file that contains an image.
+
+   ! Downloading
+     Calling this method will result in the image file being downloaded from
+     the internet if it is not already present on your disk. If you do not want
+     this to happen, please place the image in the `std-lib/Standard/data`
+     folder for your Enso distribution.
+image_file : File
+image_file =
+    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+    file = Enso_Project.data / "image.png"
+    if file.exists.not then
+        Http.fetch url . to_file file
+    file
+

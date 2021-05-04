@@ -111,4 +111,5 @@ build-cache/
 ###################
 
 distribution/std-lib/Standard/data/scratch_file
+distribution/std-lib/Standard/data/image.png
 
