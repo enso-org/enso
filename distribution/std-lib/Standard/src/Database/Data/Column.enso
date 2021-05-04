@@ -82,7 +82,7 @@ type Column
     ## UNSTABLE
 
        Returns a vector containing all the elements in this column.
-    to_vector : Vector
+    to_vector : Vector Any
     to_vector =
         ## We remove the index to avoid fetching index data that will not be
            used anyway when constructing the raw Vector.

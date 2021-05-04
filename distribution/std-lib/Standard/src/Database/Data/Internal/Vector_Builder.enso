@@ -70,7 +70,7 @@ type Vector_Builder
 
        It returns a new builder that will yield a vector that is a concatenation
        of `this` and the argument.
-    ++ : Vector_Builder Any | Vector Any -> Vector_Builder Any
+    ++ : Vector_Builder Any | Vector.Vector Any -> Vector_Builder Any
     ++ other =
         len = this.length + other.length
         case other of
@@ -90,5 +90,6 @@ empty = Leaf []
 
    Arguments:
    - vec: The vector to create a vector builder from.
-from_vector : Vector Any -> Vector_Builder Any
+from_vector : Vector.Vector Any -> Vector_Builder Any
 from_vector vec = Leaf vec
+
