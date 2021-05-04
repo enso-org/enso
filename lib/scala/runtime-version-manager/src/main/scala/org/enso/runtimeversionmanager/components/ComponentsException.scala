@@ -73,6 +73,7 @@ case class UninstallationError(message: String)
     extends ComponentsException(message)
 
 /** Indicates that the required executable was not found. */
+// TODO: [DB] Mask sensitive user data
 case class ExecutableNotFoundError(path: Path, name: String)
     extends ComponentsException(
       s"Executable with the name '$name' was not found on $path."
