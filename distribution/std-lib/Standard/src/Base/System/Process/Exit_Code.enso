@@ -16,7 +16,10 @@ type Exit_Code
 
        > Example
          Convert a success code to a corresponding number.
-             Exit_Success.to_number
+
+             import Standard.Base.System.Process.Exit_Code
+
+             example_to_number = Exit_Code.Exit_Success.to_number
     to_number : Integer
     to_number = case this of
         Exit_Success -> 0
@@ -29,6 +32,9 @@ type Exit_Code
 
    > Example
      Create a failure exit code.
-         Exit_Code.from_number 1
+
+         import Standard.Base.System.Process.Exit_Code
+
+         example_from_number = Exit_Code.from_number 1
 from_number : Number -> Exit_Code
 from_number code = if code == 0 then Exit_Success else Exit_Failure code
