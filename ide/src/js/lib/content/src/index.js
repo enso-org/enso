@@ -7,6 +7,7 @@ import * as html_utils    from 'enso-studio-common/src/html_utils'
 import * as animation     from 'enso-studio-common/src/animation'
 import * as globalConfig  from '../../../../config.yaml'
 import cfg                from '../../../config'
+import assert             from "assert";
 
 
 
@@ -438,6 +439,36 @@ function ok(value) {
     return value !== null && value !== undefined
 }
 
+/// Check whether the value is a string with value `"true"`/`"false"`, if so, return the
+// appropriate boolean instead. Otherwise, return the original value.
+function parseBooleanOrLeaveAsIs(value) {
+    if (value === "true"){
+        return true
+    }
+    if (value === "false"){
+        return false
+    }
+    return value
+}
+
+/// Turn all values that have a boolean in string representation (`"true"`/`"false"`) into actual
+/// booleans (`true/`false``).
+function parseAllBooleans(config) {
+    for (const key in config) {
+        config[key] = parseBooleanOrLeaveAsIs(config[key])
+    }
+}
+
+function initLogging(config) {
+    assert(typeof config.no_data_gathering == "boolean")
+    if (config.no_data_gathering ) {
+        API.remoteLog = function (_event, _data) {}
+    } else {
+        let logger = new MixpanelLogger
+        API.remoteLog = function (event,data) {logger.log(event,data)}
+    }
+}
+
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 API.main = async function (inputConfig) {
     let defaultConfig = {
@@ -451,14 +482,10 @@ API.main = async function (inputConfig) {
     let urlParams = new URLSearchParams(window.location.search);
     let urlConfig = Object.fromEntries(urlParams.entries())
     let config    = Object.assign(defaultConfig,inputConfig,urlConfig)
+    parseAllBooleans(config)
     API[globalConfig.windowAppScopeConfigName] = config
 
-    if (config.no_data_gathering) {
-        API.remoteLog = function (_event, _data) {}
-    } else {
-        let logger = new MixpanelLogger
-        API.remoteLog = function (event,data) {logger.log(event,data)}
-    }
+    initLogging(config)
 
     window.setInterval(() =>{API.remoteLog("alive");}, ALIVE_LOG_INTERVAL)
     //Build data injected during the build process. See `webpack.config.js` for the source.
