@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 import Standard.Base.System.Process.Exit_Code
 
 from Standard.Base.Data.Vector import Vector
@@ -7,22 +9,46 @@ from Builtins import Array, System, True, False
 
    Call a command with a list of arguments.
 
+   Arguments:
+   - command: The command to execute.
+   - arguments: The arguments to pass to `command`.
+
    > Example
-     Call the `echo` command with arguments
-         Process.run "echo" ["-n", "Hello!"]
-     The result is printed to stdout:
-         Hello!
+     Call the "echo" command.
+
+         import Standard.Base.System.Platform
+         import Standard.Base.System.Process
+
+         example_run = case Platform.os of
+             Platform.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
+             _ -> Process.run "bash" ["-c", "exit 42"]
 run : Text -> Vector.Vector Text -> Exit_Code
 run command arguments=[] =
     result = System.create_process command arguments.to_array input="" redirect_in=True redirect_out=True redirect_err=True
     Exit_Code.from_number result.exit_code
+
+## Create a new process builder.
+
+   Arguments:
+   - command: The command to execute on the system.
+   - arguments: The arguments to pass to `command`. These must be text.
+   - stdin: Any content to pass to the standard input for `command`.
+
+   > Example
+     Create a new builder for a command "echo".
+
+         import Standard.Base.System.Process
+
+         example_new_builder = Process.new_builder "echo"
+new_builder : Text -> Vector Text -> Text -> Builder
+new_builder command arguments=[] stdin="" = Builder command arguments stdin
 
 ## UNSTABLE
 
    The builder object that is used to create operating system processes.
 type Builder
 
-    ## UNSTABLE
+    ## PRIVATE
 
        A builder object that is used to create operating system processes.
 
@@ -35,7 +61,7 @@ type Builder
          We recommend that you use this type with its builder interface. Start
          by creating a `Builder "command"` and then call functions on it to
          set arguments and standard output. It results in much clearer code.
-    type Builder command arguments=[] stdin=""
+    type Builder command arguments stdin
 
     ## UNSTABLE
 
@@ -43,6 +69,15 @@ type Builder
 
        Arguments:
        - arguments: The arguments to pass to the process.
+
+       > Examples
+         Set the arguments to the process using a builder.
+
+             import Standard.Base.System.Process
+
+             example_set_args =
+                 builder = Process.new_builder "echo"
+                 builder.set_arguments ["hello, world!"]
     set_arguments : Vector.Vector Text -> Builder
     set_arguments arguments = Builder this.command arguments this.stdin
 
@@ -53,6 +88,15 @@ type Builder
 
        Arguments:
        - stdin: The standard input contents to pass to the process.
+
+       > Examples
+         Set the standard input to a process using a builder.
+
+             import Standard.Base.System.Process
+
+             example_set_args =
+                 builder = Process.new_builder "echo"
+                 builder.set_stdin "hello, world!"
     set_stdin : Text -> Builder
     set_stdin stdin = Builder this.command this.arguments stdin
 
@@ -61,11 +105,14 @@ type Builder
        Create a process using a builder returning the result of execution.
 
        > Example
-         Create a script redirecting the input to stdout:
-             builder = Process.builder "bash" ["-c", "read line; echo -n $line"] "test"
-             builder.create
-         The result is:
-             Process_Result Exit_Success "test" ""
+         Execute the process contained in the builder.
+
+             import Standard.Base.System.Process
+
+             example_create =
+                 builder = Process.new_builder "echo"
+                 with_args = builder.set_arguments ["hello, world!"]
+                 with_args.create
     create : Result
     create =
         result = System.create_process this.command this.arguments.to_array this.stdin redirect_in=False redirect_out=False redirect_err=False

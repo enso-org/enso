@@ -20,6 +20,9 @@ type Proxy
 
    > Example
      Create a new proxy running on localhost at port 80080.
-         Proxy.new "localhost" 80800
+
+         import Standard.Base.Network.Proxy
+
+         example_new = Proxy.new "localhost" 80800
 new : Text -> Integer -> Proxy
 new host port=80 = Proxy_Addr host port

@@ -1,12 +1,15 @@
 from Standard.Base import all
 
 import Standard.Base.Data.Time
+import Standard.Base.Network.Http
+import Standard.Base.System.Platform
 
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
 import Standard.Base.Data.Json as Enso_Json
 import Standard.Base.Data.List as Enso_List
 import Standard.Base.Data.Map as Enso_Map
 import Standard.Base.Data.Time.Duration as Enso_Duration
+import Standard.Base.Network.Uri as Enso_Uri
 
 # Can do the top-level examples directory.
 
@@ -33,9 +36,24 @@ import Standard.Base.Data.Time.Duration as Enso_Duration
    - message: The message contained in the error type.
 type Example_Error_Type message
 
+## The standard library data directory.
+data_dir : File
+data_dir = Enso_Project.data
+
 ## An example CSV file for experimenting with Table and its APIs.
 csv : File
 csv = Enso_Project.data / "food_shop_inventory.csv"
+
+## The path to the CSV.
+csv_path : Text
+csv_path = here.csv.path
+
+## A file that is used for writing temporary data as part of tests.
+scratch_file : File
+scratch_file =
+    file = Enso_Project.data / "scratch_file"
+    if file.exists then file.delete else Nothing
+    file
 
 ## An example duration for experimenting with duration APIs.
 duration : Duration
@@ -84,3 +102,49 @@ list = Cons 1 (Cons 2 (Cons 3 Nil))
 map : Enso_Map.Map
 map = Enso_Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
 
+## A dummy type that is used for example purposes.
+type No_Methods
+
+## Returns a no_such_method_error as a value.
+no_such_method : No_Such_Method_Error
+no_such_method = Panic.recover No_Methods.frobnicate . catch
+
+## A simple error type for example purposes.
+type My_Error message
+
+## Throws an error.
+throw_error : Nothing ! My_Error
+throw_error = Error.throw <| My_Error "Example error."
+
+## Throws a panic.
+throw_panic : Nothing
+throw_panic = Panic.throw <| My_Error "Example panic."
+
+## A URL for open-source geographic data about the locations of bus-stop ads in
+   Los Angeles.
+geo_data_url : Text
+geo_data_url = "https://opendata.arcgis.com/datasets/0f77c86999a440178f2be3650d00f7f6_2.geojson"
+
+## Gets an HTTP response from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_response : Http.Response
+get_response = Http.get here.geo_data_url
+
+## Gets HTTP data from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_geo_data : Http.Response.Body
+get_geo_data = Http.fetch here.geo_data_url
+
+## A simple HTTP client for examples.
+http_client : Http
+http_client = Http.new (timeout = 30.seconds)
+
+## A basic URI for examples.
+uri : Uri
+uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"

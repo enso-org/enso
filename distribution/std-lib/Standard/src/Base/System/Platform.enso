@@ -21,7 +21,10 @@ type Os
 
    > Example
      Return the OS type:
-         Platform.os
+
+         import Standard.Base.System.Platform
+
+         example_os = Platform.os
 os : Os
 os = here.from_text System.os
 
