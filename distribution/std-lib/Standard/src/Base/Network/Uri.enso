@@ -5,16 +5,6 @@ import Standard.Base.Network.Uri.Internal
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
-## Syntax error when parsing a Uri.
-
-   Arguments:
-   - message: The error message for the URI syntax error.
-type Syntax_Error message
-
-## Converts the URI syntax error to a human-readable form.
-Syntax_Error.to_display_text =
-    "Uri syntax error: " + this.message
-
 ## Parse a Uri from text.
 
    Arguments:
@@ -24,7 +14,10 @@ Syntax_Error.to_display_text =
 
    > Example
      Parse Uri text.
-         Uri.parse "http://example.com"
+
+         import Standard.Base.Network.Uri
+
+         example_parse = Uri.parse "http://example.com"
 parse : Text -> Uri ! Syntax_Error
 parse text =
     Panic.recover (Uri (Java_URI.create text)) . catch e-> case e of
@@ -37,13 +30,18 @@ parse text =
 
    > Example
      Parse Uri text.
-         Uri.parse "http://example.com"
+
+         import Standard.Base.Network.Uri
+
+         example_parse = "http://example.com".to_uri
 Text.to_uri : Uri ! Syntax_Error
 Text.to_uri = here.parse this
 
 type Uri
 
-    ## Represents a Uniform Resource Identifier (URI) reference.
+    ## PRIVATE
+
+       Represents a Uniform Resource Identifier (URI) reference.
 
        Arguments:
        - internal_uri: The internal representation of the URI.
@@ -53,57 +51,65 @@ type Uri
 
        > Examples
          Convert a URI to a URI (a no op).
-             "http://example.com".to_uri.to_uri
+
+             import Standard.Examples
+
+             example_to_uri = Examples.uri.to_uri
     to_uri : Uri
     to_uri = this
 
     ## Get the scheme part of this Uri.
 
        > Example
-         Return the "http" part of the HTTP address.
-             addr = "http://user:pass@example.com/foo/bar?key=val"
-             Uri.parse addr . scheme
+         Return the scheme from the URI.
+
+             import Standard.Examples
+
+             example_scheme = Examples.uri.scheme
     scheme : Text ! Nothing
     scheme = Internal.handle_nothing this.internal_uri.getScheme
 
     ## Get the user info part of this Uri.
 
        > Example
-         Return the "user:pass" part of the HTTP address.
-             addr = "http://user:pass@example.com/foo/bar?key=val"
-             Uri.parse addr . user_info
+         Return the user info part of the URI.
+
+             import Standard.Examples
+
+             example_user_info = Examples.uri.user_info
     user_info : Text ! Nothing
     user_info = Internal.handle_nothing this.internal_uri.getUserInfo
 
     ## Get the host part of this Uri.
 
        > Example
-         Return the "example.com" part of the HTTP address.
-             addr = "http://user:pass@example.com/foo/bar?key=val"
-             Uri.parse addr . host
+         Return the host portion of the URI.
+
+             import Standard.Examples
+
+             example_host = Examples.uri.host
     host : Text ! Nothing
     host = Internal.handle_nothing this.internal_uri.getHost
 
     ## Get the authority (user info and host) part of this Uri.
 
        > Example
-         Return the "user:pass@example.com" part of the HTTP address.
-             addr = "http://user:pass@example.com/foo/bar?key=val"
-             Uri.parse addr . authority
+         Return the authority portion of the URI.
+
+             import Standard.Examples
+
+             example_authority = Examples.uri.authority
     authority : Text ! Nothing
     authority = Internal.handle_nothing this.internal_uri.getAuthority
 
     ## Get the port part of this Uri.
 
        > Example
-         Return the "80" part of the HTTP address.
-             addr = "http://user:pass@example.com:80/foo/bar?key=val"
-             Uri.parse addr . port
+         Return the port portion of the URI
 
-       > Example
-         Return the empty string if the port is not specified.
-             addr = "http://user:pass@example.com:80/foo/bar?key=val"
-             Uri.parse addr . port
+             import Standard.Examples
+
+             example_port = Examples.uri.port
     port : Text ! Nothing
     port =
         port_number = this.internal_uri.getPort
@@ -113,27 +119,33 @@ type Uri
     ## Get the path part of this Uri.
 
        > Example
-         Return the "/foo/bar" part of the HTTP address.
-             addr = "http://user:pass@example.com:80/foo/bar?key=val"
-             Uri.parse addr . path
+         Return the path portion of the URI.
+
+             import Standard.Examples
+
+             example_path = Examples.uri.path
     path : Text ! Nothing
     path = Internal.handle_nothing this.internal_uri.getPath
 
     ## Get the query part of this Uri.
 
        > Example
-         Return the "key=val" part of the HTTP address.
-             addr = "http://user:pass@example.com:80/foo/bar?key=val"
-             Uri.parse addr . query
+         Return the query portion of the URI.
+
+             import Standard.Examples
+
+             example_query = Examples.uri.query
     query : Text ! Nothing
     query = Internal.handle_nothing this.internal_uri.getQuery
 
     ## Get the fragment part of this Uri.
 
        > Example
-         Return the empty fragment of the HTTP address.
-             addr = "http://user:pass@example.com:80/foo/bar?key=val"
-             Uri.parse addr . fragment
+         Return the fragment portion of the URI.
+
+             import Standard.Examples
+
+             example_fragment = Examples.uri.fragment
     fragment : Text ! Nothing
     fragment = Internal.handle_nothing this.internal_uri.getFragment
 
@@ -171,7 +183,10 @@ type Uri
 
        > Example
          Convert a URI to text.
-             Uri.new "https://example.com" . to_text
+
+             import Standard.Examples
+
+             example_to_text = Examples.uri.to_text
     to_text : Text
     to_text = this.internal_uri.toString
 
@@ -179,7 +194,11 @@ type Uri
 
        > Example
          Convert a URI to JSON.
-             Uri.new "https://example.com" . to_json
+
+             import Standard.Base.Network.Uri
+             import Standard.Examples
+
+             example_to_json = Examples.uri.to_json
     to_json : Json.String
     to_json : Json.String this.to_text
 
@@ -187,7 +206,24 @@ type Uri
 
        > Example
          Check if two URIs are equal.
-             "https://example.com" == "http://example.com"
+
+             import Standard.Base.Network.Uri
+
+             example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : Uri -> Boolean
     == that = this.internal_uri.equals that.internal_uri
+
+## UNSTABLE
+
+   Syntax error when parsing a Uri.
+
+   Arguments:
+   - message: The error message for the URI syntax error.
+type Syntax_Error message
+
+## UNSTABLE
+
+   Converts the URI syntax error to a human-readable form.
+Syntax_Error.to_display_text =
+    "Uri syntax error: " + this.message
 

@@ -5,6 +5,7 @@ from Standard.Base import all
 
    > Example
      Calculating the area of a circle.
+
          circle_area r = 2 * Math.pi * r^2
 pi : Decimal
 pi = 3.1415926535897932385
@@ -13,6 +14,7 @@ pi = 3.1415926535897932385
 
    > Example
      Calculating the natural logarithm of 3.
+
          3.log Math.e
 e : Decimal
 e = 2.718281828459045235360
@@ -30,6 +32,7 @@ e = 2.718281828459045235360
 
    > Example
      Calculate the smallest number out of 1 and 2.
+
          Math.min 1 2
 min : Number -> Number -> Number
 min a b = if a <= b then a else b
@@ -47,6 +50,7 @@ min a b = if a <= b then a else b
 
    > Example
      Calculate the largest number out of 1 and 2.
+
          Math.max 1 2
 max : Number -> Number -> Number
 max a b = if a < b then b else a

@@ -21,6 +21,7 @@ type Boolean
 
        > Example
          Comparing True to False to get False.
+
              True == False
     == : Boolean -> Boolean
     == that = @Builtin_Method "Boolean.=="
@@ -37,6 +38,7 @@ type Boolean
 
        > Example
          Computing the conjunction of False and True (to get False).
+
              False && True
     && : Boolean -> Boolean
     && that = @Builtin_Method "Boolean.&&"
@@ -53,6 +55,7 @@ type Boolean
 
        > Example
          Computing the disjunction of True and False (to get True).
+
              True || False
     || : Boolean -> Boolean
     || that = @Builtin_Method "Boolean.||"
@@ -60,7 +63,8 @@ type Boolean
     ## Computes the logical negation of this.
 
        > Example
-         Negating True to get False
+         Negating True to get False.
+
              True.not
     not : Boolean
     not = @Builtin_Method "Boolean.not"
@@ -69,6 +73,7 @@ type Boolean
 
        > Example
          Converting the value True to text.
+
              True.to_text
     to_text : Text
     to_text = @Builtin_Method "Boolean.to_text"
@@ -85,6 +90,7 @@ type Boolean
 
        > Example
          Telling the user if a number 27 is divisible by three.
+
              if (27 % 3) == 0 then IO.println "Yes" else IO.println "No"
     if_then_else : Any -> Any -> Any
     if_then_else ~on_true ~on_false = @Builtin_Method "Boolean.if_then_else"
@@ -100,6 +106,7 @@ type Boolean
 
        > Example
          Printing a message to the user only if a number is divisible by three.
+
              if (27 % 3) == 0 then IO.println "Fizz"
     if_then : Any -> Any | Nothing
     if_then ~on_true = @Builtin_Method "Boolean.if_then"
@@ -129,6 +136,7 @@ type Debug
 
        > Example
          Dropping into a debugging REPL during execution.
+
             Debug.breakpoint
     breakpoint : Nothing
     breakpoint = @Builtin_Method "Debug.breakpoint"
@@ -145,6 +153,7 @@ type Debug
 
        > Example
          Evaluating the expression 1 + 1 and assigning it to a value.
+
              result = Debug.eval "1 + 1"
     eval : Text -> Any
     eval expression = @Builtin_Method "Debug.eval"
@@ -166,10 +175,6 @@ type Any
 
        Arguments:
        - handler: The function to call on this if it is an error value.
-
-       > Example
-         Catching an erroneous value to perform some operation on it.
-           (Time.Time_Error "Message").catch_primitive (err -> IO.println err)
     catch_primitive : (Error -> Any) -> Any
     catch_primitive handler = @Builtin_Method "Any.catch"
 
@@ -178,6 +183,7 @@ type Any
 
        > Example
          Getting a textual representation of the number 7.
+
              7.to_text
     to_text : Text
     to_text = @Builtin_Method "Any.to_text"
@@ -206,6 +212,7 @@ type Error
 
        > Example
          Throw a dataflow error containing the text "Oops".
+
              Error.throw "Oops"
     throw : Any -> Error
     throw payload = @Builtin_Method "Error.throw"
@@ -217,10 +224,6 @@ type Error
 
        Arguments:
        - handler: The function to call on this if it is an error value.
-
-       > Example
-         Catching an erroneous value to perform some operation on it.
-           (Time.Time_Error "Message").catch_primitive (err -> IO.println err)
     catch_primitive : (Error -> Any) -> Any
     catch_primitive handler = @Builtin_Method "Any.catch"
 
@@ -235,6 +238,7 @@ type Error
 
        > Example
          Converting a thrown error to text.
+
              Error.throw "foo" . to_text
     to_text : Text
     to_text = @Builtin_Method "Error.to_text"
@@ -353,6 +357,7 @@ type Panic
 
        > Example
          Throwing a panic containing the text "Oh no!".
+
              Panic.throw "Oh no!"
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
@@ -369,6 +374,7 @@ type Panic
 
        > Example
          Handling a panic for a panicking action.
+
              Panic.recover (Panic.throw "Oh no!")
     recover : Any -> Any
     recover ~action = @Builtin_Method "Panic.catch"
@@ -393,8 +399,10 @@ type Function
 
        > Example
          Evaluate a fully applied function to get 4.
-            f (a = 2) = a * a
-            f.call
+
+            example_call =
+                f (a = 2) = a * a
+                f.call
     call : Any
     call = @Builtin_Method "Function.call"
 
@@ -442,6 +450,7 @@ type Polyglot
 
        > Example
          Get a list of the fields for an object o.
+
              Polyglot.get_members o
     get_members : Any -> Array
     get_members object = @Builtin_Method "Polyglot.get_members"
@@ -455,6 +464,7 @@ type Polyglot
 
        > Example
          Instantiate a new Java Integer with the value 1.
+
              Polyglot.new Integer [1]
     new : Any -> Vector -> Any
     new constructor arguments = @Builtin_Method "Polglot.new"
@@ -484,6 +494,7 @@ type Java
 
        > Example
          Adding Random to the classpath.
+
             Java.add_to_class_path "java.util.Random"
     add_to_class_path : Text -> Nothing
     add_to_class_path path = @Builtin_Method "Java.add_to_class_path"
@@ -498,6 +509,7 @@ type Java
 
        > Example
          Look up java's Random class.
+
              Java.lookup_class "java.util.Random"
     lookup_class : Text -> Any
     lookup_class name = @Builtin_Method "Java.lookup_class"
@@ -546,6 +558,7 @@ type IO
 
        > Example
          Print the message "Oh no!" to standard error.
+
              IO.print_err "Oh no!"
     print_err : Any -> Nothing
     print_err message = @Builtin_Method "IO.print_err"
@@ -558,6 +571,7 @@ type IO
 
        > Example
          Print the message "Oh yes!" to standard output.
+
              IO.println "Oh yes!"
     println : Any -> Nothing
     println message = @Builtin_Method "IO.println"
@@ -565,8 +579,9 @@ type IO
     ## Reads a line from standard input.
 
        > Example
-         Read a line from standard input into a variable.
-             input = IO.readln
+         Read a line from standard input.
+
+             IO.readln
     readln : Text
     readln = @Builtin_Method "IO.readln"
 
@@ -765,6 +780,7 @@ type Array
 
        > Example
          Create an empty array.
+
              Array.empty
     empty : Array
     empty = @Builtin_Method "Array.empty"
@@ -776,6 +792,7 @@ type Array
 
        > Example
          Create a new array of size 10.
+
              Array.new 10
     new : Integer -> Array
     new size = @Builtin_Method "Array.new"
@@ -846,8 +863,8 @@ type Array
 
        > Example
          Copying elements from one array to another.
-             Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
 
+             Array.copy [1,2,3].to_array 0 (Vector.fill 3 0).to_array 0 3
     copy : Array -> Integer -> Array -> Integer -> Integer -> Nothing
     copy src source_index dest dest_index count =
         @Builtin_Method "Array.copy"
@@ -859,6 +876,7 @@ type Array
 
        > Example
          Get the element at index 1.
+
              [1,2,3].to_array.at 1
     at : Integer -> Any
     at index = @Builtin_Method "Array.at"
@@ -883,6 +901,7 @@ type Array
 
        > Example
          Getting the length of an array.
+
              [1,2,3].to_array.length
     length : Integer
     length = @Builtin_Method "Array.length"
@@ -896,6 +915,7 @@ type Array
 
       > Example
         Sorting an array of numbers.
+
             [1,2,3].to_array.sort
     sort : (Any -> Any -> Ordering) -> Nothing
     sort comparator = @Builtin_Method "Array.sort"
@@ -921,6 +941,7 @@ type Ref
 
        > Example
          Creating a new reference containing the value 7.
+
              Ref.new 7
     new : Any -> Ref
     new value = @Builtin_Method "Ref.new"
@@ -932,6 +953,7 @@ type Ref
 
        > Example
          Getting the contents of a reference.
+
              Ref.get (Ref.new 0)
     get : Ref -> Any
     get ref = @Builtin_Method "Ref.get"
@@ -944,6 +966,7 @@ type Ref
 
        > Example
          Storing the value 10 in a reference.
+
              Ref.put (Ref.new 0) 7
     put : Ref -> Any -> Any
     put ref new_value = @Builtin_Method "Ref.put"
@@ -984,6 +1007,7 @@ type Integer
 
        > Example
          Adding 10 and 15.
+
              10 + 15
     + : Number -> Number
     + that = @Builtin_Method "Integer.+"
@@ -995,6 +1019,7 @@ type Integer
 
        > Example
          Subtract 5 from 2.
+
              2 - 5
     - : Number -> Number
     - that = @Builtin_Method "Integer.-"
@@ -1009,6 +1034,7 @@ type Integer
 
        > Example
          Multiplying 3 by 5.
+
              3 * 5
     * : Number -> Number
     * that = @Builtin_Method "Integer.*"
@@ -1023,6 +1049,7 @@ type Integer
 
        > Example
          Dividing 10 by 4 to get 2.5.
+
              10 / 4
     / : Number -> Number
     / that = @Builtin_Method "Integer./"
@@ -1039,6 +1066,7 @@ type Integer
 
        > Example
          Computing the remainder when dividing 10 by 3 (which is 1).
+
              10 % 3
     % : Number -> Number ! Arithmetic_Error
     % that = @Builtin_Method "Integer.%"
@@ -1050,6 +1078,7 @@ type Integer
 
        > Example
          Computing 2 cubed.
+
              2^3
     ^ : Number -> Number
     ^ that = @Builtin_Method "Integer.^"
@@ -1061,6 +1090,7 @@ type Integer
 
        > Example
          Comparing 7 and 2 for equality.
+
              7 == 2
     == : Number -> Boolean
     == that = @Builtin_Method "Integer.=="
@@ -1072,6 +1102,7 @@ type Integer
 
        > Example
          Checking if 10 is greater than 7.
+
              10 > 7
     > : Number -> Boolean
     > that = @Builtin_Method "Integer.>"
@@ -1083,6 +1114,7 @@ type Integer
 
        > Example
          Checking if 10 is greater than or equal to 7.
+
              10 >= 7
     >= : Number -> Boolean
     >= that = @Builtin_Method "Integer.>="
@@ -1094,6 +1126,7 @@ type Integer
 
        > Example
          Checking if 10 is less than 7.
+
              10 < 7
     < : Number -> Boolean
     < that = @Builtin_Method "Integer.<"
@@ -1105,6 +1138,7 @@ type Integer
 
        > Example
          Checking if 10 is less than or equal to 7.
+
              10 <= 7
     <= : Number -> Boolean
     <= that = @Builtin_Method "Integer.<="
@@ -1116,6 +1150,7 @@ type Integer
 
        > Example
          Computing the absolute value of -10.
+
             -10.abs
     abs : Integer
     abs = @Builtin_Method "Integer.abs"
@@ -1127,6 +1162,7 @@ type Integer
 
        > Example
          Computing the ceiling of 4.
+
              4.ceil
     ceil : Integer
     ceil = @Builtin_Method "Integer.ceil"
@@ -1139,6 +1175,7 @@ type Integer
 
        > Example
          Computing the ordering of 1 and 4 (Less).
+
              1.compare_to 4
     compare_to : Number -> Ordering
     compare_to that = @Builtin_Method "Integer.compare_to"
@@ -1154,6 +1191,7 @@ type Integer
 
        > Example
          Dividing 10 by 3 to get 3.
+
              10.div 3
     div : Integer -> Number ! Arithmetic_Error
     div that = @Builtin_Method "Integer.div"
@@ -1165,6 +1203,7 @@ type Integer
 
        > Example
          Computing the floor of 4.
+
              4.floor
     floor : Integer
     floor = @Builtin_Method "Integer.floor"
@@ -1173,6 +1212,7 @@ type Integer
 
        > Example
          Negate 5 to get -5.
+
              5.negate
     negate : Integer
     negate = @Builtin_Method "Integer.negate"
@@ -1181,6 +1221,7 @@ type Integer
 
        > Example
          Convert 5 to a decimal to get 5.0.
+
              5.to_decimal
     to_decimal : Decimal
     to_decimal = @Builtin_Method "Integer.to_decimal"
@@ -1196,6 +1237,7 @@ type Integer
 
        ? Example
          Computing the bitwise conjunction of 2_01101101 and 2_11110000.
+
              2_01101101.bit_and 2_11110000
     bit_and : Integer -> Integer
     bit_and that = @Builtin_Method "Integer.bit_and"
@@ -1206,6 +1248,7 @@ type Integer
 
        ? Example
          Bitwise negation of 2_0110.
+
              2_0110.bit_not
     bit_not : Integer
     bit_not = @Builtin_Method "Integer.bit_not"
@@ -1221,6 +1264,7 @@ type Integer
 
        > Example
          Computing the bitwise disjunction of 2_01101101 and 2_11110000.
+
              2_01101101.bit_or 2_11110000
     bit_or : Integer -> Integer
     bit_or that = @Builtin_Method "Integer.bit_or"
@@ -1235,6 +1279,7 @@ type Integer
 
        > Example
          Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
+
              2_01101101.bit_xor 2_11110000
     bit_xor : Integer -> Integer
     bit_xor that = @Builtin_Method "Integer.bit_xor"
@@ -1253,6 +1298,7 @@ type Integer
 
        > Example
          Shift the bits of the number 1 left by four bits.
+
              1.bit_shift 4
     bit_shift : Integer -> Integer ! Arithmetic_Error
     bit_shift that = @Builtin_Method "Integer.bit_shift"
@@ -1271,6 +1317,7 @@ type Integer
 
        > Example
          Shift the bits of the number 1 left by four bits.
+
              1.bit_shift_l 4
     bit_shift_l : Integer -> Integer ! Arithmetic_Error
     bit_shift_l that = @Builtin_Method "Integer.bit_shift_l"
@@ -1289,6 +1336,7 @@ type Integer
 
        > Example
          Shift the bits of the number 1 right by four bits.
+
              1.bit_shift_r 4
     bit_shift_r : Integer -> Integer ! Arithmetic_Error
     bit_shift_r that = @Builtin_Method "Integer.bpit_shift_r"
@@ -1314,6 +1362,7 @@ type Decimal
 
        > Example
          Adding 10.1 and 15.
+
              10.1 + 15
     + : Number -> Number
     + that = @Builtin_Method "Decimal.+"
@@ -1325,6 +1374,7 @@ type Decimal
 
        > Example
          Subtract 5 from 2.78.
+
              2.78 - 5
     - : Number -> Number
     - that = @Builtin_Method "Decimal.-"
@@ -1339,6 +1389,7 @@ type Decimal
 
        > Example
          Multiplying 3 by 5.27.
+
              5.27 * 3
     * : Number -> Number
     * that = @Builtin_Method "Decimal.*"
@@ -1353,6 +1404,7 @@ type Decimal
 
        > Example
          Dividing 10 by 4.5.
+
              10 / 4.5
     / : Number -> Number
     / that = @Builtin_Method "Decimal./"
@@ -1364,6 +1416,7 @@ type Decimal
 
        > Example
          Computing 2.2 cubed.
+
              2.2^3
     ^ : Number -> Number
     ^ that = @Builtin_Method "Decimal.^"
@@ -1375,6 +1428,7 @@ type Decimal
 
        > Example
          Comparing 7 and 2.1 for equality.
+
              7 == 2.1
     == : Number -> Boolean
     == that = @Builtin_Method "Decimal.=="
@@ -1386,6 +1440,7 @@ type Decimal
 
        > Example
          Checking if 10 is greater than 7.3.
+
              10 > 7.3
     > : Number -> Boolean
     > that = @Builtin_Method "Decimal.>"
@@ -1397,6 +1452,7 @@ type Decimal
 
        > Example
          Checking if 10 is greater than or equal to 7.3.
+
              10 >= 7.3
     >= : Number -> Boolean
     >= that = @Builtin_Method "Decimal.>="
@@ -1408,6 +1464,7 @@ type Decimal
 
        > Example
          Checking if 10 is less than 7.3.
+
              10 < 7.3
     < : Number -> Boolean
     < that = @Builtin_Method "Decimal.<"
@@ -1419,6 +1476,7 @@ type Decimal
 
        > Example
          Checking if 10.4 is less than or equal to 7.
+
              10.4 <= 7
     <= : Number -> Boolean
     <= that = @Builtin_Method "Decimal.<="
@@ -1430,6 +1488,7 @@ type Decimal
 
        > Example
          Computing the absolute value of -10.63.
+
             -10.63.abs
     abs : Decimal
     abs = @Builtin_Method "Decimal.abs"
@@ -1440,6 +1499,7 @@ type Decimal
 
        > Example
          Computing the ceiling of 4.736 (which is 5).
+
              4.736.ceil
     ceil : Integer
     ceil = @Builtin_Method "Integer.ceil"
@@ -1452,6 +1512,7 @@ type Decimal
 
        > Example
          Computing the ordering of 1.732 and 4 (Less).
+
              1.732.compare_to 4
     compare_to : Number -> Ordering
     compare_to that = @Builtin_Method "Decimal.compare_to"
@@ -1462,6 +1523,7 @@ type Decimal
 
        > Example
          Computing the floor of 4.323 (which is 4).
+
              4.323.floor
     floor : Integer
     floor = @Builtin_Method "Decimal.floor"
@@ -1470,6 +1532,7 @@ type Decimal
 
        > Example
          Negate 5.1 to get -5.1.
+
              5.1.negate
     negate : Decimal
     negate = @Builtin_Method "Decimal.negate"
@@ -1481,6 +1544,7 @@ type Decimal
 
        > Example
          Convert 5.0 to a decimal to get 5.0.
+
              5.0.to_decimal
     to_decimal : Decimal
     to_decimal = @Builtin_Method "Decimal.to_decimal"
@@ -1530,10 +1594,6 @@ type Managed_Resource
        - resource: The resource to be managed automatically.
        - function: The action to be executed on resource to clean it up when
          it is no longer in use.
-
-       > Example
-         Registering a managed resource.
-             Managed_Resource
     register : Any -> (Any -> Nothing) -> Managed_Resource
     register resource function = @Builtin_Method "Managed_Resource.register"
 
@@ -1588,6 +1648,7 @@ type Runtime
 
        > Example
          Ask for the runtime to collect garbage.
+
              Runtime.gc
     gc : Nothing
     gc = @Builtin_Method "Runtime.gc"
@@ -1605,6 +1666,7 @@ type Runtime
 
        > Example
          Print something to the console without it being inlined.
+
              Runtime.no_inline <| IO.println "Hi!"
     no_inline : Any -> Any
     no_inline ~action = @Builtin_Method "Runtime.no_inline"
@@ -1623,6 +1685,7 @@ type Runtime
 
        > Example
          Print something to the console without it being inlined.
+
              Runtime.no_inline_with_arg IO.println "Hi!"
     no_inline_with_arg : Any -> Any
     no_inline_with_arg function arg = @Builtin_Method "Runtime.no_inline_with_arg"
@@ -1646,6 +1709,7 @@ type State
 
        > Example
          Print a value from the state.
+
              State.run Integer 0 <| IO.println (State.get Integer)
     run : Any -> Any -> Any -> Any
     run key local_state ~computation = @Builtin_Method "State.run"
@@ -1661,6 +1725,7 @@ type State
 
        > Example
          Get the value of state for a key.
+
              State.get Decimal
     get : Any -> Any ! Uninitialized_State
     get key = @Builtin_Method "State.get"
@@ -1677,6 +1742,7 @@ type State
 
        > Example
          Store a new value in the state for a given key.
+
              State.put Text 2821
     put : Any -> Any -> Any ! Uninitialized_State
     put key new_state = @Builtin_Method "State.put"
@@ -1710,6 +1776,7 @@ type System
 
        > Example
          Exit the enso program with a failure.
+
              System.exit 42
     exit : Integer -> Nothing
     exit code = @Builtin_Method "System.exit"
@@ -1718,7 +1785,8 @@ type System
 
        > Example
          Getting the current value of the nanosecond timer.
-             current_time = System.nano_time
+
+             System.nano_time
     nano_time : Integer
     nano_time = @Builtin_Method "System.nano_time"
 
@@ -1760,6 +1828,7 @@ type Text
 
        > Example
          Concatenating two texts.
+
              "Hello" + ", world!"
     + : Text -> Text
     + that = @Builtin_Method "Text.+"
@@ -1798,6 +1867,7 @@ type Thread
 
        > Example
          Die on thread interrupts.
+
              Thread.with_interrupt_handler (1 + 1) <| IO.println "I died!"
     with_interrupt_handler : Any -> Any -> Any
     with_interrupt_handler ~action ~interrupt_handler =

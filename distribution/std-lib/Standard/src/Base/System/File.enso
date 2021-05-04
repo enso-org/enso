@@ -9,36 +9,6 @@ polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
 
-type File_Error
-
-    ## An error that indicates that the requested file does not exist.
-
-       Arguments:
-       - file: The file that doesn't exist.
-    type No_Such_File_Error file
-
-    ## An error that indicates that the program does not have access to the
-       requested file.
-
-       Arguments:
-       - file: The file that the program does not have permission to access.
-    type Access_Denied_Error file
-
-    ## A generic IO error.
-
-       Arguments:
-       - message: The message for the error.
-    type Io_Error message
-
-    ## UNSTABLE
-
-       Convert the File error to a human-readable format.
-    to_display_text : Text
-    to_display_text = case this of
-        No_Such_File_Error file -> "The file at " + file.path + " does not exist."
-        Access_Denied_Error file -> "You do not have permission to access the file at " + file.path + "."
-        Io_Error msg -> "An IO error has occurred: " + msg.to_text + "."
-
 ## Creates a new file object, pointing to the given path.
 
    Arguments:
@@ -46,7 +16,11 @@ type File_Error
 
    > Example
      Create a new file pointing to the `data.csv` file in the project directory.
-         File.new (Enso_Project.data / "data.csv").path
+
+         import Standard.Base.System.File
+         import Standard.Examples
+
+         example_new = File.new Examples.csv_path
 new : Text -> File
 new path = File (Prim_Io.get_file path)
 
@@ -64,7 +38,11 @@ new path = File (Prim_Io.get_file path)
    > Example
      Read the `data.csv` file in the project directory's `data` directory. You
      will need to create the file `data.csv` manually in that directory.
-         File.read (Enso_Project.data / "data.csv").path
+
+         import Standard.Base.System.File
+         import Standard.Examples
+
+         example_read = File.read Examples.csv_path
 read : (Text | File) -> Text
 read path = .read <| case path of
     Text -> (here.new path)
@@ -74,7 +52,10 @@ read path = .read <| case path of
 
    > Example
      Get the program's current working directory.
-         File.current_directory
+
+         import Standard.Base.System.File
+
+         example_cwd = File.current_directory
 current_directory : File
 current_directory = File (Prim_Io.get_cwd)
 
@@ -82,7 +63,10 @@ current_directory = File (Prim_Io.get_cwd)
 
    > Example
      Get the current user's home directory.
-         File.home
+
+         import Standard.Base.System.File
+
+         example_home = File.home
 home : File
 home = here.new (Prim_Io.get_user_home)
 
@@ -95,6 +79,352 @@ type File
        Arguments:
        - prim_file: The internal representation of the file.
     type File prim_file
+
+    ## Creates a new output stream for this file and runs the specified action
+       on it.
+
+       Arguments:
+       - open_options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the output stream and returns some
+         value. The value is returned from this method.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+
+       > Example
+         Perform an action on an output stream with the file open for writing.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_with_stream =
+                 file = Examples.scratch_file
+                 action = stream -> stream.write_bytes "hello".utf_8
+                 file.with_output_stream [Option.Create, Option.Write] action
+    with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_output_stream open_options action =
+        Resource.bracket (this.new_output_stream open_options) (_.close) action
+
+    ## Creates a new input stream for this file and runs the specified action
+       on it.
+
+       Arguments:
+       - open_options: A vector of `File.Option` objects determining how to open
+         the stream. These options set the access properties of the stream.
+       - action: A function that operates on the input stream and returns some
+         value. The value is returned from this method.
+
+       The created stream is automatically closed when `action` returns (even
+       if it returns exceptionally).
+
+       > Example
+         Perform an action on an input stream with the file open for reading.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_with_stream =
+                 file = Examples.csv
+                 action = stream -> stream.read_all_bytes
+                 file.with_input_stream [Option.Create, Option.Read] action
+    with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
+    with_input_stream open_options action =
+        Resource.bracket (this.new_input_stream open_options) (_.close) action
+
+    ## Reads all bytes in this file into a byte vector.
+
+       > Example
+         Read all of the bytes in the file.
+
+             import Standard.Examples
+
+             example_read_bytes = Examples.csv.read_bytes
+    read_bytes : Vector.Vector ! File_Error
+    read_bytes =
+        opts = [Option.Read]
+        this.with_input_stream opts (_.read_all_bytes)
+
+    ## Reads the whole file into a `Text`, assuming UTF-8 content encoding.
+
+       > Example
+         Read the contents of the file.
+
+             import Standard.Examples
+
+             example_read = Examples.csv.read
+    read : Text ! File_Error
+    read =
+        bytes = this.read_bytes
+        Text.from_utf_8 bytes
+
+    ## Appends a number of bytes at the end of this file.
+
+       Arguments:
+       - contents: A vector of bytes to append to the file.
+
+       > Example
+         Append the bytes of the text "hello" to a file.
+
+             import Standard.Examples
+
+             example_append_bytes = Examples.scratch_file.append_bytes "hello".utf_8
+    append_bytes : Vector.Vector -> Nothing ! File_Error
+    append_bytes contents =
+        opts = [Option.Append, Option.Create]
+        this.with_output_stream opts (_.write_bytes contents)
+
+    ## Appends a UTF-8 encoded `Text` at the end of this file.
+
+       Arguments:
+       - contents: The UTF-8 encoded text to append to the file.
+
+       > Example
+         Append the text "hello" to a file.
+
+             import Standard.Examples
+
+             example_append = Examples.scratch_file.append "hello"
+    append : Text -> Nothing ! File_Error
+    append contents = this.append_bytes contents.utf_8
+
+    ## Writes a number of bytes into this file, replacing any existing contents.
+
+       Arguments:
+       - contents: The vector of bytes to write into the file.
+
+       If the file does not exist, it will be created.
+
+       > Example
+         Write the bytes of the text "hello" to a file.
+
+             import Standard.Examples
+
+             example_write_bytes = Examples.scratch_file.write_bytes "hello".utf_8
+    write_bytes : Vector.Vector -> Nothing ! File_Error
+    write_bytes contents =
+        opts = [Option.Write, Option.Create, Option.Truncate_Existing]
+        this.with_output_stream opts (_.write_bytes contents)
+        Nothing
+
+    ## Writes a UTF-8 encoded `Text` into this file, replacing any existing
+       contents.
+
+       Arguments:
+       - contents: The UTF-8 encoded text to write to the file.
+
+       If the file does not exist, it will be created.
+
+       > Example
+         Write the text "hello" to a file.
+
+             import Standard.Examples
+
+             example_write = Examples.scratch_file.write "hello"
+    write : Text -> Nothing ! File_Error
+    write contents = this.write_bytes contents.utf_8
+
+    ## Join two path segments together.
+
+       Arguments:
+       - subpath: The path to join to the path of `this`.
+
+       > Example
+         Concaatenate two file path segments.
+
+             import Standard.Examples
+
+             example_append = Examples.data_dir / "scratch_file"
+    / : (Text | File) -> File
+    / subpath = case subpath of
+        File prim -> File (this.prim_file.resolve prim)
+        _ -> File (this.prim_file.resolve subpath)
+
+    ## A text representation of this file.
+
+       > Example
+         Get a textual representation of a file.
+
+             import Standard.Examples
+
+             example_to_text = Examples.csv.to_text
+    to_text : Text
+    to_text = this.prim_file.to_text
+
+    ## A File to JSON conversion.
+
+       > Example
+         Get a JSON representation of a file.
+
+             import Standard.Examples
+
+             example_to_json = Examples.csv.to_json
+    to_json : Json.Object
+    to_json = Json.from_pairs [["type", "File"], ["path", this.path]]
+
+    ## Checks whether the file exists.
+
+       > Example
+         Check if a file exists.
+
+             import Standard.Examples
+
+             example_exists = Examples.csv.exists
+    exists : Boolean
+    exists = this.prim_file.exists
+
+    ## Checks whether the file exists and is a directory.
+
+       > Example
+         Check if a file is a directory.
+
+             import Standard.Examples
+
+             example_is_directory = Examples.csv.is_directory
+    is_directory : Boolean
+    is_directory = this.prim_file.isDirectory
+
+    ## Creates the directory represented by this file if it did not exist.
+
+       It also creates parent directories if they did not exist.
+
+       > Example
+         Create a directory on the file system.
+
+             import Standard.Examples
+
+             example_is_directory =
+                (Examples.data_dir / "my_directory") . create_directory
+    create_directory : Nothing
+    create_directory = this.prim_file.createDirectories
+
+    ## Checks whether the file exists and is a regular file.
+
+       ? Regular Files
+         A regular file is one that does not have any special meaning to the
+         operating system. Examples of files that are not regular are symlinks,
+         pipes, devices, sockets and directories.
+
+       > Example
+         Check if a file is regular.
+
+             import Standard.Examples
+
+             example_is_regular_file = Examples.csv.is_regular_file
+    is_regular_file : Boolean
+    is_regular_file = this.prim_file.isRegularFile
+
+    ## Resolves the parent filesystem node of this file.
+
+       > Example
+         Get the parent file of a file.
+
+             import Standard.Examples
+
+             example_parent = Examples.csv.parent
+    parent : File
+    parent = File this.prim_file.getParent
+
+    ## Returns the path of this file.
+
+       > Example
+         Get the path from a file.
+
+             import Standard.Examples
+
+             example_path = Examples.csv.path
+    path : Text
+    path = this.prim_file.getPath
+
+    ## Returns the name of this file.
+
+       > Example
+         Get the name from a file.
+
+             import Standard.Examples
+
+             example_name = Examples.csv.name
+    name : Text
+    name = this.prim_file.getName
+
+    ## Converts this file to an equivalent file represented with an absolute
+       path.
+
+       > Example
+         Convert a file to an equivalent absolute path.
+
+             import Standard.Examples
+
+             example_absolute = Examples.csv.absolute
+    absolute : File
+    absolute = File this.prim_file.getAbsoluteFile
+
+    ## Checks is this file's path is absolute.
+
+       > Example
+         Check if a file is represented by an absolute path.
+
+             import Standard.Examples
+
+             example_is_absolute = Examples.csv.is_absolute
+    is_absolute : Boolean
+    is_absolute = this.prim_file.isAbsolute
+
+    ## Normalizes the filepath.
+
+       > Example
+         Normalize a file path.
+
+             import Standard.Examples
+
+             example_normalize = Examples.csv.normalize
+    normalize : File
+    normalize = File this.prim_file.normalize
+
+    ## Checks if this file has the same `path` as `that`.
+
+       > Example
+         Check if two files are equivalent.
+
+             import Standard.Examples
+
+             example_eq = Examples.csv == Examples.scratch_file
+    == : File -> Boolean
+    == that = this.prim_file.isEqual that.prim_file
+
+    ## Deletes the file.
+
+       If the file is a directory, it must be empty, otherwise a `Panic` will
+       be thrown.
+
+       > Example
+         Create a file and then delete it.
+
+             import Standard.Examples
+
+             example_delete =
+                 file = Examples.data_dir / "my_file"
+                 file.write "hello"
+                 file.delete
+    delete : Nothing ! File_Error
+    delete =
+        here.handle_java_exceptions this <|
+            this.prim_file.delete
+        Nothing
+
+    ## Deletes the file if it exists on disk.
+
+       If the file is a directory, it must be empty, otherwise a `Panic` will
+       be thrown.
+
+       > Example
+         Delete a file if it exists on disk.
+
+             import Standard.Examples
+
+             example_del_if_exists = Examples.scratch_file.delete_if_exists
+    delete_if_exists : Nothing ! File_Error
+    delete_if_exists = if this.exists then this.delete else Nothing
 
     ## ADVANCED
 
@@ -132,177 +462,11 @@ type File
         resource = Managed_Resource.register stream here.close_stream
         Output_Stream this resource
 
-    ## Creates a new output stream for this file and runs the specified action
-       on it.
-
-       Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
-         the stream. These options set the access properties of the stream.
-       - action: A function that operates on the output stream and returns some
-         value. The value is returned from this method.
-
-       The created stream is automatically closed when `action` returns (even
-       if it returns exceptionally).
-    with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_output_stream open_options action =
-        Resource.bracket (this.new_output_stream open_options) (_.close) action
-
-    ## Creates a new input stream for this file and runs the specified action
-       on it.
-
-       Arguments:
-       - open_options: A vector of `File.Option` objects determining how to open
-         the stream. These options set the access properties of the stream.
-       - action: A function that operates on the input stream and returns some
-         value. The value is returned from this method.
-
-       The created stream is automatically closed when `action` returns (even
-       if it returns exceptionally).
-    with_input_stream : Vector.Vector -> (Input_Stream -> Any ! File_Error) -> Any ! File_Error
-    with_input_stream open_options action =
-        Resource.bracket (this.new_input_stream open_options) (_.close) action
-
-    ## Reads all bytes in this file into a byte vector.
-    read_bytes : Vector.Vector ! File_Error
-    read_bytes =
-        opts = [Option.Read]
-        this.with_input_stream opts (_.read_all_bytes)
-
-    ## Reads the whole file into a `Text`, assuming UTF-8 content encoding.
-    read : Text ! File_Error
-    read =
-        bytes = this.read_bytes
-        Text.from_utf_8 bytes
-
-    ## Appends a number of bytes at the end of this file.
-
-       Arguments:
-       - contents: A vector of bytes to append to the file.
-    append_bytes : Vector.Vector -> Nothing ! File_Error
-    append_bytes contents =
-        opts = [Option.Append, Option.Create]
-        this.with_output_stream opts (_.write_bytes contents)
-
-    ## Appends a UTF-8 encoded `Text` at the end of this file.
-
-       Arguments:
-       - contents: The UTF-8 encoded text to append to the file.
-    append : Text -> Nothing ! File_Error
-    append contents = this.append_bytes contents.utf_8
-
-    ## Writes a number of bytes into this file, replacing any existing contents.
-
-       Arguments:
-       - contents: The vector of bytes to write into the file.
-
-       If the file does not exist, it will be created.
-    write_bytes : Vector.Vector -> Nothing ! File_Error
-    write_bytes contents =
-        opts = [Option.Write, Option.Create, Option.Truncate_Existing]
-        this.with_output_stream opts (_.write_bytes contents)
-        Nothing
-
-    ## Writes a UTF-8 encoded `Text` into this file, replacing any existing
-       contents.
-
-       Arguments:
-       - contents: The UTF-8 encoded text to write to the file.
-
-       If the file does not exist, it will be created.
-    write : Text -> Nothing ! File_Error
-    write contents = this.write_bytes contents.utf_8
-
-    ## Join two path segments together.
-
-       Arguments:
-       - subpath: The path to join to the path of `this`.
-    / : (Text | File) -> File
-    / subpath = case subpath of
-        File prim -> File (this.prim_file.resolve prim)
-        _ -> File (this.prim_file.resolve subpath)
-
-    ## A text representation of this file.
-    to_text : Text
-    to_text = this.prim_file.to_text
-
-    ## A File to JSON conversion.
-    to_json : Json.Object
-    to_json = Json.from_pairs [["type", "File"], ["path", this.path]]
-
-    ## Checks whether the file exists.
-    exists : Boolean
-    exists = this.prim_file.exists
-
-    ## Checks whether the file exists and is a directory.
-    is_directory : Boolean
-    is_directory = this.prim_file.isDirectory
-
-    ## Creates the directory represented by this file if it did not exist.
-
-       It also creates parent directories if they did not exist.
-    create_directory : Nothing
-    create_directory = this.prim_file.createDirectories
-
-    ## Checks whether the file exists and is a regular file.
-
-       ? Regular Files
-         A regular file is one that does not have any special meaning to the
-         operating system. Examples of files that are not regular are symlinks,
-         pipes, devices, sockets and directories.
-    is_regular_file : Boolean
-    is_regular_file = this.prim_file.isRegularFile
-
-    ## Resolves the parent filesystem node of this file.
-    parent : File
-    parent = File this.prim_file.getParent
-
-    ## Returns the path of this file.
-    path : Text
-    path = this.prim_file.getPath
-
-    ## Returns the name of this file.
-    name : Text
-    name = this.prim_file.getName
-
-    ## Converts this file to an equivalent file represented with an absolute
-       path.
-    absolute : File
-    absolute = File this.prim_file.getAbsoluteFile
-
-    ## Checks is this file's path is absolute.
-    is_absolute : Boolean
-    is_absolute = this.prim_file.isAbsolute
-
-    ## Normalizes the filepath.
-    normalize : File
-    normalize = File this.prim_file.normalize
-
-    ## Checks if this file has the same `path` as `that`.
-    == : File -> Boolean
-    == that = this.prim_file.isEqual that.prim_file
-
-    ## Deletes the file.
-
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
-    delete : Nothing ! File_Error
-    delete =
-        here.handle_java_exceptions this <|
-            this.prim_file.delete
-        Nothing
-
-    ## Deletes the file if it exists on disk.
-
-       If the file is a directory, it must be empty, otherwise a `Panic` will
-       be thrown.
-    delete_if_exists : Nothing ! File_Error
-    delete_if_exists = if this.exists then this.delete else Nothing
-
 ## An output stream, allowing for interactive writing of contents into an
    open file.
 type Output_Stream
 
-    ## ADVANCED
+    ## PRIVATE
 
        An output stream, allowing for interactive writing of contents into an
        open file.
@@ -314,10 +478,23 @@ type Output_Stream
     type Output_Stream file stream_resource
 
     ## ADVANCED
+
        Writes a vector of bytes into the file at the current stream position.
 
        Arguments:
        - contents: A vector of bytes to write into the file.
+
+       > Example
+         Write some bytes through a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_write_bytes =
+                 file = Examples.scratch_file
+                 out_stream = file.new_output_stream [Option.Create, Option.Write]
+                 out_stream.write_bytes "hello".utf_8
+                 out_stream.close
     write_bytes : Vector.Vector -> Nothing ! File_Error
     write_bytes contents = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
@@ -332,6 +509,17 @@ type Output_Stream
        Even though Streams are closed automatically upon garbage collection, it
        is still advised to close streams manually if they are not used within
        a bracket pattern.
+
+       > Example
+         Open and close a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_write_bytes =
+                 file = Examples.scratch_file
+                 out_stream = file.new_output_stream [Option.Create]
+                 out_stream.close
     close : Nothing
     close = Managed_Resource.finalize this.stream_resource
 
@@ -339,7 +527,7 @@ type Output_Stream
    file.
 type Input_Stream
 
-    ## ADVANCED
+    ## PRIVATE
 
        An input stream, allowing for interactive reading of contents from an open
        file.
@@ -353,6 +541,19 @@ type Input_Stream
     ## ADVANCED
 
        Reads all the bytes in this file into a vector of bytes.
+
+       > Example
+         Read all of the bytes from a file using a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_read_all =
+                 file = Examples.csv
+                 in_stream = file.new_input_stream [Option.Read]
+                 bytes = in_stream.read_all_bytes
+                 in_stream.close
+                 bytes
     read_all_bytes : Vector.Vector ! File_Error
     read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
@@ -370,6 +571,19 @@ type Input_Stream
 
        The length of the returned vector is the same as the number of bytes
        read.
+
+       > Example
+         Read 10 of the bytes from a file using a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_read_all =
+                 file = Examples.csv
+                 in_stream = file.new_input_stream [Option.Read]
+                 bytes = in_stream.read_n_bytes 10
+                 in_stream.close
+                 bytes
     read_n_bytes : Integer -> Vector.Vector ! File_Error
     read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
@@ -382,6 +596,19 @@ type Input_Stream
 
        The returned value is an integer in the range 0-255 representing the
        next byte of input, or -1 if end of stream is reached.
+
+       > Example
+         Read byte from a file using a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_read_all =
+                 file = Examples.csv
+                 in_stream = file.new_input_stream [Option.Read]
+                 bytes = in_stream.read_byte
+                 in_stream.close
+                 bytes
     read_byte : Integer ! File_Error
     read_byte = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
@@ -394,6 +621,17 @@ type Input_Stream
        Even though Streams are closed automatically upon garbage collection, it
        is still advised to close streams manually if they are not used within
        a bracket pattern.
+
+       > Example
+         Open and close a stream.
+
+             import Standard.Base.System.File.Option
+             import Standard.Examples
+
+             example_read_all =
+                 file = Examples.csv
+                 in_stream = file.new_input_stream [Option.Read]
+                 in_stream.close
     close : Nothing
     close = Managed_Resource.finalize this.stream_resource
 
@@ -445,3 +683,34 @@ close_stream : Any -> Nothing
 close_stream stream =
     stream.close
     Nothing
+
+type File_Error
+
+    ## An error that indicates that the requested file does not exist.
+
+       Arguments:
+       - file: The file that doesn't exist.
+    type No_Such_File_Error file
+
+    ## An error that indicates that the program does not have access to the
+       requested file.
+
+       Arguments:
+       - file: The file that the program does not have permission to access.
+    type Access_Denied_Error file
+
+    ## A generic IO error.
+
+       Arguments:
+       - message: The message for the error.
+    type Io_Error message
+
+    ## UNSTABLE
+
+       Convert the File error to a human-readable format.
+    to_display_text : Text
+    to_display_text = case this of
+        No_Such_File_Error file -> "The file at " + file.path + " does not exist."
+        Access_Denied_Error file -> "You do not have permission to access the file at " + file.path + "."
+        Io_Error msg -> "An IO error has occurred: " + msg.to_text + "."
+

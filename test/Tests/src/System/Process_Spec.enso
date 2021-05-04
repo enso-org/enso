@@ -25,19 +25,19 @@ spec = Test.group "Process" <|
     Test.specify "should return stdout" <|
         case Platform.os of
             Platform.Linux ->
-                builder = Process.builder "bash" ["-c", "echo -n Hello"]
+                builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
                 result.stderr . should_equal ""
             Platform.MacOS ->
-                builder = Process.builder "bash" ["-c", "echo -n Hello"]
+                builder = Process.new_builder "bash" ["-c", "echo -n Hello"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
                 result.stderr . should_equal ""
             Platform.Windows ->
-                builder = Process.builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
+                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "Hello"
@@ -47,19 +47,19 @@ spec = Test.group "Process" <|
     Test.specify "should return stderr" <|
         case Platform.os of
             Platform.Linux ->
-                builder = Process.builder "bash" ["-c", "echo -n Error 1>&2"]
+                builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"]
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
                 result.stderr . should_equal "Error"
             Platform.MacOS ->
-                builder = Process.builder "bash" ["-c", "echo -n Error 1>&2"] ""
+                builder = Process.new_builder "bash" ["-c", "echo -n Error 1>&2"] ""
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
                 result.stderr . should_equal "Error"
             Platform.Windows ->
-                builder = Process.builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"] ""
+                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"] ""
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal ""
@@ -69,19 +69,19 @@ spec = Test.group "Process" <|
     Test.specify "should feed stdin" <|
         case Platform.os of
             Platform.Linux ->
-                builder = Process.builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
+                builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "sample"
                 result.stderr . should_equal ""
             Platform.MacOS ->
-                builder = Process.builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
+                builder = Process.new_builder "bash" ["-c", "read line; echo -n $line"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal "sample"
                 result.stderr . should_equal ""
             Platform.Windows ->
-                builder = Process.builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] . set_stdin "sample"
+                builder = Process.new_builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] . set_stdin "sample"
                 result = builder.create
                 result.exit_code.to_number . should_equal 0
                 result.stdout . should_equal 'sample\r\n'
