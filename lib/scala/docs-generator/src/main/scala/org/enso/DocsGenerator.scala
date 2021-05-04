@@ -10,7 +10,9 @@ import HTML._
 
 object TreeOfCommonPrefixes {
   case class Node(name: String, var elems: List[Node]) {
-    val html: Modifier = HTML.div(HTML.p(name))(elems.map(_.html))
+    def html(beg: String = ""): Modifier = HTML.ul(HTML.p(name))(
+      elems.map(_.html(if (beg.length > 0) beg + "-" + name else name))
+    )
   }
 
   def groupNodesByPrefix(le: List[Node]): List[Node] =
@@ -148,7 +150,10 @@ object DocsGeneratorMain extends App {
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
     val treeCode =
-      "<div>" + treeStyle + treeNames.map(_.html).mkString + "</div>"
+      "<div>" + treeStyle + treeNames
+        .map(_.html())
+        .mkString
+        .replace("class=", "className=") + "</div>"
     bw.write(
       templateCode
         .getOrElse("")
