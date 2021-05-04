@@ -6,20 +6,10 @@
 
 #### Visual Environment
 
-- [Window management buttons.][1511]. The IDE now has components for
-  "fullscreen" nad "close" buttons. They will be available only when running IDE
-  in a cloud environment.
-- [Customizable backend options][1531]. When invoking Enso IDE through command
-  line interface, it is possible to give `--` argument separator. All arguments
-  following the separator will be passed to the backend.
-- [Added `--verbose` parameter][1531]. If `--verbose` is given as command line
-  argument, the IDE and the backend will produce more detailed logs.
+#### EnsoGL (rendering engine)
+
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
-
-- [Fix some internal settings not being applied correctly in the IDE][1536].
-  Some arguments were not passed correctly to the IDE leading to erroneous
-  behaviour in the electron app. This is now fixed.
 
 #### Visual Environment
 
@@ -31,8 +21,39 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
+<br/>
+
+# Enso 2.0.0-alpha.4 (2021-05-04)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [Window management buttons.][1511]. The IDE now has components for
+  "fullscreen" and "close" buttons. They will when running IDE in a cloud
+  environment where no native window buttons are available.
+- [Customizable backend options][1531]. When invoking Enso IDE through command
+  line interface, it is possible to add the `--` argument separator. All
+  arguments following the separator will be passed to the backend.
+- [Added `--verbose` parameter][1531]. If `--verbose` is given as command line
+  argument, the IDE and the backend will produce more detailed logs.
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+- [Some command line arguments were not applied correctly in the IDE][1536].
+  Some arguments were not passed correctly to the IDE leading to erroneous
+  behavior or appearance of the electron app. This is now fixed.
+
+#### Enso Compiler
+
+If you're interested in the enhancements and fixes made to the Enso compiler,
+you can find their release notes
+[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
 [1511]: https://github.com/enso-org/ide/pull/1511
-[1511]: https://github.com/enso-org/ide/pull/1536
+[1536]: https://github.com/enso-org/ide/pull/1536
 [1531]: https://github.com/enso-org/ide/pull/1531
 
 <br/>
