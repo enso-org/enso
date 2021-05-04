@@ -7,8 +7,7 @@ import org.opencv.core.*;
 public class Matrix {
 
   static {
-    OpenCV.loadShared();
-    System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    OpenCV.loadLocally();
   }
 
   /**
