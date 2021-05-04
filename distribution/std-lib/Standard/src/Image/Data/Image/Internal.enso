@@ -29,7 +29,7 @@ core_op mat value function =
     Image.Image result
 
 ## PRIVATE
-   
+
    Handles errors in `core_op`.
 
    Arguments:
@@ -39,3 +39,4 @@ core_op_handler error =
     case error of
         Matrix.Dimensions_Not_Equal -> Error.throw error
         _ -> Panic.throw error
+
