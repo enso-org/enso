@@ -338,7 +338,6 @@ type Http
 
              example_post =
                  body = Body.Bytes "Hello".utf_8
-                 header_binary = Header.content_type "application/octet-stream"
                  Examples.http_client.post "http://httpbin.org/post" body [header_binary]
     post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     post uri body (headers = []) =
@@ -422,7 +421,6 @@ type Http
 
              example_put =
                  body = Body.Bytes "contents".utf_8
-                 header_binary = Header.content_type "application/octet-stream"
                  Examples.http_client.put "http://httpbin.org/post" body [header_binary]
     put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     put uri body (headers = []) =
