@@ -195,7 +195,7 @@ type Request
              import Standard.Base.Network.Uri
 
              example_with_body =
-                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body Request_Body.Empty
+                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_body Request_Body.Empty
     with_body : Request_Body -> Request
     with_body new_body = Request this.method this.uri this.headers new_body
 
@@ -213,8 +213,8 @@ type Request
              import Standard.Base.Network.Uri
 
              example_with_json =
-                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body "{ "a": "b" }"
-    with_json : Text -> Request
+                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
+    with_json : (Text | Json) -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
         Request this.method this.uri this.headers new_body . with_headers [Header.application_json]
