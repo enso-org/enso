@@ -4,6 +4,15 @@ from Standard.Base import all
    UNSTABLE
 
    Returns the method name of the method that could not be found.
+
+   > Example
+     Getting the method name from a no such method error.
+
+         import Standard.Examples
+
+         example_method_name =
+             error = Examples.no_such_method
+             error.method_name
 No_Such_Method_Error.method_name : Text
 No_Such_Method_Error.method_name =
     Meta.meta this.symbol . name
@@ -22,11 +31,20 @@ type Unimplemented_Error message
 Unimplemented_Error.to_display_text : Text
 Unimplemented_Error.to_display_text = "An implementation is missing: " + this.message
 
-## A function that can be used to indicate that something hasn't been
+## ADVANCED
+
+   A function that can be used to indicate that something hasn't been
    implemented yet.
 
    Arguments:
    - message: A description of what implementation is missing.
+
+   > Example
+     Throwing an error to show that something is unimplemented.
+
+         import Standard.Base.Error.Extensions
+
+         example_unimplemented = Extensions.unimplemented
 unimplemented : Text -> Void
 unimplemented message="" = Panic.throw (Unimplemented_Error message)
 
@@ -39,7 +57,11 @@ unimplemented message="" = Panic.throw (Unimplemented_Error message)
 
    > Example
      Catching an erroneous value and getting the length of its message.
-       (Time.Time_Error "Message").catch (err -> err.error_message.length)
+
+         import Standard.Examples
+
+         example_catch =
+             Examples.throw_error.catch (err -> err.message.length)
 Error.catch : (Error -> Any) -> Any
 Error.catch (handler = x->x) = this.catch_primitive handler
 
@@ -49,7 +71,10 @@ Error.catch (handler = x->x) = this.catch_primitive handler
 
    > Example
      Displaying a dataflow error.
-         (Error.throw "oops!").to_default_visualization_data
+
+         import Standard.Examples
+
+         example_display = Examples.throw_error.to_default_visualization_data
 Error.to_default_visualization_data : Text
 Error.to_default_visualization_data = this.catch .to_default_visualization_data
 
@@ -68,8 +93,13 @@ Error.to_display_text  = "Error: " + (this.catch .to_display_text)
    is an error, the error is transformed using the provided function
 
    > Example
-     Wrapping an error value.
-       map.get "x" . map_error (_ -> ElementNotFound "x")
+     Transforming an error value.
+
+         import Standard.Examples
+
+         example_map_error =
+             map = Examples.map
+             map.get 10 . map_error (_ -> "The element 10 was not found.")
 Error.map_error : (Error -> Error) -> Any
 Error.map_error f = this.catch (x -> Error.throw (f x))
 
@@ -77,6 +107,7 @@ Error.map_error f = this.catch (x -> Error.throw (f x))
 
    > Example
      Checking if the value 1 is an error.
+
          1.is_error
 Error.is_error : Boolean
 Error.is_error = True
@@ -89,7 +120,10 @@ Error.is_error = True
 
    > Example
      Rethrowing a dataflow error as a panic.
-         Panic.rethrow (Error.throw "Oh, no!")
+
+         import Standard.Examples
+
+         example_rethrow = Panic.rethrow Examples.throw_error
 Panic.rethrow : (Any ! Any) -> Any
 Panic.rethrow value = value.catch Panic.throw
 

@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 type Illegal_State_Error
+
     ## UNSTABLE
 
        A generic error that indicates that a given operation cannot be performed

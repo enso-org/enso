@@ -24,20 +24,6 @@ polyglot java import java.net.URI
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import org.enso.base.Http_Utils
 
-## UNSTABLE
-
-   An error when sending an Http request.
-
-   Arguments:
-   - message: The message for the error.
-type Request_Error message
-
-## UNSTABLE
-
-   Convert a request error to a human-readable form.
-Request_Error.to_display_text =
-    "Error when sending request: " + this.message
-
 ## Create a new instance of the HTTP client.
 
    Arguments:
@@ -56,7 +42,13 @@ Request_Error.to_display_text =
 
    > Example
      Create an HTTP client with extended timeout and proxy settings.
-         Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
+
+         import Standard.Base.Data.Time.Duration
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Proxy
+
+         example_new =
+            Http.new (timeout = 30.seconds) (proxy = Proxy.new "example.com" 8080)
 new : Duration -> Boolean -> Proxy -> Http
 new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (version = Version.Http_1_1) =
     Http timeout follow_redirects proxy version
@@ -68,8 +60,11 @@ new (timeout = 10.seconds) (follow_redirects = True) (proxy = Proxy.System) (ver
    - headers: Any headers for the options request.
 
    > Example
-     Send an Options request.
-         Http.options "http://httpbin.org"
+     Send an Options request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_options = Http.options "http://httpbin.org"
 options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 options uri (headers = []) = here.new.options uri headers
 
@@ -80,18 +75,33 @@ options uri (headers = []) = here.new.options uri headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Get request.
-         Http.get "http://httpbin.org/get"
+     Send a Get request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_get = Http.get "http://httpbin.org/get"
 
    > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+     Send authenticated Get request (note the use of TLS). NOTE: This example
+     will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_get =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.get "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.get "http://httpbin.org/bytes/1024"
-         res.body.to_file out_file
+        Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_get =
+             out_file = Examples.scratch_file
+             res = Http.get "http://httpbin.org/bytes/1024"
+             res.body.to_file out_file
 get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 get uri (headers = []) = here.new.get uri headers
 
@@ -102,17 +112,33 @@ get uri (headers = []) = here.new.get uri headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Get request.
-         Http.fetch "http://httpbin.org/get"
+     Send a Get request and return the body. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+
+         example_fetch = Http.fetch "http://httpbin.org/get"
 
    > Example
-     Send authenticated Get request (note the use of TLS).
-         Http.fetch "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+     Send authenticated Get request (note the use of TLS) and return the body.
+     NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+
+         example_fetch =
+            headers = [Header.authorization_basic "user" "pass"]
+            Http.fetch "https://httpbin.org/basic-auth/user/pass" headers
 
    > Example
-     Download a file.
-         out_file = File.new "/tmp/out.bin"
-         res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
+     Download a file. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Examples
+
+         example_fetch =
+             out_file = Examples.scratch_file
+             res = Http.fetch "http://httpbin.org/bytes/1024" . to_file out_file
 fetch : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 fetch uri (headers = []) =
     here.new.get uri headers . body
@@ -124,9 +150,11 @@ fetch uri (headers = []) =
    - headers: Any headers for the options request.
 
    > Example
-     Send a Head request.
-         res = Http.head "http://httpbin.org"
-         IO.println res.headers
+     Send a Head request. NOTE: This example will make a network request.
+
+         import Standard.Base.Network.Http
+
+         example_head = Http.head "http://httpbin.org"
 head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
 head uri (headers = []) = here.new.options uri headers
 
@@ -138,10 +166,17 @@ head uri (headers = []) = here.new.options uri headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Post request with binary data.
-         body = Body.Bytes "Hello".utf_8
-         header_binary = Header.content_type "application/octet-stream"
-         Http.post "http://httpbin.org/post" body [header_binary]
+     Send a Post request with binary data. NOTE: This example will make a
+     network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Header
+         import Standard.Base.Network.Http.Request.Body
+
+         example_post =
+             body = Body.Bytes "Hello".utf_8
+             header_binary = Header.content_type "application/octet-stream"
+             Http.post "http://httpbin.org/post" body [header_binary]
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
 post uri body (headers = []) = here.new.post uri body headers
 
@@ -155,14 +190,27 @@ post uri body (headers = []) = here.new.post uri body headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Post request with form.
-         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-         Http.post_form "http://httpbin.org/post" form
+     Send a Post request with form. NOTE: This example will make a network
+     request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Form
+
+         example_post_form =
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.post_form "http://httpbin.org/post" form
 
    > Example
-     Send a Post request with form encoded as "multipart/form-data".
-         form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-         Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+     Send a Post request with form encoded as "multipart/form-data". NOTE: This
+     example will make a network request.
+
+         import Standard.Base.Network.Http
+         import Standard.Base.Network.Http.Form
+         import Standard.Base.Network.Http.Header
+
+         example_post_form =
+             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+             Http.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
 post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
 post_form uri parts (headers = []) = here.new.post_form uri parts headers
 
@@ -174,16 +222,22 @@ post_form uri parts (headers = []) = here.new.post_form uri parts headers
    - headers: Any headers for the options request.
 
    > Example
-     Send a Post request with json data.
-         json = Json.parse <| '''
-             {"key":"val"}
-         Http.post_json "http://httpbin.org/post" json
+     Send a Post request with json data. NOTE: This example will make a network
+     request.
+
+         import Standard.Base.Network.Http
+
+         example_post_json =
+             json = Json.parse '{"key":"val"}'
+             Http.post_json "http://httpbin.org/post" json
 post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
 post_json uri body_json (headers = []) = here.new.post_json uri body_json headers
 
 type Http
 
-    ## An HTTP client.
+    ## PRIVATE
+
+       An HTTP client.
 
        Arguments:
        - timeout: The length of time the client will wait for responses.
@@ -199,8 +253,12 @@ type Http
        - headers: Any headers for the options request.
 
        > Example
-         Send an Options request.
-             Http.new.options "http://httpbin.org"
+         Send an Options request. NOTE: This example will make a network
+         request.
+
+             import Standard.Examples
+
+             example_options = Examples.http_client.options "http://httpbin.org"
     options : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     options uri (headers = []) =
         req = Request.options uri headers
@@ -213,18 +271,32 @@ type Http
        - headers: Any headers for the options request.
 
        > Example
-         Send a Get request.
-             Http.new.get "http://httpbin.org/get"
+         Send a Get request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_get = Examples.http_client.get "http://httpbin.org/get"
 
        > Example
-         Send authenticated Get request (note the use of TLS).
-             Http.new.get "https://httpbin.org/basic-auth/user/pass" [Header.authorization_basic "user" "pass"]
+         Send authenticated Get request (note the use of TLS). NOTE: This
+         example will make a network request.
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Examples
+
+             example_get =
+                headers = [Header.authorization_basic "user" "pass"]
+                Examples.http_client.get "https://httpbin.org/basic-auth/user/pass" headers
 
        > Example
-         Download a file.
-             out_file = File.new "/tmp/out.bin"
-             res = Http.new.get "http://httpbin.org/bytes/1024"
-             res.body.to_file out_file
+            Download a file. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_get =
+                 out_file = Examples.scratch_file
+                 res = Examples.http_client.get "http://httpbin.org/bytes/1024"
+                 res.body.to_file out_file
     get : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     get uri (headers = []) =
         req = Request.get uri headers
@@ -236,10 +308,13 @@ type Http
        - uri: The address to which the request will be sent.
        - headers: Any headers for the options request.
 
+
        > Example
-         Send a Head request.
-             res = Http.new.head "http://httpbin.org"
-             IO.println res.headers
+         Send a Head request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_head = Examples.http_client.head "http://httpbin.org"
     head : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     head uri (headers = []) =
         req = Request.head uri headers
@@ -252,11 +327,18 @@ type Http
        - body: The body of the post request.
        - headers: Any headers for the options request.
 
+
        > Example
-         Send a Post request with binary data.
-             body = Body.Bytes "Hello".utf_8
-             header_binary = Header.content_type "application/octet-stream"
-             Http.new.post "http://httpbin.org/post" body [header_binary]
+         Send a Post request with binary data. NOTE: This example will make a
+         network request.
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_post =
+                 body = Body.Bytes "Hello".utf_8
+                 Examples.http_client.post "http://httpbin.org/post" body [header_binary]
     post : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     post uri body (headers = []) =
         req = Request.post uri body headers
@@ -271,21 +353,29 @@ type Http
        - parts: A form, or the parts for creating a form.
        - headers: Any headers for the options request.
 
-       > Example
-         Send a Post request with form.
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             Http.new.post_form "http://httpbin.org/post" form
 
        > Example
-         Send a Post request with form encoded as "multipart/form-data".
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             Http.new.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
+         Send a Post request with form. NOTE: This example will make a network
+         request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Examples
+
+             example_post_form =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 Examples.http_client.post_form "http://httpbin.org/post" form
 
        > Example
-         Configure HTTP client and send a Post request.
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             http = Http.new (timeout = 30.seconds)
-             http.post_form "http://httpbin.org/post" form
+         Send a Post request with form encoded as "multipart/form-data". NOTE: This
+         example will make a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Header
+             import Standard.Examples
+
+             example_post_form =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 Examples.http_client.post_form "http://httpbin.org/post" form [Header.multipart_form_data]
     post_form : (Text | Uri) -> (Vector | Form) -> Vector.Vector -> Response ! Request_Error
     post_form uri parts (headers = []) =
         new_headers = [Header.application_x_www_form_urlencoded]
@@ -299,11 +389,16 @@ type Http
        - body_json: The JSON body for the post request.
        - headers: Any headers for the options request.
 
+
        > Example
-         Send a Post request with json data.
-             json = Json.parse <| '''
-                 {"key":"val"}
-             Http.new.post_json "http://httpbin.org/post" json
+         Send a Post request with json data. NOTE: This example will make a network
+         request.
+
+             import Standard.Examples
+
+             example_post_json =
+                 json = Json.parse '{"key":"val"}'
+                 Examples.http_client.post_json "http://httpbin.org/post" json
     post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
     post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
@@ -319,9 +414,14 @@ type Http
 
        > Example
          Send a Put request with binary data.
-             body = Body.Bytes "contents".utf_8
-             header_binary = Header.content_type "application/octet-stream"
-             Http.new.put "http://httpbin.org/post" body [header_binary]
+
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_put =
+                 body = Body.Bytes "contents".utf_8
+                 Examples.http_client.put "http://httpbin.org/post" body [header_binary]
     put : (Text | Uri) -> Request_Body -> Vector.Vector -> Respoonse ! Request_Error
     put uri body (headers = []) =
         req = Request.put uri body headers
@@ -335,10 +435,14 @@ type Http
        - headers: Any headers for the options request.
 
        > Example
-         Send a Put request with json data.
-             json = Json.parse <| '''
-                 {"key":"val"}
-             Http.new.put_json "http://httpbin.org/put" json
+         Send a Put request with json data. NOTE: This example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_post_json =
+                 json = Json.parse '{"key":"val"}'
+                 Examples.http_client.put_json "http://httpbin.org/post" json
     put_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
     put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
@@ -352,8 +456,11 @@ type Http
        - headers: Any headers for the options request.
 
        > Example
-         Send a Delete request.
-             Http.new.delete "http://httpbin.org/delete"
+         Send a Delete request. NOTE: This example will make a network request.
+
+             import Standard.Examples
+
+             example_delete = Examples.http_client.delete "http://httpbin.org/delete"
     delete : (Text | Uri) -> Vector.Vector -> Response ! Request_Error
     delete uri (headers = []) =
         req = Request.delete uri headers
@@ -365,35 +472,80 @@ type Http
        - req: The HTTP request to send using `this` HTTP client.
 
        > Example
-         Send a Get request with headers.
-             req = Request.new Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
-             res = Http.new.request req
-             res.body
+         Send a Get request with headers. NOTE: This example will send a network
+         request.
+
+             import Standard.Base.Network.Http
+             import Standard.Base.Network.Http.Method
+             import Standard.Base.Network.Http.Request
+
+             example_request =
+                 req = Request.new Method.Get "http://httpbin.org/get" . with_header "X-Trace-Id" "00000"
+                 res = Examples.http_client.request req
+                 res.body
 
        > Example
-         Open a connection and send a Post request with form.
-             req = Request.post "http://httpbin.org/post" . with_form [Form.text_field "key" "value"] . with_header "X-Trace-Id" "123456789"
-             res = http.new.request req
-             res.code
+         Open a connection and send a Post request with form. NOTE: This example
+         will send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 req = Request.post "http://httpbin.org/post" Body.Empty
+                 with_form = req.with_form [Form.text_field "key" "value"]
+                 with_header = with_form.with_header "X-Trace-Id" "123456789"
+                 res = Examples.http_client.request with_header
+                 res.code
 
        > Example
-         Send a Post request with urlencoded form data.
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             req = Request.post "http://httpbin.org/post" . with_form form
-             Http.new.request req
+         Send a Post request with urlencoded form data. NOTE: This example will
+         send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 req = Request.post "http://httpbin.org/post" Body.Empty . with_form form
+                 Examples.http_client.request req
 
        > Example
-         Send a Post request with form encoded as "multipart/form-data".
-             form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
-             req = Request.post "http://httpbin.org/post" . with_form form . with_headers [Header.multipart_form_data]
-             Http.new.post req
+         Send a Post request with form encoded as "multipart/form-data". NOTE:
+         This example will send a network request.
+
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Header
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body
+             import Standard.Examples
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe", Form.file_field "license.txt" (Enso_Project.root / "LICENSE")]
+                 req = Request.post "http://httpbin.org/post" Body.Empty
+                 with_form = req.with_form form
+                 with_headers = with_form.with_headers [Header.multipart_form_data]
+                 Examples.http_client.request with_headers
 
        > Example
-         Configure HTTP client and send a Post request with form.
-             form = [Form.text_field "name" "John Doe"]
-             req = Request.new Method.Post "http://httpbin.org/post" . with_form form
-             http = Http.new (timeout = 30.seconds) (proxy = Proxy.new "proxy.example.com:80")
-             http.request req
+         Configure HTTP client and send a Post request with form. NOTE: This
+         example will send a network request.
+
+             import Standard.Base.Data.Time.Duration
+             import Standard.Base.Network.Http
+             import Standard.Base.Network.Http.Form
+             import Standard.Base.Network.Http.Method
+             import Standard.Base.Network.Http.Request
+
+             example_request =
+                 form = [Form.text_field "name" "John Doe"]
+                 req = Request.new Method.Post "http://httpbin.org/post" . with_form form
+                 http = Http.new (timeout = 30.seconds)
+                 http.request req
     request : Request -> Response ! Request_Error
     request req =
         response = Panic.recover <|
@@ -427,10 +579,14 @@ type Http
                         Pair req body_builder.build
                     if req.headers.contains Header.multipart_form_data then add_multipart form else
                         add_urlencoded form
+                Request_Body.Bytes bytes ->
+                    builder.header Header.application_octet_stream.name Header.application_octet_stream.value
+                    Pair req (body_publishers.ofByteArray bytes.to_array)
             # method
             req_http_method = case req.method of
                 Method.Options -> "OPTIONS"
                 Method.Get -> "GET"
+                Method.Head -> "HEAD"
                 Method.Post -> "POST"
                 Method.Put -> "PUT"
                 Method.Delete -> "DELETE"
@@ -484,3 +640,17 @@ type Http
                 builder.version HttpClient.Version.HTTP_2
         # build http client
         builder.build
+
+## UNSTABLE
+
+   An error when sending an Http request.
+
+   Arguments:
+   - message: The message for the error.
+type Request_Error message
+
+## UNSTABLE
+
+   Convert a request error to a human-readable form.
+Request_Error.to_display_text = "Error when sending request: " + this.message
+

@@ -20,7 +20,12 @@ polyglot java import org.enso.base.Text_Utils
 
    > Example
      Create a new post request with no headers and no body.
-         Request.new Method.Post (Uri.parse "http://example.com")
+
+         import Standard.Base.Network.Http.Method
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Uri
+
+         example_new = Request.new Method.Post (Uri.parse "http://example.com")
 new : Method -> (Text | Uri) -> Vector.Vector -> Request_Body -> Request
 new method addr (headers = []) (body = Request_Body.Empty) =
     Panic.recover (Request method (Internal.panic_on_error (addr.to_uri)) headers body) . catch Internal.recover_panic
@@ -31,7 +36,11 @@ new method addr (headers = []) (body = Request_Body.Empty) =
 
    > Example
      Create a new options request.
-         Request.options (Uri.parse "http://example.com")
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Uri
+
+         example_options = Request.options (Uri.parse "http://example.com")
 options : (Text | Uri) -> Vector.Vector -> Request
 options addr (headers = []) = here.new Method.Options addr headers
 
@@ -43,7 +52,11 @@ options addr (headers = []) = here.new Method.Options addr headers
 
    > Example
      Create a new get request.
-         Request.get (Uri.parse "http://example.com")
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Uri
+
+         example_get = Request.get (Uri.parse "http://example.com")
 get : (Text | Uri) -> Vector.Vector -> Request
 get addr (headers = []) = here.new Method.Get addr headers
 
@@ -55,7 +68,11 @@ get addr (headers = []) = here.new Method.Get addr headers
 
    > Example
      Create a new head request.
-         Request.head (Uri.parse "http://example.com")
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Uri
+
+         example_head = Request.head (Uri.parse "http://example.com")
 head : (Text | Uri) -> Vector.Vector -> Request
 head addr (headers = []) = here.new Method.Head addr headers
 
@@ -68,7 +85,12 @@ head addr (headers = []) = here.new Method.Head addr headers
 
    > Example
      Create a new post request.
-         Request.post (Uri.parse "http://example.com") Request_Body.Empty
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Http.Request.Body as Request_Body
+         import Standard.Base.Network.Uri
+
+         example_post = Request.post (Uri.parse "http://example.com") Request_Body.Empty
 post : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
 post addr body (headers = []) = here.new Method.Post addr headers body
 
@@ -81,7 +103,12 @@ post addr body (headers = []) = here.new Method.Post addr headers body
 
    > Example
      Create a new put request.
-         Request.put (Uri.parse "http://example.com") Request_Body.Empty
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Http.Request.Body as Request_Body
+         import Standard.Base.Network.Uri
+
+         example_put = Request.put (Uri.parse "http://example.com") Request_Body.Empty
 put : (Text | Uri) -> Request_Body -> Vector.Vector -> Request
 put addr body (headers = []) = here.new Method.Put addr headers body
 
@@ -93,7 +120,11 @@ put addr body (headers = []) = here.new Method.Put addr headers body
 
    > Example
      Create a new delete request.
-         Request.delete (Uri.parse "http://example.com")
+
+         import Standard.Base.Network.Http.Request
+         import Standard.Base.Network.Uri
+
+         example_delete = Request.delete (Uri.parse "http://example.com")
 delete : (Text | Uri) -> Vector.Vector -> Request
 delete addr (headers = []) = here.new Method.Delete addr headers
 
@@ -118,7 +149,10 @@ type Request
 
        > Example
          Create a request and add a new header to it.
-             Request.delete.with_header "Foo" "bar"
+
+             import Standard.Base.Network.Http.Request
+
+             example_with_header = Request.delete.with_header "Foo" "bar"
     with_header : Text -> Text -> Request
     with_header key val =
        new_header = Header.new key val
@@ -139,7 +173,10 @@ type Request
 
        > Example
          Create a request and unset all the headers.
-             Request.delete.with_headers []
+
+             import Standard.Base.Network.Http.Request
+
+             example_with_headers = Request.delete.with_headers []
     with_headers : [Header] -> Request
     with_headers new_headers =
         update_header req new_header = req.with_header new_header.name new_header.value
@@ -152,7 +189,13 @@ type Request
 
         > Example
           Unsetting the body in a post request.
-             Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body Request_Body.Empty
+
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body as Request_Body
+             import Standard.Base.Network.Uri
+
+             example_with_body =
+                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body Request_Body.Empty
     with_body : Request_Body -> Request
     with_body new_body = Request this.method this.uri this.headers new_body
 
@@ -164,7 +207,13 @@ type Request
 
         > Example
           Setting the body in a post request to some JSON.
-             Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body "{ "a": "b" }"
+
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Http.Request.Body as Request_Body
+             import Standard.Base.Network.Uri
+
+             example_with_json =
+                 Request.post (Uri.parse "http://example.com") Request_Body.Empty |> .with_body "{ "a": "b" }"
     with_json : Text -> Request
     with_json json_body =
         new_body = Request_Body.Json json_body
@@ -177,7 +226,12 @@ type Request
 
        > Example
          Create a delete request with an empty form.
-             Request.delete (Uri.parse "http://example.com") . with_form []
+
+             import Standard.Base.Network.Http.Request
+             import Standard.Base.Network.Uri
+
+             example_delete =
+                Request.delete (Uri.parse "http://example.com") . with_form []
     with_form : (Vector | Form) -> Request
     with_form parts =
         new_body = Request_Body.Form parts.to_form
