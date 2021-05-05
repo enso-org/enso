@@ -181,3 +181,10 @@ image = Enso_Image.read here.image_file [Codecs.Read_Alpha_Channel]
 matrix : Enso_Matrix.Matrix
 matrix = here.image.to_matrix
 
+## A silly little function that adds one to the provided number.
+add_1_to : Number -> Number
+add_1_to n = n + 1
+
+## A function that just returns a constant boolean value.
+get_boolean : Boolean
+get_boolean = False
