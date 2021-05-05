@@ -17,7 +17,10 @@ from Standard.Table import all
 
    > Example
      Create a point representing the centre of London.
-         Geo.point 51.509865 -0.118092
+
+         import Standard.Geo
+
+         example_point = Geo.point 51.509865 -0.118092
 point : Decimal -> Decimal -> Decimal -> Table.Table
 point latitude longitude elevation=0 =
     Table.new [["latitude", [latitude]], ["longitude", [longitude]], ["elevation", [elevation]]]

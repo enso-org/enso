@@ -314,3 +314,4 @@ optimize_fragments fragments =
             Nothing -> Nothing
             Sql_Code_Part _ -> builder.append last_part
     builder.to_vector
+

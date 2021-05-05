@@ -102,3 +102,4 @@ sqlite =
    A vector of SQL dialects supported by the Database library.
 supported_dialects : Vector Dialect
 supported_dialects = [here.postgresql, here.sqlite]
+
