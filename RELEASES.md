@@ -1,5 +1,11 @@
 # Enso Next
 
+## Libraries
+
+- Removed reflective access when loading OpenCV library
+  ([#1727](https://github.com/enso-org/enso/pull/1727)). Illegal reflective
+  access operations were deprecated and will be denied in future JVM releases.
+
 ## Miscellaneous
 
 - Adding a pipeline for automatic nightly builds - during the night after each
