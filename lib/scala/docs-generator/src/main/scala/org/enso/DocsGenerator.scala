@@ -152,7 +152,10 @@ object DocsGeneratorMain extends App {
   val treeStyle = "<style jsx>{`" + treeStyleCode.getOrElse("") + "`}</style>"
   val allDocJSFiles = allFiles.map { x =>
     val outDir = "docs-js"
-    val name   = x.getPath.replace(".enso", ".js").replace("Standard/src", outDir)
+    val name = x.getPath
+      .replace(".enso", ".js")
+      .replace("Standard/src", outDir)
+      .replace("Main.js", "index.js")
     val ending = name.split(outDir + "/").tail.head
     name.replace(ending, ending.replace('/', '-'))
   }
@@ -163,13 +166,16 @@ object DocsGeneratorMain extends App {
     val file = new File(x._1)
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
-    val treeCode =
+    var treeCode =
       "<div>" + treeStyle + HTML
         .ul(
           treeNames.map(_.html())
         )
         .render
         .replace("class=", "className=") + "</div>"
+    if (x._1.contains("/index.js")) {
+      treeCode = treeCode.replace("a href=\"", "a href=\"reference/")
+    }
     bw.write(
       templateCode
         .getOrElse("")
