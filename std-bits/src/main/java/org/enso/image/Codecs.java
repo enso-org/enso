@@ -1,7 +1,6 @@
 package org.enso.image;
 
 import org.enso.image.opencv.OpenCV;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfInt;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -12,8 +11,7 @@ public class Codecs {
   public static final int READ_FLAG_EMPTY = -127;
 
   static {
-    OpenCV.loadShared();
-    System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    OpenCV.loadLocally();
   }
 
   /** An error occurred when reading a file. */
