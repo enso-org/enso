@@ -77,6 +77,17 @@ object DistributionPackage {
     }
   }
 
+  def downloadFileToLocation(
+    address: String,
+    location: File
+  ): File = {
+    val exitCode = (url(address) #> location).!
+    if (exitCode != 0) {
+      throw new RuntimeException(s"Downloading the file at $address failed.")
+    }
+    location
+  }
+
   def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
@@ -103,6 +114,7 @@ object DistributionPackage {
     graalVersion: String,
     javaVersion: String
   ): Unit = {
+
     copyDirectoryIncremental(
       file("distribution/engine/THIRD-PARTY"),
       distributionRoot / "THIRD-PARTY",
@@ -120,6 +132,7 @@ object DistributionPackage {
       distributionRoot / "std-lib",
       cacheFactory.make("engine-std-lib")
     )
+    getStdlibDataFiles(distributionRoot)
 
     copyDirectoryIncremental(
       file("distribution/bin"),
@@ -132,6 +145,16 @@ object DistributionPackage {
       destination  = distributionRoot / "manifest.yaml",
       graalVersion = graalVersion,
       javaVersion  = javaVersion
+    )
+  }
+
+  private def getStdlibDataFiles(distributionRoot: File): Unit = {
+    val exampleImageUrl =
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/" +
+      "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+    downloadFileToLocation(
+      exampleImageUrl,
+      distributionRoot / "std-lib/Standard/data/image.png"
     )
   }
 

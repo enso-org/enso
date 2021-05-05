@@ -31,7 +31,7 @@ type Internal_Dialect
        overrides existing ones.
 
        # extend_with : Vector [Text, Vector Sql.Builder -> Sql.Builder] -> Internal_Dialect
-    extend_with : Vector -> Internal_Dialect
+    extend_with : Vector Any -> Internal_Dialect
     extend_with mappings =
         new_map = mappings.fold this.operation_map (m -> el -> m.insert (el.at 0) (el.at 1))
         Internal_Dialect new_map this.wrap_identifier
@@ -204,7 +204,7 @@ generate_from_part dialect from_spec = case from_spec of
    - order_description: A description of the ORDER clause.
 
    # generate_order : Internal_Dialect -> [Expression, IR.Order_Direction, IR.Nulls_Order] -> Sql.Builder
-generate_order : Internal_Dialect -> Vector -> Sql.Builder
+generate_order : Internal_Dialect -> Vector Any -> Sql.Builder
 generate_order dialect order_description =
     order_suffix = case order_description.second of
         IR.Ascending -> Sql.code " ASC"
@@ -244,7 +244,7 @@ generate_select_context dialect ctx =
    - table_name: The name of the table into which the values are being inserted.
    - pairs: The values to insert into the table, consisting of pairs of key, and
      expression returning a value.
-generate_insert_query : Internal_Dialect -> Text -> Vector -> Sql.Builder
+generate_insert_query : Internal_Dialect -> Text -> Vector Any -> Sql.Builder
 generate_insert_query dialect table_name pairs =
     names = Sql.join ", " <| pairs.map (.first >> dialect.wrap_identifier)
     values = Sql.join ", " <| pairs.map (.second >> here.generate_expression dialect)
