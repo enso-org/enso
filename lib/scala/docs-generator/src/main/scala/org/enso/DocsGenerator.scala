@@ -11,7 +11,7 @@ import HTML._
 object TreeOfCommonPrefixes {
   case class Node(name: String, var elems: List[Node]) {
     def html(beg: String = ""): Modifier = {
-      val newBeg = if (beg.length > 0) beg + "/" + name else name
+      val newBeg = if (beg.length > 0) beg + "-" + name else name
       if (elems.isEmpty) {
         HTML.li(HTML.a(HTML.href := newBeg)(name))
       } else {
@@ -20,9 +20,9 @@ object TreeOfCommonPrefixes {
             HTML.li(HTML.`class` := "section")(
               HTML.input(HTML.`type` := "checkbox", HTML.id := newBeg),
               HTML.label(HTML.`for` := newBeg)(
-                HTML.a(HTML.href := newBeg)(x.name)
+                HTML.a(HTML.href := newBeg + "-" + x.name)(x.name)
               ),
-              x.elems.map(_.html(newBeg))
+              x.elems.map(_.html(newBeg + "-" + x.name))
             )
           }
         )
@@ -83,7 +83,7 @@ object DocsGenerator {
     if (doc.replace("<div>", "").replace("</div>", "").length == 0) {
       tmp =
         "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
-      tmp = generatePure(tmp)
+      tmp = generatePure(tmp).replace("style=\"font-size: 13px;\"", "")
     }
     tmp
   }
@@ -154,14 +154,17 @@ object DocsGeneratorMain extends App {
     s.mkString
   }
   val treeStyle = "<style jsx>{`" + treeStyleCode.getOrElse("") + "`}</style>"
-  val allDocJSFiles = allFiles.map(
-    _.getPath.replace(".enso", ".js").replace("Standard/src", "docs-js")
-  )
+  val allDocJSFiles = allFiles.map { x =>
+    val outDir = "docs-js"
+    val name   = x.getPath.replace(".enso", ".js").replace("Standard/src", outDir)
+    val ending = name.split(outDir + "/").tail.head
+    name.replace(ending, ending.replace('/', '-'))
+  }
+  val dir = new File(allDocJSFiles.head.split("docs-js").head + "docs-js/")
+  dir.mkdirs()
   val zippedJS = allDocJSFiles.zip(allDocs)
   zippedJS.foreach(x => {
     val file = new File(x._1)
-    val dir  = new File(x._1.replaceAll("\\/[a-zA-Z_]*\\.[a-zA-Z]*", ""))
-    dir.mkdirs()
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
     val treeCode =
