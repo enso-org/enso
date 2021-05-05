@@ -1,10 +1,10 @@
 package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
-
 import nl.gn0s1s.bump.SemVer
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.releases.ReleaseNotFound
 import org.enso.runtimeversionmanager.test.{
   RuntimeVersionManagerTest,
   TestRuntimeVersionManagementUserInterface
@@ -110,6 +110,15 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
         "User interface should have been queried if broken versions are allowed."
       )
       componentsManager.findEngine(brokenVersion).value
+    }
+
+    "issue a context-specific error when a nightly release cannot be found" in {
+      val componentsManager = makeManagers()._2
+      val nightlyVersion    = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
+      val exception = intercept[ReleaseNotFound] {
+        componentsManager.findOrInstallEngine(nightlyVersion)
+      }
+      exception.getMessage should include("Nightly releases expire")
     }
 
     "uninstall the runtime iff it is not used by any engines" in {

@@ -215,6 +215,7 @@ branches:
           - "Build and Test (ubuntu-18.04)"
           - "Build and Test (windows-latest)"
           - "Docs Check"
+          - "Changelog Check"
           - "Rust Check"
           - "Rust Lint"
           - "Rust Test Native (macOS-latest)"

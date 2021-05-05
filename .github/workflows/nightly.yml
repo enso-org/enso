@@ -1,9 +1,12 @@
-name: Release CI
+# TODO we may consider merging this with `release.yml` as there is quite an overlap
+name: Nightly Release CI
 
 on:
   push:
-    tags:
-      - "enso-*.*.*"
+    branches:
+      - main
+  schedule:
+    - cron: "0 4 * * 2-6" # 4am (UTC) from Tuesday to Saturday (i.e. after every workday)
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
@@ -18,7 +21,34 @@ env:
 concurrency: "releases"
 
 jobs:
-  # This job should be kept up-to-date with scala.yml#build (but keep the added version check)
+  preflight-check:
+    name: Nightly Preflight Check
+    runs-on: ubuntu-18.04
+    timeout-minutes: 10
+    if:
+      "${{ github.event_name == 'schedule' ||
+      contains(github.event.head_commit.message,'[release: nightly]') }}"
+    outputs:
+      proceed: ${{ steps.preparations.outputs.proceed }}
+      nightly-version: ${{ steps.preparations.outputs.nightly-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - id: preparations
+        name: Check If The Build Should Proceed And Prepare Version String
+        shell: bash
+        working-directory: tools/ci/nightly
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # The script below sets an output 'proceed' to true or false depending on whether the nightly build should proceed.
+        # Nightly builds are skipped if no new changes are present since the last one.
+        run: |
+          npm install
+          node preflight-check.js ${{ github.sha }}
+
+  # This job should be kept up-to-date with release.yml#build (but keep the relevant changes)
+  # The difference is the version bump which modifies the version in build.sbt to the output of the preflight check.
+  # It should be done before any actual SBT builds steps.
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -27,6 +57,9 @@ jobs:
       matrix:
         os: [macOS-latest, ubuntu-18.04, windows-latest]
       fail-fast: true
+    needs:
+      - preflight-check
+    if: ${{ needs.preflight-check.outputs.proceed == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -95,9 +128,18 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Bootstrap
-      - name: Enable Release Mode
+      - name: Prepare Environment
         shell: bash
-        run: echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
+        run: |
+          echo "ENSO_RELEASE_MODE=true" >> $GITHUB_ENV
+          echo "ENSO_VERSION=${{ needs.preflight-check.outputs.nightly-version }}" >> $GITHUB_ENV
+
+      - name: Update the Version Number to the Nightly
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/bump-version.js $ENSO_VERSION
+
       - name: Bootstrap the Project
         working-directory: repo
         shell: bash
@@ -179,8 +221,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
+          refversion=${{ env.ENSO_VERSION }}
           binversion=${{ env.DIST_VERSION }}
           engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso --version --json | jq -r '.version')
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
@@ -190,8 +231,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          refversion=${ref#"refs/tags/enso-"}
+          refversion=${{ env.ENSO_VERSION }}
           binversion=${{ env.DIST_VERSION }}
           engineversion=$(${{ env.ENGINE_DIST_DIR }}/bin/enso.bat --version --json | jq -r '.version')
           test $binversion = $refversion || (echo "Tag version $refversion and the launcher version $binversion do not match" && false)
@@ -244,7 +284,7 @@ jobs:
   create-release:
     name: Prepare Release
     runs-on: ubuntu-18.04
-    needs: build
+    needs: [build, preflight-check]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -254,6 +294,15 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           path: repo/built-distribution
+      - name: Prepare Nodejs
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: npm install
+
+      # This jobs can be used to debug errors, it may be removed
+      - name: Display Structure of Downloaded Files
+        run: ls
+        working-directory: repo/built-distribution
 
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
@@ -282,10 +331,14 @@ jobs:
       - name: Save Version to Environment
         shell: bash
         run: |
-          ref=${{ github.ref }}
-          DIST_VERSION=${ref#"refs/tags/enso-"}
+          DIST_VERSION=${{ needs.preflight-check.outputs.nightly-version }}
           echo "Preparing release for $DIST_VERSION"
           echo "DIST_VERSION=$DIST_VERSION" >> $GITHUB_ENV
+      - name: Update the Version Number to the Nightly
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/bump-version.js $DIST_VERSION
 
       - name: Prepare Packages
         shell: bash
@@ -301,6 +354,12 @@ jobs:
           sleep 1
           sbt makeBundles
 
+      - name: Prepare Release Notes
+        working-directory: repo
+        shell: bash
+        run: |
+          node tools/ci/nightly/extract-release-notes.js RELEASES.md release_notes.md
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -308,86 +367,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: enso-${{ env.DIST_VERSION }}
-          release_name: Enso ${{ env.DIST_VERSION }}
-          body: "Please fill-in the release description"
+          release_name: Enso Nightly ${{ env.DIST_VERSION }}
+          body_path: repo/release_notes.md
           draft: true
           prerelease: true
-
-      - name: Login to ACR
-        uses: docker/login-action@v1
-        with:
-          registry: ensosharedwus2acr.azurecr.io
-          username: ${{ secrets.ACR_PUSH_CLIENT_ID }}
-          password: ${{ secrets.ACR_PUSH_CLIENT_SECRET }}
-
-      - name: Copy the docker entrypoint script
-        shell: bash
-        run: |
-          sleep 1
-          cp ./repo/tools/ci/docker/docker-entrypoint.sh ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}/bin
-
-      - name: Publish Runtime Docker Image
-        shell: bash
-        run: |
-          sleep 1
-          docker build -t ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }} -f ./repo/tools/ci/docker/Dockerfile ./repo/built-distribution/enso-engine-${{ env.DIST_VERSION }}-linux-amd64/enso-${{ env.DIST_VERSION }}
-          docker push ensosharedwus2acr.azurecr.io/runtime:${{ env.DIST_VERSION }}
-
-      # Publish the launcher packages to the backup/fallback S3 bucket
-      - name: Prepare AWS Session
-        shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
-          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
-          eu-central-1
-          text
-          EOF
-      - name: Upload the Linux Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-linux-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the macOS Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-macos-amd64.tar.gz s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Windows Launcher Package to S3
-        shell: bash
-        run: >
-          aws s3 cp repo/built-distribution/enso-launcher-${{ env.DIST_VERSION
-          }}-windows-amd64.zip s3://launcherfallback/launcher/enso-${{
-          env.DIST_VERSION }}/ --profile s3-upload --acl public-read
-      - name: Upload the Launcher Manifest to S3
-        shell: bash
-        run: >
-          aws s3 cp
-          repo/built-distribution/launcher-manifest/launcher-manifest.yaml
-          s3://launcherfallback/launcher/enso-${{ env.DIST_VERSION
-          }}/launcher-manifest.yaml --profile s3-upload --acl public-read
-      - name: Update the Release List in S3
-        shell: bash
-        run: |
-          aws s3 cp s3://launcherfallback/release-list.json release-list.json --profile s3-upload
-          TAG="enso-${{ env.DIST_VERSION }}"
-          ./repo/tools/ci/releases/add-release.js release-list.json "$TAG" \
-          launcher-manifest.yaml \
-          "enso-launcher-${{ env.DIST_VERSION }}-linux-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-macos-amd64.tar.gz" \
-          "enso-launcher-${{ env.DIST_VERSION }}-windows-amd64.zip"
-          aws s3 cp release-list.json s3://launcherfallback/release-list.json --profile s3-upload --acl public-read
-      - name: Teardown AWS Session
-        shell: bash
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          null
-          null
-          null
-          text
-          EOF
 
       # Upload the assets to the created release
       - name: Publish the Engine (Linux)
@@ -547,3 +530,25 @@ jobs:
           asset_path: repo/built-distribution/launcher-manifest/launcher-manifest.yaml
           asset_name: launcher-manifest.yaml
           asset_content_type: application/yaml
+      - name: Publish Release
+        shell: bash
+        working-directory: repo/tools/ci/nightly
+        run: node publish-release.js ${{ steps.create_release.outputs.id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # TODO enable this once IDE supports triggers
+      #      - name: Trigger IDE Build
+      #        shell: bash
+      #        working-directory: repo/tools/ci/nightly
+      #        run: node trigger-workflow.js ide gui-ci develop
+      #        env:
+      #          GITHUB_TOKEN: ${{ github.token }}
+      - uses: dev-drprasad/delete-older-releases@v0.2.0
+        name: Remove Old Releases
+        with:
+          keep_latest: 3
+          delete_tag_pattern: SNAPSHOT
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

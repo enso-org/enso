@@ -1,13 +1,13 @@
 package org.enso.runtimeversionmanager.releases.engine
 
 import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
-import org.enso.runtimeversionmanager.components.Manifest
+import org.enso.runtimeversionmanager.components.{Engine, Manifest}
 import org.enso.runtimeversionmanager.releases.{
   EnsoReleaseProvider,
   Release,
+  ReleaseNotFound,
   ReleaseProviderException,
   SimpleReleaseProvider
 }
@@ -22,7 +22,7 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
   def fetchRelease(version: SemVer): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString
     for {
-      release <- releaseProvider.releaseForTag(tag)
+      release <- wrapFetchError(releaseProvider.releaseForTag(tag))
       manifestAsset <-
         release.assets
           .find(_.fileName == Manifest.DEFAULT_MANIFEST_NAME)
@@ -51,6 +51,26 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
       manifest = manifest,
       release  = release
     )
+  }
+
+  /** Intercepts the `ReleaseNotFound` and injects a message regarding nightly
+    * releases if applicable.
+    */
+  private def wrapFetchError[A](result: Try[A]): Try[A] = result.recoverWith {
+    case ReleaseNotFound(tag, _, cause) if tag.contains(Engine.nightlyInfix) =>
+      // TODO [RW] explain how to upgrade using the upgrade command once its
+      //  implemented (#1717)
+      Failure(
+        ReleaseNotFound(
+          tag,
+          Some(
+            s"Cannot find release `$tag`. Nightly releases expire after some " +
+            s"time. Consider upgrading to a stable release or a newer " +
+            s"nightly build."
+          ),
+          cause
+        )
+      )
   }
 
   private case class DefaultEngineRelease(

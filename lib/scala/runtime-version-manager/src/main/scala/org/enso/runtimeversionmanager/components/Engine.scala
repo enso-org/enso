@@ -67,4 +67,26 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     * installed release and issue a warning when they are used.
     */
   def isMarkedBroken: Boolean = manifest.brokenMark
+
+  /** Specifies if the engine version comes from a nightly release.
+    *
+    * See `docs/distribution/nightly.md` for more information.
+    */
+  def isNightly: Boolean = Engine.isNightly(version)
+}
+
+object Engine {
+
+  /** The infix that should be included in the pre-release part of the semantic
+    * versioning string that describes the engine version to indicate that this
+    * is a prerelease.
+    */
+  def nightlyInfix = "SNAPSHOT"
+
+  /** Specifies if the engine version comes from a nightly release.
+    *
+    * See `docs/distribution/nightly.md` for more information.
+    */
+  def isNightly(version: SemVer): Boolean =
+    version.preRelease.exists(_.contains(nightlyInfix))
 }

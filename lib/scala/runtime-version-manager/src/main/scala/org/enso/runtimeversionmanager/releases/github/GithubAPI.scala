@@ -1,7 +1,6 @@
 package org.enso.runtimeversionmanager.releases.github
 
 import java.nio.file.Path
-
 import io.circe._
 import io.circe.parser._
 import org.enso.cli.task.TaskProgress
@@ -12,7 +11,10 @@ import org.enso.runtimeversionmanager.http.{
   Header,
   URIBuilder
 }
-import org.enso.runtimeversionmanager.releases.ReleaseProviderException
+import org.enso.runtimeversionmanager.releases.{
+  ReleaseNotFound,
+  ReleaseProviderException
+}
 
 import scala.util.{Success, Try}
 
@@ -107,7 +109,7 @@ object GithubAPI {
           .map(err =>
             handleError(
               response,
-              ReleaseProviderException(s"Cannot find release `$tag`.", err)
+              ReleaseNotFound(tag, cause = err)
             )
           )
           .toTry
