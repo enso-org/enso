@@ -15,16 +15,12 @@ object TreeOfCommonPrefixes {
       if (elems.isEmpty) {
         HTML.li(HTML.a(HTML.href := newBeg)(name))
       } else {
-        HTML.ul(HTML.p(name))(
-          elems.map { x =>
-            HTML.li(HTML.`class` := "section")(
-              HTML.input(HTML.`type` := "checkbox", HTML.id := newBeg),
-              HTML.label(HTML.`for` := newBeg)(
-                HTML.a(HTML.href := newBeg + "-" + x.name)(x.name)
-              ),
-              x.elems.map(_.html(newBeg + "-" + x.name))
-            )
-          }
+        HTML.li(HTML.`class` := "section")(
+          HTML.input(HTML.`type` := "checkbox", HTML.id := newBeg),
+          HTML.label(HTML.`for` := newBeg)(
+            HTML.a(HTML.href := newBeg)(name)
+          ),
+          elems.map(x => HTML.ul(x.html(newBeg)))
         )
       }
     }
@@ -168,9 +164,11 @@ object DocsGeneratorMain extends App {
     file.createNewFile();
     val bw = new BufferedWriter(new FileWriter(file))
     val treeCode =
-      "<div>" + treeStyle + treeNames
-        .map(_.html())
-        .mkString
+      "<div>" + treeStyle + HTML
+        .ul(
+          treeNames.map(_.html())
+        )
+        .render
         .replace("class=", "className=") + "</div>"
     bw.write(
       templateCode
