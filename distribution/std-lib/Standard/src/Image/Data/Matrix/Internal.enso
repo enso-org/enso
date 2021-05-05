@@ -37,3 +37,4 @@ core_op_handler error =
     case error of
         Matrix.Dimensions_Not_Equal -> Error.throw error
         _ -> Panic.throw error
+

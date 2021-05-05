@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Time
 import Standard.Base.Network.Http
 import Standard.Base.System.Platform
+import Standard.Image.Codecs
 
 # Renamed to avoid clashing with an uppercase name resolution for `duration`.
 import Standard.Base.Data.Json as Enso_Json
@@ -10,6 +11,8 @@ import Standard.Base.Data.List as Enso_List
 import Standard.Base.Data.Map as Enso_Map
 import Standard.Base.Data.Time.Duration as Enso_Duration
 import Standard.Base.Network.Uri as Enso_Uri
+import Standard.Image as Enso_Image
+import Standard.Image.Data.Matrix as Enso_Matrix
 
 # Can do the top-level examples directory.
 
@@ -148,3 +151,33 @@ http_client = Http.new (timeout = 30.seconds)
 ## A basic URI for examples.
 uri : Uri
 uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
+
+## A file that contains an image.
+
+   ! Downloading
+     Calling this method will result in the image file being downloaded from
+     the internet if it is not already present on your disk. If you do not want
+     this to happen, please place the image in the `std-lib/Standard/data`
+     folder for your Enso distribution.
+image_file : File
+image_file =
+    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+    file = Enso_Project.data / "image.png"
+    if file.exists.not then
+        Http.fetch url . to_file file
+    file
+
+## A PNG image.
+
+   ! Downloading
+     Calling this method will result in the image file being downloaded from
+     the internet if it is not already present on your disk. If you do not want
+     this to happen, please place the image in the `std-lib/Standard/data`
+     folder for your Enso distribution.
+image : Enso_Image.Image
+image = Enso_Image.read here.image_file [Codecs.Read_Alpha_Channel]
+
+## A matrix that corresponds to `here.image`.
+matrix : Enso_Matrix.Matrix
+matrix = here.image.to_matrix
+

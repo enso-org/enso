@@ -51,6 +51,7 @@ type Table
 
        Arguments:
          - show_rows: the number of initial rows that should be displayed.
+    print : Integer -> Nothing
     print show_rows=10 =
         IO.println (this.display show_rows format_terminal=True)
         IO.println ''
@@ -810,3 +811,4 @@ freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Colum
 freshen_columns used_names columns =
     fresh_names = here.fresh_names used_names (columns.map .name)
     here.rename_columns columns fresh_names
+

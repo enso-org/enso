@@ -127,7 +127,7 @@ type Context
        Arguments:
        - new_orders: The new ordering clauses to set in the query.
     # set_orders : Vector [Expression, Order_Direction] -> Context
-    set_orders : Vector -> Context
+    set_orders : Vector Any -> Context
     set_orders new_orders =
         Context this.from_spec this.where_filters new_orders this.groups this.meta_index this.limit
 
@@ -166,7 +166,7 @@ type Context
 
        This is useful as a preprocessing step between combining queries, for example in a join.
     # as_subquery : Text -> Vector (Vector Internal_Column) -> [IR.Sub_Query, Vector (Vector Internal_Column)]
-    as_subquery : Text -> Vector -> Vector
+    as_subquery : Text -> Vector Any -> Vector
     as_subquery alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
@@ -399,3 +399,4 @@ substitute_origin old_origin new_origin expr = case expr of
 lift_expression_map : (Expression -> Expression) -> Internal_Column -> Internal_Column
 lift_expression_map f col =
     Internal_Column col.name col.sql_type (f col.expression)
+

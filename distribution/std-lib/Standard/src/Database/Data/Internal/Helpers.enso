@@ -48,6 +48,9 @@ unify_vector_singleton x = case x of
    be removed in a future version.
 type Unsupported_Name_Error text
 
+## UNSTABLE
+
+   Creates a human-readable representation of the unsupported name error.
 Unsupported_Name_Error.to_display_text : Text
 Unsupported_Name_Error.to_display_text =
     "The name " + this.text + " is not currently supported by the Database library."
@@ -70,3 +73,4 @@ ensure_name_is_sane name =
         Pattern.matches "[A-Za-z_0-9]+" name
     if is_safe then True else
         Error.throw <| Unsupported_Name_Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
+
