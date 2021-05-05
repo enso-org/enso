@@ -399,7 +399,7 @@ type Http
              example_post_json =
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.post_json "http://httpbin.org/post" json
-    post_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
+    post_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
     post_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -443,7 +443,7 @@ type Http
              example_post_json =
                  json = Json.parse '{"key":"val"}'
                  Examples.http_client.put_json "http://httpbin.org/post" json
-    put_json : (Text | Uri) -> Json -> Vector.Vector -> Response ! Request_Error
+    put_json : (Text | Uri) -> (Text | Json) -> Vector.Vector -> Response ! Request_Error
     put_json uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -562,7 +562,8 @@ type Http
                     Pair req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
-                    Pair req (body_publishers.ofString json.to_text)
+                    json_body = if json.is_a Text then json else json.to_text
+                    Pair req (body_publishers.ofString json_body)
                 Request_Body.Form form ->
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder
@@ -603,7 +604,7 @@ type Http
             Response.response (this.internal_http_client.send http_request body_handler)
         response.catch e-> case e of
             Polyglot_Error err ->
-                Error.throw (Request_Error err.getMessage)
+                Error.throw (Request_Error err.getClass.getSimpleName err.getMessage)
             _ ->
                 Error.throw e
 
@@ -646,11 +647,15 @@ type Http
    An error when sending an Http request.
 
    Arguments:
+   - error_type: The type of the error.
    - message: The message for the error.
-type Request_Error message
+type Request_Error error_type message
 
 ## UNSTABLE
 
    Convert a request error to a human-readable form.
-Request_Error.to_display_text = "Error when sending request: " + this.message
-
+Request_Error.to_display_text =
+    description_text = case this.message of
+        Nothing -> ""
+        _ -> " " + this.message
+    this.error_type + " error when sending request." + description_text
