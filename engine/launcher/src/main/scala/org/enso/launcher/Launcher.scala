@@ -26,7 +26,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.LogLevel
+import org.enso.loggingservice.{LogLevel, LogMasking}
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /** Implements launcher commands that are run from CLI and can be affected by
@@ -35,6 +35,8 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
+  LogMasking.setup(enabled = !cliOptions.internalOptions.logMaskingDisabled)
+
   private val logger = Logger[Launcher]
 
   private lazy val componentsManager =
@@ -89,9 +91,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
-        logger.trace(
-          s"Executing a command that creates a new project: $command"
-        )
         command.run().get
       }
 
@@ -213,7 +212,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
-        logger.trace(s"Executing a command that starts the REPL: $command")
         command.run().get
       }
     exitCode
@@ -250,9 +248,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runner.run(path, versionOverride, logLevel, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
-        logger.trace(
-          s"Executing a command that runs the Enso program: $command"
-        )
         command.run().get
       }
     exitCode
@@ -295,9 +290,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
-        logger.trace(
-          s"Executing a command that starts the Language Server: $command"
-        )
         command.run().get
       }
     exitCode
@@ -441,10 +433,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         runtimeVersionRunSettings,
         JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
       ) { runtimeVersionCommand =>
-        logger.trace(
-          s"Executing a command that gets the runtime version: " +
-          s"$runtimeVersionCommand"
-        )
         runtimeVersionCommand.captureOutput().get
       }
 
