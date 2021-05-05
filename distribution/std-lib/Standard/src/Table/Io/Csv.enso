@@ -15,6 +15,14 @@ polyglot java import java.io.ByteArrayInputStream
      names. For example, if `prefix` is set to `X`, the columns will be named
      `X0`, `X1`, etc. This argument has no effect if the storage name is
      inferred from the CSV header row or set manually.
+
+   > Example
+     Read a CSV from disk and convert it into a table.
+
+         import Standard.Table
+         import Standard.Examples
+
+         example_csv_to_table = Examples.csv.read_csv
 File.File.read_csv : Boolean -> Text -> Table
 File.File.read_csv has_header=True prefix='C' =
     here.from_csv this has_header prefix
@@ -33,7 +41,6 @@ File.File.read_csv has_header=True prefix='C' =
    > Example
      Read a CSV from disk and convert it into a table.
 
-         from Standard.Base import all
          import Standard.Table
          import Standard.Examples
 
@@ -44,7 +51,6 @@ File.File.read_csv has_header=True prefix='C' =
    > Example
      Read a CSV from memory and convert it into a table.
 
-         from Standard.Base import all
          import Standard.Table
 
          example_csv_to_table =
