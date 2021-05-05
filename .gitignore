@@ -107,3 +107,11 @@ project/metals.sbt
 #################
 
 build-cache/
+
+###################
+## Enso-Specific ##
+###################
+
+distribution/std-lib/Standard/data/scratch_file
+distribution/std-lib/Standard/data/image.png
+

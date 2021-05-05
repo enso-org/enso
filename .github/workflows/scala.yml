@@ -237,6 +237,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso --run test/Image_Tests
 
       - name: Test Engine Distribution (Windows)
         shell: bash
@@ -247,6 +248,7 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Database_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Geo_Tests
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Visualization_Tests
+          $ENGINE_DIST_DIR/bin/enso.bat --run test/Image_Tests
 
       # Publish
       - name: Publish the Engine Distribution Artifact

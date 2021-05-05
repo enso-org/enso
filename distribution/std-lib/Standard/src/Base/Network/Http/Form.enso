@@ -2,6 +2,52 @@ from Standard.Base import all
 
 import Standard.Base.Data.Vector
 
+## Create Form data from Parts.
+
+   Arguments:
+   - parts: A vector of parts to make up the form.
+
+   > Example
+     Create a new form
+
+         import Standard.Base.Network.Http.Form
+
+         example_form_new = Form.new (Form.text_field "foo" "bar")
+new : Vector.Vector -> Form
+new parts = Form parts
+
+# Helpers for creating different parts of the form.
+
+## Create a text field of a Form.
+
+   Arguments:
+   - key: The key for the field in the form.
+   - val: The text for the textual field.
+
+   > Example
+     Create a textual form field.
+
+         import Standard.Base.Network.Http.Form
+
+         example_text_field = Form.text_field "Foo" "bar"
+text_field : Text -> Text -> Part
+text_field key val = Part key (Part_Text val)
+
+## Create a file field of a Form.
+
+   Arguments:
+   - key: The key for the field in the form.
+   - file: The textual file contents.
+
+   > Example
+     Create a file form field.
+
+         import Standard.Base.Network.Http.Form
+
+         example_text_field = Form.file_field "Foo" "My file contents"
+file_field : Text -> Text -> Part
+file_field key file = Part key (Part_File file)
+
 ## The HTTP form containing a vector of parts.
 type Form
 
@@ -17,11 +63,24 @@ type Form
 
        > Example
          Convert to a form.
-             Form.new [Part "foo" (Part_Text "bar")] . to_form
+
+             import Standard.Base.Network.Http.Form
+
+             example_to_form = Form.new [Part "foo" (Part_Text "bar")] . to_form
     to_form : Form
     to_form = this
 
 ## Convert Vector to a Form.
+
+   > Example
+     Create a vector of form parts and convert it to a form.
+
+         import Standard.Base.Network.Http.Form
+
+         example_to_form =
+             part_1 = Form.text_field "Foo" "bar"
+             part_2 = Form.text_field "Baz" "quux"
+             [part_1, part_2].to_form
 Vector.Vector.to_form = Form this
 
 ## The key-value element of the form.
@@ -48,41 +107,3 @@ type Part_Value
        Arguments:
        - part_file: The file for the form part.
     type Part_File part_file
-
-## Create Form data from Parts.
-
-   Arguments:
-   - parts: A vector of parts to make up the form.
-
-   > Example
-     Create a new form
-         Form.new (Form.text_field "foo" "bar")
-new : Vector.Vector -> Form
-new parts = Form parts
-
-# Helpers for creating different parts of the form.
-
-## Create a text field of a Form.
-
-   Arguments:
-   - key: The key for the field in the form.
-   - val: The text for the textual field.
-
-   > Example 
-     Create a textual form field.
-         Form.text_field "Foo" "bar"
-text_field : Text -> Text -> Part
-text_field key val = Part key (Part_Text val)
-
-## Create a file field of a Form.
-
-   Arguments:
-   - key: The key for the field in the form.
-   - file: The textual file contents.
-
-   > Example
-     Create a file form field.
-        Form.file_field "Foo" "My file contents"
-file_field : Text -> Text -> Part
-file_field key file = Part key (Part_File file)
-

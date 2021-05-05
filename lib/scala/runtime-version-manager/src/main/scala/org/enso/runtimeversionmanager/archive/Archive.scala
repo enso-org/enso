@@ -39,6 +39,22 @@ import scala.util.{Try, Using}
   */
 object Archive {
 
+  /** An archive entry representing a symbolic link. */
+  sealed trait Symlink
+  object Symlink {
+
+    /** The TAR archive entry representing a symbolic link.
+      *
+      * @param target the symlink target
+      */
+    case class TarArchiveSymlink(target: Path) extends Symlink
+
+    /** The ZIP archive entry representing a symbolic lint.
+      * The entry's contents contains the symlink target.
+      */
+    case object ZipArchiveSymlink extends Symlink
+  }
+
   private val logger = Logger[Archive.type]
 
   /** Extracts the archive at `archivePath` to `destinationDirectory`.
@@ -205,6 +221,16 @@ object Archive {
                     case None =>
                       missingPermissions += 1
                   }
+                  getSymlink(entry).foreach {
+                    case Archive.Symlink.TarArchiveSymlink(target) =>
+                      Files.deleteIfExists(destinationPath)
+                      Files.createSymbolicLink(destinationPath, target)
+                    case Archive.Symlink.ZipArchiveSymlink =>
+                      val target =
+                        Path.of(Files.readString(destinationPath).trim)
+                      Files.deleteIfExists(destinationPath)
+                      Files.createSymbolicLink(destinationPath, target)
+                  }
                 }
               }
             }
@@ -254,6 +280,19 @@ object Archive {
       case _ =>
         None
     }
+
+  /** Get the symlink information associated with that `entry`. */
+  private def getSymlink(entry: ApacheArchiveEntry): Option[Symlink] = {
+    entry match {
+      case entry: TarArchiveEntry if entry.isSymbolicLink =>
+        val target = Path.of(entry.getLinkName)
+        Some(Symlink.TarArchiveSymlink(target))
+      case entry: ZipArchiveEntry if entry.isUnixSymlink =>
+        Some(Symlink.ZipArchiveSymlink)
+      case _ =>
+        None
+    }
+  }
 
   /** Opens the archive at `path` and executes the provided action.
     *

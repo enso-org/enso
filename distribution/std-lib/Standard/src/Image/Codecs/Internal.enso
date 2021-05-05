@@ -44,4 +44,5 @@ Codecs.Write_Webp_Quality.to_integer = Imgcodecs.IMWRITE_WEBP_QUALITY
 ## PRIVATE
 
    Create an OpenCV matrix.
+mat_of_int : Vector Any -> MatOfInt
 mat_of_int values = MatOfInt.new values.to_array

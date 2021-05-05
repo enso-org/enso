@@ -11,8 +11,7 @@ import java.util.Base64;
 public class Image {
 
   static {
-    OpenCV.loadShared();
-    System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    OpenCV.loadLocally();
   }
 
   private static final byte MAX_SIGNED_BYTE = -1;

@@ -139,6 +139,7 @@ type Connection
        Arguments:
        - table_name: The name of the table to fetch the column metadata for.
     # fetch_columns : Text -> Vector [Text, Sql_Type]
+    fetch_columns : Text -> Vector Any
     fetch_columns table_name =
         query = IR.Select_All (IR.make_ctx_from table_name)
         compiled = this.dialect.generate_sql query
@@ -211,6 +212,7 @@ type Builder
        - rs: the Java ResultSet from which the value will be fetched.
        - i: the index of the column to fetch from (starting from 1 as is the
          ResultSet convention).
+    fetch_and_append : ResultSet -> Integer -> Nothing
     fetch_and_append rs i = case this of
         Builder_Inferred _ ->
             obj = rs.getObject i
@@ -334,6 +336,7 @@ type Sql_Timeout_Error
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
+wrap_sql_errors : Any -> Any ! Error
 wrap_sql_errors ~action =
     result = Panic.recover action
     result.catch err-> case err of

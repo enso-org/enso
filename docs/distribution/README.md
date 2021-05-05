@@ -31,3 +31,5 @@ dependencies, and Enso projects for use by our users.
   standard libraries for Enso.
 - [**Bundles**](bundles.md) An explanation of distributed bundles that contain
   all components necessary to run Enso out of the box.
+- [**Nightly**](nightly.md) Description of the infrastructure related to the
+  nightly builds.
