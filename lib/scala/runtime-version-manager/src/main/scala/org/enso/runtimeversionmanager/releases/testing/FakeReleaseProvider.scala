@@ -1,14 +1,13 @@
 package org.enso.runtimeversionmanager.releases.testing
 
 import java.nio.file.{Files, Path, StandardCopyOption}
-
 import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
   Release,
-  ReleaseProviderException,
+  ReleaseNotFound,
   SimpleReleaseProvider
 }
 
@@ -39,7 +38,7 @@ case class FakeReleaseProvider(
   override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
-      .toRight(ReleaseProviderException(s"Release $tag does not exist."))
+      .toRight(ReleaseNotFound(tag))
       .toTry
 
   /** @inheritdoc */

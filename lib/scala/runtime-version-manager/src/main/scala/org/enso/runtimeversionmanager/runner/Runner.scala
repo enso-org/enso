@@ -1,7 +1,6 @@
 package org.enso.runtimeversionmanager.runner
 
 import java.nio.file.Path
-
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
@@ -55,6 +54,14 @@ class Runner(
           "--new-project-name",
           name
         ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
+      // TODO [RW] reporting warnings to the IDE (#1710)
+      if (Engine.isNightly(engineVersion)) {
+        Logger[Runner].warn(
+          s"Creating a new project using a nightly build ($engineVersion). " +
+          "Nightly builds may disappear after a while, so you may need to " +
+          "upgrade. Consider using a stable version."
+        )
+      }
       RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
     }
 

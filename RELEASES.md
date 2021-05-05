@@ -1,3 +1,14 @@
+# Enso Next
+
+## Miscellaneous
+
+- Adding a pipeline for automatic nightly builds - during the night after each
+  workday any new changes to the `main` branch are built and released as a
+  nightly builds. The nightly builds can be useful to preview in-development
+  features, but they should not be relied on, as they are not considered stable
+  and only the 3 latest nightly builds are kept, so the nightly versions become
+  obsolete very fast. ([#1689](https://github.com/enso-org/enso/pull/1689)).
+
 # Enso 0.2.11 (2021-04-28)
 
 ## Tooling
