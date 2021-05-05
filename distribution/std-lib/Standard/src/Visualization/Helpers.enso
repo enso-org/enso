@@ -10,7 +10,7 @@ import Standard.Table.Data.Table
 
    Arguments:
    - f: unary invokable that is applied to each vector element. Non-error
-        values are returned in the resulting vector. Error values are dropped. 
+        values are returned in the resulting vector. Error values are dropped.
 Vector.Vector.filter_map : Any -> Vector
 Vector.Vector.filter_map f = this.map f . filter .is_valid
 
@@ -68,7 +68,7 @@ Error.map_valid _ = this
 
    Recovers from the error by returning the parameter value.
 
-   The error contents will be ignored. 
+   The error contents will be ignored.
 
    Arguments:
    - val: a value that will be evaluated and returned if `this` is an error.
@@ -79,7 +79,7 @@ Any.catch_ ~val = this.catch (_-> val)
 
    Recovers from the error by returning the parameter value.
 
-   The error contents will be ignored. 
+   The error contents will be ignored.
 
    Arguments:
    - val: a value that will be evaluated and returned if `this` is an error.
@@ -95,8 +95,8 @@ recover_errors ~body =
 
 ## PRIVATE
 
-   Returns all the columns in the table, including indices. 
-   
+   Returns all the columns in the table, including indices.
+
    Index columns are placed before other columns.
 Table.Table.all_columns : Vector
 Table.Table.all_columns =
@@ -108,15 +108,15 @@ Table.Table.all_columns =
 
 ## PRIVATE
 
-   Looks for a column by a given name. 
-   
+   Looks for a column by a given name.
+
    Unlike `Table.at` looks into index columns and name comparison is case-insensitive.
 
    Arguments:
    - text: the case-insensitive name of the searched column.
 Table.Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.Table.lookup_ignore_case name =
-    ret = this.all_columns.find <| col-> 
+    ret = this.all_columns.find <| col->
         col.name.equals_ignore_case name
     ret
 
