@@ -2,7 +2,7 @@
 
 ## Libraries
 
-- Removed reflective access when loading OpenCV library
+- Removed reflective access when loading the OpenCV library
   ([#1727](https://github.com/enso-org/enso/pull/1727)). Illegal reflective
   access operations were deprecated and will be denied in future JVM releases.
 
