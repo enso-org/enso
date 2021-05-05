@@ -10,9 +10,24 @@ import HTML._
 
 object TreeOfCommonPrefixes {
   case class Node(name: String, var elems: List[Node]) {
-    def html(beg: String = ""): Modifier = HTML.ul(HTML.p(name))(
-      elems.map(_.html(if (beg.length > 0) beg + "-" + name else name))
-    )
+    def html(beg: String = ""): Modifier = {
+      val newBeg = if (beg.length > 0) beg + "/" + name else name
+      if (elems.isEmpty) {
+        HTML.li(HTML.a(HTML.href := newBeg)(name))
+      } else {
+        HTML.ul(HTML.p(name))(
+          elems.map { x =>
+            HTML.li(HTML.`class` := "section")(
+              HTML.input(HTML.`type` := "checkbox", HTML.id := newBeg),
+              HTML.label(HTML.`for` := newBeg)(
+                HTML.a(HTML.href := newBeg)(x.name)
+              ),
+              x.elems.map(_.html(newBeg))
+            )
+          }
+        )
+      }
+    }
   }
 
   def groupNodesByPrefix(le: List[Node]): List[Node] =
