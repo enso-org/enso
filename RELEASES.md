@@ -1,13 +1,31 @@
 # Enso Next
 
+## Tooling
+
+- Added support for higher-kinded types in suggestions in the language server
+  ([#1712](https://github.com/enso-org/enso/pull/1712)). This allows the
+  searcher to make more accurate suggestions when working with collection types.
+- Fixed an issue where symlinks were not extracted properly when installing a
+  runtime for Enso ([#1718](https://github.com/enso-org/enso/pull/1718)).
+
+## Libraries
+
+- Overhauled the examples throughout the standard library
+  ([#1707](https://github.com/enso-org/enso/pull/1707),
+  [#1725](https://github.com/enso-org/enso/pull/1725)). These examples all now
+  conform to a standard format and have been tested to work.
+- Made some miscellaneous fixes to the `HTTP` portion of the `Base` library that
+  fix a few bugs ([#1722](https://github.com/enso-org/enso/pull/1722)).
+
 ## Miscellaneous
 
-- Adding a pipeline for automatic nightly builds - during the night after each
-  workday any new changes to the `main` branch are built and released as a
-  nightly builds. The nightly builds can be useful to preview in-development
-  features, but they should not be relied on, as they are not considered stable
-  and only the 3 latest nightly builds are kept, so the nightly versions become
-  obsolete very fast. ([#1689](https://github.com/enso-org/enso/pull/1689)).
+- Adding a pipeline for automatic nightly builds
+  ([#1689](https://github.com/enso-org/enso/pull/1689)). During the night after
+  each workday any new changes to the `main` branch are built and released as a
+  nightly build. The nightly builds can be useful to preview in-development
+  features, but they should not be relied on as they are not considered stable.
+  Only the 3 latest nightly builds are kept, so the nightly versions become
+  obsolete very quickly.
 
 # Enso 0.2.11 (2021-04-28)
 
