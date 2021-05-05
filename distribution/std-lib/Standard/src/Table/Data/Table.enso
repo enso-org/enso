@@ -9,14 +9,19 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 
-## An error returned when a non-existent column is being looked up.
+## Creates a new table from a vector of `[name, items]` pairs.
 
    Arguments:
-   - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error column_name
+   - columns: The `[name, items]` pairs to construct a new table from.
 
-## An error returned when getting an index but no index is set for that table.
-type No_Index_Set_Error
+   > Example
+     Create a new table with the given in two columns:
+         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
+new : Vector -> Table
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    here.from_columns cols
 
 ## Creates a new table from a vector of column names and a vector of vectors
    specifying row contents.
@@ -39,20 +44,6 @@ from_rows : Vector.Vector -> Vector.Vector -> Table
 from_rows header rows =
     columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
     here.new columns
-
-## Creates a new table from a vector of `[name, items]` pairs.
-
-   Arguments:
-   - columns: The `[name, items]` pairs to construct a new table from.
-
-   > Example
-     Create a new table with the given in two columns:
-         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
-new : Vector -> Table
-new columns =
-    cols = columns.map c->
-        Column.from_vector (c.at 0) (c.at 1) . java_column
-    here.from_columns cols
 
 ## Joins a vector of tables (or columns) into a single table, using each table's
    index as the join key.
@@ -528,6 +519,15 @@ type Aggregate_Table
        - show_rows: the number of initial rows that should be displayed.
     print : Integer -> Nothing
     print show_rows=10 = this.values.print show_rows
+
+## An error returned when a non-existent column is being looked up.
+
+   Arguments:
+   - column_name: The name of the column that doesn't exist.
+type No_Such_Column_Error column_name
+
+## An error returned when getting an index but no index is set for that table.
+type No_Index_Set_Error
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)
