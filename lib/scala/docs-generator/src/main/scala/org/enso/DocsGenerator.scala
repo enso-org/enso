@@ -136,7 +136,7 @@ object DocsGeneratorMain extends App {
   })
 
   /// HTML's for syntax website.
-  val treeNames = groupByPrefix(allFileNames.toList)
+  val treeNames = groupByPrefix(allFileNames.toList).filter(_.elems.nonEmpty)
   val jsTemplate = new File(
     "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/template.js"
   )
