@@ -176,13 +176,20 @@ object DocsGeneratorMain extends App {
     if (x._1.contains("/index.js")) {
       treeCode = treeCode.replace("a href=\"", "a href=\"reference/")
     }
+    val partials =
+      x._1.split("docs-js/").tail.head.replace(".js", "").split("-")
+    for (i <- 1 to partials.length) {
+      val id  = partials.take(i).mkString("-")
+      val beg = "<input type=\"checkbox\" id=\"" + id + "\" "
+      treeCode = treeCode.replace(beg, beg + "checked=\"True\"")
+    }
     bw.write(
       templateCode
         .getOrElse("")
         .replace(
           "{/*PAGE*/}",
           x._2
-            .replace("display: flex", "display: none")
+            .replace("doc-copy-btn flex", "doc-copy-btn none")
             .replace("{", "&#123;")
             .replace("}", "&#125;")
         )
