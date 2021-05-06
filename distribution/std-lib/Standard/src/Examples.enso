@@ -6,7 +6,8 @@ import Standard.Base.System.Platform
 import Standard.Image.Codecs
 import Standard.Table
 
-# Renamed to avoid clashing with an uppercase name resolution for `duration`.
+# Renamed to avoid clashing with an uppercase name resolution for the relevant
+# items in this file.
 import Standard.Base.Data.Json as Enso_Json
 import Standard.Base.Data.List as Enso_List
 import Standard.Base.Data.Map as Enso_Map
@@ -226,8 +227,9 @@ text_column_1 = Table.Column.from_vector "Text" ["Hello,", "my", "name", "is", "
 text_column_2 : Table.Column.Column
 text_column_2 = Table.Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
-## A simple aggregate column.
+## An aggregate column for the relevant examples.
 aggregate_column : Table.Column.Aggregate_Column
+aggregate_column = here.aggregate_table.at "transaction_id"
 
 ## A simple table that contains basic shop inventory data for the food shop.
 inventory_table : Table.Table
@@ -251,8 +253,4 @@ aggregate_table =
     item_names = Examples.inventory_table.at "item_name"
     with_names = transactions.join item_names on="item_id"
     with_names.group by="item_name"
-
-## An aggregate column for the relevant examples.
-aggregate_column : Table.Column.Aggregate_Column
-aggregate_column = here.aggregate_table.at "transaction_id"
 

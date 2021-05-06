@@ -40,12 +40,15 @@ import Tests.Network.Uri_Spec
 import Tests.System.File_Spec
 import Tests.System.Process_Spec
 
+import Tests.Examples_Spec
+
 main = Test.Suite.run_main <|
     Any_Spec.spec
     Array_Spec.spec
     Case_Spec.spec
     Deep_Export_Spec.spec
     Error_Spec.spec
+    Examples_Spec.spec
     File_Spec.spec
     Http_Header_Spec.spec
     Http_Request_Spec.spec

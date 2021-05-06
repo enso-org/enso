@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Builtins
+
 ## Creates a new test group, desribing properties of the object
    described by `this`.
 
@@ -314,6 +316,39 @@ Boolean.should_be_false = case this of
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
 Error.should_be_false = Panic.throw (Matched_On_Error this)
+
+## Asserts that a value is of a given type.
+
+   Arguments:
+   - typ: The type to assert that `this` is a value of.
+
+   > Examples
+     Assert that 1 is of type Boolean.
+
+         import Standard.Test
+
+         example_should_be_a = 1.should_be_a Boolean
+Any.should_be_a : Any -> Assertion
+Any.should_be_a typ = if this.is_a typ then Success else
+    loc = Meta.get_source_location 0
+    expected_type = Meta.get_qualified_type_name typ
+    actual_type = Meta.get_qualified_type_name this
+    message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
+    Panic.throw <| Failure message
+
+## Asserts that a value is of a given type.
+
+   Arguments:
+   - typ: The type to assert that `this` is a value of.
+
+   > Examples
+     Assert that 1 is of type Integer.
+
+         import Standard.Test
+
+         example_should_be_an = 1.should_be_an Integer
+Any.should_be_an : Any -> Assertion
+Any.should_be_an typ = this.should_be_a typ
 
 type Verbs
 
