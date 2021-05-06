@@ -33,6 +33,18 @@ from Standard.Table.Data.Order_Rule export Order_Rule
        and elevation.
      - Nested properties are not supported and not included in the resulting
        dataframe.
+
+   > Example
+     Converts a JSON array containing key-value pairs into a table for the
+     provided headers.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_to_table =
+             json = Examples.simple_table_json
+             headers = Examples.simple_table_json_headers
+             json.to_table headers
 Json.Array.to_table : Vector -> Table
 Json.Array.to_table fields = case this of
     Json.Array items ->
@@ -63,6 +75,17 @@ Json.Array.to_table fields = case this of
        and elevation.
      - Nested properties are not supported and not included in the resulting
        dataframe.
+
+   > Example
+     Convert a GeoJSON object into a dataframe by looking up the necessary keys
+     in the input item.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_to_table =
+             json = Examples.geo_json
+             json.to_table
 Json.Object.to_table : Vector -> Table ! Nothing
 Json.Object.to_table fields=Nothing =
     if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw Nothing else
@@ -83,3 +106,4 @@ Json.Object.to_table fields=Nothing =
                 Table.new cols
 
             _ -> Error.throw Nothing
+

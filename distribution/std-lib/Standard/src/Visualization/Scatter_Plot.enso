@@ -5,7 +5,8 @@ import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
 
 ## PRIVATE
-    Name of the index column that may be generated to plot against.
+
+   Name of the index column that may be generated to plot against.
 index_name : Text
 index_name = 'index'
 
@@ -22,24 +23,33 @@ label_field : Text
 label_field = 'label'
 
 ## PRIVATE
+
    Represents a recognized point data field for a scatter plot visualization.
 type PointData
+
     ## PRIVATE
     type PointData
+
     ## PRIVATE
     type X
+
     ## PRIVATE
     type Y
+
     ## PRIVATE
     type Color
+
     ## PRIVATE
     type Shape
+
     ## PRIVATE
     type Label
+
     ## PRIVATE
     type Size
 
     ## PRIVATE
+
        Returns all recognized point data fields.
     all_fields : Vector
     all_fields = [X,Y,Color,Shape,Label,Size]
@@ -70,6 +80,7 @@ type PointData
         _ -> Error.throw Nothing
 
     ## PRIVATE
+
        Returns a vector of subsequent integers beginning from 0.
     iota : Number -> Vector
     iota count =
@@ -83,7 +94,8 @@ type PointData
         named.catch_ <| this.fallback_column table
 
 ## PRIVATE
-    Generates JSON that describes points data.
+
+   Generates JSON that describes points data.
 Table.Table.point_data : Table -> Object
 Table.Table.point_data =
     get_point_data field = field.lookup_in this . rename field.name
@@ -95,7 +107,8 @@ Table.Table.point_data =
         Json.from_pairs pairs
 
 ## PRIVATE
-    Generates JSON that describes plot axes.
+
+   Generates JSON that describes plot axes.
 Table.Table.axes : Table -> Object
 Table.Table.axes =
     describe_axis field =
@@ -117,13 +130,14 @@ Vector.Vector.point_data =
             Json.from_pairs [[X.name,i],[Y.name,elem]]
 
 ## PRIVATE
-
+json_from_table : Table -> Json
 json_from_table table =
     data = table.point_data
     axes = table.axes
     Json.from_pairs <| [[here.data_field,data], [here.axis_field, axes]]
 
 ## PRIVATE
+json_from_vector : Vector Any -> Json
 json_from_vector vec =
     data = [here.data_field, vec.point_data]
     axes = [here.axis_field, Nothing]
@@ -146,3 +160,4 @@ process_to_json_text value =
         _               -> here.json_from_vector value.to_vector
 
     json.to_text
+
