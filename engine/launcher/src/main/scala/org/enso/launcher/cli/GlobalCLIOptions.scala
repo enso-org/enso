@@ -42,6 +42,9 @@ object GlobalCLIOptions {
     logMaskingDisabled: Boolean
   ) {
 
+    /** @return `true` if log masking is enabled. */
+    def logMasking: Boolean = !logMaskingDisabled
+
     /** Creates command line options that can be passed to a launcher process to
       * set the same options.
       */

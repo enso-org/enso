@@ -207,7 +207,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val exitCode = runner
       .withCommand(
         runner
-          .repl(projectPath, versionOverride, logLevel, additionalArguments)
+          .repl(
+            projectPath,
+            versionOverride,
+            logLevel,
+            cliOptions.internalOptions.logMasking,
+            additionalArguments
+          )
           .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
@@ -244,7 +250,15 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   ): Int = {
     val exitCode = runner
       .withCommand(
-        runner.run(path, versionOverride, logLevel, additionalArguments).get,
+        runner
+          .run(
+            path,
+            versionOverride,
+            logLevel,
+            cliOptions.internalOptions.logMasking,
+            additionalArguments
+          )
+          .get,
         JVMSettings(useSystemJVM, jvmOpts)
       ) { command =>
         command.run().get

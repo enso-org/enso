@@ -42,6 +42,7 @@ class LauncherRunner(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
+    logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -68,7 +69,7 @@ class LauncherRunner(
       }
       RunSettings(
         version,
-        arguments ++ setLogLevelArgs(logLevel)
+        arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         connectLoggerIfAvailable = true
       )
@@ -82,6 +83,7 @@ class LauncherRunner(
     path: Option[Path],
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
+    logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -128,14 +130,18 @@ class LauncherRunner(
           }
       RunSettings(
         version,
-        arguments ++ setLogLevelArgs(logLevel)
+        arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
         connectLoggerIfAvailable = true
       )
     }
 
-  private def setLogLevelArgs(level: LogLevel): Seq[String] =
-    Seq("--log-level", level.name)
+  private def setLogLevelArgs(
+    level: LogLevel,
+    logMasking: Boolean
+  ): Seq[String] =
+    Seq("--log-level", level.name) ++
+    Option.unless(logMasking)("--no-log-masking")
 
   /** Creates [[RunSettings]] for launching the Language Server.
     *
