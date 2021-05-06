@@ -12,7 +12,8 @@
 
 - Overhauled the examples throughout the standard library
   ([#1707](https://github.com/enso-org/enso/pull/1707),
-  [#1725](https://github.com/enso-org/enso/pull/1725)). These examples all now
+  [#1725](https://github.com/enso-org/enso/pull/1725), and
+  [#1731](https://github.com/enso-org/enso/pull/1731)). These examples all now
   conform to a standard format and have been tested to work.
 - Made some miscellaneous fixes to the `HTTP` portion of the `Base` library that
   fix a few bugs ([#1722](https://github.com/enso-org/enso/pull/1722)).

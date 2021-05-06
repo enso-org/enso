@@ -1,0 +1,119 @@
+from Standard.Base import all
+
+import Standard.Base.System.File
+import Standard.Examples
+
+import Standard.Test
+
+# While we're lacking the ability to run the documentation examples
+# automatically (#1706), these tests at least check that each of the examples
+# executes without an error resulting.
+
+spec = Test.group "Examples" <|
+    Test.specify "should allow construction of Example_Error_Type" <|
+        val = Examples.Example_Error_Type "Oh, no! Something went wrong!"
+        val.should_be_an Examples.Example_Error_Type
+
+    Test.specify "should allow getting the examples data directory" <|
+        dir = Examples.data_dir
+        dir.exists.should_be_true
+
+    Test.specify "should allow getting an example CSV file" <|
+        Examples.csv.exists.should_be_true
+
+    Test.specify "should provide access to the CSV path" <|
+        (Examples.csv_path.length > 0) . should_be_true
+
+    Test.specify "should provide access to a scratch file location" <|
+        # It is deleted every time it is requested.
+        Examples.scratch_file.exists.should_be_false
+
+    Test.specify "should provide access to a simple duration" <|
+        Examples.duration
+
+    Test.specify "should provide some basic JSON text" <|
+        Json.parse Examples.json_text
+
+    Test.specify "should provide some basic JSON" <|
+        Examples.json
+
+    Test.specify "should provide a JSON object" <|
+        Examples.json_object
+
+    Test.specify "should provide a basic cons list" <|
+        Examples.list.length . should_equal 3
+
+    Test.specify "should provide a basic KV map" <|
+        Examples.map.size . should_equal 3
+
+    Test.specify "should provide a type with no methods" <|
+        Examples.No_Methods.should_be_an Examples.No_Methods
+
+    Test.specify "should provide a no method error value" <|
+        Examples.no_such_method
+
+    Test.specify "should provide a dummy error type" <|
+        Examples.My_Error
+
+    Test.specify "should provide a method that throws an error" <|
+        Examples.throw_error.should_fail_with Examples.My_Error
+
+    Test.specify "should provide a method that throws a panic" <|
+        Test.expect_panic_with Examples.throw_panic Examples.My_Error
+
+    Test.specify "should provide a URL for some geo data" <|
+        (Examples.geo_data_url.length > 0) . should_be_true
+
+    Test.specify "should provide an HTTP response" <|
+        Examples.get_response
+
+    Test.specify "should provide a response containing geo data" <|
+        Examples.get_geo_data
+
+    Test.specify "should provide a basic HTTP client" <|
+        Examples.http_client
+
+    Test.specify "should provide an example URI" <|
+        Examples.uri
+
+    Test.specify "should provide an image file" <|
+        Examples.image_file
+
+    Test.specify "should provide an image" <|
+        Examples.image
+
+    Test.specify "should provide a matrix" <|
+        Examples.matrix
+
+    Test.specify "should provide a silly function" <|
+        Examples.add_1_to 4 . should_equal 5
+
+    Test.specify "should provide a boolean" <|
+        Examples.get_boolean
+
+    Test.specify "should provide a simple json table" <|
+        Examples.simple_table_json
+        Examples.simple_table_json_headers
+
+    Test.specify "should provide some geo_json" <|
+        Examples.geo_json
+
+    Test.specify "should provide various table columns" <|
+        Examples.integer_column
+        Examples.decimal_column
+        Examples.bool_column_1
+        Examples.bool_column_2
+        Examples.text_column_1
+        Examples.text_column_2
+
+    Test.specify "should provide an aggregate column" <|
+        Examples.aggregate_column
+
+    Test.specify "should provide various example tables" <|
+        Examples.inventory_table
+        Examples.popularity_table
+        Examples.transactions_table
+
+    Test.specify "should provide an aggregate table" <|
+        Examples.aggregate_table
+

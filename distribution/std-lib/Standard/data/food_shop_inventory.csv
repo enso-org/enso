@@ -1,10 +1,10 @@
-item_name                  , price , stock
-Pavlova Cake (Whole)       , 10.50 , 10
-Gruyere (Wheel)            , 50    , 3
-Strawberries (Punnett)     , 4.50  , 50
-Tomatoes (Whole)           , 0.5   , 100
-Tomato and Egg Sandwich    , 1.75  , 20
-Lobster Thermidor          , 15.50 , 10
-Syrniki                    , 1.99  , 25
-Bacon and Sausage Sandwich , 1.75  , 15
+item_id , item_name                  , price , total_stock , sold_stock
+001     , Pavlova Cake (Whole)       , 10.50 , 10          , 7
+002     , Gruyere (Wheel)            , 50    , 3           , 1
+003     , Strawberries (Punnett)     , 4.50  , 50          , 47
+004     , Tomatoes (Whole)           , 0.5   , 100         , 32
+005     , Tomato and Egg Sandwich    , 1.75  , 20          , 7
+006     , Lobster Thermidor          , 15.50 , 10          , 9
+007     , Syrniki                    , 1.99  , 25          , 11
+008     , Bacon and Sausage Sandwich , 1.75  , 15          , 12
 

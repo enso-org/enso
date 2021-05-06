@@ -9,14 +9,25 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
 
-## An error returned when a non-existent column is being looked up.
+## Creates a new table from a vector of `[name, items]` pairs.
 
    Arguments:
-   - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error column_name
+   - columns: The `[name, items]` pairs to construct a new table from.
 
-## An error returned when getting an index but no index is set for that table.
-type No_Index_Set_Error
+   > Example
+     Create a new table with the given columns.
+
+         import Standard.Table
+
+         example_new =
+             first_column = ["count", [1, 2, 3]]
+             second_column = ["is_valid", [True, False, True]]
+             Table.new [first_column, second_column]
+new : Vector -> Table
+new columns =
+    cols = columns.map c->
+        Column.from_vector (c.at 0) (c.at 1) . java_column
+    here.from_columns cols
 
 ## Creates a new table from a vector of column names and a vector of vectors
    specifying row contents.
@@ -27,32 +38,21 @@ type No_Index_Set_Error
      length of each element of `rows` must be equal in length to `header`.
 
    > Example
-     The code below creates a table with 3 columns, named `foo`, `bar`, and
-     `baz`, containing `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`,
-     respectively.
-         header = [ 'foo' , 'bar' , 'baz' ]
-         row_1 =  [ 1     , True  , 'a'   ]
-         row_2 =  [ 2     , False , 'b'   ]
-         row_3 =  [ 3     , True  , 'c'   ]
-         Table.from_rows header [row_1, row_2, row_3]
+     Create a table with 3 columns, named `foo`, `bar`, and `baz`, containing
+     `[1, 2, 3]`, `[True, False, True]`, and `['a', 'b', 'c']`, respectively.
+
+         import Standard.Table
+
+         example_from_rows =
+             header = [ 'foo' , 'bar' , 'baz' ]
+             row_1 =  [ 1     , True  , 'a'   ]
+             row_2 =  [ 2     , False , 'b'   ]
+             row_3 =  [ 3     , True  , 'c'   ]
+             Table.from_rows header [row_1, row_2, row_3]
 from_rows : Vector.Vector -> Vector.Vector -> Table
 from_rows header rows =
     columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
     here.new columns
-
-## Creates a new table from a vector of `[name, items]` pairs.
-
-   Arguments:
-   - columns: The `[name, items]` pairs to construct a new table from.
-
-   > Example
-     Create a new table with the given in two columns:
-         Table.new [["foo", [1, 2, 3]], ["bar", [True, False, True]]]
-new : Vector -> Table
-new columns =
-    cols = columns.map c->
-        Column.from_vector (c.at 0) (c.at 1) . java_column
-    here.from_columns cols
 
 ## Joins a vector of tables (or columns) into a single table, using each table's
    index as the join key.
@@ -62,6 +62,18 @@ new columns =
 
    Particularly useful for joining multiple columns derived from one original
    table into a new table.
+
+   > Example
+     Join multiple tables together. It joins tables on their indices, so we need
+     to make sure the indices are correct.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_join =
+             table_1 = Examples.inventory_table
+             table_2 = Examples.popularity_table
+             Table.join [table_1, table_2]
 join : Vector -> Table
 join tables =
     tables.reduce .join
@@ -69,7 +81,9 @@ join tables =
 ## Represents a column-oriented table data structure.
 type Table
 
-    ## A table.
+    ## PRIVATE
+
+       A table.
 
        Arguments:
        - java_table: The internal java representation of the table.
@@ -80,6 +94,13 @@ type Table
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
        - format_terminal: whether ANSI-terminal formatting should be used
+
+       > Example
+         Convert the table to a pretty-printed representation.
+
+             import Standard.Examples
+
+             example_display = Examples.inventory_table.display
     display : Integer -> Boolean -> Text
     display show_rows=10 format_terminal=False =
         cols = Vector.Vector this.java_table.getColumns
@@ -101,11 +122,26 @@ type Table
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
+
+       > Example
+         Convert the table to a pretty-printed representation and print it to
+         the console.
+
+             import Standard.Examples
+
+             example_print = Examples.inventory_table.print
     print show_rows=10 =
         IO.println (this.display show_rows format_terminal=True)
         IO.println ''
 
     ## Converts this table to a JSON structure.
+
+       > Example
+         Convert a table to a corresponding JSON representation.
+
+             import Standard.Examples
+
+             example_to_json = Examples.inventory_table.to_json
     to_json : Json
     to_json =
         col_jsons = this.columns.map .to_json
@@ -134,6 +170,13 @@ type Table
 
        Arguments:
        - name: The name of the column being looked up.
+
+       > Example
+         Get the names of all of the items from the shop inventory.
+
+             import Standard.Examples
+
+             example_at = Examples.inventory_table.at "item_name"
     at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnOrIndexByName name of
         Nothing -> Error.throw (No_Such_Column_Error name)
@@ -150,9 +193,14 @@ type Table
        This is useful for filtering the rows by given predicate.
 
        > Example
-         Select only the rows of `my_table` where the `"Status"` column has the
-         value `"Valid"`
-             my_table.where (my_table.at "Status" == "Valid")
+         Select only the items where more than half the stock has been sold.
+
+             import Standard.Examples
+
+             example_where =
+                 table = Examples.inventory_table
+                 mask = (table.at "sold_stock" > (table.at "total_stock" / 2))
+                 table.where mask
     where : Column -> Table
     where indexes =
         Table (this.java_table.mask indexes.java_column)
@@ -165,6 +213,17 @@ type Table
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
+
+       > Example
+         Create a table where the values of the total stock in the inventory is
+         doubled.
+
+             import Standard.Examples
+
+             example_set =
+                 table = Examples.inventory_table
+                 double_inventory = table.at "total_stock" * 2
+                 table.set "total_stock" double_inventory
     set : Text -> Column.Column | Vector.Vector -> Table
     set name column = case column of
         Vector.Vector _ ->
@@ -173,28 +232,55 @@ type Table
             Table (this.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## Returns the vector of columns contained in this table.
+
+       > Examples
+         Get a vector containing the columns in the table.
+
+             import Standard.Examples
+
+             example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns =
-        Vector.Vector this.java_table.getColumns . map Column.Column
+    columns = Vector.Vector this.java_table.getColumns . map Column.Column
 
     ## Sets the index of this table, using the column with the provided name.
 
        Arguments:
        - index: The name of the column to use as the index in this table.
+
+       > Example
+         Set the index of the inventory table to be the item name.
+
+             import Standard.Examples
+
+             example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text -> Table
-    set_index index =
-        Table (this.java_table.indexFromColumn index)
+    set_index index = Table (this.java_table.indexFromColumn index)
 
     ## Returns the index of this table, as a column that is indexed by itself.
 
        Throws `No_Index_Set_Error` if there is no index set in the table it is
        being called on.
+
+       > Example
+         Get the column that is used as the index for a table.
+
+             import Standard.Examples
+
+             example_index = Examples.inventory_table.index
     index : Column.Column ! No_Index_Set_Error
     index = case this.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
     ## Selects a subset of columns from this table by name.
+
+       > Example
+         Get the item name and price columns from the shop inventory.
+
+             import Standard.Examples
+
+             example_select =
+                 Examples.inventory_table.select ["item_name", "price"]
     select : Vector -> Table
     select columns = Table (this.java_table.selectColumns columns.to_array)
 
@@ -216,6 +302,15 @@ type Table
        `other` with matching indexes. If the index values in `other` are not
        unique, the corresponding rows of `this` will be duplicated in the
        result.
+
+       > Example
+         Join the popularity table and the inventory table to see the relative
+         popularities of the items in the shop inventory.
+
+             import Standard.Examples
+
+             example_join =
+                 Examples.inventory_table.join Examples.popularity_table
     join : Table | Column.Column -> Text | Nothing -> Boolean -> Text -> Text -> Table
     join other on=Nothing drop_unmatched=False left_suffix='_left' right_suffix='_right' =
         case other of
@@ -236,6 +331,14 @@ type Table
             False -> this
 
     ## Returns a new Table without columns that contained any missing values.
+
+       > Example
+         Remove any columns that contain missing values from the table.
+
+             import Standard.Examples
+
+             example_drop_missing_cols =
+                 Examples.inventory_table.drop_missing_columns
     drop_missing_columns : Table
     drop_missing_columns =
         non_missing = this.columns . filter (col -> col.count_missing == 0)
@@ -243,10 +346,24 @@ type Table
         Table (Java_Table.new (non_missing.map .java_column . to_array) index)
 
     ## Returns the number of rows in this table.
+
+       > Example
+         Count the number of rows in the table.
+
+             import Standard.Examples
+
+             example_row_count = Examples.inventory_table.row_count
     row_count : Integer
     row_count = this.java_table.rowCount
 
     ## Returns the number of rows in this table.
+
+       > Example
+         Count the number of rows in the table.
+
+             import Standard.Examples
+
+             example_length = Examples.inventory_table.length
     length : Integer
     length = this.row_count
 
@@ -254,6 +371,13 @@ type Table
 
        The table lists all columns, counts of non-null items and storage types
        of each column.
+
+       > Example
+         Get information about a table.
+
+             import Standard.Examples
+
+             example_info = Examples.inventory_table.info
     info : Table
     info =
         cols = this.columns
@@ -267,19 +391,19 @@ type Table
          is not set, the index is used for grouping instead.
 
        > Example
-         Creates a simple table and computes aggregation statistics:
-            name = ['name', ["foo", "bar", "foo", "baz", "foo", "bar", "quux"]]
-            price = ['price', [0.4, 3.5, Nothing, 6.7, Nothing, 97, Nothing]]
-            quantity = ['quantity', [10, 20, 30, 40, 50, 60, 70]]
-            t = Table.new [name, price, quantity]
+         Compute the number of transactions that each item has participated in,
+         as well as the number of each item sold across those transactions.
 
-            agg = t.group by='name'
+             import Standard.Examples
+             import Standard.Table
 
-            records_num = agg.count
-            total_quantity = agg.at 'quantity' . sum
-            mean_price = agg.at 'price' . mean
-
-            Table.join [records_num, total_quantity, mean_price]
+             example_group =
+                 transactions = Examples.transactions_table
+                 item_names = Examples.inventory_table.at "item_name"
+                 aggregated = transactions.group by="item_id"
+                 num_transactions = aggregated.at "transaction_id" . reduce .length . rename "transaction_count"
+                 num_sold = aggregated.at "quantity" . reduce .sum . rename "num_sold"
+                 Table.join [item_names, num_transactions, num_sold]
     group : Text | Nothing -> Aggregate_Table
     group by=Nothing =
         Aggregate_Table (this.java_table.group by)
@@ -312,36 +436,69 @@ type Table
          according to this rule, ignoring the ascending / descending setting.
 
        > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`
-             table.sort by='Quantity'
+         Sorting the shop inventory based on the per-item price in ascending
+         order.
+
+             import Standard.Examples
+
+             example_sort = Examples.inventory_table.sort by="price"
 
        > Example
-         Sorting `table` in descending order by the value in column `'Quantity'`,
-         placing missing values at the top of the table.
-             table.sort by='Quantity' order=Sort_Order.Descending missing_last=False
+         Sort the shop inventory based on the per-item price in descending order
+         and placing missing values at the top of the table.
+
+             import Standard.Examples
+
+             example_sort =
+                table = Examples.inventory_table
+                table.sort by="price" order=Sort_Order.Descending missing_last = false
 
        > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`,
-         using the value in column `'Rating'` for breaking ties.
-             table.sort by=['Quantity', 'Rating']
+         Sort the shop inventory based on the total stock, using the number sold
+         to break ties in descending order.
+
+             import Standard.Examples
+
+             example_sort =
+                 table = Examples.inventory_table
+                 table.sort by=["total_stock", "sold_stock"] order=Sort_Order.Descending
 
        > Example
-         Sorting `table` in ascending order by the value in column `'Quantity'`,
-         using the value in column `'Rating'` in descending order for breaking
+         Sort the shop inventory in ascending order by the total stock, using
+         the number of items sold in descending order to break ties.
+
+             import Standard.Examples
+             import Standard.Table
+
+             example_sort =
+                 table = Examples.inventory_table
+                 sold_stock_rule = Table.Order_Rule "sold_stock" order=Sort_Order.Descending
+                 table.sort by=["total_stock", sold_stock_rule]
+
+       > Example
+         Sorting the inventory in descending order based on the percentage of
+         the total stock sold, using the popularity of the product to break
          ties.
-             table.sort by=['Quantity', Order_Rule 'Rating' (order=Sort_Order.Descending)]
+
+             import Standard.Examples
+             import Standard.Table
+
+             example_sort =
+                 table = Examples.inventory_table.join Examples.popularity_table
+                 percentage_sold = table.at "sold_stock" / table.at "total_stock"
+                 table.sort by=[percentage_sold, "popularity"] order=Sort_Order.Descending
 
        > Example
-         Sorting `table` in ascending order by the value in an externally
-         computed column, using the value in column `'Rating'` for breaking
-         ties.
-             quality_ratio = table.at 'Rating' / table.at 'Price'
-             table.sort by=[quality_ratio, 'Rating']
+         Sort the inventory by the price using a custom comparator function.
 
-       > Sorting `table` in ascending order, by the value in column
-         `'position'`, using a custom comparator function.
-             manhattan_comparator a b = (a.x.abs + a.y.abs) . compare_to (b.x.abs + b.y.abs)
-             table.sort by=(Order_Rule 'position' comparator=manhattan_comparator)
+             import Standard.Examples
+             import Standard.Table
+
+             example_sort =
+                 table = Examples.inventory_table
+                 comparator a b = a.compare_to b*2
+                 price_rule = Table.Order_Rule "price" comparator=comparator
+                 table.sort by=price_rule
     sort : Text | Column.Column | Order_Rule | Vector.Vector (Text | Column.Column | Order_Rule) -> Sort_Order -> Boolean -> Table
     sort by order=Sort_Order.Ascending missing_last=True = Panic.recover <|
         rules = this.build_java_order_rules by order missing_last
@@ -409,6 +566,14 @@ type Table
 
        Any column that is present in one table, but missing in another, will be
        `Nothing`-padded in the positions corresponding to the missing column.
+
+       > Example
+         Concatenate two tables together.
+
+             import Standard.Examples
+
+             example_concat =
+                 Examples.inventory_table.concat Examples.popularity_table
     concat : Table -> Table
     concat other =
         Table (this.java_table.concat other.java_table)
@@ -422,6 +587,13 @@ type Table
 
        If `this` has a number of rows in it less than `count`, the entire table
        will be returned.
+
+       > Example
+         Get the first four rows from the table.
+
+             import Standard.Examples
+
+             example_take_start = Examples.inventory_table.take_start 4
     take_start : Integer -> Table
     take_start count = Table (this.java_table.slice 0 count)
 
@@ -434,6 +606,13 @@ type Table
 
        If `this` has a number of rows in it less than `count`, the entire table
        will be returned.
+
+       > Example
+         Get the last four rows from the table.
+
+             import Standard.Examples
+
+             example_take_end = Examples.inventory_table.take_end 4
     take_end : Integer -> Table
     take_end count =
         start_point = Math.max (this.row_count - count) 0
@@ -445,6 +624,13 @@ type Table
 
        If the table is empty, this method will return a dataflow error
        containing `Nothing`.
+
+       > Example
+         Get the first row from the table.
+
+             import Standard.Examples
+
+             example_first = Examples.inventory_table.first
     first : Table ! Nothing
     first =
         table = this.take_start 1
@@ -456,6 +642,13 @@ type Table
 
        If the table is empty, this method will return a dataflow error
        containing `Nothing`.
+
+       > Example
+         Get the first row from the table.
+
+             import Standard.Examples
+
+             example_head = Examples.inventory_table.head
     head : Table ! Nothing
     head = this.first
 
@@ -465,6 +658,13 @@ type Table
 
        If the table is empty, this method will return a dataflow error
        containing `Nothing`.
+
+       > Example
+         Get the last row from the table.
+
+             import Standard.Examples
+
+             example_last = Examples.inventory_table.last
     last : Table ! Nothing
     last =
         table = this.take_end 1
@@ -474,42 +674,61 @@ type Table
 
        Returns a table containing the rows of `this` table with their order
        reversed.
+
+       > Example
+         Reverse the rows in a table.
+
+             import Standard.Examples
+
+             example_reverse = Examples.inventory_table.reverse
     reverse : Table
     reverse =
         mask = OrderBuilder.buildReversedMask this.row_count
         Table <| this.java_table.applyMask mask
 
-## PRIVATE
-
-   Wraps the Enso comparator function so it's usable in Java.
-
-   Arguments:
-   - cmp: The Enso comparator function.
-   - x: The left operand to the compartor.
-   - y: The right operand to the comparator.
-comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
-comparator_to_java cmp x y = cmp x y . to_sign
-
 ## Represents a table with grouped rows.
 type Aggregate_Table
 
-    ## A table type with grouped rows.
+    ## PRIVATE
+
+       A table type with grouped rows.
 
        Arguments:
        - java_table: The internal representation of the table.
     type Aggregate_Table java_table
 
     ## Returns a vector of aggregate columns in this table.
+
+       > Example
+         Get a vector of aggregate columns from this table.
+
+             import Standard.Examples
+
+             example_columns = Examples.aggregate_table.columns
     columns : Vector.Vector
     columns = Vector.Vector this.java_table.getColumns . map Column.Aggregate_Column
 
     ## Returns a table containing columns resulting from calling `values` on
        each column in `this`.
+
+       > Example
+         Get the values table from an aggregate table.
+
+             import Standard.Examples
+
+             example_values = Examples.aggregate_table.values
     values : Table
     values = this.columns . map (_.values name_suffix='') . reduce .join
 
     ## Returns a column containing the number of elements in each group of the
        aggregate table.
+
+       > Examples
+         Get the counts for an aggregate table.
+
+             import Standard.Examples
+
+             example_count = Examples.aggregate_table.count
     count : Column
     count = Column.Column this.java_table.count
 
@@ -517,6 +736,13 @@ type Aggregate_Table
 
        Arguments:
        - name: The name of the aggregate column to get.
+
+       > Example
+         Get the transaction ids column from the aggregate table.
+
+             import Standard.Examples
+
+             example_at = Examples.aggregate_table.at "transaction_id"
     at : Text -> Column ! Nothing
     at name = case this.java_table.getColumnByName name of
         Nothing -> Error.throw Nothing
@@ -526,8 +752,41 @@ type Aggregate_Table
 
        Arguments:
        - show_rows: the number of initial rows that should be displayed.
+
+       > Example
+         Pretty-print and display an aggregate table in the console.
+
+             import Standard.Examples
+
+             example_print = Examples.aggregate_table.print
     print : Integer -> Nothing
     print show_rows=10 = this.values.print show_rows
+
+## UNSTABLE
+
+   An error returned when a non-existent column is being looked up.
+
+   Arguments:
+   - column_name: The name of the column that doesn't exist.
+type No_Such_Column_Error column_name
+
+## UNSTABLE
+
+   Create a human-readable version of the no such column error.
+No_Such_Column_Error.to_display_text : Text
+No_Such_Column_Error.to_display_text =
+    "The column " + this.column_name + " does not exist."
+
+## UNSTABLE
+
+   An error returned when getting an index but no index is set for that table.
+type No_Index_Set_Error
+
+## UNSTABLE
+
+   Create a human-readable version of the no such column error.
+No_Index_Set_Error.to_display_text : Text
+No_Index_Set_Error.to_display_text = "The table does not have an index set."
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)
@@ -584,4 +843,15 @@ print_table header rows indices_count format_term =
         y = with_bold_ix . join ' | '
         " " + y
     ([" " + header_line, divider] + row_lines).join '\n'
+
+## PRIVATE
+
+   Wraps the Enso comparator function so it's usable in Java.
+
+   Arguments:
+   - cmp: The Enso comparator function.
+   - x: The left operand to the compartor.
+   - y: The right operand to the comparator.
+comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
+comparator_to_java cmp x y = cmp x y . to_sign
 
