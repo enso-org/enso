@@ -7,6 +7,10 @@ import scala.io.Source
 import scalatags.Text.{all => HTML}
 import HTML._
 
+/** The Docs Generator script.
+  * Used to create HTML documentation for Enso Standard Library, and also JS
+  * files with react components for the "component reference" website.
+  */
 object DocsGeneratorMain extends App {
   import docsgenerator.DocsGenerator._
   import docsgenerator.TreeOfCommonPrefixes._
