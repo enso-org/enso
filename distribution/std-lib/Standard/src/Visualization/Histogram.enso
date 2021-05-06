@@ -5,27 +5,32 @@ import Standard.Table.Data.Table
 import Standard.Visualization.Helpers
 
 ## PRIVATE
+
    Get first numeric column of the table.
 Table.Table.first_numeric : Table -> Column ! Nothing
 Table.Table.first_numeric = this.all_columns.find _.is_numeric
 
 ## PRIVATE
+
    Get the value column - the column that will be used to create histogram.
 Table.Table.value_column : Table -> Column ! Nothing
-Table.Table.value_column = 
+Table.Table.value_column =
     named_col = this.lookup_ignore_case 'value'
     named_col.catch_ this.first_numeric
 
 ## PRIVATE
+
    Information that are placed in an update sent to a visualization.
 type Update
+
     ## PRIVATE
     type Update values label
 
     ## PRIVATE
+
        Generate JSON that can be consumed by the visualization.
     to_json : Object
-    to_json = 
+    to_json =
         data = ['data', Json.from_pairs [['values', this.values]]]
         axis = ['axis', Json.from_pairs [['x', Json.from_pairs [['label', this.label]]]]]
         ret_pairs = case this.label of
@@ -35,7 +40,7 @@ type Update
 
 ## PRIVATE
 from_table : Table -> Update
-from_table table = 
+from_table table =
     col = table.value_column
     label = col.name.catch_ Nothing
     values = col.to_vector.catch_ []
@@ -43,12 +48,12 @@ from_table table =
 
 ## PRIVATE
 from_vector : Vector -> Update
-from_vector vector = 
+from_vector vector =
     Update vector Nothing
 
 ## PRIVATE
 from_value : Any -> Update
-from_value value = 
+from_value value =
     case value of
         Table.Table _   -> here.from_table value
         Vector.Vector _ -> here.from_vector value
@@ -64,6 +69,6 @@ from_value value =
    Arguments:
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value = 
+process_to_json_text value =
     update = here.from_value value
     update.to_json.to_text

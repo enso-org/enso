@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Builtins
+
 ## Creates a new test group, desribing properties of the object
    described by `this`.
 
@@ -7,7 +9,11 @@ from Standard.Base import all
    - specs: An action encapsulating a number of test specs or groups.
 
    > Example
-         Suite.run_main <|
+     Building a basic test suite.
+
+         import Standard.Test
+
+         example_run_main = Test.Suite.run_main <|
              Test.group "Number" <|
                  Test.specify "should define addition" <|
                      2+3 . should_equal 5
@@ -26,7 +32,11 @@ Suite.run_main ~specs =
    - specs: An action encapsulating a number of test specs or groups.
 
    > Example
-         Suite.run <|
+     Building a basic test suite.
+
+         import Standard.Test
+
+         example_run = Test.Suite.run <|
              Test.group "Number" <|
                  Test.specify "should define addition" <|
                      2+3 . should_equal 5
@@ -49,12 +59,12 @@ Suite.run ~specs =
      pending.
 
    > Example
-         Suite.run <|
-             Test.group "Number" <|
-                 Test.specify "should define addition" <|
-                     2+3 . should_equal 5
-                 Test.specify "should define multiplication" <|
-                     2*3 . should_equal 6
+     Adding a test group.
+
+         import Standard.Test
+
+         example_group = Test.Suite.run <|
+             Test.group "Number" <| Nothing
 group : Text -> Any -> (Text | Nothing) -> Nothing
 group name ~behaviors pending=Nothing =
     case pending of
@@ -79,12 +89,23 @@ group name ~behaviors pending=Nothing =
      pending.
 
    > Example
-         Suite.run <|
-             describe "Number" <|
-                 it "should define addition" <|
+     Adding a specification to the test group.
+
+         import Standard.Test
+
+         example_group = Test.Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" <|
                      2+3 . should_equal 5
-                 it "should define multiplication" <|
-                     2*3 . should_equal 6
+   > Example
+     Adding a pending specification to the test group.
+
+         import Standard.Test
+
+         example_group = Test.Suite.run <|
+             Test.group "Number" <|
+                 Test.specify "should define addition" pending="Reason" <|
+                     2+3 . should_equal 5
 specify : Text -> Any -> (Text | Nothing) -> Nothing
 specify label ~behavior pending=Nothing =
     result = case pending of
@@ -94,7 +115,9 @@ specify label ~behavior pending=Nothing =
     new_spec = Spec spec.name (Cons (Behavior label result) spec.behaviors)
     State.put Spec new_spec
 
-## Asserts a property about the receiver.
+## PRIVATE
+
+   Asserts a property about the receiver.
 
    Arguments:
    - verb: The property (see `Verbs`) being asserted
@@ -106,6 +129,13 @@ Any.should verb argument = verb Verbs this argument
 
    Arguments:
    - message: The message printed when failing the test.
+
+   > Example
+     Failing a test manually.
+
+         import Standard.Test
+
+         example_fail = Test.fail "Something went wrong."
 fail : Text -> Assertion
 fail message = Panic.throw (Failure message)
 
@@ -113,6 +143,15 @@ fail message = Panic.throw (Failure message)
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `this`.
+
+   > Example
+     Assert that a compuation should return an error of a given type.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_fail_with =
+            Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Assertion
 Any.should_fail_with matcher =
     here.fail ("Expected an error " + matcher.to_text + " but none occurred.")
@@ -121,6 +160,15 @@ Any.should_fail_with matcher =
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `this`.
+
+   > Example
+     Assert that a compuation should return an error of a given type.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_fail_with =
+            Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Assertion
 Error.should_fail_with matcher =
     caught = this.catch x->x
@@ -132,6 +180,15 @@ Error.should_fail_with matcher =
    Arguments:
    - action: The action to evaluate that is expected to fail with a panic.
    - matcher: The expected type of the panic thrown by `action`.
+
+   > Example
+     Expect that a computation should panic as part of a test.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_expect_panic_with =
+             Test.expect_panic_with Examples.throw_panic Examples.My_Error
 expect_panic_with : Any -> Any -> Assertion
 expect_panic_with ~action matcher =
     res = Panic.recover action
@@ -145,6 +202,14 @@ expect_panic_with ~action matcher =
 
    Arguments:
    - that: The value to check `this` for equality with.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Assertion
 Any.should_equal that = case this == that of
     True -> Success
@@ -157,6 +222,14 @@ Any.should_equal that = case this == that of
 
    Arguments:
    - _: The value to check `this` for equality with.
+
+   > Example
+     Assert that one value should equal another,
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Assertion.
 Error.should_equal _ = Panic.throw (Matched_On_Error this)
 
@@ -165,6 +238,21 @@ Error.should_equal _ = Panic.throw (Matched_On_Error this)
    Arguments:
    - that: The value to compare `this` for equality with.
    - epsilon: The epislon for comparing two decimal numbers.
+
+   > Example
+     Compare two decimal values.
+
+         import Standard.Test
+
+         example_should_equal = 1.1 . should_equal 1.1
+
+   > Example
+     Compare two decimal values with an epsilon (tolerance).
+
+         import Standard.Test
+
+         example_should_equal =
+            1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Decimal.should_equal : Decimal -> Decimal -> Assertion
 Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
     True -> Success
@@ -174,6 +262,14 @@ Decimal.should_equal that (epsilon = 0) = case this.equals that epsilon of
         Panic.throw (Failure msg)
 
 ## Asserts that the given `Boolean` is `True`
+
+   > Example
+     Assert that a boolean value is true.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_be_true = Examples.get_boolean . should_be_true
 Boolean.should_be_true : Assertion
 Boolean.should_be_true = case this of
     True -> Success
@@ -182,10 +278,26 @@ Boolean.should_be_true = case this of
         Panic.throw (Failure "Expected False to be True (at "+loc+").")
 
 ## Asserts that the given `Boolean` is `True`.
+
+   > Example
+     Assert that a boolean value is true.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Assertion
 Error.should_be_true = Panic.throw (Matched_On_Error this)
 
 ## Asserts that the given `Boolean` is `False`
+
+   > Example
+     Assert that a boolean value is false.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_be_false = Examples.get_boolean . should_be_false
 Boolean.should_be_false : Assertion
 Boolean.should_be_false = case this of
     True ->
@@ -194,15 +306,60 @@ Boolean.should_be_false = case this of
     False -> Success
 
 ## Asserts that the given `Boolean` is `False`
+
+   > Example
+     Assert that a boolean value is false.
+
+         import Standard.Examples
+         import Standard.Test
+
+         example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Assertion
 Error.should_be_false = Panic.throw (Matched_On_Error this)
 
+## Asserts that a value is of a given type.
+
+   Arguments:
+   - typ: The type to assert that `this` is a value of.
+
+   > Examples
+     Assert that 1 is of type Boolean.
+
+         import Standard.Test
+
+         example_should_be_a = 1.should_be_a Boolean
+Any.should_be_a : Any -> Assertion
+Any.should_be_a typ = if this.is_a typ then Success else
+    loc = Meta.get_source_location 0
+    expected_type = Meta.get_qualified_type_name typ
+    actual_type = Meta.get_qualified_type_name this
+    message = "Expected a value of type " + expected_type + " but got a value of type " + actual_type + " instead (at " + loc + ")."
+    Panic.throw <| Failure message
+
+## Asserts that a value is of a given type.
+
+   Arguments:
+   - typ: The type to assert that `this` is a value of.
+
+   > Examples
+     Assert that 1 is of type Integer.
+
+         import Standard.Test
+
+         example_should_be_an = 1.should_be_an Integer
+Any.should_be_an : Any -> Assertion
+Any.should_be_an typ = this.should_be_a typ
+
 type Verbs
 
-    ## Verbs that describe how tests should execute.
+    ## PRIVATE
+
+       Verbs that describe how tests should execute.
     type Verbs
 
-    ## Checks if the `subject` starts with `argument`.
+    ## PRIVATE
+
+       Checks if the `subject` starts with `argument`.
 
        Arguments:
        - subject: The value to check. It must have a `.starts_with` method.
@@ -212,7 +369,9 @@ type Verbs
         if subject.starts_with argument then Success else
             here.fail (subject.to_text + " did not start with " + argument.to_text))
 
-    ## Checks if the `subject` is equal to the `argument`.
+    ## PRIVATE
+
+       Checks if the `subject` is equal to the `argument`.
 
        Arguments:
        - subject: The value to check for equality against the provided value.
@@ -224,7 +383,9 @@ type Verbs
             msg = subject.to_text + " did not equal " + argument.to_text + "."
             here.fail msg
 
-    ## Checks if `subject` is `argument`.
+    ## PRIVATE
+
+       Checks if `subject` is `argument`.
 
        Arguments:
        - subject: The value to check for equality against the provided value.
@@ -233,7 +394,9 @@ type Verbs
     be : Any -> Any -> Assertion
     be subject argument = this.equal subject argument
 
-    ## Checks if `subject` contains `argument`.
+    ## PRIVATE
+
+       Checks if `subject` contains `argument`.
 
        Arguments:
        - subject: The collection type to check if `argument` is contained in it.
