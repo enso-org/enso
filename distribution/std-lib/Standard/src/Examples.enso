@@ -15,25 +15,6 @@ import Standard.Base.Network.Uri as Enso_Uri
 import Standard.Image as Enso_Image
 import Standard.Image.Data.Matrix as Enso_Matrix
 
-# Can do the top-level examples directory.
-
-# Fine to not provide examples for some APIs (e.g. Database).
-
-# Examples with HTTP should note this clearly in the example text.
-
-# Image source should only download if it doesn't exist. We can say that the #
-# user can put it there.
-
-# > Example
-#   Frobnicate the doobly do
-#
-#       import Standard.Examples
-#
-#       my_example =
-#           x = dlksaldjks
-#           y = x + 1
-#           ...
-
 ## An example error type used in a number of examples.
 
    Arguments:
@@ -247,3 +228,31 @@ text_column_2 = Table.Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
 ## A simple aggregate column.
 aggregate_column : Table.Column.Aggregate_Column
+
+## A simple table that contains basic shop inventory data for the food shop.
+inventory_table : Table.Table
+inventory_table = Table.from_csv here.csv . set_index "item_id"
+
+## A simple table that contains basic item popularity data for the food shop.
+popularity_table : Table.Table
+popularity_table =
+    table = Table.from_csv <| Enso_Project.data / "food_shop_popularity.csv"
+    table.set_index "item_id"
+
+## A simple tablethat contains basic transaction data for the food shop.
+transactions_table : Table.Table
+transactions_table =
+    Table.from_csv <| Enso_Project.data / "food_shop_transactions.csv"
+
+## An aggregate table for the relevant examples.
+aggregate_table : Table.Aggregate_Table
+aggregate_table =
+    transactions = Examples.transactions_table
+    item_names = Examples.inventory_table.at "item_name"
+    with_names = transactions.join item_names on="item_id"
+    with_names.group by="item_name"
+
+## An aggregate column for the relevant examples.
+aggregate_column : Table.Column.Aggregate_Column
+aggregate_column = here.aggregate_table.at "transaction_id"
+

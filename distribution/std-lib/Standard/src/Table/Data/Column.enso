@@ -1032,6 +1032,15 @@ type Aggregate_Column
          groups.
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Convert an aggregate column of transaction ids into a column by
+         counting the number of transactions. per item.
+
+             import Standard.Examples
+
+             example_reduce =
+                 Examples.aggregate_column.reduce .length . rename "transaction_count"
     reduce : (Vector.Vector -> Any) -> Boolean -> Text -> Column
     reduce function skip_missing=True name_suffix="_result" =
         f arr = function (Vector.Vector arr)
@@ -1043,6 +1052,14 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Convert an aggregate column of transaction ids into a column by summing
+         the transaction IDs together.
+
+             import Standard.Examples
+
+             example_sum = Examples.aggregate_column.sum . rename "id_sum"
     sum : Text -> Column
     sum name_suffix='_sum' =
         r = this.java_column.aggregate 'sum' name_suffix (x-> Vector.Vector x . reduce (+)) True
@@ -1053,6 +1070,13 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Get the latest (maximum ID) transaction id for each item.
+
+             import Standard.Examples
+
+             example_max = Examples.aggregate_column.max . rename "latest_transaction"
     max : Text -> Column
     max name_suffix='_max' =
         r = this.java_column.aggregate 'max' name_suffix (x-> Vector.Vector x . reduce Math.max) True
@@ -1063,6 +1087,13 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Get the earliest (mimumum ID) transaction id for each item.
+
+             import Standard.Examples
+
+             example_min = Examples.aggregate_column.min . rename "first_transaction"
     min : Text -> Column
     min name_suffix='_min' =
         r = this.java_column.aggregate 'min' name_suffix (x-> Vector.Vector x . reduce Math.min) True
@@ -1073,6 +1104,14 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Count the number of non-missing elements in each group in the column,
+         which gives the number of transactions in which a given item was sold.
+
+             import Standard.Examples
+
+             example_count = Examples.aggregate_column.count . rename "transaction_count"
     count : Text -> Column
     count name_suffix='_count' =
         r = this.java_column.aggregate 'count' name_suffix (x-> x.length) True
@@ -1083,6 +1122,13 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Get the mean transaction id for each item.
+
+             import Standard.Examples
+
+             example_mean = Examples.aggregate_column.mean
     mean : Text -> Column
     mean name_suffix='_mean' =
         vec_mean v = if v.length == 0 then Nothing else
@@ -1096,10 +1142,32 @@ type Aggregate_Column
        Arguments:
        - name_suffix: a suffix that will be appended to the original column name
          to generate the resulting column name.
+
+       > Example
+         Gather the values of the aggregate column together.
+
+             import Standard.Examples
+
+             example_values = Examples.aggregate_column.values
     values : Text -> Column
     values name_suffix='_values' =
         r = this.java_column.aggregate Nothing name_suffix Vector.Vector False
         Column r
+
+    ## Prints an ASCII-art column with this data to the standard output.
+
+       Arguments:
+       - show_rows: the number of initial rows that should be displayed.
+
+       > Example
+         Pretty-print an aggregate column and display it using the standard
+         output.
+
+             import Standard.Examples
+
+             example_print = Examples.aggregate_column.print
+    print : Nothing
+    print = this.values.print
 
 ## UNSTABLE
 
