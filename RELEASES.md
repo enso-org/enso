@@ -20,6 +20,10 @@
 - Removed reflective access when loading the OpenCV library
   ([#1727](https://github.com/enso-org/enso/pull/1727)). Illegal reflective
   access operations were deprecated and will be denied in future JVM releases.
+- Ported Docs Generator for Enso Website from Python into Scala
+  ([#1729](https://github.com/enso-org/enso/pull/1729)). Greatly improved
+  performance, enabling us to generate documentation structure for entire
+  Standard Library 8-10 times faster than before.
 
 ## Miscellaneous
 
