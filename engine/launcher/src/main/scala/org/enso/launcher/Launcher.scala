@@ -26,7 +26,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.project.ProjectManager
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.loggingservice.{LogLevel, LogMasking}
+import org.enso.loggingservice.LogLevel
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /** Implements launcher commands that are run from CLI and can be affected by
@@ -35,7 +35,6 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
-  LogMasking.setup(enabled = !cliOptions.internalOptions.logMaskingDisabled)
 
   private val logger = Logger[Launcher]
 

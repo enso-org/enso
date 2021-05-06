@@ -47,13 +47,16 @@ abstract class LoggingServiceSetupHelper(implicit
     *                                its logs to; advanced feature, use with
     *                                caution
     * @param colorMode specifies how to handle colors in console output
+    * @param logMasking switches the masking on and off
     */
   def setup(
     logLevel: Option[LogLevel],
     connectToExternalLogger: Option[Uri],
-    colorMode: ColorMode
+    colorMode: ColorMode,
+    logMasking: Boolean
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
+    LogMasking.setup(logMasking)
     connectToExternalLogger match {
       case Some(uri) =>
         setupLoggingConnection(uri, actualLogLevel)

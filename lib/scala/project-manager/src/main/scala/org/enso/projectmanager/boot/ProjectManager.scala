@@ -116,9 +116,10 @@ object ProjectManager extends App with LazyLogging {
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else {
-      val verbosity = options.getOptions.count(_ == Cli.option.verbose)
+      val verbosity  = options.getOptions.count(_ == Cli.option.verbose)
+      val logMasking = !options.hasOption(Cli.NO_LOG_MASKING)
       logger.info("Starting Project Manager...")
-      setupLogging(verbosity) *>
+      setupLogging(verbosity, logMasking) *>
       mainProcess.fold(
         th => {
           logger.error("Main process execution failed.", th)
@@ -129,7 +130,10 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
-  private def setupLogging(verbosityLevel: Int): ZIO[Console, Nothing, Unit] = {
+  private def setupLogging(
+    verbosityLevel: Int,
+    logMasking: Boolean
+  ): ZIO[Console, Nothing, Unit] = {
     val level = verbosityLevel match {
       case 0 => LogLevel.Info
       case 1 => LogLevel.Debug
@@ -142,7 +146,7 @@ object ProjectManager extends App with LazyLogging {
 
     ZIO
       .effect {
-        Logging.setup(Some(level), None, colorMode)
+        Logging.setup(Some(level), None, colorMode, logMasking)
       }
       .catchAll { exception =>
         putStrLnErr(s"Failed to setup the logger: $exception")
