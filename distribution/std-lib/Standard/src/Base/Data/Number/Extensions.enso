@@ -242,5 +242,18 @@ Number.to_json = Json.Number this
          Decimal.parse 7.6
 Decimal.parse : Text -> Decimal ! Nothing
 Decimal.parse text =
-    Panic.recover (Double.parseDouble text) . catch (_ -> Error.throw Nothing)
+    Panic.recover (Double.parseDouble text) . catch _->
+        Error.throw (Not_A_Double_Error text)
+
+## UNSTABLE
+
+   A syntax error when parsing a double.
+type Not_A_Double_Error text
+
+## UNSTABLE
+
+   Pretty print the syntax error.
+Not_A_Double_Error.to_display_text : Text
+Not_A_Double_Error.to_display_text =
+    "Could not parse " + this.text.to_text + " as a double."
 
