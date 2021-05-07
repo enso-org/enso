@@ -1,4 +1,4 @@
-package org.enso.syntax.text.DocParser
+package org.enso.syntax.text.docparser
 
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Shape.Block.Line

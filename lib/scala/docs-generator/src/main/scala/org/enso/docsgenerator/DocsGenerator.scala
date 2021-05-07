@@ -1,7 +1,8 @@
 package org.enso.docsgenerator
 
 import java.io.File
-import org.enso.syntax.text.{DocParser, DocParserMain, Parser}
+import org.enso.syntax.text.{DocParser, Parser}
+import org.enso.syntax.text.docparser._
 
 /** The Docs Generator class. Defines useful wrappers for Doc Parser.
   */
@@ -13,17 +14,16 @@ object DocsGenerator {
     val parser   = new Parser()
     val module   = parser.run(program)
     val dropMeta = parser.dropMacroMeta(module)
-    val doc      = DocParser.DocParserRunner.createDocs(dropMeta)
-    val code =
-      DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+    val doc      = DocParserRunner.createDocs(dropMeta)
+    val code     = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
     code
   }
 
   /** Generates HTML from Documentation string.
     */
   def generatePure(comment: String): String = {
-    val doc  = DocParserMain.runMatched(comment)
-    val html = DocParser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+    val doc  = DocParser.runMatched(comment)
+    val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
     html
   }
 

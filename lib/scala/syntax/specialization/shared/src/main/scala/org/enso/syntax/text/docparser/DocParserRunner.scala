@@ -1,7 +1,7 @@
-package org.enso.syntax.text.DocParser
+package org.enso.syntax.text.docparser
 
 import org.enso.data.List1
-import org.enso.syntax.text.{AST, DocParserMain}
+import org.enso.syntax.text.{AST, DocParser}
 import org.enso.syntax.text.Shape.Block.Line
 import org.enso.syntax.text.ast.Doc
 
@@ -150,7 +150,7 @@ object DocParserRunner {
     */
   def createDocFromComment(comment: AST.Comment): Doc = {
     val in = comment.lines.mkString("\n")
-    DocParserMain.runMatched(in)
+    DocParser.runMatched(in)
   }
 
   /** Function for creating documented lines in [[attachDocToSubsequentAST]]

@@ -15,7 +15,7 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   val logger = new Logger()
 
   def assertExpr(input: String, result: Doc): Assertion = {
-    val output = DocParser.run(input)
+    val output = docparser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
         assert(value == result)

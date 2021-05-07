@@ -18,8 +18,8 @@ import flexer.Parser.{Result => res}
   * It has been built on the same foundation as Parser, so in order not to
   * duplicate information, please refer to Parser documentation.
   */
-class DocParserMain {
-  import DocParserMain._
+class DocParser {
+  import DocParser._
   private val engine = newEngine()
   private val errMsg = "Internal Documentation Parser Error"
 
@@ -43,11 +43,11 @@ class DocParserMain {
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 }
 
-object DocParserMain {
+object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  /** Doc Parser running methods, as described above, in class [[DocParser]]
+  /** Doc Parser running methods, as described above, in class [[docparser]]
     */
   def runMatched(input: String): Doc = {
     val lines            = input.split("\n")
@@ -57,7 +57,7 @@ object DocParserMain {
       indentSecondLine = s.indexOf(s.trim())
     }
     val in = " " * indentSecondLine + lines.mkString("\n")
-    new DocParserMain().runMatched(in)
+    new DocParser().runMatched(in)
   }
-  def run(input: String): Result[Doc] = new DocParserMain().run(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 }

@@ -29,16 +29,16 @@ object Parse {
     val parser   = new Parser()
     val module   = parser.run(program)
     val dropMeta = parser.dropMacroMeta(module)
-    val doc      = DocParser.DocParserRunner.createDocs(dropMeta)
+    val doc      = docparser.DocParserRunner.createDocs(dropMeta)
     val htmlCode =
-      DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+      docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
     htmlCode
   }
 
   @JSExportTopLevel("doc_parser_generate_html_from_doc")
   def doc_parser_generate_html_from_doc(code: String): String = {
-    val doc      = DocParserMain.runMatched(code)
-    val htmlCode = DocParser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+    val doc      = DocParser.runMatched(code)
+    val htmlCode = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
     htmlCode
   }
 }

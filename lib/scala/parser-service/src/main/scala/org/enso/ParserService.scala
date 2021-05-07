@@ -4,7 +4,7 @@ import io.circe.Json
 import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
-import org.enso.syntax.text.{AST, DocParser, DocParserMain, Parser, SourceFile}
+import org.enso.syntax.text.{docparser, AST, DocParser, Parser, SourceFile}
 
 import scala.util.Try
 
@@ -47,13 +47,13 @@ case class ParserService() extends Server with Protocol {
         val parser   = new Parser()
         val module   = parser.run(program)
         val dropMeta = parser.dropMacroMeta(module)
-        val doc      = DocParser.DocParserRunner.createDocs(dropMeta)
+        val doc      = docparser.DocParserRunner.createDocs(dropMeta)
         val code =
-          DocParser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+          docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
         Protocol.SuccessDoc(code)
       case DocParserGenerateHtmlFromDoc(code) =>
-        val doc      = DocParserMain.runMatched(code)
-        val htmlCode = DocParser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+        val doc      = DocParser.runMatched(code)
+        val htmlCode = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc)
         Protocol.SuccessDoc(htmlCode)
       case _ =>
         throw new Exception(f"unimplemented request: $request")
