@@ -87,7 +87,7 @@ Json.Array.to_table fields = case this of
              json.to_table
 Json.Object.to_table : Vector -> Table ! Invalid_Format_Error
 Json.Object.to_table fields=Nothing =
-    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error this, "not being a feature collection") else
+    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error this "not being a feature collection") else
         case this.get "features" of
             Json.Array items ->
                 feature_rows = items.map .get_feature_row
@@ -99,7 +99,7 @@ Json.Object.to_table fields=Nothing =
                         column_names_row.keys
                     _ -> fields
                 rows = feature_rows.map row->
-                    column_names.map n-> row.get n . unwrap . catch (_ -> Invalid_Format_Error this, "not having the necessary feature rows.")
+                    column_names.map n-> row.get n . unwrap . catch (_ -> Nothing)
                 cols = column_names.map_with_index i-> n->
                     [n, rows.map (_.at i)]
                 Table.new cols
