@@ -1,13 +1,12 @@
 package org.enso.projectmanager.service
 
-import java.nio.file.Path
-
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.model.ProjectPath
 import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
@@ -27,7 +26,7 @@ class ProjectCreationService[
   /** @inheritdoc */
   override def createProject(
     progressTracker: ActorRef,
-    path: Path,
+    path: ProjectPath,
     name: String,
     engineVersion: SemVer,
     missingComponentAction: MissingComponentAction
@@ -44,7 +43,7 @@ class ProjectCreationService[
         )
 
       val settings =
-        runner.newProject(path, name, engineVersion, None, None, Seq()).get
+        runner.newProject(path.path, name, engineVersion, None, None, Seq()).get
       val jvmSettings = distributionConfiguration.defaultJVMSettings
       runner.withCommand(settings, jvmSettings) { command =>
         command.run().get

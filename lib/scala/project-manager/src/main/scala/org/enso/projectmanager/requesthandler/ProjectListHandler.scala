@@ -54,18 +54,18 @@ class ProjectListHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $ProjectList operation:")
+      log.error(ex, "Failure during {} operation.", ProjectList)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $ProjectList with $id timed out")
+      log.error("Request {} with {} timed out.", ProjectList, id)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Left(failure: ProjectServiceFailure) =>
-      log.error(s"Request $id failed due to $failure")
+      log.error("Request {} failed due to {}.", id, failure)
       replyTo ! ResponseError(Some(id), mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

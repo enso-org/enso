@@ -1,10 +1,9 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
-import java.nio.file.Path
 import java.util.UUID
 
-import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.{Project, ProjectPath}
 
 /** An abstraction for accessing project domain objects from durable storage.
   *
@@ -27,7 +26,9 @@ trait ProjectRepository[F[+_, +_]] {
     * @param project the project to find the path for
     * @return the project, with the updated path
     */
-  def findPathForNewProject(project: Project): F[ProjectRepositoryFailure, Path]
+  def findPathForNewProject(
+    project: Project
+  ): F[ProjectRepositoryFailure, ProjectPath]
 
   /** Saves the provided user project in the index.
     *

@@ -1,7 +1,6 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
-import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
 
@@ -27,7 +26,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   StorageFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
-import org.enso.projectmanager.model.{Project, ProjectMetadata}
+import org.enso.projectmanager.model.{Project, ProjectMetadata, ProjectPath}
 
 /** File based implementation of the project repository.
   *
@@ -81,7 +80,8 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def findPathForNewProject(
     project: Project
-  ): F[ProjectRepositoryFailure, Path] = findTargetPath(project).map(_.toPath)
+  ): F[ProjectRepositoryFailure, ProjectPath] =
+    findTargetPath(project).map(file => ProjectPath(file.toPath))
 
   private def tryLoadProject(
     directory: File

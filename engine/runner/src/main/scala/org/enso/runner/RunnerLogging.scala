@@ -42,7 +42,7 @@ object RunnerLogging {
             logLevel
           )
           .map { _ =>
-            logger.trace(s"Connected to logging service at `$uri`.")
+            logger.trace("Connected to logging service at [{}].", uri)
           }
           .recoverWith { _ =>
             logger.error(

@@ -45,7 +45,7 @@ object ProjectManager extends App with LazyLogging {
   val computeExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
       computeThreadPool,
-      th => logger.error("An expected error occurred", th)
+      th => logger.error("An expected error occurred.", th)
     )
 
   /** ZIO runtime.
@@ -76,7 +76,7 @@ object ProjectManager extends App with LazyLogging {
       .foldM(
         failure = th =>
           effectTotal {
-            logger.error("An error occurred during killing lang servers", th)
+            logger.error("An error occurred during killing lang servers.", th)
           },
         success = ZIO.succeed(_)
       )
@@ -90,7 +90,7 @@ object ProjectManager extends App with LazyLogging {
         failure = th =>
           effectTotal {
             logger
-              .error("An error occurred during waiting for shutdown hooks", th)
+              .error("An error occurred during waiting for shutdown hooks.", th)
           },
         success = ZIO.succeed(_)
       )
@@ -168,8 +168,9 @@ object ProjectManager extends App with LazyLogging {
   private def logServerStartup(): UIO[Unit] =
     effectTotal {
       logger.info(
-        s"Started server at ${config.server.host}:${config.server.port}, " +
-        s"press enter to kill server"
+        "Started server at {}:{}, press enter to kill server",
+        config.server.host,
+        config.server.port
       )
     }
 

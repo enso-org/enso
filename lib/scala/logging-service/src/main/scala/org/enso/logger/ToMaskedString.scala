@@ -11,7 +11,7 @@ trait ToMaskedString {
   def toMaskedString: String
 
   /** A substitution for the masked data. */
-  final protected val STUB: String = "***"
+  final protected val STUB: String = MaskingUtils.STUB
 
   /** A synonym for `STUB`. */
   final protected val *** = STUB

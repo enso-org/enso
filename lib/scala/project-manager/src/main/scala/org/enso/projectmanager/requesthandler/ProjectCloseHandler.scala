@@ -51,18 +51,18 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $ProjectClose operation:")
+      log.error(ex, "Failure during {} operation.", ProjectClose)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $ProjectClose with $id timed out")
+      log.error("Request {} with {} timed out.", ProjectClose, id)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Left(failure: ProjectServiceFailure) =>
-      log.error(s"Request $id failed due to $failure")
+      log.error("Request {} failed due to {}.", id, failure)
       replyTo ! ResponseError(Some(id), mapFailure(failure))
       cancellable.cancel()
       context.stop(self)
