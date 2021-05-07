@@ -1908,6 +1908,7 @@ impl application::View for GraphEditor {
             (Press   , ""              , "left-mouse-button" , "node_press")
           , (Release , ""              , "left-mouse-button" , "node_release")
           , (Press   , "!node_editing" , "backspace"         , "remove_selected_nodes")
+          , (Press   , "!node_editing" , "delete"         , "remove_selected_nodes")
           , (Press   , ""              , "cmd g"             , "collapse_selected_nodes")
 
           // === Visualization ===
