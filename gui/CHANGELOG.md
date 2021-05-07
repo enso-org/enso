@@ -8,10 +8,11 @@
 
 #### EnsoGL (rendering engine)
 
-
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
 #### Visual Environment
+
+- [Delete key will delete selected nodes][1538].
 
 #### EnsoGL (rendering engine)
 
@@ -20,6 +21,8 @@
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1538]: https://github.com/enso-org/ide/pull/1538
 
 <br/>
 
