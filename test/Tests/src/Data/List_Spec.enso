@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Data.List
+
 import Standard.Test
 
 spec = Test.group "List" <|
@@ -60,20 +62,20 @@ spec = Test.group "List" <|
         empty.take_start 2 . should_equal Nil
     Test.specify "should allow getting the head of the list with `.head`" <|
         l.head . should_equal 1
-        empty.head.catch . should_equal Nothing
+        empty.head.should_fail_with List.Empty_Error
     Test.specify "should allow getting the tail of the list with `.tail`" <|
         l.tail . should_equal (Cons 2 (Cons 3 Nil))
-        empty.tail.catch . should_equal Nothing
+        empty.tail.should_fail_with List.Empty_Error
     Test.specify "should allow getting the init of the list with `.init`" <|
         l.init . should_equal (Cons 1 (Cons 2 Nil))
-        empty.init.catch . should_equal Nothing
+        empty.init.should_fail_with List.Empty_Error
     Test.specify "should allow getting the last element of the list with `.last`" <|
         l.last . should_equal 3
-        empty.last.catch . should_equal Nothing
+        empty.last.should_fail_with List.Empty_Error
     Test.specify "should allow getting the head of the list with `.first`" <|
         l.first . should_equal 1
-        empty.first.catch . should_equal Nothing
+        empty.first.should_fail_with List.Empty_Error
     Test.specify "should allow getting the tail of the list with `.rest`" <|
         l.rest . should_equal (Cons 2 (Cons 3 Nil))
-        empty.rest.catch . should_equal Nothing
+        empty.rest.should_fail_with List.Empty_Error
 
