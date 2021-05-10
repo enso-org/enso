@@ -161,17 +161,17 @@ type Vector
        Arguments:
        - function: A binary operation that takes two items and combines them.
 
-       If the vector is empty, it throws Nothing.
+       If the vector is empty, it throws an `Empty_Error`.
 
        > Example
          Compute the sum of all the elements in a vector.
 
              [0, 1, 2] . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any ! Nothing
+    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce function =
         case this.not_empty of
             True -> this.tail.fold this.head function
-            False -> Error.throw Nothing
+            False -> Error.throw Empty_Error
 
     ## Computes the sum of the values in the vector.
 
@@ -182,12 +182,12 @@ type Vector
          Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
-    sum : (Any ! Nothing)
+    sum : Any ! (Empty_Error ! No_Such_Method_Error)
     sum =
         result = Panic.recover <| this.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error _ _ -> Nothing
-            Nothing -> Nothing
+            No_Such_Method_Error _ _ -> x
+            Empty_Error -> x
             _ -> Panic.throw x
 
     ## Checks whether a predicate holds for at least one element of this vector.
@@ -588,15 +588,15 @@ type Vector
     to_json : Json.Array
     to_json = Json.Array (this.map .to_json)
 
-    ## Get the first element from the vector, or an error `Nothing` if the
-       vector is empty.
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
 
        > Example
          The following code returns 1.
 
              [1, 2, 3, 4].head
-    head : Any ! Nothing
-    head = if this.length >= 1 then this.at 0 else Error.throw Nothing
+    head : Any ! Empty_Error
+    head = if this.length >= 1 then this.at 0 else Error.throw Empty_Error
 
     ## Get all elements in the vector except the first.
 
@@ -604,8 +604,9 @@ type Vector
          The following code returns [2, 3, 4].
 
              [1, 2, 3, 4].tail
-    tail : Vector ! Nothing
-    tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
+    tail : Vector ! Empty_Error
+    tail = if this.length >= 1 then this.drop_start 1 else
+        Error.throw Empty_Error
 
     ## Get the all elements in the vector except the last.
 
@@ -613,30 +614,31 @@ type Vector
          The following code returns [1, 2, 3].
 
              [1, 2, 3, 4].init
-    init : Vector ! Nothing
-    init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
+    init : Vector ! Empty_Error
+    init = if this.length >= 1 then this.drop_end 1 else Error.throw Empty_Error
 
-    ## Get the last element of the vector, or an error `Nothing` if the vector
-       is empty.
+    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+       empty.
 
        > Example
          The following code returns 4.
 
              [1, 2, 3, 4].last
-    last : Vector ! Nothing
-    last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
+    last : Vector ! Empty_Error
+    last = if this.length >= 1 then (this.take_end 1).at 0 else
+        Error.throw Empty_Error
 
-    ## Get the first element from the vector, or an error `Nothing` if the
-       vector is empty.
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
 
        > Example
          The following code returns 1.
 
              [1, 2, 3, 4].first
-    first : Vector ! Nothing
+    first : Vector ! Empty_Error
     first = this.head
 
-    ## Get the second element from the vector, or an error `Nothing` if the
+    ## Get the second element from the vector, or a `Singleton_Error` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -645,20 +647,16 @@ type Vector
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Nothing
-    second = if this.length >= 2 then this.at 1 else Error.throw Nothing
+    second : Vector ! Singleton_Error
+    second = if this.length >= 2 then this.at 1 else
+        Error.throw (Singleton_Error this)
 
     ## Get all elements in the vector except the first.
 
        > Example
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].rest
-
-       > Example
-         Empty vectors return `Nothing`.
-
-             [].rest == Nothing
-    rest : Vector ! Nothing
+    rest : Vector ! Empty_Error
     rest = this.tail
 
     ## Sort the Vector.
@@ -838,4 +836,30 @@ type Index_Out_Of_Bounds_Error index length
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text =
     "The index " + this.index.to_text + " is out of bounds in a vector with length " + this.length.to_text + "."
+
+## UNSTABLE
+
+   An error that indicates that the vector is empty.
+type Empty_Error
+
+## UNSTABLE
+
+   Pretty prints the empty error.
+Empty_Error.to_display_text : Text
+Empty_Error.to_display_text = "The vector is empty."
+
+## UNSTABLE
+
+   An error that indicates that the vector only has one element.
+
+   Arguments:
+   - vec: The vector that only has one element.
+type Singleton_Error vec
+
+## UNSTABLE
+
+   Pretty prints the singleton error.
+Singleton_Error.to_display_text : Text
+Singleton_Error.to_display_text =
+    "The vector " + this.vec.to_text  + " has only one element"
 
