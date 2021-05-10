@@ -9,9 +9,7 @@ import org.enso.syntax.text.ast.Doc
 //// Doc Parser Runner /////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/** This is Doc Parser Runner.
-  *
-  * Essentially it binds together Enso Parser with Doc Parser.
+/** Doc Parser Runner binds together Enso Parser with Doc Parser.
   * When Parser finishes its job it invokes runner with AST created by it after
   * resolving macros. Then Runner does it's job - running Doc Parser on every
   * [[AST.Comment]], combined with connecting [[Doc]] with AST in
@@ -19,9 +17,11 @@ import org.enso.syntax.text.ast.Doc
   * [[AST.App.Infix]]
   */
 object DocParserRunner {
+
   //////////////////////////////////////////////////////////////////////////////
   //// Created Doc's in right places with appropriate AST //////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
   /** This function invokes the documentation parser on every instance of
     * [[AST.Comment]].
     *
