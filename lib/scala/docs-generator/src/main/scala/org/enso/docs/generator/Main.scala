@@ -8,9 +8,12 @@ import TreeOfCommonPrefixes._
 import DocsGenerator._
 import HTML._
 
-/** The Docs Generator script.
-  * Used to create HTML documentation for Enso Standard Library, and also JS
-  * files with react components for the "component reference" website.
+/** The entry point for the documentation generator.
+  *
+  * The documentation generator is responsible for creating HTML documentation
+  * for the Enso standard library.
+  * It also generates JavaScript files containing react components for the
+  * [[https://enso.org/docs/reference reference website]].
   */
 object Main extends App {
 
