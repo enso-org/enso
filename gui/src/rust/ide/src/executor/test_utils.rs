@@ -29,6 +29,11 @@ impl TestWithLocalPoolExecutor {
         Self {executor,running_task_count}
     }
 
+    /// Check if there are any uncompleted tasks in the pool.
+    pub fn has_ongoing_task(&self) -> bool {
+        self.running_task_count.get() > 0
+    }
+
     /// Spawn new task in executor.
     pub fn run_task<Task>(&mut self, task: Task)
     where Task : Future<Output=()> + 'static {
@@ -47,7 +52,7 @@ impl TestWithLocalPoolExecutor {
     pub fn when_stalled<Callback>(&mut self, callback:Callback)
     where Callback : FnOnce() {
         self.run_until_stalled();
-        if self.running_task_count.get() > 0 {
+        if self.has_ongoing_task() {
             callback();
         }
     }
@@ -59,7 +64,7 @@ impl TestWithLocalPoolExecutor {
     pub fn when_stalled_run_task<Task>(&mut self, task : Task)
     where Task : Future<Output=()> + 'static {
         self.run_until_stalled();
-        if self.running_task_count.get() > 0 {
+        if self.has_ongoing_task() {
             self.run_task(task);
         }
     }

@@ -7,11 +7,14 @@
 
 pub mod clipboard;
 pub mod closure;
+pub mod event;
 pub mod resize_observer;
 pub mod platform;
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {
+    pub use enso_logger::*;
+    pub use enso_logger::DefaultInfoLogger as Logger;
     pub use enso_prelude::*;
     pub use wasm_bindgen::prelude::*;
 }
@@ -77,11 +80,15 @@ impl From<JsValue> for Error {
 
 #[wasm_bindgen]
 extern "C" {
-    /// Converts given `JsValue` into a `String`. Uses JS's `String` function,
-    /// see: https://www.w3schools.com/jsref/jsref_string.asp
     #[allow(unsafe_code)]
     #[wasm_bindgen(js_name="String")]
-    pub fn js_to_string(s: JsValue) -> String;
+    fn js_to_string_inner(s:&JsValue) -> String;
+}
+
+/// Converts given `JsValue` into a `String`. Uses JS's `String` function,
+/// see: https://www.w3schools.com/jsref/jsref_string.asp
+pub fn js_to_string(s:impl AsRef<JsValue>) -> String {
+    js_to_string_inner(s.as_ref())
 }
 
 
@@ -651,7 +658,7 @@ pub fn reflect_get_nested_string(target:&JsValue, keys:&[&str]) -> Result<String
     if tgt.is_undefined() {
         Err(Error("Key was not present in the target."))
     } else {
-        Ok(js_to_string(tgt))
+        Ok(js_to_string(&tgt))
     }
 }
 

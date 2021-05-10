@@ -279,8 +279,8 @@ async fn create_project_model
 ) -> FallibleResult<model::Project> {
     info!(logger, "Establishing Language Server connection.");
     let client_id     = Uuid::new_v4();
-    let json_ws       = WebSocket::new_opened(logger,json_endpoint).await?;
-    let binary_ws     = WebSocket::new_opened(logger,binary_endpoint).await?;
+    let json_ws       = WebSocket::new_opened(logger,&json_endpoint).await?;
+    let binary_ws     = WebSocket::new_opened(logger,&binary_endpoint).await?;
     let client_json   = language_server::Client::new(json_ws);
     let client_binary = binary::Client::new(logger,binary_ws);
     crate::executor::global::spawn(client_json.runner());
