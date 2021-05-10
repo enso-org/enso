@@ -18,7 +18,7 @@ const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'));
 
 module.exports = {
     entry: {
-        index: path.resolve(thisPath,'src','index.js'),
+        index: path.resolve(thisPath,'src','index.ts'),
         wasm_imports: './src/wasm_imports.js',
     },
     output: {
@@ -51,8 +51,9 @@ module.exports = {
     },
     resolve: {
         alias: {
-            wasm_rust_glue$: path.resolve(wasmPath,'ide.js')
-        }
+            wasm_rust_glue$: path.resolve(wasmPath,'ide.js'),
+        },
+        extensions: [ '.ts', '.js' ],
     },
     performance: {
         hints: false,
@@ -65,6 +66,11 @@ module.exports = {
                 test: /\.ya?ml$/,
                 type: 'json',
                 use: 'yaml-loader'
+            },
+            {
+                test: /\.tsx?/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
             }
         ]
     }

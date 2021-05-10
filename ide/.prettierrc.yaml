@@ -1,6 +1,6 @@
 overrides:
 
-  - files: "*.js"
+  - files: "*.[j|t]s"
     options:
       printWidth: 100
       tabWidth: 4
