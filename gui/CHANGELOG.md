@@ -1,4 +1,4 @@
-# Next Release
+# Enso 2.0.0-alpha.5 (2021-05-14)
 
 <br/>![New Learning Resources](/docs/assets/tags/new_learning_resources.svg)
 
