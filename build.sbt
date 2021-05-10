@@ -181,6 +181,7 @@ lazy val enso = (project in file("."))
     `json-rpc-server`,
     `language-server`,
     `parser-service`,
+    `docs-generator`,
     `polyglot-api`,
     `project-manager`,
     `syntax-definition`.jvm,

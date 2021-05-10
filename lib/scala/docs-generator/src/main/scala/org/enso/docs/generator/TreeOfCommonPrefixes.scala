@@ -33,12 +33,12 @@ object TreeOfCommonPrefixes {
     }
   }
 
-  /** Groups a list of nodes by it's prefixes. Calls groupByPrefix on every node.
+  /** Groups a list of nodes by it's prefixes.
     */
   def groupNodesByPrefix(le: List[Node]): List[Node] =
     groupByPrefix(le.map(_.name))
 
-  /** Recursive function that groups a list of strings by it's prefixes, actually
+  /** A function that groups a list of strings by it's prefixes, actually
     * creating the aforementioned tree.
     */
   def groupByPrefix(ls: List[String]): List[Node] = {
