@@ -110,3 +110,15 @@ spec =
                 t = Json.String "Author"
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
+
+    Test.group "JSON" <|
+
+        Test.specify "should allow getting object fields" <|
+            object = Json.parse '''
+                { "foo": "bar",
+                  "baz": ["foo", "x", false],
+                  "y": {"z": null, "w": null} }
+
+            object.get "foo" . should_equal (Json.String "bar")
+            object.get "bar" . should_fail_with Json.No_Such_Field_Error
+

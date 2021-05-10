@@ -340,6 +340,9 @@ type List
    An error representing that the list is empty.
 type Empty_Error
 
+## UNSTABLE
+
+   Pretty prints the empty error.
 Empty_Error.to_display_text : Text
 Empty_Error.to_display_text = "The List is empty."
 
@@ -354,6 +357,7 @@ Empty_Error.to_display_text = "The List is empty."
    Uses unsafe field mutation under the hood, to rewrite `map` in
    a tail-recursive manner. The mutation is purely internal and does not leak
    to the user-facing API.
+map_helper : List -> Any -> (Any -> Any) -> Nothing
 map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil
