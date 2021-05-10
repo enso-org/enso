@@ -42,5 +42,6 @@ pub enum TransportEvent {
     /// A socket has been opened.
     Opened,
     /// A socket has been closed by the peer.
+    /// This event may be also emitted when reconnecting has failed.
     Closed,
 }

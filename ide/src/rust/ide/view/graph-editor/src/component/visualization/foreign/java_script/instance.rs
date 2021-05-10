@@ -277,7 +277,7 @@ impl Instance {
             use enso_frp::web::js_to_string;
             let logger = self.model.logger.clone();
             error!(logger,"Failed to trigger initial preprocessor update from JS: \
-            {js_to_string(js_error)}");
+            {js_to_string(&js_error)}");
         }
         self
     }
