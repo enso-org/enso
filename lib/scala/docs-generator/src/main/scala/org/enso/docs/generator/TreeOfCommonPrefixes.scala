@@ -35,34 +35,36 @@ object TreeOfCommonPrefixes {
 
   /** Groups a list of nodes by it's prefixes.
     */
-  def groupNodesByPrefix(le: List[Node]): List[Node] =
-    groupByPrefix(le.map(_.name))
+  def groupNodesByPrefix(le: List[Node], sep: Char): List[Node] =
+    groupByPrefix(le.map(_.name), sep)
 
   /** A function that groups a list of strings by it's prefixes, actually
     * creating the aforementioned tree.
     */
-  def groupByPrefix(ls: List[String]): List[Node] = {
+  def groupByPrefix(ls: List[String], sep: Char): List[Node] = {
     var nodes = List[Node]()
     for (string <- ls) {
-      if (string.split('/').length <= 1) {
+      if (string.split(sep).length <= 1) {
         nodes = nodes :+ Node(string, List())
       } else {
-        val arr      = string.split('/')
+        val arr      = string.split(sep)
         val filtered = nodes.filter(x => x.name == arr.head)
         if (filtered.nonEmpty && nodes.contains(filtered.head)) {
           nodes.map(n =>
             if (n == filtered.head) {
-              n.elems = n.elems :+ Node(arr.tail.mkString("/"), List())
+              n.elems = n.elems :+ Node(arr.tail.mkString(sep.toString), List())
             }
           )
         } else {
-          nodes =
-            nodes :+ Node(arr.head, List(Node(arr.tail.mkString("/"), List())))
+          nodes = nodes :+ Node(
+            arr.head,
+            List(Node(arr.tail.mkString(sep.toString), List()))
+          )
         }
       }
     }
     for (node <- nodes) {
-      node.elems = groupNodesByPrefix(node.elems)
+      node.elems = groupNodesByPrefix(node.elems, sep)
     }
     nodes
   }

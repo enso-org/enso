@@ -47,7 +47,8 @@ object Main extends App {
   /// HTML's for syntax website.
   val libPath =
     "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
-  val treeNames    = groupByPrefix(allFileNames.toList).filter(_.elems.nonEmpty)
+  val treeNames =
+    groupByPrefix(allFileNames.toList, '/').filter(_.elems.nonEmpty)
   val jsTemplate   = new File(libPath + "template.js")
   val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) { _.mkString }
   val styleFile    = new File(libPath + "treeStyle.css")
