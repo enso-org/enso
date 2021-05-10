@@ -18,10 +18,10 @@ import HTML._
 object Main extends App {
 
   /// Files
-  val path = "./distribution/std-lib/Standard/src"
-  val allFiles = traverse(new File(path)).filter(f =>
-    f.isFile && f.getName.endsWith(".enso")
-  )
+  val path =
+    if (args.length >= 1) args(0) else "./distribution/std-lib/Standard/src"
+  val allFiles = traverse(new File(path))
+    .filter(f => f.isFile && f.getName.endsWith(".enso"))
   val allFileNames = allFiles.map(
     _.getPath
       .replace(path + "/", "")
@@ -30,7 +30,7 @@ object Main extends App {
 
   /// HTML's w/o react & tree (for IDE)
   val allPrograms = allFiles
-    .map(f => Using(Source.fromFile(f, "UTF-8")) { s => s.mkString })
+    .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
     .toList
   val allDocs = allPrograms
     .map(s => run(s.getOrElse("")))
@@ -46,16 +46,19 @@ object Main extends App {
 
   /// HTML's for syntax website.
   val libPath =
-    "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
+    if (args.length >= 2) args(1)
+    else "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
   val treeNames =
     groupByPrefix(allFileNames.toList, '/').filter(_.elems.nonEmpty)
-  val jsTemplate   = new File(libPath + "template.js")
-  val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) { _.mkString }
-  val styleFile    = new File(libPath + "treeStyle.css")
-  val styleCode    = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
-  val treeStyle    = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
+  val jsTempFileName = if (args.length >= 3) args(2) else "template.js"
+  val cssFileName    = if (args.length >= 4) args(3) else "treeStyle.css"
+  val outDir         = if (args.length >= 5) args(4) else "docs-js"
+  val jsTemplate     = new File(libPath + jsTempFileName)
+  val templateCode   = Using(Source.fromFile(jsTemplate, "UTF-8")) { _.mkString }
+  val styleFile      = new File(libPath + cssFileName)
+  val styleCode      = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
+  val treeStyle      = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
   val allDocJSFiles = allFiles.map { x =>
-    val outDir = "docs-js"
     val name = x.getPath
       .replace(".enso", ".js")
       .replace("Standard/src", outDir)
@@ -63,10 +66,10 @@ object Main extends App {
     val ending = name.split(outDir + "/").tail.head
     name.replace(ending, ending.replace('/', '-'))
   }
-  val dir = new File(allDocJSFiles.head.split("docs-js").head + "docs-js/")
+  val dir = new File(allDocJSFiles.head.split(outDir).head + outDir + "/")
   dir.mkdirs()
   val zippedJS = allDocJSFiles.zip(allDocs)
-  zippedJS.foreach(createDocJSFile)
+  zippedJS.foreach(x => createDocJSFile(x, outDir))
 
   /** Takes a tuple of file path and documented HTML code, saving the file
     * in the given directory.
@@ -86,7 +89,7 @@ object Main extends App {
   /** Takes a tuple of file path and documented HTML code, and generates JS doc
     * file with react components for Enso website.
     */
-  private def createDocJSFile(x: (String, String)): Unit = {
+  private def createDocJSFile(x: (String, String), outDir: String): Unit = {
     val path     = x._1
     val htmlCode = x._2
     val file     = new File(path)
@@ -101,7 +104,7 @@ object Main extends App {
       treeCode = treeCode.replace("a href=\"", "a href=\"reference/")
     }
     val partials = path
-      .split("docs-js/")
+      .split(outDir + "/")
       .tail
       .head
       .replace(".js", "")
@@ -111,13 +114,14 @@ object Main extends App {
       val beg = "<input type=\"checkbox\" id=\"" + id + "\" "
       treeCode = treeCode.replace(beg, beg + "checked=\"True\"")
     }
+    val docCopyBtnClass = "doc-copy-btn"
     bw.write(
       templateCode
         .getOrElse("")
         .replace(
           "{/*PAGE*/}",
           htmlCode
-            .replace("doc-copy-btn flex", "doc-copy-btn none")
+            .replace(docCopyBtnClass + " flex", docCopyBtnClass + " none")
             .replace("{", "&#123;")
             .replace("}", "&#125;")
         )
