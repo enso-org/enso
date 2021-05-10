@@ -246,10 +246,11 @@ jobs:
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
     if: >-
-      !(contains(github.event.head_commit.message,'[ci build]') || github.ref ==
+      !(contains(github.event.pull_request.body,'[ci build]') ||
+      contains(github.event.head_commit.message,'[ci build]') || github.ref ==
       'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
-      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
-      'refs/heads/stable')
+      == 'stable' || (github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/stable'))
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -375,10 +376,11 @@ jobs:
             dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
         if: startsWith(matrix.os,'ubuntu')
     if: >-
+      contains(github.event.pull_request.body,'[ci build]') ||
       contains(github.event.head_commit.message,'[ci build]') || github.ref ==
       'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
-      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
-      'refs/heads/stable'
+      == 'stable' || (github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/stable')
   release_to_github:
     name: GitHub Release
     runs-on: ${{ matrix.os }}

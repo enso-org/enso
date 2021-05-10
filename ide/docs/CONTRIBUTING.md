@@ -259,7 +259,7 @@ The following branches are used to develop the product:
 
 By default, CI would not build artifacts from `wip` and `develop` branches in
 order to save time and resources. If you want the artifacts to be build for your
-commit, simply add `[ci build]` anywhere in your commit message.
+PR, simply add `[ci build]` anywhere in the PR description.
 
 ### Skipping CHANGELOG.md change assertions
 
