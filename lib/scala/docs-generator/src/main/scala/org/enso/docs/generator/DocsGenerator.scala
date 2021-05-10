@@ -1,4 +1,4 @@
-package org.enso.docsgenerator
+package org.enso.docs.generator
 
 import java.io.File
 import org.enso.syntax.text.{DocParser, Parser}

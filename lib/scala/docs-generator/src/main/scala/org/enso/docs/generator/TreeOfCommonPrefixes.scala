@@ -1,4 +1,4 @@
-package org.enso.docsgenerator
+package org.enso.docs.generator
 
 import scalatags.Text.{all => HTML}
 import HTML._

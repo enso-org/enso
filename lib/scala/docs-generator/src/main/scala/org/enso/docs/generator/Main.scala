@@ -1,18 +1,18 @@
-package org.enso
+package org.enso.docs.generator
 
 import java.io._
 import scala.util.Using
 import scala.io.Source
 import scalatags.Text.{all => HTML}
+import TreeOfCommonPrefixes._
+import DocsGenerator._
 import HTML._
-import docsgenerator.DocsGenerator._
-import docsgenerator.TreeOfCommonPrefixes._
 
 /** The Docs Generator script.
   * Used to create HTML documentation for Enso Standard Library, and also JS
   * files with react components for the "component reference" website.
   */
-object DocsGeneratorMain extends App {
+object Main extends App {
 
   /// Files
   val path = "./distribution/std-lib/Standard/src"
@@ -43,7 +43,7 @@ object DocsGeneratorMain extends App {
 
   /// HTML's for syntax website.
   val libPath =
-    "./lib/scala/docs-generator/src/main/scala/org/enso/docsgenerator/"
+    "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
   val treeNames    = groupByPrefix(allFileNames.toList).filter(_.elems.nonEmpty)
   val jsTemplate   = new File(libPath + "template.js")
   val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) { _.mkString }

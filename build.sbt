@@ -542,7 +542,7 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .settings(
-    mainClass := Some("org.enso.DocsGeneratorMain")
+    mainClass := Some("org.enso.docs.generator.Main")
   )
 
 lazy val `text-buffer` = project
