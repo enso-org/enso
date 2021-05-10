@@ -10,7 +10,7 @@ object DocsGenerator {
 
   /** Generates HTML of docs from Enso program.
     */
-  def generate(program: String): String = {
+  def run(program: String): String = {
     val parser   = new Parser()
     val module   = parser.run(program)
     val dropMeta = parser.dropMacroMeta(module)
@@ -21,7 +21,7 @@ object DocsGenerator {
 
   /** Generates HTML from Documentation string.
     */
-  def generatePure(comment: String): String = {
+  def runOnPureDoc(comment: String): String = {
     val doc  = DocParser.runMatched(comment)
     val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
     html
@@ -35,7 +35,7 @@ object DocsGenerator {
     if (doc.replace("<div>", "").replace("</div>", "").length == 0) {
       tmp =
         "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
-      tmp = generatePure(tmp).replace("style=\"font-size: 13px;\"", "")
+      tmp = runOnPureDoc(tmp).replace("style=\"font-size: 13px;\"", "")
     }
     tmp
   }

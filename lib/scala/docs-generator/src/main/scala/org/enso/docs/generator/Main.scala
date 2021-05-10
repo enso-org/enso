@@ -33,7 +33,7 @@ object Main extends App {
     .map(f => Using(Source.fromFile(f, "UTF-8")) { s => s.mkString })
     .toList
   val allDocs = allPrograms
-    .map(s => generate(s.getOrElse("")))
+    .map(s => run(s.getOrElse("")))
     .map(mapIfEmpty)
     .map(removeUnnecessaryDivs)
   val allDocFiles = allFiles.map(
