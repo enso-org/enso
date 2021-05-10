@@ -497,7 +497,7 @@ type Vector
          Remove the last two elements from the end of the vector.
 
              [1, 2, 3, 4, 5].drop_end 2
-    drop_end : Integer -> Vector
+    drop_end : Integer -> Vector Any
     drop_end count = if count >= this.length then here.new 0 (x -> x) else
         this.take_start (this.length - count)
 
@@ -511,7 +511,7 @@ type Vector
          Create a new vector from the first two elements of the vector.
 
              [1, 2, 3, 4, 5].take_start 2
-    take_start : Integer -> Vector
+    take_start : Integer -> Vector Any
     take_start count = if count >= this.length then this else
         here.new count this.at
 
@@ -525,7 +525,7 @@ type Vector
          Create a new vector from the last two elements of the vector.
 
              [1, 2, 3, 4, 5].take_end 3
-    take_end : Integer -> Vector
+    take_end : Integer -> Vector Any
     take_end count = if count >= this.length then this else
         this.drop_start (this.length - count)
 
@@ -550,7 +550,7 @@ type Vector
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip : Vector -> (Any -> Any -> Any) -> Vector
+    zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip that function=[_,_] =
         len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
@@ -574,7 +574,7 @@ type Vector
          Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
 
              [1, 2, 3, 4, 5].pad 5 0
-    pad : Integer -> Any -> Vector
+    pad : Integer -> Any -> Vector Any
     pad n elem =
         if this.length >= n then this else
             this + (here.fill n-this.length elem)
@@ -700,7 +700,7 @@ type Vector
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector Any
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -713,7 +713,8 @@ type Vector
            does both.
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
-        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
+        compare = if order == Sort_Order.Ascending then comp_ascending else
+            comp_descending
 
         new_vec_arr.sort compare
 
@@ -729,6 +730,7 @@ type Vector
         json.to_text
 
 type Builder
+
     ## PRIVATE
 
        A builder type for Enso vectors.
@@ -812,7 +814,7 @@ type Builder
                 bldr.append 10
                 bldr.append 100
                 bldr.to_vector
-    to_vector : Vector
+    to_vector : Vector Any
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
