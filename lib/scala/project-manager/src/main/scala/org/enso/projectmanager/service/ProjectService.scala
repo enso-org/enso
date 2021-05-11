@@ -424,7 +424,7 @@ class ProjectService[
           )
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(
-            s"Project name contains forbidden characters: ${chars.mkString(",")}."
+            s"Project name contains forbidden characters: [${chars.mkString(",")}]."
           )
         case NameShouldStartWithCapitalLetter =>
           ProjectServiceFailure.ValidationFailure(

@@ -1,9 +1,10 @@
 package org.enso.projectmanager.service
 
+import java.nio.file.Path
+
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.MissingComponentAction
-import org.enso.projectmanager.model.ProjectPath
 
 /** An abstraction for creating new project structures under the given location.
   */
@@ -21,7 +22,7 @@ trait ProjectCreationServiceApi[F[+_, +_]] {
     */
   def createProject(
     progressTracker: ActorRef,
-    path: ProjectPath,
+    path: Path,
     name: String,
     engineVersion: SemVer,
     missingComponentAction: MissingComponentAction

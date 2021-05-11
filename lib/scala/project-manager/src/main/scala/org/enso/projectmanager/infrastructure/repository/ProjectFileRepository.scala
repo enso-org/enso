@@ -1,9 +1,11 @@
 package org.enso.projectmanager.infrastructure.repository
 
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
 
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.{
@@ -26,7 +28,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   StorageFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
-import org.enso.projectmanager.model.{Project, ProjectMetadata, ProjectPath}
+import org.enso.projectmanager.model.{Project, ProjectMetadata}
 
 /** File based implementation of the project repository.
   *
@@ -80,8 +82,8 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def findPathForNewProject(
     project: Project
-  ): F[ProjectRepositoryFailure, ProjectPath] =
-    findTargetPath(project).map(file => ProjectPath(file.toPath))
+  ): F[ProjectRepositoryFailure, Path] =
+    findTargetPath(project).map(_.toPath)
 
   private def tryLoadProject(
     directory: File
@@ -178,7 +180,10 @@ class ProjectFileRepository[
       .flatMap {
         case None =>
           ErrorChannel[F].fail(
-            InconsistentStorage(s"Cannot find package.yaml at $projectPath")
+            InconsistentStorage(
+              s"Cannot find package.yaml at " +
+              s"${MaskedPath(projectPath.toPath).applyMasking()}."
+            )
           )
         case Some(projectPackage) => CovariantFlatMap[F].pure(projectPackage)
       }
