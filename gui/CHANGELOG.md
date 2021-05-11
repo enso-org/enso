@@ -11,6 +11,9 @@
 #### Visual Environment
 
 - [Delete key will delete selected nodes][1538].
+- [Fixed an internal error that would make the IDE fail on some browser.][1561].
+  Instead of crashing on browser that don't support the feature we use, we are
+  now just start a little bit slower.
 
 #### EnsoGL (rendering engine)
 
@@ -24,6 +27,7 @@ you can find their release notes
 
 [1541]: https://github.com/enso-org/ide/pull/1511
 [1538]: https://github.com/enso-org/ide/pull/1538
+[1561]: https://github.com/enso-org/ide/pull/1561
 
 <br/>
 

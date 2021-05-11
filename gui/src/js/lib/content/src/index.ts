@@ -57,14 +57,14 @@ let incorrect_mime_type_warning = `
 async function wasm_instantiate_streaming(
     resource: Response,
     imports: WebAssembly.Imports
-): Promise<ArrayBuffer | WebAssembly.WebAssemblyInstantiatedSource> {
+): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
     try {
         return WebAssembly.instantiateStreaming(resource, imports)
     } catch (e) {
-        const r = await resource
-        if (r.headers.get('Content-Type') != 'application/wasm') {
+        if (resource.headers.get('Content-Type') !== 'application/wasm') {
             console.warn(`${incorrect_mime_type_warning} Original error:\n`, e)
-            return r.arrayBuffer()
+            const buffer = await resource.arrayBuffer()
+            return WebAssembly.instantiate(buffer,imports)
         } else {
             throw "Server not configured to serve WASM with 'application/wasm' mime type."
         }
