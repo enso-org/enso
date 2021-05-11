@@ -1,8 +1,10 @@
 package org.enso.docs.generator
 
 import java.io._
-import scala.util.Using
+import org.apache.commons.cli.{Option => CliOption, _}
+import scala.util.{Try, Using}
 import scala.io.Source
+import scala.annotation.unused
 import scalatags.Text.{all => HTML}
 import TreeOfCommonPrefixes._
 import DocsGenerator._
@@ -15,66 +17,169 @@ import HTML._
   * It also generates JavaScript files containing react components for the
   * [[https://enso.org/docs/reference reference website]].
   */
-object Main extends App {
+object Main {
 
-  /// Files
-  val path =
-    if (args.length >= 1) args(0) else "./distribution/std-lib/Standard/src"
-  val allFiles = traverse(new File(path))
-    .filter(f => f.isFile && f.getName.endsWith(".enso"))
-  val allFileNames = allFiles.map(
-    _.getPath
-      .replace(path + "/", "")
-      .replace(".enso", "")
-  )
+  var libPath =
+    "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
+  var path           = "./distribution/std-lib/Standard/src"
+  var jsTempFileName = "template.js"
+  var cssFileName    = "treeStyle.css"
+  var outDir         = "docs-js"
 
-  /// HTML's w/o react & tree (for IDE)
-  val allPrograms = allFiles
-    .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
-    .toList
-  val allDocs = allPrograms
-    .map(s => run(s.getOrElse("")))
-    .map(mapIfEmpty)
-    .map(removeUnnecessaryDivs)
-  val allDocFiles = allFiles.map(
-    _.getPath
-      .replace(".enso", ".html")
-      .replace("Standard/src", "docs")
-  )
-  val zipped = allDocFiles.zip(allDocs)
-  zipped.foreach(createDocHTMLFile)
+  private val HELP_OPTION          = "help"
+  private val INPUT_PATH_OPTION    = "input_path"
+  private val OUTPUT_DIR_OPTION    = "output_dir"
+  private val DOCS_LIB_PATH_OPTION = "docs_lib_path"
+  private val JS_TEMPLATE_OPTION   = "js_template"
+  private val CSS_TEMPLATE_OPTION  = "css_template"
 
-  /// HTML's for syntax website.
-  val libPath =
-    if (args.length >= 2) args(1)
-    else "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
-  val treeNames =
-    groupByPrefix(allFileNames.toList, '/').filter(_.elems.nonEmpty)
-  val jsTempFileName = if (args.length >= 3) args(2) else "template.js"
-  val cssFileName    = if (args.length >= 4) args(3) else "treeStyle.css"
-  val outDir         = if (args.length >= 5) args(4) else "docs-js"
-  val jsTemplate     = new File(libPath + jsTempFileName)
-  val templateCode   = Using(Source.fromFile(jsTemplate, "UTF-8")) { _.mkString }
-  val styleFile      = new File(libPath + cssFileName)
-  val styleCode      = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
-  val treeStyle      = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
-  val allDocJSFiles = allFiles.map { x =>
-    val name = x.getPath
-      .replace(".enso", ".js")
-      .replace("Standard/src", outDir)
-      .replace("Main.js", "index.js")
-    val ending = name.split(outDir + "/").tail.head
-    name.replace(ending, ending.replace('/', '-'))
+  /** Builds the [[Options]] object representing the CLI syntax.
+    *
+    * @return an [[Options]] object representing the CLI syntax
+    */
+  private def buildOptions = {
+    val help = CliOption
+      .builder("h")
+      .longOpt(HELP_OPTION)
+      .desc("Displays this message.")
+      .build
+    val input = CliOption.builder
+      .longOpt(INPUT_PATH_OPTION)
+      .numberOfArgs(1)
+      .argName("path")
+      .desc("Specifies working path.")
+      .build
+    val output = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("directory")
+      .longOpt(OUTPUT_DIR_OPTION)
+      .desc("Specifies name of output directory.")
+      .build
+    val docsPath = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("path")
+      .longOpt(DOCS_LIB_PATH_OPTION)
+      .desc("Specifies path of Docs Generator library.")
+      .build
+    val jsTemp = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("file")
+      .longOpt(JS_TEMPLATE_OPTION)
+      .desc("Specifies name of file containing JS template.")
+      .build
+    val cssTemp = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("file")
+      .longOpt(CSS_TEMPLATE_OPTION)
+      .desc("Specifies name of file containing CSS template.")
+      .build
+
+    val options = new Options
+    options
+      .addOption(help)
+      .addOption(input)
+      .addOption(output)
+      .addOption(docsPath)
+      .addOption(jsTemp)
+      .addOption(cssTemp)
+
+    options
   }
-  val dir = new File(allDocJSFiles.head.split(outDir).head + outDir + "/")
-  dir.mkdirs()
-  val zippedJS = allDocJSFiles.zip(allDocs)
-  zippedJS.foreach(x => createDocJSFile(x, outDir))
+
+  /** Prints the help message to the standard output.
+    *
+    * @param options object representing the CLI syntax
+    */
+  private def printHelp(options: Options): Unit =
+    new HelpFormatter().printHelp("Docs Generator", options)
+
+  /** Terminates the process with a failure exit code. */
+  private def exitFail(): Nothing = sys.exit(1)
+
+  /** Terminates the process with a success exit code. */
+  private def exitSuccess(): Nothing = sys.exit(0)
+
+  /** Starting point. */
+  def main(args: Array[String]): Unit = {
+    val options = buildOptions
+    val parser  = new DefaultParser
+    val line = Try(parser.parse(options, args)).getOrElse {
+      printHelp(options)
+      exitFail()
+    }
+    if (line.hasOption(HELP_OPTION)) {
+      printHelp(options)
+      exitSuccess()
+    }
+    if (line.hasOption(INPUT_PATH_OPTION)) {
+      path = line.getOptionValue(INPUT_PATH_OPTION)
+    }
+    if (line.hasOption(OUTPUT_DIR_OPTION)) {
+      outDir = line.getOptionValue(OUTPUT_DIR_OPTION)
+    }
+    if (line.hasOption(DOCS_LIB_PATH_OPTION)) {
+      libPath = line.getOptionValue(DOCS_LIB_PATH_OPTION)
+    }
+    if (line.hasOption(JS_TEMPLATE_OPTION)) {
+      jsTempFileName = line.getOptionValue(JS_TEMPLATE_OPTION)
+    }
+    if (line.hasOption(CSS_TEMPLATE_OPTION)) {
+      cssFileName = line.getOptionValue(CSS_TEMPLATE_OPTION)
+    }
+
+    generateAllDocs()
+  }
+
+  /** Traverses through directory generating docs from every .enso file found.
+    */
+  def generateAllDocs(): Unit = {
+    val allFiles = traverse(new File(path))
+      .filter(f => f.isFile && f.getName.endsWith(".enso"))
+    val allFileNames = allFiles.map(
+      _.getPath
+        .replace(path + "/", "")
+        .replace(".enso", "")
+    )
+    val allPrograms = allFiles
+      .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
+      .toList
+    val allDocs = allPrograms
+      .map(s => run(s.getOrElse("")))
+      .map(mapIfEmpty)
+      .map(removeUnnecessaryDivs)
+    val treeNames =
+      groupByPrefix(allFileNames.toList, '/').filter(_.elems.nonEmpty)
+    val jsTemplate = new File(libPath + jsTempFileName)
+    val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) {
+      _.mkString
+    }
+    val styleFile = new File(libPath + cssFileName)
+    val styleCode = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
+    val treeStyle = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
+    val allDocJSFiles = allFiles.map { x =>
+      val name = x.getPath
+        .replace(".enso", ".js")
+        .replace("Standard/src", outDir)
+        .replace("Main.js", "index.js")
+      val ending = name.split(outDir + "/").tail.head
+      name.replace(ending, ending.replace('/', '-'))
+    }
+    val dir = new File(allDocJSFiles.head.split(outDir).head + outDir + "/")
+    dir.mkdirs()
+    val zippedJS = allDocJSFiles.zip(allDocs)
+    zippedJS.foreach(
+      createDocJSFile(_, outDir, treeStyle, templateCode, treeNames)
+    )
+  }
 
   /** Takes a tuple of file path and documented HTML code, saving the file
     * in the given directory.
     */
-  private def createDocHTMLFile(x: (String, String)): Unit = {
+  @unused private def createDocHTMLFile(x: (String, String)): Unit = {
     val path                   = x._1
     val file                   = new File(path)
     val fileWithExtensionRegex = "\\/[a-zA-Z_]*\\.[a-zA-Z]*"
@@ -89,7 +194,13 @@ object Main extends App {
   /** Takes a tuple of file path and documented HTML code, and generates JS doc
     * file with react components for Enso website.
     */
-  private def createDocJSFile(x: (String, String), outDir: String): Unit = {
+  private def createDocJSFile(
+    x: (String, String),
+    outDir: String,
+    treeStyle: String,
+    templateCode: Try[String],
+    treeNames: List[Node]
+  ): Unit = {
     val path     = x._1
     val htmlCode = x._2
     val file     = new File(path)

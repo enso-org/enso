@@ -542,7 +542,11 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
+  .dependsOn(cli)
   .settings(
+    libraryDependencies ++= Seq(
+      "commons-cli" % "commons-cli" % commonsCliVersion
+    ),
     mainClass := Some("org.enso.docs.generator.Main")
   )
 
