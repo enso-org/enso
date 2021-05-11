@@ -2,7 +2,7 @@ package org.enso.projectmanager.model
 
 import java.nio.file.Path
 
-import org.enso.logger.{MaskingUtils, ToMaskedString}
+import org.enso.logger.masking.{MaskingUtils, ToMaskedString}
 
 /** The path to the project.
   *

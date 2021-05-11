@@ -1,11 +1,10 @@
-package org.enso.loggingservice
+package org.enso.logger.masking
 
-import org.enso.logger.ToMaskedString
 import org.enso.loggingservice.internal.InternalLogger
 
 import scala.util.control.NonFatal
 
-trait LogMasking {
+trait Masking {
 
   /** Converts the provided object to a masked representation.
     *
@@ -14,7 +13,7 @@ trait LogMasking {
     */
   def mask(obj: AnyRef): AnyRef
 }
-object LogMasking {
+object Masking {
 
   @volatile private var maskingEnabled: Boolean = true
 
@@ -35,7 +34,7 @@ object LogMasking {
     maskingEnabled
   }
 
-  private val masking: LogMasking = {
+  private val masking: Masking = {
     case obj: ToMaskedString =>
       try obj.toMaskedString
       catch {
@@ -51,9 +50,14 @@ object LogMasking {
     case obj => obj
   }
 
-  private val noMasking: LogMasking = identity
+  private val noMasking: Masking = identity
+
+  private lazy val instance: Masking = createInstance()
 
   /** Create the masking adapter. */
-  def apply(): LogMasking =
+  private def createInstance(): Masking =
     if (isMaskingEnabled) masking else noMasking
+
+  /** Get the instance of [[Masking]] adapter. */
+  def getInstance(): Masking = instance
 }

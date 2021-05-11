@@ -1,4 +1,5 @@
-package org.enso.logger
+package org.enso.logger.masking
+
 import java.nio.file.{FileSystems, Path}
 
 object MaskingUtils {
@@ -6,10 +7,11 @@ object MaskingUtils {
   /** A substitution for the masked data. */
   final val STUB: String = "***"
 
-  /** A synonym for `STUB`. */
+  /** A synonym for the `STUB`. */
   final val *** = STUB
 
-  private val fileSeparator: String = FileSystems.getDefault.getSeparator
+  /** A platform-specific file separator string. */
+  final val fileSeparator: String = FileSystems.getDefault.getSeparator
 
   /** Mask a path to the file
     *

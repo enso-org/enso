@@ -2,13 +2,9 @@ package org.enso.runner
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.printers.StderrPrinter
-import org.enso.loggingservice.{
-  LogLevel,
-  LogMasking,
-  LoggerMode,
-  LoggingServiceManager
-}
+import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -33,7 +29,7 @@ object RunnerLogging {
     logMasking: Boolean
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    LogMasking.setup(logMasking)
+    Masking.setup(logMasking)
     val loggerSetup = connectionUri match {
       case Some(uri) =>
         LoggingServiceManager

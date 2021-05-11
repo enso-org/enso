@@ -1,8 +1,9 @@
 package org.enso.loggingservice
 
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 import org.slf4j.helpers.MessageFormatter
-import org.slf4j.{Logger => SLF4JLogger, Marker}
+import org.slf4j.{Marker, Logger => SLF4JLogger}
 
 import scala.annotation.unused
 
@@ -16,7 +17,7 @@ import scala.annotation.unused
 class Logger(
   name: String,
   connection: LoggerConnection,
-  masking: LogMasking
+  masking: Masking
 ) extends SLF4JLogger {
   override def getName: String = name
 

@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.MaskedPath
 
 /** A base class for exceptions caused by [[RuntimeVersionManager]] logic.
   */
@@ -73,8 +74,8 @@ case class UninstallationError(message: String)
     extends ComponentsException(message)
 
 /** Indicates that the required executable was not found. */
-// TODO: [DB] Mask sensitive user data
 case class ExecutableNotFoundError(path: Path, name: String)
     extends ComponentsException(
-      s"Executable with the name '$name' was not found on $path."
+      s"Executable with the name '$name' was not found on " +
+      s"${MaskedPath(path).applyMasking()}."
     )

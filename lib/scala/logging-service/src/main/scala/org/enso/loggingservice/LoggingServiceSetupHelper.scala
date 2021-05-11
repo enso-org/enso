@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.printers.{
   FileOutputPrinter,
   Printer,
@@ -56,7 +57,7 @@ abstract class LoggingServiceSetupHelper(implicit
     logMasking: Boolean
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
-    LogMasking.setup(logMasking)
+    Masking.setup(logMasking)
     connectToExternalLogger match {
       case Some(uri) =>
         setupLoggingConnection(uri, actualLogLevel)
