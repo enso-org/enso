@@ -64,8 +64,7 @@ class ResourceManager(lockManager: LockManager) {
 
   var mainLock: Option[Lock] = None
 
-  /** Initializes the [[MainLock]].
-    */
+  /** Initializes the [[MainLock]]. */
   def initializeMainLock(): Unit = {
     val lock =
       lockManager

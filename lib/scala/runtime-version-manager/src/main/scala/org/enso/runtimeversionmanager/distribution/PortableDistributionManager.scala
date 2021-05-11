@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.distribution
 import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 
@@ -32,14 +33,15 @@ class PortableDistributionManager(env: Environment)
     */
   lazy val isRunningPortable: Boolean = {
     val portable = detectPortable()
-    logger.debug(s"Launcher portable mode = $portable")
+    logger.debug("Launcher portable [mode={}].", portable)
     if (portable && LocallyInstalledDirectories.installedDistributionExists) {
       val installedRoot   = LocallyInstalledDirectories.dataDirectory
       val installedBinary = LocallyInstalledDirectories.binaryExecutable
 
       logger.debug(
-        s"The launcher is run in portable mode, but an installed distribution" +
-        s" is available at $installedRoot."
+        "The launcher is run in portable mode, but an installed distribution" +
+        " is available at [{}].",
+        MaskedPath(installedRoot)
       )
 
       if (Files.exists(installedBinary)) {
@@ -50,8 +52,9 @@ class PortableDistributionManager(env: Environment)
           )
         } else {
           logger.debug(
-            s"However, that installed distribution most likely uses another " +
-            s"launcher executable, located at $installedBinary."
+            "However, that installed distribution most likely uses another " +
+            "launcher executable, located at [{}].",
+            MaskedPath(installedBinary)
           )
         }
       }

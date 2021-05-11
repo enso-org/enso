@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
@@ -77,7 +78,8 @@ class RuntimeVersionManager(
                 s"loaded due to $e. Until the launcher gets an auto-repair " +
                 s"feature, please try reinstalling the runtime by " +
                 s"uninstalling all engines that use it and installing them " +
-                s"again, or manually removing `$path`.",
+                s"again, or manually removing " +
+                s"`${MaskedPath(path).applyMasking()}`.",
                 e
               )
             )
@@ -85,9 +87,9 @@ class RuntimeVersionManager(
         }
     graalRuntimeOpt match {
       case Some(graalRuntime) =>
-        logger.info(s"Found GraalVM runtime $graalRuntime.")
+        logger.info("Found GraalVM runtime [{}].", graalRuntime)
       case None =>
-        logger.info(s"GraalVM runtime $version not found.")
+        logger.info("GraalVM runtime [{}] not found.", version)
     }
     graalRuntimeOpt
   }
@@ -225,8 +227,9 @@ class RuntimeVersionManager(
       .map { engine =>
         if (engine.isMarkedBroken) {
           logger.warn(
-            s"Running an engine release ($version) that is marked as broken. " +
-            s"Please consider upgrading to a stable release."
+            "Running an engine release [{}] that is marked as broken. " +
+            "Please consider upgrading to a stable release.",
+            version
           )
         }
 
@@ -257,7 +260,7 @@ class RuntimeVersionManager(
   def findOrInstallEngine(version: SemVer): Engine =
     findEngine(version) match {
       case Some(found) =>
-        logger.info(s"The engine $version found.")
+        logger.info("The engine [{}] found.", version)
         found
       case None =>
         if (userInterface.shouldInstallMissingEngine(version)) {
@@ -275,7 +278,7 @@ class RuntimeVersionManager(
                 userInterface.logInfo(message)
                 engine
               case None =>
-                logger.info(s"The engine $version not found.")
+                logger.info("The engine [{}] not found.", version)
                 installEngine(version)
             }
           }
@@ -339,8 +342,10 @@ class RuntimeVersionManager(
     result match {
       case (path, Failure(exception)) =>
         logger.warn(
-          s"$name at $path has been skipped due to the following error: " +
-          s"$exception"
+          "{} at [{}] has been skipped due to the following error: {}",
+          name,
+          MaskedPath(path),
+          exception
         )
         Seq()
       case (_, Success(value)) => Seq(value)
@@ -361,7 +366,7 @@ class RuntimeVersionManager(
       Resource.Engine(version)       -> LockType.Exclusive
     ) {
       val engine = getEngine(version).getOrElse {
-        logger.warn(s"Enso Engine $version is not installed.")
+        logger.warn("Enso Engine [{}] is not installed.", version)
         throw ComponentMissingError(s"Enso Engine $version is not installed.")
       }
 
@@ -414,7 +419,7 @@ class RuntimeVersionManager(
     * [[Resource.Runtime]], but it is released before it returns.
     */
   private def installEngine(version: SemVer): Engine = {
-    logger.info(s"Installing the engine $version.")
+    logger.info("Installing the engine [{}].", version)
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
     val isCompatible = isEngineVersionCompatibleWithThisInstaller(
       engineRelease.manifest
@@ -432,7 +437,7 @@ class RuntimeVersionManager(
       }
     }
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
-      logger.debug(s"Downloading packages to $directory")
+      logger.debug("Downloading packages to [{}].", MaskedPath(directory))
       val enginePackage = directory / engineRelease.packageFileName
       val downloadTask  = engineRelease.downloadPackage(enginePackage)
       userInterface.trackProgress(
@@ -591,7 +596,7 @@ class RuntimeVersionManager(
   /** Loads the GraalVM runtime definition.
     */
   private def loadGraalRuntime(path: Path): Try[GraalRuntime] = {
-    logger.debug(s"Loading Graal runtime ${path.toAbsolutePath}.")
+    logger.debug("Loading Graal runtime [{}].", MaskedPath(path))
     val name = path.getFileName.toString
     for {
       version <- parseGraalRuntimeVersionString(name)
@@ -604,8 +609,10 @@ class RuntimeVersionManager(
       _ <- installRequiredRuntimeComponents(runtime).recover {
         case NonFatal(error) =>
           logger.warn(
-            s"Failed to install required components on the existing $runtime. " +
-            s"Some language features may be unavailable. ${error.getMessage}"
+            "Failed to install required components on the existing [{}]. " +
+            "Some language features may be unavailable. {}",
+            runtime,
+            error.getMessage
           )
       }
     } yield runtime
@@ -681,12 +688,12 @@ class RuntimeVersionManager(
     runtimeVersion: GraalVMVersion
   ): GraalRuntime =
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
-      logger.info(s"Installing GraalVM runtime $runtimeVersion.")
+      logger.info("Installing GraalVM runtime [{}].", runtimeVersion)
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
       val downloadTask =
         runtimeReleaseProvider.downloadPackage(runtimeVersion, runtimePackage)
-      logger.debug(s"Downloading ${runtimePackage.getFileName}.")
+      logger.debug("Downloading [{}].", runtimePackage.getFileName)
       userInterface.trackProgress(
         s"Downloading ${runtimePackage.getFileName}.",
         downloadTask
@@ -700,7 +707,7 @@ class RuntimeVersionManager(
         temporaryDirectoryManager.accessTemporaryDirectory(),
         Some(runtimeDirectoryName)
       )
-      logger.debug(s"Extracting ${runtimePackage.toAbsolutePath}.")
+      logger.debug("Extracting [{}].", MaskedPath(runtimePackage))
       userInterface.trackProgress("Extracting the runtime.", extractionTask)
       extractionTask.force()
 
@@ -715,25 +722,23 @@ class RuntimeVersionManager(
       }
 
       try {
-        logger.debug(
-          s"Loading temporary runtime ${runtimeTemporaryPath.toAbsolutePath}."
-        )
+        logger.debug("Loading temporary runtime [{}].", runtimeTemporaryPath)
         val temporaryRuntime =
           loadGraalRuntime(runtimeTemporaryPath).recoverWith { error =>
             Failure(
               InstallationError(
                 "Cannot load the installed runtime. The package may have " +
-                s"been corrupted. Reverting installation.",
+                "been corrupted. Reverting installation.",
                 error
               )
             )
           }.get
-        logger.debug(s"Installing GraalVM components to $temporaryRuntime.")
+        logger.debug("Installing GraalVM components to [{}].", temporaryRuntime)
         installRequiredRuntimeComponents(temporaryRuntime).recoverWith {
           error =>
             Failure(
               InstallationError(
-                s"fatal: Cannot install the required runtime components.",
+                "fatal: Cannot install the required runtime components.",
                 error
               )
             )
@@ -742,19 +747,21 @@ class RuntimeVersionManager(
         val runtimePath =
           distributionManager.paths.runtimes / runtimeDirectoryName
         logger.debug(
-          s"Moving ${runtimeTemporaryPath.toAbsolutePath} to ${runtimePath.toAbsolutePath}."
+          "Moving [{}] to [{}].",
+          MaskedPath(runtimeTemporaryPath),
+          MaskedPath(runtimePath)
         )
         FileSystem.atomicMove(runtimeTemporaryPath, runtimePath)
         val runtime = loadGraalRuntime(runtimePath).recoverWith { error =>
           FileSystem.removeDirectory(runtimePath)
           Failure(
             InstallationError(
-              s"fatal: Cannot load the installed runtime.",
+              "fatal: Cannot load the installed runtime.",
               error
             )
           )
         }.get
-        logger.debug(s"Installed $runtime.")
+        logger.debug("Installed [{}].", runtime)
         userInterface.logInfo(s"Installed $runtime.")
 
         runtime
@@ -772,7 +779,7 @@ class RuntimeVersionManager(
   private def installRequiredRuntimeComponents(
     runtime: GraalRuntime
   ): Try[Unit] = {
-    logger.debug(s"Installing GraalVM components $runtime on $os.")
+    logger.debug("Installing GraalVM components [{}, {}].", runtime, os)
     val cu = componentUpdaterFactory.build(runtime)
     val requiredComponents =
       componentConfig.getRequiredComponents(runtime.version, os)
@@ -781,7 +788,10 @@ class RuntimeVersionManager(
     else {
       for {
         installedComponents <- cu.list
-        _                 = logger.debug(s"Available GraalVM components: $installedComponents.")
+        _ = logger.debug(
+          "Available GraalVM components: [{}].",
+          installedComponents
+        )
         missingComponents = requiredComponents.diff(installedComponents)
         _ <- cu.install(missingComponents)
       } yield ()
@@ -809,8 +819,9 @@ class RuntimeVersionManager(
           safelyRemoveComponent(runtime.path)
         } else {
           logger.warn(
-            s"$runtime cannot be uninstalled because it is placed in a " +
-            s"read-only location."
+            "{} cannot be uninstalled because it is placed in a " +
+            "read-only location.",
+            runtime
           )
         }
       }

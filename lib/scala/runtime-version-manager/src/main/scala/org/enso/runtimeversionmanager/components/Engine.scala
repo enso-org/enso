@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.Manifest.JVMOption
 
@@ -48,14 +49,14 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
       Failure(
         CorruptedComponentError(
           s"Engine's runner.jar (expected at " +
-          s"`${runnerPath.toAbsolutePath.normalize}`) is missing."
+          s"`${MaskedPath(runnerPath).applyMasking()}`) is missing."
         )
       )
     else if (!Files.exists(runtimePath))
       Failure(
         CorruptedComponentError(
           s"`Engine's runtime.jar (expected at " +
-          s"${runtimePath.toAbsolutePath.normalize}`) is missing."
+          s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
         )
       )
     else Success(())

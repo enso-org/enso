@@ -30,7 +30,8 @@ object CurrentVersion {
         "release build."
       )
     else {
-      Logger("TEST").debug(s"Overriding version to $newVersion.")
+      Logger[CurrentVersion.type]
+        .debug(s"Overriding version to [{}].", newVersion)
       currentVersion = newVersion
     }
 
