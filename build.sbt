@@ -2,8 +2,7 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtassembly.AssemblyPlugin.defaultUniversalScript
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 import java.io.File
 
@@ -13,7 +12,7 @@ import java.io.File
 
 val scalacVersion = "2.13.5"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val graalVersion  = "21.0.0.2"
+val graalVersion  = "21.1.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.2.12-SNAPSHOT" // Note [Engine And Launcher Version]
 

@@ -70,7 +70,7 @@ main = Test.Suite.run_main <|
     Numbers_Spec.spec
     Ordering_Spec.spec
     Process_Spec.spec
-    Python_Interop_Spec.spec
+    # Python_Interop_Spec.spec
     R_Interop_Spec.spec
     Range_Spec.spec
     Text_Spec.spec
