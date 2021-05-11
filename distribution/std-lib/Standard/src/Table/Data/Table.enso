@@ -623,7 +623,7 @@ type Table
        Returns the first row in the table, if it exists.
 
        If the table is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the first row from the table.
@@ -631,17 +631,17 @@ type Table
              import Standard.Examples
 
              example_first = Examples.inventory_table.first
-    first : Table ! Nothing
+    first : Table ! Empty_Error
     first =
         table = this.take_start 1
-        if table.row_count != 1 then Error.throw Nothing else table
+        if table.row_count != 1 then Error.throw Empty_Error else table
 
     ## UNSTABLE
 
        Returns the first row in the table, if it exists.
 
        If the table is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the first row from the table.
@@ -649,7 +649,7 @@ type Table
              import Standard.Examples
 
              example_head = Examples.inventory_table.head
-    head : Table ! Nothing
+    head : Table ! Empty_Error
     head = this.first
 
     ## UNSTABLE
@@ -657,7 +657,7 @@ type Table
        Returns the last row in the table, if it exists.
 
        If the table is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the last row from the table.
@@ -665,10 +665,10 @@ type Table
              import Standard.Examples
 
              example_last = Examples.inventory_table.last
-    last : Table ! Nothing
+    last : Table ! Empty_Error
     last =
         table = this.take_end 1
-        if table.row_count != 1 then Error.throw Nothing else table
+        if table.row_count != 1 then Error.throw Empty_Error else table
 
     ## UNSTABLE
 
@@ -743,9 +743,9 @@ type Aggregate_Table
              import Standard.Examples
 
              example_at = Examples.aggregate_table.at "transaction_id"
-    at : Text -> Column ! Nothing
+    at : Text -> Column ! No_Such_Column_Error
     at name = case this.java_table.getColumnByName name of
-        Nothing -> Error.throw Nothing
+        Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Aggregate_Column c
 
     ## Prints an ASCII-art table with this data to the standard output.
@@ -787,6 +787,17 @@ type No_Index_Set_Error
    Create a human-readable version of the no such column error.
 No_Index_Set_Error.to_display_text : Text
 No_Index_Set_Error.to_display_text = "The table does not have an index set."
+
+## UNSTABLE
+
+   An error returned when the table contains no rows.
+type Empty_Error
+
+## UNSTABLE
+
+   Pretty prints the error.
+Empty_Error.to_display_text : Text
+Empty_Error.to_display_text = "The table is empty."
 
 ## PRIVATE
 from_columns cols = Table (Java_Table.new cols.to_array)

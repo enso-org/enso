@@ -956,7 +956,7 @@ type Column
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the first element of a column.
@@ -964,15 +964,15 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Nothing
-    first = this.at 0 . catch (_ -> Error.throw Nothing)
+    first : Any ! Empty_Error
+    first = this.at 0 . catch (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the first element of a column.
@@ -980,7 +980,7 @@ type Column
              import Standard.Examples
 
              example_head = Examples.integer_column.head
-    head : Any ! Nothing
+    head : Any ! Empty_Error
     head = this.first
 
     ## UNSTABLE
@@ -988,7 +988,7 @@ type Column
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing `Nothing`.
+       containing an `Empty_Error`.
 
        > Example
          Get the last element of a column.
@@ -996,8 +996,8 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Nothing
-    last = this.at (this.length - 1) . catch (_ -> Error.throw Nothing)
+    last : Any ! Empty_Error
+    last = this.at (this.length - 1) . catch (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1186,6 +1186,17 @@ Index_Out_Of_Bounds_Error.to_display_text =
     ix_text = this.index.to_text
     len_text = this.length.to_text
     "The index " + ix_text + " is out of bounds in a column of length " + len_text + "."
+
+## UNSTABLE
+
+   An error for when the column contains no elements.
+type Empty_Error
+
+## UNSTABLE
+
+   Pretty prints the error.
+Empty_Error.to_display_text : Text
+Empty_Error.to_display_text = "The column is empty."
 
 ## PRIVATE
 

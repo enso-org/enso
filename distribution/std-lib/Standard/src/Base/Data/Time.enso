@@ -442,7 +442,8 @@ type Time
              example_format =
                 Time.parse "2020-10-08T16:41:13+03:00[Europe/Moscow]" . format "EEE MMM d (HH:mm)"
     format : Text -> Text
-    format pattern = DateTimeFormatter.ofPattern pattern . format this.internal_zoned_date_time
+    format pattern =
+        DateTimeFormatter.ofPattern pattern . format this.internal_zoned_date_time
 
 type Time_Error
 

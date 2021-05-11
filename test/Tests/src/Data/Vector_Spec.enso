@@ -36,12 +36,12 @@ spec = Test.group "Vectors" <|
 
     Test.specify "should allow to reduce elements if it is non-empty" <|
         [1,2,3].reduce (+) . should_equal 6
-        [].reduce (+) . should_fail_with Nothing
+        [].reduce (+) . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow summing elements if they define +" <|
         [1,2,3].sum . should_equal 6
-        [].sum . should_fail_with Nothing
-        [T 1 2, T 3 4].sum . should_fail_with Nothing
+        [].sum . should_fail_with Vector.Empty_Error
+        [T 1 2, T 3 4].sum . should_fail_with No_Such_Method_Error
 
     Test.specify "should check exists" <|
         vec = [1, 2, 3, 4, 5]
@@ -130,7 +130,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.head . should_equal 1
         singleton_vec.head . should_equal 1
-        empty_vec.head . should_fail_with Nothing
+        empty_vec.head . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow getting the tail of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -138,7 +138,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.tail . should_equal [2, 3, 4, 5]
         singleton_vec.tail . should_equal []
-        empty_vec.tail . should_fail_with Nothing
+        empty_vec.tail . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow getting the init of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -146,7 +146,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.init . should_equal [1, 2, 3, 4]
         singleton_vec.init . should_equal []
-        empty_vec.init . should_fail_with Nothing
+        empty_vec.init . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -154,7 +154,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.last . should_equal 5
         singleton_vec.last . should_equal 1
-        empty_vec.last . should_fail_with Nothing
+        empty_vec.last . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow getting the first element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -162,7 +162,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.first . should_equal 1
         singleton_vec.first . should_equal 1
-        empty_vec.first . should_fail_with Nothing
+        empty_vec.first . should_fail_with Vector.Empty_Error
 
     Test.specify "should allow getting the rest of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -170,7 +170,7 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.rest . should_equal [2, 3, 4, 5]
         singleton_vec.rest . should_equal []
-        empty_vec.rest . should_fail_with Nothing
+        empty_vec.rest . should_fail_with Vector.Empty_Error
 
     Test.specify "should be able to be sorted" <|
         empty_vec = []
