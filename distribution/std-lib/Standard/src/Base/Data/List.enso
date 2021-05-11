@@ -265,10 +265,10 @@ type List
              import Standard.Examples
 
              example_head = Examples.list.head
-    head : Any ! Nothing
+    head : Any ! Empty_Error
     head = case this of
         Cons a _ -> a
-        Nil -> Error.throw Nothing
+        Nil -> Error.throw Empty_Error
 
     ## Get all elements from the list except the first.
 
@@ -278,10 +278,10 @@ type List
              import Standard.Examples
 
              example_tail = Examples.list.tail
-    tail : List ! Nothing
+    tail : List ! Empty_Error
     tail = case this of
         Cons _ b -> b
-        Nil -> Error.throw Nothing
+        Nil -> Error.throw Empty_Error
 
     ## Get all elements from the list except the last.
 
@@ -291,14 +291,14 @@ type List
              import Standard.Examples
 
              example_init = Examples.list.init
-    init : List ! Nothing
+    init : List ! Empty_Error
     init =
         init' x y = case y of
             Nil -> Nil
             Cons a b -> Cons x (init' a b)
         case this of
             Cons a b -> init' a b
-            Nil -> Error.throw Nothing
+            Nil -> Error.throw Empty_Error
 
     ## Get the last element of the list.
 
@@ -308,9 +308,9 @@ type List
              import Standard.Examples
 
              example_last = Examples.list.last
-    last : Any | Nothing
+    last : Any ! Empty_Error
     last = case this.fold Nothing (_ -> r -> r) of
-        Nothing -> Error.throw Nothing
+        Nothing -> Error.throw Empty_Error
         a -> a
 
     ## Get the first element from the list.
@@ -321,7 +321,7 @@ type List
              import Standard.Examples
 
              example_first = Examples.list.first
-    first : Any ! Nothing
+    first : Any ! Empty_Error
     first = this.head
 
     ## Get all elements from the list except the first.
@@ -332,8 +332,19 @@ type List
              import Standard.Examples
 
              example_rest = Examples.list.rest
-    rest : List ! Nothing
+    rest : List ! Empty_Error
     rest = this.tail
+
+## UNSTABLE
+
+   An error representing that the list is empty.
+type Empty_Error
+
+## UNSTABLE
+
+   Pretty prints the empty error.
+Empty_Error.to_display_text : Text
+Empty_Error.to_display_text = "The List is empty."
 
 ## PRIVATE
    A helper for the `map` function.
@@ -346,6 +357,7 @@ type List
    Uses unsafe field mutation under the hood, to rewrite `map` in
    a tail-recursive manner. The mutation is purely internal and does not leak
    to the user-facing API.
+map_helper : List -> Any -> (Any -> Any) -> Nothing
 map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil

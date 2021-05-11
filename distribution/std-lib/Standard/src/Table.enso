@@ -34,8 +34,7 @@ from Standard.Table.Data.Order_Rule export Order_Rule
      - Nested properties are not supported and not included in the resulting
        dataframe.
 
-   > Example
-     Converts a JSON array containing key-value pairs into a table for the
+   > Example Converts a JSON array containing key-value pairs into a table for the
      provided headers.
 
          import Standard.Examples
@@ -86,9 +85,9 @@ Json.Array.to_table fields = case this of
          example_to_table =
              json = Examples.geo_json
              json.to_table
-Json.Object.to_table : Vector -> Table ! Nothing
+Json.Object.to_table : Vector -> Table ! Invalid_Format_Error
 Json.Object.to_table fields=Nothing =
-    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw Nothing else
+    if this.get_type != Geo_Json.Feature_Collection.to_text then Error.throw (Invalid_Format_Error this "not being a feature collection") else
         case this.get "features" of
             Json.Array items ->
                 feature_rows = items.map .get_feature_row
@@ -105,5 +104,17 @@ Json.Object.to_table fields=Nothing =
                     [n, rows.map (_.at i)]
                 Table.new cols
 
-            _ -> Error.throw Nothing
+            _ -> Error.throw (Invalid_Format_Error this "not having the 'features' key.")
+
+## UNSTABLE
+
+   An error representing an invalid format for conversion.
+type Invalid_Format_Error input message
+
+## UNSTABLE
+
+   Provides a human-readable representation of the Invalid_Format_Error.
+Invalid_Format_Error.to_display_text : Text
+Invalid_Format_Error.to_display_text =
+    "The input " + this.input.to_text + " had an invalid format due to: " + this.message.to_text + "."
 

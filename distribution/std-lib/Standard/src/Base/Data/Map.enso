@@ -39,7 +39,7 @@ singleton key value = Bin 1 key value Tip Tip
          import Standard.Base.Data.Map.Internal
 
          example_from_vector = Map.from_vector [[1, 2], [3, 4]]
-from_vector : Vector.Vector -> Map
+from_vector : Vector.Vector Any -> Map
 from_vector vec = vec.fold Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
@@ -114,7 +114,7 @@ type Map
              import Standard.Examples
 
              example_to_vector = Examples.map.to_vector
-    to_vector : Vector.Vector
+    to_vector : Vector.Vector Any
     to_vector =
         builder = Vector.new_builder
         to_vector_with_builder m = case m of
@@ -177,8 +177,8 @@ type Map
     insert : Any -> Any -> Map
     insert key value = Internal.insert this key value
 
-    ## Gets the value associated with `key` in this map, or throws a `Nothing`,
-       if `key` is not present.
+    ## Gets the value associated with `key` in this map, or throws a
+       `No_Value_For_Key_Error` if `key` is not present.
 
        Arguments:
        - key: The key to look up in the map.
@@ -190,10 +190,10 @@ type Map
              import Standard.Examples
 
              example_get = Examples.map.get 1
-    get : Any -> Any ! Nothing
+    get : Any -> Any ! No_Value_For_Key_Error
     get key =
         go map = case map of
-            Tip -> Error.throw Nothing
+            Tip -> Error.throw (No_Value_For_Key_Error key)
             Bin _ k v l r ->
                 if k == key then v else
                     if k > key then @Tail_Call go l else @Tail_Call go r
@@ -446,5 +446,12 @@ type Map
 
    Arguments:
    - key: The key that was asked for.
-type No_Value_For_Key key
+type No_Value_For_Key_Error key
+
+## UNSTABLE
+
+   Converts the error into a human-readable representation.
+No_Value_For_Key_Error.to_display_text : Text
+No_Value_For_Key_Error.to_display_text =
+    "The map contained no value for the key " + this.key.to_text + "."
 
