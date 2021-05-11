@@ -20,7 +20,11 @@ polyglot java import java.time.Period as Java_Period
          example_between = Duration.between Time.now (Time.new 2010 10 20)
 between : Time -> Time -> Duration
 between start_inclusive end_exclusive =
-   Duration (Java_Period.ofDays 0 . normalized) (Java_Duration.between start_inclusive.internal_zoned_date_time end_exclusive.internal_zoned_date_time)
+    period = Java_Period.ofDays 0 . normalized
+    start = start_inclusive.internal_zoned_date_time
+    end = end_exclusive.internal_zoned_date_time
+    duration = Java_Duration.between start end
+    Duration period duration
 
 type Duration
 
@@ -52,7 +56,10 @@ type Duration
 
              example_add = 1.month + 12.hours
     + : Duration -> Duration
-    + that = Duration (this.internal_period . plus that.internal_period . normalized) (this.internal_duration . plus that.internal_duration)
+    + that =
+        period = this.internal_period . plus that.internal_period . normalized
+        duration = this.internal_duration . plus that.internal_duration
+        Duration period duration
 
     ## Subtract the specified amount of time from this duration.
 
@@ -73,7 +80,10 @@ type Duration
 
              example_subtract = 7.months - 30.minutes
     - : Duration -> Duration
-    - that = Duration (this.internal_period . minus that.internal_period . normalized) (this.internal_duration . minus that.internal_duration)
+    - that =
+        period = this.internal_period . minus that.internal_period . normalized
+        duration = this.internal_duration . minus that.internal_duration
+        Duration period duration
 
     ## Get the portion of the duration expressed in nanoseconds.
 
@@ -167,13 +177,16 @@ type Duration
        seconds and nanosecnods.
 
        > Example
-         Convert duration of a year and a hour to a vector returning `[1, 0, 0, 1, 0, 0, 0]`.
+         Convert duration of a year and a hour to a vector returning
+         `[1, 0, 0, 1, 0, 0, 0]`.
+
              import Standard.Base.Data.Time.Duration
 
              example_to_vec = (1.year + 1.hour).to_vector
 
        > Example
-         Convert duration of 800 nanoseconds to a vector returning `[0, 0, 0, 0, 0, 0, 800]`
+         Convert duration of 800 nanoseconds to a vector returning
+         `[0, 0, 0, 0, 0, 0, 800]`
 
              import Standard.Base.Data.Time.Duration
 

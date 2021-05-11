@@ -67,7 +67,7 @@ type PointData
     name = this.to_text.to_lower_case
 
     ## PRIVATE
-    fallback_column : Table -> Column ! Nothing
+    fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column table = case this of
         X -> table.index.catch_ <| this.iota table.row_count
         Y ->
@@ -77,7 +77,7 @@ type PointData
             is_good c = is_good_enough c && (this.is_recognized c).not
 
             candidates.find is_good . catch_ <| candidates.find is_good_enough
-        _ -> Error.throw Nothing
+        _ -> Error.throw No_Fallback_Column
 
     ## PRIVATE
 
@@ -92,6 +92,14 @@ type PointData
     lookup_in table =
         named = table.lookup_ignore_case this.name
         named.catch_ <| this.fallback_column table
+
+## PRIVATE
+type No_Fallback_Column
+
+## PRIVATE
+No_Fallback_Column.to_display_text : Text
+No_Fallback_Column.to_display_text =
+    "No fallback column found for the scatter plot."
 
 ## PRIVATE
 

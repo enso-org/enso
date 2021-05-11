@@ -1,4 +1,4 @@
-from Standard.Base import all
+from Standard.Base import all hiding Parse_Error
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
@@ -231,7 +231,7 @@ Number.to_json : Json.Number
 Number.to_json = Json.Number this
 
 ## Parses a textual representation of a decimal into a decimal number, returning
-   `Nothing` if the text does not represent a valid decimal.
+   a `Parse_Error` if the text does not represent a valid decimal.
 
    Arguments:
    - text: The text to parse into a decimal.
@@ -240,7 +240,20 @@ Number.to_json = Json.Number this
      Parse the text "7.6" into a decimal number.
 
          Decimal.parse 7.6
-Decimal.parse : Text -> Decimal ! Nothing
+Decimal.parse : Text -> Decimal ! Parse_Error
 Decimal.parse text =
-    Panic.recover (Double.parseDouble text) . catch (_ -> Error.throw Nothing)
+    Panic.recover (Double.parseDouble text) . catch _->
+        Error.throw (Parse_Error text)
+
+## UNSTABLE
+
+   A syntax error when parsing a double.
+type Parse_Error text
+
+## UNSTABLE
+
+   Pretty print the syntax error.
+Parse_Error.to_display_text : Text
+Parse_Error.to_display_text =
+    "Could not parse " + this.text.to_text + " as a double."
 

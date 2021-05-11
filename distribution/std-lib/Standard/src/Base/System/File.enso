@@ -12,7 +12,8 @@ polyglot java import java.nio.file.NoSuchFileException
 ## Creates a new file object, pointing to the given path.
 
    Arguments:
-   - path: The path to the file that you want to create.
+   - path: The path to the file that you want to create, or a file itself. The
+     latter is a no-op.
 
    > Example
      Create a new file pointing to the `data.csv` file in the project directory.
@@ -21,8 +22,10 @@ polyglot java import java.nio.file.NoSuchFileException
          import Standard.Examples
 
          example_new = File.new Examples.csv_path
-new : Text -> File
-new path = File (Prim_Io.get_file path)
+new : (Text | File) -> File
+new path = case path of
+    Text -> File (Prim_Io.get_file path)
+    _ -> path
 
 ## Open and read the file at the provided `path`.
 
