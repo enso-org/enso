@@ -4,7 +4,6 @@ import java.io._
 import org.apache.commons.cli.{Option => CliOption, _}
 import scala.util.{Try, Using}
 import scala.io.Source
-import scala.annotation.unused
 import scalatags.Text.{all => HTML}
 import TreeOfCommonPrefixes._
 import DocsGenerator._
@@ -27,11 +26,11 @@ object Main {
   var outDir         = "docs-js"
 
   private val HELP_OPTION          = "help"
-  private val INPUT_PATH_OPTION    = "input_path"
-  private val OUTPUT_DIR_OPTION    = "output_dir"
-  private val DOCS_LIB_PATH_OPTION = "docs_lib_path"
-  private val JS_TEMPLATE_OPTION   = "js_template"
-  private val CSS_TEMPLATE_OPTION  = "css_template"
+  private val INPUT_PATH_OPTION    = "input-path"
+  private val OUTPUT_DIR_OPTION    = "output-dir"
+  private val DOCS_LIB_PATH_OPTION = "docs-lib-path"
+  private val JS_TEMPLATE_OPTION   = "js-template"
+  private val CSS_TEMPLATE_OPTION  = "css-template"
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -174,21 +173,6 @@ object Main {
     zippedJS.foreach(
       createDocJSFile(_, outDir, treeStyle, templateCode, treeNames)
     )
-  }
-
-  /** Takes a tuple of file path and documented HTML code, saving the file
-    * in the given directory.
-    */
-  @unused private def createDocHTMLFile(x: (String, String)): Unit = {
-    val path                   = x._1
-    val file                   = new File(path)
-    val fileWithExtensionRegex = "\\/[a-zA-Z_]*\\.[a-zA-Z]*"
-    val dir                    = new File(path.replaceAll(fileWithExtensionRegex, ""))
-    dir.mkdirs()
-    file.createNewFile();
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(x._2)
-    bw.close()
   }
 
   /** Takes a tuple of file path and documented HTML code, and generates JS doc

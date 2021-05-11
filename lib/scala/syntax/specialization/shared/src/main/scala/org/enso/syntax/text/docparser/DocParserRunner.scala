@@ -10,6 +10,7 @@ import org.enso.syntax.text.ast.Doc
 ////////////////////////////////////////////////////////////////////////////////
 
 /** Doc Parser Runner binds together Enso Parser with Doc Parser.
+  *
   * When Parser finishes its job it invokes runner with AST created by it after
   * resolving macros. Then Runner does it's job - running Doc Parser on every
   * [[AST.Comment]], combined with connecting [[Doc]] with AST in

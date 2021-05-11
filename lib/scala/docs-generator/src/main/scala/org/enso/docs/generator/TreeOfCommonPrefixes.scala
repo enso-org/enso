@@ -14,8 +14,8 @@ object TreeOfCommonPrefixes {
     */
   case class Node(name: String, var elems: List[Node]) {
 
-    /** Generates an HTML tree from node, as this method is used to create the
-      * page chooser.
+    /** Generates an HTML tree from a tree of nodes, as this method is used to
+      * create the page chooser.
       */
     def html(beg: String = ""): Modifier = {
       val newBeg = if (beg.length > 0) beg + "-" + name else name
