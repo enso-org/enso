@@ -62,8 +62,10 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
       log.info(
-        s"Shutting down the Truffle context $truffleContext. " +
-        s"Attempt #${retryCount + 1}."
+        "Shutting down the Truffle context [{}]. " +
+        "Attempt #{}.",
+        truffleContext,
+        retryCount + 1
       )
       truffleContext.close()
       replyTo ! RuntimeGracefullyStopped
@@ -72,8 +74,9 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
       case NonFatal(ex) =>
         log.error(
           ex,
-          s"An error occurred during stopping Truffle context " +
-          s"$truffleContext. ${ex.getMessage}"
+          s"An error occurred during stopping Truffle context [{}]. {}",
+          truffleContext,
+          ex.getMessage
         )
         if (retryCount < MaxRetries) {
           context.system.scheduler

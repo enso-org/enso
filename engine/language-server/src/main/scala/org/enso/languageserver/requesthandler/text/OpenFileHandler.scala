@@ -47,7 +47,11 @@ class OpenFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Opening file for ${rpcSession.clientId} timed out")
+      log.error(
+        "Opening file request [{}] for [{}] timed out.",
+        id,
+        rpcSession.clientId
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

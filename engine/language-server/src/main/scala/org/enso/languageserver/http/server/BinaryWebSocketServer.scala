@@ -121,7 +121,9 @@ class BinaryWebSocketServer[A, B](
       .mapConcat[BinaryMessage] {
         case msg: TextMessage =>
           logger.warn(
-            s"Received text message $msg over the data connection [$ip]"
+            "Received text message [{}] over the data connection [{}].",
+            msg,
+            ip
           )
           Nil
 

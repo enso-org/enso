@@ -67,7 +67,7 @@ class CollaborativeBuffer(
 
   private def uninitialized: Receive = { case OpenFile(client, path) =>
     context.system.eventStream.publish(BufferOpened(path))
-    log.info(s"Buffer opened for $path [client:${client.clientId}]")
+    log.info("Buffer opened for [path:{}, client:{}].", path, client.clientId)
     readFile(client, path)
   }
 

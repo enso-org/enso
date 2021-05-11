@@ -56,14 +56,18 @@ class WriteBinaryFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during WriteBinaryFile operation:", ex)
+      log.error(
+        ex,
+        "Failure during WriteBinaryFile operation: {}",
+        ex.getMessage
+      )
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request WriteBinaryFile timed out")
+      log.error("Request WriteBinaryFile [{}] timed out.", requestId)
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       context.stop(self)

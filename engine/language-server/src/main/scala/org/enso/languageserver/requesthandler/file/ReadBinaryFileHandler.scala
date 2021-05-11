@@ -53,14 +53,18 @@ class ReadBinaryFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during ReadBinaryFile operation:", ex)
+      log.error(
+        ex,
+        s"Failure during ReadBinaryFile operation: {}",
+        ex.getMessage
+      )
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request ReadBinaryFile timed out")
+      log.error("Request ReadBinaryFile [{}] timed out.", requestId)
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       context.stop(self)

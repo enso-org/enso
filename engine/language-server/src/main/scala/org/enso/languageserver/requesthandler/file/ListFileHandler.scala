@@ -35,13 +35,18 @@ class ListFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ListFile operation:", ex)
+      log.error(
+        ex,
+        "Failure during [{}] operation: {}",
+        ListFile,
+        ex.getMessage
+      )
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $id timed out")
+      log.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

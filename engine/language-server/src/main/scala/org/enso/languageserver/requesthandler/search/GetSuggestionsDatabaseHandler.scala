@@ -42,13 +42,13 @@ class GetSuggestionsDatabaseHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "GetSuggestionsDatabase error")
+      log.error(ex, "GetSuggestionsDatabase error: {}", ex.getMessage)
       replyTo ! ResponseError(Some(id), SuggestionsDatabaseError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $id timed out")
+      log.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

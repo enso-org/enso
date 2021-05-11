@@ -1,6 +1,10 @@
 package org.enso.languageserver.boot
 
+import java.nio.file.Path
 import java.util.UUID
+
+import org.enso.logger.masking.MaskingUtils.toMaskedPath
+import org.enso.logger.masking.ToMaskedString
 
 import scala.concurrent.ExecutionContext
 
@@ -20,4 +24,30 @@ case class LanguageServerConfig(
   contentRootPath: String,
   name: String                              = "language-server",
   computeExecutionContext: ExecutionContext = ExecutionContext.global
-)
+) extends ToMaskedString {
+
+  /** @inheritdoc */
+  override def toString: String =
+    s"""LanguageServerConfig(
+       |  interface       = $interface
+       |  rpcPort         = $rpcPort
+       |  dataPort        = $dataPort
+       |  contentRootUuid = $contentRootUuid
+       |  contentRootPath = $contentRootPath
+       |  name            = $name
+       |  computeExecutionContext = $computeExecutionContext
+       |)""".stripMargin
+
+  /** @inheritdoc */
+  override def toMaskedString: String =
+    s"""LanguageServerConfig(
+       |  interface       = $interface
+       |  rpcPort         = $rpcPort
+       |  dataPort        = $dataPort
+       |  contentRootUuid = $contentRootUuid
+       |  contentRootPath = ${toMaskedPath(Path.of(contentRootPath))}
+       |  name            = $name
+       |  computeExecutionContext = $computeExecutionContext
+       |  interface = $interface
+       |)""".stripMargin
+}

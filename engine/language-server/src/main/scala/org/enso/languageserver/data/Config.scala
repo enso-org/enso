@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
   FileSystemFailure,
   Path
 }
+import org.enso.logger.masking.{MaskingUtils, ToMaskedString}
 
 import scala.concurrent.duration._
 
@@ -77,7 +78,7 @@ object ExecutionContextConfig {
   *
   * @param root the root directory path
   */
-case class DirectoriesConfig(root: File) {
+case class DirectoriesConfig(root: File) extends ToMaskedString {
 
   /** The data directory path. */
   val dataDirectory: File =
@@ -86,6 +87,10 @@ case class DirectoriesConfig(root: File) {
   /** The suggestions database file path. */
   val suggestionsDatabaseFile: File =
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
+
+  /** @inheritdoc */
+  override def toMaskedString: String =
+    s"DirectoriesConfig(${MaskingUtils.toMaskedPath(root.toPath)})"
 
   /** Create data directories if not exist. */
   def createDirectories(): Unit =
