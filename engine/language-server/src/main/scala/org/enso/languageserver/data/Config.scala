@@ -132,7 +132,31 @@ case class Config(
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: DirectoriesConfig
-) {
+) extends ToMaskedString {
+
+  /** @inheritdoc */
+  override def toString: String =
+    s"Config(" +
+    s"contentRoots=$contentRoots, " +
+    s"fileManager=$fileManager, " +
+    s"pathWatcher=$pathWatcher, " +
+    s"executionContext=$executionContext, " +
+    s"directories=$directories" +
+    s")"
+
+  /** @inheritdoc */
+  override def toMaskedString: String = {
+    val maskedRoots = contentRoots.map { case (k, v) =>
+      k -> MaskingUtils.toMaskedPath(v.toPath)
+    }
+    s"Config(" +
+    s"contentRoots=$maskedRoots, " +
+    s"fileManager=$fileManager, " +
+    s"pathWatcher=$pathWatcher, " +
+    s"executionContext=$executionContext, " +
+    s"directories=${directories.toMaskedString}" +
+    s")"
+  }
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
     contentRoots

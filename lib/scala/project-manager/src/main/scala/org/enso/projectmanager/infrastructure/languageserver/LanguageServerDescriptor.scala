@@ -1,9 +1,11 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
+import java.nio.file.Path
 import java.util.UUID
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.{MaskingUtils, ToMaskedString}
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.runner.JVMSettings
@@ -39,4 +41,33 @@ case class LanguageServerDescriptor(
   jvmSettings: JVMSettings,
   discardOutput: Boolean,
   deferredLoggingServiceEndpoint: Future[Option[Uri]]
-)
+) extends ToMaskedString {
+
+  /** @inheritdoc */
+  override def toString: String =
+    s"LanguageServerDescriptor(" +
+    s"name = $name, " +
+    s"rootId = $rootId, " +
+    s"rootPath = $rootPath, " +
+    s"networkConfig = $networkConfig, " +
+    s"distributionConfiguration = $distributionConfiguration, " +
+    s"engineVersion = $engineVersion, " +
+    s"jvmSettings = $jvmSettings, " +
+    s"discardOutput = $discardOutput, " +
+    s"defferredLoggingServiceEndpoint = $deferredLoggingServiceEndpoint " +
+    s")"
+
+  /** @inheritdoc */
+  override def toMaskedString: String =
+    s"LanguageServerDescriptor(" +
+    s"name = $name, " +
+    s"rootId = $rootId, " +
+    s"rootPath = ${MaskingUtils.toMaskedPath(Path.of(rootPath))}, " +
+    s"networkConfig = $networkConfig, " +
+    s"distributionConfiguration = $distributionConfiguration, " +
+    s"engineVersion = $engineVersion, " +
+    s"jvmSettings = $jvmSettings, " +
+    s"discardOutput = $discardOutput, " +
+    s"defferredLoggingServiceEndpoint = $deferredLoggingServiceEndpoint " +
+    s")"
+}
