@@ -40,6 +40,6 @@ trait ToMaskedString {
     * representation.
     */
   def applyMasking(): String =
-    Masking.getInstance().mask(this).toString
+    Masking().mask(this).toString
 
 }

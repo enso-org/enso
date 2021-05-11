@@ -12,7 +12,7 @@ class LoggerFactory extends ILoggerFactory {
   override def getLogger(name: String): SLF4JLogger = {
     val logger = loggers.getOrElseUpdate(
       name,
-      new Logger(name, LoggingServiceManager.Connection, Masking.getInstance())
+      new Logger(name, LoggingServiceManager.Connection, Masking())
     )
     if (!Masking.isMaskingEnabled) {
       logger.warn("Log masking is disabled!")

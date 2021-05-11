@@ -52,12 +52,8 @@ object Masking {
 
   private val noMasking: Masking = identity
 
-  private lazy val instance: Masking = createInstance()
-
-  /** Create the masking adapter. */
-  private def createInstance(): Masking =
+  /** Get the instance of [[Masking]] adapter. */
+  def apply(): Masking =
     if (isMaskingEnabled) masking else noMasking
 
-  /** Get the instance of [[Masking]] adapter. */
-  def getInstance(): Masking = instance
 }
