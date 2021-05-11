@@ -325,9 +325,9 @@ prepareAwsSessionCDN = {
 }
 
 function uploadToCDN(...names) {
-    let actions = []
+    const actions = []
     for (let name of names) {
-        let action = {
+        const action = {
             name: `Upload '${name}' to CDN`,
             shell: "bash",
             run: `aws s3 cp ./artifacts/content/assets/${name} `
@@ -336,6 +336,9 @@ function uploadToCDN(...names) {
         }
         if (name.endsWith(".gz")) {
             action.run += " --content-encoding gzip";
+        }
+        if (name.endsWith(".wasm")) {
+            action.run += " --content-type 'application/wasm'";
         }
         actions.push(action)
     }
