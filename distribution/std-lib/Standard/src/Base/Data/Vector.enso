@@ -182,7 +182,7 @@ type Vector
          Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
-    sum : Any ! (Empty_Error ! No_Such_Method_Error)
+    sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
         result = Panic.recover <| this.reduce (+)
         result.map_error x->case x of
@@ -863,5 +863,5 @@ type Singleton_Error vec
    Pretty prints the singleton error.
 Singleton_Error.to_display_text : Text
 Singleton_Error.to_display_text =
-    "The vector " + this.vec.to_text  + " has only one element"
+    "The vector " + this.vec.to_text  + " has only one element."
 
