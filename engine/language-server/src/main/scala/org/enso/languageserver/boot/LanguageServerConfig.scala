@@ -28,26 +28,25 @@ case class LanguageServerConfig(
 
   /** @inheritdoc */
   override def toString: String =
-    s"""LanguageServerConfig(
-       |  interface       = $interface
-       |  rpcPort         = $rpcPort
-       |  dataPort        = $dataPort
-       |  contentRootUuid = $contentRootUuid
-       |  contentRootPath = $contentRootPath
-       |  name            = $name
-       |  computeExecutionContext = $computeExecutionContext
-       |)""".stripMargin
+    s"LanguageServerConfig(" +
+    s"interface=$interface, " +
+    s"rpcPort=$rpcPort, " +
+    s"dataPort=$dataPort, " +
+    s"contentRootUuid=$contentRootUuid, " +
+    s"contentRootPath=$contentRootPath, " +
+    s"name=$name, " +
+    s"computeExecutionContext=$computeExecutionContext" +
+    s")"
 
   /** @inheritdoc */
   override def toMaskedString: String =
-    s"""LanguageServerConfig(
-       |  interface       = $interface
-       |  rpcPort         = $rpcPort
-       |  dataPort        = $dataPort
-       |  contentRootUuid = $contentRootUuid
-       |  contentRootPath = ${toMaskedPath(Path.of(contentRootPath))}
-       |  name            = $name
-       |  computeExecutionContext = $computeExecutionContext
-       |  interface = $interface
-       |)""".stripMargin
+    s"LanguageServerConfig(" +
+    s"interface=$interface, " +
+    s"rpcPort=$rpcPort, " +
+    s"dataPort=$dataPort, " +
+    s"contentRootUuid=$contentRootUuid, " +
+    s"contentRootPath=${toMaskedPath(Path.of(contentRootPath))}, " +
+    s"name=$name, " +
+    s"computeExecutionContext=$computeExecutionContext" +
+    s")"
 }
