@@ -33,8 +33,8 @@ object Masking {
   }
 
   private def masking(shouldMask: Boolean): Masking = {
-    case obj: ToMaskedString =>
-      try obj.toMaskedString(shouldMask)
+    case obj: ToLogString =>
+      try obj.toLogString(shouldMask)
       catch {
         case NonFatal(error) =>
           System.err.println(

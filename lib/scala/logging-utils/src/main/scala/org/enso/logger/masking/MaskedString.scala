@@ -4,13 +4,13 @@ package org.enso.logger.masking
   *
   * @param value the underlying string.
   */
-case class MaskedString(value: String) extends ToMaskedString {
+case class MaskedString(value: String) extends ToLogString {
 
   /** @inheritdoc */
   override def toString: String =
     value
 
   /** @inheritdoc */
-  override def toMaskedString(shouldMask: Boolean): String =
+  override def toLogString(shouldMask: Boolean): String =
     if (shouldMask) STUB else value
 }

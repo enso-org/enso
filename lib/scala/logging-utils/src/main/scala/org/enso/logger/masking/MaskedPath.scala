@@ -6,14 +6,14 @@ import java.nio.file.Path
   *
   * @param value the underlying path.
   */
-case class MaskedPath(value: Path) extends ToMaskedString {
+case class MaskedPath(value: Path) extends ToLogString {
 
   /** @inheritdoc */
   override def toString: String =
     value.toAbsolutePath.normalize().toString
 
   /** @inheritdoc */
-  override def toMaskedString(shouldMask: Boolean): String = {
+  override def toLogString(shouldMask: Boolean): String = {
     val path = value.toAbsolutePath.normalize()
     if (shouldMask) {
       MaskingUtils.toMaskedPath(path)

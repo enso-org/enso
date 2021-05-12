@@ -5,7 +5,7 @@ package org.enso.logger.masking
   *
   * == Logging ==
   * This object should be supplied to the logger as an argument of the template
-  * string. This way the logger will use the `toMaskedString` representation of
+  * string. This way the logger will use the `toLogString` representation of
   * the object.
   *
   * {{{
@@ -22,7 +22,7 @@ package org.enso.logger.masking
   *   throw new Exception(s"Failed to initialize [${obj.applyMasking}].")
   * }}}
   */
-trait ToMaskedString {
+trait ToLogString {
 
   /** A substitution for the masked data. */
   final protected val STUB: String = MaskingUtils.STUB
@@ -35,7 +35,7 @@ trait ToMaskedString {
     *
     * @param shouldMask decides whether or not the value should be masked
     */
-  def toMaskedString(shouldMask: Boolean): String
+  def toLogString(shouldMask: Boolean): String
 
   /** Returns the string representation defined by the `toMaskedString` method,
     * based on the current masking settings.

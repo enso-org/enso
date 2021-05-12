@@ -9,7 +9,7 @@ import org.enso.languageserver.filemanager.{
   FileSystemFailure,
   Path
 }
-import org.enso.logger.masking.{MaskingUtils, ToMaskedString}
+import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import scala.concurrent.duration._
 
@@ -78,7 +78,7 @@ object ExecutionContextConfig {
   *
   * @param root the root directory path
   */
-case class DirectoriesConfig(root: File) extends ToMaskedString {
+case class DirectoriesConfig(root: File) extends ToLogString {
 
   /** The data directory path. */
   val dataDirectory: File =
@@ -89,7 +89,7 @@ case class DirectoriesConfig(root: File) extends ToMaskedString {
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
 
   /** @inheritdoc */
-  override def toMaskedString(shouldMask: Boolean): String = {
+  override def toLogString(shouldMask: Boolean): String = {
     val rootString =
       if (shouldMask) MaskingUtils.toMaskedPath(root.toPath)
       else root.toString
@@ -136,10 +136,10 @@ case class Config(
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: DirectoriesConfig
-) extends ToMaskedString {
+) extends ToLogString {
 
   /** @inheritdoc */
-  override def toMaskedString(shouldMask: Boolean): String = {
+  override def toLogString(shouldMask: Boolean): String = {
     val maskedRoots =
       if (shouldMask) {
         contentRoots
@@ -154,7 +154,7 @@ case class Config(
     s"fileManager=$fileManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
-    s"directories=${directories.toMaskedString(shouldMask)}" +
+    s"directories=${directories.toLogString(shouldMask)}" +
     s")"
   }
 
