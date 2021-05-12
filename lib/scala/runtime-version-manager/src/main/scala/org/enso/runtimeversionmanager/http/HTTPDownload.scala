@@ -19,8 +19,7 @@ import org.enso.cli.task.{
 
 import scala.concurrent.Future
 
-/** Represents a HTTP header.
-  */
+/** Represents a HTTP header. */
 case class Header(name: String, value: String) {
 
   /** Checks if this header instance corresponds to a `headerName`.
@@ -71,7 +70,7 @@ object HTTPDownload {
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
-    logger.debug(s"Fetching ${request.requestImpl.getUri}")
+    logger.debug("Fetching [{}].", request.requestImpl.getUri())
     def combineChunks(chunks: Seq[ByteString]): String =
       chunks.reduceOption(_ ++ _).map(_.decodeString(encoding)).getOrElse("")
     runRequest(
@@ -110,7 +109,9 @@ object HTTPDownload {
     sizeHint: Option[Long] = None
   ): TaskProgress[Path] = {
     logger.debug(
-      s"Downloading ${request.requestImpl.getUri} to $destination"
+      "Downloading [{}] to [{}].",
+      request.requestImpl.getUri(),
+      destination
     )
     runRequest(
       request.requestImpl,
@@ -186,7 +187,9 @@ object HTTPDownload {
           }
 
           logger.trace(
-            s"HTTP response was ${response.status}, redirecting to `$newURI`."
+            "HTTP response was [{}], redirecting to [{}].",
+            response.status,
+            newURI
           )
           val newRequest = request.withUri(newURI)
           http

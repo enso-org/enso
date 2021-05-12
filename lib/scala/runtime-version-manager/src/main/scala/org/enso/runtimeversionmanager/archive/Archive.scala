@@ -178,13 +178,13 @@ object Archive {
     *                 false, iteration is stopped
     * @return an instance indicating the progress of iteration
     */
-  def iterateArchive(archivePath: Path, format: ArchiveFormat)(
+  private def iterateArchive(archivePath: Path, format: ArchiveFormat)(
     callback: ArchiveEntry => Boolean
   ): TaskProgress[Unit] = {
     val taskProgress = new TaskProgressImplementation[Unit](ProgressUnit.Bytes)
 
     def runExtraction(): Unit = {
-      logger.debug(s"Opening `$archivePath`.")
+      logger.debug("Opening [{}].", archivePath)
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
@@ -254,9 +254,11 @@ object Archive {
 
       if (missingPermissions > 0) {
         logger.warn(
-          s"Could not find permissions for $missingPermissions files in " +
-          s"archive `$archivePath`, some files may not have been marked as " +
-          s"executable."
+          "Could not find permissions for [{}] files in " +
+          "archive [{}], some files may not have been marked as " +
+          "executable.",
+          missingPermissions,
+          archivePath
         )
       }
 
@@ -303,7 +305,7 @@ object Archive {
     * The archive and the internal streams are closed when this function exits.
     * The `action` can throw an exception, in which case a failure is returned.
     */
-  def withOpenArchive[R](path: Path, format: ArchiveFormat)(
+  private def withOpenArchive[R](path: Path, format: ArchiveFormat)(
     action: (ArchiveInputStream, ReadProgress) => R
   ): Try[R] = {
     Using(FileProgressInputStream(path)) { progressInputStream =>

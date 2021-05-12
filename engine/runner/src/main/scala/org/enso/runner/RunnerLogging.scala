@@ -2,6 +2,7 @@ package org.enso.runner
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.printers.StderrPrinter
 import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 
@@ -20,9 +21,15 @@ object RunnerLogging {
     *
     * @param connectionUri optional uri of logging service server to connect to
     * @param logLevel log level to use for the runner and runtime
+    * @param logMasking switches log masking on and off
     */
-  def setup(connectionUri: Option[Uri], logLevel: LogLevel): Unit = {
+  def setup(
+    connectionUri: Option[Uri],
+    logLevel: LogLevel,
+    logMasking: Boolean
+  ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
+    Masking.setup(logMasking)
     val loggerSetup = connectionUri match {
       case Some(uri) =>
         LoggingServiceManager
@@ -31,7 +38,7 @@ object RunnerLogging {
             logLevel
           )
           .map { _ =>
-            logger.trace(s"Connected to logging service at `$uri`.")
+            logger.trace("Connected to logging service at [{}].", uri)
           }
           .recoverWith { _ =>
             logger.error(

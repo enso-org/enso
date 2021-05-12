@@ -29,8 +29,7 @@ case class URIBuilder private (uri: Uri) {
   def addQuery(key: String, value: String): URIBuilder =
     copy(uri.withQuery(uri.query().+:((key, value))))
 
-  /** Build the URI represented by this builder.
-    */
+  /** Build the URI represented by this builder. */
   def build(): Uri = uri
 }
 
@@ -44,17 +43,14 @@ object URIBuilder {
   def fromHost(host: String): URIBuilder =
     new URIBuilder(Uri.from(scheme = "https", host = host))
 
-  /** A simple DSL for the URIBuilder.
-    */
+  /** A simple DSL for the URIBuilder. */
   implicit class URIBuilderSyntax(builder: URIBuilder) {
 
-    /** Extends the URI with an additional path segment.
-      */
+    /** Extends the URI with an additional path segment. */
     def /(part: String): URIBuilder =
       builder.addPathSegment(part)
 
-    /** Adds a query to the URI.
-      */
+    /** Adds a query to the URI. */
     def ?(query: (String, String)): URIBuilder =
       builder.addQuery(query._1, query._2)
   }

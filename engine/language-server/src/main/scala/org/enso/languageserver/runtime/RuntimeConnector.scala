@@ -23,8 +23,8 @@ class RuntimeConnector
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
       log.info(
-        s"Runtime connector established connection with the message endpoint " +
-        s"$engine."
+        s"Runtime connector established connection with the message endpoint [{}].",
+        engine
       )
       unstashAll()
       context.become(initialized(engine, Map()))

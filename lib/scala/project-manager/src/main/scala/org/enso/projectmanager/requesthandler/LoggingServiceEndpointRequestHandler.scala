@@ -51,7 +51,7 @@ class LoggingServiceEndpointRequestHandler(
     timeoutCancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $method operation:")
+      log.error(ex, "Failure during {} operation.", method)
       replyTo ! ResponseError(
         Some(id),
         LoggingServiceUnavailable(s"Logging service failed to set up: $ex")
@@ -60,7 +60,7 @@ class LoggingServiceEndpointRequestHandler(
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $method with $id timed out")
+      log.error("Request {} with {} timed out.", method, id)
       replyTo ! ResponseError(
         Some(id),
         LoggingServiceUnavailable(

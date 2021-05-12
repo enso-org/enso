@@ -31,9 +31,9 @@ class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
   override def execute(): F[Nothing, Unit] = {
     def go() =
       for {
-        _   <- log.debug(s"Moving project ${projectId} to $newName")
+        _   <- log.debug("Moving project [{}] to [{}].", projectId, newName)
         dir <- repo.moveProjectToTargetDir(projectId, newName)
-        _   <- log.info(s"Project $projectId moved to $dir")
+        _   <- log.info("Project [{}] moved to [{}].", projectId, dir)
       } yield ()
 
     go().fallbackTo(logError)
@@ -41,7 +41,9 @@ class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
 
   private def logError(failure: ProjectRepositoryFailure): F[Nothing, Unit] = {
     log.error(
-      s"An error occurred during moving project $projectId [$failure]"
+      "An error occurred during moving project {} [{}].",
+      projectId,
+      failure
     )
   }
 

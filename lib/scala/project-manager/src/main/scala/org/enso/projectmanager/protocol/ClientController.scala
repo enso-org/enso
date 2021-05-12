@@ -100,7 +100,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
-      log.info(s"Client connected to Project Manager [$clientId]")
+      log.info("Client connected to Project Manager [{}]", clientId)
       unstashAll()
       context.become(connected(webActor))
       context.system.eventStream.publish(ClientConnected(clientId))
@@ -110,7 +110,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
 
   def connected(@unused webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      log.info(s"Client disconnected from the Project Manager [$clientId]")
+      log.info("Client disconnected from the Project Manager [{}]", clientId)
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 

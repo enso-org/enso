@@ -7,6 +7,7 @@ import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.distribution.DistributionManager
@@ -44,8 +45,9 @@ class GlobalConfigurationManager(
         latestInstalled.getOrElse {
           val latestAvailable = componentsManager.fetchLatestEngineVersion()
           logger.warn(
-            s"No Enso versions installed, defaulting to the latest available " +
-            s"release: $latestAvailable."
+            "No Enso versions installed, defaulting to the latest available " +
+            "release: [{}].",
+            latestAvailable
           )
           latestAvailable
         }
@@ -67,8 +69,8 @@ class GlobalConfigurationManager(
       .readConfig(configLocation)
       .recoverWith { case _: NoSuchFileException =>
         logger.debug(
-          s"Global config (at ${configLocation.toAbsolutePath} not found, " +
-          s"falling back to defaults."
+          "Global config [{}] not found, falling back to defaults.",
+          MaskedPath(configLocation)
         )
         Success(GlobalConfig.Default)
       }

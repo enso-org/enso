@@ -157,7 +157,7 @@ final class ContextEventsListener(
               methodPointerToSuggestion.get(pointer) match {
                 case suggestionId @ Some(_) => suggestionId
                 case None =>
-                  log.error(s"Unable to find suggestion for $pointer")
+                  log.error("Unable to find suggestion for [{}].", pointer)
                   None
               }
             },

@@ -25,18 +25,15 @@ final class WatcherAdapter(
     .listener(this)
     .build()
 
-  /** Start watcher.
-    */
+  /** Start watcher. */
   def start(): IO[Throwable, Unit] =
     IO(watcher.watch())
 
-  /** Stop watcher.
-    */
+  /** Stop watcher. */
   def stop(): IO[Throwable, Unit] =
     IO(watcher.close())
 
-  /** A callback executed by `DirectoryWatcher` on file system event.
-    */
+  /** A callback executed by `DirectoryWatcher` on file system event. */
   override def onEvent(event: DirectoryChangeEvent): Unit = {
     WatcherEvent
       .from(event)
@@ -50,8 +47,7 @@ final class WatcherAdapter(
 
 object WatcherAdapter {
 
-  /** Type of a file event.
-    */
+  /** Type of a file event. */
   sealed trait EventType
 
   private object EventType {
@@ -70,16 +66,13 @@ object WatcherAdapter {
       }
   }
 
-  /** Event type indicating file creation.
-    */
+  /** Event type indicating file creation. */
   case object EventTypeCreate extends EventType
 
-  /** Event type indicating file modification.
-    */
+  /** Event type indicating file modification. */
   case object EventTypeModify extends EventType
 
-  /** Event type indicating file deletion.
-    */
+  /** Event type indicating file deletion. */
   case object EventTypeDelete extends EventType
 
   /** Object representing file system event.

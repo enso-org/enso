@@ -1,17 +1,14 @@
 package org.enso.languageserver.boot
 
-/** Signal where the lang. server is deployed.
-  */
+/** Signal where the lang. server is deployed. */
 sealed trait DeploymentType
 
 object DeploymentType {
 
-  /** Desktop deployment.
-    */
+  /** Desktop deployment. */
   case object Desktop extends DeploymentType
 
-  /** Azure deployment.
-    */
+  /** Azure deployment. */
   case object Azure extends DeploymentType
 
   /** Determines the current deployment type from environment variables.

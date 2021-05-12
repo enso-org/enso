@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.filemanager.FileManagerApi.ReadFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -37,13 +38,17 @@ class ReadTextualFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ReadFile operation:", ex)
+      log.error(
+        "Failure during [{}] operation: {}",
+        ReadFile,
+        MaskedString(ex.getMessage)
+      )
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $id timed out")
+      log.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

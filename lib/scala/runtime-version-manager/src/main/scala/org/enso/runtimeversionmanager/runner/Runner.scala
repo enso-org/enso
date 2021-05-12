@@ -1,9 +1,11 @@
 package org.enso.runtimeversionmanager.runner
 
 import java.nio.file.Path
+
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.masking.MaskedString
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
@@ -57,9 +59,10 @@ class Runner(
       // TODO [RW] reporting warnings to the IDE (#1710)
       if (Engine.isNightly(engineVersion)) {
         Logger[Runner].warn(
-          s"Creating a new project using a nightly build ($engineVersion). " +
+          "Creating a new project using a nightly build [{}]. " +
           "Nightly builds may disappear after a while, so you may need to " +
-          "upgrade. Consider using a stable version."
+          "upgrade. Consider using a stable version.",
+          engineVersion
         )
       }
       RunSettings(engineVersion, arguments, connectLoggerIfAvailable = false)
@@ -134,8 +137,10 @@ class Runner(
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
         Logger[Runner].debug(
-          s"Picking up additional JVM options ($opts) from the " +
-          s"$JVM_OPTIONS_ENV_VAR environment variable."
+          "Picking up additional JVM options [{}] from the " +
+          "[{}] environment variable.",
+          MaskedString(opts),
+          JVM_OPTIONS_ENV_VAR
         )
       }
 

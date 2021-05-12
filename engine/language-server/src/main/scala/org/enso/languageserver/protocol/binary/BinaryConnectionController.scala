@@ -87,7 +87,11 @@ class BinaryConnectionController(
       outboundChannel ! responsePacket
       val session = BinarySession(clientId, self)
       context.system.eventStream.publish(BinarySessionInitialized(session))
-      log.info(s"Data session initialized for client: $clientId [$clientIp]")
+      log.info(
+        "Data session initialized for client: {} [{}].",
+        clientId,
+        clientIp
+      )
       context.become(
         connectionEndHandler(Some(session))
         orElse initialized(
@@ -111,7 +115,8 @@ class BinaryConnectionController(
         handler.forward(msg)
       } else {
         log.error(
-          s"Received InboundMessage with unknown payload type: ${msg.payloadType()}"
+          "Received InboundMessage with unknown payload type [{}].",
+          msg.payloadType()
         )
       }
 
@@ -124,7 +129,7 @@ class BinaryConnectionController(
     maybeDataSession: Option[BinarySession] = None
   ): Receive = {
     case ConnectionClosed =>
-      log.info(s"Connection closed [$clientIp]")
+      log.info("Connection closed [{}].", clientIp)
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
       )
@@ -132,8 +137,9 @@ class BinaryConnectionController(
 
     case ConnectionFailed(th) =>
       log.error(
-        s"An error occurred during processing web socket connection [$clientIp]",
-        th
+        th,
+        "An error occurred during processing web socket connection [{}].",
+        clientIp
       )
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
@@ -154,7 +160,7 @@ class BinaryConnectionController(
       case EmptyPayload  => ErrorFactory.createReceivedEmptyPayloadError()
       case DataCorrupted => ErrorFactory.createReceivedCorruptedDataError()
       case GenericDecodingFailure(th) =>
-        log.error("Unrecognized error occurred in binary protocol", th)
+        log.error(th, "Unrecognized error occurred in binary protocol.")
         ErrorFactory.createServiceError()
     }
 
