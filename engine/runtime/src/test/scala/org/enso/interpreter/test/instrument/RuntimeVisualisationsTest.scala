@@ -46,7 +46,8 @@ class RuntimeVisualisationsTest
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "0.0.1")
-    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
+    val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
+    val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -58,6 +59,7 @@ class RuntimeVisualisationsTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {
