@@ -7,6 +7,7 @@ import scala.io.Source
 import scalatags.Text.{all => HTML}
 import TreeOfCommonPrefixes._
 import DocsGenerator._
+import Constants._
 import HTML._
 
 /** The entry point for the documentation generator.
@@ -17,20 +18,6 @@ import HTML._
   * [[https://enso.org/docs/reference reference website]].
   */
 object Main {
-
-  var libPath =
-    "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
-  var path           = "./distribution/std-lib/Standard/src"
-  var jsTempFileName = "template.js"
-  var cssFileName    = "treeStyle.css"
-  var outDir         = "docs-js"
-
-  private val HELP_OPTION          = "help"
-  private val INPUT_PATH_OPTION    = "input-path"
-  private val OUTPUT_DIR_OPTION    = "output-dir"
-  private val DOCS_LIB_PATH_OPTION = "docs-lib-path"
-  private val JS_TEMPLATE_OPTION   = "js-template"
-  private val CSS_TEMPLATE_OPTION  = "css-template"
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -114,28 +101,35 @@ object Main {
       printHelp(options)
       exitSuccess()
     }
-    if (line.hasOption(INPUT_PATH_OPTION)) {
-      path = line.getOptionValue(INPUT_PATH_OPTION)
-    }
-    if (line.hasOption(OUTPUT_DIR_OPTION)) {
-      outDir = line.getOptionValue(OUTPUT_DIR_OPTION)
-    }
-    if (line.hasOption(DOCS_LIB_PATH_OPTION)) {
-      libPath = line.getOptionValue(DOCS_LIB_PATH_OPTION)
-    }
-    if (line.hasOption(JS_TEMPLATE_OPTION)) {
-      jsTempFileName = line.getOptionValue(JS_TEMPLATE_OPTION)
-    }
-    if (line.hasOption(CSS_TEMPLATE_OPTION)) {
-      cssFileName = line.getOptionValue(CSS_TEMPLATE_OPTION)
-    }
+    val path =
+      Option(line.getOptionValue(INPUT_PATH_OPTION)).getOrElse(SOURCE_PATH)
+    val outDir =
+      Option(line.getOptionValue(OUTPUT_DIR_OPTION)).getOrElse(OUTPUT_DIRECTORY)
+    val templateFilesPath = Option(line.getOptionValue(DOCS_LIB_PATH_OPTION))
+      .getOrElse(TEMPLATE_FILES_PATH)
+    val jsTempFileName = Option(line.getOptionValue(JS_TEMPLATE_OPTION))
+      .getOrElse(JS_TEMPLATE_NAME)
+    val cssFileName = Option(line.getOptionValue(CSS_TEMPLATE_OPTION))
+      .getOrElse(CSS_TREE_FILE_NAME)
 
-    generateAllDocs()
+    generateAllDocs(
+      path,
+      templateFilesPath,
+      jsTempFileName,
+      cssFileName,
+      outDir
+    )
   }
 
   /** Traverses through directory generating docs from every .enso file found.
     */
-  def generateAllDocs(): Unit = {
+  def generateAllDocs(
+    path: String,
+    templateFilesPath: String,
+    jsTempFileName: String,
+    cssFileName: String,
+    outDir: String
+  ): Unit = {
     val allFiles = traverse(new File(path))
       .filter(f => f.isFile && f.getName.endsWith(".enso"))
     val allFileNames = allFiles.map(
@@ -152,11 +146,11 @@ object Main {
       .map(removeUnnecessaryDivs)
     val treeNames =
       groupByPrefix(allFileNames.toList, '/').filter(_.elems.nonEmpty)
-    val jsTemplate = new File(libPath + jsTempFileName)
+    val jsTemplate = new File(templateFilesPath + jsTempFileName)
     val templateCode = Using(Source.fromFile(jsTemplate, "UTF-8")) {
       _.mkString
     }
-    val styleFile = new File(libPath + cssFileName)
+    val styleFile = new File(templateFilesPath + cssFileName)
     val styleCode = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
     val treeStyle = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
     val allDocJSFiles = allFiles.map { x =>
@@ -170,8 +164,8 @@ object Main {
     val dir = new File(allDocJSFiles.head.split(outDir).head + outDir + "/")
     dir.mkdirs()
     val zippedJS = allDocJSFiles.zip(allDocs)
-    zippedJS.foreach(
-      createDocJSFile(_, outDir, treeStyle, templateCode, treeNames)
+    zippedJS.foreach(d =>
+      createDocJSFile(d._1, d._2, outDir, treeStyle, templateCode, treeNames)
     )
   }
 
@@ -179,16 +173,15 @@ object Main {
     * file with react components for Enso website.
     */
   private def createDocJSFile(
-    x: (String, String),
+    path: String,
+    htmlCode: String,
     outDir: String,
     treeStyle: String,
     templateCode: Try[String],
     treeNames: List[Node]
   ): Unit = {
-    val path     = x._1
-    val htmlCode = x._2
-    val file     = new File(path)
-    file.createNewFile();
+    val file = new File(path)
+    file.createNewFile()
     val bw = new BufferedWriter(new FileWriter(file))
     var treeCode =
       "<div>" + treeStyle + HTML
