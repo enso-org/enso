@@ -81,7 +81,8 @@ class ProjectFileRepository[
   /** @inheritdoc */
   override def findPathForNewProject(
     project: Project
-  ): F[ProjectRepositoryFailure, Path] = findTargetPath(project).map(_.toPath)
+  ): F[ProjectRepositoryFailure, Path] =
+    findTargetPath(project).map(_.toPath)
 
   private def tryLoadProject(
     directory: File

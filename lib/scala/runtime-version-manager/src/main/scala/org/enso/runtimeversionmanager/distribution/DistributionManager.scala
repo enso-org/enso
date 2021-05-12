@@ -39,8 +39,7 @@ case class DistributionPaths(
   unsafeTemporaryDirectory: Path
 ) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String =
     s"""DistributionPaths(
        |  dataRoot = $dataRoot,
@@ -90,7 +89,7 @@ class DistributionManager(val env: Environment) {
     */
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
-    logger.debug(s"Detected paths are: $paths")
+    logger.debug("Detected paths: {}", paths)
     paths
   }
 
@@ -144,14 +143,13 @@ class DistributionManager(val env: Environment) {
       )
     else None
 
-  /** Removes unused lockfiles.
-    */
+  /** Removes unused lockfiles. */
   def tryCleaningUnusedLockfiles(): Unit = {
     val lockfiles = FileSystem.listDirectory(paths.locks)
     for (lockfile <- lockfiles) {
       try {
         Files.delete(lockfile)
-        logger.debug(s"Removed unused lockfile ${lockfile.getFileName}.")
+        logger.debug("Removed unused lockfile [{}].", lockfile.getFileName)
       } catch {
         case NonFatal(_) =>
       }
@@ -215,8 +213,7 @@ class DistributionManager(val env: Environment) {
         "THIRD-PARTY"
       ) ++ FileSystem.ignoredFileNames
 
-    /** Config directory for an installed distribution.
-      */
+    /** Config directory for an installed distribution. */
     def configDirectory: Path =
       env
         .getEnvPath(ENSO_CONFIG_DIRECTORY)
@@ -259,8 +256,7 @@ class DistributionManager(val env: Environment) {
         }
         .toAbsolutePath
 
-    /** The directory where runtime-synchronization files are stored.
-      */
+    /** The directory where runtime-synchronization files are stored. */
     def runtimeDirectory: Path =
       env
         .getEnvPath(ENSO_RUNTIME_DIRECTORY)
@@ -275,8 +271,7 @@ class DistributionManager(val env: Environment) {
           }
         }
 
-    /** The directory for storing logs.
-      */
+    /** The directory for storing logs. */
     def logDirectory: Path =
       env
         .getEnvPath(ENSO_LOG_DIRECTORY)

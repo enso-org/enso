@@ -43,7 +43,11 @@ class ApplyEditHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Applying edit for ${rpcSession.clientId} timed out")
+      log.error(
+        "Applying edit request [{}] for [{}] timed out.",
+        id,
+        rpcSession.clientId
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

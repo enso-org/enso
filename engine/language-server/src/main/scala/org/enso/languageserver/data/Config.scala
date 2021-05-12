@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
   FileSystemFailure,
   Path
 }
+import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import scala.concurrent.duration._
 
@@ -77,7 +78,7 @@ object ExecutionContextConfig {
   *
   * @param root the root directory path
   */
-case class DirectoriesConfig(root: File) {
+case class DirectoriesConfig(root: File) extends ToLogString {
 
   /** The data directory path. */
   val dataDirectory: File =
@@ -86,6 +87,14 @@ case class DirectoriesConfig(root: File) {
   /** The suggestions database file path. */
   val suggestionsDatabaseFile: File =
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
+
+  /** @inheritdoc */
+  override def toLogString(shouldMask: Boolean): String = {
+    val rootString =
+      if (shouldMask) MaskingUtils.toMaskedPath(root.toPath)
+      else root.toString
+    s"DirectoriesConfig($rootString)"
+  }
 
   /** Create data directories if not exist. */
   def createDirectories(): Unit =
@@ -127,7 +136,27 @@ case class Config(
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: DirectoriesConfig
-) {
+) extends ToLogString {
+
+  /** @inheritdoc */
+  override def toLogString(shouldMask: Boolean): String = {
+    val maskedRoots =
+      if (shouldMask) {
+        contentRoots
+          .map { case (k, v) =>
+            k -> MaskingUtils.toMaskedPath(v.toPath)
+          }
+      } else {
+        contentRoots
+      }
+    s"Config(" +
+    s"contentRoots=$maskedRoots, " +
+    s"fileManager=$fileManager, " +
+    s"pathWatcher=$pathWatcher, " +
+    s"executionContext=$executionContext, " +
+    s"directories=${directories.toLogString(shouldMask)}" +
+    s")"
+  }
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
     contentRoots

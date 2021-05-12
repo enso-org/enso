@@ -83,14 +83,17 @@ class ProjectService[
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID] = for {
     projectId    <- gen.randomUUID()
-    _            <- log.debug(s"Creating project $name $projectId.")
+    _            <- log.debug("Creating project [{}, {}].", name, projectId)
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
     project = Project(projectId, name, UserProject, creationTime)
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
-      s"Found a path '$path' for a new project $name $projectId."
+      "Found a path [{}] for a new project [{}, {}].",
+      path,
+      name,
+      projectId
     )
     _ <- projectCreationService.createProject(
       progressTracker,
@@ -100,24 +103,27 @@ class ProjectService[
       missingComponentAction
     )
     _ <- log.debug(
-      s"Project $projectId structure created with " +
-      s"$path, $name, $engineVersion."
+      "Project [{}] structure created with [{}, {}, {}].",
+      projectId,
+      path,
+      name,
+      engineVersion
     )
     _ <- repo
       .update(project.copy(path = Some(path.toString)))
       .mapError(toServiceFailure)
-    _ <- log.debug(s"Project $projectId updated in repository $repo.")
-    _ <- log.info(s"Project $project created.")
+    _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
+    _ <- log.info("Project created [{}].", project)
   } yield projectId
 
   /** @inheritdoc */
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
-    log.debug(s"Deleting project $projectId.") *>
+    log.debug("Deleting project [{}].", projectId) *>
     ensureProjectIsNotRunning(projectId) *>
     repo.delete(projectId).mapError(toServiceFailure) *>
-    log.info(s"Project $projectId deleted.")
+    log.info("Project deleted [{}].", projectId)
 
   private def ensureProjectIsNotRunning(
     projectId: UUID
@@ -141,7 +147,7 @@ class ProjectService[
     newPackage: String
   ): F[ProjectServiceFailure, Unit] = {
     for {
-      _          <- log.debug(s"Renaming project $projectId to $newPackage.")
+      _          <- log.debug("Renaming project [{}] to [{}].", projectId, newPackage)
       _          <- validateName(newPackage)
       _          <- checkIfProjectExists(projectId)
       _          <- checkIfNameExists(newPackage)
@@ -149,7 +155,7 @@ class ProjectService[
       _          <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
       _          <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
       _          <- refactorProjectName(projectId, oldPackage, newPackage)
-      _          <- log.info(s"Project $projectId renamed.")
+      _          <- log.info("Project renamed [{}].", projectId)
     } yield ()
   }
 
@@ -162,15 +168,19 @@ class ProjectService[
       .ifM(isServerRunning(projectId))(
         ifTrue = for {
           _ <- log.debug(
-            s"Registering shutdown hook to rename the project $projectId " +
-            s"with a new name '$newName''"
+            "Registering shutdown hook to rename the project [{}] " +
+            "with a new name [{}].",
+            projectId,
+            newName
           )
           _ <- languageServerGateway.registerShutdownHook(projectId, cmd)
         } yield (),
         ifFalse = for {
           _ <- log.debug(
-            s"Running a command to rename the project $projectId " +
-            s"with a new name '$newName"
+            "Running a command to rename the project [{}] " +
+            "with a new name [{}].",
+            projectId,
+            newName
           )
           _ <- cmd.execute()
         } yield ()
@@ -195,20 +205,22 @@ class ProjectService[
         case ProjectNotOpened => ProjectNotOpen //impossible
         case RenameTimeout    => ProjectOperationTimeout
         case CannotConnectToServer =>
-          LanguageServerFailure("Cannot connect to the language server")
+          LanguageServerFailure("Cannot connect to the language server.")
 
         case RenameFailure(code, msg) =>
           LanguageServerFailure(
-            s"Failure during renaming [code: $code message: $msg]"
+            s"Failure during renaming [code: $code message: $msg]."
           )
 
         case ServerUnresponsive =>
-          LanguageServerFailure("The language server is unresponsive")
+          LanguageServerFailure("The language server is unresponsive.")
       }
       .flatMap { _ =>
         log.debug(
-          s"Language Server replied to the project $projectId rename command " +
-          s"from $oldPackage to $newPackage."
+          "Language Server replied to the project [{}] rename command from {} to {}.",
+          projectId,
+          oldPackage,
+          newPackage
         )
       }
 
@@ -224,8 +236,9 @@ class ProjectService[
       }
       .flatMap { _ =>
         log.debug(
-          s"Checked if the project $projectId exists " +
-          s"in repo $repo."
+          "Checked if the project [{}] exists in repo [{}].",
+          projectId,
+          repo
         )
       }
 
@@ -238,7 +251,7 @@ class ProjectService[
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = {
     // format: off
     for {
-      _        <- log.debug(s"Opening project $projectId")
+      _        <- log.debug(s"Opening project [{}].", projectId)
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
@@ -262,7 +275,7 @@ class ProjectService[
       }
       .mapRuntimeManagerErrors(th =>
         ProjectOpenFailed(
-          s"Cannot install the required engine ${th.getMessage}"
+          s"Cannot install the required engine. ${th.getMessage}"
         )
       )
 
@@ -276,8 +289,8 @@ class ProjectService[
       .resolveEnsoVersion(project.engineVersion)
       .mapError { case ConfigurationFileAccessFailure(message) =>
         ProjectOpenFailed(
-          s"Could not deduce the default version to use for the project: " +
-          s"$message"
+          "Could not deduce the default version to use for the project: " +
+          message
         )
       }
     _ <- preinstallEngine(progressTracker, version, missingComponentAction)
@@ -291,11 +304,11 @@ class ProjectService[
           )
 
         case ServerBootTimedOut =>
-          ProjectOpenFailed("Language server boot timed out")
+          ProjectOpenFailed("Language server boot timed out.")
 
         case ServerBootFailed(th) =>
           ProjectOpenFailed(
-            s"Language server boot failed: ${th.getMessage}"
+            s"Language server boot failed. ${th.getMessage}"
           )
       }
   } yield RunningLanguageServerInfo(version, sockets)
@@ -305,10 +318,10 @@ class ProjectService[
     clientId: UUID,
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] = {
-    log.debug(s"Closing project $projectId") *>
+    log.debug(s"Closing project [{}].", projectId) *>
     languageServerGateway.stop(clientId, projectId).mapError {
       case ServerShutdownTimedOut =>
-        ProjectCloseFailed("Server shutdown timed out")
+        ProjectCloseFailed("Server shutdown timed out.")
 
       case FailureDuringShutdown(th)    => ProjectCloseFailed(th.getMessage)
       case ServerNotRunning             => ProjectNotOpen
@@ -336,8 +349,8 @@ class ProjectService[
       .resolveEnsoVersion(project.engineVersion)
       .mapError { case ConfigurationFileAccessFailure(message) =>
         GlobalConfigurationAccessFailure(
-          s"Could not deduce the default version to use for the project: " +
-          s"$message"
+          "Could not deduce the default version to use for the project: " +
+          message
         )
       }
       .map(toProjectMetadata(_, project))
@@ -365,7 +378,7 @@ class ProjectService[
       }
       .flatMap { project =>
         log
-          .debug(s"Found project $projectId in the $repo.")
+          .debug("Found project [{}] in [{}].", projectId, repo)
           .map(_ => project)
       }
 
@@ -381,21 +394,22 @@ class ProjectService[
       }
       .flatMap { _ =>
         log.debug(
-          s"Checked if the project name '$name' exists " +
-          s"in the $repo."
+          "Checked if the project name [{}] exists in [{}].",
+          name,
+          repo
         )
       }
 
   private val toServiceFailure
     : ProjectRepositoryFailure => ProjectServiceFailure = {
     case CannotLoadIndex(msg) =>
-      DataStoreFailure(s"Cannot load project index [$msg]")
+      DataStoreFailure(s"Cannot load project index [$msg].")
     case StorageFailure(msg) =>
-      DataStoreFailure(s"Storage failure [$msg]")
+      DataStoreFailure(s"Storage failure [$msg].")
     case ProjectNotFoundInIndex =>
       ProjectNotFound
     case InconsistentStorage(msg) =>
-      DataStoreFailure(s"Project repository inconsistency detected [$msg]")
+      DataStoreFailure(s"Project repository inconsistency detected [$msg].")
   }
 
   private def validateName(
@@ -406,23 +420,23 @@ class ProjectService[
       .mapError {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
-            "Project name cannot be empty"
+            "Project name cannot be empty."
           )
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(
-            s"Project name contains forbidden characters: ${chars.mkString(",")}"
+            s"Project name contains forbidden characters: [${chars.mkString(",")}]."
           )
         case NameShouldStartWithCapitalLetter =>
           ProjectServiceFailure.ValidationFailure(
-            "Project name should start with a capital letter"
+            "Project name should start with a capital letter."
           )
         case NameShouldBeUpperSnakeCase(validName) =>
           ProjectServiceFailure.ValidationFailure(
-            s"Project name should be in upper snake case: $validName"
+            s"Project name should be in upper snake case: $validName."
           )
       }
       .flatMap { _ =>
-        log.debug(s"Project name '$name' validated by $validator.")
+        log.debug("Project name [{}] validated by [{}].", name, validator)
       }
 
 }

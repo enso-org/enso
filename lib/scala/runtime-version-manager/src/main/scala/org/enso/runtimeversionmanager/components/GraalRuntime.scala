@@ -22,8 +22,7 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
       case OS.Windows => Seq("exe", "cmd")
     }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String =
     s"GraalVM ${version.graalVersion}-java${version.java}"
 
@@ -36,8 +35,7 @@ case class GraalRuntime(version: GraalVMVersion, path: Path) {
       case OS.Windows => path
     }
 
-  /** The path to the `java` executable associated with this runtime.
-    */
+  /** The path to the `java` executable associated with this runtime. */
   def javaExecutable: Path = {
     val executableName = if (OS.isWindows) "java.exe" else "java"
     javaHome / "bin" / executableName

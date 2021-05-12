@@ -48,7 +48,7 @@ class InputRedirectionController(
 
   private def running(liveContexts: Set[ContextData] = Set.empty): Receive = {
     case FeedStandardInput(input, isLineTerminated) =>
-      log.debug(s"Feeding stdin [${input.length} bytes]")
+      log.debug("Feeding stdin [{} bytes]", input.length)
       if (isLineTerminated) {
         val bytes =
           ByteString.createBuilder
@@ -68,7 +68,7 @@ class InputRedirectionController(
       context.become(running(liveContexts - ContextData(contextId, owner)))
 
     case ReadBlocked =>
-      log.debug("Blocked read detected")
+      log.debug("Blocked read detected.")
       liveContexts foreach { case ContextData(_, owner) =>
         sessionRouter ! DeliverToJsonController(
           owner,

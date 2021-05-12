@@ -1,11 +1,9 @@
 package org.enso.runtimeversionmanager.runner
 
-/** Represents an error encountered when running the component.
-  */
+/** Represents an error encountered when running the component. */
 case class RunnerError(message: String, cause: Throwable = null)
     extends RuntimeException(message, cause) {
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = message
 }

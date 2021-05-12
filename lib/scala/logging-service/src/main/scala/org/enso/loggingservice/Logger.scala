@@ -1,8 +1,9 @@
 package org.enso.loggingservice
 
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.internal.{InternalLogMessage, LoggerConnection}
 import org.slf4j.helpers.MessageFormatter
-import org.slf4j.{Logger => SLF4JLogger, Marker}
+import org.slf4j.{Marker, Logger => SLF4JLogger}
 
 import scala.annotation.unused
 
@@ -11,8 +12,13 @@ import scala.annotation.unused
   *
   * @param name name of the logger
   * @param connection the connection to pass the log messages to
+  * @param masking object that masks personally identifiable information
   */
-class Logger(name: String, connection: LoggerConnection) extends SLF4JLogger {
+class Logger(
+  name: String,
+  connection: LoggerConnection,
+  masking: Masking
+) extends SLF4JLogger {
   override def getName: String = name
 
   private def isEnabled(level: LogLevel): Boolean =
@@ -33,7 +39,8 @@ class Logger(name: String, connection: LoggerConnection) extends SLF4JLogger {
     arg: AnyRef
   ): Unit = {
     if (isEnabled(level)) {
-      val fp = MessageFormatter.format(format, arg)
+      val maskedArg = masking.mask(arg)
+      val fp        = MessageFormatter.format(format, maskedArg)
       connection.send(
         InternalLogMessage(level, name, fp.getMessage, Option(fp.getThrowable))
       )
@@ -47,7 +54,9 @@ class Logger(name: String, connection: LoggerConnection) extends SLF4JLogger {
     arg2: AnyRef
   ): Unit = {
     if (isEnabled(level)) {
-      val fp = MessageFormatter.format(format, arg1, arg2)
+      val maskedArg1 = masking.mask(arg1)
+      val maskedArg2 = masking.mask(arg2)
+      val fp         = MessageFormatter.format(format, maskedArg1, maskedArg2)
       connection.send(
         InternalLogMessage(level, name, fp.getMessage, Option(fp.getThrowable))
       )
@@ -60,7 +69,8 @@ class Logger(name: String, connection: LoggerConnection) extends SLF4JLogger {
     args: Seq[AnyRef]
   ): Unit = {
     if (isEnabled(level)) {
-      val fp = MessageFormatter.arrayFormat(format, args.toArray)
+      val maskedArgs = args.map(masking.mask)
+      val fp         = MessageFormatter.arrayFormat(format, maskedArgs.toArray)
       connection.send(
         InternalLogMessage(level, name, fp.getMessage, Option(fp.getThrowable))
       )

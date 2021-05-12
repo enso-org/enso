@@ -49,7 +49,9 @@ class PingHandler(
   ): Receive = {
     case RequestTimeout =>
       log.error(
-        s"Health check timed out. Only $count/${subsystems.size} subsystems replied on time."
+        "Health check timed out. Only {}/{} subsystems replied on time.",
+        count,
+        subsystems.size
       )
       if (shouldReplyWhenTimedOut) {
         replyTo ! ResponseError(Some(id), Errors.RequestTimeout)

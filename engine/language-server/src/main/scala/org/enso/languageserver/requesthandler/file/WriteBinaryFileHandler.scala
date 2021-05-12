@@ -17,6 +17,7 @@ import org.enso.languageserver.protocol.binary.factory.{
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.file.PathUtils
+import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -56,14 +57,17 @@ class WriteBinaryFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during WriteBinaryFile operation:", ex)
+      log.error(
+        "Failure during WriteBinaryFile operation: {}",
+        MaskedString(ex.getMessage)
+      )
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request WriteBinaryFile timed out")
+      log.error("Request WriteBinaryFile [{}] timed out.", requestId)
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       context.stop(self)

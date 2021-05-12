@@ -50,7 +50,10 @@ class ReleaseCapabilityHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Releasing capability for ${session.clientId} timed out")
+      log.error(
+        "Releasing capability for client [{}] timed out.",
+        session.clientId
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

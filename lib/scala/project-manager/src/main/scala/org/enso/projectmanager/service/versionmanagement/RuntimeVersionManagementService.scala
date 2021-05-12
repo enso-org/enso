@@ -15,7 +15,7 @@ import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.ComponentMissingError
 
 /** A facade for runtime version management logic that processes the requests
-  * using the [[RuntimeVersionManager]].
+  * using the [[org.enso.runtimeversionmanager.components.RuntimeVersionManager]].
   *
   * @param distributionConfiguration a distribution configuration
   */

@@ -96,7 +96,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
       Logger[ExecutorWithUnlimitedPool.type].trace(
-        s"Starting Language Server Process: $command"
+        "Starting Language Server Process [{}]",
+        command
       )
 
       val process = {

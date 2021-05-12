@@ -9,6 +9,7 @@ object Cli {
 
   val JSON_OPTION    = "json"
   val HELP_OPTION    = "help"
+  val NO_LOG_MASKING = "no-log-masking"
   val VERBOSE_OPTION = "verbose"
   val VERSION_OPTION = "version"
 
@@ -23,7 +24,7 @@ object Cli {
     val verbose: cli.Option = cli.Option
       .builder("v")
       .longOpt(VERBOSE_OPTION)
-      .desc("Increase logs verbosity. Can be added multiple times (-vv)")
+      .desc("Increase logs verbosity. Can be added multiple times (-vv).")
       .build()
 
     val version: cli.Option = cli.Option.builder
@@ -35,6 +36,15 @@ object Cli {
       .longOpt(JSON_OPTION)
       .desc("Switches the --version option to JSON output.")
       .build()
+
+    val noLogMasking: cli.Option = cli.Option.builder
+      .longOpt(NO_LOG_MASKING)
+      .desc(
+        "Disable masking of personally identifiable information in logs. " +
+        "Masking can be also disabled with the `NO_LOG_MASKING` environment " +
+        "variable."
+      )
+      .build()
   }
 
   val options: cli.Options =
@@ -43,6 +53,7 @@ object Cli {
       .addOption(option.verbose)
       .addOption(option.version)
       .addOption(option.json)
+      .addOption(option.noLogMasking)
 
   /** Parse the command line options. */
   def parse(args: Array[String]): Either[String, cli.CommandLine] = {

@@ -129,7 +129,7 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      log.info("Initializing resources")
+      log.info("Initializing resources.")
       mainComponent.init().pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 
@@ -147,7 +147,7 @@ class JsonConnectionController(
     receiver: ActorRef
   ): Receive = {
     case InitializationComponent.Initialized =>
-      log.info(s"RPC session initialized for client: $clientId")
+      log.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       val requestHandlers = createRequestHandlers(session)
@@ -159,7 +159,7 @@ class JsonConnectionController(
       context.become(initialised(webActor, session, requestHandlers))
 
     case Status.Failure(ex) =>
-      log.error(ex, "Failed to initialize the resources")
+      log.error(ex, "Failed to initialize the resources. {}", ex.getMessage)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
       context.become(connected(webActor))
 

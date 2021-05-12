@@ -56,8 +56,8 @@ independent Scalafmt plugin.
 
 ## Naming
 
-Enso has some fairly simple general naming conventions, though the sections
-below may provide more rules for use in specific cases.
+Enso has some fairly simple general naming conventions, though the sections w
+may provide more rules for use in specific cases.
 
 - Types are written using `UpperCamelCase`.
 - Variables and function names are written using `camelCase`.

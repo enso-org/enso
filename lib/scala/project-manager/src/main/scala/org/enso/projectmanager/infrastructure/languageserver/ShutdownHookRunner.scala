@@ -30,7 +30,7 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
   }
 
   override def receive: Receive = { case Run =>
-    log.info(s"Firing shutdown hooks for project with id=$projectId")
+    log.info("Firing shutdown hooks for project [{}].", projectId)
     Exec[F].exec { traverse(hooks) { _.execute() } } pipeTo self
     context.become(running)
   }
@@ -39,12 +39,13 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
     case Status.Failure(th) =>
       log.error(
         th,
-        s"An error occurred during running shutdown hooks for project with id=$projectId"
+        "An error occurred during running shutdown hooks for project [{}].",
+        projectId
       )
       context.stop(self)
 
     case Right(_) =>
-      log.info(s"All shutdown hooks fired for project with id=$projectId")
+      log.info("All shutdown hooks fired for project [{}].", projectId)
       context.stop(self)
   }
 

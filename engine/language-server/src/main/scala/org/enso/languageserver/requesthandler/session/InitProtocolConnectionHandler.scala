@@ -40,7 +40,7 @@ class InitProtocolConnectionHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Getting content roots timed out")
+      log.error("Getting content roots request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

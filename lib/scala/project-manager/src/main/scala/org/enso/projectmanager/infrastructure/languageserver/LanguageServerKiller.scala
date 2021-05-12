@@ -40,7 +40,7 @@ class LanguageServerKiller(
       sender() ! AllServersKilled
       context.stop(self)
     } else {
-      log.info("Killing all servers")
+      log.info("Killing all servers [{}].", controllers)
       controllers.foreach(context.watch)
       controllers.foreach(_ ! ShutDownServer)
       val cancellable =
@@ -61,7 +61,7 @@ class LanguageServerKiller(
     case Terminated(dead) =>
       val updated = liveControllers - dead
       if (updated.isEmpty) {
-        log.info("All language servers have been killed")
+        log.info("All language servers have been killed.")
         cancellable.cancel()
         replyTo ! AllServersKilled
         context.stop(self)

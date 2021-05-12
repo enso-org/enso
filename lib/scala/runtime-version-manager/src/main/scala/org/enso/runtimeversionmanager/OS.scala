@@ -80,13 +80,18 @@ object OS {
         knownOS.find(value.toLowerCase == _.configName) match {
           case Some(overriden) =>
             logger.debug(
-              s"OS overriden by $ENSO_OPERATING_SYSTEM to $overriden."
+              "OS overriden by [{}] to [{}].",
+              ENSO_OPERATING_SYSTEM,
+              overriden
             )
             return overriden
           case None =>
             logger.warn(
-              s"$ENSO_OPERATING_SYSTEM is set to an unknown value `$value`, " +
-              s"ignoring. Possible values are $knownOSPossibleValuesString."
+              "{} is set to an unknown value [{}], " +
+              "ignoring. Possible values are [{}].",
+              ENSO_OPERATING_SYSTEM,
+              value,
+              knownOSPossibleValuesString
             )
         }
       case None =>
@@ -98,12 +103,13 @@ object OS {
       possibleOS.head
     } else {
       logger.error(
-        s"Could not determine a supported operating system. Please make sure " +
-        s"the OS you are running is supported. You can try to manually " +
-        s"override the operating system detection by setting an environment " +
-        s"variable `$ENSO_OPERATING_SYSTEM` to one of the possible values " +
-        s"$knownOSPossibleValuesString depending on the system that your OS " +
-        s"most behaves like."
+        "Could not determine a supported operating system. Please make sure " +
+        "the OS you are running is supported. You can try to manually " +
+        "override the operating system detection by setting an environment " +
+        "variable [{}] to one of the possible values " +
+        "[{}] depending on the system that your OS most behaves like.",
+        ENSO_OPERATING_SYSTEM,
+        knownOSPossibleValuesString
       )
       throw new IllegalStateException(
         "fatal: Could not detect the operating system."
