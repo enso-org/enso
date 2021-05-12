@@ -1063,6 +1063,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

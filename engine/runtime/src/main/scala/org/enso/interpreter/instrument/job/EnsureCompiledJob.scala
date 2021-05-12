@@ -119,7 +119,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         compile(module) match {
           case Left(err) =>
             ctx.executionService.getLogger
-              .log(Level.SEVERE, s"Compilation error in ${module.getPath}", err)
+              .log(Level.SEVERE, s"Compilation error in ${module.getName}", err)
             sendFailureUpdate(
               Api.ExecutionResult.Failure(
                 err.getMessage,

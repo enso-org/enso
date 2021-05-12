@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
 
 import java.util.*;
@@ -135,7 +136,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
           + "expressionId="
           + expressionId
           + ", value="
-          + value
+          + new MaskedString(value.toString()).applyMasking()
           + ", type='"
           + type
           + '\''
