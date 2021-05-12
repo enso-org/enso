@@ -56,8 +56,8 @@ independent Scalafmt plugin.
 
 ## Naming
 
-Enso has some fairly simple general naming conventions, though the sections
-below may provide more rules for use in specific cases.
+Enso has some fairly simple general naming conventions, though the sections w
+may provide more rules for use in specific cases.
 
 - Types are written using `UpperCamelCase`.
 - Variables and function names are written using `camelCase`.
@@ -390,32 +390,6 @@ defining an unsafe function, you must account for the following:
   usage of it is safe.
 
 Furthermore, we do not allow for code containing pattern matches that can fail.
-
-### Logging
-
-Logs should not contain personally identifiable information (PII). The following
-is considered PII:
-
-- User code
-- Values of executed expressions
-- Values of user environment variables. Although variable names are not
-  considered PII and can be logged.
-- File paths inside the user project directory. System and distribution paths
-  and a path to the user project can be logged.
-
-Project logging library implements masking of PII. To utilize it
-
-1. Logged object should implement an interface that defines custom log-string
-   representation of this object
-2. The logging should be performed by supplying a template string with `{}`
-   placeholders, and the arguments
-   ```scala
-   log.debug("Created {} at [{}].", obj, path)
-   ```
-
-String interpolation in log statements `s"Created $obj"` should be avoided
-because it uses default `toString` implementation and can leak critical
-information even if the object implements custom interface for masked logging.
 
 ### Testing and Benchmarking
 
