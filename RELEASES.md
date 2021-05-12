@@ -8,8 +8,8 @@
 - Fixed an issue where symlinks were not extracted properly when installing a
   runtime for Enso ([#1718](https://github.com/enso-org/enso/pull/1718)).
 - Implemented log masking ([#1732](https://github.com/enso-org/enso/pull/1732)).
-  This feature masks personally identifiable information in logs such as code
-  literals, computed values, and user environment variables.
+  This feature masks personally identifiable information in the logs, such as
+  code literals, computed values, and user environment variables.
 
 ## Libraries
 
