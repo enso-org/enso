@@ -190,6 +190,7 @@ lazy val enso = (project in file("."))
     logger.jvm,
     pkg,
     cli,
+    `logging-utils`,
     `logging-service`,
     `akka-native`,
     `version-output`,
@@ -602,6 +603,14 @@ lazy val `akka-native` = project
     libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalVersion % "provided"
   )
 
+lazy val `logging-utils` = project
+  .in(file("lib/scala/logging-utils"))
+  .configs(Test)
+  .settings(
+    version := "0.1"
+  )
+
+
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
   .configs(Test)
@@ -625,6 +634,7 @@ lazy val `logging-service` = project
       (Compile / unmanagedSourceDirectories) += (Compile / sourceDirectory).value / "java-unix"
   )
   .dependsOn(`akka-native`)
+  .dependsOn(`logging-utils`)
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -1063,7 +1073,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
   .dependsOn(testkit % Test)
-  .dependsOn(`logging-service`)
+  .dependsOn(`logging-utils`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

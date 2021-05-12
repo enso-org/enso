@@ -1,7 +1,5 @@
 package org.enso.logger.masking
 
-import org.enso.loggingservice.internal.InternalLogger
-
 import scala.util.control.NonFatal
 
 trait Masking {
@@ -39,7 +37,8 @@ object Masking {
       try obj.toMaskedString
       catch {
         case NonFatal(error) =>
-          InternalLogger.error(
+          System.err.println(
+            "[internal-logger-error] " +
             "Failed `toMaskedString` invocation on object of type " +
             s"'${obj.getClass.getName}'. " +
             s"${error.getClass.getName}: " +
