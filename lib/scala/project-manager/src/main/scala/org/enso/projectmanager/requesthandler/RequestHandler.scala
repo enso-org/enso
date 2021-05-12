@@ -90,18 +90,18 @@ abstract class RequestHandler[
     timeoutCancellable: Option[Cancellable]
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, s"Failure during $method operation:")
+      log.error(ex, "Failure during {} operation.", method)
       replyTo ! ResponseError(Some(id), ServiceError)
       timeoutCancellable.foreach(_.cancel())
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $method with $id timed out")
+      log.error("Request {} with {} timed out.", method, id)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Left(failure: FailureType) =>
-      log.error(s"Request $method with $id failed due to $failure")
+      log.error("Request {} with {} failed due to {}.", method, id, failure)
       val error = implicitly[FailureMapper[FailureType]].mapFailure(failure)
       replyTo ! ResponseError(Some(id), error)
       timeoutCancellable.foreach(_.cancel())
@@ -134,8 +134,10 @@ abstract class RequestHandler[
     timeoutCancellable.foreach { cancellable =>
       cancellable.cancel()
       Logger[this.type].trace(
-        s"The operation $method ($id) reported starting a long-running task, " +
-        s"its request-timeout has been cancelled."
+        "The operation {} ({}) reported starting a long-running task, " +
+        "its request-timeout has been cancelled.",
+        method,
+        id
       )
     }
     context.become(responseStage(id, replyTo, None))

@@ -53,7 +53,11 @@ class SaveFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Saving file for ${rpcSession.clientId} timed out")
+      log.error(
+        "Saving file request [{}] for [{}] timed out.",
+        id,
+        rpcSession.clientId
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

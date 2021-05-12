@@ -52,7 +52,10 @@ class AcquireCapabilityHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Acquiring capability for ${session.clientId} timed out")
+      log.error(
+        "Acquiring capability for client [{}] timed out.",
+        session.clientId
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

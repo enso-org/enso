@@ -21,7 +21,9 @@ abstract class EnsoReleaseProvider[ReleaseType](
   override def findLatestVersion(): Try[SemVer] =
     fetchAllValidVersions().flatMap { versions =>
       versions.sorted.lastOption.map(Success(_)).getOrElse {
-        Failure(ReleaseProviderException("No valid engine versions were found"))
+        Failure(
+          ReleaseProviderException("No valid engine versions were found.")
+        )
       }
     }
 

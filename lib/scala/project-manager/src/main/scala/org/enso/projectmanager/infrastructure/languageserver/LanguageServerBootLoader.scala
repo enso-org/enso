@@ -50,7 +50,7 @@ class LanguageServerBootLoader(
   import context.dispatcher
 
   override def preStart(): Unit = {
-    log.info(s"Booting a language server [$descriptor]")
+    log.info("Booting a language server [{}].", descriptor)
     self ! FindFreeSocket
   }
 
@@ -62,16 +62,19 @@ class LanguageServerBootLoader(
     */
   private def findingSocket(retry: Int = 0): Receive = {
     case FindFreeSocket =>
-      log.debug("Looking for available socket to bind the language server")
+      log.debug("Looking for available socket to bind the language server.")
       val jsonRpcPort = findPort()
       var binaryPort  = findPort()
       while (binaryPort == jsonRpcPort) {
         binaryPort = findPort()
       }
       log.info(
-        s"Found sockets for the language server " +
-        s"[json:${descriptor.networkConfig.interface}:$jsonRpcPort, " +
-        s"binary:${descriptor.networkConfig.interface}:$binaryPort]"
+        "Found sockets for the language server " +
+        "[json:{}:{}, binary:{}:{}].",
+        descriptor.networkConfig.interface,
+        jsonRpcPort,
+        descriptor.networkConfig.interface,
+        binaryPort
       )
       self ! Boot
       context.become(
@@ -117,7 +120,7 @@ class LanguageServerBootLoader(
     bootRequester: ActorRef
   ): Receive = {
     case Boot =>
-      log.debug("Booting a language server")
+      log.debug("Booting a language server.")
       context.actorOf(
         LanguageServerProcess.props(
           progressTracker = bootProgressTracker,
@@ -155,7 +158,7 @@ class LanguageServerBootLoader(
         rpcPort  = rpcPort,
         dataPort = dataPort
       )
-      log.info(s"Language server booted [$connectionInfo].")
+      log.info("Language server booted [{}].", connectionInfo)
 
       bootRequester ! ServerBooted(connectionInfo, self)
       context.become(running(connectionInfo))
@@ -183,7 +186,8 @@ class LanguageServerBootLoader(
     } else {
       if (shouldRetry) {
         log.error(
-          s"Tried $retryCount times to boot Language Server. Giving up."
+          "Tried {} times to boot Language Server. Giving up.",
+          retryCount
         )
       } else {
         log.error("Failed to restart the server. Giving up.")
@@ -204,7 +208,8 @@ class LanguageServerBootLoader(
   private def running(connectionInfo: LanguageServerConnectionInfo): Receive = {
     case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
       log.debug(
-        s"Language Server process has terminated with exit code $exitCode"
+        "Language Server process has terminated with exit code {}.",
+        exitCode
       )
       context.parent ! msg
       context.stop(self)
@@ -230,8 +235,9 @@ class LanguageServerBootLoader(
   ): Receive = {
     case LanguageServerProcess.ServerTerminated(exitCode) =>
       log.debug(
-        s"Language Server process has terminated (as requested to reboot) " +
-        s"with exit code $exitCode"
+        "Language Server process has terminated (as requested to reboot) " +
+        "with exit code {}.",
+        exitCode
       )
 
       context.become(rebooting(connectionInfo, rebootRequester))

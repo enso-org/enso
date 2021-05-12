@@ -20,7 +20,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     */
   def run(): Try[Int] =
     wrapError {
-      logger.debug(s"Executing $toString")
+      logger.debug("Executing {}", this)
       val processBuilder = builder()
       processBuilder.inheritIO()
       val process = processBuilder.start()
@@ -36,7 +36,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     */
   def captureOutput(): Try[String] =
     wrapError {
-      logger.debug(s"Executing $toString")
+      logger.debug("Executing {}", this)
       val processBuilder = Process(command, None, extraEnv: _*)
       processBuilder.!!
     }

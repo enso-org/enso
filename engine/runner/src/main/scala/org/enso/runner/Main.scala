@@ -39,6 +39,7 @@ object Main {
   private val JSON_OPTION                 = "json"
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
+  private val NO_LOG_MASKING              = "no-log-masking"
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -175,6 +176,14 @@ object Main {
       .longOpt(LOGGER_CONNECT)
       .desc("Connects to a logging service server and passes all logs to it.")
       .build
+    val noLogMaskingOption: CliOption = CliOption.builder
+      .longOpt(NO_LOG_MASKING)
+      .desc(
+        "Disable masking of personally identifiable information in logs. " +
+        "Masking can be also disabled with the `NO_LOG_MASKING` environment " +
+        "variable."
+      )
+      .build()
 
     val options = new Options
     options
@@ -197,6 +206,7 @@ object Main {
       .addOption(json)
       .addOption(logLevelOption)
       .addOption(loggerConnectOption)
+      .addOption(noLogMaskingOption)
 
     options
   }
@@ -545,7 +555,8 @@ object Main {
       .getOrElse(defaultLogLevel)
     val connectionUri =
       Option(line.getOptionValue(LOGGER_CONNECT)).map(parseUri)
-    RunnerLogging.setup(connectionUri, logLevel)
+    val logMasking = !line.hasOption(NO_LOG_MASKING)
+    RunnerLogging.setup(connectionUri, logLevel, logMasking)
 
     if (line.hasOption(NEW_OPTION)) {
       createNew(

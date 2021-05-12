@@ -2,8 +2,7 @@ package org.enso.runtimeversionmanager.internal
 
 import java.io.InputStream
 
-/** Represents a *mutable* progress status.
-  */
+/** Represents a *mutable* progress status. */
 trait ReadProgress {
 
   /** Specifies how many bytes have already been read.
@@ -13,8 +12,7 @@ trait ReadProgress {
     */
   def alreadyRead(): Long
 
-  /** Specifies how many bytes in total are expected, if known.
-    */
+  /** Specifies how many bytes in total are expected, if known. */
   def total(): Option[Long]
 }
 
@@ -42,13 +40,11 @@ class ProgressInputStream(
     */
   def progress: ReadProgress = readProgress
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def available: Int =
     in.available()
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def read: Int = {
     bytesRead += 1
     updated(readProgress)
@@ -64,8 +60,7 @@ class ProgressInputStream(
     bytes
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def read(b: Array[Byte], off: Int, len: Int): Int = {
     val bytes = in.read(b, off, len)
     bytesRead += bytes
@@ -73,8 +68,7 @@ class ProgressInputStream(
     bytes
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def skip(n: Long): Long = {
     val skipped = in.skip(n)
     bytesRead += skipped
@@ -82,8 +76,7 @@ class ProgressInputStream(
     skipped
   }
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def close(): Unit =
     in.close()
 }

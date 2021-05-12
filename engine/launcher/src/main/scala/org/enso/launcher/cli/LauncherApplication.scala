@@ -508,6 +508,13 @@ object LauncherApplication {
         "connects to the logging service at the provided URI."
       )
       .hidden
+    val noLogMasking = Opts.flag(
+      GlobalCLIOptions.NO_LOG_MASKING,
+      "Disable masking of personally identifiable information in logs. " +
+      "Masking can be also disabled with the `NO_LOG_MASKING` environment " +
+      "variable.",
+      showInUsage = false
+    )
     val colorMode =
       Opts
         .aliasedOptionalParameter[ColorMode](
@@ -531,6 +538,7 @@ object LauncherApplication {
       hideProgress,
       logLevel,
       connectLogger,
+      noLogMasking,
       colorMode
     ) mapN {
       (
@@ -542,6 +550,7 @@ object LauncherApplication {
         hideProgress,
         logLevel,
         connectLogger,
+        disableLogMasking,
         colorMode
       ) => () =>
         if (shouldEnsurePortable) {
@@ -553,8 +562,11 @@ object LauncherApplication {
           hideProgress = hideProgress,
           useJSON      = useJSON,
           colorMode    = colorMode,
-          internalOptions =
-            GlobalCLIOptions.InternalOptions(logLevel, connectLogger)
+          internalOptions = GlobalCLIOptions.InternalOptions(
+            logLevel,
+            connectLogger,
+            disableLogMasking
+          )
         )
 
         internalOptsCallback(globalCLIOptions)
@@ -562,7 +574,8 @@ object LauncherApplication {
         LauncherLogging.setup(
           logLevel,
           connectLogger,
-          globalCLIOptions.colorMode
+          globalCLIOptions.colorMode,
+          !disableLogMasking
         )
         initializeApp()
 

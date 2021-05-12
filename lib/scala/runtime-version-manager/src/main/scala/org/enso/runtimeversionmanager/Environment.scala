@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.MaskedString
 
 import scala.util.Try
 
@@ -43,8 +44,10 @@ trait Environment {
       val result = safeParsePath(str)
       if (result.isEmpty) {
         Logger[Environment].warn(
-          s"System variable `$key` was set (to value `$str`), but it did not " +
-          s"represent a valid path, so it has been ignored."
+          "System variable [{}] was set to [{}], but it did not " +
+          "represent a valid path, so it has been ignored.",
+          key,
+          MaskedString(str)
         )
       }
 
@@ -69,7 +72,7 @@ trait Environment {
   def getHome: Path = {
     if (OS.isWindows)
       throw new IllegalStateException(
-        "fatal error: HOME should not be queried on Windows"
+        "fatal error: HOME should not be queried on Windows."
       )
     else {
       getEnvVar("HOME").flatMap(safeParsePath) match {
@@ -91,7 +94,7 @@ trait Environment {
   def getLocalAppData: Path = {
     if (!OS.isWindows)
       throw new IllegalStateException(
-        "fatal error: LocalAppData should be queried only on Windows"
+        "fatal error: LocalAppData should be queried only on Windows."
       )
     else {
       getEnvVar("LocalAppData").flatMap(safeParsePath) match {
@@ -137,7 +140,7 @@ trait Environment {
   } catch {
     case e: Exception =>
       throw new IllegalStateException(
-        "Cannot locate the path of the launched executable",
+        "Cannot locate the path of the launched executable.",
         e
       )
   }

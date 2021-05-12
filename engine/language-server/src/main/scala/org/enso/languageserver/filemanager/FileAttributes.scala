@@ -9,7 +9,7 @@ import java.time.OffsetDateTime
   * @param lastAccessTime last access time
   * @param lastModifiedTime last modified time
   * @param kind type of [[FileSystemObject]], can be
-  *   [[FileSystemObject.DirectoryTruncated]]
+  *   [[FileSystemObject.SymlinkLoop]]
   * | [[FileSystemObject.File]]
   * | [[FileSystemObject.Other]]
   * @param byteSize size in bytes
@@ -28,7 +28,7 @@ object FileAttributes {
     *
     * @param root a root path
     * @param path a path to the file system object
-    * @param attra file system attributes
+    * @param attrs file system attributes
     * @return file attributes
     */
   def fromFileSystemAttributes(

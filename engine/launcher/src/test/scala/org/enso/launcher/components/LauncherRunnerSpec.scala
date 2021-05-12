@@ -169,7 +169,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag"),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -194,7 +195,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           projectPath         = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -208,7 +210,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -222,7 +225,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -290,7 +294,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           path                = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -304,7 +309,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           path                = None,
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -318,7 +324,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -332,7 +339,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
             path                = None,
             versionOverride     = None,
             additionalArguments = Seq(),
-            logLevel            = LogLevel.Info
+            logLevel            = LogLevel.Info,
+            logMasking          = true
           )
           .isFailure,
         "Running outside project without providing any paths should be an error"
@@ -358,7 +366,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           path                = Some(outsideFile),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -382,7 +391,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           path                = Some(insideFile),
           versionOverride     = None,
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 

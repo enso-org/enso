@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.printers.{
   FileOutputPrinter,
   Printer,
@@ -47,13 +48,16 @@ abstract class LoggingServiceSetupHelper(implicit
     *                                its logs to; advanced feature, use with
     *                                caution
     * @param colorMode specifies how to handle colors in console output
+    * @param logMasking switches the masking on and off
     */
   def setup(
     logLevel: Option[LogLevel],
     connectToExternalLogger: Option[Uri],
-    colorMode: ColorMode
+    colorMode: ColorMode,
+    logMasking: Boolean
   ): Unit = {
     val actualLogLevel = logLevel.getOrElse(defaultLogLevel)
+    Masking.setup(logMasking)
     connectToExternalLogger match {
       case Some(uri) =>
         setupLoggingConnection(uri, actualLogLevel)

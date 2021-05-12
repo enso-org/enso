@@ -115,12 +115,12 @@ class LanguageServerController(
 
   private def booting(Bootloader: ActorRef): Receive = {
     case BootTimeout =>
-      log.error(s"Booting failed for $descriptor")
+      log.error("Booting failed for {}.", descriptor)
       unstashAll()
       context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
 
     case ServerBootFailed(th) =>
-      log.error(th, s"Booting failed for $descriptor")
+      log.error(th, "Booting failed for {}.", descriptor)
       unstashAll()
       context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
 
@@ -139,12 +139,12 @@ class LanguageServerController(
       )
 
     case Terminated(Bootloader) =>
-      log.error(s"Bootloader for project ${project.name} failed")
+      log.error("Bootloader for project {} failed.", project.name)
       unstashAll()
       context.become(
         bootFailed(
           LanguageServerProtocol.ServerBootFailed(
-            new Exception("The number of boot retries exceeded")
+            new Exception("The number of boot retries exceeded.")
           )
         )
       )
@@ -179,7 +179,7 @@ class LanguageServerController(
         )
       }
     case Terminated(_) =>
-      log.debug(s"Bootloader for $project terminated.")
+      log.debug("Bootloader for {} terminated.", project)
 
     case StopServer(clientId, _) =>
       removeClient(
@@ -219,7 +219,7 @@ class LanguageServerController(
       )
 
     case ServerDied =>
-      log.error(s"Language server died [$connectionInfo]")
+      log.error("Language server died [{}].", connectionInfo)
       context.stop(self)
 
   }
@@ -243,7 +243,7 @@ class LanguageServerController(
   }
 
   private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
-    log.debug(s"Shutting down a language server for project ${project.id}")
+    log.debug("Shutting down a language server for project {}.", project.id)
     context.children.foreach(_ ! GracefulStop)
     val cancellable =
       context.system.scheduler
@@ -264,18 +264,19 @@ class LanguageServerController(
     case LanguageServerProcess.ServerTerminated(exitCode) =>
       cancellable.cancel()
       if (exitCode == 0) {
-        log.info(s"Language server shut down successfully [$project].")
+        log.info("Language server shut down successfully [{}].", project)
       } else {
         log.warning(
-          s"Language server shut down with non-zero exit code: $exitCode " +
-          s"[$project]."
+          "Language server shut down with non-zero exit code: {} [{}].",
+          exitCode,
+          project
         )
       }
       maybeRequester.foreach(_ ! ServerStopped)
       stop()
 
     case ShutdownTimeout =>
-      log.error("Language server shutdown timed out")
+      log.error("Language server shutdown timed out.")
       maybeRequester.foreach(_ ! ServerShutdownTimedOut)
       stop()
 

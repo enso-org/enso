@@ -26,6 +26,7 @@ import org.enso.languageserver.search.handler.{
 }
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
@@ -93,9 +94,10 @@ final class SuggestionsHandler(
 
   override def preStart(): Unit = {
     log.info(
-      s"Starting suggestions handler from $config " +
-      s"$suggestionsRepo $fileVersionsRepo " +
-      s"$sessionRouter $runtimeConnector"
+      "Starting suggestions handler from [{}, {}, {}].",
+      config,
+      suggestionsRepo,
+      fileVersionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
@@ -120,19 +122,23 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
-      log.info(s"Initializing: project name changed from $oldName to $newName.")
+      log.info(
+        "Initializing: project name changed from [{}] to [{}].",
+        oldName,
+        newName
+      )
       suggestionsRepo
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
 
     case ProjectNameUpdated(name, updates) =>
-      log.info(s"Initializing: project name is updated to $name.")
+      log.info("Initializing: project name is updated to [{}].", name)
       updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
-      log.info(s"Initializing: suggestions repo initialized.")
+      log.info("Initializing: suggestions repo initialized.")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -140,14 +146,14 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
-      log.info(s"Initializing: Truffle context initialized.")
+      log.info("Initializing: Truffle context initialized.")
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
         .pipeTo(self)
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
-      log.info(s"Initializing: got type graph response.")
+      log.info("Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case _ => stash()
@@ -158,14 +164,14 @@ final class SuggestionsHandler(
     graph: TypeGraph
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
-      log.info(s"Verifying: got verification response.")
+      log.info("Verifying: got verification response.")
       suggestionsRepo
         .removeModules(toRemove)
         .map(_ => SuggestionsHandler.Verified)
         .pipeTo(self)
 
     case SuggestionsHandler.Verified =>
-      log.info(s"Verified.")
+      log.info("Verified.")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
 
@@ -213,15 +219,18 @@ final class SuggestionsHandler(
           case Success(None) =>
           case Failure(ex) =>
             log.error(
-              s"Error applying suggestion database updates" +
-              s" ${msg.file} ${msg.version}. ${ex.getMessage}"
+              ex,
+              "Error applying suggestion database updates [{}, {}]. {}",
+              MaskedPath(msg.file.toPath),
+              msg.version,
+              ex.getMessage
             )
         }
 
     case Api.ExpressionUpdates(_, updates) =>
       log.debug(
-        s"Received expression updates: " +
-        s"${updates.map(u => (u.expressionId, u.expressionType))}"
+        "Received expression updates [{}].",
+        updates.map(u => (u.expressionId, u.expressionType))
       )
       val types = updates.toSeq
         .flatMap(update => update.expressionType.map(update.expressionId -> _))
@@ -246,8 +255,10 @@ final class SuggestionsHandler(
             }
           case Failure(ex) =>
             log.error(
-              s"Error applying changes from computed values: $updates. " +
-              s"${ex.getMessage}"
+              ex,
+              "Error applying changes from computed values [{}]. {}",
+              updates.map(_.expressionId),
+              ex.getMessage
             )
         }
 
@@ -320,13 +331,14 @@ final class SuggestionsHandler(
             }
           case Success(Left(err)) =>
             log.error(
-              s"Error cleaning the index after file delete event. " +
-              s"$err"
+              s"Error cleaning the index after file delete event [{}].",
+              err
             )
           case Failure(ex) =>
             log.error(
-              s"Error cleaning the index after file delete event. " +
-              s"${ex.getMessage}"
+              ex,
+              "Error cleaning the index after file delete event. {}",
+              ex.getMessage
             )
         }
 
@@ -403,7 +415,7 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
-        log.debug(s"Initialized with state $state.")
+        log.debug("Initialized with state [{}].", state)
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
           .flatMap { modules =>
@@ -442,10 +454,12 @@ final class SuggestionsHandler(
           val verb = action.getClass.getSimpleName
           action match {
             case Api.SuggestionAction.Add() =>
-              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
+              if (ids.isEmpty)
+                log.error("Failed to {} [{}].", verb, suggestion)
               ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
             case Api.SuggestionAction.Remove() =>
-              if (ids.isEmpty) log.error(s"Failed to $verb: $suggestion")
+              if (ids.isEmpty)
+                log.error(s"Failed to {} [{}].", verb, suggestion)
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
               ids.map { id =>

@@ -64,7 +64,7 @@ class ProjectRenameAction(
   private var maybeActionTimeoutCancellable: Option[Cancellable] = None
 
   override def preStart(): Unit = {
-    log.info(s"Requesting a Language Server to rename project $oldName")
+    log.info("Requesting a Language Server to rename project [{}].", oldName)
     connection.attachListener(self)
     connection.connect()
     val cancellable =
@@ -92,7 +92,11 @@ class ProjectRenameAction(
       context.become(connected())
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during connecting to websocket $socket")
+      log.error(
+        th,
+        "An error occurred during connecting to websocket {}.",
+        socket
+      )
       replyTo ! CannotConnectToServer
       stop()
 
@@ -102,7 +106,7 @@ class ProjectRenameAction(
       stop()
 
     case GracefulStop =>
-      log.warning("Ignoring stop command")
+      log.warning("Ignoring stop command (Language Server is not connected).")
   }
 
   private def connected(): Receive = {
@@ -122,7 +126,7 @@ class ProjectRenameAction(
       maybeActionTimeoutCancellable.foreach(_.cancel())
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during waiting for Pong message")
+      log.error(th, "An error occurred during waiting for Pong message.")
       replyTo ! ServerUnresponsive
       stop()
 
@@ -132,7 +136,7 @@ class ProjectRenameAction(
       stop()
 
     case GracefulStop =>
-      log.warning("Ignoring stop command")
+      log.warning("Ignoring stop command (Language Server is connected).")
   }
 
   private def handleSuccess(payload: String): Unit = {
@@ -141,15 +145,15 @@ class ProjectRenameAction(
 
     maybeRequestId match {
       case Left(error) =>
-        log.error(error, "An error occurred during parsing rename reply")
+        log.error(error, "An error occurred during parsing rename reply.")
 
       case Right(id) =>
         if (id == requestId.toString) {
-          log.info(s"Project renamed by the Language Server")
+          log.info("Project renamed by the Language Server.")
           replyTo ! ProjectRenamed
           stop()
         } else {
-          log.warning(s"Received unknown response $payload")
+          log.warning("Received unknown response [{}].", payload)
         }
     }
   }
@@ -161,7 +165,9 @@ class ProjectRenameAction(
       .flatMap(_.hcursor.downField("message").as[String])
       .getOrElse("Not Provided")
     log.error(
-      s"Error occurred during renaming project [code: $code message: $msg]"
+      "Error occurred during renaming project [code: {}, message: {}]",
+      code,
+      msg
     )
     replyTo ! RenameFailure(code, msg)
     stop()
@@ -175,16 +181,18 @@ class ProjectRenameAction(
       closureTimeoutCancellable.cancel()
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, s"An error occurred during closing web socket")
+      log.error(th, "An error occurred during closing web socket.")
       context.stop(self)
       closureTimeoutCancellable.cancel()
 
     case SocketClosureTimeout =>
-      log.error(s"Socket closure timed out")
+      log.error("Socket closure timed out.")
       context.stop(self)
 
     case GracefulStop =>
-      log.warning("Ignoring stop command")
+      log.warning(
+        "Ignoring stop command (closing connection to Language Server)."
+      )
   }
 
   private def stop(): Unit = {

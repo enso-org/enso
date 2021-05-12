@@ -49,7 +49,7 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Request $id timed out")
+      log.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

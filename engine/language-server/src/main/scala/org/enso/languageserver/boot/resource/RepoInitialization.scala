@@ -7,6 +7,7 @@ import akka.event.EventStream
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.DirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
+import org.enso.logger.masking.MaskedPath
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.slf4j.LoggerFactory
 
@@ -43,8 +44,8 @@ class RepoInitialization(
       for {
         _ <- Future {
           log.info(
-            s"Initializing suggestions repo " +
-            s"${directoriesConfig.suggestionsDatabaseFile}."
+            "Initializing suggestions repo [{}].",
+            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
         _ <- suggestionsRepo.init.recoverWith { case NonFatal(error) =>
@@ -52,8 +53,8 @@ class RepoInitialization(
         }
         _ <- Future {
           log.info(
-            s"Initialized Suggestions repo " +
-            s"${directoriesConfig.suggestionsDatabaseFile}."
+            "Initialized Suggestions repo [{}].",
+            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
       } yield ()
@@ -62,9 +63,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         log.error(
-          s"Failed to initialize SQL suggestions repo " +
-          s"${directoriesConfig.suggestionsDatabaseFile}. " +
-          s"${ex.getMessage}"
+          "Failed to initialize SQL suggestions repo [{}]. {}",
+          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
+          ex.getMessage
         )
     }
     initAction
@@ -75,15 +76,15 @@ class RepoInitialization(
       for {
         _ <- Future {
           log.info(
-            s"Initializing versions repo " +
-            s"${directoriesConfig.suggestionsDatabaseFile}."
+            "Initializing versions repo [{}].",
+            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
         _ <- versionsRepo.init
         _ <- Future {
           log.info(
-            s"Initialized Versions repo " +
-            s"${directoriesConfig.suggestionsDatabaseFile}."
+            "Initialized Versions repo [{}].",
+            MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
           )
         }
       } yield ()
@@ -92,9 +93,9 @@ class RepoInitialization(
         eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
         log.error(
-          s"Failed to initialize SQL versions repo " +
-          s"${directoriesConfig.suggestionsDatabaseFile}. " +
-          s"${ex.getMessage}"
+          "Failed to initialize SQL versions repo [{}]. {}",
+          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
+          ex.getMessage
         )
     }
     initAction
@@ -107,9 +108,9 @@ class RepoInitialization(
     for {
       _ <- Future {
         log.warn(
-          s"Failed to initialize the suggestions database " +
-          s"${directoriesConfig.suggestionsDatabaseFile}. " +
-          s"${error.getMessage}"
+          "Failed to initialize the suggestions database [{}]. {}",
+          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath),
+          error.getMessage
         )
       }
       _ <- Future(db.close())
@@ -123,14 +124,15 @@ class RepoInitialization(
 
   private def clearDatabaseFile(retries: Int = 0): Future[Unit] = {
     Future {
-      log.info(s"Clear database file. Attempt #${retries + 1}.")
+      log.info("Clear database file. Attempt #{}.", retries + 1)
       Files.delete(directoriesConfig.suggestionsDatabaseFile.toPath)
     }.recoverWith {
       case _: NoSuchFileException =>
         log.warn(
-          s"Failed to delete the database file. Attempt #${retries + 1}. " +
-          s"File does not exist " +
-          s"${directoriesConfig.suggestionsDatabaseFile}"
+          "Failed to delete the database file. Attempt #{}. " +
+          "File does not exist [{}].",
+          retries + 1,
+          MaskedPath(directoriesConfig.suggestionsDatabaseFile.toPath)
         )
         Future.successful(())
       case error: FileSystemException =>
@@ -144,8 +146,9 @@ class RepoInitialization(
         Future.failed(error)
       case error: IOException =>
         log.error(
-          s"Failed to delete the database file. Attempt #${retries + 1}. " +
-          s"${error.getMessage}"
+          "Failed to delete the database file. Attempt #{}. {}",
+          retries + 1,
+          error.getMessage
         )
         if (retries < RepoInitialization.MaxRetries) {
           Thread.sleep(1000)

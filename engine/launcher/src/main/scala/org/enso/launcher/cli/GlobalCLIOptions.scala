@@ -24,7 +24,7 @@ case class GlobalCLIOptions(
   hideProgress: Boolean,
   useJSON: Boolean,
   colorMode: ColorMode,
-  internalOptions: InternalOptions = InternalOptions(None, None)
+  internalOptions: InternalOptions
 )
 
 object GlobalCLIOptions {
@@ -38,8 +38,12 @@ object GlobalCLIOptions {
     */
   case class InternalOptions(
     launcherLogLevel: Option[LogLevel],
-    loggerConnectUri: Option[Uri]
+    loggerConnectUri: Option[Uri],
+    logMaskingDisabled: Boolean
   ) {
+
+    /** @return `true` if log masking is enabled. */
+    def logMasking: Boolean = !logMaskingDisabled
 
     /** Creates command line options that can be passed to a launcher process to
       * set the same options.
@@ -51,12 +55,15 @@ object GlobalCLIOptions {
       val uri = loggerConnectUri
         .map(uri => Seq(s"--$CONNECT_LOGGER", uri.toString))
         .getOrElse(Seq())
-      level ++ uri
+      val noMasking =
+        if (logMaskingDisabled) Seq(s"--$NO_LOG_MASKING") else Seq()
+      level ++ uri ++ noMasking
     }
   }
 
   val LOG_LEVEL      = "launcher-log-level"
   val CONNECT_LOGGER = "internal-connect-logger"
+  val NO_LOG_MASKING = "no-log-masking"
 
   /** Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be
     * added to a launcher invocation to set the same options.

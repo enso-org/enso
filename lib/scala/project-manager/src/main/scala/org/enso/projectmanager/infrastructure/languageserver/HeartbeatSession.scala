@@ -65,7 +65,7 @@ class HeartbeatSession(
 
   private def pingStage: Receive = {
     case WebSocketConnected =>
-      log.debug(s"Sending ping message to $socket")
+      log.debug("Sending ping message to {}.", socket)
       connection.send(s"""
                          |{ 
                          |   "jsonrpc": "2.0",
@@ -78,7 +78,11 @@ class HeartbeatSession(
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
-      logError(th, s"An error occurred during connecting to websocket $socket")
+      logError(
+        th,
+        "An error occurred during connecting to websocket {}.",
+        socket
+      )
       context.parent ! ServerUnresponsive
       stop()
 
@@ -93,11 +97,11 @@ class HeartbeatSession(
 
       maybeJson match {
         case Left(error) =>
-          logError(error, "An error occurred during parsing pong reply")
+          logError(error, "An error occurred during parsing pong reply.")
 
         case Right(id) =>
           if (id == requestId.toString) {
-            log.debug(s"Received correct pong message from $socket")
+            log.debug("Received correct pong message from {}.", socket)
 
             if (sendConfirmations) {
               context.parent ! HeartbeatReceived
@@ -106,12 +110,12 @@ class HeartbeatSession(
             cancellable.cancel()
             stop()
           } else {
-            log.warning(s"Received unknown response $payload")
+            log.warning("Received unknown response {}.", payload)
           }
       }
 
     case HeartbeatTimeout =>
-      log.debug(s"Heartbeat timeout detected for $requestId")
+      log.debug("Heartbeat timeout detected for {}.", requestId)
       context.parent ! ServerUnresponsive
       stop()
 
@@ -120,7 +124,7 @@ class HeartbeatSession(
       context.stop(self)
 
     case WebSocketStreamFailure(th) =>
-      logError(th, s"An error occurred during waiting for Pong message")
+      logError(th, "An error occurred during waiting for Pong message.")
       context.parent ! ServerUnresponsive
       cancellable.cancel()
       stop()
@@ -136,12 +140,12 @@ class HeartbeatSession(
       cancellable.cancel()
 
     case WebSocketStreamFailure(th) =>
-      logError(th, s"An error occurred during closing web socket")
+      logError(th, "An error occurred during closing web socket.")
       context.stop(self)
       cancellable.cancel()
 
     case SocketClosureTimeout =>
-      logError(s"Socket closure timed out")
+      logError("Socket closure timed out.")
       context.stop(self)
       connection.detachListener(self)
 
@@ -153,6 +157,18 @@ class HeartbeatSession(
     val closureTimeout =
       scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
     context.become(socketClosureStage(closureTimeout))
+  }
+
+  private def logError(
+    throwable: Throwable,
+    message: String,
+    arg: AnyRef
+  ): Unit = {
+    if (quietErrors) {
+      log.debug(s"$message ($throwable)", arg)
+    } else {
+      log.error(throwable, message, arg)
+    }
   }
 
   private def logError(throwable: Throwable, message: String): Unit = {

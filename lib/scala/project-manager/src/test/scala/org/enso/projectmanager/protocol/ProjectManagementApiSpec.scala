@@ -43,7 +43,7 @@ class ProjectManagementApiSpec
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
-            "error": { "code": 4001, "message": "Project name cannot be empty" }
+            "error": { "code": 4001, "message": "Project name cannot be empty." }
           }
           """)
     }
@@ -64,7 +64,7 @@ class ProjectManagementApiSpec
           "id":1,
           "error":{
             "code":4001,
-            "message":"Project name contains forbidden characters: -,/,#,$$,%,^,@,!"
+            "message":"Project name contains forbidden characters: [-,/,#,$$,%,^,@,!]."
             }
           }
           """)
@@ -86,7 +86,7 @@ class ProjectManagementApiSpec
           "id":1,
           "error":{
             "code":4001,
-            "message":"Project name should start with a capital letter"
+            "message":"Project name should start with a capital letter."
             }
           }
           """)
@@ -108,7 +108,7 @@ class ProjectManagementApiSpec
           "id":1,
           "error":{
             "code":4001,
-            "message":"Project name should be in upper snake case: Enso_Test_Project"
+            "message":"Project name should be in upper snake case: Enso_Test_Project."
             }
           }
           """)
@@ -872,7 +872,7 @@ class ProjectManagementApiSpec
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 0,
-            "error": { "code": 4001, "message": "Project name cannot be empty" }
+            "error": { "code": 4001, "message": "Project name cannot be empty." }
           }
           """)
       //teardown
@@ -900,7 +900,7 @@ class ProjectManagementApiSpec
           "id":0,
           "error":{
             "code":4001,
-            "message":"Project name contains forbidden characters: -,/,#,$$,%,^,@,!"
+            "message":"Project name contains forbidden characters: [-,/,#,$$,%,^,@,!]."
             }
           }
           """)
@@ -929,7 +929,7 @@ class ProjectManagementApiSpec
           "id":0,
           "error":{
             "code":4001,
-            "message":"Project name should start with a capital letter"
+            "message":"Project name should start with a capital letter."
             }
           }
           """)
@@ -958,7 +958,7 @@ class ProjectManagementApiSpec
           "id":0,
           "error":{
             "code":4001,
-            "message":"Project name should be in upper snake case: Enso_Test_Project"
+            "message":"Project name should be in upper snake case: Enso_Test_Project."
             }
           }
           """)
