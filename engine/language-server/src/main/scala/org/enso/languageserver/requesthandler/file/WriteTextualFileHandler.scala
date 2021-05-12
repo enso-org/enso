@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.filemanager.FileManagerApi.WriteFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -38,10 +39,9 @@ class WriteTextualFileHandler(
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(
-        ex,
         s"Failure during [{}] operation: {}",
         WriteFile,
-        ex.getMessage
+        MaskedString(ex.getMessage)
       )
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()

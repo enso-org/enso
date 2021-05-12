@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.filemanager.FileManagerApi.TreeFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -36,10 +37,9 @@ class TreeFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(
-        ex,
         "Failure during [{}] operation: {}",
         TreeFile,
-        ex.getMessage
+        MaskedString(ex.getMessage)
       )
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()

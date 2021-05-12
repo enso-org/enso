@@ -11,6 +11,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.filemanager.FileManagerApi.DeleteFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -39,10 +40,9 @@ class DeleteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(
-        ex,
         "Failure during [{}] operation: {}",
         DeleteFile,
-        ex.getMessage
+        MaskedString(ex.getMessage)
       )
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       cancellable.cancel()
