@@ -7,9 +7,6 @@ object MaskingUtils {
   /** A substitution for the masked data. */
   final val STUB: String = "***"
 
-  /** A synonym for the `STUB`. */
-  final val *** = STUB
-
   /** A platform-specific file separator string. */
   final val fileSeparator: String = FileSystems.getDefault.getSeparator
 

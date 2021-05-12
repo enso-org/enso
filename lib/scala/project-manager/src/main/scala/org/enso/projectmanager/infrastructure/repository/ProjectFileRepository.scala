@@ -5,7 +5,6 @@ import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 import java.util.UUID
 
-import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.{
@@ -180,10 +179,7 @@ class ProjectFileRepository[
       .flatMap {
         case None =>
           ErrorChannel[F].fail(
-            InconsistentStorage(
-              s"Cannot find package.yaml at " +
-              s"${MaskedPath(projectPath.toPath).applyMasking()}."
-            )
+            InconsistentStorage(s"Cannot find package.yaml at $projectPath")
           )
         case Some(projectPackage) => CovariantFlatMap[F].pure(projectPackage)
       }

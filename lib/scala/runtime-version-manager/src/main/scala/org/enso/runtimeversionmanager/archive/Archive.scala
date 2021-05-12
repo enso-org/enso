@@ -23,7 +23,6 @@ import org.enso.cli.task.{
   TaskProgress,
   TaskProgressImplementation
 }
-import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.archive.internal.{
   ArchiveIterator,
@@ -185,7 +184,7 @@ object Archive {
     val taskProgress = new TaskProgressImplementation[Unit](ProgressUnit.Bytes)
 
     def runExtraction(): Unit = {
-      logger.debug("Opening [{}].", MaskedPath(archivePath))
+      logger.debug("Opening [{}].", archivePath)
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
@@ -259,7 +258,7 @@ object Archive {
           "archive [{}], some files may not have been marked as " +
           "executable.",
           missingPermissions,
-          MaskedPath(archivePath)
+          archivePath
         )
       }
 

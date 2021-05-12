@@ -3,7 +3,6 @@ package org.enso.runtimeversionmanager.distribution
 import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 
@@ -41,7 +40,7 @@ class PortableDistributionManager(env: Environment)
       logger.debug(
         "The launcher is run in portable mode, but an installed distribution" +
         " is available at [{}].",
-        MaskedPath(installedRoot)
+        installedRoot
       )
 
       if (Files.exists(installedBinary)) {
@@ -54,7 +53,7 @@ class PortableDistributionManager(env: Environment)
           logger.debug(
             "However, that installed distribution most likely uses another " +
             "launcher executable, located at [{}].",
-            MaskedPath(installedBinary)
+            installedBinary
           )
         }
       }

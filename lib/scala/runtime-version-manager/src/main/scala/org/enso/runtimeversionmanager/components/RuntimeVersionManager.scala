@@ -4,7 +4,6 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
@@ -78,8 +77,7 @@ class RuntimeVersionManager(
                 s"loaded due to $e. Until the launcher gets an auto-repair " +
                 s"feature, please try reinstalling the runtime by " +
                 s"uninstalling all engines that use it and installing them " +
-                s"again, or manually removing " +
-                s"`${MaskedPath(path).applyMasking()}`.",
+                s"again, or manually removing `$path`.",
                 e
               )
             )
@@ -344,7 +342,7 @@ class RuntimeVersionManager(
         logger.warn(
           "{} at [{}] has been skipped due to the following error: {}",
           name,
-          MaskedPath(path),
+          path,
           exception
         )
         Seq()
@@ -437,7 +435,7 @@ class RuntimeVersionManager(
       }
     }
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
-      logger.debug("Downloading packages to [{}].", MaskedPath(directory))
+      logger.debug("Downloading packages to [{}].", directory)
       val enginePackage = directory / engineRelease.packageFileName
       val downloadTask  = engineRelease.downloadPackage(enginePackage)
       userInterface.trackProgress(
@@ -596,7 +594,7 @@ class RuntimeVersionManager(
   /** Loads the GraalVM runtime definition.
     */
   private def loadGraalRuntime(path: Path): Try[GraalRuntime] = {
-    logger.debug("Loading Graal runtime [{}].", MaskedPath(path))
+    logger.debug("Loading Graal runtime [{}].", path)
     val name = path.getFileName.toString
     for {
       version <- parseGraalRuntimeVersionString(name)
@@ -707,7 +705,7 @@ class RuntimeVersionManager(
         temporaryDirectoryManager.accessTemporaryDirectory(),
         Some(runtimeDirectoryName)
       )
-      logger.debug("Extracting [{}].", MaskedPath(runtimePackage))
+      logger.debug("Extracting [{}].", runtimePackage)
       userInterface.trackProgress("Extracting the runtime.", extractionTask)
       extractionTask.force()
 
@@ -748,8 +746,8 @@ class RuntimeVersionManager(
           distributionManager.paths.runtimes / runtimeDirectoryName
         logger.debug(
           "Moving [{}] to [{}].",
-          MaskedPath(runtimeTemporaryPath),
-          MaskedPath(runtimePath)
+          runtimeTemporaryPath,
+          runtimePath
         )
         FileSystem.atomicMove(runtimeTemporaryPath, runtimePath)
         val runtime = loadGraalRuntime(runtimePath).recoverWith { error =>

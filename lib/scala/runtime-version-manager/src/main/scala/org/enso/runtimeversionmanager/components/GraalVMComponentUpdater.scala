@@ -3,7 +3,6 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.masking.MaskedPath
 
 import scala.sys.process._
 import scala.util.{Success, Try}
@@ -32,12 +31,12 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
       ("JAVA_HOME", runtime.javaHome),
       ("GRAALVM_HOME", runtime.javaHome)
     )
-    logger.trace("{} {}", MaskedPath(gu), Properties(gu))
+    logger.trace("{} {}", gu, Properties(gu))
     logger.debug(
       "Executing: JAVA_HOME={} GRRAALVM_HOME={} {} {}",
-      MaskedPath(runtime.javaHome),
-      MaskedPath(runtime.javaHome),
-      MaskedPath(gu),
+      runtime.javaHome,
+      runtime.javaHome,
+      gu,
       command.mkString(" ")
     )
 
@@ -60,12 +59,12 @@ class GraalVMComponentUpdater(runtime: GraalRuntime)
         ("JAVA_HOME", runtime.javaHome),
         ("GRAALVM_HOME", runtime.javaHome)
       )
-      logger.trace("{} {}", MaskedPath(gu), Properties(gu))
+      logger.trace("{} {}", gu, Properties(gu))
       logger.debug(
         "Executing: JAVA_HOME={} GRRAALVM_HOME={} {} {}",
-        MaskedPath(runtime.javaHome),
-        MaskedPath(runtime.javaHome),
-        MaskedPath(gu),
+        runtime.javaHome,
+        runtime.javaHome,
+        gu,
         command.mkString(" ")
       )
       for {
@@ -91,8 +90,8 @@ object GraalVMComponentUpdater {
     private val file = path.toFile
 
     override def toString: String =
-      s"{ exists=${file.exists()}; " +
-      s"executable=${file.canExecute}; " +
+      s"{ exists=${file.exists()}, " +
+      s"executable=${file.canExecute} " +
       "}"
   }
 

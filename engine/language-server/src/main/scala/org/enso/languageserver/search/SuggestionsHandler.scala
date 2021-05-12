@@ -257,7 +257,7 @@ final class SuggestionsHandler(
             log.error(
               ex,
               "Error applying changes from computed values [{}]. {}",
-              updates,
+              updates.map(_.expressionId),
               ex.getMessage
             )
         }

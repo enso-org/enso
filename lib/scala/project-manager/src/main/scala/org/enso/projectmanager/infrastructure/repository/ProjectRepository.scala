@@ -27,9 +27,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param project the project to find the path for
     * @return the project, with the updated path
     */
-  def findPathForNewProject(
-    project: Project
-  ): F[ProjectRepositoryFailure, Path]
+  def findPathForNewProject(project: Project): F[ProjectRepositoryFailure, Path]
 
   /** Saves the provided user project in the index.
     *

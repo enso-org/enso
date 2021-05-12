@@ -3,7 +3,6 @@ package org.enso.runtimeversionmanager.distribution
 import java.nio.file.{Files, Path}
 
 import com.typesafe.scalalogging.Logger
-import org.enso.logger.masking.{MaskingUtils, ToMaskedString}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.{Environment, FileSystem, OS}
 
@@ -38,7 +37,7 @@ case class DistributionPaths(
   locks: Path,
   logs: Path,
   unsafeTemporaryDirectory: Path
-) extends ToMaskedString {
+) {
 
   /** @inheritdoc */
   override def toString: String =
@@ -50,18 +49,6 @@ case class DistributionPaths(
        |  config   = $config,
        |  locks    = $locks,
        |  tmp      = $unsafeTemporaryDirectory
-       |)""".stripMargin
-
-  /** @inheritdoc */
-  override def toMaskedString: String =
-    s"""DistributionPaths(
-       |  dataRoot = ${MaskingUtils.toMaskedPath(dataRoot)},
-       |  runtimes = ${MaskingUtils.toMaskedPath(runtimes)},
-       |  engines  = ${MaskingUtils.toMaskedPath(engines)},
-       |  bundle   = $bundle,
-       |  config   = ${MaskingUtils.toMaskedPath(config)},
-       |  locks    = ${MaskingUtils.toMaskedPath(locks)},
-       |  tmp      = ${MaskingUtils.toMaskedPath(unsafeTemporaryDirectory)}
        |)""".stripMargin
 
   /** Sequence of paths to search for engine installations, in order of
@@ -86,22 +73,7 @@ case class DistributionPaths(
   * For portable distributions, bundled packages are already included in the
   * primary directory.
   */
-case class Bundle(engines: Path, runtimes: Path) extends ToMaskedString {
-
-  /** @inheritdoc */
-  override def toString: String =
-    s"""Bundle(
-       |  engines  = $engines
-       |  runtimes = $runtimes
-       |)""".stripMargin
-
-  /** @inheritdoc */
-  override def toMaskedString: String =
-    s"""Bundle(
-       |  engines  = ${MaskingUtils.toMaskedPath(engines)}
-       |  runtimes = ${MaskingUtils.toMaskedPath(runtimes)}
-       |)""".stripMargin
-}
+case class Bundle(engines: Path, runtimes: Path)
 
 /** A helper class that encapsulates management of paths to components of the
   * distribution.

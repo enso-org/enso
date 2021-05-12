@@ -16,7 +16,6 @@ import org.enso.cli.task.{
   TaskProgress,
   TaskProgressImplementation
 }
-import org.enso.logger.masking.MaskedPath
 
 import scala.concurrent.Future
 
@@ -112,7 +111,7 @@ object HTTPDownload {
     logger.debug(
       "Downloading [{}] to [{}].",
       request.requestImpl.getUri(),
-      MaskedPath(destination)
+      destination
     )
     runRequest(
       request.requestImpl,
