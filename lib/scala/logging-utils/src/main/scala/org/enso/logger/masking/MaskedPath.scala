@@ -13,6 +13,12 @@ case class MaskedPath(value: Path) extends ToMaskedString {
     value.toAbsolutePath.normalize().toString
 
   /** @inheritdoc */
-  override def toMaskedString: String =
-    MaskingUtils.toMaskedPath(value.toAbsolutePath.normalize())
+  override def toMaskedString(shouldMask: Boolean): String = {
+    val path = value.toAbsolutePath.normalize()
+    if (shouldMask) {
+      MaskingUtils.toMaskedPath(path)
+    } else {
+      path.toString
+    }
+  }
 }

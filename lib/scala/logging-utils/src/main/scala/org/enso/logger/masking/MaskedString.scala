@@ -11,6 +11,6 @@ case class MaskedString(value: String) extends ToMaskedString {
     value
 
   /** @inheritdoc */
-  override def toMaskedString: String =
-    STUB
+  override def toMaskedString(shouldMask: Boolean): String =
+    if (shouldMask) STUB else value
 }

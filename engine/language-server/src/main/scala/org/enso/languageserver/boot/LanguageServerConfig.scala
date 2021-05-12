@@ -27,26 +27,21 @@ case class LanguageServerConfig(
 ) extends ToMaskedString {
 
   /** @inheritdoc */
-  override def toString: String =
+  override def toMaskedString(shouldMask: Boolean): String = {
+    val contentRootString =
+      if (shouldMask) {
+        toMaskedPath(Path.of(contentRootPath))
+      } else {
+        contentRootPath
+      }
     s"LanguageServerConfig(" +
     s"interface=$interface, " +
     s"rpcPort=$rpcPort, " +
     s"dataPort=$dataPort, " +
     s"contentRootUuid=$contentRootUuid, " +
-    s"contentRootPath=$contentRootPath, " +
+    s"contentRootPath=$contentRootString, " +
     s"name=$name, " +
     s"computeExecutionContext=$computeExecutionContext" +
     s")"
-
-  /** @inheritdoc */
-  override def toMaskedString: String =
-    s"LanguageServerConfig(" +
-    s"interface=$interface, " +
-    s"rpcPort=$rpcPort, " +
-    s"dataPort=$dataPort, " +
-    s"contentRootUuid=$contentRootUuid, " +
-    s"contentRootPath=${toMaskedPath(Path.of(contentRootPath))}, " +
-    s"name=$name, " +
-    s"computeExecutionContext=$computeExecutionContext" +
-    s")"
+  }
 }

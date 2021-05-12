@@ -89,8 +89,12 @@ case class DirectoriesConfig(root: File) extends ToMaskedString {
     new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
 
   /** @inheritdoc */
-  override def toMaskedString: String =
-    s"DirectoriesConfig(${MaskingUtils.toMaskedPath(root.toPath)})"
+  override def toMaskedString(shouldMask: Boolean): String = {
+    val rootString =
+      if (shouldMask) MaskingUtils.toMaskedPath(root.toPath)
+      else root.toString
+    s"DirectoriesConfig($rootString)"
+  }
 
   /** Create data directories if not exist. */
   def createDirectories(): Unit =
@@ -135,26 +139,22 @@ case class Config(
 ) extends ToMaskedString {
 
   /** @inheritdoc */
-  override def toString: String =
-    s"Config(" +
-    s"contentRoots=$contentRoots, " +
-    s"fileManager=$fileManager, " +
-    s"pathWatcher=$pathWatcher, " +
-    s"executionContext=$executionContext, " +
-    s"directories=$directories" +
-    s")"
-
-  /** @inheritdoc */
-  override def toMaskedString: String = {
-    val maskedRoots = contentRoots.map { case (k, v) =>
-      k -> MaskingUtils.toMaskedPath(v.toPath)
-    }
+  override def toMaskedString(shouldMask: Boolean): String = {
+    val maskedRoots =
+      if (shouldMask) {
+        contentRoots
+          .map { case (k, v) =>
+            k -> MaskingUtils.toMaskedPath(v.toPath)
+          }
+      } else {
+        contentRoots
+      }
     s"Config(" +
     s"contentRoots=$maskedRoots, " +
     s"fileManager=$fileManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
-    s"directories=${directories.toMaskedString}" +
+    s"directories=${directories.toMaskedString(shouldMask)}" +
     s")"
   }
 

@@ -32,12 +32,13 @@ trait ToMaskedString {
 
   /** String representation of this object with masked personally identifiable
     * information.
+    *
+    * @param shouldMask decides whether or not the value should be masked
     */
-  def toMaskedString: String
+  def toMaskedString(shouldMask: Boolean): String
 
-  /** If the masking is enabled, returns the masked string defined by the
-    * `toMaskedString` method. Otherwise returns the default `toString`
-    * representation.
+  /** Returns the string representation defined by the `toMaskedString` method,
+    * based on the current masking settings.
     */
   def applyMasking(): String =
     Masking().mask(this).toString

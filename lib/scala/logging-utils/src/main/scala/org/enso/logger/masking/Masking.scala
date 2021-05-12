@@ -32,9 +32,9 @@ object Masking {
     maskingEnabled
   }
 
-  private val masking: Masking = {
+  private def masking(shouldMask: Boolean): Masking = {
     case obj: ToMaskedString =>
-      try obj.toMaskedString
+      try obj.toMaskedString(shouldMask)
       catch {
         case NonFatal(error) =>
           System.err.println(
@@ -49,10 +49,7 @@ object Masking {
     case obj => obj
   }
 
-  private val noMasking: Masking = identity
-
   /** Get the instance of [[Masking]] adapter. */
-  def apply(): Masking =
-    if (isMaskingEnabled) masking else noMasking
+  def apply(): Masking = masking(isMaskingEnabled)
 
 }
