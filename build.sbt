@@ -607,9 +607,11 @@ lazy val `logging-utils` = project
   .in(file("lib/scala/logging-utils"))
   .configs(Test)
   .settings(
-    version := "0.1"
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      //"org.scalatest" %% "scalatest" % scalatestVersion % Test,
+    )
   )
-
 
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
