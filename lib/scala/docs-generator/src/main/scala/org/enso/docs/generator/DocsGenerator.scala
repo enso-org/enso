@@ -1,7 +1,7 @@
 package org.enso.docs.generator
 
 import java.io.File
-import org.enso.syntax.text.{DocParser, Parser}
+import org.enso.syntax.text.{AST, DocParser, Parser}
 import org.enso.syntax.text.docparser._
 
 /** The Docs Generator class. Defines useful wrappers for Doc Parser.
@@ -25,6 +25,18 @@ object DocsGenerator {
     val doc  = DocParser.runMatched(comment)
     val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
     html
+  }
+
+  /** Generates list of HTML docs from given doc comments in AST.
+    */
+  def generate(ast: List[AST.Comment]): List[String] = {
+    generate(ast.map(_.show()))
+  }
+
+  /** Generates list of HTML docs from given doc comments.
+    */
+  def generate(comments: List[String]): List[String] = {
+    comments.map(runOnPureDoc)
   }
 
   /** Called if file doesn't contain docstrings, to let user know that they
