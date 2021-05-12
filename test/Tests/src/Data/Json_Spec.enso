@@ -28,6 +28,7 @@ Text.should_render_itself =
 
 spec =
     Test.group "JSON Deserialization" <|
+
         Test.specify "should parse JSON structures" <|
             "0    ".should_parse_as 0
             " 123    ".should_parse_as 123
@@ -54,6 +55,7 @@ spec =
             object_json.should_parse_as <|
                 y_v = Json.from_pairs [["z", Nothing], ["w", Nothing]]
                 Json.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
+
         Test.specify "should report meaningful parsing errors" <|
             "foo".should_fail_parsing_with "Expected a false"
             "[,]".should_fail_parsing_with "Expected a start of a JSON value"
@@ -64,6 +66,7 @@ spec =
                   "y": {"z": null, "w": null} }
             deep_err.should_fail_parsing_with "Expected a comma"
             "123 4".should_fail_parsing_with "Expected end of input"
+
         Test.specify "should parse and convert JSON into domain model" <|
             book_1 = Book "Lord of the Rings" <|
                 Author "J. R. R. Tolkien" 1892
@@ -77,7 +80,9 @@ spec =
             parsed = Json.parse json_string
             domain = parsed.into (Vector.Vector (Book title=Text (Author name=Text year_of_birth=Number)))
             domain.should_equal books
+
     Test.group "JSON Serialization" <|
+
         Test.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
             "123".should_render_itself
@@ -93,6 +98,7 @@ spec =
             '["foo","foo\\n",null,true]'.should_render_itself
             object_json = '{"baz":["foo","x",false],"foo":"bar","y":{"w":null,"z":null}}'
             object_json.should_render_itself
+
         Test.specify "should convert arbitrary types to JSON" <|
             1.to_json.should_equal (Json.Number 1)
             1.54.to_json.should_equal (Json.Number 1.54)
@@ -104,3 +110,15 @@ spec =
                 t = Json.String "Author"
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
+
+    Test.group "JSON" <|
+
+        Test.specify "should allow getting object fields" <|
+            object = Json.parse '''
+                { "foo": "bar",
+                  "baz": ["foo", "x", false],
+                  "y": {"z": null, "w": null} }
+
+            object.get "foo" . should_equal (Json.String "bar")
+            object.get "bar" . should_fail_with Json.No_Such_Field_Error
+

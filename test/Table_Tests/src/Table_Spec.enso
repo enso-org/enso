@@ -1,6 +1,8 @@
 from Standard.Base import all
 from Standard.Table import all
 
+from Standard.Table.Data.Table as Table_Internal import Empty_Error
+
 import Standard.Table.Data.Storage
 import Standard.Test
 
@@ -16,6 +18,7 @@ My.frobnicate = case this of
     My x1 y1 -> My y1 x1
 
 spec =
+
     Test.group "JSON serialization" <|
         Test.specify "should serialize all column types to correct JSON" <|
             c_1 = [1, 2, 3, Nothing]
@@ -572,7 +575,7 @@ spec =
             empty_col = ['col_1', []]
             empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
 
-            empty_table.first.should_fail_with Nothing
+            empty_table.first.should_fail_with Empty_Error
 
         Test.specify "should allow getting the last row" <|
             i_1 = ['ix', [1, 2, 3]]
@@ -597,7 +600,7 @@ spec =
             empty_col = ['col_1', []]
             empty_table = Table.new [empty_ix, empty_col] . set_index 'ix'
 
-            empty_table.last.should_fail_with Nothing
+            empty_table.last.should_fail_with Empty_Error
 
         Test.specify "should allow reversing the table" <|
             i_1 = ['ix', [1, 2, 3]]

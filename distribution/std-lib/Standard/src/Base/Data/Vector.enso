@@ -20,7 +20,7 @@ from Builtins import Array
      Create a copy of the given vector (`my_vec`).
 
          Vector.new my_vec.length (ix -> my_vec.at ix)
-new : Number -> (Number -> Any) -> Vector
+new : Number -> (Number -> Any) -> Vector Any
 new length constructor =
     arr = Array.new length
     0.up_to length . each ix-> arr.set_at ix (constructor ix)
@@ -40,7 +40,7 @@ new length constructor =
      Create a vector containing 50 elements, each being the number `42`.
 
          Vector.fill length=50 item=42
-fill : Number -> Any -> Vector
+fill : Number -> Any -> Vector Any
 fill length ~item =
     arr = Array.new length
     0.up_to length . each ix-> arr.set_at ix item
@@ -87,7 +87,7 @@ new_builder = Builder.new
 
      If this didn't happen then it would be possible for the underlying array to
      be mutated under the hood, and sneak mutability into our immutable data.
-from_array : Any -> Vector.Vector
+from_array : Any -> Vector.Vector Any
 from_array arr = here.new (Polyglot.get_array_size arr) (arr.at _)
 
 ## The basic, immutable, vector type.
@@ -161,17 +161,17 @@ type Vector
        Arguments:
        - function: A binary operation that takes two items and combines them.
 
-       If the vector is empty, it throws Nothing.
+       If the vector is empty, it throws an `Empty_Error`.
 
        > Example
          Compute the sum of all the elements in a vector.
 
              [0, 1, 2] . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any ! Nothing
+    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce function =
         case this.not_empty of
             True -> this.tail.fold this.head function
-            False -> Error.throw Nothing
+            False -> Error.throw Empty_Error
 
     ## Computes the sum of the values in the vector.
 
@@ -182,12 +182,12 @@ type Vector
          Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
-    sum : (Any ! Nothing)
+    sum : Any ! (Empty_Error | No_Such_Method_Error)
     sum =
         result = Panic.recover <| this.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error _ _ -> Nothing
-            Nothing -> Nothing
+            No_Such_Method_Error _ _ -> x
+            Empty_Error -> x
             _ -> Panic.throw x
 
     ## Checks whether a predicate holds for at least one element of this vector.
@@ -299,7 +299,7 @@ type Vector
          Selecting all elements that are greater than 3.
 
              [1, 2, 3, 4, 5].filter (> 3)
-    filter : (Any -> Boolean) -> Vector
+    filter : (Any -> Boolean) -> Vector Any
     filter predicate =
         check acc ix = if predicate ix then acc + [ix] else acc
         this.fold [] check
@@ -315,7 +315,7 @@ type Vector
          Add 1 to each element of the vector.
 
              [1, 2, 3] . map +1
-    map : (Any -> Any) -> Vector
+    map : (Any -> Any) -> Vector Any
     map function =
         here.new this.length i-> function (this.at i)
 
@@ -330,7 +330,7 @@ type Vector
          Replace each number `n` in the vector with itself repeated n times.
 
             [0, 1, 2] . flat_map (n -> Vector.fill n n)
-    flat_map : (Any -> Vector) -> Vector
+    flat_map : (Any -> Vector Any) -> Vector Any
     flat_map function =
         mapped = this.map function
         length = mapped.fold 0 acc-> elem-> acc + elem.length
@@ -354,7 +354,7 @@ type Vector
          Sum numbers with their indices in a vector.
 
              [1, 2, 3].map_with_index (+)
-    map_with_index : (Integer -> Any -> Any) -> Vector
+    map_with_index : (Integer -> Any -> Any) -> Vector Any
     map_with_index function = here.new this.length i-> function i (this.at i)
 
     ## Applies a function to each element of the vector.
@@ -381,7 +381,7 @@ type Vector
          Reverse a two-element vector.
 
              [1, 2].reverse
-    reverse : Vector
+    reverse : Vector Any
     reverse = here.new this.length (i -> this.at (this.length - (1 + i)))
 
     ## Generates a human-readable text representation of the vector.
@@ -425,7 +425,7 @@ type Vector
          Concatenate two single-element vectors.
 
              [1] + [2]
-    + : Vector -> Vector
+    + : Vector Any -> Vector Any
     + that =
         this_len = this.length
         arr = Array.new (this_len + that.length)
@@ -444,7 +444,7 @@ type Vector
          Add 1 to the start of the vector.
 
              [2, 3].prepend 1
-    prepend : Any -> Vector
+    prepend : Any -> Vector Any
     prepend element = [element] + this
 
     ## Add `element` to the end of `this` vector.
@@ -456,7 +456,7 @@ type Vector
          Add 3 to the end of the vector.
 
              [1, 2].append 3
-    append : Any -> Vector
+    append : Any -> Vector Any
     append element = this + [element]
 
     ## When `this` is a vector of text values, concatenates all the values by
@@ -484,7 +484,7 @@ type Vector
          Remove the first element from the start of the vector.
 
              [1, 2, 3, 4, 5].drop_start 1
-    drop_start : Integer -> Vector
+    drop_start : Integer -> Vector Any
     drop_start count = if count >= this.length then here.new 0 (x -> x) else
         here.new (this.length - count) (i -> this.at i+count)
 
@@ -497,7 +497,7 @@ type Vector
          Remove the last two elements from the end of the vector.
 
              [1, 2, 3, 4, 5].drop_end 2
-    drop_end : Integer -> Vector
+    drop_end : Integer -> Vector Any
     drop_end count = if count >= this.length then here.new 0 (x -> x) else
         this.take_start (this.length - count)
 
@@ -511,7 +511,7 @@ type Vector
          Create a new vector from the first two elements of the vector.
 
              [1, 2, 3, 4, 5].take_start 2
-    take_start : Integer -> Vector
+    take_start : Integer -> Vector Any
     take_start count = if count >= this.length then this else
         here.new count this.at
 
@@ -525,7 +525,7 @@ type Vector
          Create a new vector from the last two elements of the vector.
 
              [1, 2, 3, 4, 5].take_end 3
-    take_end : Integer -> Vector
+    take_end : Integer -> Vector Any
     take_end count = if count >= this.length then this else
         this.drop_start (this.length - count)
 
@@ -550,7 +550,7 @@ type Vector
          of both elements.
 
              [1, 2, 3].zip [4, 5, 6] == [[1, 4], [2, 5], [3, 6]]
-    zip : Vector -> (Any -> Any -> Any) -> Vector
+    zip : Vector Any -> (Any -> Any -> Any) -> Vector Any
     zip that function=[_,_] =
         len = Math.min this.length that.length
         here.new len i-> function (this.at i) (that.at i)
@@ -574,7 +574,7 @@ type Vector
          Extending vector to the length of 5 returns `[1, 2, 3, 4, 5]`
 
              [1, 2, 3, 4, 5].pad 5 0
-    pad : Integer -> Any -> Vector
+    pad : Integer -> Any -> Vector Any
     pad n elem =
         if this.length >= n then this else
             this + (here.fill n-this.length elem)
@@ -588,15 +588,15 @@ type Vector
     to_json : Json.Array
     to_json = Json.Array (this.map .to_json)
 
-    ## Get the first element from the vector, or an error `Nothing` if the
-       vector is empty.
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
 
        > Example
          The following code returns 1.
 
              [1, 2, 3, 4].head
-    head : Any ! Nothing
-    head = if this.length >= 1 then this.at 0 else Error.throw Nothing
+    head : Any ! Empty_Error
+    head = if this.length >= 1 then this.at 0 else Error.throw Empty_Error
 
     ## Get all elements in the vector except the first.
 
@@ -604,8 +604,9 @@ type Vector
          The following code returns [2, 3, 4].
 
              [1, 2, 3, 4].tail
-    tail : Vector ! Nothing
-    tail = if this.length >= 1 then this.drop_start 1 else Error.throw Nothing
+    tail : Vector ! Empty_Error
+    tail = if this.length >= 1 then this.drop_start 1 else
+        Error.throw Empty_Error
 
     ## Get the all elements in the vector except the last.
 
@@ -613,30 +614,31 @@ type Vector
          The following code returns [1, 2, 3].
 
              [1, 2, 3, 4].init
-    init : Vector ! Nothing
-    init = if this.length >= 1 then this.drop_end 1 else Error.throw Nothing
+    init : Vector ! Empty_Error
+    init = if this.length >= 1 then this.drop_end 1 else Error.throw Empty_Error
 
-    ## Get the last element of the vector, or an error `Nothing` if the vector
-       is empty.
+    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+       empty.
 
        > Example
          The following code returns 4.
 
              [1, 2, 3, 4].last
-    last : Vector ! Nothing
-    last = if this.length >= 1 then (this.take_end 1).at 0 else Error.throw Nothing
+    last : Vector ! Empty_Error
+    last = if this.length >= 1 then (this.take_end 1).at 0 else
+        Error.throw Empty_Error
 
-    ## Get the first element from the vector, or an error `Nothing` if the
-       vector is empty.
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
 
        > Example
          The following code returns 1.
 
              [1, 2, 3, 4].first
-    first : Vector ! Nothing
+    first : Vector ! Empty_Error
     first = this.head
 
-    ## Get the second element from the vector, or an error `Nothing` if the
+    ## Get the second element from the vector, or a `Singleton_Error` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -645,20 +647,16 @@ type Vector
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Nothing
-    second = if this.length >= 2 then this.at 1 else Error.throw Nothing
+    second : Vector ! Singleton_Error
+    second = if this.length >= 2 then this.at 1 else
+        Error.throw (Singleton_Error this)
 
     ## Get all elements in the vector except the first.
 
        > Example
          The following code returns [2, 3, 4].
              [1, 2, 3, 4].rest
-
-       > Example
-         Empty vectors return `Nothing`.
-
-             [].rest == Nothing
-    rest : Vector ! Nothing
+    rest : Vector ! Empty_Error
     rest = this.tail
 
     ## Sort the Vector.
@@ -702,7 +700,7 @@ type Vector
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Order.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Order -> Vector Any
     sort (on = x -> x) (by = (_.compare_to _)) (order = Sort_Order.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -715,7 +713,8 @@ type Vector
            does both.
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
-        compare = if order == Sort_Order.Ascending then comp_ascending else comp_descending
+        compare = if order == Sort_Order.Ascending then comp_ascending else
+            comp_descending
 
         new_vec_arr.sort compare
 
@@ -731,6 +730,7 @@ type Vector
         json.to_text
 
 type Builder
+
     ## PRIVATE
 
        A builder type for Enso vectors.
@@ -814,7 +814,7 @@ type Builder
                 bldr.append 10
                 bldr.append 100
                 bldr.to_vector
-    to_vector : Vector
+    to_vector : Vector Any
     to_vector =
         old_array = this.to_array
         new_array = Array.new this.length
@@ -838,4 +838,30 @@ type Index_Out_Of_Bounds_Error index length
 Index_Out_Of_Bounds_Error.to_display_text : Text
 Index_Out_Of_Bounds_Error.to_display_text =
     "The index " + this.index.to_text + " is out of bounds in a vector with length " + this.length.to_text + "."
+
+## UNSTABLE
+
+   An error that indicates that the vector is empty.
+type Empty_Error
+
+## UNSTABLE
+
+   Pretty prints the empty error.
+Empty_Error.to_display_text : Text
+Empty_Error.to_display_text = "The vector is empty."
+
+## UNSTABLE
+
+   An error that indicates that the vector only has one element.
+
+   Arguments:
+   - vec: The vector that only has one element.
+type Singleton_Error vec
+
+## UNSTABLE
+
+   Pretty prints the singleton error.
+Singleton_Error.to_display_text : Text
+Singleton_Error.to_display_text =
+    "The vector " + this.vec.to_text  + " has only one element."
 

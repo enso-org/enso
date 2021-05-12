@@ -153,7 +153,8 @@ type Parse_Error message
 
    Converts the error to a display representation.
 Parse_Error.to_display_text : Text
-Parse_Error.to_display_text = "Parse error in parsing JSON: " + this.message.to_text + "."
+Parse_Error.to_display_text =
+    "Parse error in parsing JSON: " + this.message.to_text + "."
 
 ## Gets the value associated with the given key in this object.
 
@@ -169,8 +170,22 @@ Parse_Error.to_display_text = "Parse error in parsing JSON: " + this.message.to_
          import Standard.Examples
 
          example_get = Examples.json_object.get "title"
-Object.get : Text -> Json ! Nothing
-Object.get field = this.fields.get field
+Object.get : Text -> Json ! No_Such_Field_Error
+Object.get field = this.fields.get field . map_error case _ of
+    Map.No_Value_For_Key_Error _ -> No_Such_Field_Error field
+    x -> x
+
+## UNSTABLE
+
+   An error indicating that there is no such field in the JSON object.
+type No_Such_Field_Error field_name
+
+## UNSTABLE
+
+   Pretty prints the no such field error.
+No_Such_Field_Error.to_display_text : Text
+No_Such_Field_Error.to_display_text =
+    "The field " + this.field_name.to_text + " is not present in this object."
 
 ## UNSTABLE
 
@@ -267,3 +282,4 @@ Base.Boolean.to_json = Boolean this
          Nothing.to_json
 Nothing.to_json : Null
 Nothing.to_json = Null
+

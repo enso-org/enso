@@ -113,7 +113,7 @@ new (hour = 0) (minute = 0) (second = 0) (nanosecond = 0) =
          import Standard.Base.Data.Time.Time_Of_Day
 
          example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
-parse : Text -> Text ! Nothing -> Locale -> Time_Of_Day ! Time.Time_Error
+parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time.Time_Error
 parse text pattern=Nothing locale=Locale.default =
     result = Panic.recover <| case pattern of
         Nothing -> LocalTime.parse text
