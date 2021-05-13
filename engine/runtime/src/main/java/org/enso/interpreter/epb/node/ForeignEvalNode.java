@@ -115,10 +115,10 @@ public abstract class ForeignEvalNode extends RootNode {
   }
 
   private void parsePy(ContextReference<EpbContext> ctxRef) {
-    EpbContext context = ctxRef.get();
-    GuardedTruffleContext outer = context.getCurrentContext();
-    GuardedTruffleContext inner = context.getInnerContext();
-    Object p = inner.enter(this);
+//    EpbContext context = ctxRef.get();
+//    GuardedTruffleContext outer = context.getCurrentContext();
+//    GuardedTruffleContext inner = context.getInnerContext();
+//    Object p = inner.enter(this);
     try {
       String args =
           Arrays.stream(argNames)
@@ -137,16 +137,16 @@ public abstract class ForeignEvalNode extends RootNode {
       CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       ct.call();
       Object fn = ctxRef.get().getEnv().importSymbol("poly_enso_py_eval");
-      Object contextWrapped = rewrapNode.execute(fn, inner, outer);
-      foreign = insert(PyForeignNodeGen.create(contextWrapped));
+//      Object contextWrapped = fn; // rewrapNode.execute(fn, inner, outer);
+      foreign = insert(PyForeignNodeGen.create(fn));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+        parseError = (AbstractTruffleException) e; // rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
       } else {
         throw e;
       }
-    } finally {
-      inner.leave(this, p);
+//    } finally {
+////      inner.leave(this, p);
     }
   }
 
