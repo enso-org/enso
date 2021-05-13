@@ -233,7 +233,8 @@ object LauncherApplication {
             useSystemJVM        = systemJVMOverride,
             jvmOpts             = jvmOpts,
             additionalArguments = additionalArgs,
-            logLevel            = engineLogLevel
+            logLevel            = engineLogLevel,
+            logMasking          = config.internalOptions.logMasking
           )
       }
     }
