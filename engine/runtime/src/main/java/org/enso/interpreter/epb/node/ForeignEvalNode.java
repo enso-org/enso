@@ -100,7 +100,7 @@ public abstract class ForeignEvalNode extends RootNode {
               + "\n};poly_enso_eval";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
 
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNode.build(argNames.length, fn));
     } catch (Throwable e) {
@@ -134,7 +134,7 @@ public abstract class ForeignEvalNode extends RootNode {
           code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
       Source source =
           Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       ct.call();
       Object fn = ctxRef.get().getEnv().importSymbol("poly_enso_py_eval");
       Object contextWrapped = rewrapNode.execute(fn, inner, outer);
@@ -159,7 +159,7 @@ public abstract class ForeignEvalNode extends RootNode {
       String args = String.join(",", argNames);
       String wrappedSrc = "function(" + args + "){\n" + code.getForeignSource() + "\n}";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(RForeignNodeGen.create(fn));
     } catch (Throwable e) {
