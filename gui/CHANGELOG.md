@@ -11,6 +11,10 @@
 #### Visual Environment
 
 - [Delete key will delete selected nodes][1538].
+- [It is possible to move around after deleting a node with a selected
+  visualization][1556]. Deleting a node while its attached visualization was
+  selected made it impossible to pan or zoom around the stage afterwards. This
+  error is fixed now.
 - [Fixed an internal error that would make the IDE fail on some browser.][1561].
   Instead of crashing on browser that don't support the feature we use, we are
   now just start a little bit slower.
