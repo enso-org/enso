@@ -3,6 +3,7 @@ package org.enso.polyglot.runtime
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
+
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
@@ -257,9 +259,21 @@ object Runtime {
         thisArgumentExpression: Option[String],
         positionalArgumentsExpressions: Vector[String]
       ) extends StackItem
+          with ToLogString {
 
-      /** A call corresponding to "entering a function call".
-        */
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"ExplicitCall(" +
+          s"methodPointer=$methodPointer,thisArgumentExpression=" +
+          (if (shouldMask) thisArgumentExpression.map(_ => STUB)
+           else thisArgumentExpression) +
+          ",positionalArgumentExpression=" +
+          (if (shouldMask) positionalArgumentsExpressions.map(_ => STUB)
+           else positionalArgumentsExpressions) +
+          ")"
+      }
+
+      /** A call corresponding to "entering a function call". */
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
 
@@ -325,6 +339,12 @@ object Runtime {
           message: String,
           trace: Seq[ExpressionId]
         ) extends Payload
+            with ToLogString {
+
+          /** @inheritdoc */
+          override def toLogString(shouldMask: Boolean): String =
+            s"Panic(message=${if (shouldMask) STUB else message},trace=$trace)"
+        }
 
       }
     }
@@ -414,7 +434,16 @@ object Runtime {
       executionContextId: ContextId,
       visualisationModule: String,
       expression: String
-    )
+    ) extends ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        s"VisualisationConfiguration(" +
+        s"executionContextId=$executionContextId," +
+        s"visualisationModule=$visualisationModule,expression=" +
+        (if (shouldMask) STUB else expression) +
+        ")"
+    }
 
     /** An operation applied to the suggestion argument. */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -434,7 +463,7 @@ object Runtime {
         )
       )
     )
-    sealed trait SuggestionArgumentAction
+    sealed trait SuggestionArgumentAction extends ToLogString
     object SuggestionArgumentAction {
 
       /** Add the argument to a list.
@@ -443,13 +472,26 @@ object Runtime {
         * @param argument the argument to add
         */
       case class Add(index: Int, argument: Suggestion.Argument)
-          extends SuggestionArgumentAction
+          extends SuggestionArgumentAction {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Add(" +
+          s"index=$index," +
+          s"argument=${argument.toLogString(shouldMask)}" +
+          ")"
+      }
 
       /** Remove the argument from a list.
         *
         * @param index the position of the arugment
         */
-      case class Remove(index: Int) extends SuggestionArgumentAction
+      case class Remove(index: Int) extends SuggestionArgumentAction {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"Remove(index=$index)"
+      }
 
       /** Modify the argument at the specified index.
         *
@@ -467,7 +509,19 @@ object Runtime {
         isSuspended: Option[Boolean]         = None,
         hasDefault: Option[Boolean]          = None,
         defaultValue: Option[Option[String]] = None
-      ) extends SuggestionArgumentAction
+      ) extends SuggestionArgumentAction {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Modify(" +
+          s"index=$index," +
+          s"name=$name," +
+          s"reprType=$reprType," +
+          s"isSuspended=$isSuspended," +
+          s"hasDefault=$hasDefault,defaultValue=" +
+          (if (shouldMask) defaultValue.map(_ => STUB) else defaultValue) +
+          ")"
+      }
     }
 
     /** An operation applied to the update */
@@ -488,14 +542,24 @@ object Runtime {
         )
       )
     )
-    sealed trait SuggestionAction
+    sealed trait SuggestionAction extends ToLogString
     object SuggestionAction {
 
       /** Add the suggestion. */
-      case class Add() extends SuggestionAction
+      case class Add() extends SuggestionAction {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Add()"
+      }
 
       /** Remove the suggestion. */
-      case class Remove() extends SuggestionAction
+      case class Remove() extends SuggestionAction {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Remove()"
+      }
 
       /** Modify the suggestion.
         *
@@ -512,6 +576,19 @@ object Runtime {
         documentation: Option[Option[String]]             = None,
         scope: Option[Suggestion.Scope]                   = None
       ) extends SuggestionAction
+          with ToLogString {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Modify(" +
+          s"externalId=$externalId," +
+          s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
+          s"documentation=" +
+          (if (shouldMask) documentation.map(_.map(_ => STUB))
+           else documentation) +
+          s",scope=$scope" +
+          ")"
+      }
     }
 
     /** An action to apply to the suggestions database. */
@@ -542,7 +619,14 @@ object Runtime {
     case class SuggestionUpdate(
       suggestion: Suggestion,
       action: SuggestionAction
-    )
+    ) extends ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SuggestionUpdate(" +
+        suggestion.toLogString(shouldMask) +
+        s",action=${action.toLogString(shouldMask)})"
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -575,7 +659,17 @@ object Runtime {
       file: Option[File],
       location: Option[Range],
       expressionId: Option[ExpressionId]
-    )
+    ) extends ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "StackTraceElement(" +
+        s"functionName=$functionName," +
+        s"file=${file.map(f => MaskedPath(f.toPath))}" +
+        s"location=$location," +
+        s"expressionId=$expressionId" +
+        ")"
+    }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes(
@@ -590,7 +684,7 @@ object Runtime {
         )
       )
     )
-    sealed trait ExecutionResult
+    sealed trait ExecutionResult extends ToLogString
     object ExecutionResult {
 
       /** A diagnostic object produced as a compilation outcome, like error or
@@ -610,7 +704,19 @@ object Runtime {
         location: Option[model.Range],
         expressionId: Option[ExpressionId],
         stack: Vector[StackTraceElement]
-      ) extends ExecutionResult
+      ) extends ExecutionResult {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          "Diagnostic(" +
+          s"kind=$kind," +
+          s"message=${MaskedString(message)}," +
+          s"file=${file.map(f => MaskedPath(f.toPath))}," +
+          s"location=$location," +
+          s"expressionId=$expressionId," +
+          s"stack=${stack.map(_.toLogString(shouldMask))}" +
+          ")"
+      }
 
       case object Diagnostic {
 
@@ -671,7 +777,14 @@ object Runtime {
         * @param file the location of a file producing the error
         */
       case class Failure(message: String, file: Option[File])
-          extends ExecutionResult
+          extends ExecutionResult {
+
+        /** @inheritdoc */
+        override def toLogString(shouldMask: Boolean): String =
+          s"Failure(message=$message,file=" +
+          file.map(f => MaskedPath(f.toPath)) +
+          ")"
+      }
 
     }
 
@@ -717,6 +830,15 @@ object Runtime {
       contextId: ContextId,
       diagnostics: Seq[ExecutionResult.Diagnostic]
     ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "ExecutionUpdate(" +
+        s"contextId=$contextId,diagnostics=" +
+        diagnostics.map(_.toLogString(shouldMask)) +
+        ")"
+    }
 
     /** Signals about the critical failure during the context execution.
       *
@@ -727,6 +849,15 @@ object Runtime {
       contextId: ContextId,
       failure: ExecutionResult.Failure
     ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "ExecutionFailed(" +
+        s"contextId=$contextId,failure=" +
+        failure.toLogString(shouldMask) +
+        ")"
+    }
 
     /** An event signaling a visualisation update.
       *
@@ -737,6 +868,15 @@ object Runtime {
       visualisationContext: VisualisationContext,
       data: Array[Byte]
     ) extends ApiNotification
+        with ToLogString {
+
+      override def toLogString(shouldMask: Boolean): String = {
+        "VisualisationUpdate(" +
+        s"visualisationContext=$visualisationContext,data=" +
+        (if (shouldMask) STUB else data.toString()) +
+        ")"
+      }
+    }
 
     /** Envelope for an Api request.
       *
@@ -897,6 +1037,15 @@ object Runtime {
       message: String,
       failure: Option[ExecutionResult.Diagnostic]
     ) extends Error
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "VisualisationExpressionFailed(" +
+        s"message=${MaskedString(message)}," +
+        s"failure=${failure.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
 
     /** Signals that an evaluation of a code responsible for generating
       * visualisation data failed.
@@ -914,9 +1063,20 @@ object Runtime {
       message: String,
       diagnostic: Option[ExecutionResult.Diagnostic]
     ) extends ApiNotification
+        with ToLogString {
 
-    /** Signals that visualisation cannot be found.
-      */
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "VisualisationEvaluationFailed(" +
+        s"contextId=$contextId," +
+        s"visualisationId=$visualisationId," +
+        s"expressionId=$expressionId," +
+        s"message=${MaskedString(message)}," +
+        s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
+
+    /** Signals that visualisation cannot be found. */
     case class VisualisationNotFound() extends Error
 
     /** An error response signifying that stack is empty.
@@ -943,6 +1103,16 @@ object Runtime {
       contents: String,
       isIndexed: Boolean
     ) extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "OpenFileNotification(" +
+        s"path=${MaskedPath(path.toPath)}," +
+        s"contents=${MaskedString(contents)}," +
+        s"isIndexed=$isIndexed" +
+        ")"
+    }
 
     /** A notification sent to the server about in-memory file contents being
       * edited.
@@ -952,13 +1122,29 @@ object Runtime {
       */
     case class EditFileNotification(path: File, edits: Seq[TextEdit])
         extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "EditFileNotification(" +
+        s"path=${MaskedPath(path.toPath)},edits=" +
+        (if (shouldMask) edits.map(_ => STUB) else edits) +
+        ")"
+    }
 
     /** A notification sent to the server about dropping the file from memory
       * back to on-disk version.
       *
       * @param path the file being closed.
       */
-    case class CloseFileNotification(path: File) extends ApiRequest
+    case class CloseFileNotification(path: File)
+        extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        s"CloseFileNotification(path=${MaskedPath(path.toPath)})"
+    }
 
     /** Notification sent from the server to the client upon successful
       * initialization. Any messages sent to the server before receiving this
@@ -979,6 +1165,16 @@ object Runtime {
       expressionId: ExpressionId,
       visualisationConfig: VisualisationConfiguration
     ) extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        s"AttachVisualisation(" +
+        s"visualisationId=$visualisationId," +
+        s"expressionId=$expressionId,visualisationConfig=" +
+        visualisationConfig.toLogString(shouldMask) +
+        ")"
+    }
 
     /** Signals that attaching a visualisation has succeeded.
       */
@@ -1011,7 +1207,16 @@ object Runtime {
     case class ModifyVisualisation(
       visualisationId: VisualisationId,
       visualisationConfig: VisualisationConfiguration
-    ) extends ApiRequest
+    ) extends ToLogString
+        with ApiRequest {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "ModifyVisualisation(" +
+        s"visualisationId=$visualisationId,visualisationConfig=" +
+        visualisationConfig.toLogString(shouldMask) +
+        ")"
+    }
 
     /** Signals that a visualisation modification has succeeded.
       */
@@ -1052,6 +1257,17 @@ object Runtime {
       actions: Vector[SuggestionsDatabaseAction],
       updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        "SuggestionsDatabaseModuleUpdateNotification(" +
+        s"file=${MaskedPath(file.toPath)}," +
+        s"version=$version," +
+        s"actions=$actions," +
+        s"updates=${updates.map(_.toLogString(shouldMask))}" +
+        ")"
+    }
 
     /** A request to invalidate the indexed flag of the modules. */
     case class InvalidateModulesIndexRequest() extends ApiRequest
@@ -1079,6 +1295,12 @@ object Runtime {
       */
     case class ImportSuggestionRequest(suggestion: Suggestion)
         extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        s"ImportSuggestionRequest(suggestion=${suggestion.toLogString(shouldMask)})"
+    }
 
     /** The result of the import request.
       *

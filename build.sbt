@@ -609,7 +609,7 @@ lazy val `logging-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
 
@@ -893,6 +893,7 @@ lazy val `polyglot-api` = project
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
+  .dependsOn(`logging-utils`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
