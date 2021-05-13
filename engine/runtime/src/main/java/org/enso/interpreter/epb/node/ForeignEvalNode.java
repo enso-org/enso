@@ -115,10 +115,6 @@ public abstract class ForeignEvalNode extends RootNode {
   }
 
   private void parsePy(ContextReference<EpbContext> ctxRef) {
-//    EpbContext context = ctxRef.get();
-//    GuardedTruffleContext outer = context.getCurrentContext();
-//    GuardedTruffleContext inner = context.getInnerContext();
-//    Object p = inner.enter(this);
     try {
       String args =
           Arrays.stream(argNames)
@@ -127,7 +123,7 @@ public abstract class ForeignEvalNode extends RootNode {
       String head =
           "import polyglot\n"
               + "@polyglot.export_value\n"
-              + "def poly_enso_py_eval("
+              + "def polyglot_enso_python_eval("
               + args
               + "):\n";
       String indentLines =
@@ -136,17 +132,14 @@ public abstract class ForeignEvalNode extends RootNode {
           Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
       CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       ct.call();
-      Object fn = ctxRef.get().getEnv().importSymbol("poly_enso_py_eval");
-//      Object contextWrapped = fn; // rewrapNode.execute(fn, inner, outer);
+      Object fn = ctxRef.get().getEnv().importSymbol("polyglot_enso_python_eval");
       foreign = insert(PyForeignNodeGen.create(fn));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = (AbstractTruffleException) e; // rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+        parseError = (AbstractTruffleException) e;
       } else {
         throw e;
       }
-//    } finally {
-////      inner.leave(this, p);
     }
   }
 
