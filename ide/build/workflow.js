@@ -273,7 +273,7 @@ let assertChangelogWasUpdated = [
     getListOfChangedFiles,
     {
         name: 'Assert if CHANGELOG.md was updated (on pull request)',
-        run: `if [[ \${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'${FLAG_NO_CHANGELOG_NEEDED}') }} == false ]]; then exit 1; fi`,
+        run: `if [[ \${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'${FLAG_NO_CHANGELOG_NEEDED}') || contains(github.event.pull_request.body,'${FLAG_NO_CHANGELOG_NEEDED}') }} == false ]]; then exit 1; fi`,
         if: `github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'`
     }
 ]
@@ -325,9 +325,9 @@ prepareAwsSessionCDN = {
 }
 
 function uploadToCDN(...names) {
-    let actions = []
+    const actions = []
     for (let name of names) {
-        let action = {
+        const action = {
             name: `Upload '${name}' to CDN`,
             shell: "bash",
             run: `aws s3 cp ./artifacts/content/assets/${name} `
@@ -336,6 +336,9 @@ function uploadToCDN(...names) {
         }
         if (name.endsWith(".gz")) {
             action.run += " --content-encoding gzip";
+        }
+        if (name.endsWith(".wasm")) {
+            action.run += " --content-type 'application/wasm'";
         }
         actions.push(action)
     }
