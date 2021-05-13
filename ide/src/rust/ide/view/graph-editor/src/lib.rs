@@ -2987,6 +2987,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     eval out.node_selected   ((id) model.select_node(id));
     eval out.node_deselected ((id) model.deselect_node(id));
     eval out.node_removed    ((id) model.remove_node(id));
+    out.source.on_visualization_select <+ out.node_removed.map(|&id| Switch::Off(id));
 
     eval inputs.set_node_expression (((id,expr)) model.set_node_expression(id,expr));
     port_to_refresh <= inputs.set_node_expression.map(f!(((id,_))model.node_in_edges(id)));
