@@ -34,8 +34,8 @@ object NativeImage {
     *                              build time by default
     * @param additionalOptions additional options for the Native Image build
     *                          tool
-    * @param memoryLimitGigabytes a memory limit for the build tool, in
-    *                             gigabytes; it is good to set this limit to
+    * @param memoryLimitMegabytes a memory limit for the build tool, in
+    *                             megabytes; it is good to set this limit to
     *                             make GC more aggressive thus allowing it to
     *                             build successfully even with limited memory
     * @param initializeAtRuntime a list of classes that should be initialized at
@@ -47,7 +47,7 @@ object NativeImage {
     staticOnLinux: Boolean,
     initializeAtBuildtime: Boolean    = true,
     additionalOptions: Seq[String]    = Seq.empty,
-    memoryLimitGigabytes: Option[Int] = Some(3),
+    memoryLimitMegabytes: Option[Int] = Some(3584),
     initializeAtRuntime: Seq[String]  = Seq.empty
   ): Def.Initialize[Task[Unit]] = Def
     .task {
@@ -99,7 +99,7 @@ object NativeImage {
         }
 
       val memoryLimitOptions =
-        memoryLimitGigabytes.map(gigs => s"-J-Xmx${gigs}G").toSeq
+        memoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
 
       val initializeAtRuntimeOptions =
         if (initializeAtRuntime.isEmpty) Seq()
