@@ -106,6 +106,12 @@ project/metals.sbt
 
 build-cache/
 
+##################
+## Native Image ##
+##################
+
+*.build_artifacts.txt
+
 ###################
 ## Enso-Specific ##
 ###################

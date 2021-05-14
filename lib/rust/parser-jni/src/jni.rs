@@ -55,6 +55,7 @@ use jni::sys::*;
 // ======================
 
 /// Parses a content a of single source file.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
     env   : JNIEnv,
@@ -83,6 +84,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
 }
 
 /// Parses a single source file.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
     env      : JNIEnv,
@@ -96,6 +98,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
 // === Tokens ===
 
 /// Parses a content of a single source file into a stream of tokens.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
     env   : JNIEnv,
@@ -106,6 +109,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
 }
 
 /// Parses a single source file into a stream of tokens.
+#[allow(unsafe_code)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
     env      : JNIEnv,

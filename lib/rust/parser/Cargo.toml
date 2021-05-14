@@ -12,14 +12,11 @@ test       = true
 bench      = true
 
 [dependencies]
-enso-data    = { version = "0.1.3"                               }
-enso-logger  = { version = "0.1.3"                               }
-enso-prelude = { version = "0.1.8"                               }
+enso-data    = { version = "0.2.0"                               }
+enso-logger  = { version = "0.3.0"                               }
+enso-prelude = { version = "0.2.0"                               }
 lexer        = { version = "0.1.0", path = "../lexer/generation" }
-itertools    = { version = "0.9.0"                               }
-# Pinned packages
-# TODO: [DB] Remove after switching to new Rust toolchain version.
-anyhow       = { version = "<=1.0.37"                            }
+itertools    = { version = "0.10.0"                              }
 
 [build-dependencies]
 

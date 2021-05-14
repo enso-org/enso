@@ -8,8 +8,8 @@ on:
 
 env:
   wasmpackVersion: 0.8.1
-  nodeVersion: 12.18.4
-  rustToolchain: nightly-2019-11-04
+  nodeVersion: 14.16.1
+  rustToolchain: nightly-2021-05-12
 
 jobs:
   check:

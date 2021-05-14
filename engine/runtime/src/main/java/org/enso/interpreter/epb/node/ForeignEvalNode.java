@@ -100,7 +100,7 @@ public abstract class ForeignEvalNode extends RootNode {
               + "\n};poly_enso_eval";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
 
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(JsForeignNode.build(argNames.length, fn));
     } catch (Throwable e) {
@@ -115,10 +115,6 @@ public abstract class ForeignEvalNode extends RootNode {
   }
 
   private void parsePy(ContextReference<EpbContext> ctxRef) {
-    EpbContext context = ctxRef.get();
-    GuardedTruffleContext outer = context.getCurrentContext();
-    GuardedTruffleContext inner = context.getInnerContext();
-    Object p = inner.enter(this);
     try {
       String args =
           Arrays.stream(argNames)
@@ -127,26 +123,23 @@ public abstract class ForeignEvalNode extends RootNode {
       String head =
           "import polyglot\n"
               + "@polyglot.export_value\n"
-              + "def poly_enso_py_eval("
+              + "def polyglot_enso_python_eval("
               + args
               + "):\n";
       String indentLines =
           code.getForeignSource().lines().map(l -> "    " + l).collect(Collectors.joining("\n"));
       Source source =
           Source.newBuilder(code.getLanguage().getTruffleId(), head + indentLines, "").build();
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       ct.call();
-      Object fn = ctxRef.get().getEnv().importSymbol("poly_enso_py_eval");
-      Object contextWrapped = rewrapNode.execute(fn, inner, outer);
-      foreign = insert(PyForeignNodeGen.create(contextWrapped));
+      Object fn = ctxRef.get().getEnv().importSymbol("polyglot_enso_python_eval");
+      foreign = insert(PyForeignNodeGen.create(fn));
     } catch (Throwable e) {
       if (InteropLibrary.getUncached().isException(e)) {
-        parseError = rewrapExceptionNode.execute((AbstractTruffleException) e, inner, outer);
+        parseError = (AbstractTruffleException) e;
       } else {
         throw e;
       }
-    } finally {
-      inner.leave(this, p);
     }
   }
 
@@ -159,7 +152,7 @@ public abstract class ForeignEvalNode extends RootNode {
       String args = String.join(",", argNames);
       String wrappedSrc = "function(" + args + "){\n" + code.getForeignSource() + "\n}";
       Source source = Source.newBuilder(code.getLanguage().getTruffleId(), wrappedSrc, "").build();
-      CallTarget ct = ctxRef.get().getEnv().parseInternal(source);
+      CallTarget ct = ctxRef.get().getEnv().parsePublic(source);
       Object fn = rewrapNode.execute(ct.call(), inner, outer);
       foreign = insert(RForeignNodeGen.create(fn));
     } catch (Throwable e) {

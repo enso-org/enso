@@ -14,6 +14,7 @@ import org.enso.interpreter.epb.runtime.PolyglotProxy;
 @GenerateUncached
 @ReportPolymorphism
 public abstract class ContextRewrapNode extends Node {
+
   /**
    * Wraps a value originating from {@code origin} into a value valid in {@code target}. This method
    * is allowed to use interop library on {@code value} and therefore must be called with {@code
@@ -63,7 +64,6 @@ public abstract class ContextRewrapNode extends Node {
       PolyglotProxy proxy, GuardedTruffleContext origin, GuardedTruffleContext target) {
     return proxy;
   }
-
 
   @Specialization(guards = "bools.isBoolean(b)")
   boolean doWrappedBoolean(
