@@ -29,7 +29,7 @@ object DocsGenerator {
 
   /** Generates list of HTML docs from given doc comments in AST.
     */
-  def generate(ast: List[AST.Comment]): List[String] = {
+  def generateFromAst(ast: List[AST.Comment]): List[String] = {
     generate(ast.map(_.show()))
   }
 

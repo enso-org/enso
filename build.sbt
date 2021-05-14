@@ -544,11 +544,22 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
+  .configs(Benchmark)
   .settings(
     libraryDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion
     ),
-    mainClass := Some("org.enso.docs.generator.Main")
+    mainClass := Some("org.enso.docs.generator.Main"),
+    inConfig(Benchmark)(Defaults.testSettings),
+    unmanagedSourceDirectories in Benchmark +=
+      baseDirectory.value.getParentFile / "bench/scala",
+    libraryDependencies +=
+      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
+    bench := (test in Benchmark).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -620,7 +631,7 @@ lazy val `logging-utils` = project
   .settings(
     version := "0.1",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
 
