@@ -710,6 +710,35 @@ impl Type {
     pub fn is_any(&self) -> bool {
         self.as_str() == "Any" || self.is_empty()
     }
+
+    /// If the type consists of a single identifier then we remove all module qualifiers:
+    /// ```
+    /// use ide_view_graph_editor::*;
+    ///
+    /// let input       = Type::from("Foo.Bar.Baz.Vector".to_string());
+    /// let expectation = Type::from("Vector".to_string());
+    /// assert_eq!(input.abbreviate(), expectation);
+    /// ```
+    ///
+    /// If the type contains multiple identifiers then we just abbreviate the first one:
+    /// ```
+    /// use ide_view_graph_editor::*;
+    ///
+    /// let input       = Type::from("Foo.Bar.Baz.Vector Math.Number".to_string());
+    /// let expectation = Type::from("Vector Math.Number".to_string());
+    /// assert_eq!(input.abbreviate(), expectation);
+    /// ```
+    pub fn abbreviate(&self) -> Type {
+        if let Some(up_to_whitespace) = self.split_whitespace().next() {
+            if let Some(last_dot_index) = up_to_whitespace.rfind('.') {
+                Type::from(self[last_dot_index+1..].to_string())
+            } else {  // `self` contains no dot. We do not need to abbreaviate it.
+                self.clone()
+            }
+        } else {  // `self` was empty.
+            Type::from("".to_string())
+        }
+    }
 }
 
 impl From<String> for Type {
@@ -1405,6 +1434,7 @@ impl GraphEditorModel {
         let node_id = node_id.into();
         self.nodes.remove(&node_id);
         self.nodes.selected.remove_item(&node_id);
+        self.frp.source.on_visualization_select.emit(Switch::Off(node_id));
     }
 
     fn node_in_edges(&self, node_id:impl Into<NodeId>) -> Vec<EdgeId> {

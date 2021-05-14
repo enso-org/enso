@@ -21,6 +21,7 @@ use ensogl::display::shape::Var;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display;
 use ensogl::gui::component;
+use ensogl::gui::text;
 
 
 
@@ -34,8 +35,16 @@ const PORT_OPACITY_NOT_HOVERED : f32 = 0.25;
 const SEGMENT_GAP_WIDTH        : f32 = 2.0;
 const HOVER_AREA_PADDING       : f32 = 20.0;
 const INFINITE                 : f32 = 99999.0;
+const FULL_TYPE_ONSET_DELAY_MS : f32 = 2000.0;
 
 const TOOLTIP_LOCATION : Placement = Placement::Bottom;
+
+// We have currently implemented two possible ways to display the output types of ports on hover:
+// as a tooltip next to the mouse coursor or as a label that is fixed right next to the port itself.
+// Right now, there is no final decision, which one we will keep. Therefore, we have the following
+// two constants which can be used to turn those methods on or off.
+const SHOW_TYPE_AS_TOOLTIP : bool = false;
+const SHOW_TYPE_AS_LABEL   : bool = true;
 
 
 
@@ -53,6 +62,10 @@ const TOOLTIP_LOCATION : Placement = Placement::Bottom;
 ///  ╰──────────────────────────────╯ ▼ (node_size / 2) + PORT_SIZE
 ///  ◄──────────────────────────────►
 ///   width = node_width + PORT_SIZE
+
+
+
+
 /// ```
 ///
 /// The corners are rounded with the `radius = inner_radius + port_area_size`. The shape also
@@ -109,6 +122,42 @@ impl AllPortsShape {
     }
 }
 
+/// The length of the port shape's inner border. (the part that touches the node)
+///
+/// # Arguments
+///
+/// * `corner_radius` - The inner radius of the port shape's corner segments. (the round parts)
+/// * `width`         - The inner width of the port shape. (also the width of the node)
+fn shape_border_length<T>(corner_radius:T, width:T) -> T
+where T: Clone + Mul<f32,Output=T> + Sub<Output=T> + Add<Output=T> {
+    let corner_segment_length = corner_segment_length(corner_radius.clone());
+    let center_segment_length = center_segment_length(corner_radius, width);
+    center_segment_length + corner_segment_length * 2.0
+}
+
+/// The length of the border on the inside of a single corner segment. (the round part at the end of
+/// the node)
+///
+/// # Arguments
+///
+///  * `corner_radius` - The inner radius of the corner segment.
+fn corner_segment_length<T>(corner_radius:T) -> T
+where T: Mul<f32,Output=T> {
+    let corner_circumference  = corner_radius * 2.0 * PI;
+    corner_circumference * 0.25
+}
+
+/// The length of the center segment of a port shape. (the straight part in the center of the shape)
+///
+/// # Arguments
+///
+/// * `corner_radius` - The inner radius of the port shape's corner segments. (the round parts)
+/// * `width`         - The inner width of the port shape. (also the width of the node)
+fn center_segment_length<T>(corner_radius:T, width:T) -> T
+where T: Mul<f32,Output=T> + Sub<Output=T> {
+    width - corner_radius * 2.0
+}
+
 
 
 // ======================
@@ -143,12 +192,14 @@ pub mod single_port {
 // =====================
 
 pub use multi_port::View as MultiPortView;
+use ensogl::application::Application;
+use std::f32::consts::PI;
+use ensogl::animation::animation::delayed::DelayedAnimation;
 
 /// Implements the shape for a segment of the OutputPort with multiple output ports.
 pub mod multi_port {
     use super::*;
     use ensogl::display::shape::*;
-    use std::f32::consts::PI;
 
     /// Compute the angle perpendicular to the shape border.
     fn compute_border_perpendicular_angle
@@ -214,10 +265,9 @@ pub mod multi_port {
     , corner_radius   : &Var<f32>
     , position_offset : &Var<f32>
     ) -> AnyShape {
-        let corner_circumference  = corner_radius * 2.0 * PI;
-        let corner_segment_length = &corner_circumference * 0.25;
-        let center_segment_length = width - corner_radius * 2.0;
-        let shape_border_length   = &center_segment_length + &corner_segment_length * 2.0;
+        let corner_segment_length = corner_segment_length(corner_radius.clone());
+        let center_segment_length = center_segment_length(corner_radius.clone(), width.clone());
+        let shape_border_length   = shape_border_length(corner_radius.clone(), width.clone());
 
         let position_relative = index / port_num;
         let crop_segment_pos  = &position_relative * &shape_border_length + position_offset;
@@ -365,9 +415,11 @@ impl display::Object for PortShapeView {
 
 ensogl::define_endpoints! {
     Input {
-        set_size_multiplier (f32),
-        set_definition_type (Option<Type>),
-        set_usage_type      (Option<Type>),
+        set_size_multiplier       (f32),
+        set_definition_type       (Option<Type>),
+        set_usage_type            (Option<Type>),
+        set_type_label_visibility (bool),
+        set_size                  (Vector2),
     }
 
     Output {
@@ -375,25 +427,31 @@ ensogl::define_endpoints! {
         on_hover (bool),
         on_press (),
         tooltip  (tooltip::Style),
+        size     (Vector2),
     }
 }
 
 #[derive(Clone,Debug,Default)]
 pub struct Model {
-    pub frp    : Option<Frp>,
-    pub shape  : Option<PortShapeView>,
-    pub index  : usize,
-    pub length : usize,
+    pub frp            : Option<Frp>,
+    pub shape          : Option<PortShapeView>,
+    pub type_label     : Option<text::Area>,
+    pub display_object : Option<display::object::Instance>,
+    pub index          : usize,
+    pub length         : usize,
+    port_count         : usize,
+    port_index         : usize,
 }
 
 impl Model {
     pub fn init_shape
     ( &mut self
     , logger     : impl AnyLogger
+    , app        : &Application
     , styles     : &StyleWatch
     , port_index : usize
     , port_count : usize
-    ) -> (PortShapeView,Frp) {
+    ) -> (display::object::Instance,Frp) {
         let logger_name = format!("port({},{})",self.index,self.length);
         let logger      = Logger::sub(logger,logger_name);
         let shape       = PortShapeView::new(port_count,&logger);
@@ -406,18 +464,37 @@ impl Model {
         shape.set_port_count(port_count);
         shape.set_padding_left(padding_left);
         shape.set_padding_right(padding_right);
+        self.shape = Some(shape.clone());
 
-        self.init_frp(&shape,styles);
-        self.shape = Some(shape);
-        (self.shape.as_ref().unwrap().clone_ref(),self.frp.as_ref().unwrap().clone_ref())
+        let type_label = app.new_view::<text::Area>();
+        let offset_y = styles.get_number(ensogl_theme::graph_editor::node::type_label::offset_y);
+        type_label.set_position_y(offset_y);
+        self.type_label = Some(type_label.clone());
+
+        let display_object = display::object::Instance::new(logger);
+        display_object.add_child(&shape);
+        display_object.add_child(&type_label);
+        self.display_object = Some(display_object.clone());
+
+        self.port_count = max(port_count, 1);
+        self.port_index = port_index;
+
+        self.init_frp(&shape,&type_label,styles);
+        (display_object,self.frp.as_ref().unwrap().clone_ref())
     }
 
-    fn init_frp(&mut self, shape:&PortShapeView, styles:&StyleWatch) {
-        let frp     = Frp::new();
-        let network = &frp.network;
-        let events  = shape.events();
-        let opacity = Animation::<f32>::new(network);
-        let color   = color::Animation::new(network);
+    fn init_frp(&mut self,shape:&PortShapeView,type_label:&text::Area,styles:&StyleWatch) {
+        let frp                = Frp::new();
+        let network            = &frp.network;
+        let events             = shape.events();
+        let opacity            = Animation::<f32>::new(network);
+        let color              = color::Animation::new(network);
+        let type_label_opacity = Animation::<f32>::new(network);
+        let port_count         = self.port_count;
+        let port_index         = self.port_index;
+        let full_type_timer    = DelayedAnimation::new(network);
+        full_type_timer.set_delay(FULL_TYPE_ONSET_DELAY_MS);
+        full_type_timer.set_duration(0.0);
 
         frp::extend! { network
 
@@ -436,6 +513,20 @@ impl Model {
 
             // === Size ===
 
+            frp.source.size <+ frp.set_size;
+            eval frp.size ((&s)
+                shape.set_size(s + Vector2(HOVER_AREA_PADDING,HOVER_AREA_PADDING) * 2.0));
+            set_type_label_x <- all_with(&frp.size,&type_label.width,
+                f!([port_count,port_index](port_size,type_label_width) {
+                    let shape_length   = shape_border_length(node::RADIUS, port_size.x);
+                    let shape_left     = - shape_length / 2.0;
+                    let port_width     = shape_length / port_count as f32;
+                    let port_left      = shape_left + port_width * port_index as f32;
+                    let port_center_x  = port_left + port_width / 2.0;
+                    let label_center_x = port_center_x;
+                    label_center_x - type_label_width / 2.0
+                }));
+            eval set_type_label_x ((&t) type_label.set_position_x(t));
             eval frp.set_size_multiplier ((t) shape.set_size_multiplier(*t));
 
 
@@ -449,12 +540,49 @@ impl Model {
             color.target <+ color_tgt;
             eval color.value ((t) shape.set_color(t.into()));
 
-            on_hover  <- frp.on_hover.on_true();
-            non_hover <- frp.on_hover.on_false();
-            frp.source.tooltip <+ frp.tp.sample(&on_hover).unwrap().map(|tp| {
-                tooltip::Style::set_label(tp.to_string()).with_placement(TOOLTIP_LOCATION)
+            full_type_timer.start <+ frp.on_hover.on_true();
+            full_type_timer.reset <+ type_label_opacity.value.filter(|&o| o == 0.0).constant(());
+            showing_full_type     <- bool(&full_type_timer.on_reset,&full_type_timer.on_end);
+            type_description      <- all_with(&frp.tp,&showing_full_type,|tp,&show_full_tp| {
+                tp.map_ref(|tp| {
+                    if show_full_tp { tp.to_string() } else { tp.abbreviate().to_string() }
+                })
             });
-            frp.source.tooltip <+ non_hover.constant(tooltip::Style::unset_label());
+        }
+
+        if SHOW_TYPE_AS_LABEL {
+            frp::extend! { network
+
+                // === Type Label ===
+
+                type_label_visibility        <- frp.on_hover.and(&frp.set_type_label_visibility);
+                type_label_opacity.target    <+ type_label_visibility.on_true().constant(PORT_OPACITY_HOVERED);
+                type_label_opacity.target    <+ type_label_visibility.on_false().constant(0.0);
+                type_label_color             <- all_with(&color.value,&type_label_opacity.value,
+                    |color,&opacity| color.opaque.with_alpha(opacity).into());
+                type_label.set_color_all     <+ type_label_color;
+                type_label.set_default_color <+ type_label_color;
+                type_label.set_content       <+ type_description.map(|s| s.clone().unwrap_or_default());
+            }
+        }
+
+        if SHOW_TYPE_AS_TOOLTIP {
+            frp::extend! { network
+
+                // === Tooltip ===
+
+                frp.source.tooltip <+ all_with(&type_description,&frp.on_hover,|text,&hovering| {
+                    if hovering {
+                        if let Some(text) = text.clone() {
+                            tooltip::Style::set_label(text).with_placement(TOOLTIP_LOCATION)
+                        } else {
+                            tooltip::Style::unset_label()
+                        }
+                    } else {
+                            tooltip::Style::unset_label()
+                    }
+                });
+            }
         }
 
         opacity.target.emit(PORT_OPACITY_NOT_HOVERED);
@@ -464,8 +592,8 @@ impl Model {
     }
 
     pub fn set_size(&self, size:Vector2) {
-        if let Some(shape) = &self.shape {
-            shape.set_size(size + Vector2(HOVER_AREA_PADDING,HOVER_AREA_PADDING) * 2.0);
+        if let Some(frp) = &self.frp {
+            frp.set_size(size);
         }
     }
 }
