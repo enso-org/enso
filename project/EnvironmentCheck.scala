@@ -78,7 +78,7 @@ object EnvironmentCheck {
     try {
       val versionStr = cmd.!!.trim.substring(6)
 
-      if (versionStr != expectedVersion)
+      if (!versionStr.contains(expectedVersion))
         log.error(
           s"Rust version mismatch. $expectedVersion is expected, " +
           s"but it seems $versionStr is installed."
