@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.google.common.collect.HashBiMap;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
@@ -15,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
@@ -24,7 +24,6 @@ import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.interpreter.runtime.type.Types.Pair;
 import org.enso.interpreter.runtime.util.ShadowedPackage;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
@@ -32,10 +31,6 @@ import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
-
-import java.io.*;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in

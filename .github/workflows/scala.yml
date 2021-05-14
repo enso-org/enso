@@ -8,13 +8,13 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 21.0.0.2
+  graalVersion: 21.1.0
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.4.9
+  sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
-  rustToolchain: nightly-2019-11-04
+  rustToolchain: nightly-2021-05-12
 
 jobs:
   test_and_publish:

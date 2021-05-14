@@ -19,7 +19,7 @@ class ExecuteJob(
       isCancellable = true,
       // TODO[MK]: make this interruptible when https://github.com/oracle/graal/issues/3273
       // is resolved
-      mayInterruptIfRunning = false
+      mayInterruptIfRunning = true
     ) {
 
   def this(exe: Executable) =

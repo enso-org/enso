@@ -6,8 +6,8 @@ const spawn     = require('child_process').spawn
 const path      = require('path')
 
 // Versions
-const nodeJsVersion = "v12.18.0"
-const rustcVersion  = "1.40.0-nightly"
+const nodeJsVersion = "v14.16.1"
+const rustcVersion  = "1.54.0-nightly"
 
 // Configuration
 const libImplDirName = 'impl'

@@ -32,9 +32,7 @@ import org.enso.interpreter.epb.node.ForeignEvalNode;
     id = EpbLanguage.ID,
     name = "Enso Polyglot Bridge",
     characterMimeTypes = {EpbLanguage.MIME},
-    // TODO mark this language as internal when https://github.com/oracle/graal/pull/3139 is
-    // released
-    internal = false,
+    internal = true,
     defaultMimeType = EpbLanguage.MIME,
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED)
 public class EpbLanguage extends TruffleLanguage<EpbContext> {
