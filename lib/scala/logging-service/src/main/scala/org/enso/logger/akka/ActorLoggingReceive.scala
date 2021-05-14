@@ -47,10 +47,10 @@ object ActorLoggingReceive {
   def apply(label: Option[String], logger: Logger, r: Receive)(implicit
     context: ActorContext
   ): Receive = r match {
-    case _: ActorLoggingReceive => r
+    case _: ActorLoggingReceive =>
+      r
     case _ =>
-      if (context.system.settings.AddLoggingReceive)
-        new ActorLoggingReceive(label, logger, r)
-      else r
+      new ActorLoggingReceive(label, logger, r)
+
   }
 }
