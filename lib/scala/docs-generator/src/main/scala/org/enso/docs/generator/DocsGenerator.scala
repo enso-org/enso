@@ -3,6 +3,8 @@ package org.enso.docs.generator
 import java.io.File
 import org.enso.syntax.text.{AST, DocParser, Parser}
 import org.enso.syntax.text.docparser._
+import scalatags.Text.{all => HTML}
+import HTML._
 
 /** The Docs Generator class. Defines useful wrappers for Doc Parser.
   */
@@ -27,6 +29,8 @@ object DocsGenerator {
     html
   }
 
+  // TODO: Move'em to separate module.
+
   /** Generates list of HTML docs from given doc comments in AST.
     */
   def generateFromAst(ast: List[AST.Comment]): List[String] = {
@@ -37,6 +41,25 @@ object DocsGenerator {
     */
   def generate(comments: List[String]): List[String] = {
     comments.map(runOnPureDoc)
+  }
+
+  /** Connects HTML documentation with it's AST element.
+    */
+  def connectHtmlToAst(html: String, ast: AST): String = {
+    val astHTML = DocParserHTMLGenerator.createHTMLFromAST(ast)
+    val astName = HTML.div(astHTML.header)
+    astHTML.body match {
+      case Some(body) =>
+        HTML.div(HTML.`class` := "main ml-20")(astName, html).render
+      case None => HTML.div(astName, html).render
+    }
+  }
+
+  /** Glues together many docs with AST elements in proper order to create one
+    * documentation page.
+    */
+  def glueGeneratedContent(docs: List[String], astList: List[AST]): String = {
+    docs.zip(astList).map(e => connectHtmlToAst(e._1, e._2)).mkString
   }
 
   /** Called if file doesn't contain docstrings, to let user know that they
