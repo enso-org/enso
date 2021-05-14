@@ -35,6 +35,7 @@ use std::cmp::Ordering;
 
 type Logger = Disabled;
 type Flexer = enso_flexer::Flexer<State<Logger>,token::Stream,Logger>;
+type DebugLevel = enso_flexer::prelude::logger::entry::level::Debug;
 
 
 
@@ -1885,7 +1886,8 @@ pub struct State<Logger> {
     comment_state : CommentLexingState<Logger>,
 }
 
-impl<Logger:AnyLogger<Owned=Logger>> State<Logger> {
+impl<Logger> State<Logger>
+where Logger : AnyLogger<Owned=Logger> + LoggerOps<DebugLevel> {
     /// Get a reference to the group for the provided identifier.
     pub fn group(&self, group:group::Identifier) -> &Group {
         self.groups().group(group)
@@ -1900,7 +1902,8 @@ impl<Logger:AnyLogger<Owned=Logger>> State<Logger> {
 
 // === Trait Impls ===
 
-impl<Logger:AnyLogger<Owned=Logger>> enso_flexer::State for State<Logger> {
+impl<Logger> enso_flexer::State for State<Logger>
+where Logger : AnyLogger<Owned=Logger> + LoggerOps<DebugLevel> {
     fn new(parent_logger:&impl AnyLogger) -> Self {
         let logger                  = <Logger>::sub(parent_logger, "State");
         let bookmarks               = default();
@@ -2040,7 +2043,8 @@ pub struct Offset<Logger> {
     logger : Logger
 }
 
-impl<Logger:AnyLogger> Offset<Logger> {
+impl<Logger> Offset<Logger>
+where Logger : AnyLogger + LoggerOps<DebugLevel> {
     /// Create a new offset state.
     pub fn new(logger:Logger) -> Self {
         let current = default();
@@ -2098,7 +2102,8 @@ pub struct NumberLexingState<Logger> {
     logger : Logger,
 }
 
-impl<Logger:AnyLogger> NumberLexingState<Logger> {
+impl<Logger> NumberLexingState<Logger>
+where Logger : AnyLogger + LoggerOps<DebugLevel> {
     /// Create a new number lexing state.
     pub fn new(logger:Logger) -> Self {
         let base    = default();
@@ -2162,7 +2167,8 @@ pub struct BlockLexingState<Logger> {
     logger : Logger,
 }
 
-impl<Logger:AnyLogger> BlockLexingState<Logger> {
+impl<Logger> BlockLexingState<Logger>
+where Logger : AnyLogger + LoggerOps<DebugLevel> {
     /// Construct a new block lexing state.
     pub fn new(logger:Logger) -> Self {
         let stack                = default();
@@ -2353,7 +2359,8 @@ pub struct TextLexingState<Logger> {
     logger : Logger
 }
 
-impl<Logger:AnyLogger> TextLexingState<Logger> {
+impl<Logger> TextLexingState<Logger>
+where Logger : AnyLogger + LoggerOps<DebugLevel> {
     /// Construct a new text lexing state.
     pub fn new(logger:Logger) -> TextLexingState<Logger> {
         let text_stack = default();
@@ -2621,7 +2628,8 @@ pub struct CommentLexingState<Logger> {
     logger : Logger
 }
 
-impl<Logger:AnyLogger> CommentLexingState<Logger> {
+impl<Logger> CommentLexingState<Logger>
+where Logger : AnyLogger + LoggerOps<DebugLevel> {
     /// Construct a new comment state with the provided `logger`.
     pub fn new(logger:Logger) -> Self {
         let current_comment = default();

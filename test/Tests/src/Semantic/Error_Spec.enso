@@ -23,6 +23,21 @@ spec =
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type "aaa").to_default_visualization_data
             json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type"]]).to_text
+
+        Test.specify "should be able to be shown in the default vector visualization" <|
+            vec = [My_Type "bar", Error.throw (My_Type 42)]
+            visualization_text = vec.to_default_visualization_data
+            expected_json = Json.parse '''
+                [
+                  { "foo":"bar",
+                    "type":"My_Type"
+                  },
+                  { "content":{ "foo":42, "type":"My_Type" },
+                    "message":"My_Type",
+                    "type":"Error"
+                  }
+                ]
+            visualization_text.should_equal expected_json.to_text
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
         Test.specify "should be able to be mapped" <|

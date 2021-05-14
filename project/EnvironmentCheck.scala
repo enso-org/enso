@@ -76,14 +76,17 @@ object EnvironmentCheck {
     val cmd = "rustc --version"
 
     try {
-      val versionStr = cmd.!!.trim.substring(6)
+      val versionStr = cmd.!!.trim
 
-      if (versionStr != expectedVersion)
+      val contained = versionStr.contains(expectedVersion)
+
+      if (!contained) {
         log.error(
           s"Rust version mismatch. $expectedVersion is expected, " +
           s"but it seems $versionStr is installed."
         )
-      versionStr == expectedVersion
+      }
+      contained
     } catch {
       case _ @(_: RuntimeException | _: IOException) =>
         log.error("Rust version check failed. Make sure rustc is in your PATH.")
