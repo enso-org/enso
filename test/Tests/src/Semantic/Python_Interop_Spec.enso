@@ -26,8 +26,8 @@ type My_Type
     foreign python do_catch = """
         try:
             self.do_throw()
-        except Exception as e:
-            return e.a
+        except: # Polyglot exceptions can only be caught with except-all.
+            return self.a
 
 foreign python make_object = """
     class My:
@@ -90,7 +90,8 @@ spec =
                 _ -> False
             t.should_be_true
 
-        Test.specify "should make Python numbers type pattern-matchable" <|
+        pending_pat = "Python numbers are currently not being converted."
+        Test.specify "should make Python numbers type pattern-matchable" pending=pending_pat <|
             int_match = case here.make_int of
                 Integer -> True
             int_match.should_be_true
@@ -111,8 +112,7 @@ spec =
             err.cause.args.at 0 . should_equal 'Error!'
             err.cause.to_text . should_equal "RuntimeError('Error!')"
 
-        pending_msg = "Graalpython does not support handling interop exceptions"
-        Test.specify "should allow Python to catch Enso exceptions" pending=pending_msg <|
+        Test.specify "should allow Python to catch Enso exceptions" <|
             value = My_Type 7 2
             result = value.do_catch
             result . should_equal 7

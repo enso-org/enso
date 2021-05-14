@@ -2,7 +2,6 @@ import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
-import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 import java.io.File
@@ -12,8 +11,8 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion = "2.13.5"
-val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val graalVersion  = "21.0.0.2"
+val rustVersion   = "1.54.0-nightly"
+val graalVersion  = "21.1.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.2.12-SNAPSHOT" // Note [Engine And Launcher Version]
 
@@ -25,8 +24,8 @@ val ensoVersion   = "0.2.12-SNAPSHOT" // Note [Engine And Launcher Version]
  * scripts at .github/workflows accordingly.
  */
 
-organization in ThisBuild := "org.enso"
-scalaVersion in ThisBuild := scalacVersion
+ThisBuild / organization := "org.enso"
+ThisBuild / scalaVersion := scalacVersion
 
 lazy val gatherLicenses =
   taskKey[Unit]("Gathers licensing information for relevant dependencies")
@@ -101,13 +100,13 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // === Compiler Options =======================================================
 // ============================================================================
 
-javacOptions in ThisBuild ++= Seq(
+ThisBuild / javacOptions ++= Seq(
   "-encoding",   // Provide explicit encoding (the next line)
   "UTF-8",       // Specify character encoding used by Java source files.
   "-deprecation" // Shows a description of each use or override of a deprecated member or class.
 )
 
-scalacOptions in ThisBuild ++= Seq(
+ThisBuild / scalacOptions ++= Seq(
   "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
   "-encoding",                          // Provide explicit encoding (the next line)
   "utf-8",                              // Specify character encoding used by Scala source files.
@@ -150,7 +149,7 @@ val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 )
 
-scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
+Compile / console / scalacOptions ~= (_ filterNot (_ == "-Xfatal-warnings"))
 
 // ============================================================================
 // === Benchmark Configuration ================================================
@@ -455,7 +454,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Test / fork := true,
     testFrameworks := Nil,
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
+    Compile / run / mainClass := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
@@ -477,7 +476,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     inConfig(Benchmark)(Defaults.testSettings),
-    unmanagedSourceDirectories in Benchmark +=
+    Benchmark / unmanagedSourceDirectories +=
       baseDirectory.value.getParentFile / "shared/src/bench/scala",
     libraryDependencies +=
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
@@ -485,7 +484,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
     ),
-    bench := (test in Benchmark).tag(Exclusive).value
+    bench := (Benchmark / test).tag(Exclusive).value
   )
   .jsSettings(
     scalaJSUseMainModuleInitializer := false,
@@ -500,8 +499,8 @@ lazy val `lexer-bench` =
       commands += WithDebugCommand.withDebug,
       inConfig(Compile)(truffleRunOptionsSettings),
       inConfig(Benchmark)(Defaults.testSettings),
-      parallelExecution in Test := false,
-      logBuffered in Test := false,
+      Test / parallelExecution := false,
+      Test / logBuffered := false,
       Test / fork := true,
       libraryDependencies ++= jmh
     )
@@ -515,9 +514,9 @@ lazy val `lexer-bench` =
         "-Xmx4096m",
         "-XX:+FlightRecorder"
       ),
-      mainClass in Benchmark := Some("org.openjdk.jmh.Main"),
+      Benchmark / mainClass := Some("org.openjdk.jmh.Main"),
       bench := Def.task {
-        (run in Benchmark).toTask("").value
+        (Benchmark / run).toTask("").value
       },
       benchOnly := Def.inputTaskDyn {
         import complete.Parsers.spaceDelimited
@@ -527,10 +526,10 @@ lazy val `lexer-bench` =
             throw new IllegalArgumentException("Expected one argument.")
         }
         Def.task {
-          (testOnly in Benchmark).toTask(" -- -z " + name).value
+          (Benchmark / testOnly).toTask(" -- -z " + name).value
         }
       }.evaluated,
-      parallelExecution in Benchmark := false
+      Benchmark / parallelExecution := false
     )
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
@@ -581,7 +580,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
 
 lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
-    mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
+    Compile / run / mainClass := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
@@ -647,7 +646,7 @@ lazy val cli = project
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.typelevel" %% "cats-core" % catsVersion
     ),
-    parallelExecution in Test := false
+    Test / parallelExecution := false
   )
 
 lazy val `version-output` = (project in file("lib/scala/version-output"))
@@ -696,10 +695,10 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     )
   )
   .settings(
-    assemblyJarName in assembly := "project-manager.jar",
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("project-manager.jar"),
-    assemblyMergeStrategy in assembly := {
+    assembly / assemblyJarName := "project-manager.jar",
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("project-manager.jar"),
+    assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
@@ -715,9 +714,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
       .buildNativeImage(
         "project-manager",
         staticOnLinux = true,
-        additionalOptions = Seq(
-          "--enable-all-security-services" // Note [HTTPS in the Native Images]
-        )
+        initializeAtRuntime = Seq("scala.util.Random"),
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)
@@ -801,8 +798,8 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     version := "0.1",
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    parallelExecution in Test := false,
-    logBuffered in Test := false,
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"                %% "shapeless"    % shapelessVersion,
@@ -837,7 +834,7 @@ lazy val searcher = project
   .configs(Benchmark)
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
-    fork in Benchmark := true
+    Benchmark / fork := true
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
@@ -889,7 +886,7 @@ lazy val `polyglot-api` = project
     ),
     scalacOptions ++= splainOptions,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task
+    Compile / sourceGenerators += GenerateFlatbuffers.task
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
@@ -911,15 +908,15 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
       "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
     ),
-    testOptions in Test += Tests
+    Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task
+    Compile / sourceGenerators += GenerateFlatbuffers.task
   )
   .configs(Benchmark)
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
-    bench := (test in Benchmark).value,
+    bench := (Benchmark / test).value,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
       new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -974,8 +971,8 @@ lazy val runtime = (project in file("engine/runtime"))
     cleanInstruments := FixInstrumentsGeneration.cleanInstruments.value,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    parallelExecution in Test := false,
-    logBuffered in Test := false,
+    Test / parallelExecution := false,
+    Test / logBuffered := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ jaxb ++ Seq(
@@ -1040,7 +1037,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .value
   )
   .settings(
-    bench := (test in Benchmark).tag(Exclusive).value,
+    bench := (Benchmark / test).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
       val name = spaceDelimited("<name>").parsed match {
@@ -1048,16 +1045,16 @@ lazy val runtime = (project in file("engine/runtime"))
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
       Def.task {
-        (testOnly in Benchmark).toTask(" -- -z " + name).value
+        (Benchmark / testOnly).toTask(" -- -z " + name).value
       }
     }.evaluated,
-    parallelExecution in Benchmark := false
+    Benchmark / parallelExecution := false
   )
   .settings(
-    assemblyJarName in assembly := "runtime.jar",
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("runtime.jar"),
-    assemblyMergeStrategy in assembly := {
+    assembly / assemblyJarName := "runtime.jar",
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("runtime.jar"),
+    assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
@@ -1102,12 +1099,12 @@ lazy val `engine-runner` = project
           .mkString(File.pathSeparator)
       Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
     },
-    mainClass in (Compile, run) := Some("org.enso.runner.Main"),
-    mainClass in assembly := (Compile / run / mainClass).value,
-    assemblyJarName in assembly := "runner.jar",
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("runner.jar"),
-    assemblyMergeStrategy in assembly := {
+    Compile / run / mainClass := Some("org.enso.runner.Main"),
+    assembly / mainClass := (Compile / run / mainClass).value,
+    assembly / assemblyJarName := "runner.jar",
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("runner.jar"),
+    assembly / assemblyMergeStrategy := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
@@ -1131,7 +1128,7 @@ lazy val `engine-runner` = project
       "org.jline"           % "jline"        % jlineVersion,
       "org.typelevel"      %% "cats-core"    % catsVersion
     ),
-    connectInput in run := true
+    run / connectInput := true
   )
   .settings(
     assembly := assembly
@@ -1164,7 +1161,6 @@ lazy val launcher = project
         "enso",
         staticOnLinux = true,
         additionalOptions = Seq(
-          "--enable-all-security-services", // Note [HTTPS in the Native Images]
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$"
         ),
@@ -1182,15 +1178,15 @@ lazy val launcher = project
         "enso"
       )
       .value,
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("launcher.jar")
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("launcher.jar")
   )
   .settings(
     (Test / test) := (Test / test)
       .dependsOn(buildNativeImage)
       .dependsOn(LauncherShimsForTest.prepare(rustcVersion = rustVersion))
       .value,
-    parallelExecution in Test := false
+    Test / parallelExecution := false
   )
   .dependsOn(cli)
   .dependsOn(`runtime-version-manager`)
@@ -1228,7 +1224,7 @@ lazy val `runtime-version-manager-test` = project
       "commons-io"                  % "commons-io"    % commonsIoVersion
     )
   )
-  .settings(parallelExecution in Test := false)
+  .settings(Test / parallelExecution := false)
   .settings(
     (Test / test) := (Test / test)
       .dependsOn(`locking-test-helper` / assembly)
@@ -1241,8 +1237,8 @@ lazy val `runtime-version-manager-test` = project
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))
   .settings(
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("locking-test-helper.jar")
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("locking-test-helper.jar")
   )
 
 val `std-lib-root`           = file("distribution/std-lib/")
@@ -1273,18 +1269,6 @@ lazy val `std-bits` = project
       result
     }.value
   )
-
-/* Note [HTTPS in the Native Images]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * The launcher and project-manager use Akka Http for making web requests. They
- * do not use Java's stdlib implementation, because there is a bug (not fixed in
- * JDK 11) (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS
- * handling that causes long running requests to freeze forever. However, Akka
- * Http still needs the stdlib's SSL implementation which is not included in the
- * Native Images by default (because of its size). The
- * `--enable-all-security-services` flag is used to ensure it is available in
- * the built executable.
- */
 
 /* Note [Native Image Workaround for GraalVM 20.2]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
