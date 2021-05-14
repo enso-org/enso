@@ -11,6 +11,7 @@ import scala.util.Using
   * Currently these settings are used to configure logging inside of tests.
   */
 object LoggingSettings {
+
   private val propertiesFilename     = "logging.properties"
   private val testLoggingPropertyKey = "test-log-level"
   private val loggingProperties: Properties = {
@@ -23,6 +24,9 @@ object LoggingSettings {
       }
     props
   }
+
+  val loggerConfigs: Seq[LoggerConfig] =
+    Seq(LoggerConfig("slick", LogLevel.Error))
 
   /** Indicates the log level to be used in test mode.
     *

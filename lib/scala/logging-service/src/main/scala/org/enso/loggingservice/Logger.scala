@@ -22,7 +22,7 @@ class Logger(
   override def getName: String = name
 
   private def isEnabled(level: LogLevel): Boolean =
-    connection.isEnabled(level)
+    connection.isEnabled(name, level)
 
   private def log(
     level: LogLevel,

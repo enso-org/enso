@@ -2,8 +2,7 @@ package org.enso.loggingservice.internal
 
 import org.enso.loggingservice.LogLevel
 
-/** An interface that allows to send log messages to the logging service.
-  */
+/** An interface that allows to send log messages to the logging service. */
 trait LoggerConnection {
 
   /** Sends a message to the logging service.
@@ -22,8 +21,15 @@ trait LoggerConnection {
     */
   def logLevel: LogLevel
 
-  /** Tells if messages with the provided log level should be sent.
-    */
-  def isEnabled(level: LogLevel): Boolean =
-    implicitly[Ordering[LogLevel]].lteq(level, logLevel)
+  def loggerConfigs: Seq[LoggerConfig]
+
+  /** Tells if messages with the provided log level should be sent. */
+  def isEnabled(name: String, level: LogLevel): Boolean = {
+    val groupLevel =
+      loggerConfigs
+        .find(config => name.startsWith(config.name))
+        .map(_.level)
+        .getOrElse(logLevel)
+    implicitly[Ordering[LogLevel]].lteq(level, groupLevel)
+  }
 }

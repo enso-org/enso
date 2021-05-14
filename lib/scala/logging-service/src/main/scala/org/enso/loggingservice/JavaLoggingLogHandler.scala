@@ -16,7 +16,7 @@ class JavaLoggingLogHandler(
     */
   override def publish(record: LogRecord): Unit = {
     val level = levelMapping(record.getLevel)
-    if (connection.isEnabled(level)) {
+    if (connection.isEnabled(record.getLoggerName, level)) {
       val message = InternalLogMessage(
         level     = level,
         timestamp = record.getInstant,
