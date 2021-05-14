@@ -28,7 +28,7 @@ object GenerateFlatbuffers {
       streams.value.cacheStoreFactory.make("flatc_generated_sources")
     val schemaSourcesStore =
       streams.value.cacheStoreFactory.make("flatc_schemas")
-    val out              = (sourceManaged in Compile).value
+    val out              = (Compile / sourceManaged).value
     val generatedSources = gatherGeneratedSources(schemas, out, log)
 
     Tracked.diffOutputs(generatedSourcesStore, FileInfo.exists)(

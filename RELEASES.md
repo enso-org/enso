@@ -1,5 +1,12 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Upgraded the underlying runtime to
+  [GraalVM 21.1.0](https://github.com/graalvm/graalvm-ce-builds/releases/tag/vm-21.1.0)
+  ([#1738](https://github.com/enso-org/enso/pull/1738)). This brings a raft of
+  bug-fixes and improvements to how quickly Enso can reach its peak performance.
+
 ## Tooling
 
 - Added support for higher-kinded types in suggestions in the language server
