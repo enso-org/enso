@@ -16,42 +16,39 @@ object DocsGeneratorBench extends Bench.OfflineRegressionReport {
   def exp(i: Int): Gen[Int] =
     Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
 
-  def gen(range: Gen[Int], f: Int => String): Gen[String] =
+  def gen(range: Gen[Int], f: Int => List[String]): Gen[String] =
     for { i <- range } yield f(i)
 
   val tests = List(
-    "formatters" -> gen(exp(14), i => "*foo bar*\n" * i),
-    "unclosed"   -> gen(exp(14), i => "*_foobar*\n" * i),
-    "combined"   -> gen(exp(14), i => "*_~fo0~_*\n" * i),
-    "normal"     -> gen(exp(14), i => "test12345\n" * i),
-    "link"       -> gen(exp(14), i => "[foo](bo)\n" * i),
-    "tags"       -> gen(exp(14), i => "ADDED\nfoo\n" * i),
+    "formatters" -> gen(exp(14), i => List.fill(i)("*foo bar*\n")),
+    "unclosed"   -> gen(exp(14), i => List.fill(i)("*_foobar*\n")),
+    "combined"   -> gen(exp(14), i => List.fill(i)("*_~fo0~_*\n")),
+    "normal"     -> gen(exp(14), i => List.fill(i)("test12345\n")),
+    "link"       -> gen(exp(14), i => List.fill(i)("[foo](bo)\n")),
+    "tags"       -> gen(exp(14), i => List.fill(i)("ADDED\nfoo\n")),
     "list" -> gen(
       exp(13),
-      i => """foo
-             |  - A
-             |  - B
-             |  - C
-             |""".stripMargin * i
+      i => List.fill(i)("""foo
+                          |  - A
+                          |  - B
+                          |  - C
+                          |""".stripMargin)
     ),
     "list_nested" -> gen(
       exp(12),
-      i => """foo
-             |  - A
-             |  - B
-             |    * CA
-             |    * CB
-             |  - D
-             |""".stripMargin * i
+      i => List.fill(i)("""foo
+                          |  - A
+                          |  - B
+                          |    * CA
+                          |    * CB
+                          |  - D
+                          |""".stripMargin)
     ),
-    "sections" -> gen(
-      exp(13),
-      i => "Foo\n\n!B\n\n?C \n\n>D \n\n" * i
-    )
+    "sections" -> gen(exp(13), i => List.fill(i)("Foo\n\n!B\n\n?C \n\n>D \n\n"))
   )
 
   def run(str: String): List[String] = DocsGenerator.generate(List(str))
-  performance of "DocParser" in {
+  performance of "Docs Generator" in {
     tests.foreach { case (name, gen) =>
       measure method name in (using(gen) in run)
     }
