@@ -10,6 +10,8 @@
 - Implemented log masking ([#1732](https://github.com/enso-org/enso/pull/1732)).
   This feature masks personally identifiable information in the logs, such as
   code literals, computed values, and user environment variables.
+- Added logging of internal Language Server operations
+  ([#1719](https://github.com/enso-org/enso/pull/1719)).
 
 ## Libraries
 
