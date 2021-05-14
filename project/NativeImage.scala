@@ -35,7 +35,7 @@ object NativeImage {
     * @param additionalOptions additional options for the Native Image build
     *                          tool
     * @param memoryLimitMegabytes a memory limit for the build tool, in
-    *                             gigabytes; it is good to set this limit to
+    *                             megabytes; it is good to set this limit to
     *                             make GC more aggressive thus allowing it to
     *                             build successfully even with limited memory
     * @param initializeAtRuntime a list of classes that should be initialized at
