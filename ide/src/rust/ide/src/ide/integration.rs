@@ -131,9 +131,6 @@ impl<Parameter:frp::Data> FencedAction<Parameter> {
 /// until the generated name does not collide with any known identifier.
 const COLLAPSED_FUNCTION_NAME:&str = "func";
 
-/// The gap between nodes in pixels on default node layout (when user did not set any position of
-/// node - possibly when node was added by editing text).
-const DEFAULT_GAP_BETWEEN_NODES : f32 = ide_view::project::NEW_NODE_Y_GAP;
 /// The default X position of the node when user did not set any position of node - possibly when
 /// node was added by editing text.
 const DEFAULT_NODE_X_POSITION   : f32 = -100.0;
@@ -533,7 +530,7 @@ impl Model {
             .unwrap_or(base_default_position);
 
         let default_positions : HashMap<_,_> = (1..).zip(&without_pos).map(|(i,node)| {
-            let dy = i as f32 * DEFAULT_GAP_BETWEEN_NODES;
+            let dy = i as f32 * self.view.default_gap_between_nodes.value();
             let pos = Vector2::new(bottommost_node_pos.x, bottommost_node_pos.y - dy);
             (node.info.id(), pos)
         }).collect();

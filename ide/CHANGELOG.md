@@ -125,6 +125,9 @@ you can find their release notes
   values of the precomputed bins, which is useful when the dataset is relatively
   big, and it's cheaper to send the precomputed bins rather than the entire
   dataset.
+- [Output type labels.][1427] The labels, that show the output type of a node on
+  hover, appear now in a fixed position right below the node, instead of a
+  pop-up, as they did before.
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 

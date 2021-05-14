@@ -55,7 +55,7 @@ const ERROR_VISUALIZATION_SIZE       : (f32,f32) = visualization::container::DEF
 
 const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
 
-const VIS_PREVIEW_ONSET_MS   : f32 = 3000.0;
+const VIS_PREVIEW_ONSET_MS   : f32 = 4000.0;
 const ERROR_PREVIEW_ONSET_MS : f32 = 0000.0;
 /// A type of unresolved methods. We filter them out, because we don't want to treat them as types
 /// for ports and edges coloring (due to bad UX otherwise).
@@ -583,7 +583,7 @@ impl Node {
 
             // === Action Bar ===
 
-            let visualization_enabled = action_bar.action_visbility.clone_ref();
+            let visualization_enabled = action_bar.action_visibility.clone_ref();
             out.source.skip   <+ action_bar.action_skip;
             out.source.freeze <+ action_bar.action_freeze;
             eval out.hover ((t) action_bar.set_visibility(t));
@@ -635,11 +635,11 @@ impl Node {
             preview_visible         <- preview_visible && has_expression;
             preview_visible         <- preview_visible.on_change();
 
-            visualization_visible <- visualization_enabled || preview_visible;
-            visualization_visible <- visualization_visible && no_error_set;
-            visualization_visible <- visualization_visible.on_change();
+            visualization_visible            <- visualization_enabled || preview_visible;
+            visualization_visible            <- visualization_visible && no_error_set;
+            visualization_visible_on_change  <- visualization_visible.on_change();
             frp.source.visualization_enabled <+ visualization_enabled || preview_visible;
-            eval visualization_visible ((is_visible)
+            eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
             );
 
@@ -698,7 +698,14 @@ impl Node {
             frp.source.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
+            // === Output Label ===
+
+            model.output.set_type_label_visibility
+                <+ visualization_visible.not().and(&no_error_set);
+
+
             // === VCS Handling ===
+
             model.vcs_indicator.frp.set_status <+ frp.set_vcs_status;
         }
 

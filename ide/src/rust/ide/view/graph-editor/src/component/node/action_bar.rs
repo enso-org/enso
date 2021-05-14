@@ -60,11 +60,11 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        mouse_over       (),
-        mouse_out        (),
-        action_visbility (bool),
-        action_freeze    (bool),
-        action_skip      (bool),
+        mouse_over        (),
+        mouse_out         (),
+        action_visibility (bool),
+        action_freeze     (bool),
+        action_skip       (bool),
     }
 }
 
@@ -284,9 +284,9 @@ impl ActionBar {
 
             // === Icon Actions ===
 
-            frp.source.action_skip      <+ model.icons.skip.state;
-            frp.source.action_freeze    <+ model.icons.freeze.state;
-            frp.source.action_visbility <+ model.icons.visibility.state;
+            frp.source.action_skip       <+ model.icons.skip.state;
+            frp.source.action_freeze     <+ model.icons.freeze.state;
+            frp.source.action_visibility <+ model.icons.visibility.state;
         }
 
         let color_scheme = toggle_button::ColorScheme {
