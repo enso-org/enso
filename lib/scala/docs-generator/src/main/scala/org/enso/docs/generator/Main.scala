@@ -6,7 +6,7 @@ import scala.util.{Try, Using}
 import scala.io.Source
 import scalatags.Text.{all => HTML}
 import TreeOfCommonPrefixes._
-import DocsGenerator._
+import DocParserWrapper._
 import Constants._
 import HTML._
 
