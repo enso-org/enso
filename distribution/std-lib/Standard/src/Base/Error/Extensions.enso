@@ -84,6 +84,23 @@ Error.to_default_visualization_data = this.catch .to_default_visualization_data
 Error.to_display_text : Text
 Error.to_display_text  = "Error: " + (this.catch .to_display_text)
 
+## UNSTABLE
+
+   Returns a JSON representation of the dataflow error.
+
+   > Example
+     Converting a dataflow error to JSON.
+
+         import Standard.Examples
+
+         example_to_json = Examples.throw_error.to_json
+Error.to_json : Json.Object
+Error.to_json =
+    error_type = ["type", "Error"]
+    error_content = ["content", this.catch .to_json]
+    error_message = ["message", this.catch .to_display_text]
+    Json.from_pairs [error_type, error_content, error_message]
+
 ## Transforms an error.
 
    Arguments:
@@ -126,4 +143,3 @@ Error.is_error = True
          example_rethrow = Panic.rethrow Examples.throw_error
 Panic.rethrow : (Any ! Any) -> Any
 Panic.rethrow value = value.catch Panic.throw
-
