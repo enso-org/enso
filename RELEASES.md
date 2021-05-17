@@ -33,6 +33,10 @@
 - Overhauled the types we use for errors throughout the standard library
   ([#1734](https://github.com/enso-org/enso/pull/1734)). They are now much more
   informative, and should provide more clarity when things go wrong.
+- Re-wrote the documentation generator for the Enso website from Python into
+  Scala ([#1729](https://github.com/enso-org/enso/pull/1729)). This has greatly
+  improved the performance, enabling us to generate the documentation structure
+  for the entire standard library 8-10 times faster than before.
 
 ## Miscellaneous
 
