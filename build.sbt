@@ -180,6 +180,7 @@ lazy val enso = (project in file("."))
     `json-rpc-server`,
     `language-server`,
     `parser-service`,
+    `docs-generator`,
     `polyglot-api`,
     `project-manager`,
     `syntax-definition`.jvm,
@@ -537,6 +538,16 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .settings(
     libraryDependencies ++= akka ++ akkaTest,
     mainClass := Some("org.enso.ParserServiceMain")
+  )
+
+lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
+  .dependsOn(syntax.jvm)
+  .dependsOn(cli)
+  .settings(
+    libraryDependencies ++= Seq(
+      "commons-cli" % "commons-cli" % commonsCliVersion
+    ),
+    mainClass := Some("org.enso.docs.generator.Main")
   )
 
 lazy val `text-buffer` = project
