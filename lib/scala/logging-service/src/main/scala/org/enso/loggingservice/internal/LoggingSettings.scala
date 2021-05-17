@@ -1,12 +1,9 @@
 package org.enso.loggingservice.internal
 
-import java.util.Properties
-
 import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.loggingservice.LogLevel
 
 import scala.collection.immutable.ListMap
-import scala.util.Using
 
 /** Reads logger settings from the resources.
   *
@@ -15,11 +12,12 @@ import scala.util.Using
 object LoggingSettings {
 
   private object Key {
-    val root   = "logging-service"
-    val logger = "logger"
+    val root         = "logging-service"
+    val logger       = "logger"
+    val testLogLevel = "test-log-level"
   }
 
-  private val configuration: Config = {
+  private lazy val configuration: Config = {
     val empty = ConfigFactory.empty().atKey(Key.logger).atKey(Key.root)
     ConfigFactory.load().withFallback(empty).getConfig(Key.root)
   }
@@ -29,7 +27,7 @@ object LoggingSettings {
     * @return a mapping from a logger name to the log level that will be used
     * for that logger.
     */
-  val loggers: Map[String, LogLevel] = {
+  lazy val loggers: Map[String, LogLevel] = {
     def normalize(key: String): String =
       key.replace("'", "").replace("\"", "")
 
@@ -53,32 +51,20 @@ object LoggingSettings {
     builder.result()
   }
 
-  private val propertiesFilename     = "logging.properties"
-  private val testLoggingPropertyKey = "test-log-level"
-  private val loggingProperties: Properties = {
-    val props = new Properties
-    Option(this.getClass.getClassLoader.getResourceAsStream(propertiesFilename))
-      .foreach { stream =>
-        val _ = Using(stream) { stream =>
-          props.load(stream)
-        }
-      }
-    props
-  }
-
   /** Indicates the log level to be used in test mode.
     *
     * If set to None, production logging should be used.
     */
-  val testLogLevel: Option[LogLevel] = Option(
-    loggingProperties.getProperty(testLoggingPropertyKey)
-  ).map { string =>
-    LogLevel.fromString(string).getOrElse {
-      System.err.println(
-        s"Invalid log level for $testLoggingPropertyKey set in " +
-        s"$propertiesFilename, falling back to info."
-      )
-      LogLevel.Info
+  lazy val testLogLevel: Option[LogLevel] = {
+    Option.when(configuration.hasPath(Key.testLogLevel)) {
+      val value = configuration.getString(Key.testLogLevel)
+      LogLevel.fromString(value).getOrElse {
+        System.err.println(
+          s"Invalid log level for key [${Key.testLogLevel}] set in " +
+          s"application config [$value], falling back to info."
+        )
+        LogLevel.Info
+      }
     }
   }
 
