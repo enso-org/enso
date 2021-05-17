@@ -19,6 +19,8 @@ class Logger(
   connection: LoggerConnection,
   masking: Masking
 ) extends SLF4JLogger {
+
+  /** @inheritdoc */
   override def getName: String = name
 
   private def isEnabled(level: LogLevel): Boolean =

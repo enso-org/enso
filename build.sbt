@@ -380,7 +380,7 @@ val kindProjectorVersion    = "0.11.3"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"
-val pureconfigVersion       = "0.13.0"
+val pureconfigVersion       = "0.15.0"
 val refinedVersion          = "0.9.14"
 val scalacheckVersion       = "1.14.3"
 val scalacticVersion        = "3.3.0-SNAP2"
@@ -393,7 +393,7 @@ val slf4jVersion            = "1.7.30"
 val slickVersion            = "3.3.2"
 val sqliteVersion           = "3.31.1"
 val tikaVersion             = "1.24.1"
-val typesafeConfigVersion   = "1.4.0"
+val typesafeConfigVersion   = "1.4.1"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -630,6 +630,7 @@ lazy val `logging-service` = project
     version := "0.1",
     libraryDependencies ++= Seq(
       "org.slf4j"                   % "slf4j-api"     % slf4jVersion,
+      "com.typesafe"                % "config"        % typesafeConfigVersion,
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       akkaStream,
       akkaHttp,

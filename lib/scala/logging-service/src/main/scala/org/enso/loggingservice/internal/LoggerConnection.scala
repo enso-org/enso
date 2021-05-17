@@ -21,15 +21,20 @@ trait LoggerConnection {
     */
   def logLevel: LogLevel
 
-  def loggerConfigs: Seq[LoggerConfig]
+  /** Extra logger settings overriding the default log level.
+    *
+    * @return a mapping from a logger name to the log level that will be used
+    * for that logger.
+    */
+  def loggers: Map[String, LogLevel]
 
   /** Tells if messages with the provided log level should be sent. */
   def isEnabled(name: String, level: LogLevel): Boolean = {
-    val groupLevel =
-      loggerConfigs
-        .find(config => name.startsWith(config.name))
-        .map(_.level)
+    val loggerLevel =
+      loggers
+        .find(entry => name.startsWith(entry._1))
+        .map(_._2)
         .getOrElse(logLevel)
-    implicitly[Ordering[LogLevel]].lteq(level, groupLevel)
+    implicitly[Ordering[LogLevel]].lteq(level, loggerLevel)
   }
 }

@@ -52,8 +52,8 @@ object LoggingServiceManager {
     override def logLevel: LogLevel = currentLevel
 
     /** @inheritdoc */
-    override def loggerConfigs: Seq[LoggerConfig] =
-      LoggingSettings.loggerConfigs
+    override def loggers: Map[String, LogLevel] =
+      LoggingSettings.loggers
   }
 
   /** Sets up the logging service, but in a separate thread to avoid stalling
