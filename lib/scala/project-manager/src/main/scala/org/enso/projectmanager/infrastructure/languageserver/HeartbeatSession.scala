@@ -59,6 +59,7 @@ class HeartbeatSession(
   override def preStart(): Unit = {
     connection.attachListener(self)
     connection.connect()
+    log.debug("Heartbeat connection initialized [{}].", socket)
   }
 
   override def receive: Receive = pingStage

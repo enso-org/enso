@@ -7,6 +7,7 @@ import java.util.concurrent.Executors
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
+import org.enso.logger.masking.Masking
 import org.enso.loggingservice.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
@@ -91,6 +92,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
         projectPath         = descriptor.rootPath,
         version             = descriptor.engineVersion,
         logLevel            = inheritedLogLevel,
+        logMasking          = Masking.isMaskingEnabled,
         additionalArguments = Seq()
       )
       .get

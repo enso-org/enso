@@ -10,6 +10,7 @@ import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.JsonSession
+import org.enso.logger.masking.ToLogString
 import org.enso.text.editing.model
 
 object ContextRegistryProtocol {
@@ -56,7 +57,16 @@ object ContextRegistryProtocol {
     rpcSession: JsonSession,
     contextId: ContextId,
     stackItem: StackItem
-  )
+  ) extends ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "PushContextRequest(" +
+      s"contextId=$contextId," +
+      s"rpcSession=$rpcSession," +
+      s"stackItem=${stackItem.toLogString(shouldMask)}" +
+      ")"
+  }
 
   /** A response about pushing the new item to the stack.
     *
@@ -311,7 +321,17 @@ object ContextRegistryProtocol {
     visualisationId: UUID,
     expressionId: UUID,
     visualisationConfig: VisualisationConfiguration
-  )
+  ) extends ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "AttachVisualisation(" +
+      s"clientId=$clientId," +
+      s"visualisationId=$visualisationId," +
+      s"expressionId=$expressionId,visualisationConfig=" +
+      visualisationConfig.toLogString(shouldMask) +
+      ")"
+  }
 
   /** Signals that attaching a visualisation has succeeded.
     */
@@ -347,7 +367,16 @@ object ContextRegistryProtocol {
     clientId: ClientId,
     visualisationId: UUID,
     visualisationConfig: VisualisationConfiguration
-  )
+  ) extends ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "ModifyVisualisation(" +
+      s"clientId=$clientId," +
+      s"visualisationId=$visualisationId,visualisationConfig=" +
+      visualisationConfig.toLogString(shouldMask) +
+      ")"
+  }
 
   /** Signals that a visualisation modification has succeeded.
     */
