@@ -28,9 +28,12 @@ object StackItem {
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
       "ExplicitCall(" +
-      s"methodPointer=$methodPointer," +
-      s"thisArgumentExpression=${thisArgumentExpression.map(MaskedString)}," +
-      s"positionalArgumentsExpressions=${positionalArgumentsExpressions.map(MaskedString)}" +
+      s"methodPointer=$methodPointer,thisArgumentExpression=" +
+      thisArgumentExpression.map(MaskedString).map(_.toLogString(shouldMask)) +
+      ",positionalArgumentsExpressions=" +
+      positionalArgumentsExpressions
+        .map(MaskedString)
+        .map(_.toLogString(shouldMask)) +
       ")"
   }
 
