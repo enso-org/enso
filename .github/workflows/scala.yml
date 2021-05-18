@@ -145,6 +145,9 @@ jobs:
         # uploaded from one of the runners.
         if: runner.os == 'Linux'
         run: sbt --no-colors syntaxJS/fullOptJS
+      - name: Build the docs from standard library sources.
+        if: runner.os == 'Linux'
+        run: sbt --no-colors docs-generator/run
 
       # Prepare distributions
       # The version used in filenames is based on the version of the launcher.
@@ -292,6 +295,17 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
+      #      - name: Publish the standard library docs
+      #        if: runner.os == 'Linux'
+      #        uses: andstor/copycat-action@v3
+      #        with:
+      #          personal_token: ${{ secrets.CI_PAT }}
+      #          src_path: ./distribution/std-lib/docs-js/
+      #          dst_path: /docs/reference/.
+      #          dst_branch: stdlib-update
+      #          dst_owner: enso-org
+      #          dst_repo_name: website
+      #          clean: true
       - name: Publish the Manifest
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v2
