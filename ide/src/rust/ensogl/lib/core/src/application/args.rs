@@ -74,7 +74,7 @@ impl ArgReader for bool {
 // =================
 
 /// Defines an application argument reader. As a result, a new lazy-initialized static variable
-/// `ARGS` will be created and it will read the arguments on its first access (in case you want to
+/// `ARGS` will be created, and it will read the arguments on its first access (in case you want to
 /// force argument read, use the `init` function).
 ///
 /// For example, given the following definition:

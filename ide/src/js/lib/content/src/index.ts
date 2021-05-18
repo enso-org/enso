@@ -64,7 +64,7 @@ async function wasm_instantiate_streaming(
         if (resource.headers.get('Content-Type') !== 'application/wasm') {
             console.warn(`${incorrect_mime_type_warning} Original error:\n`, e)
             const buffer = await resource.arrayBuffer()
-            return WebAssembly.instantiate(buffer,imports)
+            return WebAssembly.instantiate(buffer, imports)
         } else {
             throw "Server not configured to serve WASM with 'application/wasm' mime type."
         }
@@ -476,13 +476,24 @@ function ok(value: any) {
 }
 
 class Config {
+    public entry: string
+    public project: string
+    public project_manager: string
+    public language_server_rpc: string
+    public language_server_data: string
+    public platform: string
+    public frame: boolean
+    public theme: string
+    public dark_theme: boolean
+    public high_contrast: boolean
     public use_loader: boolean
     public wasm_url: string
     public wasm_glue_url: string
+    public node_labels: boolean
     public crash_report_host: string
     public no_data_gathering: boolean
     public is_in_cloud: boolean
-    public entry: string
+    public verbose: boolean
 
     static default() {
         let config = new Config()
@@ -500,21 +511,42 @@ class Config {
         if (!ok(other)) {
             return
         }
+        this.entry = ok(other.entry) ? tryAsString(other.entry) : this.entry
+        this.project = ok(other.project) ? tryAsString(other.project) : this.project
+        this.project_manager = ok(other.project_manager)
+            ? tryAsString(other.project_manager)
+            : this.project_manager
+        this.language_server_rpc = ok(other.language_server_rpc)
+            ? tryAsString(other.language_server_rpc)
+            : this.language_server_rpc
+        this.language_server_data = ok(other.language_server_data)
+            ? tryAsString(other.language_server_data)
+            : this.language_server_data
+        this.platform = ok(other.platform) ? tryAsString(other.platform) : this.platform
+        this.frame = ok(other.frame) ? tryAsBoolean(other.frame) : this.frame
+        this.theme = ok(other.theme) ? tryAsString(other.theme) : this.theme
+        this.dark_theme = ok(other.dark_theme) ? tryAsBoolean(other.dark_theme) : this.dark_theme
+        this.high_contrast = ok(other.high_contrast)
+            ? tryAsBoolean(other.high_contrast)
+            : this.high_contrast
         this.use_loader = ok(other.use_loader) ? tryAsBoolean(other.use_loader) : this.use_loader
+        this.wasm_url = ok(other.wasm_url) ? tryAsString(other.wasm_url) : this.wasm_url
+        this.wasm_glue_url = ok(other.wasm_glue_url)
+            ? tryAsString(other.wasm_glue_url)
+            : this.wasm_glue_url
+        this.node_labels = ok(other.node_labels)
+            ? tryAsBoolean(other.node_labels)
+            : this.node_labels
+        this.crash_report_host = ok(other.crash_report_host)
+            ? tryAsString(other.crash_report_host)
+            : this.crash_report_host
         this.no_data_gathering = ok(other.no_data_gathering)
             ? tryAsBoolean(other.no_data_gathering)
             : this.no_data_gathering
         this.is_in_cloud = ok(other.is_in_cloud)
             ? tryAsBoolean(other.is_in_cloud)
             : this.is_in_cloud
-        this.wasm_url = ok(other.wasm_url) ? tryAsString(other.wasm_url) : this.wasm_url
-        this.wasm_glue_url = ok(other.wasm_glue_url)
-            ? tryAsString(other.wasm_glue_url)
-            : this.wasm_glue_url
-        this.crash_report_host = ok(other.crash_report_host)
-            ? tryAsString(other.crash_report_host)
-            : this.crash_report_host
-        this.entry = ok(other.entry) ? tryAsString(other.entry) : this.entry
+        this.verbose = ok(other.verbose) ? tryAsBoolean(other.verbose) : this.verbose
     }
 }
 
