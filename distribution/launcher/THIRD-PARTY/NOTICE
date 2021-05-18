@@ -56,6 +56,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-core_2.13-0.14.0-M1`.
 
 
+'config', licensed under the Apache-2.0, is distributed with the launcher.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.1`.
+
+
 'akka-stream_2.13', licensed under the Apache-2.0, is distributed with the launcher.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-stream_2.13-2.6.6`.
@@ -74,11 +79,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'jawn-parser_2.13', licensed under the MIT, is distributed with the launcher.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.0.0`.
-
-
-'config', licensed under the Apache-2.0, is distributed with the launcher.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.0`.
 
 
 'akka-http_2.13', licensed under the Apache-2.0, is distributed with the launcher.
