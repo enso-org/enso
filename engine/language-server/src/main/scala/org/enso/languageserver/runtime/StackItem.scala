@@ -5,10 +5,11 @@ import java.util.UUID
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
+import org.enso.logger.masking.{MaskedString, ToLogString}
 
 /** A representation of an executable position in code.
   */
-sealed trait StackItem
+sealed trait StackItem extends ToLogString
 
 object StackItem {
 
@@ -22,13 +23,27 @@ object StackItem {
     methodPointer: MethodPointer,
     thisArgumentExpression: Option[String],
     positionalArgumentsExpressions: Vector[String]
-  ) extends StackItem
+  ) extends StackItem {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "ExplicitCall(" +
+      s"methodPointer=$methodPointer," +
+      s"thisArgumentExpression=${thisArgumentExpression.map(MaskedString)}," +
+      s"positionalArgumentsExpressions=${positionalArgumentsExpressions.map(MaskedString)}" +
+      ")"
+  }
 
   /** A call corresponding to "entering a function call".
     *
     * @param expressionId an expression identifier
     */
-  case class LocalCall(expressionId: UUID) extends StackItem
+  case class LocalCall(expressionId: UUID) extends StackItem {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      s"LocalCall(expressionId=$expressionId)"
+  }
 
   private object CodecField {
 

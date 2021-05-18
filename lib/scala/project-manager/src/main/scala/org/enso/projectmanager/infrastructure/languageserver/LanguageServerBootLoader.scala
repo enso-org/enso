@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
@@ -41,6 +42,7 @@ class LanguageServerBootLoader(
   executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
+    with ActorMessageLogging
     with UnhandledLogging {
 
   // TODO [RW] consider adding a stop timeout so that if the graceful stop on
@@ -60,34 +62,35 @@ class LanguageServerBootLoader(
     *
     * Once the ports are found, the process starts booting.
     */
-  private def findingSocket(retry: Int = 0): Receive = {
-    case FindFreeSocket =>
-      log.debug("Looking for available socket to bind the language server.")
-      val jsonRpcPort = findPort()
-      var binaryPort  = findPort()
-      while (binaryPort == jsonRpcPort) {
-        binaryPort = findPort()
-      }
-      log.info(
-        "Found sockets for the language server " +
-        "[json:{}:{}, binary:{}:{}].",
-        descriptor.networkConfig.interface,
-        jsonRpcPort,
-        descriptor.networkConfig.interface,
-        binaryPort
-      )
-      self ! Boot
-      context.become(
-        bootingFirstTime(
-          rpcPort    = jsonRpcPort,
-          dataPort   = binaryPort,
-          retryCount = retry
+  private def findingSocket(retry: Int = 0): Receive =
+    LoggingReceive.withLabel("findingSocket") {
+      case FindFreeSocket =>
+        log.debug("Looking for available socket to bind the language server.")
+        val jsonRpcPort = findPort()
+        var binaryPort  = findPort()
+        while (binaryPort == jsonRpcPort) {
+          binaryPort = findPort()
+        }
+        log.info(
+          "Found sockets for the language server " +
+          "[json:{}:{}, binary:{}:{}].",
+          descriptor.networkConfig.interface,
+          jsonRpcPort,
+          descriptor.networkConfig.interface,
+          binaryPort
         )
-      )
+        self ! Boot
+        context.become(
+          bootingFirstTime(
+            rpcPort    = jsonRpcPort,
+            dataPort   = binaryPort,
+            retryCount = retry
+          )
+        )
 
-    case GracefulStop =>
-      context.stop(self)
-  }
+      case GracefulStop =>
+        context.stop(self)
+    }
 
   /** This phase is triggered when the ports are found.
     *
@@ -98,13 +101,16 @@ class LanguageServerBootLoader(
     rpcPort: Int,
     dataPort: Int,
     retryCount: Int
-  ): Receive = booting(
-    rpcPort       = rpcPort,
-    dataPort      = dataPort,
-    shouldRetry   = true,
-    retryCount    = retryCount,
-    bootRequester = context.parent
-  )
+  ): Receive =
+    LoggingReceive.withLabel("bootingFirstTime") {
+      booting(
+        rpcPort       = rpcPort,
+        dataPort      = dataPort,
+        shouldRetry   = true,
+        retryCount    = retryCount,
+        bootRequester = context.parent
+      )
+    }
 
   /** A general booting phase.
     *
@@ -167,6 +173,79 @@ class LanguageServerBootLoader(
       context.children.foreach(_ ! LanguageServerProcess.Stop)
   }
 
+  /** After successful boot, we cannot stop as it would stop our child process,
+    * so we just wait for it to terminate.
+    *
+    * The restart command can trigger the restarting phase which consists of two
+    * parts: waiting for the old process to shutdown and rebooting a new one.
+    */
+  private def running(connectionInfo: LanguageServerConnectionInfo): Receive =
+    LoggingReceive.withLabel("running") {
+      case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
+        log.debug(
+          "Language Server process has terminated with exit code {}.",
+          exitCode
+        )
+        context.parent ! msg
+        context.stop(self)
+
+      case Restart =>
+        context.children.foreach(_ ! LanguageServerProcess.Stop)
+        context.become(
+          restartingWaitingForShutdown(
+            connectionInfo,
+            rebootRequester = sender()
+          )
+        )
+
+      case GracefulStop =>
+        context.children.foreach(_ ! LanguageServerProcess.Stop)
+    }
+
+  // TODO [RW] handling stop timeout (#1315)
+  //  may also consider a stop timeout for GracefulStop and killing the process?
+  /** First phase of restart waits fot the old process to shutdown and boots the
+    * new process.
+    */
+  def restartingWaitingForShutdown(
+    connectionInfo: LanguageServerConnectionInfo,
+    rebootRequester: ActorRef
+  ): Receive =
+    LoggingReceive.withLabel("restartingWaitingForShutdown") {
+      case LanguageServerProcess.ServerTerminated(exitCode) =>
+        log.debug(
+          "Language Server process has terminated (as requested to reboot) " +
+          "with exit code {}.",
+          exitCode
+        )
+
+        context.become(rebooting(connectionInfo, rebootRequester))
+        self ! Boot
+
+      case GracefulStop =>
+        context.children.foreach(_ ! LanguageServerProcess.Stop)
+    }
+
+  /** Currently rebooting does not retry.
+    *
+    * We cannot directly re-use the retry logic from the initial boot, because
+    * we need to keep the ports unchanged, since they are already passed to
+    * other components that will try to connect there.
+    */
+  def rebooting(
+    connectionInfo: LanguageServerConnectionInfo,
+    rebootRequester: ActorRef
+  ): Receive =
+    LoggingReceive.withLabel("rebooting") {
+      booting(
+        rpcPort       = connectionInfo.rpcPort,
+        dataPort      = connectionInfo.dataPort,
+        shouldRetry   = false,
+        retryCount    = config.numberOfRetries,
+        bootRequester = rebootRequester
+      )
+    }
+
   /** Handles a boot failure by logging it and depending on configuration,
     * retrying or notifying the proper actor about the failure.
     */
@@ -198,71 +277,6 @@ class LanguageServerBootLoader(
       context.stop(self)
     }
   }
-
-  /** After successful boot, we cannot stop as it would stop our child process,
-    * so we just wait for it to terminate.
-    *
-    * The restart command can trigger the restarting phase which consists of two
-    * parts: waiting for the old process to shutdown and rebooting a new one.
-    */
-  private def running(connectionInfo: LanguageServerConnectionInfo): Receive = {
-    case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
-      log.debug(
-        "Language Server process has terminated with exit code {}.",
-        exitCode
-      )
-      context.parent ! msg
-      context.stop(self)
-
-    case Restart =>
-      context.children.foreach(_ ! LanguageServerProcess.Stop)
-      context.become(
-        restartingWaitingForShutdown(connectionInfo, rebootRequester = sender())
-      )
-
-    case GracefulStop =>
-      context.children.foreach(_ ! LanguageServerProcess.Stop)
-  }
-
-  // TODO [RW] handling stop timeout (#1315)
-  //  may also consider a stop timeout for GracefulStop and killing the process?
-  /** First phase of restart waits fot the old process to shutdown and boots the
-    * new process.
-    */
-  def restartingWaitingForShutdown(
-    connectionInfo: LanguageServerConnectionInfo,
-    rebootRequester: ActorRef
-  ): Receive = {
-    case LanguageServerProcess.ServerTerminated(exitCode) =>
-      log.debug(
-        "Language Server process has terminated (as requested to reboot) " +
-        "with exit code {}.",
-        exitCode
-      )
-
-      context.become(rebooting(connectionInfo, rebootRequester))
-      self ! Boot
-
-    case GracefulStop =>
-      context.children.foreach(_ ! LanguageServerProcess.Stop)
-  }
-
-  /** Currently rebooting does not retry.
-    *
-    * We cannot directly re-use the retry logic from the initial boot, because
-    * we need to keep the ports unchanged, since they are already passed to
-    * other components that will try to connect there.
-    */
-  def rebooting(
-    connectionInfo: LanguageServerConnectionInfo,
-    rebootRequester: ActorRef
-  ): Receive = booting(
-    rpcPort       = connectionInfo.rpcPort,
-    dataPort      = connectionInfo.dataPort,
-    shouldRetry   = false,
-    retryCount    = config.numberOfRetries,
-    bootRequester = rebootRequester
-  )
 
   private def findPort(): Int =
     Tcp.findAvailablePort(

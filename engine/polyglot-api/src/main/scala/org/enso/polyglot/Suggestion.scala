@@ -3,6 +3,7 @@ package org.enso.polyglot
 import java.util.UUID
 
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
+import org.enso.logger.masking.ToLogString
 
 /** A search suggestion. */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -26,7 +27,7 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
     )
   )
 )
-sealed trait Suggestion {
+sealed trait Suggestion extends ToLogString {
 
   def externalId: Option[Suggestion.ExternalId]
   def module:     String
@@ -89,7 +90,18 @@ object Suggestion {
     isSuspended: Boolean,
     hasDefault: Boolean,
     defaultValue: Option[String]
-  )
+  ) extends ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Argument(" +
+      s"name=$name," +
+      s"reprType=$reprType," +
+      s"isSuspended=$isSuspended," +
+      s"hasDefault=$hasDefault,defaultValue=" +
+      (if (shouldMask) defaultValue.map(_ => STUB) else defaultValue) +
+      ")"
+  }
 
   /** Position in the text.
     *
@@ -122,6 +134,19 @@ object Suggestion {
     returnType: String,
     documentation: Option[String]
   ) extends Suggestion
+      with ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Atom(" +
+      s"externalId=$externalId," +
+      s"module=$module," +
+      s"name=$name," +
+      s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
+      s"returnType=$returnType,documentation=" +
+      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      ")"
+  }
 
   /** A function defined on a type or a module.
     *
@@ -142,6 +167,19 @@ object Suggestion {
     returnType: String,
     documentation: Option[String]
   ) extends Suggestion
+      with ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Method(" +
+      s"module=$module," +
+      s"name=$name," +
+      s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
+      s"selfType=$selfType," +
+      s"returnType=$returnType,documentation=" +
+      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      ")"
+  }
 
   /** A local function definition.
     *
@@ -160,6 +198,19 @@ object Suggestion {
     returnType: String,
     scope: Scope
   ) extends Suggestion
+      with ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "Function(" +
+      s"externalId=$externalId," +
+      s"module=$module," +
+      s"name=$name," +
+      s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
+      s"returnType=$returnType," +
+      s"scope=$scope" +
+      ")"
+  }
 
   /** A local value.
     *
@@ -175,5 +226,16 @@ object Suggestion {
     name: String,
     returnType: String,
     scope: Scope
-  ) extends Suggestion
+  ) extends Suggestion {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      s"Local(" +
+      s"externalId=$externalId," +
+      s"module=$module," +
+      s"name=$name," +
+      s"returnType=$returnType," +
+      s"scope=$scope" +
+      s")"
+  }
 }

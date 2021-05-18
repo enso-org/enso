@@ -28,7 +28,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
   override def receive: Receive = idle()
 
   private def idle(): Receive = { case ShutDownRuntime =>
-    log.info("Shutting down the runtime server.")
+    log.info("Shutting down the runtime server [{}].", runtimeConnector)
     runtimeConnector ! Api.Request(
       UUID.randomUUID(),
       Api.ShutDownRuntimeServer()
