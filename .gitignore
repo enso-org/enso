@@ -75,7 +75,7 @@ scaladoc/
 ## Benchmark Reports ##
 #######################
 
-bench-report.xml
+bench-report*.xml
 
 ##############
 ## Binaries ##
