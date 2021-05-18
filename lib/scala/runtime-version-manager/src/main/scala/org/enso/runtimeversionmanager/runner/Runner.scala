@@ -74,6 +74,7 @@ class Runner(
     project: Project,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
+    logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
     val version     = versionOverride.getOrElse(project.version)
@@ -83,6 +84,7 @@ class Runner(
       projectPath,
       version,
       logLevel,
+      logMasking,
       additionalArguments
     )
   }
@@ -93,6 +95,7 @@ class Runner(
     projectPath: String,
     version: SemVer,
     logLevel: LogLevel,
+    logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     Try {
@@ -110,7 +113,8 @@ class Runner(
         options.dataPort.toString,
         "--log-level",
         logLevel.name
-      )
+      ) ++
+        Option.unless(logMasking)("--no-log-masking")
       RunSettings(
         version,
         arguments ++ additionalArguments,

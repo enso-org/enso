@@ -7,7 +7,6 @@ import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
-import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.distribution.DistributionManager
@@ -70,7 +69,7 @@ class GlobalConfigurationManager(
       .recoverWith { case _: NoSuchFileException =>
         logger.debug(
           "Global config [{}] not found, falling back to defaults.",
-          MaskedPath(configLocation)
+          configLocation
         )
         Success(GlobalConfig.Default)
       }

@@ -912,6 +912,7 @@ lazy val `polyglot-api` = project
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
+  .dependsOn(`logging-utils`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
