@@ -70,6 +70,8 @@ package-lock.json
 
 javadoc/
 scaladoc/
+distribution/std-lib/docs
+distribution/std-lib/docs-js
 
 #######################
 ## Benchmark Reports ##

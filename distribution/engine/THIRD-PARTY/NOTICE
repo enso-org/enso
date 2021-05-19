@@ -166,6 +166,11 @@ The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.2`.
 
 
+'config', licensed under the Apache-2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.1`.
+
+
 'guava', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.google.guava.guava-29.0-jre`.
@@ -199,11 +204,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'jawn-parser_2.13', licensed under the MIT, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.0.0`.
-
-
-'config', licensed under the Apache-2.0, is distributed with the engine.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.0`.
 
 
 'circe-literal_2.13', licensed under the Apache 2.0, is distributed with the engine.

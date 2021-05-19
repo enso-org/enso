@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
+import org.enso.loggingservice.LogLevel
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
@@ -35,6 +36,7 @@ class MainModule[
   F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Applicative: Async
 ](
   config: ProjectManagerConfig,
+  logLevel: LogLevel,
   computeExecutionContext: ExecutionContext
 )(implicit
   E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
@@ -43,6 +45,7 @@ class MainModule[
 
   implicit val system =
     ActorSystem("project-manager", None, None, Some(computeExecutionContext))
+  system.eventStream.setLogLevel(LogLevel.toAkka(logLevel))
 
   implicit val materializer = SystemMaterializer.get(system)
 

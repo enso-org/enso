@@ -254,7 +254,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           contentRootPath     = projectPath,
           versionOverride     = None,
           additionalArguments = Seq("additional"),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
 
@@ -275,7 +276,8 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
           contentRootPath     = projectPath,
           versionOverride     = Some(overridden),
           additionalArguments = Seq(),
-          logLevel            = LogLevel.Info
+          logLevel            = LogLevel.Info,
+          logMasking          = true
         )
         .get
         .engineVersion shouldEqual overridden
