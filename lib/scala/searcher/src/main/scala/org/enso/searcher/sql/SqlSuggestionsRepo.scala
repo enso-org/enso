@@ -13,6 +13,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 }
 import org.enso.searcher.data.QueryResult
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import org.enso.docs.generator.DocParserWrapper
 import slick.jdbc.SQLiteProfile.api._
 import slick.jdbc.meta.MTable
 import slick.relational.RelationalProfile
@@ -992,7 +993,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
           returnType    = suggestion.returnType,
-          documentation = suggestion.documentation
+          documentation = docToHtmlCode(suggestion.documentation)
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
@@ -1003,7 +1004,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           arguments     = arguments.sortBy(_.index).map(toArgument),
           selfType      = suggestion.selfType,
           returnType    = suggestion.returnType,
-          documentation = suggestion.documentation
+          documentation = docToHtmlCode(suggestion.documentation)
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
@@ -1045,6 +1046,13 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
     }
+
+  private def docToHtmlCode(doc: Option[String]): Option[String] = {
+    doc match {
+      case Some(value) => Some(DocParserWrapper.runOnPureDoc(value))
+      case None        => None
+    }
+  }
 
   /** Convert the database row to the suggestion argument. */
   private def toArgument(row: ArgumentRow): Suggestion.Argument =
