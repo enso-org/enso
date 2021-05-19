@@ -37,6 +37,10 @@
   Scala ([#1729](https://github.com/enso-org/enso/pull/1729)). This has greatly
   improved the performance, enabling us to generate the documentation structure
   for the entire standard library 8-10 times faster than before.
+- Connected the documentation generator with Enso compiler and suggestion database, 
+  making the documentation generated before being sent to IDE, using faster scala-based
+  generator instead of ScalaJS-based on IDE's site, also enabling us to connect many
+  AST elements with docs. See ([#1744](https://github.com/enso-org/enso/pull/1744)
 
 ## Miscellaneous
 
