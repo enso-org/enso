@@ -29,7 +29,7 @@ object DocsGenerator {
     val astName = HTML.div(astHTML.header)
     astHTML.body match {
       case Some(body) =>
-        HTML.div(HTML.`class` := "main ml-20")(astName, html).render
+        HTML.div(HTML.`class` := "main ml-20")(astName, html, body).render
       case None => HTML.div(astName, html).render
     }
   }
