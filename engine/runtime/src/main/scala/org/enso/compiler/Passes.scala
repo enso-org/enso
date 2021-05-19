@@ -27,7 +27,8 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingAnalysis
+      BindingAnalysis,
+      GenerateDocumentation // TODO: Skip by default.
     )
   )
 
