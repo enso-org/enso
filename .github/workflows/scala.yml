@@ -111,7 +111,7 @@ jobs:
       - name: Build the PM Distribution
         run: |
           sleep 1
-          sbt --no-colors enso/buildProjectManagerDistribution
+          sbt --no-colors "enso/buildProjectManagerDistribution"
       - name: Build the Launcher
         run: |
           sleep 1
