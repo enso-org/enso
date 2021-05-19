@@ -21,7 +21,7 @@ case class VisualisationConfiguration(
   override def toLogString(shouldMask: Boolean): String =
     "VisualisationConfiguration(" +
     s"executionContextId=$executionContextId," +
-    s"visualisationModule=$visualisationModule" +
-    s",expression=${MaskedString(expression)}" +
+    s"visualisationModule=$visualisationModule,expression=" +
+    MaskedString(expression).toLogString(shouldMask) +
     ")"
 }

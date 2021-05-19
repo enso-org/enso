@@ -665,7 +665,7 @@ object Runtime {
       override def toLogString(shouldMask: Boolean): String =
         "StackTraceElement(" +
         s"functionName=$functionName," +
-        s"file=${file.map(f => MaskedPath(f.toPath))}" +
+        s"file=${file.map(f => MaskedPath(f.toPath).toLogString(shouldMask))}" +
         s"location=$location," +
         s"expressionId=$expressionId" +
         ")"
@@ -710,8 +710,8 @@ object Runtime {
         override def toLogString(shouldMask: Boolean): String =
           "Diagnostic(" +
           s"kind=$kind," +
-          s"message=${MaskedString(message)}," +
-          s"file=${file.map(f => MaskedPath(f.toPath))}," +
+          s"message=${MaskedString(message).toLogString(shouldMask)}," +
+          s"file=${file.map(f => MaskedPath(f.toPath).toLogString(shouldMask))}," +
           s"location=$location," +
           s"expressionId=$expressionId," +
           s"stack=${stack.map(_.toLogString(shouldMask))}" +
@@ -782,7 +782,7 @@ object Runtime {
         /** @inheritdoc */
         override def toLogString(shouldMask: Boolean): String =
           s"Failure(message=$message,file=" +
-          file.map(f => MaskedPath(f.toPath)) +
+          file.map(f => MaskedPath(f.toPath).toLogString(shouldMask)) +
           ")"
       }
 
@@ -1042,7 +1042,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "VisualisationExpressionFailed(" +
-        s"message=${MaskedString(message)}," +
+        s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"failure=${failure.map(_.toLogString(shouldMask))}" +
         ")"
     }
@@ -1071,7 +1071,7 @@ object Runtime {
         s"contextId=$contextId," +
         s"visualisationId=$visualisationId," +
         s"expressionId=$expressionId," +
-        s"message=${MaskedString(message)}," +
+        s"message=${MaskedString(message).toLogString(shouldMask)}," +
         s"diagnostic=${diagnostic.map(_.toLogString(shouldMask))}" +
         ")"
     }
@@ -1108,8 +1108,8 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "OpenFileNotification(" +
-        s"path=${MaskedPath(path.toPath)}," +
-        s"contents=${MaskedString(contents)}," +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
+        s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         s"isIndexed=$isIndexed" +
         ")"
     }
@@ -1127,7 +1127,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "EditFileNotification(" +
-        s"path=${MaskedPath(path.toPath)},edits=" +
+        s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
         ")"
     }
@@ -1143,7 +1143,7 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        s"CloseFileNotification(path=${MaskedPath(path.toPath)})"
+        s"CloseFileNotification(path=${MaskedPath(path.toPath).toLogString(shouldMask)})"
     }
 
     /** Notification sent from the server to the client upon successful
@@ -1262,7 +1262,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
-        s"file=${MaskedPath(file.toPath)}," +
+        s"file=${MaskedPath(file.toPath).toLogString(shouldMask)}," +
         s"version=$version," +
         s"actions=$actions," +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +

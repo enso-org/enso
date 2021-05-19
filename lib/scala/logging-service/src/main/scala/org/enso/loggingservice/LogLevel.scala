@@ -3,8 +3,7 @@ package org.enso.loggingservice
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 
-/** Defines a log level for log messages.
-  */
+/** Defines a log level for log messages. */
 sealed abstract class LogLevel(final val name: String, final val level: Int) {
 
   /** Determines if a component running on `this` log level should log the
@@ -73,8 +72,7 @@ object LogLevel {
     */
   implicit val ord: Ordering[LogLevel] = (x, y) => x.level - y.level
 
-  /** [[Encoder]] instance for [[LogLevel]].
-    */
+  /** [[Encoder]] instance for [[LogLevel]]. */
   implicit val encoder: Encoder[LogLevel] = {
     case Off =>
       throw new IllegalArgumentException(
@@ -83,6 +81,15 @@ object LogLevel {
       )
     case level =>
       level.level.asJson
+  }
+
+  /** [[Decoder]] instance for [[LogLevel]]. */
+  implicit val decoder: Decoder[LogLevel] = { json =>
+    json.as[Int].flatMap { level =>
+      fromInteger(level).toRight(
+        DecodingFailure(s"`$level` is not a valid log level.", json.history)
+      )
+    }
   }
 
   /** Creates a [[LogLevel]] from its integer representation.
@@ -103,25 +110,16 @@ object LogLevel {
     *
     * Returns None if the value does not represent a valid log level.
     */
-  def fromString(level: String): Option[LogLevel] = level match {
-    case Off.name     => Some(Off)
-    case Error.name   => Some(Error)
-    case Warning.name => Some(Warning)
-    case Info.name    => Some(Info)
-    case Debug.name   => Some(Debug)
-    case Trace.name   => Some(Trace)
-    case _            => None
-  }
-
-  /** [[Decoder]] instance for [[LogLevel]].
-    */
-  implicit val decoder: Decoder[LogLevel] = { json =>
-    json.as[Int].flatMap { level =>
-      fromInteger(level).toRight(
-        DecodingFailure(s"`$level` is not a valid log level.", json.history)
-      )
+  def fromString(level: String): Option[LogLevel] =
+    level.toLowerCase match {
+      case Off.name     => Some(Off)
+      case Error.name   => Some(Error)
+      case Warning.name => Some(Warning)
+      case Info.name    => Some(Info)
+      case Debug.name   => Some(Debug)
+      case Trace.name   => Some(Trace)
+      case _            => None
     }
-  }
 
   /** Converts our internal [[LogLevel]] to the corresponding instance of
     * Akka-specific log level.

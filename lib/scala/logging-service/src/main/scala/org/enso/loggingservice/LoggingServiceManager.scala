@@ -44,14 +44,16 @@ object LoggingServiceManager {
     */
   object Connection extends LoggerConnection {
 
-    /** @inheritdoc
-      */
+    /** @inheritdoc */
     override def send(message: InternalLogMessage): Unit =
       messageQueue.send(Left(message))
 
-    /** @inheritdoc
-      */
+    /** @inheritdoc */
     override def logLevel: LogLevel = currentLevel
+
+    /** @inheritdoc */
+    override def loggers: Map[String, LogLevel] =
+      LoggingSettings.loggers
   }
 
   /** Sets up the logging service, but in a separate thread to avoid stalling
