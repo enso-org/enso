@@ -111,7 +111,7 @@ jobs:
       - name: Build the Launcher
         run: |
           sleep 1
-          sbt --no-colors launcher/buildNativeImage
+          sbt --no-colors "launcher/buildNativeImage"
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
