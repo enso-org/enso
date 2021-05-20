@@ -16,11 +16,6 @@ libc licensed under the MIT license. Its copyright notice is included in file
 ------------------------------
 
 
-'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-core_2.13-0.13.0`.
-
-
 'zio-interop-cats_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `dev.zio.zio-interop-cats_2.13-2.1.4.0`.
@@ -29,6 +24,11 @@ Copyright notices related to this dependency can be found in the directory `dev.
 'commons-compress', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-compress-1.20`.
+
+
+'pureconfig-generic-base_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic-base_2.13-0.15.0`.
 
 
 'paranamer', licensed under the BSD, is distributed with the project-manager.
@@ -48,7 +48,7 @@ Copyright notices related to this dependency can be found in the directory `com.
 
 'shapeless_2.13', licensed under the Apache 2, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.3`.
+Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.4`.
 
 
 'commons-lang3', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
@@ -74,11 +74,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'akka-actor_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-actor_2.13-2.6.6`.
-
-
-'pureconfig-generic-base_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic-base_2.13-0.13.0`.
 
 
 'commons-io', licensed under the Apache License, Version 2.0, is distributed with the project-manager.
@@ -116,14 +111,14 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.module.jackson-module-paranamer-2.11.1`.
 
 
+'config', licensed under the Apache-2.0, is distributed with the project-manager.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.1`.
+
+
 'akka-stream_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.akka.akka-stream_2.13-2.6.6`.
-
-
-'pureconfig-generic_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic_2.13-0.13.0`.
 
 
 'akka-http-core_2.13', licensed under the Apache-2.0, is distributed with the project-manager.
@@ -139,11 +134,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'jawn-parser_2.13', licensed under the MIT, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `org.typelevel.jawn-parser_2.13-1.0.0`.
-
-
-'config', licensed under the Apache-2.0, is distributed with the project-manager.
-The license file can be found at `licenses/APACHE2.0`.
-Copyright notices related to this dependency can be found in the directory `com.typesafe.config-1.4.0`.
 
 
 'circe-literal_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
@@ -226,19 +216,24 @@ The license file can be found at `licenses/Bouncy_Castle_Licence.txt`.
 Copyright notices related to this dependency can be found in the directory `org.bouncycastle.bcprov-jdk15on-1.65`.
 
 
-'pureconfig-macros_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-macros_2.13-0.13.0`.
-
-
 'circe-yaml_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-yaml_2.13-0.13.1`.
 
 
+'pureconfig_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig_2.13-0.15.0`.
+
+
 'circe-parser_2.13', licensed under the Apache 2.0, is distributed with the project-manager.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.circe.circe-parser_2.13-0.14.0-M1`.
+
+
+'pureconfig-core_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-core_2.13-0.15.0`.
 
 
 'flatbuffers-java', licensed under the Apache License V2.0, is distributed with the project-manager.
@@ -266,6 +261,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.typesafe.ssl-config-core_2.13-0.4.1`.
 
 
+'pureconfig-generic_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig-generic_2.13-0.15.0`.
+
+
 'reactive-streams', licensed under the CC0, is distributed with the project-manager.
 The license file can be found at `licenses/CC0`.
 Copyright notices related to this dependency can be found in the directory `org.reactivestreams.reactive-streams-1.0.3`.
@@ -284,11 +284,6 @@ Copyright notices related to this dependency can be found in the directory `org.
 'enumeratum_2.13', licensed under the MIT, is distributed with the project-manager.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.beachape.enumeratum_2.13-1.6.1`.
-
-
-'pureconfig_2.13', licensed under the Mozilla Public License, version 2.0, is distributed with the project-manager.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.github.pureconfig.pureconfig_2.13-0.13.0`.
 
 
 'cats-kernel_2.13', licensed under the MIT, is distributed with the project-manager.

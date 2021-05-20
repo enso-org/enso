@@ -55,6 +55,15 @@ foreign python make_int = """
 foreign python make_double = """
     return 10.5
 
+foreign python make_true = """
+    return True
+
+foreign python make_false = """
+    return False
+
+foreign python make_null = """
+    return None
+
 foreign python does_not_parse = """
     if? cxcc 531 6
 
@@ -90,8 +99,34 @@ spec =
                 _ -> False
             t.should_be_true
 
-        pending_pat = "Python numbers are currently not being converted."
-        Test.specify "should make Python numbers type pattern-matchable" pending=pending_pat <|
+        Test.specify "should make Python booleans type pattern-matchable" <|
+            bool = here.make_true
+            t = case bool of
+                True -> True
+                _ -> False
+            t.should_be_true
+            bool_2 = here.make_false
+            f = case bool_2 of
+                False -> True
+                _ -> False
+            f.should_be_true
+            c = case bool of
+                Boolean -> True
+                _ -> False
+            c.should_be_true
+            c_2 = case bool_2 of
+                Boolean -> True
+                _ -> False
+            c_2.should_be_true
+
+        Test.specify "should make Python lists type pattern-matchable as arrays" <|
+            arr = here.make_array
+            r = case arr of
+                Array -> True
+                _ -> False
+            r.should_be_true
+
+        Test.specify "should make Python numbers type pattern-matchable" <|
             int_match = case here.make_int of
                 Integer -> True
             int_match.should_be_true
@@ -120,4 +155,10 @@ spec =
         Test.specify "should properly handle parse errors" <|
             err = Panic.recover here.does_not_parse . catch
             err.cause.args.at 0 . should .contain 'invalid syntax'
+
+        Test.specify "should perform maths with mixed numbers" <|
+            py_num = here.make_int
+            enso_num = 10
+            (enso_num + py_num) . should_equal 20
+            (py_num - enso_num) . should_equal 0
 

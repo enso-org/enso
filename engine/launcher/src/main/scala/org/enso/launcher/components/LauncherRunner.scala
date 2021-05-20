@@ -152,6 +152,7 @@ class LauncherRunner(
     contentRootPath: Path,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
+    logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] =
     for {
@@ -161,6 +162,7 @@ class LauncherRunner(
         project,
         versionOverride,
         logLevel,
+        logMasking,
         additionalArguments
       )
     } yield runSettings

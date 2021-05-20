@@ -11,6 +11,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.enso.searcher.SuggestionsRepo
@@ -62,6 +63,7 @@ final class ContextRegistry(
   sessionRouter: ActorRef
 ) extends Actor
     with ActorLogging
+    with ActorMessageLogging
     with UnhandledLogging {
 
   import ContextRegistryProtocol._
@@ -84,149 +86,157 @@ final class ContextRegistry(
   override def receive: Receive =
     withStore(ContextRegistry.Store())
 
-  private def withStore(store: ContextRegistry.Store): Receive = {
-    case Ping =>
-      sender() ! Pong
+  private def pingHandler: Receive = { case Ping =>
+    sender() ! Pong
+  }
 
-    case update: Api.ExpressionUpdates =>
-      store.getListener(update.contextId).foreach(_ ! update)
+  private def withStore(store: ContextRegistry.Store): Receive =
+    pingHandler orElse LoggingReceive {
+      case update: Api.ExpressionUpdates =>
+        store.getListener(update.contextId).foreach(_ ! update)
 
-    case update: Api.VisualisationUpdate =>
-      store
-        .getListener(update.visualisationContext.contextId)
-        .foreach(_ ! update)
+      case update: Api.VisualisationUpdate =>
+        store
+          .getListener(update.visualisationContext.contextId)
+          .foreach(_ ! update)
 
-    case update: Api.ExecutionFailed =>
-      store.getListener(update.contextId).foreach(_ ! update)
+      case update: Api.ExecutionFailed =>
+        store.getListener(update.contextId).foreach(_ ! update)
 
-    case update: Api.ExecutionUpdate =>
-      store.getListener(update.contextId).foreach(_ ! update)
+      case update: Api.ExecutionUpdate =>
+        store.getListener(update.contextId).foreach(_ ! update)
 
-    case update: Api.VisualisationEvaluationFailed =>
-      store.getListener(update.contextId).foreach(_ ! update)
+      case update: Api.VisualisationEvaluationFailed =>
+        store.getListener(update.contextId).foreach(_ ! update)
 
-    case CreateContextRequest(client) =>
-      val contextId = UUID.randomUUID()
-      val handler =
-        context.actorOf(CreateContextHandler.props(config, timeout, runtime))
-      val listener =
-        context.actorOf(
-          ContextEventsListener.props(
-            config,
-            repo,
-            client,
-            contextId,
-            sessionRouter
-          )
-        )
-      handler.forward(Api.CreateContextRequest(contextId))
-      context.become(
-        withStore(store.addContext(client.clientId, contextId, listener))
-      )
-      context.system.eventStream
-        .publish(ExecutionContextCreated(contextId, client.clientId))
-
-    case DestroyContextRequest(client, contextId) =>
-      if (store.hasContext(client.clientId, contextId)) {
+      case CreateContextRequest(client) =>
+        val contextId = UUID.randomUUID()
         val handler =
-          context.actorOf(DestroyContextHandler.props(config, timeout, runtime))
-        store.getListener(contextId).foreach(context.stop)
-        handler.forward(Api.DestroyContextRequest(contextId))
+          context.actorOf(CreateContextHandler.props(config, timeout, runtime))
+        val listener =
+          context.actorOf(
+            ContextEventsListener.props(
+              config,
+              repo,
+              client,
+              contextId,
+              sessionRouter
+            )
+          )
+        handler.forward(Api.CreateContextRequest(contextId))
         context.become(
-          withStore(store.removeContext(client.clientId, contextId))
+          withStore(store.addContext(client.clientId, contextId, listener))
         )
         context.system.eventStream
-          .publish(ExecutionContextDestroyed(contextId, client.clientId))
-      } else {
-        sender() ! AccessDenied
-      }
+          .publish(ExecutionContextCreated(contextId, client.clientId))
 
-    case PushContextRequest(client, contextId, stackItem) =>
-      if (store.hasContext(client.clientId, contextId)) {
-        val item = getRuntimeStackItem(stackItem)
-        val handler =
-          context.actorOf(PushContextHandler.props(config, timeout, runtime))
-        handler.forward(Api.PushContextRequest(contextId, item))
-
-      } else {
-        sender() ! AccessDenied
-      }
-
-    case PopContextRequest(client, contextId) =>
-      if (store.hasContext(client.clientId, contextId)) {
-        val handler =
-          context.actorOf(PopContextHandler.props(config, timeout, runtime))
-        handler.forward(Api.PopContextRequest(contextId))
-      } else {
-        sender() ! AccessDenied
-      }
-
-    case RecomputeContextRequest(client, contextId, expressions) =>
-      if (store.hasContext(client.clientId, contextId)) {
-        val handler =
-          context.actorOf(
-            RecomputeContextHandler.props(config, timeout, runtime)
+      case DestroyContextRequest(client, contextId) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              DestroyContextHandler.props(config, timeout, runtime)
+            )
+          store.getListener(contextId).foreach(context.stop)
+          handler.forward(Api.DestroyContextRequest(contextId))
+          context.become(
+            withStore(store.removeContext(client.clientId, contextId))
           )
-        val invalidatedExpressions =
-          expressions.map(toRuntimeInvalidatedExpressions)
-        handler.forward(
-          Api.RecomputeContextRequest(contextId, invalidatedExpressions)
-        )
-      } else {
-        sender() ! AccessDenied
-      }
+          context.system.eventStream
+            .publish(ExecutionContextDestroyed(contextId, client.clientId))
+        } else {
+          sender() ! AccessDenied
+        }
 
-    case AttachVisualisation(clientId, visualisationId, expressionId, cfg) =>
-      if (store.hasContext(clientId, cfg.executionContextId)) {
-        val handler =
-          context.actorOf(
-            AttachVisualisationHandler.props(config, timeout, runtime)
+      case PushContextRequest(client, contextId, stackItem) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val item = getRuntimeStackItem(stackItem)
+          val handler =
+            context.actorOf(PushContextHandler.props(config, timeout, runtime))
+          handler.forward(Api.PushContextRequest(contextId, item))
+
+        } else {
+          sender() ! AccessDenied
+        }
+
+      case PopContextRequest(client, contextId) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val handler =
+            context.actorOf(PopContextHandler.props(config, timeout, runtime))
+          handler.forward(Api.PopContextRequest(contextId))
+        } else {
+          sender() ! AccessDenied
+        }
+
+      case RecomputeContextRequest(client, contextId, expressions) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              RecomputeContextHandler.props(config, timeout, runtime)
+            )
+          val invalidatedExpressions =
+            expressions.map(toRuntimeInvalidatedExpressions)
+          handler.forward(
+            Api.RecomputeContextRequest(contextId, invalidatedExpressions)
           )
+        } else {
+          sender() ! AccessDenied
+        }
 
-        val configuration = convertVisualisationConfig(cfg)
+      case AttachVisualisation(clientId, visualisationId, expressionId, cfg) =>
+        if (store.hasContext(clientId, cfg.executionContextId)) {
+          val handler =
+            context.actorOf(
+              AttachVisualisationHandler.props(config, timeout, runtime)
+            )
 
-        handler.forward(
-          Api.AttachVisualisation(visualisationId, expressionId, configuration)
-        )
-      } else {
-        sender() ! AccessDenied
-      }
+          val configuration = convertVisualisationConfig(cfg)
 
-    case DetachVisualisation(
-          clientId,
-          contextId,
-          visualisationId,
-          expressionId
-        ) =>
-      if (store.hasContext(clientId, contextId)) {
-        val handler =
-          context.actorOf(
-            DetachVisualisationHandler.props(config, timeout, runtime)
+          handler.forward(
+            Api.AttachVisualisation(
+              visualisationId,
+              expressionId,
+              configuration
+            )
           )
+        } else {
+          sender() ! AccessDenied
+        }
 
-        handler.forward(
-          Api.DetachVisualisation(contextId, visualisationId, expressionId)
-        )
-      } else {
-        sender() ! AccessDenied
-      }
+      case DetachVisualisation(
+            clientId,
+            contextId,
+            visualisationId,
+            expressionId
+          ) =>
+        if (store.hasContext(clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              DetachVisualisationHandler.props(config, timeout, runtime)
+            )
 
-    case ModifyVisualisation(clientId, visualisationId, cfg) =>
-      if (store.hasContext(clientId, cfg.executionContextId)) {
-        val handler =
-          context.actorOf(
-            ModifyVisualisationHandler.props(config, timeout, runtime)
+          handler.forward(
+            Api.DetachVisualisation(contextId, visualisationId, expressionId)
           )
+        } else {
+          sender() ! AccessDenied
+        }
 
-        val configuration = convertVisualisationConfig(cfg)
+      case ModifyVisualisation(clientId, visualisationId, cfg) =>
+        if (store.hasContext(clientId, cfg.executionContextId)) {
+          val handler =
+            context.actorOf(
+              ModifyVisualisationHandler.props(config, timeout, runtime)
+            )
 
-        handler.forward(
-          Api.ModifyVisualisation(visualisationId, configuration)
-        )
-      } else {
-        sender() ! AccessDenied
-      }
-  }
+          val configuration = convertVisualisationConfig(cfg)
+
+          handler.forward(
+            Api.ModifyVisualisation(visualisationId, configuration)
+          )
+        } else {
+          sender() ! AccessDenied
+        }
+    }
 
   private def convertVisualisationConfig(
     config: VisualisationConfiguration

@@ -24,6 +24,7 @@ components.
   - [SLF4J Interface](#slf4j-interface)
   - [Setting Up Logging](#setting-up-logging)
   - [Log Masking](#log-masking)
+  - [Configuration](#configuration)
   - [Logging in Tests](#logging-in-tests)
 
 <!-- /MarkdownTOC -->
@@ -280,21 +281,43 @@ String interpolation in log statements `s"Created $obj"` should be avoided
 because it uses default `toString` implementation and can leak critical
 information even if the object implements custom interface for masked logging.
 
+### Configuration
+
+The Logging Service settings should be placed under the `logging-service` key of
+the `application.conf` config.
+
+The `logging-service.logger` configuration provides an ability to override the
+default application log level for particular loggers. In the `logger` subconfig
+the key specifies the logger name (or it's prefix) and the value specifies the
+log level for that logger.
+
+```
+logging-service.logger {
+  akka.actor = info
+  akka.event = error
+  akka.io = error
+  slick = error
+}
+```
+
+For example, the config above limits all `akka.actor.*` loggers to the info
+level logging, and `akka.event.*` loggers can emit only the error level
+messages.
+
 ### Logging in Tests
 
 The Logging Service provides several utilities for managing logs inside of
 tests.
 
 The primary method for setting log-level for all tests in a project is by
-creating a `logging.properties` file in `resources` of the `test` target.
-Currently only one property is supported - `test-log-level` which should be set
-to a log level name (possible values are: `off`, `error`, `warning`, `info`,
-`debug`, `trace`). If this property is set to any value, the default logging
-queue is replaced with a special test queue which handles the log messages
-depending on status of the service. If a service has been set up, it just
-forwards them (so tests can easily override the log handling). However if it has
-not been set up, the enabled log messages are printed to STDERR and the rest is
-dropped.
+creating an `application.conf` file in `resources` of the `test` target with the
+configuration key `logging-service.test-log-level` which should be set to a log
+level name (possible values are: `off`, `error`, `warning`, `info`, `debug`,
+`trace`). If this key is set to any value, the default logging queue is replaced
+with a special test queue which handles the log messages depending on status of
+the service. If a service has been set up, it just forwards them (so tests can
+easily override the log handling). However if it has not been set up, the
+enabled log messages are printed to STDERR and the rest is dropped.
 
 Another useful tool is `TestLogger.gatherLogs` - a function that wraps an action
 and will return a sequence of logs reported when performing that action. It can

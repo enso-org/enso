@@ -286,6 +286,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     contentRoot: Path,
     versionOverride: Option[SemVer],
     logLevel: LogLevel,
+    logMasking: Boolean,
     useSystemJVM: Boolean,
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
@@ -298,6 +299,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
             contentRoot,
             versionOverride,
             logLevel,
+            logMasking,
             additionalArguments
           )
           .get,

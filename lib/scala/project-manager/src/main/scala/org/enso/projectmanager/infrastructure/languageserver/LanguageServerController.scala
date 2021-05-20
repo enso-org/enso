@@ -14,6 +14,7 @@ import akka.actor.{
   Terminated
 }
 import nl.gn0s1s.bump.SemVer
+import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
@@ -65,6 +66,7 @@ class LanguageServerController(
   executor: LanguageServerExecutor
 ) extends Actor
     with ActorLogging
+    with ActorMessageLogging
     with Stash
     with UnhandledLogging {
 
@@ -93,136 +95,143 @@ class LanguageServerController(
     self ! Boot
   }
 
-  override def receive: Receive = {
-    case Boot =>
-      val bootloader =
+  override def receive: Receive =
+    LoggingReceive.withLabel("initializing") {
+      case Boot =>
+        val bootloader =
+          context.actorOf(
+            LanguageServerBootLoader
+              .props(
+                bootProgressTracker,
+                descriptor,
+                bootloaderConfig,
+                timeoutConfig.bootTimeout,
+                executor
+              ),
+            s"bootloader-${descriptor.name}"
+          )
+        context.watch(bootloader)
+        context.become(booting(bootloader))
+
+      case _ => stash()
+    }
+
+  private def booting(Bootloader: ActorRef): Receive =
+    LoggingReceive.withLabel("booting") {
+      case BootTimeout =>
+        log.error("Booting failed for {}.", descriptor)
+        unstashAll()
+        context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
+
+      case ServerBootFailed(th) =>
+        log.error(th, "Booting failed for {}.", descriptor)
+        unstashAll()
+        context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
+
+      case ServerBooted(connectionInfo, serverProcessManager) =>
+        unstashAll()
+        context.become(supervising(connectionInfo, serverProcessManager))
         context.actorOf(
-          LanguageServerBootLoader
-            .props(
-              bootProgressTracker,
-              descriptor,
-              bootloaderConfig,
-              timeoutConfig.bootTimeout,
-              executor
-            ),
-          s"bootloader-${descriptor.name}"
+          LanguageServerSupervisor.props(
+            connectionInfo,
+            serverProcessManager,
+            supervisionConfig,
+            new AkkaBasedWebSocketConnectionFactory(),
+            context.system.scheduler
+          ),
+          s"supervisor-${descriptor.name}"
         )
-      context.watch(bootloader)
-      context.become(booting(bootloader))
 
-    case _ => stash()
-  }
-
-  private def booting(Bootloader: ActorRef): Receive = {
-    case BootTimeout =>
-      log.error("Booting failed for {}.", descriptor)
-      unstashAll()
-      context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
-
-    case ServerBootFailed(th) =>
-      log.error(th, "Booting failed for {}.", descriptor)
-      unstashAll()
-      context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
-
-    case ServerBooted(connectionInfo, serverProcessManager) =>
-      unstashAll()
-      context.become(supervising(connectionInfo, serverProcessManager))
-      context.actorOf(
-        LanguageServerSupervisor.props(
-          connectionInfo,
-          serverProcessManager,
-          supervisionConfig,
-          new AkkaBasedWebSocketConnectionFactory(),
-          context.system.scheduler
-        ),
-        s"supervisor-${descriptor.name}"
-      )
-
-    case Terminated(Bootloader) =>
-      log.error("Bootloader for project {} failed.", project.name)
-      unstashAll()
-      context.become(
-        bootFailed(
-          LanguageServerProtocol.ServerBootFailed(
-            new Exception("The number of boot retries exceeded.")
+      case Terminated(Bootloader) =>
+        log.error("Bootloader for project {} failed.", project.name)
+        unstashAll()
+        context.become(
+          bootFailed(
+            LanguageServerProtocol.ServerBootFailed(
+              new Exception("The number of boot retries exceeded.")
+            )
           )
         )
-      )
 
-    case _ => stash()
-  }
+      case _ => stash()
+    }
 
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,
     clients: Set[UUID] = Set.empty
-  ): Receive = {
-    case StartServer(clientId, _, requestedEngineVersion, _) =>
-      if (requestedEngineVersion != engineVersion) {
-        sender() ! ServerBootFailed(
-          new IllegalStateException(
-            s"Requested to boot a server version $requestedEngineVersion, " +
-            s"but a server for this project with a different version, " +
-            s"$engineVersion, is already running. Two servers with different " +
-            s"versions cannot be running for a single project."
+  ): Receive =
+    LoggingReceive.withLabel("supervising") {
+      case StartServer(clientId, _, requestedEngineVersion, _) =>
+        if (requestedEngineVersion != engineVersion) {
+          sender() ! ServerBootFailed(
+            new IllegalStateException(
+              s"Requested to boot a server version $requestedEngineVersion, " +
+              s"but a server for this project with a different version, " +
+              s"$engineVersion, is already running. Two servers with different " +
+              s"versions cannot be running for a single project."
+            )
           )
-        )
-      } else {
-        sender() ! ServerStarted(
-          LanguageServerSockets(
-            Socket(connectionInfo.interface, connectionInfo.rpcPort),
-            Socket(connectionInfo.interface, connectionInfo.dataPort)
+        } else {
+          sender() ! ServerStarted(
+            LanguageServerSockets(
+              Socket(connectionInfo.interface, connectionInfo.rpcPort),
+              Socket(connectionInfo.interface, connectionInfo.dataPort)
+            )
           )
+          context.become(
+            supervising(
+              connectionInfo,
+              serverProcessManager,
+              clients + clientId
+            )
+          )
+        }
+      case Terminated(_) =>
+        log.debug("Bootloader for {} terminated.", project)
+
+      case StopServer(clientId, _) =>
+        removeClient(
+          connectionInfo,
+          serverProcessManager,
+          clients,
+          clientId,
+          Some(sender())
         )
-        context.become(
-          supervising(connectionInfo, serverProcessManager, clients + clientId)
+
+      case ShutDownServer =>
+        shutDownServer(None)
+
+      case ClientDisconnected(clientId) =>
+        removeClient(
+          connectionInfo,
+          serverProcessManager,
+          clients,
+          clientId,
+          None
         )
-      }
-    case Terminated(_) =>
-      log.debug("Bootloader for {} terminated.", project)
 
-    case StopServer(clientId, _) =>
-      removeClient(
-        connectionInfo,
-        serverProcessManager,
-        clients,
-        clientId,
-        Some(sender())
-      )
+      case RenameProject(_, oldName, newName) =>
+        val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
+        context.actorOf(
+          ProjectRenameAction
+            .props(
+              sender(),
+              socket,
+              timeoutConfig.requestTimeout,
+              timeoutConfig.socketCloseTimeout,
+              oldName,
+              newName,
+              context.system.scheduler
+            ),
+          s"project-rename-action-${project.id}"
+        )
 
-    case ShutDownServer =>
-      shutDownServer(None)
+      case ServerDied =>
+        log.error("Language server died [{}].", connectionInfo)
+        context.stop(self)
 
-    case ClientDisconnected(clientId) =>
-      removeClient(
-        connectionInfo,
-        serverProcessManager,
-        clients,
-        clientId,
-        None
-      )
-
-    case RenameProject(_, oldName, newName) =>
-      val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
-      context.actorOf(
-        ProjectRenameAction
-          .props(
-            sender(),
-            socket,
-            timeoutConfig.requestTimeout,
-            timeoutConfig.socketCloseTimeout,
-            oldName,
-            newName,
-            context.system.scheduler
-          ),
-        s"project-rename-action-${project.id}"
-      )
-
-    case ServerDied =>
-      log.error("Language server died [{}].", connectionInfo)
-      context.stop(self)
-
-  }
+    }
 
   private def removeClient(
     connectionInfo: LanguageServerConnectionInfo,
@@ -260,36 +269,38 @@ class LanguageServerController(
   private def stopping(
     cancellable: Cancellable,
     maybeRequester: Option[ActorRef]
-  ): Receive = {
-    case LanguageServerProcess.ServerTerminated(exitCode) =>
-      cancellable.cancel()
-      if (exitCode == 0) {
-        log.info("Language server shut down successfully [{}].", project)
-      } else {
-        log.warning(
-          "Language server shut down with non-zero exit code: {} [{}].",
-          exitCode,
-          project
-        )
-      }
-      maybeRequester.foreach(_ ! ServerStopped)
-      stop()
+  ): Receive =
+    LoggingReceive.withLabel("stopping") {
+      case LanguageServerProcess.ServerTerminated(exitCode) =>
+        cancellable.cancel()
+        if (exitCode == 0) {
+          log.info("Language server shut down successfully [{}].", project)
+        } else {
+          log.warning(
+            "Language server shut down with non-zero exit code: {} [{}].",
+            exitCode,
+            project
+          )
+        }
+        maybeRequester.foreach(_ ! ServerStopped)
+        stop()
 
-    case ShutdownTimeout =>
-      log.error("Language server shutdown timed out.")
-      maybeRequester.foreach(_ ! ServerShutdownTimedOut)
-      stop()
+      case ShutdownTimeout =>
+        log.error("Language server shutdown timed out.")
+        maybeRequester.foreach(_ ! ServerShutdownTimedOut)
+        stop()
 
-    case m: StartServer =>
-      // This instance has not yet been shut down. Retry
-      context.parent.forward(Retry(m))
-  }
-
-  private def waitingForChildren(): Receive = { case Terminated(_) =>
-    if (context.children.isEmpty) {
-      context.stop(self)
+      case m: StartServer =>
+        // This instance has not yet been shut down. Retry
+        context.parent.forward(Retry(m))
     }
-  }
+
+  private def waitingForChildren(): Receive =
+    LoggingReceive.withLabel("waitingForChldren") { case Terminated(_) =>
+      if (context.children.isEmpty) {
+        context.stop(self)
+      }
+    }
 
   private def stop(): Unit = {
     context.parent ! ServerShutDown(project.id)
