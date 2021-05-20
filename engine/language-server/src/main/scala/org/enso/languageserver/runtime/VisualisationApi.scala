@@ -10,6 +10,23 @@ import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
   */
 object VisualisationApi {
 
+  case object ExecuteVisualisation
+      extends Method("executionContext/executeVisualisation") {
+
+    case class Params(
+      visualisationId: UUID,
+      expressionId: UUID,
+      visualisationConfig: VisualisationConfiguration
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecuteVisualisation.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object AttachVisualisation
       extends Method("executionContext/attachVisualisation") {
 
