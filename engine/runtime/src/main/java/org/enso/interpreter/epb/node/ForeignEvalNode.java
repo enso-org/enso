@@ -22,9 +22,9 @@ import org.enso.interpreter.epb.runtime.GuardedTruffleContext;
 public abstract class ForeignEvalNode extends RootNode {
   private final EpbParser.Result code;
   private @Child ForeignFunctionCallNode foreign;
-  private @Child ContextRewrapNode rewrapNode = ContextRewrapNodeGen.create();
+  private @Child ContextRewrapNode rewrapNode = ContextRewrapNode.build();
   private @Child ContextRewrapExceptionNode rewrapExceptionNode =
-      ContextRewrapExceptionNodeGen.create();
+      ContextRewrapExceptionNode.build();
   private @CompilerDirectives.CompilationFinal AbstractTruffleException parseError;
   private final String[] argNames;
 

@@ -15,6 +15,14 @@ import org.enso.interpreter.epb.runtime.PolyglotProxy;
 @ReportPolymorphism
 public abstract class ContextRewrapNode extends Node {
 
+  /** Create a new context rewrap node.
+   *
+   * @return a new context rewrap node.
+   */
+  static ContextRewrapNode build() {
+    return ContextRewrapNodeGen.create();
+  }
+
   /**
    * Wraps a value originating from {@code origin} into a value valid in {@code target}. This method
    * is allowed to use interop library on {@code value} and therefore must be called with {@code
