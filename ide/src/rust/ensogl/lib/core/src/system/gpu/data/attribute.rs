@@ -116,7 +116,7 @@ impl {
             let free_ids        = default();
             let size            = default();
             let context         = default();
-            Self {context,buffers,buffer_dirty,shape_dirty,buffer_name_map,logger,free_ids,size
+            Self {buffers,buffer_dirty,shape_dirty,buffer_name_map,logger,free_ids,size,context
                  ,stats}
         })
     }

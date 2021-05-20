@@ -67,9 +67,9 @@ pub struct Collapsed {
 pub struct NoNodesSelected;
 
 #[allow(missing_docs)]
+#[derive(Clone,Copy,Debug,Fail)]
 #[fail(display="Internal refactoring error: Endpoint refers to node {} that cannot be resolved.",
 _0)]
-#[derive(Clone,Copy,Debug,Fail)]
 pub struct CannotResolveEndpointNode(node::Id);
 
 #[allow(missing_docs)]
@@ -78,8 +78,8 @@ pub struct CannotResolveEndpointNode(node::Id);
 pub struct CannotConstructCollapsedNode;
 
 #[allow(missing_docs)]
-#[fail(display="Internal refactoring error: Cannot resolve identifier for the endpoint {:?}",_0)]
 #[derive(Clone,Debug,Fail)]
+#[fail(display="Internal refactoring error: Cannot resolve identifier for the endpoint {:?}",_0)]
 pub struct EndpointIdentifierCannotBeResolved(Endpoint);
 
 #[allow(missing_docs)]
@@ -216,7 +216,7 @@ impl Extracted {
                     Some(_) => {} // Ignore duplicate usage of the same identifier.
                     None    => {
                         let node = connection.source.node;
-                        output   = Some(Output {identifier,node});
+                        output   = Some(Output {node,identifier});
                     }
                 }
             }
@@ -229,10 +229,10 @@ impl Extracted {
             let output_node = extracted_nodes.iter().find(|node| node.id() == output_leaf_id)?;
             let identifier  = Identifier::new(output_node.pattern()?.clone_ref())?;
             let node        = output_node.id();
-            Some(Output{identifier,node})
+            Some(Output{node,identifier})
         });
 
-        Ok(Self {extracted_nodes_set,extracted_nodes,inputs,output})
+        Ok(Self {inputs,output,extracted_nodes,extracted_nodes_set})
     }
 
     /// Check if the given node belongs to the selection (i.e. is extracted into a new method).
@@ -362,7 +362,7 @@ impl Collapser {
             self.rewrite_line(line,&new_method)
         })?;
         let collapsed_node = self.collapsed_node;
-        Ok(Collapsed {new_method,updated_definition,collapsed_node})
+        Ok(Collapsed {updated_definition,new_method,collapsed_node})
     }
 }
 

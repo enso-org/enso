@@ -468,7 +468,7 @@ impl View {
             eval output.source.selection_edit_mode     ((t) m.set_selection(t));
             eval output.source.selection_non_edit_mode ((t) m.set_selection(t));
         }
-        Self {frp,model}
+        Self {model,frp}
     }
 }
 

@@ -8,20 +8,16 @@
 
 #![feature(associated_type_defaults)]
 #![feature(cell_update)]
-#![feature(clamp)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
 #![feature(fn_traits)]
-#![feature(overlapping_marker_traits)]
-#![feature(slice_patterns)]
 #![feature(specialization)]
 #![feature(trait_alias)]
 #![feature(try_trait)]
-#![feature(type_alias_impl_trait)]
+#![feature(marker_trait_attr)]
+#![feature(min_type_alias_impl_trait)]
 #![feature(unboxed_closures)]
-#![feature(vec_remove_item)]
-#![feature(weak_into_raw)]
-
+#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

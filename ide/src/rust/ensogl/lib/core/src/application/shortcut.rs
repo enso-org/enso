@@ -111,8 +111,8 @@ impl Condition {
         if s.is_empty() { Self::Always } else {
             Self::split_parse(s,'|',Self::or,|s|
                 Self::split_parse(s,'&',Self::and,|s|{
-                    if s.starts_with('!') {
-                        Self::not(Self::when(s[1..].trim()))
+                    if let Some(expr) = s.strip_prefix('!') {
+                        Self::not(Self::when(expr.trim()))
                     } else {
                         Self::when(s)
                     }
@@ -156,7 +156,7 @@ impl Action {
         let target    = target.into();
         let condition = condition.into();
         let command   = command.into();
-        Self {target,condition,command}
+        Self {target,command,condition}
     }
 }
 

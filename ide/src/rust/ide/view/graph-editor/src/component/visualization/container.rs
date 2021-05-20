@@ -268,8 +268,8 @@ impl ContainerModel {
         let action_bar         = ActionBar::new(&app,registry.clone_ref());
         view.add_child(&action_bar);
 
-        Self {logger,visualization,vis_frp_connection,display_object,drag_root,view,fullscreen_view
-            ,scene,is_fullscreen,action_bar,registry,size}.init()
+        Self {logger,display_object,drag_root,visualization,vis_frp_connection,scene,view
+            ,fullscreen_view,is_fullscreen,registry,size,action_bar}.init()
     }
 
     fn init(self) -> Self {

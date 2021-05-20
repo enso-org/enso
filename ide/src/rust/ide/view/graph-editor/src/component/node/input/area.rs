@@ -153,7 +153,7 @@ impl From<node::Expression> for Expression {
             port.length      = size;
             ExprConversion::new(index)
         });
-        Self {code,viz_code,span_tree}
+        Self {viz_code,code,span_tree}
     }
 }
 
@@ -238,7 +238,7 @@ impl Model {
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
-        Self {logger,display_object,ports,header,label,app,expression,id_crumbs_map,styles}.init()
+        Self {logger,app,display_object,ports,header,label,expression,id_crumbs_map,styles}.init()
     }
 
     fn init(self) -> Self {
@@ -389,7 +389,7 @@ impl Area {
             eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
         }
 
-        Self {model,frp}
+        Self {frp,model}
     }
 
     pub fn port_offset(&self, crumbs:&[Crumb]) -> Option<Vector2<f32>> {
@@ -448,7 +448,7 @@ impl PortLayerBuilder {
     , depth           : usize
     ) -> Self {
         let parent = parent.display_object().clone_ref();
-        Self {parent,parent_frp,parent_parensed,shift,depth}
+        Self {parent_frp,parent,parent_parensed,shift,depth}
     }
 
     fn empty(parent:impl display::Object) -> Self {

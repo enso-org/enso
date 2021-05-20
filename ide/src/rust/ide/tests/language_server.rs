@@ -280,7 +280,6 @@ async fn file_events() {
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
 async fn setup_project() -> Project {
-    ensogl_system_web::set_stdout();
     let logger = Logger::new("Test");
     let config = ide::config::Startup::default();
     info!(logger,"Setting up the project.");
@@ -293,16 +292,17 @@ async fn setup_project() -> Project {
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
+    let logger = Logger::new("Test");
     let _guard   = ide::initializer::setup_global_executor();
     let project  = setup_project().await;
-    println!("Got project: {:?}",project);
+    info!(logger,"Got project: {project:?}");
     // Edit file using the text protocol
     let path     = Path::new(project.json_rpc().content_root(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
     let written  = project.json_rpc().write_file(&path,&contents).await.unwrap();
-    println!("Written: {:?}", written);
+    info!(logger,"Written: {written:?}");
     let read_back = project.json_rpc().read_file(&path).await.unwrap();
-    println!("Read back: {:?}", read_back);
+    info!(logger,"Read back: {read_back:?}");
     assert_eq!(contents, read_back.contents);
 
     // Edit file using the binary protocol.
@@ -320,8 +320,9 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
+    let logger = Logger::new("Test");
     let project  = setup_project().await;
-    println!("Got project: {:?}", project);
+    info!(logger,"Got project: {project:?}");
 
     let expression = "x -> x.json_serialize";
 
@@ -333,7 +334,7 @@ async fn binary_visualization_updates_test_hlp() {
     let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
-    println!("Got module: {:?}", module);
+    info!(logger,"Got module: {module:?}");
     let graph_executed        = controller::ExecutedGraph::new(&logger,project,method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
@@ -342,13 +343,13 @@ async fn binary_visualization_updates_test_hlp() {
     // We must yield control for a moment, so the text edit is applied.
     sleep(Duration::from_millis(1)).await;
 
-    println!("Main graph: {:?}", graph_executed);
-    println!("The code is: {:?}", module.ast().repr());
-    println!("Main node: {:?} with {}", the_node, the_node.expression().repr());
+    info!(logger,"Main graph: {graph_executed:?}");
+    info!(logger,"The code is: {module.ast().repr():?}");
+    info!(logger,"Main node: {the_node:?} with {the_node.expression().repr()}");
 
     let visualization = Visualization::new(the_node.id(),expression,module_qualified_name);
     let     stream    = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
-    println!("Attached the visualization {}", visualization.id);
+    info!(logger,"Attached the visualization {visualization.id}");
     let mut stream    = stream.boxed_local();
     let first_event = stream.next().await.unwrap(); // await update
     assert_eq!(first_event.as_ref(), "30".as_bytes());

@@ -131,7 +131,6 @@ impl application::View for View {
 #[allow(dead_code)]
 pub fn entry_point_mouse_events() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     run_once_initialized(|| {
         let app = Application::new(&web::get_html_element_by_id("root").unwrap());
 

@@ -229,6 +229,7 @@ impl LabData {
 // Please note that the LAB values were normalized to the [-1 .. 1] range.
 color_conversion! {
 impl From<XyzData> for LabData {
+    #[allow(clippy::many_single_char_names)]
     fn from(xyz:XyzData) -> Self {
         fn convert(c:f32) -> f32 {
             let delta = 16.0 / 116.0;
@@ -251,6 +252,7 @@ impl From<XyzData> for LabData {
 
 color_conversion! {
 impl From<LabData> for XyzData {
+    #[allow(clippy::many_single_char_names)]
     fn from(color:LabData) -> Self {
         let a = LabData::denormalize_a_b(color.a);
         let b = LabData::denormalize_a_b(color.b);
@@ -352,9 +354,9 @@ mod tests {
                     let rgb  = Rgb::new(nr,ng,nb);
                     let lch  = Lch::from(rgb);
                     let rgb2 = Rgb::from(lch);
-                    let r2   = (rgb2.red   * 255.0) as i32;
-                    let g2   = (rgb2.green * 255.0) as i32;
-                    let b2   = (rgb2.blue  * 255.0) as i32;
+                    let _r2  = (rgb2.red   * 255.0) as i32;
+                    let _g2  = (rgb2.green * 255.0) as i32;
+                    let _b2  = (rgb2.blue  * 255.0) as i32;
                     // assert_eq!((r,g,b),(r2,g2,b2));
                 }
             }

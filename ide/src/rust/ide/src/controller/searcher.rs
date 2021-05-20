@@ -46,22 +46,22 @@ const ENSO_PROJECT_SPECIAL_MODULE:&str = "Standard.Base.Enso_Project";
 
 
 #[allow(missing_docs)]
-#[fail(display="No action entry with the index {}.", index)]
 #[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="No action entry with the index {}.", index)]
 pub struct NoSuchAction {
     index : usize,
 }
 
 #[allow(missing_docs)]
-#[fail(display="Action entry with index {} is not a suggestion.", index)]
 #[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="Action entry with index {} is not a suggestion.", index)]
 pub struct NotASuggestion {
     index : usize,
 }
 
 #[allow(missing_docs)]
-#[fail(display="An action cannot be executed when searcher is in \"edit node\" mode.")]
 #[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="An action cannot be executed when searcher is in \"edit node\" mode.")]
 pub struct CannotExecuteWhenEditingNode;
 
 
@@ -779,7 +779,7 @@ impl Searcher {
         let this    = self.this_arg.clone_ref();
         async move {
             let is_function_fragment = next_id == CompletedFragmentId::Function;
-            is_function_fragment.then(())?;
+            is_function_fragment.then_some(())?;
             let ThisNode {id,..} = this.deref().as_ref()?;
             let opt_type         = graph.expression_type(*id).await.map(Into::into);
             opt_type.map_none(move || error!(logger, "Failed to obtain type for this node."))
@@ -1256,7 +1256,7 @@ pub mod test {
             node_line:&'static str,
             /// If the searcher should enter "connect to this" mode at all and wait for type info.
             sets_this:bool,
-        };
+        }
 
         let cases = [
             Case {node_line:"2+2",             sets_this:true },
@@ -1581,7 +1581,7 @@ pub mod test {
             line   : &'static str,
             result : String,
             run    : Box<dyn FnOnce(&mut Fixture)>,
-        };
+        }
 
         impl Case {
             fn new(line:&'static str, result:&[&str], run:impl FnOnce(&mut Fixture)+'static )

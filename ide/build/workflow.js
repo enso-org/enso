@@ -14,7 +14,7 @@ const yaml  = require('js-yaml')
 // =================
 
 const NODE_VERSION             = '14.15.0'
-const RUST_VERSION             = 'nightly-2019-11-04'
+const RUST_VERSION             = 'nightly-2021-05-12'
 const WASM_PACK_VERSION        = '0.9.1'
 const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
 const FLAG_FORCE_CI_BUILD      = '[ci build]'

@@ -77,6 +77,10 @@ macro_rules! define_fn {
         }
 
         #[allow(non_snake_case)]
+        #[allow(clippy::manual_map)]
+        // We cannot really use map, as this code is generic for mut an non-mut types.
+        // As such, some instantiations generate clippy warning, while others won't compile
+        // with its suggested resolution.
         impl<T,$($($arg),*)?> $name $(<$($arg),*>)? for Option<T>
         where T : $name $(<$($arg),*>)? {
             type Output = Option<T::Output>;

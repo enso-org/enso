@@ -155,7 +155,7 @@ impl Model {
             }
         }
 
-        Self{hover_area,display_object,size,icons,shapes,styles}.init()
+        Self{display_object,hover_area,icons,size,shapes,styles}.init()
     }
 
     fn init(self) -> Self {
@@ -257,7 +257,7 @@ impl ActionBar {
     pub fn new(logger:impl AnyLogger, app:&Application) -> Self {
         let model = Rc::new(Model::new(logger,app));
         let frp   = Frp::new();
-        ActionBar{model,frp}.init_frp()
+        ActionBar{frp,model}.init_frp()
     }
 
     fn init_frp(self) -> Self {

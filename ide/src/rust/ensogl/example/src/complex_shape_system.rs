@@ -45,7 +45,6 @@ mod shape {
 pub fn entry_point_complex_shape_system() {
     web::forward_panic_hook_to_console();
     web::set_stack_trace_limit();
-    web::set_stdout();
 
     let world     = World::new(&web::get_html_element_by_id("root").unwrap());
     let scene     = world.scene();

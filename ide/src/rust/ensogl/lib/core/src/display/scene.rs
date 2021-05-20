@@ -198,11 +198,11 @@ impl PointerTarget {
         (value1, value2)
     }
 
-    fn to_internal(&self, logger:&Logger) -> Vector4<u32> {
+    fn to_internal(self, logger:&Logger) -> Vector4<u32> {
         match self {
             Self::Background                     => Vector4::new(0,0,0,0),
             Self::Symbol {symbol_id,instance_id} => {
-                match Self::encode(**symbol_id,(**instance_id) as u32) {
+                match Self::encode(*symbol_id,(*instance_id) as u32) {
                     DecodingResult::Truncated(pack0,pack1,pack2) => {
                         warning!(logger,"Target values too big to encode: \
                                          ({symbol_id},{instance_id}).");
@@ -493,7 +493,7 @@ impl DomLayers {
         dom.append_or_panic(&front.dom);
         dom.append_or_panic(&back.dom);
         dom.append_or_panic(&fullscreen_vis.dom);
-        Self {front,canvas,back,fullscreen_vis}
+        Self {back,fullscreen_vis,front,canvas}
     }
 }
 
@@ -657,8 +657,8 @@ impl HardcodedLayers {
         layers.add_layers_order_dependency(&label,&tooltip_background);
         layers.add_layers_order_dependency(&tooltip_background,&tooltip_text);
         layers.add_layers_order_dependency(&tooltip_text,&viz_fullscreen);
-        Self {layers,viz,cursor,label,viz_fullscreen,below_main,breadcrumbs_background,
-            breadcrumbs_text,tooltip_background,tooltip_text}
+        Self {viz,below_main,cursor,label,tooltip_background,tooltip_text,viz_fullscreen
+             ,breadcrumbs_background,breadcrumbs_text,layers}
     }
 }
 
@@ -802,9 +802,9 @@ impl SceneData {
         }
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
-        Self {renderer,display_object,dom,context,symbols,layers,dirty,logger,variables,stats
-             ,uniforms,mouse,keyboard,shapes,style_sheet,bg_color_var,bg_color_change,frp
-             ,extensions,disable_context_menu,current_js_event}
+        Self {display_object,dom,context,symbols,variables,current_js_event,mouse,keyboard,uniforms
+             ,shapes,stats,dirty,logger,renderer,layers,style_sheet,bg_color_var,bg_color_change,frp
+             ,extensions,disable_context_menu}
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {

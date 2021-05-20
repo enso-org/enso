@@ -171,7 +171,7 @@ impl Model {
         let frp            = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
-        Self {logger,display_object,ports,app,label,expression,id_crumbs_map,port_count,styles,frp}
+        Self {logger,app,display_object,ports,label,expression,id_crumbs_map,port_count,styles,frp}
             .init()
     }
 

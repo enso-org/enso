@@ -190,7 +190,7 @@ impl Camera2dData {
         display_object.set_on_updated(f_!(dirty.transform.set()));
         display_object.mod_position(|p| p.z = 1.0);
         dirty.projection.set();
-        Self {display_object,screen,projection,clipping,zoom,z_zoom_1,matrix,dirty
+        Self {display_object,screen,zoom,z_zoom_1,projection,clipping,matrix,dirty
              ,zoom_update_registry,screen_update_registry}.init()
     }
 

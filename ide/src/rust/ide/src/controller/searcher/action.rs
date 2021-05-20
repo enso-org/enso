@@ -177,7 +177,7 @@ impl List {
     pub fn is_empty(&self) -> bool { self.entries.borrow().is_empty() }
 
     /// Iterate over action entries.
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item=ListEntry> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item=ListEntry> + '_ {
         let existing_ids = (0..self.len()).take_while(move |id| *id < self.len());
         existing_ids.filter_map(move |id| self.entries.borrow().get(id).cloned())
     }

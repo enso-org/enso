@@ -40,19 +40,19 @@ impl TryFrom<&str> for Platform {
     #[allow(clippy::if_same_then_else)]
     fn try_from(s:&str) -> Result<Self,Self::Error> {
         let name = s.to_lowercase();
-        if      name.find("darwin").is_some()  { Ok(MacOS) }
-        else if name.find("mac").is_some()     { Ok(MacOS) }
-        else if name.find("linux").is_some()   { Ok(Linux) }
+        if      name.contains("darwin")  { Ok(MacOS) }
+        else if name.contains("mac")     { Ok(MacOS) }
+        else if name.contains("linux")   { Ok(Linux) }
         // CAREFUL: this matches also "darwin" (that's why its declared below):
-        else if name.find("win").is_some()     { Ok(Windows) }
-        else if name.find("ios").is_some()     { Ok(IOS) }
-        else if name.find("iphone").is_some()  { Ok(IOS) }
-        else if name.find("ipad").is_some()    { Ok(IOS) }
-        else if name.find("android").is_some() { Ok(Android) }
-        else if name.find("freebsd").is_some() { Ok(FreeBSD) }
-        else if name.find("openbsd").is_some() { Ok(OpenBSD) }
-        else if name.find("bsd").is_some()     { Ok(FreeBSD) }
-        else                                   { Err(UnknownPlatform) }
+        else if name.contains("win")     { Ok(Windows) }
+        else if name.contains("ios")     { Ok(IOS) }
+        else if name.contains("iphone")  { Ok(IOS) }
+        else if name.contains("ipad")    { Ok(IOS) }
+        else if name.contains("android") { Ok(Android) }
+        else if name.contains("freebsd") { Ok(FreeBSD) }
+        else if name.contains("openbsd") { Ok(OpenBSD) }
+        else if name.contains("bsd")     { Ok(FreeBSD) }
+        else                             { Err(UnknownPlatform) }
     }
 }
 

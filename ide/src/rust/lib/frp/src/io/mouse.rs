@@ -298,10 +298,10 @@ impl Default for Mouse {
         };
         let button_mask = button_mask.into();
         Self { network,up,down,wheel,up_0,up_1,up_2,up_3,up_4,up_primary,up_middle,up_secondary
-             , down_0,down_1,down_2,down_3,down_4,down_primary,down_middle,down_secondary,is_down_0
-             , is_down_1,is_down_2,is_down_3,is_down_4,is_down_primary,is_down_middle
-             , is_down_secondary,is_up_0,is_up_1,is_up_2,is_up_3,is_up_4,is_up_primary,is_up_middle
-             , is_up_secondary,position,prev_position,translation,distance,ever_moved,button_mask
+             , down_0,down_1,down_2,down_3,down_4,down_primary,down_middle,down_secondary
+             , is_up_0,is_up_1,is_up_2,is_up_3,is_up_4,is_up_primary,is_up_middle,is_up_secondary
+             , is_down_0, is_down_1,is_down_2,is_down_3,is_down_4,is_down_primary,is_down_middle
+             ,is_down_secondary, position,prev_position,translation,distance,ever_moved,button_mask
              , prev_button_mask }
     }
 }

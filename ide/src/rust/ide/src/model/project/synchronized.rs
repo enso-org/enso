@@ -54,7 +54,7 @@ impl ExecutionContextsRegistry {
     , f  : impl FnOnce(Rc<execution_context::Synchronized>) -> FallibleResult<R>
     ) -> FallibleResult<R> {
         let ctx = self.0.borrow_mut().get(&id);
-        let ctx = ctx.ok_or_else(|| NoSuchExecutionContext(id))?;
+        let ctx = ctx.ok_or(NoSuchExecutionContext(id))?;
         f(ctx)
     }
 
@@ -171,9 +171,9 @@ impl Project {
         
         let data = Rc::new(Data {id,name});
 
-        let ret = Project {data,parser,project_manager,language_server_rpc,language_server_bin
-            ,engine_version,module_registry,execution_contexts,logger,visualization,suggestion_db
-            ,notifications};
+        let ret = Project {data,project_manager,language_server_rpc,language_server_bin
+            ,engine_version,module_registry,execution_contexts,visualization,suggestion_db
+            ,parser,logger,notifications};
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));

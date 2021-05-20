@@ -203,6 +203,7 @@ impl<T:Boundary> Selection<T> {
 
     /// Indicate whether this region should merge with the next.
     /// Assumption: regions are sorted (self.min() <= other.min())
+    #[allow(clippy::suspicious_operation_groupings)]
     pub fn should_merge_sorted(self, other:Selection<T>) -> bool {
         let non_zero_overlap = other.min() < self.max();
         let zero_overlap     = (self.is_cursor() || other.is_cursor()) && other.min() == self.max();

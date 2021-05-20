@@ -114,8 +114,8 @@ impl BubbleChart {
         let size           = default();
         let scene          = scene.clone_ref();
         let signature      = Self::signature();
-        let model          = BubbleChartModel{display_object,views,logger,size,scene,signature};
-        BubbleChart {frp,network,model} . init()
+        let model          = BubbleChartModel{display_object,scene,signature,views,logger,size};
+        BubbleChart {model,network,frp} . init()
     }
 
     fn init(self) -> Self {

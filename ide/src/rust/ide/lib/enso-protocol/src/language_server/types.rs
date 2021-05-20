@@ -390,10 +390,10 @@ impls!{ From + &From <enso_data::text::TextLocation> for Position { |location|
     }
 }}
 
-impls!{ Into + &Into <enso_data::text::TextLocation> for Position { |this|
+impls!{ From + &From <Position> for enso_data::text::TextLocation { |position|
     enso_data::text::TextLocation {
-        line   : this.line,
-        column : this.character,
+        line      : position.line,
+        column    : position.character,
     }
 }}
 
@@ -731,7 +731,7 @@ impls!{ From + &From <RangeInclusive<enso_data::text::TextLocation>> for Suggest
     }
 }}
 
-impls!{ Into + &Into <RangeInclusive<enso_data::text::TextLocation>> for SuggestionEntryScope { |this|
+impls!{ From + &From <SuggestionEntryScope> for RangeInclusive<enso_data::text::TextLocation> { |this|
     this.start.into()..=this.end.into()
 }}
 

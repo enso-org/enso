@@ -95,7 +95,7 @@ impl<T:Payload> ChildGenerator<T> {
 
     fn add_node(&mut self, ast_crumbs:ast::Crumbs, node:Node<T>) -> &mut node::Child<T> {
         let offset = self.current_offset;
-        let child = node::Child {node,ast_crumbs,offset};
+        let child = node::Child {node,offset,ast_crumbs};
         self.current_offset += child.node.size;
         self.children.push(child);
         self.children.last_mut().unwrap()
@@ -215,7 +215,7 @@ fn generate_node_for_ast<T:Payload>
                 if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
                     let node = {
                         let kind = node::Kind::Operation;
-                        Node {size,children,ast_id,payload,kind}
+                        Node {kind,size,children,ast_id,payload}
                     };
                     // Note that in this place it is impossible that Ast is in form of
                     // `this.method` -- it is covered by the former if arm. As such, we don't

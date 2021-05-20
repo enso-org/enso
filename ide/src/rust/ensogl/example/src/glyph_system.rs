@@ -16,7 +16,6 @@ use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 pub fn entry_point_glyph_system() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     run_once_initialized(|| init(&World::new(&web::get_html_element_by_id("root").unwrap())));
 }
 
