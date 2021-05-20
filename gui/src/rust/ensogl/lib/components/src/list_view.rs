@@ -116,7 +116,7 @@ impl Model {
         display_object.add_child(&scrolled_area);
         scrolled_area.add_child(&entries);
         scrolled_area.add_child(&selection);
-        Model{app,entries,selection,background,display_object,scrolled_area}
+        Model{app,entries,selection,background,scrolled_area,display_object}
     }
 
     fn padding(&self) -> f32 {
@@ -250,7 +250,7 @@ impl ListView {
     pub fn new(app:&Application) -> Self {
         let frp   = Frp::new();
         let model = Model::new(app);
-        ListView {frp,model}.init(app)
+        ListView {model,frp}.init(app)
     }
 
     fn init(self, app:&Application) -> Self {

@@ -226,9 +226,9 @@ impl<T:Scalar> From<Vector2<T>> for ComponentsOf<Vector2<T>> {
     }
 }
 
-impl<T:Scalar> Into<Vector2<T>> for ComponentsOf<Vector2<T>> {
-    fn into(self) -> Vector2<T> {
-        Vector2::new(self.0.clone(),self.1.clone())
+impl<T:Scalar> From<ComponentsOf<Vector2<T>>> for Vector2<T> {
+    fn from(value:ComponentsOf<Vector2<T>>) -> Self {
+        Vector2::new(value.0.clone(),value.1.clone())
     }
 }
 
@@ -238,9 +238,9 @@ impl<T:Scalar> From<Vector3<T>> for ComponentsOf<Vector3<T>> {
     }
 }
 
-impl<T:Scalar> Into<Vector3<T>> for ComponentsOf<Vector3<T>> {
-    fn into(self) -> Vector3<T> {
-        Vector3::new(self.0.clone(),self.1.clone(),self.2.clone())
+impl<T:Scalar> From<ComponentsOf<Vector3<T>>> for Vector3<T> {
+    fn from(value:ComponentsOf<Vector3<T>>) -> Self {
+        Vector3::new(value.0.clone(),value.1.clone(),value.2.clone())
     }
 }
 
@@ -250,8 +250,8 @@ impl<T:Scalar> From<Vector4<T>> for ComponentsOf<Vector4<T>> {
     }
 }
 
-impl<T:Scalar> Into<Vector4<T>> for ComponentsOf<Vector4<T>> {
-    fn into(self) -> Vector4<T> {
-        Vector4::new(self.0.clone(),self.1.clone(),self.2.clone(),self.3.clone())
+impl<T:Scalar> From<ComponentsOf<Vector4<T>>> for Vector4<T> {
+    fn from(value:ComponentsOf<Vector4<T>>) -> Self {
+        Vector4::new(value.0.clone(),value.1.clone(),value.2.clone(),value.3.clone())
     }
 }

@@ -1,9 +1,7 @@
-#![feature(option_unwrap_none)]
 #![feature(trait_alias)]
 
 use std::path;
 use std::io::ErrorKind;
-use reqwest;
 use std::fmt::Display;
 
 /// Types that can yield a reference to std::path::Path.
@@ -34,7 +32,7 @@ impl<T:AsRef<str>+Display> GithubRelease<T> {
         let result      = std::fs::remove_file(&file);
         let error       = result.err();
         let fatal_error = error.filter(|err| err.kind() != ErrorKind::NotFound);
-        fatal_error.unwrap_none();
+        assert!(fatal_error.is_none());
     }
 }
 

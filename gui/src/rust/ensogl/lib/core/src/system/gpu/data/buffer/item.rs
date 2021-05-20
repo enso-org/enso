@@ -180,7 +180,7 @@ impl Storable for f32 {
     fn slice_to_items_mut   (buffer: &mut [Self]) -> &mut [Self::Cell] { buffer }
 }
 
-impl<T:Storable<Cell=T>,R,C> Storable for MatrixMN<T,R,C>
+impl<T:Storable<Cell=T>,R,C> Storable for OMatrix<T,R,C>
     where T:ItemBounds, Self:MatrixCtx<T,R,C>,
           Self:GpuDefault + PhantomInto<glsl::PrimType> + GpuKnownSize {
     type Cell = T;
@@ -292,18 +292,18 @@ impl JsBufferView for [u8] {
 }
 
 #[allow(unsafe_code)]
-impl<T: Storable<Cell=T>,R,C> JsBufferView for [MatrixMN<T,R,C>]
+impl<T: Storable<Cell=T>,R,C> JsBufferView for [OMatrix<T,R,C>]
     where Self                    : MatrixCtx<T,R,C>,
           T                       : ItemBounds,
-          MatrixMN<T,R,C>         : Storable,
-          [Cell<MatrixMN<T,R,C>>] : JsBufferView {
+          OMatrix<T,R,C>         : Storable,
+          [Cell<OMatrix<T,R,C>>] : JsBufferView {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
-        <MatrixMN<T,R,C> as Storable>::slice_to_items(self).js_buffer_view()
+        <OMatrix<T,R,C> as Storable>::slice_to_items(self).js_buffer_view()
     }
 }
 
 #[allow(unsafe_code)]
-impl<T: Storable<Cell=T>,R,C> JsBufferView for MatrixMN<T,R,C>
+impl<T: Storable<Cell=T>,R,C> JsBufferView for OMatrix<T,R,C>
     where Self:MatrixCtx<T,R,C>, T:ItemBounds {
     unsafe fn js_buffer_view(&self) -> js_sys::Object {
         self.as_slice().js_buffer_view()

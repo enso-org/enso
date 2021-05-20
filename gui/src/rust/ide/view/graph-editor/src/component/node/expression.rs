@@ -26,7 +26,7 @@ impl Expression {
         let input_span_tree     = code.generate_tree(&span_tree::generate::context::Empty).unwrap_or_default();
         let output_span_tree    = default();
         let whole_expression_id = default();
-        Self {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
+        Self {pattern,code,whole_expression_id,input_span_tree,output_span_tree}
     }
 }
 

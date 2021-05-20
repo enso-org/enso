@@ -79,7 +79,6 @@ fn constructor_graph() -> visualization::java_script::Definition {
 #[allow(dead_code,missing_docs)]
 pub fn entry_point_visualization() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     web::set_stack_trace_limit();
     run_once_initialized(|| {
         let app = Application::new(&web::get_html_element_by_id("root").unwrap());

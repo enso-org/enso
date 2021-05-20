@@ -152,7 +152,7 @@ impl Chain {
     }
 
     /// Iterates over all arguments, left-to right.
-    pub fn enumerate_args<'a>(&'a self) -> impl Iterator<Item = Located<&'a Ast>> + 'a {
+    pub fn enumerate_args(&self) -> impl Iterator<Item = Located<&Ast>> + '_ {
         // Location is always like [Func,Func,…,Func,Arg].
         // We iterate beginning from the deeply nested args. So we can just create crumbs
         // location once and then just pop initial crumb when traversing arguments.

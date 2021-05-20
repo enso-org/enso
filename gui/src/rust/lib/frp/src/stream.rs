@@ -228,7 +228,7 @@ impl<Out:Default> NodeData<Out> {
         let value_cache   = default();
         let during_call   = default();
         let watch_counter = default();
-        Self {label,targets,new_targets,value_cache,during_call,watch_counter}
+        Self {targets,new_targets,value_cache,during_call,watch_counter,label}
     }
 
     fn use_caching(&self) -> bool {
@@ -545,7 +545,7 @@ impl<Def:HasOutputStatic> ValueProvider for WeakNode<Def> {
 
 impl<Out> HasId for Stream<Out> {
     fn id(&self) -> Id {
-        let raw = self.data.as_raw() as *const() as usize;
+        let raw = self.data.as_ptr() as *const() as usize;
         raw.into()
     }
 }

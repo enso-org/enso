@@ -123,7 +123,7 @@ impl Model {
         let label          = app.new_view::<text::Area>();
         let content        = default();
 
-        Self{logger,app,display_object,icon,icon_overlay,selection_menu,label,content}.init()
+        Self{logger,app,display_object,icon,icon_overlay,label,selection_menu,content}.init()
     }
 
     fn init(self) -> Self {
@@ -199,7 +199,7 @@ impl DropDownMenu {
     pub fn new(app:&Application) -> Self {
         let frp   = Frp::new();
         let model = Rc::new(Model::new(app));
-        Self {frp,model}.init(app)
+        Self {model,frp}.init(app)
     }
 
     fn init(self, app:&Application) -> Self {

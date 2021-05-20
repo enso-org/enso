@@ -164,7 +164,7 @@ impl SuggestionDatabase {
     pub fn lookup_method_ptr
     (&self, id:SuggestionId) -> FallibleResult<language_server::MethodPointer> {
         let entry = self.lookup(id)?;
-        Ok(language_server::MethodPointer::try_from(entry.as_ref())?)
+        language_server::MethodPointer::try_from(entry.as_ref())
     }
 
     /// Search the database for an entry of method identified by given id.
@@ -204,7 +204,7 @@ impl SuggestionDatabase {
     ///
     /// If the database was modified during iteration, the iterator does not panic, but may return
     /// unpredictable result (a mix of old and new values).
-    pub fn iterate_examples<'a>(&'a self) -> impl Iterator<Item=Rc<Example>> + 'a {
+    pub fn iterate_examples(&self) -> impl Iterator<Item=Rc<Example>> + '_ {
         let indices = 0..self.examples.borrow().len();
         indices.filter_map(move |i| self.examples.borrow().get(i).cloned())
     }

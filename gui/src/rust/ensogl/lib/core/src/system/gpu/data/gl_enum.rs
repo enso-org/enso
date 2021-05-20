@@ -31,13 +31,13 @@ pub mod traits {
     use super::*;
 
     /// Methods for every object which implements `Into<GlEnum>`.
-    pub trait IntoGlEnum {
+    pub trait ToGlEnum {
         /// Converts the current value to `GlEnum`.
-        fn into_gl_enum(&self) -> GlEnum;
+        fn to_gl_enum(&self) -> GlEnum;
     }
 
-    impl<T> IntoGlEnum for T where for<'a> &'a T:Into<GlEnum> {
-        fn into_gl_enum(&self) -> GlEnum {
+    impl<T> ToGlEnum for T where for<'a> &'a T:Into<GlEnum> {
+        fn to_gl_enum(&self) -> GlEnum {
             self.into()
         }
     }

@@ -11,7 +11,7 @@ use crate::data::color;
 use code_builder::CodeBuilder;
 use code_builder::HasCodeRepr;
 use enso_shapely::derive_clone_plus;
-
+use nalgebra::OMatrix;
 
 
 
@@ -116,12 +116,12 @@ impls! { From + &From <f32>  for Glsl { |t| {
     else      { iformat!("{t}").into() }
 }}}
 
-impls! { [T,R,C] From + &From <MatrixMN<T,R,C>> for Glsl
+impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
     where [ T    : Into<Glsl>
           , Self : MatrixCtx<T,R,C>
-          , PhantomData<MatrixMN<T,R,C>> : Into<PrimType> ] {
+          , PhantomData<OMatrix<T,R,C>> : Into<PrimType> ] {
     |t| {
-        let type_name = PrimType::phantom_from::<MatrixMN<T,R,C>>().to_code();
+        let type_name = PrimType::phantom_from::<OMatrix<T,R,C>>().to_code();
         let vals:Vec<String> = t.as_slice().iter().cloned().map(|t| {
             let t:Glsl = t.into();
             t.into()
@@ -463,19 +463,6 @@ impl<T:Into<Expr>> AddMut<T> for Function {
 pub struct PrecisionDecl {
     pub prec : Precision,
     pub typ  : Type
-}
-
-
-trait AsOwned {
-    type Owned;
-    fn as_owned(t:Self) -> Self::Owned;
-}
-
-impl<T:Clone> AsOwned for &T {
-    type Owned = T;
-    fn as_owned(t:Self) -> Self::Owned {
-        t.clone()
-    }
 }
 
 impl PrecisionDecl {

@@ -80,7 +80,7 @@ impl<T> ShapeRef<T> {
     /// want to define `s4 = s1 - s2`, `s5 = s1 - s3`, and `s6 = s4 + s5`. We need to discover that
     /// we use `s1` twice under the hood in order to optimize the GLSL.
     pub fn id(&self) -> usize {
-        Rc::downgrade(&self.rc).as_raw() as *const() as usize
+        Rc::downgrade(&self.rc).as_ptr() as *const() as usize
     }
 }
 

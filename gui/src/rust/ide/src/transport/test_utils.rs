@@ -13,6 +13,19 @@ pub struct TestWithMockedTransport {
     next_response_id      : json_rpc::handler::IdGenerator,
 }
 
+impl Deref for TestWithMockedTransport {
+    type Target = TestWithLocalPoolExecutor;
+    fn deref(&self) -> &Self::Target {
+        &self.with_executor_fixture
+    }
+}
+
+impl DerefMut for TestWithMockedTransport {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.with_executor_fixture
+    }
+}
+
 impl TestWithMockedTransport {
     pub fn set_up(transport:&MockTransport) -> Self {
         Self {

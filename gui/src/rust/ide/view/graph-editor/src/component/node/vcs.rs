@@ -144,7 +144,7 @@ impl StatusIndicator {
         let logger = Logger::new("status_indicator");
         let model  = Rc::new(StatusIndicatorModel::new(&logger));
         let frp    = Frp::new();
-        Self {frp,model}.init_frp(app)
+        Self {model,frp}.init_frp(app)
     }
 
     fn init_frp(self, app:&Application) -> Self {

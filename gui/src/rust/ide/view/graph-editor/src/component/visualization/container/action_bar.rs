@@ -176,7 +176,7 @@ impl Icons {
         display_object.add_child(&icon_root);
         icon_root.add_child(&reset_position_icon);
         icon_root.add_child(&drag_icon);
-        Self {display_object,reset_position_icon,drag_icon,size,icon_root}.init_layout()
+        Self {display_object,icon_root,reset_position_icon,drag_icon,size}.init_layout()
     }
 
     fn place_shape_in_slot<T:DynamicShape>(&self, view:&ShapeView<T>, index:usize) {
@@ -280,7 +280,7 @@ impl Model {
         shapes.add_sub_shape(&icons.reset_position_icon);
         shapes.add_sub_shape(&icons.drag_icon);
 
-        Model {hover_area,visualization_chooser,display_object,size,background,icons,shapes}.init()
+        Model {hover_area,visualization_chooser,background,display_object,size,icons,shapes}.init()
     }
 
     fn init(self) -> Self {

@@ -105,11 +105,11 @@ pub enum ScopeKind {
 /// also included.
 #[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub struct DefinitionName {
+    /// Name of the function itself.
+    pub name : Located<String>,
     /// Used when definition is an extension method. Then it stores the segments
     /// of the extended target type path.
     pub extended_target : Vec<Located<String>>,
-    /// Name of the function itself.
-    pub name : Located<String>,
 }
 
 impl DefinitionName {
@@ -164,7 +164,7 @@ impl DefinitionName {
                 (Vec::new(), name)
             }
         };
-        Some(DefinitionName {extended_target,name})
+        Some(DefinitionName {name,extended_target})
     }
 
     /// Iterate over name segments of this name, left to right.
@@ -265,7 +265,7 @@ impl DefinitionInfo {
         let indent          = self.context_indent + double_representation::INDENT;
         let mut empty_lines = Vec::new();
         let mut line        = lines.pop_front().ok_or(MissingLineWithAst)?;
-        while let None = line.elem {
+        while line.elem.is_none() {
             empty_lines.push(line.off + indent);
             line = lines.pop_front().ok_or(MissingLineWithAst)?;
         }
@@ -274,7 +274,7 @@ impl DefinitionInfo {
         let first_line = ast::BlockLine {elem,off};
         let is_orphan  = false;
         let ty         = ast::BlockType::Discontinuous {};
-        let block      = ast::Block {empty_lines,first_line,lines,indent,is_orphan,ty};
+        let block      = ast::Block {ty,indent,empty_lines,first_line,lines,is_orphan};
         let body_ast   = Ast::new(block,None);
         self.set_body_ast(body_ast);
         Ok(())

@@ -115,7 +115,7 @@ pub struct DomSceneData {
 impl DomSceneData {
     /// Constructor.
     pub fn new(dom:HtmlDivElement, view_projection_dom:HtmlDivElement, logger:Logger) -> Self {
-        Self {logger,dom,view_projection_dom }
+        Self {dom,view_projection_dom,logger}
     }
 }
 

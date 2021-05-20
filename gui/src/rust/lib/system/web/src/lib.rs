@@ -2,8 +2,6 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![feature(trait_alias)]
-#![feature(set_stdio)]
-#![feature(slice_patterns)]
 
 pub mod clipboard;
 pub mod closure;
@@ -496,74 +494,6 @@ extern "C" {
 // ===============
 // === Printer ===
 // ===============
-
-type PrintFn = fn(&str) -> std::io::Result<()>;
-
-struct Printer {
-    printfn: PrintFn,
-    buffer: String,
-    is_buffered: bool,
-}
-
-impl Printer {
-    fn new(printfn: PrintFn, is_buffered: bool) -> Printer {
-        Printer {
-            buffer: String::new(),
-            printfn,
-            is_buffered,
-        }
-    }
-}
-
-impl std::io::Write for Printer {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.buffer.push_str(&String::from_utf8_lossy(buf));
-
-        if !self.is_buffered {
-            (self.printfn)(&self.buffer)?;
-            self.buffer.clear();
-
-            return Ok(buf.len());
-        }
-
-        if let Some(i) = self.buffer.rfind('\n') {
-            let buffered = {
-                let (first, last) = self.buffer.split_at(i);
-                (self.printfn)(first)?;
-
-                String::from(&last[1..])
-            };
-
-            self.buffer.clear();
-            self.buffer.push_str(&buffered);
-        }
-
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        (self.printfn)(&self.buffer)?;
-        self.buffer.clear();
-
-        Ok(())
-    }
-}
-
-fn _print(msg: &str) -> std::io::Result<()> {
-    web_sys::console::info_1(&msg.to_string().into());
-    Ok(())
-}
-
-
-pub fn set_stdout() {
-    let printer = Printer::new(_print, true);
-    std::io::set_print(Some(Box::new(printer)));
-}
-
-pub fn set_stdout_unbuffered() {
-    let printer = Printer::new(_print, false);
-    std::io::set_print(Some(Box::new(printer)));
-}
 
 #[wasm_bindgen(inline_js = "
 export function set_stack_trace_limit() {

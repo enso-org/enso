@@ -458,7 +458,6 @@ mod tests {
     //#[wasm_bindgen_test::wasm_bindgen_test]
     #[allow(dead_code)]
     async fn websocket_tests() {
-        web::set_stdout();
         executor::web::test::setup_and_forget();
         let logger = DefaultTraceLogger::new("Test");
         info!(logger,"Started");

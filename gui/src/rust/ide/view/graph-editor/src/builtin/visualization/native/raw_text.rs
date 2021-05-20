@@ -111,7 +111,7 @@ impl RawTextModel {
         dom.dom().set_style_or_warn("pointer-events","auto"               ,&logger);
 
         scene.dom.layers.back.manage(&dom);
-        RawTextModel{dom,logger,size,scene}.init()
+        RawTextModel{logger,dom,size,scene}.init()
     }
 
     fn init(self) -> Self {

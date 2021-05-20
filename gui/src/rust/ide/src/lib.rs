@@ -11,11 +11,7 @@
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-#![feature(matches_macro)]
-#![feature(range_is_empty)]
 #![feature(result_cloned)]
-#![feature(slice_patterns)]
-#![feature(result_map_or_else)]
 #![recursion_limit="256"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -88,7 +84,6 @@ pub mod prelude {
 #[allow(dead_code)]
 pub fn entry_point_ide() {
     web::forward_panic_hook_to_error();
-    web::set_stdout();
 
     // FIXME: This code is temporary. It's used to remove the loader UI.
     ensogl_text_msdf_sys::run_once_initialized(|| {

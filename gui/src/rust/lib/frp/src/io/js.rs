@@ -44,7 +44,7 @@ impl<Callback:?Sized> Listener<Callback> {
             warning!(logger, "Couldn't add {event_type} event listener: {err:?}.");
         }
         let event_type = event_type.into();
-        Self {callback,element,event_type,logger}
+        Self {logger,callback,element,event_type}
     }
 }
 
@@ -142,7 +142,7 @@ impl CurrentJsEvent {
             event                  <+ new_event;
         }
         let event = event.into();
-        Self {network,event,pass_to_dom,event_source}
+        Self {event,pass_to_dom,event_source,network}
     }
 
     /// A helper function for creating mouse event handlers.

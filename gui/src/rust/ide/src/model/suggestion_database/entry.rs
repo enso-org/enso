@@ -183,14 +183,12 @@ impl Entry {
     pub fn method_id(&self) -> Option<MethodId> {
         if self.kind != Kind::Method {
             None
-        } else if let Some(self_type) = &self.self_type {
-            Some(MethodId {
+        } else {
+            self.self_type.as_ref().map(|self_type| MethodId {
                 module          : self.module.clone(),
                 defined_on_type : self_type.clone(),
                 name            : self.name.clone(),
             })
-        } else {
-            None
         }
     }
 

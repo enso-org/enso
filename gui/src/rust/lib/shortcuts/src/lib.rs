@@ -179,8 +179,8 @@ impl<T:Clone> AutomataRegistryModel<T> {
     fn add(&mut self, action_type:ActionType, expr:impl AsRef<str>, action:impl Into<T>) {
         self.dirty = true;
         let expr   = expr.as_ref();
-        let end_state = if expr.starts_with('-') {
-            let key = format!("-{}",expr[1..].trim().to_lowercase());
+        let end_state = if let Some(key) = expr.strip_prefix('-') {
+            let key = format!("-{}",key.trim().to_lowercase());
             let sym = Symbol::new_named(hash(&key),key);
             let pat = Pattern::symbol(&sym);
             self.nfa.new_pattern(self.always_state,pat)
@@ -231,7 +231,7 @@ impl<T:Clone> AutomataRegistryModel<T> {
                     for key in alts {
                         let mut local_path = path.clone();
                         local_path.push(&key);
-                        local_path.sort();
+                        local_path.sort_unstable();
                         let repr = local_path.join(" ");
                         match self.states.get(&repr) {
                             Some(&target) => {
@@ -253,7 +253,7 @@ impl<T:Clone> AutomataRegistryModel<T> {
                 } else {
                     let key = name;
                     path.push(&key);
-                    path.sort();
+                    path.sort_unstable();
                     let repr = path.join(" ");
                     state = match self.states.get(&repr) {
                         Some(&target) => {
@@ -504,7 +504,7 @@ impl<T:HashSetRegistryItem> HashSetRegistryModel<T> {
         }
     }
 
-    #[allow(clippy::collapsible_if)]
+    #[allow(clippy::collapsible_else_if)]
     fn on_event(&mut self, input:impl AsRef<str>, press:bool) -> Vec<T> {
         let input  = input.as_ref().to_lowercase();
         let exists = self.pressed.contains(&input);

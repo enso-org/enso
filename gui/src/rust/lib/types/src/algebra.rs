@@ -13,7 +13,7 @@ pub use nalgebra::Matrix3x2;
 pub use nalgebra::Matrix3x4;
 pub use nalgebra::Matrix4x2;
 pub use nalgebra::Matrix4x3;
-pub use nalgebra::MatrixMN;
+pub use nalgebra::OMatrix;
 
 pub use std::ops::Add;
 pub use std::ops::Div;

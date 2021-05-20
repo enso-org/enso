@@ -271,7 +271,7 @@ impl View {
     pub fn new(app:&Application) -> Self {
         ensogl_theme::builtin::dark::register(app);
         ensogl_theme::builtin::light::register(app);
-        let theme = match ARGS.theme.as_ref().map(|s|s.as_str()) {
+        let theme = match ARGS.theme.as_deref() {
             Some("dark") => {
                 ensogl_theme::builtin::dark::enable(app);
                 Theme::Dark

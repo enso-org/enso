@@ -62,7 +62,7 @@ impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config:config::Startup) -> Self {
         let logger = Logger::new("ide::Initializer");
-        Self{logger,config}
+        Self{config,logger}
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)

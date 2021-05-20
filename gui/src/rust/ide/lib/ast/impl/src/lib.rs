@@ -2,8 +2,7 @@
 #![feature(bool_to_option)]
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
-#![feature(type_alias_impl_trait)]
-#![feature(matches_macro)]
+#![feature(min_type_alias_impl_trait)]
 
 #[warn(missing_docs)]
 pub mod assoc;
@@ -141,7 +140,7 @@ pub struct ShiftedVec1<T> {
 
 impl<T> Shifted<T> {
     pub fn new(off:usize, wrapped:T) -> Self {
-        Shifted{off,wrapped}
+        Shifted{wrapped,off}
     }
 }
 

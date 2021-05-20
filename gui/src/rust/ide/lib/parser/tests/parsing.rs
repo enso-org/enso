@@ -1,5 +1,4 @@
 #![feature(generators, generator_trait)]
-#![feature(matches_macro)]
 
 use parser::prelude::*;
 

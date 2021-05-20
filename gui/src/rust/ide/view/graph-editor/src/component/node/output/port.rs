@@ -118,7 +118,7 @@ impl AllPortsShape {
         let hover        = Rect((canvas_width,canvas_height)).corners_radius(&hover_radius);
         let hover        = (hover - &top_mask).into();
 
-        AllPortsShape{shape,hover,inner_radius,inner_width}
+        AllPortsShape{inner_radius,inner_width,shape,hover}
     }
 }
 

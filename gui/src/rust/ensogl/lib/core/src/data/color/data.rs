@@ -120,31 +120,31 @@ where D:HasComponentsRepr, ComponentsOf<D>:Into<D> {
     }
 }
 
-impl<D> Into<Vector3<f32>> for Color<D>
+impl<D> From<Color<D>> for Vector3<f32>
 where Color<D> : HasComponents<ComponentsRepr=(f32,f32,f32)> {
-    fn into(self) -> Vector3<f32> {
-        Into::<Vector3<f32>>::into(self.into_components())
+    fn from(value:Color<D>) -> Self {
+        Into::<Vector3<f32>>::into(value.into_components())
     }
 }
 
-impl<D> Into<Vector4<f32>> for Color<D>
+impl<D> From<Color<D>> for Vector4<f32>
 where Color<D> : HasComponents<ComponentsRepr=(f32,f32,f32,f32)> {
-    fn into(self) -> Vector4<f32> {
-        Into::<Vector4<f32>>::into(self.into_components())
+    fn from(value:Color<D>) -> Self {
+        Into::<Vector4<f32>>::into(value.into_components())
     }
 }
 
-impl<D> Into<Vector3<f32>> for &Color<D>
-where Color<D> : Copy + HasComponents<ComponentsRepr=(f32,f32,f32)> {
-    fn into(self) -> Vector3<f32> {
-        Into::<Vector3<f32>>::into((*self).into_components())
+impl<D> From<&Color<D>> for Vector3<f32>
+where Color<D> : HasComponents<ComponentsRepr=(f32,f32,f32)> + Copy {
+    fn from(value:&Color<D>) -> Self {
+        Into::<Vector3<f32>>::into(value.into_components())
     }
 }
 
-impl<D> Into<Vector4<f32>> for &Color<D>
-where Color<D> : Copy + HasComponents<ComponentsRepr=(f32,f32,f32,f32)> {
-    fn into(self) -> Vector4<f32> {
-        Into::<Vector4<f32>>::into((*self).into_components())
+impl<D> From<&Color<D>> for Vector4<f32>
+where Color<D> : HasComponents<ComponentsRepr=(f32,f32,f32,f32)> + Copy {
+    fn from(value:&Color<D>) -> Self {
+        Into::<Vector4<f32>>::into(value.into_components())
     }
 }
 

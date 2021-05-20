@@ -3,6 +3,7 @@
 //! easily extendable in case other targets will be needed in the future.
 
 #![feature(specialization)]
+#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
 #![allow(missing_docs)]
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]

@@ -60,7 +60,7 @@ impl ShapeSystem {
         let material       = Rc::new(RefCell::new(Self::surface_material()));
         let pointer_events = Rc::new(Cell::new(true));
         let shape          = Rc::new(RefCell::new(shape));
-        let this           = Self {sprite_system,material,pointer_events,shape};
+        let this           = Self {sprite_system,shape,material,pointer_events};
         this.reload_shape();
         this
     }

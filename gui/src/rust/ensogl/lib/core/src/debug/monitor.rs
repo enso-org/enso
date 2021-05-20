@@ -425,7 +425,7 @@ impl Default for ValueCheck {
 }
 
 // To be removed after this gets resolved: https://github.com/rust-lang/rust-clippy/issues/4971
-#[allow(clippy::collapsible_if)]
+#[allow(clippy::collapsible_else_if)]
 impl ValueCheck {
     /// Construct the check by comparing the provided value to two threshold values.
     pub fn from_threshold(warn_threshold:f64, err_threshold:f64, value:f64) -> Self {

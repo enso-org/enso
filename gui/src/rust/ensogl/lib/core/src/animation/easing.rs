@@ -69,16 +69,16 @@ define_in_out_easing_fns! {
     fn Back    back    |t| { back_in_params(t, 1.70158) }
     fn Elastic elastic |t| { elastic_in_params(t, 0.3, 1.0) }
     fn Bounce  bounce  |t| {
-        if t < 1.0 / 2.75 { (7.5625 * t * t) }
+        if t < 1.0 / 2.75 { 7.5625 * t * t }
         else if t < 2.0 / 2.75 {
             let t = t - 1.5 / 2.75;
-            (7.5625 * t * t + 0.75)
+            7.5625 * t * t + 0.75
         } else if t < 2.5 / 2.75 {
             let t = t - 2.25 / 2.75;
-            (7.5625 * t * t + 0.9375)
+            7.5625 * t * t + 0.9375
         } else {
             let t = t - 2.625 / 2.75;
-            (7.5625 * t * t + 0.984_375)
+            7.5625 * t * t + 0.984_375
         }
     }
 }
@@ -198,7 +198,7 @@ where F:AnyFnEasing, OnStep:Callback<T>, OnEnd:Callback<EndStatus> {
         let start_value  = Cell::new(start);
         let target_value = Cell::new(end);
         let active       = default();
-        Self {duration,value,start_value,target_value,active,tween_fn,callback,on_end}
+        Self {duration,start_value,target_value,value,active,tween_fn,callback,on_end}
     }
 
     fn step(&self, time:f32) {
@@ -384,6 +384,8 @@ impl<T,F,OnStep,OnEnd> WeakAnimationLoop<T,F,OnStep,OnEnd> {
 
 /// Alias for `FixedFrameRateLoop` with specified step callback.
 pub type AnimationStep<T,F,OnStep,OnEnd> = animation::Loop<Step<T,F,OnStep,OnEnd>>;
+
+/// Callback for an animation step.
 pub type Step<T,F,OnStep,OnEnd> = impl Fn(animation::TimeInfo);
 
 fn step<T:Value,F,OnStep,OnEnd>(easing:&Animator<T,F,OnStep,OnEnd>) -> Step<T,F,OnStep,OnEnd>

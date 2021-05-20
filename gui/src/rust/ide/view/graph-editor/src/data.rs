@@ -27,7 +27,7 @@ pub mod enso {
             "Any".into()
         }
 
-        pub fn alternatives<'a>(&'a self) -> impl Iterator<Item=Type> + 'a {
+        pub fn alternatives(&self) -> impl Iterator<Item=Type> + '_ {
             self.content.split('|').map(str::trim).map(Type::new)
         }
     }

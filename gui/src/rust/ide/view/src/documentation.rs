@@ -67,7 +67,7 @@ fn documentation_style() -> String {
 /// The input type for documentation parser. See documentation of `View` for details.
 #[derive(Clone,Copy,Debug)]
 enum InputFormat {
-    AST,Docstring
+    Ast,Docstring
 }
 
 type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
@@ -144,7 +144,7 @@ impl Model {
             let parser    = parser::DocParser::new()?;
             let processed = string.to_string();
             let output    = match input_type {
-                InputFormat::AST       => parser.generate_html_docs(processed),
+                InputFormat::Ast       => parser.generate_html_docs(processed),
                 InputFormat::Docstring => parser.generate_html_doc_pure(processed),
             };
             let output = output?;
@@ -312,7 +312,7 @@ impl View {
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::AST      ));
+            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::Ast      ));
             eval frp.display_docstring     ((cont) model.display_doc(cont,InputFormat::Docstring));
             eval visualization.send_data([visualization,model](data) {
                 if let Err(error) = model.receive_data(data) {

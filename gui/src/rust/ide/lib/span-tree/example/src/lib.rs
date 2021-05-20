@@ -15,7 +15,6 @@ use uuid::Uuid;
 #[allow(dead_code)]
 pub fn entry_point_span_tree() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     web::set_stack_trace_limit();
     main();
 }

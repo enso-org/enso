@@ -1,7 +1,6 @@
 //! Math utilities with focus on computer graphics.
 
 #![feature(trait_alias)]
-#![feature(clamp)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]

@@ -263,7 +263,6 @@ macro_rules! examples {
 /// Runs EasingAnimator example.
 pub fn entry_point_easing_animator() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     web::set_stack_trace_limit();
     let container = web::create_div();
     container.set_attribute_or_panic("id", "examples");

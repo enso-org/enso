@@ -10,14 +10,14 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-enso-data = { version = "0.1.4" }
-enso-logger = { version = "0.2.2" }
-enso-prelude = { version = "0.1.10" }
+enso-data = { version = "0.2.0" }
+enso-logger = { version = "0.3.0" }
+enso-prelude = { version = "0.2.0" }
 console_error_panic_hook = { version = "0.1.1", optional = true }
 failure = { version = "0.1.5" }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
 js-sys = { version = "0.3.28" }
-nalgebra = { version = "0.21.1" }
+nalgebra = { version = "0.26.1" }
 wasm-bindgen = { version = "=0.2.58", features = ["nightly"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

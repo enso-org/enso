@@ -87,7 +87,7 @@ impl StyleWatchFrp {
         let network          = &self.network;
         let (source,current) = self.get_internal(path);
         frp::extend! { network
-            value   <- source.map(|t| t.color().unwrap_or_else(|| FALLBACK_COLOR));
+            value   <- source.map(|t| t.color().unwrap_or(FALLBACK_COLOR));
             sampler <- value.sampler();
         }
         source.emit(current);
@@ -186,7 +186,7 @@ impl StyleWatch {
 impl StyleWatch {
     /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
     pub fn get_color<T:Into<Path>>(&self, path:T) -> color::Rgba {
-        self.get(path).color().unwrap_or_else(|| FALLBACK_COLOR)
+        self.get(path).color().unwrap_or(FALLBACK_COLOR)
     }
 
     // /// Return the dimmed version for either a `Path` or a specific color.

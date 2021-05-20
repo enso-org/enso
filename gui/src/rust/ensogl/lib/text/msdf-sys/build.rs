@@ -41,7 +41,7 @@ mod msdfgen_wasm {
         let mut open_options = fs::OpenOptions::new();
         open_options.append(true);
         let mut file = open_options.open(path).unwrap();
-        file.write(PATCH_LINE.as_bytes()).unwrap();
+        file.write_all(PATCH_LINE.as_bytes()).unwrap();
     }
 }
 

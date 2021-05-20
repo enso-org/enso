@@ -10,7 +10,7 @@ use crate::prelude::*;
 // =================
 
 /// Marker trait used to disambiguate overlapping impls of [`ArgReader`].
-pub trait ArgMarker {}
+#[marker] pub trait ArgMarker {}
 
 /// Trait used to convert provided string arguments to the desired type.
 #[allow(missing_docs)]

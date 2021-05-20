@@ -39,7 +39,6 @@ pub fn shape() -> AnyShape {
 #[allow(dead_code)]
 pub fn entry_point_shape_system() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
 
     let world         = World::new(&web::get_html_element_by_id("root").unwrap());
     let scene         = world.scene();

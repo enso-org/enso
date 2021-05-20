@@ -47,16 +47,19 @@ pub trait API:Debug {
     fn suggestion_db(&self) -> Rc<model::SuggestionDatabase>;
 
     /// Returns a model of module opened from file.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn module<'a>
     (&'a self, path:crate::model::module::Path) -> BoxFuture<'a,FallibleResult<model::Module>>;
 
     /// Creates a new execution context with given definition as a root; and registers the context
     /// for receiving update.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn create_execution_context<'a>
     (&'a self, root_definition:language_server::MethodPointer)
     -> BoxFuture<'a,FallibleResult<model::ExecutionContext>>;
 
     /// Set a new project name.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn rename_project<'a>(&'a self, name:String) -> BoxFuture<'a,FallibleResult<()>>;
 
     /// Returns the primary content root id for this project.
@@ -90,6 +93,13 @@ pub trait API:Debug {
     /// Subscribe for notifications about project-level events.
     fn subscribe(&self) -> Subscriber<Notification>;
 }
+
+// Note: Needless lifetimes
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// Clippy complains about using explicit lifetimes, however the suggested change breaks compilation.
+// This is because mockall library generates a `MockAPI` struct based on this code.
+// However, so far, I (mwu) have failed to reduce to self-contained repro that could be presented
+// to mockall library authors. Further effort needed.
 
 impl Debug for MockAPI {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
