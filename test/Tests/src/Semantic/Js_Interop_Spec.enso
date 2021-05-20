@@ -48,6 +48,12 @@ foreign js make_str str = """
 foreign js make_int = """
     return 10
 
+foreign js make_true = """
+    return true
+
+foreign js make_false = """
+    return false
+
 foreign js make_double = """
     return 10.5
 
@@ -93,6 +99,33 @@ spec = Test.group "Polyglot JS" <|
             _ -> False
         t.should_be_true
 
+    Test.specify "should make JS booleans type pattern-matchable" <|
+        bool = here.make_true
+        t = case bool of
+            True -> True
+            _ -> False
+        t.should_be_true
+        bool_2 = here.make_false
+        f = case bool_2 of
+            False -> True
+            _ -> False
+        f.should_be_true
+        c = case bool of
+            Boolean -> True
+            _ -> False
+        c.should_be_true
+        c_2 = case bool_2 of
+            Boolean -> True
+            _ -> False
+        c_2.should_be_true
+
+    Test.specify "should make JS arrays type pattern-matchable as arrays" <|
+        arr = here.make_array
+        r = case arr of
+            Array -> True
+            _ -> False
+        r.should_be_true
+
     Test.specify "should make JS numbers type pattern-matchable" <|
         int_match = case here.make_int of
             Integer -> True
@@ -133,7 +166,13 @@ spec = Test.group "Polyglot JS" <|
         array.index . should_equal 0
 
     length_pending_msg = ".length cannot currently be called due to a bug in GraalJS. Fixed in 21.1.0."
-    Test.specify "allow access to the length property of a JS array in Enso" pending=length_pending_msg <|
+    Test.specify "allow access to the length property of a JS array in Enso" <|
         array = here.make_array
         array.length . should_equal 3
+
+    Test.specify "should perform maths with mixed numbers" <|
+        js_num = here.make_int
+        enso_num = 10
+        (enso_num + js_num) . should_equal 20
+        (js_num - enso_num) . should_equal 0
 

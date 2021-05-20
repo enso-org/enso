@@ -44,6 +44,12 @@ foreign r make_int = """
 foreign r make_double = """
     10.5
 
+foreign r make_true = """
+    TRUE
+
+foreign r make_false = """
+    FALSE
+
 spec =
     pending = if Polyglot.is_language_installed "R" then Nothing else """
         Can't run R tests, R is not installed.
@@ -76,6 +82,33 @@ spec =
                 _ -> False
             t.should_be_true
 
+        Test.specify "should make R booleans type pattern-matchable" <|
+            bool = here.make_true
+            t = case bool of
+                True -> True
+                _ -> False
+            t.should_be_true
+            bool_2 = here.make_false
+            f = case bool_2 of
+                False -> True
+                _ -> False
+            f.should_be_true
+            c = case bool of
+                Boolean -> True
+                _ -> False
+            c.should_be_true
+            c_2 = case bool_2 of
+                Boolean -> True
+                _ -> False
+            c_2.should_be_true
+
+        Test.specify "should make R arrays type pattern-matchable as arrays" <|
+            arr = here.make_array
+            r = case arr of
+                Array -> True
+                _ -> False
+            r.should_be_true
+
         Test.specify "should make R numbers type pattern-matchable" <|
             int_match = case here.make_int of
                 Integer -> True
@@ -105,3 +138,10 @@ spec =
         Test.specify "should properly report parse errors" <|
             err = Panic.recover here.does_not_parse
             err.catch.to_display_text.should .contain 'parse exception'
+
+        Test.specify "should perform maths with mixed numbers" <|
+            r_num = here.make_int
+            enso_num = 10
+            (enso_num + r_num) . should_equal 20
+            (r_num - enso_num) . should_equal 0
+
