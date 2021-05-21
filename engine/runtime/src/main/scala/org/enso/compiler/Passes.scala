@@ -93,7 +93,9 @@ class Passes(
   private val passConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
     AliasAnalysis         -->> AliasAnalysis.Configuration(),
-    AutomaticParallelism  -->> AutomaticParallelism.Configuration(true)
+    AutomaticParallelism -->> AutomaticParallelism.Configuration(
+      config.autoParallelismEnabled
+    )
   )
 
   /** The pass manager for running compiler passes. */

@@ -6,6 +6,10 @@
   [GraalVM 21.1.0](https://github.com/graalvm/graalvm-ce-builds/releases/tag/vm-21.1.0)
   ([#1738](https://github.com/enso-org/enso/pull/1738)). This brings a raft of
   bug-fixes and improvements to how quickly Enso can reach its peak performance.
+- Added support for bidirectional dataflow tracking to the `DataflowAnalysis`
+  pass ([#1748](https://github.com/enso-org/enso/pull/1748)). This will allow
+  the interpreter to perform more detailed analyses in the future to enable
+  optimisations and new features.
 
 ## Tooling
 

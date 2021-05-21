@@ -69,13 +69,8 @@ object AutomaticParallelism extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    moduleContext: ModuleContext
-  ): IR.Module = {
-    val inlineContext = InlineContext.fromModuleContext(moduleContext)
-    ir.copy(bindings =
-      ir.bindings.map(processModuleDefinition(_, inlineContext))
-    )
-  }
+    @unused moduleContext: ModuleContext
+  ): IR.Module = ir
 
   /** Executes the pass on an expression.
     *
@@ -87,10 +82,8 @@ object AutomaticParallelism extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    inlineContext: InlineContext
-  ): IR.Expression = {
-    processExpression(ir, new MutablePassData(inlineContext), ScopedPassData())
-  }
+    @unused inlineContext: InlineContext
+  ): IR.Expression = ir
 
   // If I can do the limited form, then it is sufficient to have spawn/await on
   //  bindings combined with liberal inlining of the other parts of the
@@ -102,7 +95,7 @@ object AutomaticParallelism extends IRPass {
 
   // === Pass Implementation ==================================================
 
-  private def processModuleDefinition(
+  @unused private def processModuleDefinition(
     binding: Definition,
     inlineContext: InlineContext
   ): Definition = {
@@ -330,8 +323,8 @@ object AutomaticParallelism extends IRPass {
       case pre: IR.Application.Prefix           => pre
       case force: IR.Application.Force          => force
       case seq: IR.Application.Literal.Sequence => seq
-      case cse: IR.Case                         => cse
       case caseBranch: IR.Case.Branch           => caseBranch
+      case cse: IR.Case                         => cse
       case block: IR.Expression.Block           => block
       case binding: IR.Expression.Binding       => binding
       case a => a

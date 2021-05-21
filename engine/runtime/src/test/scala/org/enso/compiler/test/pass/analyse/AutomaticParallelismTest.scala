@@ -85,6 +85,8 @@ class AutomaticParallelismTest extends CompilerTest {
   }
 
   "Failed parallelism analysis" should {
+    pending
+
     "raise a warning when there aren't enough arguments to parallelize" in {
       implicit val moduleContext: ModuleContext = mkModuleContext
 

@@ -72,9 +72,7 @@ public class Context {
     this.threadManager = new ThreadManager();
     this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
-    var isAutomaticParallelismEnabled =
-        environment.getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
-    this.compilerConfig = new CompilerConfig(isAutomaticParallelismEnabled, true);
+    this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.shadowedPackages = new ArrayList<>();
 
@@ -388,11 +386,6 @@ public class Context {
   /** @return the list of shadowed packages */
   public List<ShadowedPackage> getShadowedPackages() {
     return shadowedPackages;
-  }
-
-  /** @return whether the automated parallelism discovery should be enabled for this context. */
-  public boolean isAutomaticParallelismEnabled() {
-    return getEnvironment().getOptions().get(RuntimeOptions.ENABLE_AUTO_PARALLELISM_KEY);
   }
 
   /** @return the compiler configuration for this language */
