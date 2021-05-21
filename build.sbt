@@ -10,7 +10,7 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.5"
+val scalacVersion = "2.13.6"
 val rustVersion   = "1.54.0-nightly"
 val graalVersion  = "21.1.0"
 val javaVersion   = "11"
@@ -117,7 +117,10 @@ ThisBuild / scalacOptions ++= Seq(
   "-language:higherKinds",              // Allow higher-kinded types
   "-language:implicitConversions",      // Allow definition of implicit functions called views
   "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
+  "-Vimplicits",                        // Prints implicit resolution chains when no implicit can be found.
+  "-Vtype-diffs",                       // Prints type errors as coloured diffs between types.
   "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
+  "-Xfatal-warnings",                   // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
   "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
   "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
   "-Xlint:delayedinit-select",          // Selecting member of DelayedInit.
@@ -136,13 +139,12 @@ ThisBuild / scalacOptions ++= Seq(
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
   "-Ywarn-extra-implicit",              // Warn when more than one implicit parameter section is defined.
   "-Ywarn-numeric-widen",               // Warn when numerics are widened.
-  "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
   "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
+  "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
-  "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
-  "-Ywarn-unused:privates",             // Warn if a private member is unused.
   "-Ywarn-unused:params",               // Warn if a value parameter is unused.
-  "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
+  "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
+  "-Ywarn-unused:privates"              // Warn if a private member is unused.
 )
 
 val jsSettings = Seq(
@@ -344,16 +346,6 @@ val scalaCompiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-// === Splain =================================================================
-
-val splainVersion = "0.5.8"
-val splainOptions = Seq(
-  "-P:splain:infix:true",
-  "-P:splain:foundreq:true",
-  "-P:splain:implicits:true",
-  "-P:splain:tree:true"
-)
-
 // === std-lib ================================================================
 
 val icuVersion = "67.1"
@@ -376,7 +368,7 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "29.0-jre"
 val jlineVersion            = "3.19.0"
-val kindProjectorVersion    = "0.11.3"
+val kindProjectorVersion    = "0.13.0"
 val mockitoScalaVersion     = "1.14.8"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"
@@ -582,11 +574,7 @@ lazy val graph = (project in file("lib/scala/graph/"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    ),
-    addCompilerPlugin(
-      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
-    ),
-    scalacOptions ++= splainOptions
+    )
   )
 
 lazy val pkg = (project in file("lib/scala/pkg"))
@@ -725,8 +713,8 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "project-manager",
-        staticOnLinux = true,
-        initializeAtRuntime = Seq("scala.util.Random"),
+        staticOnLinux       = true,
+        initializeAtRuntime = Seq("scala.util.Random")
       )
       .dependsOn(VerifyReflectionSetup.run)
       .dependsOn(assembly)
@@ -823,11 +811,7 @@ lazy val `core-definition` = (project in file("lib/scala/core-definition"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    ),
-    addCompilerPlugin(
-      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
-    ),
-    scalacOptions ++= splainOptions
+    )
   )
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
@@ -893,10 +877,6 @@ lazy val `polyglot-api` = project
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
-    addCompilerPlugin(
-      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
-    ),
-    scalacOptions ++= splainOptions,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -1033,11 +1013,7 @@ lazy val runtime = (project in file("engine/runtime"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    ),
-    addCompilerPlugin(
-      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
-    ),
-    scalacOptions ++= splainOptions
+    )
   )
   .settings(
     (Compile / compile) := (Compile / compile)
