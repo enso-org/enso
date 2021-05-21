@@ -5,6 +5,7 @@ import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
+import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
@@ -31,9 +32,13 @@ import scala.jdk.OptionConverters._
   *
   * @param context the language context
   */
-class Compiler(val context: Context, private val builtins: Builtins) {
+class Compiler(
+  val context: Context,
+  val builtins: Builtins,
+  config: CompilerConfig
+) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
-  private val passes: Passes                   = new Passes
+  private val passes: Passes                   = new Passes(config)
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val stubsGenerator: RuntimeStubsGenerator =
@@ -80,7 +85,8 @@ class Compiler(val context: Context, private val builtins: Builtins) {
 
         val moduleContext = ModuleContext(
           module          = module,
-          freshNameSupply = Some(freshNameSupply)
+          freshNameSupply = Some(freshNameSupply),
+          compilerConfig  = config
         )
         val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)
@@ -121,7 +127,8 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     module.getScope.reset()
     val moduleContext = ModuleContext(
       module          = module,
-      freshNameSupply = Some(freshNameSupply)
+      freshNameSupply = Some(freshNameSupply),
+      compilerConfig  = config
     )
     val parsedAST        = parse(module.getSource)
     val expr             = generateIR(parsedAST)
@@ -331,7 +338,10 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     if (context.isStrictErrors) {
       val diagnostics = modules.map { module =>
         val errors = GatherDiagnostics
-          .runModule(module.getIr, new ModuleContext(module))
+          .runModule(
+            module.getIr,
+            ModuleContext(module, compilerConfig = config)
+          )
           .unsafeGetMetadata(
             GatherDiagnostics,
             "No diagnostics metadata right after the gathering pass."
@@ -467,7 +477,7 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IrToTruffle(context, source, scope).run(ir)
+    new IrToTruffle(context, source, scope, config).run(ir)
   }
 
   /** Generates code for the truffle interpreter in an inline context.
@@ -486,7 +496,8 @@ class Compiler(val context: Context, private val builtins: Builtins) {
     new IrToTruffle(
       context,
       source,
-      inlineContext.module.getScope
+      inlineContext.module.getScope,
+      config
     ).runInline(
       ir,
       inlineContext.localScope.getOrElse(LocalScope.root),

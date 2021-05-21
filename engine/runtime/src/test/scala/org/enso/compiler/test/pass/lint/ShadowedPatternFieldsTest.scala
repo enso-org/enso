@@ -12,7 +12,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(ShadowedPatternFields).get

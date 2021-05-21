@@ -111,7 +111,7 @@ class GatherDiagnosticsTest extends CompilerTest {
 
     "avoid duplication" in {
       implicit val passManager: PassManager =
-        new Passes().passManager
+        new Passes(defaultConfig).passManager
 
       implicit val moduleContext: ModuleContext =
         buildModuleContext(freshNameSupply = Some(new FreshNameSupply))

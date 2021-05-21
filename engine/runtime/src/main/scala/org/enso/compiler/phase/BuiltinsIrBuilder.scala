@@ -3,6 +3,7 @@ package org.enso.compiler.phase
 import org.enso.compiler.Passes
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.data.CompilerConfig
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.Module.CompilationStage
 import org.enso.syntax.text.Parser
@@ -37,7 +38,7 @@ object BuiltinsIrBuilder {
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply),
-      noWarnings      = true
+      compilerConfig  = CompilerConfig(warningsEnabled = false)
     )
     val parsedAst = Parser().runWithIds(module.getSource.getCharacters.toString)
     val initialIr = AstToIr.translate(parsedAst)

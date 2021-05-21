@@ -18,7 +18,7 @@ class MethodDefinitionsTest extends CompilerTest {
       freshNameSupply = Some(new FreshNameSupply)
     )
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(MethodDefinitions).get
@@ -52,7 +52,7 @@ class MethodDefinitionsTest extends CompilerTest {
     val ir =
       """
         |type Foo a b c
-        | 
+        |
         |Foo.my_method a b c = a + b + c
         |
         |my_method = 10

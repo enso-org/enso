@@ -53,7 +53,7 @@ class ApplicationSaturationTest extends CompilerTest {
       )
     )
 
-  val passes: Passes = new Passes
+  val passes: Passes = new Passes(defaultConfig)
 
   val precursorPasses = passes.getPrecursors(TailCall).get
 

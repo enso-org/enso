@@ -12,7 +12,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   implicit val ctx: ModuleContext = buildModuleContext()
 

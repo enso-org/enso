@@ -15,7 +15,7 @@ class SuspendedArgumentsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(SuspendedArguments).get
