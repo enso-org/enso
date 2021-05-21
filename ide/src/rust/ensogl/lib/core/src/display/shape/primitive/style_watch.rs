@@ -82,6 +82,18 @@ impl StyleWatchFrp {
         sampler
     }
 
+    /// Queries style sheet value for a number.  Returns 0.0 if not found.
+    pub fn get_number(&self, path:impl Into<Path>) -> frp::Sampler<f32> {
+        let network          = &self.network;
+        let (source,current) = self.get_internal(path);
+        frp::extend! { network
+            value   <- source.map(|t| t.number().unwrap_or(0.0));
+            sampler <- value.sampler();
+        }
+        source.emit(current);
+        sampler
+    }
+
     /// Queries style sheet color, if not found fallbacks to [`FALLBACK_COLOR`].
     pub fn get_color<T:Into<Path>>(&self, path:T) -> frp::Sampler<color::Rgba> {
         let network          = &self.network;

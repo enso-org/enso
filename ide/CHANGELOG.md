@@ -1,8 +1,12 @@
-# Enso 2.0.0-alpha.5 (2021-05-14)
+# Next Release
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
 #### Visual Environment
+
+- [Components for picking numbers and ranges.][1524]. We now have some internal
+  re-usable UI components for selecting numbers or a range. Stay tuned for them
+  appearing in the IDE.
 
 #### EnsoGL (rendering engine)
 
@@ -29,6 +33,7 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
+[1524]: https://github.com/enso-org/ide/pull/1524
 [1541]: https://github.com/enso-org/ide/pull/1511
 [1538]: https://github.com/enso-org/ide/pull/1538
 [1561]: https://github.com/enso-org/ide/pull/1561
@@ -52,10 +57,6 @@ you can find their release notes
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
-- [Fix some internal settings not being applied correctly in the IDE][1539].
-  Some arguments were not passed correctly to the IDE leading to erroneous
-  behaviour in the electron app. This is now fixed.
-
 #### Visual Environment
 
 - [Some command line arguments were not applied correctly in the IDE][1536].
@@ -71,7 +72,6 @@ you can find their release notes
 [1511]: https://github.com/enso-org/ide/pull/1511
 [1536]: https://github.com/enso-org/ide/pull/1536
 [1531]: https://github.com/enso-org/ide/pull/1531
-[1531]: https://github.com/enso-org/ide/pull/1539
 
 <br/>
 
