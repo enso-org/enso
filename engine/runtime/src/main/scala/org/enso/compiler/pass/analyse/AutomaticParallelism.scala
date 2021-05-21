@@ -280,7 +280,7 @@ object AutomaticParallelism extends IRPass {
         )
         .newName()
     )
-    val bindings = bindingNames.zip(app.arguments).map { case (bindName, arg) =>
+    @unused val bindings = bindingNames.zip(app.arguments).map { case (bindName, arg) =>
       makeInlinedBindingFor(bindName, arg, mutData, dataflow)
     }
 
@@ -289,7 +289,7 @@ object AutomaticParallelism extends IRPass {
       case (arg: CallArgument.Specified, bindingName) =>
         arg.copy(value = bindingName.duplicate())
     }
-    val newApp = app.copy(arguments = newArgs)
+    @unused val newApp = app.copy(arguments = newArgs)
 
     RewriteException()
   }
