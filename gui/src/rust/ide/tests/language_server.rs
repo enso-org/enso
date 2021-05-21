@@ -15,7 +15,6 @@ use ide::prelude::*;
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
 use ide::double_representation::identifier::ReferentName;
-use ide::model::Project;
 use ide::model::module;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
@@ -65,7 +64,8 @@ wasm_bindgen_test_configure!(run_in_browser);
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
     let _guard   = ide::initializer::setup_global_executor();
-    let project  = setup_project().await;
+    let ide      = setup_ide().await;
+    let project  = ide.current_project();
     let client   = project.json_rpc();
     let root_id  = project.content_root_id();
     let project_name = ReferentName::new(project.name()).unwrap();
@@ -279,13 +279,13 @@ async fn file_events() {
 /// This procedure sets up the project, testing:
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
-async fn setup_project() -> Project {
+async fn setup_ide() -> controller::Ide {
     let logger = Logger::new("Test");
     let config = ide::config::Startup::default();
     info!(logger,"Setting up the project.");
     let initializer = ide::Initializer::new(config);
     let error_msg   = "Couldn't open project.";
-    initializer.initialize_project_model().await.expect(error_msg)
+    initializer.initialize_ide_controller().await.expect(error_msg)
 }
 
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
@@ -293,8 +293,9 @@ async fn setup_project() -> Project {
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
     let logger = Logger::new("Test");
-    let _guard   = ide::initializer::setup_global_executor();
-    let project  = setup_project().await;
+    let _guard  = ide::initializer::setup_global_executor();
+    let ide     = setup_ide().await;
+    let project = ide.current_project();
     info!(logger,"Got project: {project:?}");
     // Edit file using the text protocol
     let path     = Path::new(project.json_rpc().content_root(), &["test_file.txt"]);
@@ -320,14 +321,15 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let logger = Logger::new("Test");
-    let project  = setup_project().await;
+    let logger  = Logger::new("Test");
+    let ide     = setup_ide().await;
+    let project = ide.current_project();
     info!(logger,"Got project: {project:?}");
 
     let expression = "x -> x.json_serialize";
 
     use ensogl::system::web::sleep;
-    use ide::MAIN_DEFINITION_NAME;
+    use controller::project::MAIN_DEFINITION_NAME;
 
     let logger                = Logger::new("Test");
     let module_path           = ide::initial_module_path(&project).unwrap();

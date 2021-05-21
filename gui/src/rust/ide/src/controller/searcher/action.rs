@@ -23,12 +23,13 @@ pub enum Action {
     /// Add to the current module a new function with example code, and a new node in
     /// current scene calling that function.
     Example(Example),
-    // In future, other action types will be added (like project/module management, etc.).
+    /// Create a new untitled project and open it.
+    CreateNewProject,
+    // In the future, other action types will be added (like project/module management, etc.).
 }
 
-impl Action {
-    /// The caption to display in searcher list.
-    pub fn caption(&self) -> String {
+impl Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Suggestion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
                 let should_put_project_name = self_type.name == constants::PROJECTS_MAIN_MODULE
@@ -36,11 +37,12 @@ impl Action {
                 let self_type_name = if should_put_project_name {
                     self_type.project_name.as_ref()
                 } else { &self_type.name };
-                format!("{}.{}",self_type_name,completion.name)
+                write!(f,"{}.{}",self_type_name,completion.name)
             } else {
-                completion.name.clone()
+                write!(f, "{}", completion.name.clone())
             }
-            Self::Example(example) => format!("Example: {}", example.name),
+            Self::Example(example) => write!(f,"Example: {}", example.name),
+            Self::CreateNewProject => write!(f,"New Project"),
         }
     }
 }
@@ -70,10 +72,10 @@ pub struct ListEntry {
 impl ListEntry {
     /// Update the current match info according to the new filtering pattern.
     pub fn update_matching_info(&mut self, pattern:impl Str) {
-        let matches     = fuzzly::matches(self.action.caption(), pattern.as_ref());
+        let matches     = fuzzly::matches(self.action.to_string(),pattern.as_ref());
         let subsequence = matches.and_option_from(|| {
             let metric = fuzzly::metric::default();
-            fuzzly::find_best_subsequence(self.action.caption(), pattern, metric)
+            fuzzly::find_best_subsequence(self.action.to_string(),pattern,metric)
         });
         self.match_info = match subsequence {
             Some(subsequence) => MatchInfo::Matches {subsequence},

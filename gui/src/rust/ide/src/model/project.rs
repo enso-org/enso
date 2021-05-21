@@ -77,7 +77,7 @@ pub trait API:Debug {
     ///
     /// This module is special, as it needs to be referred by the project name itself.
     fn main_module(&self) -> FallibleResult<model::module::QualifiedName> {
-        let main = std::iter::once(crate::ide::INITIAL_MODULE_NAME);
+        let main = std::iter::once(controller::project::INITIAL_MODULE_NAME);
         model::module::QualifiedName::from_segments(self.name(),main)
 
         // TODO [mwu] The code below likely should be preferred but does not work
