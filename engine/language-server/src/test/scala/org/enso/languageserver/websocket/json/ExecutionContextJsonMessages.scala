@@ -93,6 +93,28 @@ object ExecutionContextJsonMessages {
           }
           """
 
+  def executionContextExecuteVisualisationRequest(
+    reqId: Int,
+    visualisationId: Api.VisualisationId,
+    expressionId: Api.ExpressionId,
+    configuration: VisualisationConfiguration
+  ) =
+    json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/executeVisualisation",
+            "id": $reqId,
+            "params": {
+              "visualisationId": $visualisationId,
+              "expressionId": $expressionId,
+              "visualisationConfig": {
+                "executionContextId": ${configuration.executionContextId},
+                "visualisationModule": ${configuration.visualisationModule},
+                "expression": ${configuration.expression}
+              }
+            }
+          }
+          """
+
   def executionContextAttachVisualisationRequest(
     reqId: Int,
     visualisationId: Api.VisualisationId,
