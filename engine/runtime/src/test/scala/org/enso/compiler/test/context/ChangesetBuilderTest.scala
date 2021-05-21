@@ -1,7 +1,5 @@
 package org.enso.compiler.test.context
 
-import java.util.UUID
-
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{
   ChangesetBuilder,
@@ -16,9 +14,11 @@ import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
+import java.util.UUID
+
 class ChangesetBuilderTest extends CompilerTest {
 
-  implicit val passManager: PassManager = new Passes().passManager
+  implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 
   "DiffChangeset" should {
 

@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
@@ -17,7 +18,10 @@ import org.enso.compiler.pass.{
   PassManager
 }
 
-class Passes(passes: Option[List[PassGroup]] = None) {
+class Passes(
+  config: CompilerConfig,
+  passes: Option[List[PassGroup]] = None
+) {
 
   val moduleDiscoveryPasses = new PassGroup(
     List(
@@ -60,7 +64,16 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       Patterns,
       AliasAnalysis,
       UndefinedVariables,
-      DataflowAnalysis,
+      DataflowAnalysis
+    ) ++
+    (if (config.autoParallelismEnabled) {
+       List(
+         AutomaticParallelism,
+         AliasAnalysis,
+         DataflowAnalysis
+       )
+     } else List()) ++
+    List(
       CachePreferenceAnalysis,
       UnusedBindings
     )
@@ -79,7 +92,10 @@ class Passes(passes: Option[List[PassGroup]] = None) {
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
+    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    AutomaticParallelism -->> AutomaticParallelism.Configuration(
+      config.autoParallelismEnabled
+    )
   )
 
   /** The pass manager for running compiler passes. */

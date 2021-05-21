@@ -49,7 +49,8 @@ case object SectionsToBinOp extends IRPass {
         _,
         new InlineContext(
           moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
+          freshNameSupply = moduleContext.freshNameSupply,
+          compilerConfig = moduleContext.compilerConfig
         )
       )
     )

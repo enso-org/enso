@@ -68,7 +68,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
       if (queue.isEmpty) visited.flatMap(_.externalId).toSet
       else {
         val elem       = queue.dequeue()
-        val transitive = metadata.get(elem).getOrElse(Set())
+        val transitive = metadata.dependents.get(elem).getOrElse(Set())
         val dynamic = transitive
           .flatMap {
             case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
@@ -80,7 +80,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             case _ =>
               None
           }
-          .flatMap(metadata.get)
+          .flatMap(metadata.dependents.get)
           .flatten
         val combined = transitive.union(dynamic)
 

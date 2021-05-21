@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.data.CompilerConfig;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -53,6 +54,7 @@ public class Context {
   private final Builtins builtins;
   private final String home;
   private final List<ShadowedPackage> shadowedPackages;
+  private final CompilerConfig compilerConfig;
 
   /**
    * Creates a new Enso context.
@@ -70,12 +72,13 @@ public class Context {
     this.threadManager = new ThreadManager();
     this.resourceManager = new ResourceManager(this);
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
+    this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
     this.shadowedPackages = new ArrayList<>();
 
     builtins = new Builtins(this);
 
-    this.compiler = new Compiler(this, builtins);
+    this.compiler = new Compiler(this, builtins, compilerConfig);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -383,5 +386,10 @@ public class Context {
   /** @return the list of shadowed packages */
   public List<ShadowedPackage> getShadowedPackages() {
     return shadowedPackages;
+  }
+
+  /** @return the compiler configuration for this language */
+  public CompilerConfig getCompilerConfig() {
+    return compilerConfig;
   }
 }

@@ -207,7 +207,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
   "Documentation" should {
     "be preserved after rewriting" in {
       implicit val passManager: PassManager =
-        new Passes().passManager
+        new Passes(defaultConfig).passManager
       implicit val moduleContext: ModuleContext =
         buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
@@ -221,7 +221,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
     "be preserved after rewriting for all entities" in {
       implicit val passManager: PassManager =
-        new Passes().passManager
+        new Passes(defaultConfig).passManager
 
       implicit val moduleContext: ModuleContext =
         buildModuleContext(freshNameSupply = Some(new FreshNameSupply))

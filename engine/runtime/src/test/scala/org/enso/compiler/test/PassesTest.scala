@@ -8,7 +8,7 @@ import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
-import org.enso.compiler.pass.resolve.{DocumentationComments, ExpressionAnnotations, IgnoredBindings, MethodDefinitions, ModuleAnnotations, ModuleThisToHere, TypeFunctions, TypeSignatures}
+import org.enso.compiler.pass.resolve._
 
 class PassesTest extends CompilerTest {
 
@@ -35,7 +35,7 @@ class PassesTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Compiler pass ordering slicing" should {
-    val passes = new Passes
+    val passes = new Passes(defaultConfig)
 
     "get the precursors of a given pass" in {
       passes.getPrecursors(AliasAnalysis).map(_.passes) shouldEqual Some(

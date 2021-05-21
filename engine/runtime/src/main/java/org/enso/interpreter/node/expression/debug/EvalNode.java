@@ -61,14 +61,13 @@ public abstract class EvalNode extends BaseNode {
   public abstract Stateful execute(CallerInfo callerInfo, Object state, Text expression);
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
+    Context context = lookupContextReference(Language.class).get();
     LocalScope localScope = scope.createChild();
-    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, getTailStatus());
+    InlineContext inlineContext =
+        InlineContext.fromJava(
+            localScope, moduleScope, getTailStatus(), context.getCompilerConfig());
     ExpressionNode expr =
-        lookupContextReference(Language.class)
-            .get()
-            .getCompiler()
-            .runInline(expression, inlineContext)
-            .getOrElse(null);
+        context.getCompiler().runInline(expression, inlineContext).getOrElse(null);
     if (expr == null) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
     }

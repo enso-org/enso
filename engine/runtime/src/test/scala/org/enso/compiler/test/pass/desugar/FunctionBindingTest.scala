@@ -11,7 +11,7 @@ class FunctionBindingTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup    = passes.getPrecursors(FunctionBinding).get
   val passConfig: PassConfiguration = PassConfiguration()

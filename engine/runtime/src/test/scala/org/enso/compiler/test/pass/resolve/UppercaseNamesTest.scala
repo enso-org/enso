@@ -23,7 +23,7 @@ class UppercaseNamesTest extends CompilerTest {
       freshNameSupply = Some(new FreshNameSupply)
     )
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val group1 = passes.moduleDiscoveryPasses
   val group2 = new PassGroup(

@@ -81,7 +81,8 @@ case object LambdaConsolidate extends IRPass {
         _,
         new InlineContext(
           moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
+          freshNameSupply = moduleContext.freshNameSupply,
+          compilerConfig = moduleContext.compilerConfig
         )
       )
     )
