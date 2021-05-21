@@ -21,6 +21,9 @@
 - Implemented log masking ([#1732](https://github.com/enso-org/enso/pull/1732)).
   This feature masks personally identifiable information in the logs, such as
   code literals, computed values, and user environment variables.
+- Added support for evaluating one-shot expressions on the result values of
+  arbitrary expressions ([#1749](https://github.com/enso-org/enso/pull/1749)).
+  This is very useful for enabling more advanced introspection in the IDE.
 
 ## Libraries
 
