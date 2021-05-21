@@ -395,6 +395,19 @@ define_themes! { [light:0, dark:1]
             padding_inner_y = 2.0, 2.0;
             height          = 30.0, 30.0;
         }
+        slider {
+            background = graph_editor::node::background , graph_editor::node::background;
+            handle {
+                color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
+            }
+            track {
+                color = Lcha(0.9,0.0,0.0,0.5), Lcha(0.1,0.0,0.0,0.5);
+            }
+            overflow {
+                color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);
+                scale = 1.0, 1.0;
+            }
+        }
     }
 
 

@@ -398,6 +398,16 @@ impl Rgb {
 
 impl Rgba {
     /// Constructor.
+    pub fn black() -> Self {
+        Self::new(0.0,0.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn white() -> Self {
+        Self::new(1.0,1.0,1.0,1.0)
+    }
+
+    /// Constructor.
     pub fn red() -> Self {
         Self::new(1.0,0.0,0.0,1.0)
     }

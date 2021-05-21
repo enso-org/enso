@@ -881,6 +881,7 @@ dependencies = [
  "ensogl-core",
  "ensogl-text",
  "ensogl-theme",
+ "float_eq",
  "wasm-bindgen-test",
 ]
 
@@ -1037,6 +1038,12 @@ checksum = "e1267f4ac4f343772758f7b1bdcbe767c218bbab93bb432acbf5162bbf85a6c4"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "float_eq"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb23b6902f3cdc0544f9916b4c092f46f4ff984e219d5a0c538b6b3539885af3"
 
 [[package]]
 name = "fnv"
