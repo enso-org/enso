@@ -34,7 +34,7 @@ import scala.jdk.OptionConverters._
   */
 class Compiler(
   val context: Context,
-  private val builtins: Builtins,
+  val builtins: Builtins,
   config: CompilerConfig
 ) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply

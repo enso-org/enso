@@ -163,7 +163,6 @@ object AutomaticParallelism extends IRPass {
           block.copy(expressions = newExpressions, returnValue = newRet)
         } catch {
           case _: RewriteException =>
-            println("Caught Rewrite")
             block // TODO [AA] Do this properly
         }
       case binding: IR.Expression.Binding =>
@@ -213,7 +212,7 @@ object AutomaticParallelism extends IRPass {
         .get(dep)
         .getOrElse(
           throw new CompilerError(
-            s"Unable to find dataflow analysis data for $a"
+            s"Unable to find dataflow analysis data for $a."
           )
         )
     })
@@ -264,8 +263,6 @@ object AutomaticParallelism extends IRPass {
     @unused scopedData: ScopedPassData,
     dataflow: DataflowAnalysis.Metadata
   ): RewriteException = {
-    println("========== Rewriting ==========")
-
     // TODO [AA] Create a new binding to hold the intermediary. Use fresh name.
     // TODO [AA] Inline the expressions into the binding for each arg.
     // TODO [AA] Annotate these bindings with a ParallelExecute metadata.
@@ -286,7 +283,6 @@ object AutomaticParallelism extends IRPass {
     val bindings = bindingNames.zip(app.arguments).map { case (bindName, arg) =>
       makeInlinedBindingFor(bindName, arg, mutData, dataflow)
     }
-    bindings.foreach(b => println(b.showCode()))
 
     // Rewrite the application to use the bindings
     val newArgs = app.arguments.zip(bindingNames).map {
@@ -294,9 +290,7 @@ object AutomaticParallelism extends IRPass {
         arg.copy(value = bindingName.duplicate())
     }
     val newApp = app.copy(arguments = newArgs)
-    println(newApp.showCode())
 
-    println("========== Done ==========")
     RewriteException()
   }
 
@@ -447,7 +441,7 @@ object AutomaticParallelism extends IRPass {
       val newBranches = branches.map(processCaseBranch(_, mutData, scopedData))
       expr.copy(scrutinee = newScrut, branches = newBranches)
     case _: Case.Branch =>
-      throw new CompilerError("Unexpected case branch in processCase")
+      throw new CompilerError("Unexpected case branch in processCase.")
   }
 
   private def processCaseBranch(
