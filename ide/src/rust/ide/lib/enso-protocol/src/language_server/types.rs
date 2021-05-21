@@ -18,7 +18,6 @@ pub type Event = json_rpc::handler::Event<Notification>;
 // ============
 
 /// A path is a representation of a path relative to a specified content root.
-// FIXME [mwu] Consider rename to something like `FilePath`, see https://github.com/enso-org/enso/issues/708
 #[derive(Clone,Debug,Serialize,Deserialize,Hash,PartialEq,Eq)]
 #[serde(rename_all="camelCase")]
 pub struct Path {

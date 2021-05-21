@@ -4,17 +4,23 @@
 
 #### Visual Environment
 
+- [Create New Project action in Searcher][1566]. When you bring the searcher
+  with tab having no node selected, a new action will be available next to the
+  examples and code suggestions: `Create New Project`. When you choose it by
+  clicking with mouse or selecting and pressing enter, a new unnamed project
+  will be created and opened in the application. Then you can give a name to
+  this project.
+
+#### EnsoGL (rendering engine)
+
 - [Components for picking numbers and ranges.][1524]. We now have some internal
   re-usable UI components for selecting numbers or a range. Stay tuned for them
   appearing in the IDE.
-
-#### EnsoGL (rendering engine)
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 
 #### Visual Environment
 
-- [Delete key will delete selected nodes][1538].
 - [It is possible to move around after deleting a node with a selected
   visualization][1556]. Deleting a node while its attached visualization was
   selected made it impossible to pan or zoom around the stage afterwards. This
@@ -27,16 +33,37 @@
 
 #### Enso Compiler
 
+[1524]: https://github.com/enso-org/ide/pull/1524
+[1556]: https://github.com/enso-org/ide/pull/1556
+[1561]: https://github.com/enso-org/ide/pull/1561
+[1566]: https://github.com/enso-org/ide/pull/1566
+
+# Enso 2.0.0-alpha.5 (2021-05-14)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+#### EnsoGL (rendering engine)
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+- [Delete key will delete selected nodes][1538].
+
+#### EnsoGL (rendering engine)
+
+#### Enso Compiler
+
 - [Updated Enso engine to version 0.2.11][1541].
 
 If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
-[1524]: https://github.com/enso-org/ide/pull/1524
-[1541]: https://github.com/enso-org/ide/pull/1511
+[1541]: https://github.com/enso-org/ide/pull/1541
 [1538]: https://github.com/enso-org/ide/pull/1538
-[1561]: https://github.com/enso-org/ide/pull/1561
 
 <br/>
 
