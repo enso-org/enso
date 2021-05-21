@@ -115,6 +115,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
+  - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -1280,6 +1281,7 @@ destroying the context.
 - [`executionContext/recompute`](#executioncontextrecompute)
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
+- [`executionContext/executeExpression`](#executioncontextexecuteexpression)
 - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
 - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
 - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
@@ -2750,6 +2752,47 @@ Sent from the server to the client to inform about a status of execution.
 #### Errors
 
 None
+
+### `executionContext/executeExpression`
+
+This message allows the client to execute an arbitrary expression on a given
+node. It behaves like oneshot
+[`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
+visualisation request, meaning that the visualisation expression will be
+executed only once.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ExecuteExpressionRequest {
+  visualisationId: UUID;
+  expressionId: UUID;
+  visualisationConfig: VisualisationConfiguration;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
+  by provided id.
+- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
+  the visualisation cannot be found.
+- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
+  the expression specified in the `VisualisationConfiguration` cannot be
+  evaluated.
 
 ### `executionContext/attachVisualisation`
 
