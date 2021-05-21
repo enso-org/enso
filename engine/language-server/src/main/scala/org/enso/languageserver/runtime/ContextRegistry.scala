@@ -182,20 +182,42 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case ExecuteExpression(clientId, visualisationId, expressionId, cfg) =>
+        val contextId = cfg.executionContextId
+        if (store.hasContext(clientId, contextId)) {
+          store.getListener(contextId).foreach { listener =>
+            listener ! RegisterOneshotVisualisation(
+              contextId,
+              visualisationId,
+              expressionId
+            )
+          }
+          val handler =
+            context.actorOf(
+              AttachVisualisationHandler.props(config, timeout, runtime)
+            )
+          handler.forward(
+            Api.AttachVisualisation(
+              visualisationId,
+              expressionId,
+              convertVisualisationConfig(cfg)
+            )
+          )
+        } else {
+          sender() ! AccessDenied
+        }
+
       case AttachVisualisation(clientId, visualisationId, expressionId, cfg) =>
         if (store.hasContext(clientId, cfg.executionContextId)) {
           val handler =
             context.actorOf(
               AttachVisualisationHandler.props(config, timeout, runtime)
             )
-
-          val configuration = convertVisualisationConfig(cfg)
-
           handler.forward(
             Api.AttachVisualisation(
               visualisationId,
               expressionId,
-              configuration
+              convertVisualisationConfig(cfg)
             )
           )
         } else {
@@ -213,7 +235,6 @@ final class ContextRegistry(
             context.actorOf(
               DetachVisualisationHandler.props(config, timeout, runtime)
             )
-
           handler.forward(
             Api.DetachVisualisation(contextId, visualisationId, expressionId)
           )

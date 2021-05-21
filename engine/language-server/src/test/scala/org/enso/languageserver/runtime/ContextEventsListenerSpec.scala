@@ -3,6 +3,7 @@ package org.enso.languageserver.runtime
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
+
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -15,12 +16,14 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  DetachVisualisation,
   ExecutionDiagnostic,
   ExecutionDiagnosticKind,
   ExecutionDiagnosticNotification,
   ExecutionFailedNotification,
   ExecutionFailure,
   ExpressionUpdatesNotification,
+  RegisterOneshotVisualisation,
   VisualisationContext,
   VisualisationEvaluationFailed,
   VisualisationUpdate
@@ -61,12 +64,13 @@ class ContextEventsListenerSpec
 
   "ContextEventsListener" should {
 
-    "not send empty updates" taggedAs Retry in withDb { (_, _, _, router, _) =>
-      router.expectNoMessage()
+    "not send empty updates" taggedAs Retry in withDb {
+      (_, _, _, router, _, _) =>
+        router.expectNoMessage()
     }
 
     "send expression updates" taggedAs Retry in withDb {
-      (clientId, contextId, repo, router, listener) =>
+      (clientId, contextId, repo, router, _, listener) =>
         val (_, suggestionIds) = Await.result(
           repo.insertAll(
             Seq(
@@ -120,7 +124,7 @@ class ContextEventsListenerSpec
     }
 
     "send dataflow error updates" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+      (clientId, contextId, _, router, _, listener) =>
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
@@ -159,7 +163,7 @@ class ContextEventsListenerSpec
     }
 
     "send runtime error updates" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+      (clientId, contextId, _, router, _, listener) =>
         listener ! Api.ExpressionUpdates(
           contextId,
           Set(
@@ -196,7 +200,7 @@ class ContextEventsListenerSpec
     }
 
     "send expression updates grouped" taggedAs Retry in withDb(0.seconds) {
-      (clientId, contextId, repo, router, listener) =>
+      (clientId, contextId, repo, router, _, listener) =>
         Await.result(
           repo.insertAll(
             Seq(
@@ -267,16 +271,22 @@ class ContextEventsListenerSpec
         )
     }
 
-    "send visualization updates" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+    "register oneshot visualization" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, registry, listener) =>
         val ctx = Api.VisualisationContext(
           UUID.randomUUID(),
           contextId,
           UUID.randomUUID()
         )
-        val data = Array[Byte](1, 2, 3)
-        listener ! Api.VisualisationUpdate(ctx, data)
 
+        listener ! RegisterOneshotVisualisation(
+          ctx.contextId,
+          ctx.visualisationId,
+          ctx.expressionId
+        )
+
+        val data1 = Array[Byte](1, 2, 3)
+        listener ! Api.VisualisationUpdate(ctx, data1)
         router.expectMsg(
           DeliverToBinaryController(
             clientId,
@@ -286,14 +296,82 @@ class ContextEventsListenerSpec
                 ctx.contextId,
                 ctx.expressionId
               ),
-              data
+              data1
             )
           )
         )
+        registry.expectMsg(
+          DetachVisualisation(
+            clientId,
+            ctx.contextId,
+            ctx.visualisationId,
+            ctx.expressionId
+          )
+        )
+
+        val data2 = Array[Byte](2, 3, 4)
+        listener ! Api.VisualisationUpdate(ctx, data2)
+        router.expectMsg(
+          DeliverToBinaryController(
+            clientId,
+            VisualisationUpdate(
+              VisualisationContext(
+                ctx.visualisationId,
+                ctx.contextId,
+                ctx.expressionId
+              ),
+              data2
+            )
+          )
+        )
+        registry.expectNoMessage()
+    }
+
+    "send visualization updates" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, registry, listener) =>
+        val ctx = Api.VisualisationContext(
+          UUID.randomUUID(),
+          contextId,
+          UUID.randomUUID()
+        )
+
+        val data1 = Array[Byte](1, 2, 3)
+        listener ! Api.VisualisationUpdate(ctx, data1)
+        router.expectMsg(
+          DeliverToBinaryController(
+            clientId,
+            VisualisationUpdate(
+              VisualisationContext(
+                ctx.visualisationId,
+                ctx.contextId,
+                ctx.expressionId
+              ),
+              data1
+            )
+          )
+        )
+        registry.expectNoMessage()
+
+        val data2 = Array[Byte](2, 3, 4)
+        listener ! Api.VisualisationUpdate(ctx, data2)
+        router.expectMsg(
+          DeliverToBinaryController(
+            clientId,
+            VisualisationUpdate(
+              VisualisationContext(
+                ctx.visualisationId,
+                ctx.contextId,
+                ctx.expressionId
+              ),
+              data2
+            )
+          )
+        )
+        registry.expectNoMessage()
     }
 
     "send execution failed notification" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+      (clientId, contextId, _, router, _, listener) =>
         val message = "Test execution failed"
         listener ! Api.ExecutionFailed(
           contextId,
@@ -315,7 +393,7 @@ class ContextEventsListenerSpec
     }
 
     "send execution update notification" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+      (clientId, contextId, _, router, _, listener) =>
         val message = "Test execution failed"
         listener ! Api.ExecutionUpdate(
           contextId,
@@ -343,7 +421,7 @@ class ContextEventsListenerSpec
     }
 
     "send visualisation evaluation failed notification" taggedAs Retry in withDb {
-      (clientId, contextId, _, router, listener) =>
+      (clientId, contextId, _, router, _, listener) =>
         val message         = "Test visualisation evaluation failed"
         val visualisationId = UUID.randomUUID()
         val expressionId    = UUID.randomUUID()
@@ -384,21 +462,36 @@ class ContextEventsListenerSpec
     JsonSession(clientId, TestProbe().ref)
 
   def withDb(
-    test: (UUID, UUID, SuggestionsRepo[Future], TestProbe, ActorRef) => Any
+    test: (
+      UUID,
+      UUID,
+      SuggestionsRepo[Future],
+      TestProbe,
+      TestProbe,
+      ActorRef
+    ) => Any
   ): Unit =
     withDb(100.millis)(test)
 
   def withDb(updatesSendRate: FiniteDuration)(
-    test: (UUID, UUID, SuggestionsRepo[Future], TestProbe, ActorRef) => Any
+    test: (
+      UUID,
+      UUID,
+      SuggestionsRepo[Future],
+      TestProbe,
+      TestProbe,
+      ActorRef
+    ) => Any
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config    = newConfig(testContentRoot.toFile)
-    val clientId  = UUID.randomUUID()
-    val contextId = UUID.randomUUID()
-    val router    = TestProbe("session-router")
-    val repo      = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
-    val listener = system.actorOf(
+    val config          = newConfig(testContentRoot.toFile)
+    val clientId        = UUID.randomUUID()
+    val contextId       = UUID.randomUUID()
+    val router          = TestProbe("session-router")
+    val contextRegistry = TestProbe("context-registry")
+    val repo            = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
+    val listener = contextRegistry.childActorOf(
       ContextEventsListener.props(
         config,
         repo,
@@ -419,7 +512,7 @@ class ContextEventsListenerSpec
     }
     Await.ready(repoInit, Timeout)
 
-    try test(clientId, contextId, repo, router, listener)
+    try test(clientId, contextId, repo, router, contextRegistry, listener)
     finally {
       system.stop(listener)
       repo.close()
