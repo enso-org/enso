@@ -182,7 +182,7 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
-      case ExecuteVisualisation(clientId, visualisationId, expressionId, cfg) =>
+      case ExecuteExpression(clientId, visualisationId, expressionId, cfg) =>
         val contextId = cfg.executionContextId
         if (store.hasContext(clientId, contextId)) {
           store.getListener(contextId).foreach { listener =>

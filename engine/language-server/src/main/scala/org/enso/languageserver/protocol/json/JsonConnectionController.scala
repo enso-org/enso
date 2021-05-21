@@ -38,7 +38,7 @@ import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
   AttachVisualisationHandler,
   DetachVisualisationHandler,
-  ExecuteVisualisationHandler,
+  ExecuteExpressionHandler,
   ModifyVisualisationHandler
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol
@@ -46,7 +46,7 @@ import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
-  ExecuteVisualisation,
+  ExecuteExpression,
   ModifyVisualisation
 }
 import org.enso.languageserver.search.SearchApi._
@@ -335,7 +335,7 @@ class JsonConnectionController(
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
       Import -> search.ImportHandler.props(requestTimeout, suggestionsHandler),
-      ExecuteVisualisation -> ExecuteVisualisationHandler
+      ExecuteExpression -> ExecuteExpressionHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),

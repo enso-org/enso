@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.VisualisationApi.ExecuteVisualisation
+import org.enso.languageserver.runtime.VisualisationApi.ExecuteExpression
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
@@ -13,13 +13,13 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-/** A request handler for `executionContext/executeVisualisation` command.
+/** A request handler for `executionContext/executeExpression` command.
   *
   * @param clientId an unique identifier of the client
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
   */
-class ExecuteVisualisationHandler(
+class ExecuteExpressionHandler(
   clientId: ClientId,
   timeout: FiniteDuration,
   contextRegistry: ActorRef
@@ -33,11 +33,11 @@ class ExecuteVisualisationHandler(
 
   private def requestStage: Receive = {
     case Request(
-          ExecuteVisualisation,
+          ExecuteExpression,
           id,
-          params: ExecuteVisualisation.Params
+          params: ExecuteExpression.Params
         ) =>
-      contextRegistry ! ContextRegistryProtocol.ExecuteVisualisation(
+      contextRegistry ! ContextRegistryProtocol.ExecuteExpression(
         clientId,
         params.visualisationId,
         params.expressionId,
@@ -59,7 +59,7 @@ class ExecuteVisualisationHandler(
       context.stop(self)
 
     case ContextRegistryProtocol.VisualisationAttached =>
-      replyTo ! ResponseResult(ExecuteVisualisation, id, Unused)
+      replyTo ! ResponseResult(ExecuteExpression, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
@@ -71,10 +71,10 @@ class ExecuteVisualisationHandler(
 
 }
 
-object ExecuteVisualisationHandler {
+object ExecuteExpressionHandler {
 
   /** Creates configuration object used to create an
-    * [[ExecuteVisualisationHandler]].
+    * [[ExecuteExpressionHandler]].
     *
     * @param clientId an unique identifier of the client
     * @param timeout request timeout
@@ -85,6 +85,6 @@ object ExecuteVisualisationHandler {
     timeout: FiniteDuration,
     runtime: ActorRef
   ): Props =
-    Props(new ExecuteVisualisationHandler(clientId, timeout, runtime))
+    Props(new ExecuteExpressionHandler(clientId, timeout, runtime))
 
 }

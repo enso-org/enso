@@ -453,7 +453,7 @@ class ContextRegistryTest extends BaseServerTest {
       client.expectJson(json.ok(3))
     }
 
-    "successfully execute visualisation" in {
+    "successfully execute expression" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -477,7 +477,7 @@ class ContextRegistryTest extends BaseServerTest {
       val config =
         VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextExecuteVisualisationRequest(
+        json.executionContextExecuteExpressionRequest(
           2,
           visualisationId,
           expressionId,
@@ -505,7 +505,7 @@ class ContextRegistryTest extends BaseServerTest {
       client.expectJson(json.ok(2))
     }
 
-    "return ModuleNotFound error when executing visualisation" in {
+    "return ModuleNotFound error when executing expression" in {
       val client = getInitialisedWsClient()
 
       // create context
@@ -529,7 +529,7 @@ class ContextRegistryTest extends BaseServerTest {
       val config =
         VisualisationConfiguration(contextId, "Test.Main", ".to_json.to_text")
       client.send(
-        json.executionContextExecuteVisualisationRequest(
+        json.executionContextExecuteExpressionRequest(
           2,
           visualisationId,
           expressionId,

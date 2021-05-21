@@ -115,7 +115,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
-  - [`executionContext/executeVisualisation`](#executioncontextexecutevisualisation)
+  - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -1281,7 +1281,7 @@ destroying the context.
 - [`executionContext/recompute`](#executioncontextrecompute)
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
-- [`executionContext/executeVisualisation`](#executioncontextexecutevisualisation)
+- [`executionContext/executeExpression`](#executioncontextexecuteexpression)
 - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
 - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
 - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
@@ -2753,12 +2753,13 @@ Sent from the server to the client to inform about a status of execution.
 
 None
 
-### `executionContext/executeVisualisation`
+### `executionContext/executeExpression`
 
-This message allows the client to execute a visualisation on a given node,
-potentially preprocessing it by some arbitrary Enso code. Unlike
-[`executionContext/attachVisualisation`](#executioncontextattachvisualisation),
-visualisation expression will be executed only once.
+This message allows the client to execute an arbitrary expression on a given
+node. It behaves like oneshot
+[`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
+visualisation request, meaning that the visualisation expression will be
+executed only once.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2768,7 +2769,7 @@ visualisation expression will be executed only once.
 #### Parameters
 
 ```typescript
-interface ExecuteVisualisationRequest {
+interface ExecuteExpressionRequest {
   visualisationId: UUID;
   expressionId: UUID;
   visualisationConfig: VisualisationConfiguration;

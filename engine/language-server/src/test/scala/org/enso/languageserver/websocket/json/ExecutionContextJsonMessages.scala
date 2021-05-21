@@ -93,7 +93,7 @@ object ExecutionContextJsonMessages {
           }
           """
 
-  def executionContextExecuteVisualisationRequest(
+  def executionContextExecuteExpressionRequest(
     reqId: Int,
     visualisationId: Api.VisualisationId,
     expressionId: Api.ExpressionId,
@@ -101,7 +101,7 @@ object ExecutionContextJsonMessages {
   ) =
     json"""
           { "jsonrpc": "2.0",
-            "method": "executionContext/executeVisualisation",
+            "method": "executionContext/executeExpression",
             "id": $reqId,
             "params": {
               "visualisationId": $visualisationId,

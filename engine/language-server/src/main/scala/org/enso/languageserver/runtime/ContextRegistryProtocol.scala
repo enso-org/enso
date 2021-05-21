@@ -307,8 +307,8 @@ object ContextRegistryProtocol {
     diagnostics: Seq[ExecutionDiagnostic]
   )
 
-  /** Requests the language server to execute a oneshot visualisation on an
-    * expression specified by `expressionId`.
+  /** Requests the language server to execute an expression provided in the
+    * `visualisationConfig` on an expression specified by `expressionId`.
     *
     * @param clientId the requester id
     * @param visualisationId an identifier of a visualisation
@@ -316,7 +316,7 @@ object ContextRegistryProtocol {
     * @param visualisationConfig a configuration object for properties of the
     * visualisation
     */
-  case class ExecuteVisualisation(
+  case class ExecuteExpression(
     clientId: ClientId,
     visualisationId: UUID,
     expressionId: UUID,
@@ -325,7 +325,7 @@ object ContextRegistryProtocol {
 
     /** @inheritdoc */
     override def toLogString(shouldMask: Boolean): String =
-      "ExecuteVisualisation(" +
+      "ExecuteExpression(" +
       s"clientId=$clientId," +
       s"visualisationId=$visualisationId," +
       s"expressionId=$expressionId,visualisationConfig=" +
