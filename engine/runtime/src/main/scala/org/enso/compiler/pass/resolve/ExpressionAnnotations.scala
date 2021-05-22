@@ -11,7 +11,8 @@ import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 case object ExpressionAnnotations extends IRPass {
   val tailCallName      = "@Tail_Call"
   val builtinMethodName = "@Builtin_Method"
-  val knownAnnotations  = Seq(tailCallName, builtinMethodName)
+  val autoParallelName  = "@Auto_Parallel"
+  val knownAnnotations  = Seq(tailCallName, builtinMethodName, autoParallelName)
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = Annotations

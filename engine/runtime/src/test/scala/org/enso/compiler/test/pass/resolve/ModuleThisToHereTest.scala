@@ -19,7 +19,7 @@ class ModuleThisToHereTest extends CompilerTest {
       freshNameSupply = Some(new FreshNameSupply)
     )
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(ModuleThisToHere).get

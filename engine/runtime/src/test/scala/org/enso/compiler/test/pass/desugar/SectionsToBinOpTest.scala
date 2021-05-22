@@ -11,7 +11,7 @@ class SectionsToBinOpTest extends CompilerTest {
 
   // === Test Configuration ===================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup = passes.getPrecursors(SectionsToBinOp).get
 

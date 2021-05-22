@@ -4,6 +4,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  DetachVisualisation,
+  RegisterOneshotVisualisation,
   VisualisationContext,
   VisualisationUpdate
 }
@@ -60,9 +62,31 @@ final class ContextEventsListener(
     }
   }
 
-  override def receive: Receive = withState(Vector())
+  override def receive: Receive = withState(Set(), Vector())
 
-  def withState(expressionUpdates: Vector[Api.ExpressionUpdate]): Receive = {
+  def withState(
+    oneshotVisualisations: Set[Api.VisualisationContext],
+    expressionUpdates: Vector[Api.ExpressionUpdate]
+  ): Receive = {
+
+    case RegisterOneshotVisualisation(
+          contextId,
+          visualisationId,
+          expressionId
+        ) =>
+      val visualisationContext =
+        Api.VisualisationContext(
+          visualisationId,
+          contextId,
+          expressionId
+        )
+      context.become(
+        withState(
+          oneshotVisualisations + visualisationContext,
+          expressionUpdates
+        )
+      )
+
     case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
       val payload =
         VisualisationUpdate(
@@ -74,10 +98,24 @@ final class ContextEventsListener(
           data
         )
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
+      if (oneshotVisualisations.contains(ctx)) {
+        context.parent ! DetachVisualisation(
+          rpcSession.clientId,
+          contextId,
+          ctx.visualisationId,
+          ctx.expressionId
+        )
+        context.become(
+          withState(
+            oneshotVisualisations - ctx,
+            expressionUpdates
+          )
+        )
+      }
 
     case Api.ExpressionUpdates(`contextId`, apiUpdates) =>
       context.become(
-        withState(expressionUpdates :++ apiUpdates)
+        withState(oneshotVisualisations, expressionUpdates :++ apiUpdates)
       )
 
     case Api.ExecutionFailed(`contextId`, error) =>
@@ -115,7 +153,7 @@ final class ContextEventsListener(
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       runExpressionUpdates(expressionUpdates)
-      context.become(withState(Vector()))
+      context.become(withState(oneshotVisualisations, Vector()))
 
     case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }

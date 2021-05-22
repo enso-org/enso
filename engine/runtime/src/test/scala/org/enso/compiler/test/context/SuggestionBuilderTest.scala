@@ -17,7 +17,7 @@ import org.enso.polyglot.data.Tree
 
 class SuggestionBuilderTest extends CompilerTest {
 
-  implicit val passManager: PassManager = new Passes().passManager
+  implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 
   private val Module = QualifiedName(List("Unnamed"), "Test")
   private val ModuleAtomNode = Tree.Node(

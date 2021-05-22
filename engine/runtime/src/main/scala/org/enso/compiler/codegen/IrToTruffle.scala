@@ -6,7 +6,7 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
-import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
@@ -85,11 +85,13 @@ import scala.collection.mutable.ArrayBuffer
   * @param source the source code that corresponds to the text for which code
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
+  * @param compilerConfig the configuration for the compiler
   */
 class IrToTruffle(
   val context: Context,
   val source: Source,
-  val moduleScope: ModuleScope
+  val moduleScope: ModuleScope,
+  val compilerConfig: CompilerConfig
 ) {
 
   val language: Language = context.getLanguage

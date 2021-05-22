@@ -307,6 +307,45 @@ object ContextRegistryProtocol {
     diagnostics: Seq[ExecutionDiagnostic]
   )
 
+  /** Requests the language server to execute an expression provided in the
+    * `visualisationConfig` on an expression specified by `expressionId`.
+    *
+    * @param clientId the requester id
+    * @param visualisationId an identifier of a visualisation
+    * @param expressionId an identifier of an expression which is visualised
+    * @param visualisationConfig a configuration object for properties of the
+    * visualisation
+    */
+  case class ExecuteExpression(
+    clientId: ClientId,
+    visualisationId: UUID,
+    expressionId: UUID,
+    visualisationConfig: VisualisationConfiguration
+  ) extends ToLogString {
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      "ExecuteExpression(" +
+      s"clientId=$clientId," +
+      s"visualisationId=$visualisationId," +
+      s"expressionId=$expressionId,visualisationConfig=" +
+      visualisationConfig.toLogString(shouldMask) +
+      ")"
+  }
+
+  /** Registers a oneshot visualisation that will be detached after the first
+    * execution.
+    *
+    * @param contextId execution context identifier
+    * @param visualisationId an identifier of a visualisation
+    * @param expressionId an identifier of an expression which is visualised
+    */
+  case class RegisterOneshotVisualisation(
+    contextId: ContextId,
+    visualisationId: UUID,
+    expressionId: UUID
+  )
+
   /** Requests the language server to attach a visualisation to the expression
     * specified by `expressionId`.
     *
@@ -314,7 +353,7 @@ object ContextRegistryProtocol {
     * @param visualisationId an identifier of a visualisation
     * @param expressionId an identifier of an expression which is visualised
     * @param visualisationConfig a configuration object for properties of the
-    *                            visualisation
+    * visualisation
     */
   case class AttachVisualisation(
     clientId: ClientId,
@@ -333,8 +372,7 @@ object ContextRegistryProtocol {
       ")"
   }
 
-  /** Signals that attaching a visualisation has succeeded.
-    */
+  /** Signals that attaching a visualisation has succeeded. */
   case object VisualisationAttached
 
   /** Requests the language server to detach a visualisation from the expression

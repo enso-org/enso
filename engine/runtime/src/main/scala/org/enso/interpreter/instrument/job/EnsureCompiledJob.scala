@@ -220,7 +220,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ctx: RuntimeContext
   ): CompilationStatus = {
     val pass = GatherDiagnostics
-      .runModule(module.getIr, ModuleContext(module))
+      .runModule(
+        module.getIr,
+        ModuleContext(
+          module,
+          compilerConfig = ctx.executionService.getContext.getCompilerConfig
+        )
+      )
       .unsafeGetMetadata(
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."

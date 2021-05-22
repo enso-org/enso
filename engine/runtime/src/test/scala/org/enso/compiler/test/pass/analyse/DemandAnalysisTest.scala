@@ -13,7 +13,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes = new Passes
+  val passes = new Passes(defaultConfig)
 
   /** The passes that must be run before the demand analysis pass. */
   val precursorPasses: PassGroup = passes.getPrecursors(DemandAnalysis).get

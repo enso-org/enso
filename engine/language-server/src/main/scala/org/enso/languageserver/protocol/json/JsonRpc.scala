@@ -52,6 +52,7 @@ object JsonRpc {
     .registerRequest(ExecutionContextPush)
     .registerRequest(ExecutionContextPop)
     .registerRequest(ExecutionContextRecompute)
+    .registerRequest(ExecuteExpression)
     .registerRequest(AttachVisualisation)
     .registerRequest(DetachVisualisation)
     .registerRequest(ModifyVisualisation)

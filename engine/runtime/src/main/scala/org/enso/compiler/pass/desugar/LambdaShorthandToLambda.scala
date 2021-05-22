@@ -73,7 +73,8 @@ case object LambdaShorthandToLambda extends IRPass {
             _,
             InlineContext(
               moduleContext.module,
-              freshNameSupply = moduleContext.freshNameSupply
+              freshNameSupply = moduleContext.freshNameSupply,
+              compilerConfig = moduleContext.compilerConfig
             )
           )
         )

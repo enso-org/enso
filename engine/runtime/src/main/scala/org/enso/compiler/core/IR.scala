@@ -5331,6 +5331,21 @@ object IR {
           s"The pattern field $shadowedName is shadowed by $shadower."
       }
     }
+
+    /** A warning raised when a call is annotated with `@Auto_Parallel`, but the
+      * annotation cannot be obeyed.
+      *
+      * @param ir the annotated application
+      * @param reason the reason why the annotation cannot be obeyed
+      */
+    case class FailedParallelism(
+      ir: IR,
+      reason: String
+    ) extends Warning {
+      override val location: Option[IdentifiedLocation] = ir.location
+      override def message: String =
+        s"The expression ${ir.showCode()} could not be parallelised: $reason."
+    }
   }
 
   // === Errors ===============================================================

@@ -1,11 +1,10 @@
 package org.enso.polyglot;
 
+import java.util.Arrays;
+import java.util.logging.Level;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
-
-import java.util.Arrays;
-import java.util.logging.Level;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -56,9 +55,9 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
-              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
-              ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR));
+              ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

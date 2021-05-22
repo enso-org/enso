@@ -38,6 +38,7 @@ import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
   AttachVisualisationHandler,
   DetachVisualisationHandler,
+  ExecuteExpressionHandler,
   ModifyVisualisationHandler
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol
@@ -45,6 +46,7 @@ import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
+  ExecuteExpression,
   ModifyVisualisation
 }
 import org.enso.languageserver.search.SearchApi._
@@ -94,7 +96,7 @@ class JsonConnectionController(
 
   import context.dispatcher
 
-  implicit val timeout = Timeout(requestTimeout)
+  implicit val timeout: Timeout = Timeout(requestTimeout)
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
@@ -333,6 +335,8 @@ class JsonConnectionController(
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
       Import -> search.ImportHandler.props(requestTimeout, suggestionsHandler),
+      ExecuteExpression -> ExecuteExpressionHandler
+        .props(rpcSession.clientId, requestTimeout, contextRegistry),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler

@@ -63,7 +63,8 @@ case object IgnoredBindings extends IRPass {
         _,
         InlineContext(
           moduleContext.module,
-          freshNameSupply = moduleContext.freshNameSupply
+          freshNameSupply = moduleContext.freshNameSupply,
+          compilerConfig  = moduleContext.compilerConfig
         )
       )
     )
@@ -87,7 +88,9 @@ case object IgnoredBindings extends IRPass {
       )
     )
 
-    resolveExpression(ir, freshNameSupply)
+    if (inlineContext.compilerConfig.warningsEnabled) {
+      resolveExpression(ir, freshNameSupply)
+    } else ir
   }
 
   // === Pass Internals =======================================================
