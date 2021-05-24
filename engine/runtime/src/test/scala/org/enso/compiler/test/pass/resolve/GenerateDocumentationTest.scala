@@ -1,7 +1,6 @@
 package org.enso.compiler.test.pass.resolve
 
-import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.GenerateDocumentation
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
@@ -96,8 +95,12 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
-      getDoc(ir.bindings(0)) shouldEqual " This is doc for My_Atom"
-      getDoc(ir.bindings(1)) shouldEqual " This is doc for my_method"
+      getDoc(
+        ir.bindings(0)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;This is doc for My&lt;&lt;Atom&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      getDoc(
+        ir.bindings(1)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;This is doc for my&lt;&lt;method&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
     }
   }
 
@@ -120,8 +123,12 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .asInstanceOf[IR.Expression.Block]
 
       body.expressions.length shouldEqual 1
-      getDoc(body.expressions(0)) shouldEqual " Do thing"
-      getDoc(body.returnValue) shouldEqual " Do another thing"
+      getDoc(
+        body.expressions(0)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      getDoc(
+        body.returnValue
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
     }
 
     "be associated with the documented expression in module flow" in {
@@ -141,8 +148,12 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .asInstanceOf[IR.Expression.Block]
 
       body.expressions.length shouldEqual 1
-      getDoc(body.expressions(0)) shouldEqual " Do thing"
-      getDoc(body.returnValue) shouldEqual " Do another thing"
+      getDoc(
+        body.expressions(0)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      getDoc(
+        body.returnValue
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
     }
 
     "be associated with the type ascriptions" in {
@@ -165,8 +176,12 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       body.expressions.length shouldEqual 2
       body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
-      getDoc(body.expressions(0)) shouldEqual " Id"
-      getDoc(body.returnValue) shouldEqual " Return thing"
+      getDoc(
+        body.expressions(0)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Id&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      getDoc(
+        body.returnValue
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Return thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
     }
   }
 
@@ -191,88 +206,28 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        0
           |""".stripMargin.preprocessModule.resolve
       val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
-      getDoc(tp) shouldEqual " the type Foo"
+      getDoc(
+        tp
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the type Foo&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
       val t1 = tp.body(0)
-      getDoc(t1) shouldEqual " the constructor Bar"
+      getDoc(
+        t1
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the constructor Bar&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
       val t2 = tp.body(1)
-      getDoc(t2) shouldEqual " the included Unit"
+      getDoc(
+        t2
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the included Unit&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
-      getDoc(method) shouldEqual " a method"
+      getDoc(
+        method
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;a method&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
       val block = method.body.asInstanceOf[IR.Expression.Block]
-      getDoc(block.expressions(0)) shouldEqual " a statement"
-      getDoc(block.returnValue) shouldEqual " the return"
-    }
-  }
-
-  "Documentation" should {
-    "be preserved after rewriting" in {
-      implicit val passManager: PassManager =
-        new Passes(defaultConfig).passManager
-      implicit val moduleContext: ModuleContext =
-        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
-
-      val module =
-        """## The foo
-          |foo : Integer
-          |foo = 42""".stripMargin.preprocessModule
-      val foo = module.bindings.head
-      getDoc(foo) shouldEqual " The foo"
-    }
-
-    "be preserved after rewriting for all entities" in {
-      implicit val passManager: PassManager =
-        new Passes(defaultConfig).passManager
-
-      implicit val moduleContext: ModuleContext =
-        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
-
-      val ir =
-        """
-          |## the type Foo
-          |type Foo
-          |    ## the constructor Bar
-          |    type Bar
-          |
-          |    ## a method
-          |    foo : Any -> Any
-          |    foo x =
-          |        ## a statement
-          |        IO.println "foo"
-          |        ## the return
-          |        0
-          |
-          |    f = case _ of
-          |        ## case 1
-          |        Bar -> 100
-          |        ## catchall
-          |        _ -> 50
-          |""".stripMargin.preprocessModule
-
-      val t1 = ir.bindings(0)
-      getDoc(t1) shouldEqual " the constructor Bar"
-      inside(ir.bindings(1)) {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
-          getDoc(method) shouldEqual " a method"
-          inside(method.body) { case lambda: IR.Function.Lambda =>
-            inside(lambda.body) { case block: IR.Expression.Block =>
-              getDoc(block.expressions(0)) shouldEqual " a statement"
-              getDoc(block.returnValue) shouldEqual " the return"
-            }
-          }
-      }
-
-      inside(ir.bindings(2)) {
-        case method: IR.Module.Scope.Definition.Method.Explicit =>
-          inside(method.body) { case lambda: IR.Function.Lambda =>
-            inside(lambda.body) { case block: IR.Expression.Block =>
-              inside(block.returnValue) { case caseExpr: IR.Case.Expr =>
-                caseExpr.branches should have length 2
-                getDoc(caseExpr.branches(0)) shouldEqual " case 1"
-                getDoc(caseExpr.branches(1)) shouldEqual " catchall"
-              }
-            }
-          }
-      }
+      getDoc(
+        block.expressions(0)
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;a statement&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      getDoc(
+        block.returnValue
+      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the return&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
     }
   }
 }
