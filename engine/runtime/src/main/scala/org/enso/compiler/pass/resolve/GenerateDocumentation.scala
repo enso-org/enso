@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Case.Branch
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.resolve.DocumentationComments.Doc
 import org.enso.docs.generator.DocParserWrapper
@@ -148,7 +149,7 @@ case object GenerateDocumentation extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case tpe: IR.Module.Scope.Definition.Type =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation => {
+      case doc: IR.Comment.Documentation =>
         val html = DocParserWrapper.runOnPureDoc(doc.doc)
         IR.Comment.Documentation(
           html,
@@ -156,8 +157,10 @@ case object GenerateDocumentation extends IRPass {
           doc.passData,
           doc.diagnostics
         )
-      }
-      case _ => _
+      case d: IR.Module.Scope.Definition.Atom => d
+      case tySig: IR.Type.Ascription          => tySig
+      case err: IR.Error                      => err
+      case ann: IR.Name.Annotation            => ann
     }
 
   /** Resolves documentation comments in a module.
@@ -180,6 +183,10 @@ case object GenerateDocumentation extends IRPass {
       case module: IR.Module              => resolveModule(module)
       case expr: IR.Expression            => resolveExpression(expr)
       case df: IR.Module.Scope.Definition => resolveDefinition(df)
-      case _                              => _
+      case imp: IR.Module.Scope.Import    => imp
+      case exp: IR.Module.Scope.Export    => exp
+      case arg: IR.CallArgument           => arg
+      case arg: IR.DefinitionArgument     => arg
+      case pat: IR.Pattern                => pat
     }
 }
