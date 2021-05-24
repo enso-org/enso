@@ -320,7 +320,11 @@ pub struct Mouse {
 
 impl Mouse {
     pub fn new
-    (scene_frp:&Frp, variables:&UniformScope, current_js_event:&CurrentJsEvent, logger:Logger)
+    ( scene_frp        : &Frp
+    , root             : &web::dom::WithKnownShape<web::HtmlDivElement>
+    , variables        : &UniformScope
+    , current_js_event : &CurrentJsEvent
+    , logger           : Logger)
     -> Self {
         let scene_frp       = scene_frp.clone_ref();
         let target          = PointerTarget::default();
@@ -328,8 +332,7 @@ impl Mouse {
         let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
         let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal(&logger));
         let target          = Rc::new(Cell::new(target));
-        let body            = web::dom::WithKnownShape::new(&web::document().body().unwrap());
-        let mouse_manager   = MouseManager::new_separated(&body.into(),&web::window());
+        let mouse_manager   = MouseManager::new_separated(&root.clone_ref().into(),&web::window());
         let frp             = frp::io::Mouse::new();
         let on_move         = mouse_manager.on_move.add(current_js_event.make_event_handler(
             f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
@@ -784,7 +787,7 @@ impl SceneData {
         let current_js_event     = CurrentJsEvent::new();
         let frp                  = Frp::new(&dom.root.shape);
         let mouse_logger         = Logger::sub(&logger,"mouse");
-        let mouse                = Mouse::new(&frp,&variables,&current_js_event,mouse_logger);
+        let mouse                = Mouse::new(&frp,&dom.root,&variables,&current_js_event,mouse_logger);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root).unwrap());
         let keyboard             = Keyboard::new(&current_js_event);
         let network              = &frp.network;
