@@ -542,7 +542,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
     ),
     mainClass := Some("org.enso.docs.generator.Main"),
     inConfig(Benchmark)(Defaults.testSettings),
-    unmanagedSourceDirectories in Benchmark +=
+    Benchmark / unmanagedSourceDirectories +=
       baseDirectory.value.getParentFile / "bench/scala",
     libraryDependencies +=
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
@@ -550,7 +550,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
     ),
-    bench := (test in Benchmark).tag(Exclusive).value
+    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -1010,7 +1010,9 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
-      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}",
+      "-XX:+UnlockExperimentalVMOptions",
+      "-XX:+UseJVMCICompiler"
     ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
