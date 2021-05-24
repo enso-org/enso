@@ -97,7 +97,7 @@ impl ManagingProjectAPI for Handle {
             let with_suffix           = (1..).map(|i| format!("{}_{}", UNNAMED_PROJECT_NAME, i));
             let mut candidates        = std::iter::once(without_suffix).chain(with_suffix);
             // The iterator have no end, so we can safely unwrap.
-            let name    = candidates.find(|c| names.contains(c)).unwrap();
+            let name    = candidates.find(|c| !names.contains(c)).unwrap();
             let version = Some(ENGINE_VERSION_FOR_NEW_PROJECTS.to_owned());
             let action  = MissingComponentAction::Install;
 
