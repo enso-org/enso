@@ -1,3 +1,17 @@
+# Next Release
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+#### EnsoGL (rendering engine)
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+#### Enso Compiler
+
 # Enso 2.0.0-alpha.5 (2021-05-14)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
