@@ -10,6 +10,7 @@ import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
+import org.enso.runner.DocsGeneratorRunner
 
 import java.io.File
 import java.util.UUID
@@ -584,7 +585,7 @@ object Main {
       runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(DOCS_OPTION)) {
-      ???
+      DocsGeneratorRunner.run()
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)
