@@ -1010,9 +1010,7 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
       "-Dgraalvm.locatorDisabled=true",
-      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}",
-      "-XX:+UnlockExperimentalVMOptions",
-      "-XX:+UseJVMCICompiler"
+      s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
