@@ -20,6 +20,7 @@ ordering the results.
   - [Runtime Inspection](#runtime-inspection)
   - [Search Indexes](#search-indexes)
 - [Results Ranking](#results-ranking)
+- [Implementation](#implementation)
 
 <!-- /MarkdownTOC -->
 
@@ -91,6 +92,29 @@ Keeps track of SHA versions of the opened files.
 | -------- | ------ | --------------------------------- |
 | `path`   | `TEXT` | the unique identifier of the file |
 | `digest` | `BLOB` | the SHA hash of the file contents |
+
+#### Schema Version Table
+
+Schema version table has a single row with the current database schema version.
+It is used during the application startup to check that the database schema is
+up to date with the application version.
+
+| Column | Type      | Description                                                        |
+| ------ | --------- | ------------------------------------------------------------------ |
+| `id`   | `INTEGER` | unique identifier representing the currend database schema version |
+
+#### Documentation Fragments
+
+Documentation fragments table stores the generated HTML documentation strings.
+Fragments are ordered with the `prev_id` and `next_id` columns containing the
+previous and next suggestion identifiers.
+
+| Column          | Type      | Description                                                  |
+| --------------- | --------- | ------------------------------------------------------------ |
+| `suggestion_id` | `INTEGER` | unique identifier of the suggestion this fragment relates to |
+| `prev_id`       | `INTEGER` | the suggestion that goes before this fragment                |
+| `next_id`       | `INTEGER` | the suggestion that goes after this fragment                 |
+| `fragment`      | `TEXT`    | the HTML documentation string of the suggestion              |
 
 ### Static Analysis
 
