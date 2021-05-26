@@ -84,6 +84,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/tree`](#filetree)
   - [`file/list`](#filelist)
   - [`file/info`](#fileinfo)
+  - [`file/checksum`](#filechecksum)
   - [`file/checksumBytes`](#filechecksumbytes)
   - [`file/event`](#fileevent)
   - [`file/addRoot`](#fileaddroot)
@@ -726,7 +727,6 @@ may be expanded in future.
  * @param lastModifiedTime last modified time
  * @param kind type of [[FileSystemObject]], can be: `Directory`, `File`, `Other`
  * @param byteSize size in bytes
- * @param checksum: The SHA3-224 checksum of the file or directory contents.
  */
 interface FileAttributes {
   creationTime: UTCDateTime;
@@ -734,7 +734,6 @@ interface FileAttributes {
   lastModifiedTime: UTCDateTime;
   kind: FileSystemObject;
   byteSize: number;
-  checksum: SHA3-224;
 }
 ```
 
@@ -1062,15 +1061,18 @@ namespace org.enso.languageserver.protocol.binary;
 
 table FileSegment {
   // The file to access.
-  path : Path;
+  path : Path (required);
 
   // The byte offset in the file to read from.
-  byteOffset : ulong;
+  byteOffset : ulong (required);
 
   // The number of bytes to read.
-  length : ulong;
+  length : ulong (required);
 }
 ```
+
+The `byteOffset` property is zero-indexed, so the last byte in the file is at
+index `file.length - 1`.
 
 ## Connection Management
 
@@ -1564,6 +1566,13 @@ specified file at the specified offset.
 
 This method will create a file if no file is present at `path`.
 
+- The `overwriteExisting` boolean should be set if `byteOffset` is less than the
+  length of the file.
+- The `byteOffset` property is zero-indexed. To append to the file you begin
+  writing at index `file.length`.
+- If `byteOffset > file.length`, the bytes in the range
+  `[file.length, byteOffset)` will be filled with null bytes.
+
 #### Parameters
 
 ```idl
@@ -1927,6 +1936,41 @@ This request should work for all kinds of filesystem object.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested path does not exist.
+
+### `file/checksum`
+
+Requests that the language server provide the checksum of the provided file.
+Only defined when the provided `path` is a file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+It calculates the checksum of the entire file.
+
+#### Parameters
+
+```typescript
+interface ChecksumRequest {
+  // The path to the file to get the checksum for.
+  path: Path;
+}
+```
+
+#### Result
+
+```typescript
+interface ChecksumResponse {
+  // The checksum of the file at `path`.
+  checksum : SHA3-224;
+}
+```
+
+#### Errors
+
+- [`FileNotFound`](#filenotfound) if the file at `path` does not exist.
+- [`NotFile`](#notfile) if the provided `path` does not point to a file.
 
 ### `file/checksumBytes`
 
