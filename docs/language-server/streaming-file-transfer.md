@@ -63,10 +63,10 @@ the file upload and download process. As they know the size of the file being
 transferred and get acknowledgements of each chunk of the file that is sent,
 they know both the speed and the amount of the file that has been uploaded.
 
-The second requirement is being handled by the addition of the `Visualization.file_uploading`
-method to the `Visualization` portion of the standard library. This is a
-method that returns a dataflow error `File_Being_Uploaded path` that will
-flow through the graph to annotate all portions waiting on the file upload. 
-All the IDE has to do is insert this expression implicitly into the source
-file while the upload is progressing, and it can trace the impacted nodes and
-display the necessary UI details.
+The second requirement is being handled by the addition of the
+`Visualization.file_uploading` method to the `Visualization` portion of the
+standard library. This is a method that returns a dataflow error
+`File_Being_Uploaded path` that will flow through the graph to annotate all
+portions waiting on the file upload. All the IDE has to do is insert this
+expression implicitly into the source file while the upload is progressing, and
+it can trace the impacted nodes and display the necessary UI details.
