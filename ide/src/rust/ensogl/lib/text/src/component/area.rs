@@ -656,32 +656,30 @@ impl Area {
     /// Add the text area to a specific scene layer. The mouse event positions will be mapped to
     /// this view regardless the previous views this component could be added to.
     ///
-    /// # Depreciation
-    /// This function is magical and needs to be updated. However, it requires a few steps:
-    /// 1. The new `ShapeView` and `DynamicShape` are implemented and they use display objects to
-    ///    pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
-    ///    is a very non-standard implementation, and thus has to handle the new display object
-    ///    callbacks in a special way as well.
-    /// 2. The `self.data.camera` has to still be used, otherwise there would be no way to convert
-    ///    the screen to object space (see the [`to_object_space`] function). This is a very
-    ///    temporary solution, as any object can be assigned to more than one scene layer, and thus
-    ///    can be rendered from more than one camera. Screen / object space location of events
-    ///    should thus become much more primitive information / mechanisms.
-    ///
-    /// Please note, that this function handles the selection management correctly, as it uses
-    /// the new shape system definition, and thus, inherits the scene layer settings from this
-    /// display object.
-    #[allow(non_snake_case)]
-    pub fn add_to_scene_layer_DEPRECATED(&self, layer:&display::scene::Layer) {
+    // TODO https://github.com/enso-org/ide/issues/1576
+    //     This function needs to be updated. However, it requires a few steps:
+    //     1. The new `ShapeView` and `DynamicShape` are implemented and they use display objects to
+    //        pass information about scene layers they are assigned to. However, the [`GlyphSystem`]
+    //        is a very non-standard implementation, and thus has to handle the new display object
+    //        callbacks in a special way as well.
+    //     2. The `self.data.camera` has to still be used, otherwise there would be no way to convert
+    //        the screen to object space (see the [`to_object_space`] function). This is a very
+    //        temporary solution, as any object can be assigned to more than one scene layer, and thus
+    //        can be rendered from more than one camera. Screen / object space location of events
+    //        should thus become much more primitive information / mechanisms.
+    //     Please note, that this function handles the selection management correctly, as it uses
+    //     the new shape system definition, and thus, inherits the scene layer settings from this
+    //     display object.
+    pub fn add_to_scene_layer(&self, layer:&display::scene::Layer) {
         for symbol in self.symbols() { layer.add_symbol_exclusive(&symbol); }
         self.data.camera.set(layer.camera());
         layer.add_exclusive(self);
     }
 
-    /// Remove this component from view. See [`add_to_scene_layer_DEPRECATED`] to learn more about
-    /// the deprecation.
+    /// Remove this component from view.
+    // TODO see TODO in add_to_scene_layer method.
     #[allow(non_snake_case)]
-    pub fn remove_from_scene_layer_DEPRECATED(&self, layer:&display::scene::Layer) {
+    pub fn remove_from_scene_layer(&self, layer:&display::scene::Layer) {
         for symbol in self.symbols() { layer.remove_symbol(&symbol); }
     }
 

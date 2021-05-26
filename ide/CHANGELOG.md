@@ -10,7 +10,12 @@
 
 #### Visual Environment
 
+- [Nodes in graph no longer overlap panels][1577]. The Searcher, project name,
+  breadcrumbs and status bar are displayed "above" nodes.
+
 #### Enso Compiler
+
+[1577]: https://github.com/enso-org/ide/pull/1577
 
 # Enso 2.0.0-alpha.5 (2021-05-14)
 

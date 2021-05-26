@@ -40,12 +40,13 @@ define_style! {
     /// Host defines an object which the cursor position is bound to. It is used to implement
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
-    host   : display::object::Instance,
-    size   : Vector2<f32>,
-    offset : Vector2<f32>,
-    color  : color::Lcha,
-    radius : f32,
-    press  : f32,
+    host                 : display::object::Instance,
+    size                 : Vector2<f32>,
+    offset               : Vector2<f32>,
+    color                : color::Lcha,
+    radius               : f32,
+    press                : f32,
+    port_selection_layer : bool
 }
 
 
@@ -62,7 +63,8 @@ impl Style {
             let color = color.into();
             StyleValue::new(color)
         });
-        Self {host,size,color,..default()}
+        let port_selection_layer = Some(StyleValue::new_no_animation(true));
+        Self {host,size,color,port_selection_layer,..default()}
     }
 
     pub fn new_color(color:color::Lcha) -> Self {
@@ -175,26 +177,44 @@ crate::define_endpoints! {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct CursorModel {
-    pub logger : Logger,
-    pub scene  : Scene,
-    pub view   : shape::View,
-    pub style  : Rc<RefCell<Style>>,
+    pub logger         : Logger,
+    pub scene          : Scene,
+    pub display_object : display::object::Instance,
+    pub view           : shape::View,
+    pub port_selection : shape::View,
+    pub style          : Rc<RefCell<Style>>,
 }
 
 impl CursorModel {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let scene  = scene.clone_ref();
-        let logger = Logger::new("cursor");
-        let view   = shape::View::new(&logger);
-        let style  = default();
+        let scene          = scene.clone_ref();
+        let logger         = Logger::new("cursor");
+        let display_object = display::object::Instance::new(&logger);
+        let view           = shape::View::new(&logger);
+        let port_selection = shape::View::new(&logger);
+        let style          = default();
 
-        let tgt_layer = &scene.layers.cursor;
-        let shape_sys = tgt_layer.shape_system_registry.shape_system(&scene,PhantomData::<shape::DynamicShape>);
+        display_object.add_child(&view);
+        display_object.add_child(&port_selection);
+        let tgt_layer            = &scene.layers.cursor;
+        let port_selection_layer = &scene.layers.port_selection;
         tgt_layer.add_exclusive(&view);
-        shape_sys.shape_system.set_pointer_events(false);
+        port_selection_layer.add_exclusive(&port_selection);
 
-        Self {logger,scene,view,style}
+        for layer in &[tgt_layer,port_selection_layer] {
+            let registry  = &layer.shape_system_registry;
+            let shape_sys = registry.shape_system(&scene,PhantomData::<shape::DynamicShape>);
+            shape_sys.shape_system.set_pointer_events(false);
+        }
+
+        Self {logger,scene,display_object,view,port_selection,style}
+    }
+
+    fn for_each_view(&self, f:impl Fn(&shape::View)) {
+        for view in &[&self.view,&self.port_selection] {
+            f(*view)
+        }
     }
 }
 
@@ -240,16 +260,17 @@ impl Cursor {
         //     host during the movement. After it is fully attached, cursor moves with the same
         //     speed as the scene when panning.
         //
-        let press                = Animation            :: <f32>     :: new(&network);
-        let radius               = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let size                 = DEPRECATED_Animation :: <Vector2> :: new(&network);
-        let offset               = DEPRECATED_Animation :: <Vector2> :: new(&network);
-        let color_lab            = DEPRECATED_Animation :: <Vector3> :: new(&network);
-        let color_alpha          = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let inactive_fade        = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let host_position        = DEPRECATED_Animation :: <Vector3> :: new(&network);
-        let host_follow_weight   = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let host_attached_weight = DEPRECATED_Tween                  :: new(&network);
+        let press                       = Animation            :: <f32>     :: new(&network);
+        let radius                      = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let size                        = DEPRECATED_Animation :: <Vector2> :: new(&network);
+        let offset                      = DEPRECATED_Animation :: <Vector2> :: new(&network);
+        let color_lab                   = DEPRECATED_Animation :: <Vector3> :: new(&network);
+        let color_alpha                 = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let inactive_fade               = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let host_position               = DEPRECATED_Animation :: <Vector3> :: new(&network);
+        let host_follow_weight          = DEPRECATED_Animation :: <f32>     :: new(&network);
+        let host_attached_weight        = DEPRECATED_Tween                  :: new(&network);
+        let port_selection_layer_weight = Animation            :: <f32>     :: new(&network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
@@ -261,11 +282,11 @@ impl Cursor {
         let fade_in_spring  = inactive_fade.spring();
 
         frp::extend! { network
-            eval press.value  ((v) model.view.press.set(*v));
-            eval radius.value ((v) model.view.radius.set(*v));
+            eval press.value  ((v) model.for_each_view(|vw| vw.press.set(*v)));
+            eval radius.value ((v) model.for_each_view(|vw| vw.radius.set(*v)));
             eval size.value   ([model] (v) {
                 let dim = Vector2(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
-                model.view.size.set(dim);
+                model.for_each_view(|vw| vw.size.set(dim));
             });
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
@@ -273,6 +294,12 @@ impl Cursor {
             anim_color <- all_with(&color_lab.value,&alpha,
                 |lab,alpha| color::Rgba::from(color::Laba::new(lab.x,lab.y,lab.z,*alpha))
             );
+            front_color <- all_with(&anim_color,&port_selection_layer_weight.value, |color,w| {
+                color::Rgba::new(color.red,color.green,color.blue,color.alpha*(1.0 - w))
+            });
+            port_selection_color <- all_with(&anim_color,&port_selection_layer_weight.value, |color,w| {
+                color::Rgba::new(color.red,color.green,color.blue,color.alpha*w)
+            });
 
             eval frp.set_style([host_attached_weight,size,offset,model] (new_style) {
                 host_attached_weight.stop_and_rewind();
@@ -336,6 +363,15 @@ impl Cursor {
 
                 *model.style.borrow_mut() = new_style.clone();
             });
+
+            port_selection_layer_weight.target <+ frp.set_style.map(|new_style| {
+                let val_opt = new_style.port_selection_layer.as_ref().and_then(|t| t.value);
+                let val     = val_opt.unwrap_or(false);
+                if val {1.0} else {0.0}
+            });
+            port_selection_layer_weight.skip <+ frp.set_style.filter(|new_style|
+                new_style.port_selection_layer.as_ref().map_or(false, |t| !t.animate)
+            ).constant(());
 
             host_changed    <- any_(frp.set_style,scene.frp.camera_changed);
             hosted_position <- host_changed.map(f_!(model.style.borrow().host_position()));
@@ -412,9 +448,10 @@ impl Cursor {
 
             // === Evals ===
 
-            eval mouse_pos_rt ((t) host_position.set_target_value(Vector3(t.x,t.y,0.0)));
-            eval anim_color   ((t) model.view.color.set(t.into()));
-            eval position     ((t) model.view.set_position(*t));
+            eval mouse_pos_rt         ((t) host_position.set_target_value(Vector3(t.x,t.y,0.0)));
+            eval position             ((t) model.display_object.set_position(*t));
+            eval front_color          ((t) model.view.color.set(t.into()));
+            eval port_selection_color ((t) model.port_selection.color.set(t.into()));
 
 
             // === Outputs ===
@@ -436,7 +473,5 @@ impl Cursor {
 }
 
 impl display::Object for Cursor {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.model.view.display_object()
-    }
+    fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
 }

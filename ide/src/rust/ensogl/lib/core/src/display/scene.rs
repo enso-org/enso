@@ -615,15 +615,17 @@ pub struct HardcodedLayers {
     pub viz                    : Layer,
     pub below_main             : Layer,
     // main <- here is the 'main` layer inserted.
-    pub cursor                 : Layer,
+    pub port_selection         : Layer,
     pub label                  : Layer,
-
-    pub tooltip_background     : Layer,
+    pub above_nodes            : Layer,
+    pub above_nodes_text       : Layer,
+    /// Layer containing all panels with fixed position (not moving with the panned scene):
+    /// like status bar, breadcrumbs or similar.
+    pub panel                  : Layer,
+    pub panel_text             : Layer,
+    pub tooltip                : Layer,
     pub tooltip_text           : Layer,
-
-    pub viz_fullscreen         : Layer,
-    pub breadcrumbs_background : Layer,
-    pub breadcrumbs_text       : Layer,
+    pub cursor                 : Layer,
     layers                     : Layers,
 }
 
@@ -636,32 +638,38 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new(logger:impl AnyLogger) -> Self {
-        let layers                 = Layers::new(logger);
-        let viz                    = layers.new_layer();
-        let cursor                 = layers.new_layer();
-        let label                  = layers.new_layer();
-        let tooltip_background     = layers.new_layer();
-        let tooltip_text           = layers.new_layer();
-        let viz_fullscreen         = layers.new_layer();
-        let below_main             = layers.new_layer();
-        let breadcrumbs_background = layers.new_layer();
-        let breadcrumbs_text       = layers.new_layer();
+        let layers           = Layers::new(logger);
+        let viz              = layers.new_layer();
+        let below_main       = layers.new_layer();
+        let port_selection   = layers.new_layer();
+        let label            = layers.new_layer();
+        let above_nodes      = layers.new_layer();
+        let above_nodes_text = layers.new_layer();
+        let panel            = layers.new_layer();
+        let panel_text       = layers.new_layer();
+        let tooltip          = layers.new_layer();
+        let tooltip_text     = layers.new_layer();
+        let cursor           = layers.new_layer();
         viz.set_camera(layers.main.camera());
-        label.set_camera(layers.main.camera());
-        tooltip_background.set_camera(layers.main.camera());
-        tooltip_text.set_camera(layers.main.camera());
         below_main.set_camera(layers.main.camera());
-        layers.add_layers_order_dependency(&breadcrumbs_background,&breadcrumbs_text);
-        layers.add_layers_order_dependency(&breadcrumbs_text,&viz);
+        label.set_camera(layers.main.camera());
+        above_nodes.set_camera(layers.main.camera());
+        above_nodes_text.set_camera(layers.main.camera());
+        tooltip.set_camera(layers.main.camera());
+        tooltip_text.set_camera(layers.main.camera());
         layers.add_layers_order_dependency(&viz,&below_main);
         layers.add_layers_order_dependency(&below_main,&layers.main);
-        layers.add_layers_order_dependency(&layers.main,&cursor);
-        layers.add_layers_order_dependency(&cursor,&label);
-        layers.add_layers_order_dependency(&label,&tooltip_background);
-        layers.add_layers_order_dependency(&tooltip_background,&tooltip_text);
-        layers.add_layers_order_dependency(&tooltip_text,&viz_fullscreen);
-        Self {viz,below_main,cursor,label,tooltip_background,tooltip_text,viz_fullscreen
-             ,breadcrumbs_background,breadcrumbs_text,layers}
+        layers.add_layers_order_dependency(&layers.main,&port_selection);
+        layers.add_layers_order_dependency(&port_selection,&label);
+        layers.add_layers_order_dependency(&label,&above_nodes);
+        layers.add_layers_order_dependency(&above_nodes,&above_nodes_text);
+        layers.add_layers_order_dependency(&above_nodes_text,&panel);
+        layers.add_layers_order_dependency(&panel,&panel_text);
+        layers.add_layers_order_dependency(&panel_text,&tooltip);
+        layers.add_layers_order_dependency(&tooltip,&tooltip_text);
+        layers.add_layers_order_dependency(&tooltip_text,&cursor);
+        Self {viz,below_main,port_selection,label,above_nodes,above_nodes_text,panel,panel_text
+             ,tooltip,tooltip_text,cursor,layers}
     }
 }
 
@@ -862,7 +870,7 @@ impl SceneData {
         // Updating camera for DOM layers. Please note that DOM layers cannot use multi-camera
         // setups now, so we are using here the main camera only.
         let camera                = self.camera();
-        let fullscreen_vis_camera = self.layers.viz_fullscreen.camera();
+        let fullscreen_vis_camera = self.layers.panel.camera();
         let changed               = camera.update(scene);
         if changed {
             self.frp.camera_changed_source.emit(());
