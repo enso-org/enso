@@ -34,6 +34,8 @@ is broken up as follows:
 
 - [**The Enso Protocol Architecture:**](./protocol-architecture.md) The
   architecture of the Enso protocol.
+- [**Streaming File Transfer:**](./streaming-file-transfer.md) Documentation on
+  how the streaming file transfer mechanism works.
 
 The protocol messages are broken up into documents as follows:
 
