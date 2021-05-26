@@ -913,7 +913,8 @@ interface Diagnostic {
 
 ### `SHA3-224`
 
-The `SHA3-224` message digest encoded as a base16 string.
+The `SHA3-224` message digest encoded as a base16 string. For the equivalent
+structure on the binary connection please see [`EnsoDigest`](#ensodigest)
 
 #### Format
 
@@ -1036,7 +1037,7 @@ undo/redo.
 
 ### `EnsoDigest`
 
-A counterpart to [SHA3-224](#sha3-224) for the binary protocol, this is a
+A counterpart to [SHA3-224](#sha3-224) for the binary connection, this is a
 standard message digest encoded using FlatBuffers.
 
 ```idl
