@@ -1,3 +1,4 @@
+use enso_prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_system_web as web;
@@ -78,5 +79,5 @@ pub fn main() {
             ))
         .new_child(|t|t.size(1));
 
-    println!("{:#?}",input_span_tree2);
+    DEBUG!("{input_span_tree2:#?}");
 }

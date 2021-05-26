@@ -1411,7 +1411,7 @@ pub mod test {
                 for _ in 0..EXPECTED_REQUESTS {
                     let requested_types = requested_types2.clone();
                     client.expect.completion(move |_path,_position,_self_type,return_type,_tags| {
-                        iprintln!("Requested {return_type:?}.");
+                        DEBUG!("Requested {return_type:?}.");
                         requested_types.borrow_mut().insert(return_type.clone());
                         Ok(completion_response(&[]))
                     });
@@ -1421,7 +1421,7 @@ pub mod test {
             let Fixture{test,searcher,..} = &mut fixture;
             searcher.set_input(input.into()).unwrap();
             test.run_until_stalled();
-            iprintln!(">>>>> {requested_types.borrow().deref():?}");
+            DEBUG!(">>>>> {requested_types.borrow().deref():?}");
             assert_eq!(requested_types.borrow().len(),EXPECTED_REQUESTS);
             assert!(requested_types.borrow().contains(&Some("Number".to_string())));
             assert!(requested_types.borrow().contains(&Some("String".to_string())));

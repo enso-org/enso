@@ -223,10 +223,12 @@ impl Client {
     /// Creates a `Client` using configuration defined by environment or
     /// defaults if environment is not set.
     pub fn new() -> Result<Client> {
+        // This parser is used only for native debugging, it is not used in production.
+        // As such, we can use debug macros here.
         let config = Config::from_env();
-        println!("Connecting to {}", config.address_string());
+        DEBUG!("Connecting to " config.address_string());
         let client = Client::from_conf(&config)?;
-        println!("Established connection with {}", config.address_string());
+        DEBUG!("Established connection with {}" config.address_string());
         Ok(client)
     }
 

@@ -422,12 +422,12 @@ main =
 main =
     foo = 2 + 2";
         let mut graph = main_graph(&mut parser, program);
-        println!("aa");
+        DEBUG!("aa");
         let (node,)   = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), "2 + 2");
-        println!("vv");
+        DEBUG!("vv");
         graph.remove_node(node.id()).unwrap();
-        println!("zz");
+        DEBUG!("zz");
 
         let (node,)   = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), constants::keywords::NOTHING);

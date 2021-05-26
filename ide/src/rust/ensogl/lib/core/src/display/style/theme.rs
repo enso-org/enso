@@ -342,6 +342,6 @@ pub fn test() {
     theme_manager.register("theme2",theme2);
 
     theme_manager.set_enabled(&["theme1".to_string()]);
-    println!("-------------------");
+    DEBUG!("-------------------");
     theme_manager.set_enabled(&["theme1","theme2"]);
 }

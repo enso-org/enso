@@ -141,6 +141,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "atty"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+dependencies = [
+ "hermit-abi",
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "autocfg"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -162,7 +173,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object",
+ "object 0.21.1",
  "rustc-demangle",
 ]
 
@@ -352,6 +363,17 @@ name = "code-builder"
 version = "0.1.0"
 dependencies = [
  "enso-prelude",
+]
+
+[[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -647,26 +669,28 @@ dependencies = [
 
 [[package]]
 name = "enso-prelude"
-version = "0.2.0"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8db3cd4b9ac308f393eed97f3539b8e81ece4d93a384cdfb10c109e56f1f61e3"
+checksum = "7e8a93f83e03fd9db4819f4258bc17d05dace04ec6ad2dd44aea9eb67936c601"
 dependencies = [
  "anyhow",
  "backtrace",
  "boolinator",
  "bumpalo",
+ "cfg-if 1.0.0",
+ "colored",
  "derivative",
  "derive_more 0.99.13",
  "enclose",
  "enso-shapely",
  "failure",
  "ifmt",
- "itertools 0.8.2",
+ "itertools 0.10.0",
  "lazy_static",
- "nalgebra 0.21.1",
+ "nalgebra 0.26.2",
  "num",
- "object",
- "paste 0.1.18",
+ "object 0.24.0",
+ "paste 1.0.5",
  "shrinkwraprs 0.3.0",
  "smallvec 1.6.1",
  "wasm-bindgen",
@@ -832,12 +856,12 @@ dependencies = [
  "enum_dispatch",
  "eval-tt",
  "failure",
- "itertools 0.8.2",
+ "itertools 0.10.0",
  "js-sys",
  "nalgebra 0.26.2",
  "num-traits",
  "num_enum",
- "paste 0.1.18",
+ "paste 1.0.5",
  "rustc-hash",
  "shrinkwraprs 0.3.0",
  "smallvec 1.6.1",
@@ -965,7 +989,7 @@ dependencies = [
 name = "eval-tt"
 version = "0.1.0"
 dependencies = [
- "paste 0.1.18",
+ "paste 1.0.5",
 ]
 
 [[package]]
@@ -1545,9 +1569,9 @@ dependencies = [
 
 [[package]]
 name = "ifmt"
-version = "0.2.0"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abec215007c2ef1ccfb17a6bae6a87736fedb573860d2606ddec08b427666164"
+checksum = "7dd0f8e1404f15475d8a2ca84c2942aa00ac17804ce555294a96f6b5cdf80750"
 dependencies = [
  "ifmt-impl",
  "proc-macro-hack",
@@ -1555,16 +1579,16 @@ dependencies = [
 
 [[package]]
 name = "ifmt-impl"
-version = "0.2.0"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "744691ef283c5d8d4321f75cfa0e3b460b5adf3338bb7dcfd060f33e40300072"
+checksum = "e50385662f423431a619ab28ba2beeab3063b581a0d1a943765e23911c502904"
 dependencies = [
  "lazy_static",
  "proc-macro-hack",
- "proc-macro2 0.4.30",
- "quote 0.6.13",
+ "proc-macro2 1.0.26",
+ "quote 1.0.9",
  "regex",
- "syn 0.15.44",
+ "syn 1.0.72",
 ]
 
 [[package]]
@@ -1966,23 +1990,23 @@ checksum = "61807f77802ff30975e01f4f071c8ba10c022052f98b3294119f3e615d13e5be"
 
 [[package]]
 name = "num"
-version = "0.2.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8536030f9fea7127f841b45bb6243b27255787fb4eb83958aa1ef9d2fdc0c36"
+checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
 dependencies = [
  "num-bigint",
- "num-complex 0.2.4",
+ "num-complex 0.4.0",
  "num-integer",
  "num-iter",
- "num-rational 0.2.4",
+ "num-rational 0.4.0",
  "num-traits",
 ]
 
 [[package]]
 name = "num-bigint"
-version = "0.2.6"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
+checksum = "4e0d047c1062aa51e256408c560894e5251f08925980e53cf1aa5bd00eec6512"
 dependencies = [
  "autocfg 1.0.1",
  "num-integer",
@@ -2008,6 +2032,15 @@ checksum = "747d632c0c558b87dbabbe6a82f3b4ae03720d0646ac5b7b4dae89394be5f2c5"
 dependencies = [
  "num-traits",
  "serde",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26873667bbbb7c5182d4a37c1add32cdf09f841af72da53318fdb81543c15085"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -2038,7 +2071,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg 1.0.1",
- "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -2050,6 +2082,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12ac428b1cb17fce6f731001d307d351ec70a6d202fc2e60f7d4c5e42d8f4f07"
 dependencies = [
  "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -2101,9 +2145,14 @@ name = "object"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37fd5004feb2ce328a52b0b3d01dbf4ffff72583493900ed15f22d4111c51693"
+
+[[package]]
+name = "object"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a5b3dd1c072ee7963717671d1ca129f1048fda25edea6b752bfc71ac8854170"
 dependencies = [
  "flate2",
- "wasmparser",
 ]
 
 [[package]]
@@ -3512,16 +3561,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasmparser"
-version = "0.57.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32fddd575d477c6e9702484139cf9f23dcd554b06d185ed0f56c857dd3a47aa6"
-
-[[package]]
 name = "weak-table"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78e37715e810547b2ae9b6980b25bef319cb779d6c42faa8010ba47e83178113"
+checksum = "9a8f3bf74f2d43500dea6a8291b6ac943e3465ea9936b94bd017e61b7b21dd01"
 
 [[package]]
 name = "web-sys"

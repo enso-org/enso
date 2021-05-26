@@ -8,36 +8,36 @@ use enso_prelude::*;
 fn main() {
     let default_input = String::from("import Foo.Bar\nfoo = a + 2");
     let program = std::env::args().nth(1).unwrap_or(default_input);
-    println!("Will parse: {}", program);
+    DEBUG!("Will parse: " program);
 
     let parser = parser::Parser::new_or_panic();
     let output = parser.parse(program, default());
     match output {
-        Ok(result) => println!("Parser responded with: {:?}", result),
-        Err(e)     => println!("Failed to obtain a response: {:?}", e),
+        Ok(result) => DEBUG!("Parser responded with: {result:?}"),
+        Err(e)     => DEBUG!("Failed to obtain a response: {e:?}"),
     }
     
 
     let default_input = String::from("##\n  DEPRECATED\n  Foo bar baz\ntype Foo\n  type Bar");
     let program = std::env::args().nth(1).unwrap_or(default_input);
-    println!("Will parse: {}", program);
+    DEBUG!("Will parse: " program);
 
     let parser = parser::DocParser::new_or_panic();
     let output = parser.generate_html_docs(program);
     match output {
-        Ok(result) => println!("Doc parser responded with: {:?}", result),
-        Err(e)     => println!("Failed to obtain a response: {:?}", e),
+        Ok(result) => DEBUG!("Doc parser responded with: {result:?}"),
+        Err(e)     => DEBUG!("Failed to obtain a response: {e:?}"),
     }
 
 
     let default_input = String::from("Computes the _logical_ conjunction of *two* booleans");
     let program = std::env::args().nth(1).unwrap_or(default_input);
-    println!("Will parse: {}", program);
+    DEBUG!("Will parse: " program);
 
     let parser = parser::DocParser::new_or_panic();
     let output = parser.generate_html_doc_pure(program);
     match output {
-        Ok(result) => println!("Doc parser responded with: {:?}", result),
-        Err(e)     => println!("Failed to obtain a response: {:?}", e),
+        Ok(result) => DEBUG!("Doc parser responded with: {result:?}"),
+        Err(e)     => DEBUG!("Failed to obtain a response: {e:?}"),
     }
 }

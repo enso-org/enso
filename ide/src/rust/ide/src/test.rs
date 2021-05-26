@@ -453,7 +453,7 @@ impl Runner {
     /// Calls the `test` function once. The executor behavior is defined by the `n` parameter.
     /// Returns the number of calls made to `perhaps_run_until_stalled`.
     pub fn run_nth(n:u32, test:impl FnMut(&mut Runner)) -> u32 {
-        println!("Runner: Iteration {}",n);
+        DEBUG!("Runner: Iteration " n);
         Self::run_with(BitField32 {raw:n}, test)
     }
 }

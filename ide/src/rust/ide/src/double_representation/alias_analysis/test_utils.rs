@@ -166,7 +166,7 @@ impl<'a> Drop for IdentifierValidator<'a> {
                            "{}: identifier `{}` was not validated)", self.name,elem.0)
             }
         } else {
-            println!("Skipping identifier validation, because thread is already in panic.");
+            DEBUG!("Skipping identifier validation, because thread is already in panic.");
         }
     }
 }

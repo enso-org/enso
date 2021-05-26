@@ -277,8 +277,8 @@ mod test {
     fn assert_same_node_ids(ast1:&ast::known::Module,ast2:&ast::known::Module) {
         let ids1 = main_nodes(ast1);
         let ids2 = main_nodes(ast2);
-        println!("IDs1: {:?}", ids1);
-        println!("IDs2: {:?}", ids2);
+        DEBUG!("IDs1: {ids1:?}");
+        DEBUG!("IDs2: {ids2:?}");
         assert_eq!(ids1,ids2);
     }
 
