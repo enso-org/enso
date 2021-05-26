@@ -23,9 +23,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`ContextId`](#contextid)
   - [`StackItem`](#stackitem)
   - [`MethodPointer`](#methodpointer)
+  - [`ProfilingInfo`](#profilinginfo)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
-  - [`ProfilingInfo`](#profilinginfo)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
@@ -53,6 +53,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`FileContents`](#filecontents)
   - [`FileSystemObject`](#filesystemobject)
   - [`WorkspaceEdit`](#workspaceedit)
+  - [`EnsoDigest`](#ensodigest)
+  - [`FileSegment`](#filesegment)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -67,13 +69,13 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
-  - [Enables](#enables)
-  - [Disables](#disables)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
   - [`file/writeBinary`](#filewritebinary)
   - [`file/readBinary`](#filereadbinary)
+  - [`file/writeBytes`](#filewritebytes)
+  - [`file/readBytes`](#filereadbytes)
   - [`file/create`](#filecreate)
   - [`file/delete`](#filedelete)
   - [`file/copy`](#filecopy)
@@ -82,6 +84,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/tree`](#filetree)
   - [`file/list`](#filelist)
   - [`file/info`](#fileinfo)
+  - [`file/checksumBytes`](#filechecksumbytes)
   - [`file/event`](#fileevent)
   - [`file/addRoot`](#fileaddroot)
   - [`file/removeRoot`](#fileremoveroot)
@@ -139,6 +142,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
 - [Errors](#errors)
+  - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
   - [`ContentRootNotFoundError`](#contentrootnotfounderror)
@@ -146,6 +150,9 @@ transport formats, please look [here](./protocol-architecture).
   - [`FileExists`](#fileexists-1)
   - [`OperationTimeoutError`](#operationtimeouterror)
   - [`NotDirectory`](#notdirectory)
+  - [`NotFile`](#notfile)
+  - [`CannotOverwrite`](#cannotoverwrite)
+  - [`ReadOutOfBounds`](#readoutofbounds)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
   - [`ContextNotFoundError`](#contextnotfounderror)
   - [`EmptyStackError`](#emptystackerror)
@@ -717,9 +724,9 @@ may be expanded in future.
  * @param creationTime creation time
  * @param lastAccessTime last access time
  * @param lastModifiedTime last modified time
- * @param kind type of [[FileSystemObject]], can be:
- * `Directory`, `File`, `Other`
+ * @param kind type of [[FileSystemObject]], can be: `Directory`, `File`, `Other`
  * @param byteSize size in bytes
+ * @param checksum: The SHA3-224 checksum of the file or directory contents.
  */
 interface FileAttributes {
   creationTime: UTCDateTime;
@@ -727,6 +734,7 @@ interface FileAttributes {
   lastModifiedTime: UTCDateTime;
   kind: FileSystemObject;
   byteSize: number;
+  checksum: SHA3-224;
 }
 ```
 
@@ -1027,6 +1035,43 @@ undo/redo.
 > - Work out the design of this message.
 > - Specify this message.
 
+### `EnsoDigest`
+
+A counterpart to [SHA3-224](#sha3-224) for the binary protocol, this is a
+standard message digest encoded using FlatBuffers.
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table EnsoDigest {
+  bytes : [ubyte];
+}
+```
+
+Notes:
+
+- It is an error for the length of the vector `bytes` to not be equal to 28 (224
+  / 8). This is the length of the chosen digest in bytes.
+
+### `FileSegment`
+
+A representation of a segment of a file for use in the binary protocol.
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table FileSegment {
+  // The file to access.
+  path : Path;
+
+  // The byte offset in the file to read from.
+  byteOffset : ulong;
+
+  // The number of bytes to read.
+  length : ulong;
+}
+```
+
 ## Connection Management
 
 In order to properly set-up and tear-down the language server connection, we
@@ -1318,11 +1363,11 @@ a given execution context.
 - **method:** `search/receivesSuggestionsDatabaseUpdates`
 - **registerOptions:** `{}`
 
-### Enables
+#### Enables
 
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
 
-### Disables
+#### Disables
 
 None
 
@@ -1506,6 +1551,111 @@ table FileContentsReply {
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
+### `file/writeBytes`
+
+This requests that the file manager component writes a set of bytes to the
+specified file at the specified offset.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Binary
+- **Visibility:** Public
+
+This method will create a file if no file is present at `path`.
+
+#### Parameters
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table WriteBytesRequest {
+  // The file to write to.
+  path : Path (required);
+
+  // The byte offset in the file to write from.
+  byteOffset : ulong (required);
+
+  // Whether existing content should be overwritten.
+  overwriteExisting : bool (required);
+
+  // The file contents.
+  bytes : [ubyte] (required);
+}
+```
+
+#### Result
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table WriteBytesResponse {
+  // The checksum of the written bytes.
+  checksum : EnsoDigest (required);
+}
+```
+
+Notes:
+
+- The `checksum` is only of the `bytes` in the request as they were written to
+  disk. This does _not_ include checksumming the entire file. For that, please
+  see [`file/checksumBytes`](#file-checksumbytes).
+
+#### Errors
+
+- [`CannotOverwrite`](#cannotoverwrite) to signal that an overwrite would be
+  necessary to perform the operation but that `overwriteExisting` is not set.
+- [`NotFile`](#notfile) if the provided `segment.path` is not a file.
+
+### `file/readBytes`
+
+Asks the language server to read the specified number of bytes at the specified
+offset in the file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Binary
+- **Visibility:** Public
+
+It will attempt to read _as many as_ `segment.length` bytes, but does not
+guarantee that the response will contain `segment.length` bytes (e.g. if
+`segment.length` would require reading off the end of the file).
+
+#### Parameters
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table ReadBytesRequest {
+  // The segment in a file to read bytes from.
+  segment : FileSegment (required);
+}
+```
+
+#### Result
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table ReadBytesResponse {
+  // The checksum of the bytes in this response.
+  checksum : EnsoDigest (required);
+
+  // The requested file contents.
+  bytes : [ubyte] (required);
+}
+```
+
+Notes:
+
+- The `checksum` is of the `bytes` as they have been read from disk.
+
+#### Errors
+
+- [`FileNotFound`](#filenotfound) if the file at `segment.path` does not exist.
+- [`ReadOutOfBounds`](#readoutofbounds) if `segment.byteOffset` is not present
+  in the file at `segment.path`.
+- [`NotFile`](#notfile) if the provided `segment.path` is not a file.
 
 ### `file/create`
 
@@ -1777,6 +1927,46 @@ This request should work for all kinds of filesystem object.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested path does not exist.
+
+### `file/checksumBytes`
+
+Requests that the language server provides the checksum of the provided byte
+range.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Binary
+- **Visibility:** Public
+
+#### Parameters
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table ChecksumBytesRequest {
+  // The segment in a file to checksum.
+  segment : FileSegment (required);
+}
+```
+
+#### Result
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table ChecksumBytesRequest {
+  // The segment in a file to checksum.
+  checksum : EnsoDigest;
+}
+```
+
+#### Errors
+
+- [`FileNotFound`](#filenotfound) if the file at `segment.path` does not exist.
+- [`ReadOutOfBounds`](#readoutofbounds) if `segment.byteOffset` is not present
+  in the file at `segment.path`, or if `segment.length` does not fit within the
+  file.
+- [`NotFile`](#notfile) if the provided `segment.path` is not a file.
 
 ### `file/event`
 
@@ -3548,6 +3738,39 @@ not a complete specification and will be updated as new errors are added.
 Besides the required `code` and `message` fields, the errors may have a `data`
 field which can store additional error-specific payload.
 
+### `Error`
+
+An error container for the binary connection that contains a code, message and
+payload.
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table Error {
+  // A unique error code identifying error type.
+  code: int (required);
+
+  // An error message.
+  message: string (required);
+
+  // Additional payloads for the error.
+  data : ErrorPayload (required);
+}
+
+union ErrorPayload {
+  EMPTY: EmptyPayload,
+  ...
+}
+
+struct EmptyPayload {}
+```
+
+Note:
+
+- The union `ErrorPayload` will be extended with additional payloads as
+  necessary.
+- All textual-protocol errors can be represented using this structure.
+
 ### `AccessDeniedError`
 
 It signals that a user doesn't have access to a resource.
@@ -3622,6 +3845,52 @@ It signals that provided path is not a directory.
 "error" : {
   "code" : 1006,
   "message" : "Path is not a directory"
+}
+```
+
+### `NotFile`
+
+It signals that the provided path is not a file.
+
+```typescript
+"error" : {
+  "code" : 1007,
+  "message" : "Path is not a file"
+}
+```
+
+### `CannotOverwrite`
+
+Signals that a streaming file write cannot overwrite a portion of the requested
+file.
+
+```typescript
+"error" : {
+  "code" : 1008,
+  "message" : "Cannot overwrite the file without `overwriteExisting` set"
+}
+```
+
+### `ReadOutOfBounds`
+
+Signals that the requested file read was out of bounds for the file's size.
+
+```typescript
+"error" : {
+  "code" : 1009
+  "message" : "Read is out of bounds for the file"
+  "data" : {
+    fileLength : 0
+  }
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+table ReadOutOfBoundsError {
+  // The actual length of the file.
+  fileLength : ulong (required);
 }
 ```
 

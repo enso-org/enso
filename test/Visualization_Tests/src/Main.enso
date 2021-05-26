@@ -8,6 +8,7 @@ import Visualization_Tests.Histogram_Spec
 import Visualization_Tests.Scatter_Plot_Spec
 import Visualization_Tests.Sql_Spec
 import Visualization_Tests.Table_Spec
+import Visualization_Tests.Visualization_Spec
 
 main = Test.Suite.run_main <|
     Geo_Map_Spec.spec
@@ -16,3 +17,4 @@ main = Test.Suite.run_main <|
     Scatter_Plot_Spec.spec
     Sql_Spec.spec
     Table_Spec.spec
+    Visualization_Spec.spec
