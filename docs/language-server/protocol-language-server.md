@@ -32,6 +32,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
+  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
@@ -458,7 +459,7 @@ type SuggestionId = number;
 
 #### Format
 
-The entry in the suggestions database.
+The entry in the suggestions collection.
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -471,6 +472,32 @@ interface SuggestionsDatabaseEntry {
    * The suggestion entry.
    */
   suggestion: SuggestionEntry;
+}
+```
+
+### `SuggestionsOrderDatabaseEntry`
+
+The entry in the suggestions order collection.
+
+#### Format
+
+```typescript
+interface SuggestionsOrderDatabaseEntry {
+  /**
+   * The unique identifier of a suggestion referring to the `id` identifier of
+   * the suggestions collection.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The suggestion that goes before this one in the source file.
+   */
+  prevId?: SuggestionId;
+
+  /**
+   * Ths suggestion that goes after this one in the source file.
+   */
+  nextId?: SuggestionId;
 }
 ```
 
@@ -567,7 +594,7 @@ interface Modify {
 
 ### `SuggestionsDatabaseUpdate`
 
-The update of the suggestions database.
+The update of the suggestions collection.
 
 #### Format
 
@@ -636,6 +663,47 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+}
+```
+
+### `SuggestionsOrderDatabaseUpdate`
+
+The update of the suggestions order collection.
+
+#### Format
+
+```typescript
+/**
+ * The kind of the suggestions order collection update.
+ */
+type SuggestionsOrderDatabaseUpdate = AddOrder | RemoveOrder | ModifyOrder;
+
+interface AddOrder {
+  entry: SuggestionOrderDatabaseEntry;
+}
+
+interface RemoveOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+}
+
+interface ModifyOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The previous suggestion id to update.
+   */
+  prevId?: FieldUpdate<SuggestionId>;
+
+  /**
+   * The next suggestion id to update.
+   */
+  nextId?: FieldUpdate<SuggestionId>;
 }
 ```
 
