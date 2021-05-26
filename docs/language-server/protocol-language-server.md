@@ -37,6 +37,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+  - [`SuggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
   - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -128,6 +129,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+  - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
   - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
@@ -459,7 +461,7 @@ type SuggestionId = number;
 
 #### Format
 
-The entry in the suggestions collection.
+The entry in the suggestions database.
 
 ```typescript
 interface SuggestionsDatabaseEntry {
@@ -477,7 +479,7 @@ interface SuggestionsDatabaseEntry {
 
 ### `SuggestionsOrderDatabaseEntry`
 
-The entry in the suggestions order collection.
+The entry in the suggestions order database.
 
 #### Format
 
@@ -485,7 +487,7 @@ The entry in the suggestions order collection.
 interface SuggestionsOrderDatabaseEntry {
   /**
    * The unique identifier of a suggestion referring to the `id` identifier of
-   * the suggestions collection.
+   * the suggestions database.
    */
   suggestionId: SuggestionId;
 
@@ -594,7 +596,7 @@ interface Modify {
 
 ### `SuggestionsDatabaseUpdate`
 
-The update of the suggestions collection.
+The update of the suggestions database.
 
 #### Format
 
@@ -668,13 +670,13 @@ interface Modify {
 
 ### `SuggestionsOrderDatabaseUpdate`
 
-The update of the suggestions order collection.
+The update of the suggestions order database.
 
 #### Format
 
 ```typescript
 /**
- * The kind of the suggestions order collection update.
+ * The kind of the suggestions order database update.
  */
 type SuggestionsOrderDatabaseUpdate = AddOrder | RemoveOrder | ModifyOrder;
 
@@ -1389,6 +1391,7 @@ a given execution context.
 ### Enables
 
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+- [`search/suggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
 
 ### Disables
 
@@ -3312,6 +3315,28 @@ database.
 {
   updates: [SuggestionsDatabaseUpdate];
   currentVersion: number;
+}
+```
+
+#### Errors
+
+None
+
+### `search/suggestionsOrderDatabaseUpdate`
+
+Sent from server to the client to inform abouth the change in the suggestions
+order database.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  updates: [SuggestionsOrderDatabaseUpdate];
 }
 ```
 
