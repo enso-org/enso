@@ -3,6 +3,7 @@ use crate::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
 use ensogl_theme;
@@ -315,18 +316,20 @@ pub struct List {
     entries        : Rc<RefCell<Vec<Entry>>>,
     entries_range  : Rc<CloneCell<Range<Id>>>,
     provider       : Rc<CloneRefCell<AnyModelProvider>>,
+    label_layer    : Rc<Cell<LayerId>>,
 }
 
 impl List {
     /// Entry List View constructor.
     pub fn new(parent:impl AnyLogger, app:&Application) -> Self {
-        let app           = app.clone_ref();
-        let logger        = Logger::sub(parent,"entry::List");
-        let entries       = default();
-        let entries_range = Rc::new(CloneCell::new(default()..default()));
+        let app            = app.clone_ref();
+        let logger         = Logger::sub(parent,"entry::List");
+        let entries        = default();
+        let entries_range  = Rc::new(CloneCell::new(default()..default()));
         let display_object = display::object::Instance::new(&logger);
-        let provider = default();
-        List {logger,app,display_object,entries,entries_range,provider}
+        let provider       = default();
+        let label_layer    = Rc::new(Cell::new(app.display.scene().layers.label.id));
+        List {logger,app,display_object,entries,entries_range,provider,label_layer}
     }
 
     /// The number of all entries in List, including not displayed.
@@ -414,8 +417,29 @@ impl List {
         self.provider.set(provider);
     }
 
+    /// Sets the scene layer where the labels will be placed.
+    pub fn set_label_layer(&self, label_layer:LayerId) {
+        if let Some(layer) = self.app.display.scene().layers.get(self.label_layer.get()) {
+            for entry in &*self.entries.borrow() {
+                entry.label.remove_from_scene_layer(&self.app.display.scene().layers.label);
+                entry.label.add_to_scene_layer(&layer);
+            }
+        } else {
+            error!(self.logger, "Cannot set layer {label_layer:?} for labels: the layer does not \
+                exist in the scene");
+        }
+        self.label_layer.set(label_layer);
+    }
+
     fn create_new_entry(&self) -> Entry {
         let entry = Entry::new(&self.logger,&self.app);
+        if let Some(layer) = self.app.display.scene().layers.get(self.label_layer.get()) {
+            entry.label.remove_from_scene_layer(&self.app.display.scene().layers.label);
+            entry.label.add_to_scene_layer(&layer);
+        } else {
+            error!(self.logger, "Cannot set layer {self.label_layer:?} for labels: the layer does \
+                not exist in the scene");
+        }
         self.add_child(&entry);
         entry
     }

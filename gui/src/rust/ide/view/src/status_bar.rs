@@ -169,9 +169,9 @@ impl Model {
         let next_process_id = default();
         let camera          = scene.camera();
 
-        scene.layers.breadcrumbs_background.add_exclusive(&background);
-        label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
+        scene.layers.panel.add_exclusive(&background);
+        label.remove_from_scene_layer(&scene.layers.main);
+        label.add_to_scene_layer(&scene.layers.panel_text);
 
         let text_color_path = theme::application::status_bar::text;
         let style           = StyleWatch::new(&app.display.scene().style_sheet);

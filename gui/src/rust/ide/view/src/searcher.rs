@@ -102,7 +102,7 @@ impl Model {
         let list           = app.new_view::<ListView>();
         let documentation  = documentation::View::new(&scene);
         let doc_provider   = default();
-        scene.layers.below_main.add_exclusive(&list);
+        scene.layers.above_nodes.add_exclusive(&list);
         display_object.add_child(&documentation);
         display_object.add_child(&list);
 
@@ -111,6 +111,7 @@ impl Model {
         let style                = StyleWatch::new(&app.display.scene().style_sheet);
         let action_list_gap_path = ensogl_theme::application::searcher::action_list_gap;
         let action_list_gap      = style.get_number_or(action_list_gap_path,0.0);
+        list.set_label_layer(scene.layers.above_nodes_text.id);
         list.set_position_y(-action_list_gap);
         list.set_position_x(ACTION_LIST_X);
         documentation.set_position_x(DOCUMENTATION_X);
@@ -155,6 +156,7 @@ ensogl::define_endpoints! {
         size               (Vector2<f32>),
         is_visible         (bool),
         is_selected        (bool),
+        is_empty           (bool),
     }
 }
 
@@ -209,6 +211,7 @@ impl View {
             source.size           <+ height.value.map(|h| Vector2(SEARCHER_WIDTH,*h));
             source.is_visible     <+ model.list.size.map(|size| size.x*size.y > std::f32::EPSILON);
             source.is_selected    <+ model.documentation.frp.is_selected.map(|&value|value);
+            source.is_empty       <+ frp.set_actions.map(|(entries,_)| entries.entry_count() == 0);
 
             eval height.value ((h)  model.set_height(*h));
             eval frp.show     ((()) height.set_target_value(SEARCHER_HEIGHT));

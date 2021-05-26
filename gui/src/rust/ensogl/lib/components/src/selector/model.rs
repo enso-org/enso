@@ -98,14 +98,14 @@ impl component::Model for Model {
         root.add_child(&track);
         root.add_child(&right_overflow);
 
-        label_left.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label_left.add_to_scene_layer_DEPRECATED(&scene.layers.label);
-        label_right.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label_right.add_to_scene_layer_DEPRECATED(&scene.layers.label);
-        caption_left.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        caption_left.add_to_scene_layer_DEPRECATED(&scene.layers.label);
-        caption_center.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        caption_center.add_to_scene_layer_DEPRECATED(&scene.layers.label);
+        label_left.remove_from_scene_layer(&scene.layers.main);
+        label_left.add_to_scene_layer(&scene.layers.label);
+        label_right.remove_from_scene_layer(&scene.layers.main);
+        label_right.add_to_scene_layer(&scene.layers.label);
+        caption_left.remove_from_scene_layer(&scene.layers.main);
+        caption_left.add_to_scene_layer(&scene.layers.label);
+        caption_center.remove_from_scene_layer(&scene.layers.main);
+        caption_center.add_to_scene_layer(&scene.layers.label);
 
         Self{background,track,track_handle_left,track_handle_right,left_overflow,right_overflow,
              label,label_left,label_right,caption_left,caption_center,root}

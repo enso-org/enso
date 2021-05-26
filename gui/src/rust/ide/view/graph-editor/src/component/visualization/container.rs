@@ -584,7 +584,7 @@ impl Container {
                     model.set_corner_roundness(weight_inv);
                     model.set_size(current_size);
 
-                    let m1  = model.scene.layers.viz_fullscreen.camera().inversed_view_matrix();
+                    let m1  = model.scene.layers.panel.camera().inversed_view_matrix();
                     let m2  = model.scene.layers.viz.camera().view_matrix();
                     let pos = model.global_position();
                     let pos = Vector4::new(pos.x,pos.y,pos.z,1.0);

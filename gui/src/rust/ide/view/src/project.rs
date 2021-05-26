@@ -56,7 +56,7 @@ impl Model {
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
-            app.display.scene().layers.breadcrumbs_text.add_exclusive(&window_control_buttons);
+            app.display.scene().layers.panel.add_exclusive(&window_control_buttons);
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
@@ -110,14 +110,21 @@ impl Model {
 
     /// Update Searcher View - its visibility and position - when edited node changed.
     fn update_searcher_view
-    (&self, edited_node:Option<NodeId>, searcher_left_top_position:&DEPRECATED_Animation<Vector2<f32>>) {
-        if let Some(id) = edited_node {
-            self.searcher.show();
-            let new_position = self.searcher_left_top_position_when_under_node(id);
-            searcher_left_top_position.set_target_value(new_position);
-        } else {
-            self.searcher.hide();
-            self.searcher.clear_actions();
+    ( &self
+    , edited_node                : Option<NodeId>
+    , is_searcher_empty          : bool
+    , searcher_left_top_position : &DEPRECATED_Animation<Vector2<f32>>
+    ) {
+        match edited_node {
+            Some(id) if !is_searcher_empty => {
+                self.searcher.show();
+                let new_position = self.searcher_left_top_position_when_under_node(id);
+                searcher_left_top_position.set_target_value(new_position);
+            }
+            _ => {
+                self.searcher.hide();
+                self.searcher.clear_actions();
+            }
         }
     }
 
@@ -363,9 +370,10 @@ impl View {
             should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
             eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
 
-            _eval <- graph.output.node_being_edited.map2(&searcher.is_visible,
-                f!([model,searcher_left_top_position](node_id,is_visible) {
-                    model.update_searcher_view(*node_id,&searcher_left_top_position);
+            visibility_conditions <- all(&graph.output.node_being_edited,&searcher.is_empty);
+            _eval                 <- visibility_conditions.map2(&searcher.is_visible,
+                f!([model,searcher_left_top_position]((node_id,is_searcher_empty),is_visible) {
+                    model.update_searcher_view(*node_id,*is_searcher_empty,&searcher_left_top_position);
                     if !is_visible {
                         // Do not animate
                         searcher_left_top_position.skip();

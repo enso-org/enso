@@ -291,23 +291,30 @@ impl BreadcrumbModel {
         let relative_position = default();
         let outputs           = frp.outputs.clone_ref();
 
-        scene.layers.breadcrumbs_background.add_exclusive(&view);
-        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
-            (scene,PhantomData::<background::DynamicShape>);
-        scene.layers.breadcrumbs_background.add_symbol_exclusive(&shape_system.shape_system.symbol);
+        ensogl::shapes_order_dependencies! {
+            scene => {
+                background -> icon;
+                background -> separator;
+            }
+        }
 
-        scene.layers.breadcrumbs_text.add_exclusive(&icon);
-        let shape_system = scene.layers.breadcrumbs_text.shape_system_registry.shape_system
+        scene.layers.panel.add_exclusive(&view);
+        let shape_system = scene.layers.panel.shape_system_registry.shape_system
+            (scene,PhantomData::<background::DynamicShape>);
+        scene.layers.panel.add_symbol_exclusive(&shape_system.shape_system.symbol);
+
+        scene.layers.panel.add_exclusive(&icon);
+        let shape_system = scene.layers.panel.shape_system_registry.shape_system
             (scene,PhantomData::<icon::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        scene.layers.breadcrumbs_background.add_exclusive(&separator);
-        let shape_system = scene.layers.breadcrumbs_background.shape_system_registry.shape_system
+        scene.layers.panel.add_exclusive(&separator);
+        let shape_system = scene.layers.panel.shape_system_registry.shape_system
             (scene,PhantomData::<separator::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        label.remove_from_scene_layer_DEPRECATED(&scene.layers.main);
-        label.add_to_scene_layer_DEPRECATED(&scene.layers.breadcrumbs_text);
+        label.remove_from_scene_layer(&scene.layers.main);
+        label.add_to_scene_layer(&scene.layers.panel_text);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         //         system (#795)
