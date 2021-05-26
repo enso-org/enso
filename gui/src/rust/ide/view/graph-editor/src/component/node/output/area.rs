@@ -291,8 +291,8 @@ impl Model {
             if DEBUG {
                 let indent  = " ".repeat(4*builder.depth);
                 let skipped = if !is_a_port { "(skip)" } else { "" };
-                println!("{}[{},{}] {} {:?} (tp: {:?}) (id: {:?})",indent,node.payload.index,
-                    node.payload.length,skipped,node.kind.variant_name(),node.tp(),node.ast_id);
+                DEBUG!("{indent}[{node.payload.index},{node.payload.length}] \
+                {skipped} {node.kind.variant_name():?} (tp: {node.tp():?}) (id: {node.ast_id:?})");
             }
 
             if is_a_port {
@@ -341,7 +341,7 @@ impl Model {
 
     fn set_expression(&self, new_expression:impl Into<node::Expression>) {
         let new_expression = Expression::from(new_expression.into());
-        if DEBUG { println!("\n\n=====================\nSET EXPR: {:?}", new_expression) }
+        if DEBUG { DEBUG!("\n\n=====================\nSET EXPR: {new_expression:?}") }
 
         self.set_label_on_new_expression(&new_expression);
         *self.expression.borrow_mut() = new_expression;

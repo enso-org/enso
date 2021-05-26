@@ -27,7 +27,7 @@ pub fn main() {
     shortcut_registry.add(shortcuts::Press, "ctrl + a", "hello");
     shortcut_registry.add(shortcuts::Press, "ctrl + b", "hello");
 
-    println!("{}",shortcut_registry.nfa_as_graphviz_code());
+    DEBUG!(shortcut_registry.nfa_as_graphviz_code());
 
     let logger : Logger = Logger::new("kb");
     let kb              = Keyboard::new();
@@ -46,13 +46,13 @@ pub fn main() {
     shortcut_registry.add(shortcuts::Release, "ctrl a", "release ctrl a");
     shortcut_registry.add(shortcuts::Press, "a", "press a");
     shortcut_registry.add(shortcuts::Release, "a", "release a");
-    println!("\n---------------");
-    println!("-> {:?}", shortcut_registry.on_press("ctrl-left"));
-    println!("---");
-    println!("-> {:?}", shortcut_registry.on_press("a"));
-    println!("---");
+    DEBUG!("\n---------------");
+    DEBUG!("-> " shortcut_registry.on_press("ctrl-left");?);
+    DEBUG!("---");
+    DEBUG!("-> " shortcut_registry.on_press("a");?);
+    DEBUG!("---");
     web::simulate_sleep(1000.0);
-    println!("-> {:?}", shortcut_registry.on_release("ctrl-left"));
-    println!("---");
-    println!("-> {:?}", shortcut_registry.on_release("a"));
+    DEBUG!("-> " shortcut_registry.on_release("ctrl-left");?);
+    DEBUG!("---");
+    DEBUG!("-> " shortcut_registry.on_release("a");?);
 }

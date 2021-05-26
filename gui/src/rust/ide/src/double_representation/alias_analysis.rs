@@ -372,19 +372,19 @@ mod tests {
 
     /// Runs the test for the given test case description.
     fn run_case(parser:&parser::Parser, case:Case) {
-        println!("\n===========================================================================\n");
-        println!("Case: {}",&case.code);
+        DEBUG!("\n===========================================================================\n");
+        DEBUG!("Case: " case.code);
         let ast    = parser.parse_line(&case.code).unwrap();
         let node   = NodeInfo::from_line_ast(&ast).unwrap();
         let result = analyze_node(&node);
-        println!("Analysis results: {:?}", result);
+        DEBUG!("Analysis results: {result:?}");
         validate_identifiers("introduced",&node, case.expected_introduced, &result.introduced);
         validate_identifiers("used",      &node, case.expected_used,       &result.used);
     }
 
     /// Runs the test for the test case expressed using markdown notation. See `Case` for details.
     fn run_markdown_case(parser:&parser::Parser, marked_code:impl AsRef<str>) {
-        println!("Running test case for {}", marked_code.as_ref());
+        DEBUG!("Running test case for " marked_code.as_ref());
         let case = Case::from_markdown(marked_code.as_ref());
         run_case(parser,case)
     }

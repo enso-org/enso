@@ -20,7 +20,7 @@ enso-frp = { path = "../../../lib/frp" }
 enso-generics = { version = "0.2.0" }
 enso-logger = { version = "0.3.0" }
 enso-optics = { version = "0.2.0" }
-enso-prelude = { version = "0.2.0" }
+enso-prelude = { version = "0.2.3" }
 enso-shapely = { version = "0.2.0" }
 enso-shortcuts = { path = "../../../lib/shortcuts" }
 enso-types = { path = "../../../lib/types" }
@@ -33,12 +33,12 @@ console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }
 failure = { version = "0.1.5" }
 Inflector = { version = "0.11.4" }
-itertools = { version = "0.8" }
+itertools = { version = "0.10.0" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 num_enum = { version = "0.5.1" }
 num-traits = { version = "0.2" }
-paste = { version = "0.1.6" }
+paste = { version = "1.0.5" }
 rustc-hash = { version = "1.0.1" }
 shrinkwraprs = { version = "0.3.0" }
 smallvec = { version = "1.0.0" }
