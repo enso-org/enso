@@ -1,8 +1,9 @@
 package org.enso.projectmanager.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import akka.http.scaladsl.model.Uri
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
   LoggingServiceGetEndpoint,
@@ -22,7 +23,7 @@ class LoggingServiceEndpointRequestHandler(
   loggingServiceDescriptor: LoggingServiceDescriptor,
   requestTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   private def method = LoggingServiceGetEndpoint
@@ -51,7 +52,7 @@ class LoggingServiceEndpointRequestHandler(
     timeoutCancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "Failure during {} operation.", method)
+      logger.error(s"Failure during $method operation.", ex)
       replyTo ! ResponseError(
         Some(id),
         LoggingServiceUnavailable(s"Logging service failed to set up: $ex")
@@ -60,7 +61,7 @@ class LoggingServiceEndpointRequestHandler(
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request {} with {} timed out.", method, id)
+      logger.error("Request {} with {} timed out.", method, id)
       replyTo ! ResponseError(
         Some(id),
         LoggingServiceUnavailable(

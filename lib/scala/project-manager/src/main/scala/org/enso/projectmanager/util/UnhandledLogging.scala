@@ -1,10 +1,13 @@
 package org.enso.projectmanager.util
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.Actor
+import akka.event.Logging
 
-trait UnhandledLogging { this: Actor with ActorLogging =>
+trait UnhandledLogging { this: Actor =>
+
+  private val akkaLogger = Logging(context.system, this)
 
   override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
+    akkaLogger.warning("Received unknown message: {}", message)
 
 }

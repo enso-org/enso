@@ -1,7 +1,8 @@
 package org.enso.projectmanager.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.projectmanager.control.effect.Exec
@@ -24,7 +25,7 @@ class ProjectRenameHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = requestStage
@@ -48,18 +49,18 @@ class ProjectRenameHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "Failure during {} operation.", ProjectRename)
+      logger.error("Failure during ProjectRename operation.", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request {} with {} timed out.", ProjectRename, id)
+      logger.error("Request {} with {} timed out.", ProjectRename, id)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Left(failure: ProjectServiceFailure) =>
-      log.error(s"Request {} failed due to {}.", id, failure)
+      logger.error(s"Request {} failed due to {}.", id, failure)
       replyTo ! ResponseError(Some(id), mapFailure(failure))
       cancellable.cancel()
       context.stop(self)

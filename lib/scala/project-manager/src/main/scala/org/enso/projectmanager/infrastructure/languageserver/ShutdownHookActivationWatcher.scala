@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.ArePendingShutdownHooks
 import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivationWatcher.{
   AllShutdownHooksFired,
@@ -8,6 +9,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
   Watch
 }
 import org.enso.projectmanager.util.UnhandledLogging
+
 import scala.concurrent.duration._
 
 /** An actor that waits until all shutdown hooks will be fired.
@@ -16,7 +18,7 @@ import scala.concurrent.duration._
   */
 class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
