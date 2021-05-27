@@ -24,6 +24,10 @@
 - Added support for evaluating one-shot expressions on the result values of
   arbitrary expressions ([#1749](https://github.com/enso-org/enso/pull/1749)).
   This is very useful for enabling more advanced introspection in the IDE.
+- Added the `workspace/projectInfo` endpoint to the language server
+  ([#1759](https://github.com/enso-org/enso/pull/1759)). This allows the IDE to
+  get information about the running project in contexts where the project
+  manager isn't available or works differently.
 
 ## Libraries
 
