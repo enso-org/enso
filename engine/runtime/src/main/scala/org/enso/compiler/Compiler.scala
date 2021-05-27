@@ -122,7 +122,18 @@ class Compiler(
     }
   }
 
-  private def parseModule(module: Module): Unit = {
+  /** Runs part of the compiler to generate docs from Enso code.
+    * @param module - the scope from which docs are generated.
+    */
+  def generateDocs(module: Module): Unit = {
+    initializeBuiltinsIr()
+    parseModule(module, true)
+  }
+
+  private def parseModule(
+    module: Module,
+    isGeneratingDocs: Boolean = false
+  ): Unit = {
     module.ensureScopeExists()
     module.getScope.reset()
     val moduleContext = ModuleContext(
@@ -130,9 +141,10 @@ class Compiler(
       freshNameSupply = Some(freshNameSupply),
       compilerConfig  = config
     )
-    val parsedAST        = parse(module.getSource)
-    val expr             = generateIR(parsedAST)
-    val discoveredModule = recognizeBindings(expr, moduleContext)
+    val parsedAST = parse(module.getSource)
+    val expr      = generateIR(parsedAST)
+    val discoveredModule =
+      recognizeBindings(expr, moduleContext, isGeneratingDocs)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
@@ -252,13 +264,22 @@ class Compiler(
 
   private def recognizeBindings(
     module: IR.Module,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    isGeneratingDocs: Boolean = false
   ): IR.Module = {
-    passManager.runPassesOnModule(
-      module,
-      moduleContext,
-      passes.moduleDiscoveryPasses
-    )
+    if (isGeneratingDocs) {
+      passManager.runPassesOnModule(
+        module,
+        moduleContext,
+        passes.passesWithDocsGenerator
+      )
+    } else {
+      passManager.runPassesOnModule(
+        module,
+        moduleContext,
+        passes.moduleDiscoveryPasses
+      )
+    }
   }
 
   /** Lowers the input AST to the compiler's high-level intermediate
