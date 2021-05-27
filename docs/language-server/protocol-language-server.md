@@ -98,6 +98,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/applyEdit`](#textapplyedit)
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
+  - [`workspace/projectInfo`](#workspaceprojectinfo)
   - [`workspace/undo`](#workspaceundo)
   - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
@@ -154,6 +155,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`NotFile`](#notfile)
   - [`CannotOverwrite`](#cannotoverwrite)
   - [`ReadOutOfBounds`](#readoutofbounds)
+  - [`CannotDecode`](#cannotdecode)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
   - [`ContextNotFoundError`](#contextnotfounderror)
   - [`EmptyStackError`](#emptystackerror)
@@ -2336,6 +2338,44 @@ null;
 The language server also has a set of operations useful for managing the client
 workspace.
 
+### `workspace/projectInfo`
+
+This request allows the IDE to request information about the currently open
+project in situations where it does not have a project manager to connect to.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+}
+```
+
+#### Result
+
+```typescript
+{
+  // The name of the project.
+  projectName: String;
+
+  // The engine version on which the project is running.
+  engineVersion: String;
+
+  // The version of graal on which the project is running.
+  graalVersion: String;
+}
+```
+
+#### Errors
+
+- [`CannotDecode`](#cannotdecode) if the project configuration cannot be
+  decoded.
+- [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
+
 ### `workspace/undo`
 
 This request is sent from the client to the server to request that an operation
@@ -3927,6 +3967,17 @@ Signals that the requested file read was out of bounds for the file's size.
   "data" : {
     fileLength : 0
   }
+}
+```
+
+### `CannotDecode`
+
+Signals that the project configuration cannot be decoded.
+
+```typescript
+"error" : {
+  "code" : 1010
+  "message" : "Cannot decode the project configuration"
 }
 ```
 

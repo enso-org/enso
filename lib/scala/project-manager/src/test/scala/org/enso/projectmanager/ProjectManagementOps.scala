@@ -1,7 +1,6 @@
 package org.enso.projectmanager
 
 import java.util.UUID
-
 import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
@@ -10,6 +9,7 @@ import org.enso.pkg.SemVerJson._
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
+import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 
 import scala.concurrent.duration._
 
@@ -68,6 +68,26 @@ trait ProjectManagementOps { this: BaseServerSpec =>
     } yield Socket(host, port)
 
     socket.fold(fail(s"Failed to decode json: $openReply", _), identity)
+  }
+
+  def openProjectData(implicit client: WsTestClient): ProjectOpen.Result = {
+    val Right(openReply) = parse(client.expectMessage(20.seconds.dilated))
+    val openResult = for {
+      result    <- openReply.hcursor.downExpectedField("result")
+      engineVer <- result.downField("engineVersion").as[SemVer]
+      jsonAddr  <- result.downExpectedField("languageServerJsonAddress")
+      jsonHost  <- jsonAddr.downField("host").as[String]
+      jsonPort  <- jsonAddr.downField("port").as[Int]
+      binAddr   <- result.downExpectedField("languageServerBinaryAddress")
+      binHost   <- binAddr.downField("host").as[String]
+      binPort   <- binAddr.downField("port").as[Int]
+      name      <- result.downField("projectName").as[String]
+    } yield {
+      val jsonSock = Socket(jsonHost, jsonPort)
+      val binSock  = Socket(binHost, binPort)
+      ProjectOpen.Result(engineVer, jsonSock, binSock, name)
+    }
+    openResult.getOrElse(throw new Exception("Should have worked."))
   }
 
   def closeProject(

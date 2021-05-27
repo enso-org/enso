@@ -311,7 +311,7 @@ class ProjectService[
             s"Language server boot failed. ${th.getMessage}"
           )
       }
-  } yield RunningLanguageServerInfo(version, sockets)
+  } yield RunningLanguageServerInfo(version, sockets, project.name)
 
   /** @inheritdoc */
   override def closeProject(

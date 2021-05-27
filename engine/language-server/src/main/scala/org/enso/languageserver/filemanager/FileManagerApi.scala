@@ -163,4 +163,7 @@ object FileManagerApi {
 
   case object NotDirectoryError extends Error(1006, "Path is not a directory")
 
+  case object CannotDecodeError
+      extends Error(1010, "Cannot decode the project configuration")
+
 }
