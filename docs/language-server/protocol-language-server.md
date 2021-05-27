@@ -98,6 +98,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`text/applyEdit`](#textapplyedit)
   - [`text/didChange`](#textdidchange)
 - [Workspace Operations](#workspace-operations)
+  - [`workspace/projectInfo`](#workspaceprojectinfo)
   - [`workspace/undo`](#workspaceundo)
   - [`workspace/redo`](#workspaceredo)
 - [Monitoring](#monitoring)
@@ -2335,6 +2336,41 @@ null;
 
 The language server also has a set of operations useful for managing the client
 workspace.
+
+### `workspace/projectInfo`
+
+This request allows the IDE to request information about the currently open
+project in situations where it does not have a project manager to connect to.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectInfoRequest {}
+```
+
+#### Result
+
+```typescript
+interface ProjectInfoResponse {
+  // The name of the project.
+  projectName: String;
+
+  // The engine version on which the project is running.
+  engineVersion: String;
+
+  // The version of graal on which the project is running.
+  graalVersion: String;
+}
+```
+
+#### Errors
+
+N/A
 
 ### `workspace/undo`
 
