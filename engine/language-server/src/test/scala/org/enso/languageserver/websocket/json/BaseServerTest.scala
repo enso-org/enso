@@ -1,8 +1,5 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.Files
-import java.util.UUID
-
 import akka.testkit.TestProbe
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
@@ -37,6 +34,8 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.text.Sha3_224VersionCalculator
 
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -186,7 +185,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
       stdOutController,
       stdErrController,
       stdInController,
-      runtimeConnectorProbe.ref
+      runtimeConnectorProbe.ref,
+      config
     )
   }
 
