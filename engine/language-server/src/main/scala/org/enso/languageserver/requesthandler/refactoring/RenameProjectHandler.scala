@@ -2,7 +2,8 @@ package org.enso.languageserver.requesthandler.refactoring
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
@@ -19,7 +20,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -49,7 +50,7 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

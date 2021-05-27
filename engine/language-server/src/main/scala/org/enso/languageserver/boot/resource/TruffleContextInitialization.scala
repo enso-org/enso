@@ -1,10 +1,10 @@
 package org.enso.languageserver.boot.resource
 
 import akka.event.EventStream
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.polyglot.LanguageInfo
 import org.graalvm.polyglot.Context
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -18,16 +18,15 @@ class TruffleContextInitialization(
   truffleContext: Context
 )(implicit
   ec: ExecutionContext
-) extends InitializationComponent {
-
-  private val log = LoggerFactory.getLogger(this.getClass)
+) extends InitializationComponent
+    with LazyLogging {
 
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     Future {
       truffleContext.initialize(LanguageInfo.ID)
       eventStream.publish(InitializedEvent.TruffleContextInitialized)
-      log.info("Initialized Runtime context.")
+      logger.info("Initialized Runtime context.")
       InitializationComponent.Initialized
     }
 }

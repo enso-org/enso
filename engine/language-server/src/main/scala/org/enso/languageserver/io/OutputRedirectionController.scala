@@ -1,6 +1,7 @@
 package org.enso.languageserver.io
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.event.JsonSessionTerminated
 import org.enso.languageserver.io.InputOutputProtocol.{
@@ -26,7 +27,7 @@ class OutputRedirectionController(
   outputKind: OutputKind,
   sessionRouter: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging
     with OutputObserver {
 

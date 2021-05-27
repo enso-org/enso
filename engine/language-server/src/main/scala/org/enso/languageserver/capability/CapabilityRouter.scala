@@ -1,6 +1,7 @@
 package org.enso.languageserver.capability
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   ReleaseCapability
@@ -28,7 +29,7 @@ class CapabilityRouter(
   receivesTreeUpdatesHandler: ActorRef,
   suggestionsHandler: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = {

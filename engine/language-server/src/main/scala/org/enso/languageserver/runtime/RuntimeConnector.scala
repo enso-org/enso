@@ -2,7 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.nio.ByteBuffer
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy
 import org.enso.polyglot.runtime.Runtime
@@ -12,17 +13,17 @@ import org.graalvm.polyglot.io.MessageEndpoint
   */
 class RuntimeConnector
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging
     with Stash {
 
   override def preStart(): Unit = {
-    log.info("Starting the runtime connector.")
+    logger.info("Starting the runtime connector.")
   }
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      log.info(
+      logger.info(
         s"Runtime connector established connection with the message endpoint [{}].",
         engine
       )

@@ -2,8 +2,9 @@ package org.enso.languageserver.io
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.util.ByteString
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.event.{
   ExecutionContextCreated,
@@ -35,7 +36,7 @@ class InputRedirectionController(
   stdInSink: ObservableOutputStream,
   sessionRouter: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging
     with InputObserver {
 
@@ -48,7 +49,7 @@ class InputRedirectionController(
 
   private def running(liveContexts: Set[ContextData] = Set.empty): Receive = {
     case FeedStandardInput(input, isLineTerminated) =>
-      log.debug("Feeding stdin [{} bytes]", input.length)
+      logger.debug("Feeding stdin [{} bytes]", input.length)
       if (isLineTerminated) {
         val bytes =
           ByteString.createBuilder
@@ -68,7 +69,7 @@ class InputRedirectionController(
       context.become(running(liveContexts - ContextData(contextId, owner)))
 
     case ReadBlocked =>
-      log.debug("Blocked read detected.")
+      logger.debug("Blocked read detected.")
       liveContexts foreach { case ContextData(_, owner) =>
         sessionRouter ! DeliverToJsonController(
           owner,

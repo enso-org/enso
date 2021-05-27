@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor._
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
@@ -17,7 +18,7 @@ class WriteTextualFileHandler(
   requestTimeout: FiniteDuration,
   fileManager: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -38,7 +39,7 @@ class WriteTextualFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(
+      logger.error(
         s"Failure during [{}] operation: {}",
         WriteFile,
         MaskedString(ex.getMessage)
@@ -48,7 +49,7 @@ class WriteTextualFileHandler(
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       context.stop(self)
 
