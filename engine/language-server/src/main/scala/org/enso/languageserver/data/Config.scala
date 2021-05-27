@@ -173,3 +173,6 @@ case class Config(
     }.headOption
 
 }
+object Config {
+  def ensoPackageConfigName: String = "package.yaml"
+}

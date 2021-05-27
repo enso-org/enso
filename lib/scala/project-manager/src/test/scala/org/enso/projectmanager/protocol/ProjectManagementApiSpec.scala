@@ -303,6 +303,26 @@ class ProjectManagementApiSpec
 
   "project/open" must {
 
+    "open a project" taggedAs Flaky in {
+      val projectName                   = "Test_Project"
+      implicit val client: WsTestClient = new WsTestClient(address)
+      val projectId                     = createProject(projectName)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": $projectId
+              }
+            }
+          """)
+      val result = openProjectData
+      result.projectName shouldEqual projectName
+      result.engineVersion shouldEqual SemVer("0.0.1").get
+      closeProject(projectId)
+      deleteProject(projectId)
+    }
+
     "fail when project doesn't exist" in {
       val client = new WsTestClient(address)
       client.send(json"""

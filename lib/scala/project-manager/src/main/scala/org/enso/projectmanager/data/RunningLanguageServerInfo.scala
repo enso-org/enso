@@ -6,8 +6,10 @@ import nl.gn0s1s.bump.SemVer
   *
   * @param engineVersion the version of the started language server
   * @param sockets the sockets listened by the language server
+  * @param projectName the name of the project
   */
 case class RunningLanguageServerInfo(
   engineVersion: SemVer,
-  sockets: LanguageServerSockets
+  sockets: LanguageServerSockets,
+  projectName: String
 )
