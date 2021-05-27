@@ -1,7 +1,5 @@
 package org.enso.languageserver.protocol.json
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
@@ -14,6 +12,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
   ReleaseCapability
 }
 import org.enso.languageserver.capability.CapabilityProtocol
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.event.{
   JsonSessionInitialized,
   JsonSessionTerminated
@@ -41,6 +40,7 @@ import org.enso.languageserver.requesthandler.visualisation.{
   ExecuteExpressionHandler,
   ModifyVisualisationHandler
 }
+import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi.{
@@ -61,7 +61,9 @@ import org.enso.languageserver.session.SessionApi.{
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -88,6 +90,7 @@ class JsonConnectionController(
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
+  val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -280,7 +283,7 @@ class JsonConnectionController(
 
   private def createRequestHandlers(
     rpcSession: JsonSession
-  ): Map[Method, Props] =
+  ): Map[Method, Props] = {
     Map(
       Ping -> PingHandler.props(
         List(
@@ -351,8 +354,10 @@ class JsonConnectionController(
         .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
-      FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
+      ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig)
     )
+  }
 
 }
 
@@ -382,6 +387,7 @@ object JsonConnectionController {
     stdErrController: ActorRef,
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
+    languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -397,6 +403,7 @@ object JsonConnectionController {
         stdErrController,
         stdInController,
         runtimeConnector,
+        languageServerConfig,
         requestTimeout
       )
     )

@@ -17,6 +17,7 @@ import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
+import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
 
@@ -62,6 +63,7 @@ object JsonRpc {
     .registerRequest(Completion)
     .registerRequest(Import)
     .registerRequest(RenameProject)
+    .registerRequest(ProjectInfo)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
@@ -74,5 +76,4 @@ object JsonRpc {
     .registerNotification(WaitingForStandardInput)
     .registerNotification(SuggestionsDatabaseUpdates)
     .registerNotification(VisualisationEvaluationFailed)
-
 }

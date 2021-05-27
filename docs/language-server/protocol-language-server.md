@@ -155,6 +155,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`NotFile`](#notfile)
   - [`CannotOverwrite`](#cannotoverwrite)
   - [`ReadOutOfBounds`](#readoutofbounds)
+  - [`CannotDecode`](#cannotdecode)
   - [`StackItemNotFoundError`](#stackitemnotfounderror)
   - [`ContextNotFoundError`](#contextnotfounderror)
   - [`EmptyStackError`](#emptystackerror)
@@ -2350,13 +2351,13 @@ project in situations where it does not have a project manager to connect to.
 #### Parameters
 
 ```typescript
-interface ProjectInfoRequest {}
+{}
 ```
 
 #### Result
 
 ```typescript
-interface ProjectInfoResponse {
+{
   // The name of the project.
   projectName: String;
 
@@ -2370,7 +2371,8 @@ interface ProjectInfoResponse {
 
 #### Errors
 
-N/A
+- [`CannotDecode`](#cannotdecode) if the project configuration cannot be decoded.
+- [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
 
 ### `workspace/undo`
 
@@ -3963,6 +3965,17 @@ Signals that the requested file read was out of bounds for the file's size.
   "data" : {
     fileLength : 0
   }
+}
+```
+
+### `CannotDecode`
+
+Signals that the project configuration cannot be decoded.
+
+```typescript
+"error" : {
+  "code" : 1010
+  "message" : "Cannot decode the project configuration."
 }
 ```
 
