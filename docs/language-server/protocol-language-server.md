@@ -2351,7 +2351,8 @@ project in situations where it does not have a project manager to connect to.
 #### Parameters
 
 ```typescript
-{}
+{
+}
 ```
 
 #### Result
@@ -2371,7 +2372,8 @@ project in situations where it does not have a project manager to connect to.
 
 #### Errors
 
-- [`CannotDecode`](#cannotdecode) if the project configuration cannot be decoded.
+- [`CannotDecode`](#cannotdecode) if the project configuration cannot be
+  decoded.
 - [`FileNotFound`](#filenotfound) if the project configuration cannot be found.
 
 ### `workspace/undo`
@@ -3975,7 +3977,7 @@ Signals that the project configuration cannot be decoded.
 ```typescript
 "error" : {
   "code" : 1010
-  "message" : "Cannot decode the project configuration."
+  "message" : "Cannot decode the project configuration"
 }
 ```
 
