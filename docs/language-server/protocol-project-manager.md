@@ -177,7 +177,7 @@ the action.
 #### Parameters
 
 ```typescript
-interface ProjectOpenRequest {
+{
   projectId: UUID;
 
   /**
@@ -192,7 +192,7 @@ interface ProjectOpenRequest {
 #### Result
 
 ```typescript
-interface ProjectOpenResult {
+{
   /**
    * The version of the started language server represented by a semver version
    * string.
