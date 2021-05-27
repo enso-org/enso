@@ -316,13 +316,9 @@ class ProjectManagementApiSpec
               }
             }
           """)
-      client.expectJson(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 0,
-              "result" : {}
-            }
-            """)
+      val result = openProjectData
+      result.projectName shouldEqual projectName
+      result.engineVersion shouldEqual SemVer("0.0.1").get
       closeProject(projectId)
       deleteProject(projectId)
     }
