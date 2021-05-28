@@ -12,7 +12,6 @@ union InboundPayload {
 
 // An envelope for inbound requests and commands.
 table InboundMessage {
-
   // A unique id of the message sent to the server.
   messageId: EnsoUUID (required);
 
@@ -21,7 +20,6 @@ table InboundMessage {
 
   // A message payload that carries requests sent by a client.
   payload: InboundPayload (required);
-
 }
 
 // A mapping between payload enum and outbound payload types.
@@ -50,7 +48,6 @@ table OutboundMessage {
 
 // A binary representation of universally unique identifiers.
 struct EnsoUUID {
-
   // The most significant bits of the UUID.
   leastSigBits:uint64;
 
@@ -74,6 +71,9 @@ table Error {
 
   // An error message.
   message: string (required);
+
+  // Any error-specific data.
+  data : ErrorPayload;
 }
 
 // The error payload for a read out of bounds error.
@@ -87,7 +87,6 @@ table Success {}
 
 // A command initializing a data session.
 table InitSessionCommand {
-
   // A unique identifier of a client initializing the session.
   identifier: EnsoUUID (required);
 
@@ -97,7 +96,6 @@ root_type InitSessionCommand;
 
 // A visualisation context identifying a concrete visualisation.
 table VisualisationContext {
-
   // A visualisation identifier.
   visualisationId: EnsoUUID (required);
 
@@ -111,7 +109,6 @@ table VisualisationContext {
 
 // An event signaling visualisation update.
 table VisualisationUpdate {
-
   // A visualisation context identifying a concrete visualisation.
   visualisationContext: VisualisationContext (required);
 
@@ -122,7 +119,6 @@ table VisualisationUpdate {
 
 // A representation of a path relative to a specified content root.
 table Path {
-
   //a content root id that the path is relative to
   rootId: EnsoUUID;
 
@@ -133,7 +129,6 @@ table Path {
 
 // A command writing binary contents to a file.
 table WriteFileCommand {
-
   // A path to a file.
   path: Path;
 
@@ -144,7 +139,6 @@ table WriteFileCommand {
 
 // A command reading binary contents from a file.
 table ReadFileCommand {
-
   // A path to a file.
   path: Path;
 
@@ -152,7 +146,6 @@ table ReadFileCommand {
 
 // A reply for a ReadFileCommand.
 table FileContentsReply {
-
   // Binary contents.
   contents: [ubyte];
 

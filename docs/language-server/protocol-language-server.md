@@ -1067,10 +1067,10 @@ table FileSegment {
   path : Path (required);
 
   // The byte offset in the file to read from.
-  byteOffset : ulong (required);
+  byteOffset : ulong;
 
   // The number of bytes to read.
-  length : ulong (required);
+  length : ulong;
 }
 ```
 
@@ -1586,10 +1586,10 @@ table WriteBytesCommand {
   path : Path (required);
 
   // The byte offset in the file to write from.
-  byteOffset : ulong (required);
+  byteOffset : ulong;
 
   // Whether existing content should be overwritten.
-  overwriteExisting : bool (required);
+  overwriteExisting : bool;
 
   // The file contents.
   bytes : [ubyte] (required);
@@ -3833,21 +3833,18 @@ namespace org.enso.languageserver.protocol.binary;
 
 table Error {
   // A unique error code identifying error type.
-  code: int (required);
+  code: int;
 
   // An error message.
   message: string (required);
 
   // Additional payloads for the error.
-  data : ErrorPayload (required);
+  data : ErrorPayload;
 }
 
 union ErrorPayload {
-  EMPTY: EmptyPayload,
   ...
 }
-
-struct EmptyPayload {}
 ```
 
 Note:
