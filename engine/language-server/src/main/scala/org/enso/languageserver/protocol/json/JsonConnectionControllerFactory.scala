@@ -1,10 +1,11 @@
 package org.enso.languageserver.protocol.json
 
-import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
+import org.enso.languageserver.data.Config
+
+import java.util.UUID
 
 /** Language server client controller factory.
   *
@@ -23,7 +24,8 @@ class JsonConnectionControllerFactory(
   stdOutController: ActorRef,
   stdErrController: ActorRef,
   stdInController: ActorRef,
-  runtimeConnector: ActorRef
+  runtimeConnector: ActorRef,
+  config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -45,7 +47,8 @@ class JsonConnectionControllerFactory(
         stdOutController,
         stdErrController,
         stdInController,
-        runtimeConnector
+        runtimeConnector,
+        config
       )
     )
 }

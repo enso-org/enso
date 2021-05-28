@@ -35,7 +35,7 @@ transport formats, please look [here](./protocol-architecture.md).
   - [`task/started`](#taskstarted)
   - [`task/progress-update`](#taskprogress-update)
   - [`task/finished`](#taskfinished)
-- [Components Management](#components-management)
+- [Runtime Version Management](#runtime-version-management)
   - [`engine/list-installed`](#enginelist-installed)
   - [`engine/list-available`](#enginelist-available)
   - [`engine/install`](#engineinstall)
@@ -47,7 +47,7 @@ transport formats, please look [here](./protocol-architecture.md).
 - [Logging Service](#logging-service)
   - [`logging-service/get-endpoint`](#logging-serviceget-endpoint)
 - [Language Server Management](#language-server-management)
-- [Errors](#errors-15)
+- [Errors](#errors)
   - [`MissingComponentError`](#missingcomponenterror)
   - [`BrokenComponentError`](#brokencomponenterror)
   - [`ProjectManagerUpgradeRequired`](#projectmanagerupgraderequired)
@@ -177,7 +177,7 @@ the action.
 #### Parameters
 
 ```typescript
-interface ProjectOpenRequest {
+{
   projectId: UUID;
 
   /**
@@ -192,7 +192,7 @@ interface ProjectOpenRequest {
 #### Result
 
 ```typescript
-interface ProjectOpenResult {
+{
   /**
    * The version of the started language server represented by a semver version
    * string.
@@ -208,6 +208,9 @@ interface ProjectOpenResult {
    * The endpoint used for binary protocol.
    */
   languageServerBinaryAddress: IPWithSocket;
+
+  // The name of the project as it is opened.
+  projectName: String;
 }
 ```
 

@@ -247,7 +247,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     stdOutController,
     stdErrController,
     stdInController,
-    runtimeConnector
+    runtimeConnector,
+    languageServerConfig
   )
   log.trace(
     "Created JSON connection controller factory [{}].",
