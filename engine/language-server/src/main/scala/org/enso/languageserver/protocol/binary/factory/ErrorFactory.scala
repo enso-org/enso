@@ -2,10 +2,13 @@ package org.enso.languageserver.protocol.binary.factory
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.OutboundPayload
-import org.enso.languageserver.protocol.binary.{EnsoUUID, Error}
+import org.enso.languageserver.protocol.binary.{
+  EnsoUUID,
+  Error,
+  ErrorPayload,
+  OutboundPayload
+}
 
 object ErrorFactory {
 
@@ -47,7 +50,13 @@ object ErrorFactory {
   ): ByteBuffer = {
     implicit val builder = new FlatBufferBuilder(1024)
     val offset =
-      Error.createError(builder, code, builder.createString(message))
+      Error.createError(
+        builder,
+        code,
+        builder.createString(message),
+        ErrorPayload.NONE,
+        0
+      )
     val outMsg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       maybeCorrelationId,
