@@ -29,6 +29,8 @@ object SearchProtocol {
 
   private object SuggestionType {
 
+    val Module = "module"
+
     val Atom = "atom"
 
     val Method = "method"
@@ -40,6 +42,10 @@ object SearchProtocol {
 
   implicit val suggestionEncoder: Encoder[Suggestion] =
     Encoder.instance[Suggestion] {
+      case module: Suggestion.Module =>
+        Encoder[Suggestion.Module]
+          .apply(module)
+          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Module.asJson))
       case atom: Suggestion.Atom =>
         Encoder[Suggestion.Atom]
           .apply(atom)
@@ -72,6 +78,9 @@ object SearchProtocol {
   implicit val suggestionDecoder: Decoder[Suggestion] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Type).as[String].flatMap {
+        case SuggestionType.Module =>
+          Decoder[Suggestion.Module].tryDecode(cursor)
+
         case SuggestionType.Atom =>
           Decoder[Suggestion.Atom].tryDecode(cursor)
 
@@ -258,6 +267,9 @@ object SearchProtocol {
       extends Enum[SuggestionKind]
       with CirceEnum[SuggestionKind] {
 
+    /** A module suggestion. */
+    case object Module extends SuggestionKind
+
     /** An atom suggestion. */
     case object Atom extends SuggestionKind
 
@@ -279,6 +291,7 @@ object SearchProtocol {
       */
     def apply(kind: Suggestion.Kind): SuggestionKind =
       kind match {
+        case Suggestion.Kind.Module   => Module
         case Suggestion.Kind.Atom     => Atom
         case Suggestion.Kind.Method   => Method
         case Suggestion.Kind.Function => Function
@@ -292,6 +305,7 @@ object SearchProtocol {
       */
     def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
       kind match {
+        case Module   => Suggestion.Kind.Module
         case Atom     => Suggestion.Kind.Atom
         case Method   => Suggestion.Kind.Method
         case Function => Suggestion.Kind.Function

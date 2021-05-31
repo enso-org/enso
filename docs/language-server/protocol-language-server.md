@@ -400,6 +400,8 @@ interface SuggestionEntryScope {
 
 // A type of suggestion entries.
 type SuggestionEntry =
+  // A module
+  | SuggestionEntryModule
   // A value constructor
   | SuggestionEntryAtom
   // A method defined on a type
@@ -408,6 +410,12 @@ type SuggestionEntry =
   | SuggestionEntryFunction
   // A local value
   | SuggestionEntryLocal;
+
+interface SuggestionEntryModule {
+  name: string;
+  module: string;
+  documentation?: string;
+}
 
 interface SuggestionEntryAtom {
   externalId?: UUID;
@@ -454,7 +462,7 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Atom | Method | Function | Local;
+type SuggestionEntryType = Module | Atom | Method | Function | Local;
 ```
 
 ### `SuggestionId`
