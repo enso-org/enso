@@ -52,6 +52,8 @@ object SuggestionDiff {
         Api.SuggestionUpdate(e, Api.SuggestionAction.Remove())
       case These.There(e) =>
         Api.SuggestionUpdate(e, Api.SuggestionAction.Add())
+      case These.Both(e1: Suggestion.Module, e2: Suggestion.Module) =>
+        diffModules(e1, e2)
       case These.Both(e1: Suggestion.Atom, e2: Suggestion.Atom) =>
         diffAtoms(e1, e2)
       case These.Both(e1: Suggestion.Method, e2: Suggestion.Method) =>
@@ -128,6 +130,17 @@ object SuggestionDiff {
       op.copy(defaultValue = Some(b.defaultValue))
     }
     op
+  }
+
+  private def diffModules(
+    e1: Suggestion.Module,
+    e2: Suggestion.Module
+  ): Api.SuggestionUpdate = {
+    var op = Api.SuggestionAction.Modify()
+    if (e1.documentation != e2.documentation) {
+      op = op.copy(documentation = Some(e2.documentation))
+    }
+    Api.SuggestionUpdate(e1, op)
   }
 
   private def diffAtoms(

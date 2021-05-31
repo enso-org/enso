@@ -10,6 +10,10 @@ import org.enso.logger.masking.ToLogString
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
+      value = classOf[Suggestion.Module],
+      name  = "suggestionModule"
+    ),
+    new JsonSubTypes.Type(
       value = classOf[Suggestion.Atom],
       name  = "suggestionAtom"
     ),
@@ -45,11 +49,15 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Kind =
       suggestion match {
+        case _: Module   => Module
         case _: Atom     => Atom
         case _: Method   => Method
         case _: Function => Function
         case _: Local    => Local
       }
+
+    /** The module suggestion. */
+    case object Module extends Kind
 
     /** The atom suggestion. */
     case object Atom extends Kind
@@ -69,6 +77,7 @@ object Suggestion {
 
     def apply(suggestion: Suggestion): Option[String] =
       suggestion match {
+        case _: Module      => None
         case _: Atom        => None
         case method: Method => Some(method.selfType)
         case _: Function    => None
@@ -116,6 +125,29 @@ object Suggestion {
     * @param end the end of the definition scope
     */
   case class Scope(start: Position, end: Position)
+
+  /** A module.
+    *
+    * @param module the fully qualified module name
+    * @param name the unqualified module name
+    * @param documentation the documentation string
+    */
+  case class Module(module: String, name: String, documentation: Option[String])
+      extends Suggestion
+      with ToLogString {
+
+    override def externalId: Option[ExternalId] =
+      None
+
+    override def returnType: String =
+      module
+
+    /** @inheritdoc */
+    override def toLogString(shouldMask: Boolean): String =
+      s"Module(module=$module,name=$name,documentation=" +
+      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      ")"
+  }
 
   /** A value constructor.
     *

@@ -876,6 +876,23 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
+      case Suggestion.Module(module, name, doc) =>
+        val row = SuggestionRow(
+          id               = None,
+          externalIdLeast  = None,
+          externalIdMost   = None,
+          kind             = SuggestionKind.MODULE,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = "",
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY
+        )
+        row -> Seq()
       case Suggestion.Atom(expr, module, name, args, returnType, doc) =>
         val row = SuggestionRow(
           id               = None,
@@ -984,6 +1001,12 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     arguments: Seq[ArgumentRow]
   ): Suggestion =
     suggestion.kind match {
+      case SuggestionKind.MODULE =>
+        Suggestion.Module(
+          module        = suggestion.module,
+          name          = suggestion.name,
+          documentation = suggestion.documentation
+        )
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
           externalId =

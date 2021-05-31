@@ -20,13 +20,10 @@ class SuggestionBuilderTest extends CompilerTest {
   implicit val passManager: PassManager = new Passes(defaultConfig).passManager
 
   private val Module = QualifiedName(List("Unnamed"), "Test")
-  private val ModuleAtomNode = Tree.Node(
-    Suggestion.Atom(
-      externalId    = None,
+  private val ModuleNode = Tree.Node(
+    Suggestion.Module(
       module        = Module.toString,
       name          = Module.item,
-      arguments     = Seq(),
-      returnType    = Module.toString,
       documentation = None
     ),
     Vector()
@@ -42,7 +39,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -71,7 +68,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -101,7 +98,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -131,7 +128,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -161,7 +158,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -192,7 +189,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -230,7 +227,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -262,7 +259,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -316,7 +313,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -349,7 +346,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -391,7 +388,7 @@ class SuggestionBuilderTest extends CompilerTest {
         """MyAtom.bar a b = a + b"""
       val module = code.preprocessModule
 
-      build(code, module) shouldEqual Tree.Root(Vector(ModuleAtomNode))
+      build(code, module) shouldEqual Tree.Root(Vector(ModuleNode))
     }
 
     "build method with associated type signature" in {
@@ -408,7 +405,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -454,7 +451,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -495,7 +492,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -528,7 +525,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -570,7 +567,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -620,7 +617,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -683,7 +680,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -733,7 +730,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -792,7 +789,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -838,7 +835,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -897,7 +894,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -944,7 +941,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -996,7 +993,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId = None,
@@ -1057,7 +1054,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId = None,
@@ -1119,7 +1116,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -1178,7 +1175,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -1240,7 +1237,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -1311,7 +1308,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId    = None,
@@ -1400,7 +1397,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId = None,
@@ -1475,7 +1472,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Atom(
               externalId = None,
@@ -1541,7 +1538,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion
               .Atom(
@@ -1617,7 +1614,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId =
@@ -1653,7 +1650,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,
@@ -1708,7 +1705,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(code, module) shouldEqual Tree.Root(
         Vector(
-          ModuleAtomNode,
+          ModuleNode,
           Tree.Node(
             Suggestion.Method(
               externalId = None,

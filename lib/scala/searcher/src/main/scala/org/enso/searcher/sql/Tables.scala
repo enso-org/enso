@@ -81,10 +81,11 @@ case class FileVersionRow(path: String, digest: Array[Byte])
 /** The type of a suggestion. */
 object SuggestionKind {
 
-  val ATOM: Byte     = 0
-  val METHOD: Byte   = 1
-  val FUNCTION: Byte = 2
-  val LOCAL: Byte    = 3
+  val MODULE: Byte   = 0
+  val ATOM: Byte     = 1
+  val METHOD: Byte   = 2
+  val FUNCTION: Byte = 3
+  val LOCAL: Byte    = 4
 
   /** Create a database suggestion kind.
     *
@@ -93,6 +94,7 @@ object SuggestionKind {
     */
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
+      case Suggestion.Kind.Module   => MODULE
       case Suggestion.Kind.Atom     => ATOM
       case Suggestion.Kind.Method   => METHOD
       case Suggestion.Kind.Function => FUNCTION
@@ -202,7 +204,6 @@ final class SuggestionsTable(tag: Tag)
         module,
         name,
         selfType,
-        returnType,
         scopeStartLine,
         scopeStartOffset,
         scopeEndLine,
@@ -254,5 +255,5 @@ object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 1
+  val CurrentVersion: Long = 2
 }

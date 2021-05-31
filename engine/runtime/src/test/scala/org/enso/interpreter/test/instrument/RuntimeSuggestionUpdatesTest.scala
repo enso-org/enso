@@ -163,12 +163,9 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Atom(
-                    None,
+                  Suggestion.Module(
                     moduleName,
                     "Main",
-                    Seq(),
-                    moduleName,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -739,12 +736,9 @@ class RuntimeSuggestionUpdatesTest
             Vector(
               Tree.Node(
                 Api.SuggestionUpdate(
-                  Suggestion.Atom(
-                    None,
+                  Suggestion.Module(
                     moduleName,
                     "Main",
-                    Seq(),
-                    moduleName,
                     None
                   ),
                   Api.SuggestionAction.Add()

@@ -283,11 +283,13 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val compilationResult = Either.catchNonFatal {
       module.compileScope(ctx.executionService.getContext).getModule
     }
-    ctx.executionService.getLogger
-      .log(
-        Level.FINEST,
-        s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
-      )
+    if (prevStage != module.getCompilationStage) {
+      ctx.executionService.getLogger
+        .log(
+          Level.FINEST,
+          s"Compiled ${module.getName} $prevStage->${module.getCompilationStage}"
+        )
+    }
     compilationResult
   }
 
@@ -406,6 +408,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
 
   private def isSuggestionGlobal(suggestion: Suggestion): Boolean =
     suggestion match {
+      case _: Suggestion.Module   => true
       case _: Suggestion.Atom     => true
       case _: Suggestion.Method   => true
       case _: Suggestion.Function => false
