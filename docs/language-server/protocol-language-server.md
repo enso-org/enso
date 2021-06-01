@@ -32,10 +32,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
+  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+  - [`SuggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
   - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -132,6 +134,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+  - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
   - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
@@ -484,6 +487,32 @@ interface SuggestionsDatabaseEntry {
 }
 ```
 
+### `SuggestionsOrderDatabaseEntry`
+
+The entry in the suggestions order database.
+
+#### Format
+
+```typescript
+interface SuggestionsOrderDatabaseEntry {
+  /**
+   * The unique identifier of a suggestion referring to the `id` identifier of
+   * the suggestions database.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The suggestion that goes before this one in the source file.
+   */
+  prevId?: SuggestionId;
+
+  /**
+   * Ths suggestion that goes after this one in the source file.
+   */
+  nextId?: SuggestionId;
+}
+```
+
 ### `FieldAction`
 
 The modifying action on a record field.
@@ -646,6 +675,47 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+}
+```
+
+### `SuggestionsOrderDatabaseUpdate`
+
+The update of the suggestions order database.
+
+#### Format
+
+```typescript
+/**
+ * The kind of the suggestions order database update.
+ */
+type SuggestionsOrderDatabaseUpdate = AddOrder | RemoveOrder | ModifyOrder;
+
+interface AddOrder {
+  entry: SuggestionOrderDatabaseEntry;
+}
+
+interface RemoveOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+}
+
+interface ModifyOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The previous suggestion id to update.
+   */
+  prevId?: FieldUpdate<SuggestionId>;
+
+  /**
+   * The next suggestion id to update.
+   */
+  nextId?: FieldUpdate<SuggestionId>;
 }
 ```
 
@@ -1046,7 +1116,7 @@ standard message digest encoded using FlatBuffers.
 namespace org.enso.languageserver.protocol.binary;
 
 table EnsoDigest {
-  bytes : [ubyte];
+  bytes : [ubyte] (required);
 }
 ```
 
@@ -1067,10 +1137,10 @@ table FileSegment {
   path : Path (required);
 
   // The byte offset in the file to read from.
-  byteOffset : ulong (required);
+  byteOffset : ulong;
 
   // The number of bytes to read.
-  length : ulong (required);
+  length : ulong;
 }
 ```
 
@@ -1371,6 +1441,7 @@ a given execution context.
 #### Enables
 
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+- [`search/suggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
 
 #### Disables
 
@@ -1581,15 +1652,15 @@ This method will create a file if no file is present at `path`.
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table WriteBytesRequest {
+table WriteBytesCommand {
   // The file to write to.
   path : Path (required);
 
   // The byte offset in the file to write from.
-  byteOffset : ulong (required);
+  byteOffset : ulong;
 
   // Whether existing content should be overwritten.
-  overwriteExisting : bool (required);
+  overwriteExisting : bool;
 
   // The file contents.
   bytes : [ubyte] (required);
@@ -1601,7 +1672,7 @@ table WriteBytesRequest {
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table WriteBytesResponse {
+table WriteBytesReply {
   // The checksum of the written bytes.
   checksum : EnsoDigest (required);
 }
@@ -1638,7 +1709,7 @@ guarantee that the response will contain `segment.length` bytes (e.g. if
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table ReadBytesRequest {
+table ReadBytesCommand {
   // The segment in a file to read bytes from.
   segment : FileSegment (required);
 }
@@ -1649,7 +1720,7 @@ table ReadBytesRequest {
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table ReadBytesResponse {
+table ReadBytesReply {
   // The checksum of the bytes in this response.
   checksum : EnsoDigest (required);
 
@@ -1990,7 +2061,7 @@ range.
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table ChecksumBytesRequest {
+table ChecksumBytesCommand {
   // The segment in a file to checksum.
   segment : FileSegment (required);
 }
@@ -2001,7 +2072,7 @@ table ChecksumBytesRequest {
 ```idl
 namespace org.enso.languageserver.protocol.binary;
 
-table ChecksumBytesRequest {
+table ChecksumBytesReply {
   // The segment in a file to checksum.
   checksum : EnsoDigest;
 }
@@ -3526,6 +3597,28 @@ database.
 
 None
 
+### `search/suggestionsOrderDatabaseUpdate`
+
+Sent from server to the client to inform abouth the change in the suggestions
+order database.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  updates: [SuggestionsOrderDatabaseUpdate];
+}
+```
+
+#### Errors
+
+None
+
 ### `search/completion`
 
 Sent from client to the server to receive the autocomplete suggestion.
@@ -3833,21 +3926,18 @@ namespace org.enso.languageserver.protocol.binary;
 
 table Error {
   // A unique error code identifying error type.
-  code: int (required);
+  code: int;
 
   // An error message.
   message: string (required);
 
   // Additional payloads for the error.
-  data : ErrorPayload (required);
+  data : ErrorPayload;
 }
 
 union ErrorPayload {
-  EMPTY: EmptyPayload,
   ...
 }
-
-struct EmptyPayload {}
 ```
 
 Note:

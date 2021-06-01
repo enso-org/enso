@@ -43,7 +43,7 @@ class WorkspaceOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "return an error when the project configuration cannot be decoded" in {
+    "return an error when the project configuration cannot be decoded" taggedAs Flaky in {
       testYamlPath.delete()
       val yamlOutStream = new FileOutputStream(testYamlPath)
       yamlOutStream.write(0x00)
@@ -70,7 +70,7 @@ class WorkspaceOperationsTest extends BaseServerTest with FlakySpec {
           """)
     }
 
-    "return an error when the project configuration is not present" in {
+    "return an error when the project configuration is not present" taggedAs Flaky in {
       testYamlPath.delete()
 
       val client = getInitialisedWsClient()
