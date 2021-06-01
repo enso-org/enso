@@ -26,6 +26,44 @@ use ensogl_theme::Theme as Theme;
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+ensogl::define_endpoints! {
+    Input {
+        /// Open the searcher.
+        open_searcher(),
+        /// Open the searcher with Open Project mode, where the only suggestions will be projects to
+        /// open, and node creation is disabled.
+        open_searcher_for_opening_project(),
+        /// Close the searcher without taking any actions
+        close_searcher(),
+        /// Simulates a style toggle press event.
+        toggle_style(),
+        /// Saves the currently opened module to file.
+        save_module(),
+    }
+
+    Output {
+        searcher_opened                     (NodeId),
+        searcher_opened_for_opening_project (NodeId),
+        adding_new_node                     (bool),
+        searcher_input                      (Option<NodeId>),
+        is_searcher_opened                  (bool),
+        opening_project                     (bool),
+        old_expression_of_edited_node       (Expression),
+        editing_aborted                     (NodeId),
+        editing_committed                   (NodeId, Option<searcher::entry::Id>),
+        code_editor_shown                   (bool),
+        style                               (Theme),
+        fullscreen_visualization_shown      (bool),
+        default_gap_between_nodes           (f32)
+    }
+}
+
+
+
 // =============
 // === Model ===
 // =============
@@ -128,7 +166,7 @@ impl Model {
         }
     }
 
-    fn add_node_and_edit(&self) {
+    fn add_node_and_edit(&self) -> NodeId {
         let graph_editor_inputs = &self.graph_editor.frp.input;
         let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned() {
             let selected_pos = self.graph_editor.model.get_node_position(selected).unwrap_or_default();
@@ -146,6 +184,7 @@ impl Model {
         };
         graph_editor_inputs.set_node_expression.emit(&(node_id,Expression::default()));
         graph_editor_inputs.edit_node.emit(&node_id);
+        node_id
     }
 
     fn show_fullscreen_visualization(&self, node_id:NodeId) {
@@ -181,41 +220,6 @@ impl Model {
         js::fullscreen();
     }
 }
-
-
-
-// ===========
-// === FRP ===
-// ===========
-
-ensogl::define_endpoints! {
-    Input {
-        /// Add new node and start editing it's expression.
-        add_new_node(),
-        /// Abort currently node edit. If it was added node, it will be removed, if the existing node was edited, its old expression will be restored.
-        abort_node_editing(),
-        /// Simulates a style toggle press event.
-        toggle_style(),
-        /// Saves the currently opened module to file.
-        save_module(),
-    }
-
-    Output {
-        adding_new_node                (bool),
-        node_being_edited              (Option<NodeId>),
-        editing_node                   (bool),
-        old_expression_of_edited_node  (Expression),
-        editing_aborted                (NodeId),
-        editing_committed              (NodeId, Option<searcher::entry::Id>),
-        code_editor_shown              (bool),
-        style                          (Theme),
-        fullscreen_visualization_shown (bool),
-        default_gap_between_nodes      (f32)
-    }
-}
-
-
-
 
 mod js {
     // use super::*;
@@ -363,10 +367,10 @@ impl View {
             // This node is true when received "abort_node_editing" signal, and should get false
             // once processing of "node_being_edited" event from graph is performed.
             editing_aborted              <- any(...);
-            editing_aborted              <+ frp.abort_node_editing.constant(true);
+            editing_aborted              <+ frp.close_searcher.constant(true);
             editing_commited_in_searcher <- searcher.editing_committed.constant(());
-            should_finish_editing_if_any <-
-                any(frp.abort_node_editing,editing_commited_in_searcher,frp.add_new_node);
+            should_finish_editing_if_any <- any(frp.close_searcher,editing_commited_in_searcher
+                ,frp.open_searcher,frp.open_searcher_for_opening_project);
             should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
             eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
 
@@ -380,6 +384,7 @@ impl View {
                     }
                 })
             );
+
             _eval <- graph.output.node_position_set.map2(&graph.output.node_being_edited,
                 f!([searcher_left_top_position]((node_id,position),edited_node_id) {
                     if edited_node_id.contains(node_id) {
@@ -394,14 +399,14 @@ impl View {
             frp.source.editing_aborted   <+ editing_finished.gate(&editing_aborted);
             editing_aborted              <+ graph.output.node_editing_finished.constant(false);
 
-            frp.source.node_being_edited <+ graph.output.node_being_edited;
-            frp.source.editing_node      <+ frp.node_being_edited.map(|n| n.is_some());
+            frp.source.searcher_input     <+ graph.output.node_being_edited;
+            frp.source.is_searcher_opened <+ frp.searcher_input.map(|n| n.is_some());
 
 
-            // === Adding New Node ===
+            // === Adding Node ===
 
-            frp.source.adding_new_node <+ frp.add_new_node.constant(true);
-            eval frp.add_new_node ((()) model.add_node_and_edit());
+            frp.source.adding_new_node <+ frp.open_searcher.constant(true);
+            frp.source.searcher_opened <+ frp.open_searcher.map(f!((_) model.add_node_and_edit()));
 
             adding_committed           <- frp.editing_committed.gate(&frp.adding_new_node).map(|(id,_)| *id);
             adding_aborted             <- frp.editing_aborted.gate(&frp.adding_new_node);
@@ -412,6 +417,21 @@ impl View {
                 graph.select_node(node);
             });
             eval adding_aborted  ((node) graph.remove_node(node));
+
+
+            // === Opening Project ===
+
+            frp.source.opening_project <+ frp.open_searcher_for_opening_project.constant(true);
+
+            frp.source.searcher_opened_for_opening_project <+ frp.open_searcher_for_opening_project
+                .map(f!((_) model.add_node_and_edit()));
+
+            opening_committed <- frp.editing_committed.gate(&frp.opening_project).map(|(id,_)| *id);
+            opening_aborted   <- frp.editing_aborted.gate(&frp.opening_project);
+            opening_finished  <- any(&opening_committed,&opening_aborted);
+            frp.source.opening_project <+ opening_finished.constant(false);
+
+            eval opening_finished ((node) graph.remove_node(node));
 
 
             // === Style toggle ===
@@ -481,10 +501,11 @@ impl application::View for View {
 
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
-        (&[ (Press   , "!editing_node"                 , "tab"             , "add_new_node")
-          , (Press   , "editing_node"                  , "escape"          , "abort_node_editing")
-          , (Press   , ""                              , "cmd alt shift t" , "toggle_style")
-          , (Press   , ""                              , "cmd s"           , "save_module")
+        (&[ (Press   , "!is_searcher_opened", "tab"             , "open_searcher")
+          , (Press   , "!is_searcher_opened", "cmd o"           , "open_searcher_for_opening_project")
+          , (Press   , "is_searcher_opened" , "escape"          , "close_searcher")
+          , (Press   , ""                   , "cmd alt shift t" , "toggle_style")
+          , (Press   , ""                   , "cmd s"           , "save_module")
           ]).iter().map(|(a,b,c,d)|Self::self_shortcut_when(*a,*c,*d,*b)).collect()
     }
 }

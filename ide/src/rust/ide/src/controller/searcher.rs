@@ -61,7 +61,7 @@ pub struct NotASuggestion {
 
 #[allow(missing_docs)]
 #[derive(Debug,Fail)]
-#[fail(display="An action \"{}\" is not supported (...)", action_label)]
+#[fail(display="An action \"{}\" is not supported: {}", action_label, reason)]
 pub struct NotSupported {
     action_label : String,
     reason       : failure::Error,
@@ -71,6 +71,13 @@ pub struct NotSupported {
 #[derive(Copy,Clone,Debug,Fail)]
 #[fail(display="An action cannot be executed when searcher is in \"edit node\" mode.")]
 pub struct CannotExecuteWhenEditingNode;
+
+#[allow(missing_docs)]
+#[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="Cannot commit expression in current mode ({:?}).", mode)]
+pub struct CannotCommitExpression {
+    mode : Mode
+}
 
 
 // =====================
@@ -359,6 +366,8 @@ pub enum Mode {
     NewNode {position:Option<Position>},
     /// Searcher should edit existing node's expression.
     EditNode {node_id:ast::Id},
+    /// Searcher should show only projects to open.
+    OpenProject,
 }
 
 /// A fragment filled by single picked suggestion.
@@ -509,7 +518,10 @@ impl Searcher {
             language_server  : project.json_rpc(),
             position_in_code : Immutable(position),
         };
-        ret.reload_list();
+        match mode {
+            Mode::OpenProject => ret.load_project_list(),
+            _                 => ret.reload_list(),
+        }
         Ok(ret)
     }
 
@@ -535,7 +547,12 @@ impl Searcher {
 
         self.data.borrow_mut().input = parsed_input;
         self.invalidate_fragments_added_by_picking();
-        if old_expr != new_expr {
+        let expression_changed = old_expr != new_expr;
+        // We don't do the reloading in OpenProject mode: the reloading is meant for providing new
+        // code suggestions for arguments of picked method. But in OpenProject mode the input is
+        // for filtering only.
+        let mode_with_reloading = !matches!(*self.mode, Mode::OpenProject);
+        if expression_changed && mode_with_reloading {
             debug!(self.logger, "Reloading list.");
             self.reload_list();
         } else if let Actions::Loaded {list} = self.data.borrow().actions.clone_ref() {
@@ -625,7 +642,7 @@ impl Searcher {
                 Mode::NewNode {position} => self.add_example(&example,position).map(Some),
                 _                        => Err(CannotExecuteWhenEditingNode.into())
             }
-            Action::CreateNewProject => {
+            Action::ProjectManagement(action) => {
                 match self.ide.manage_projects() {
                     Ok(_) => {
                         let ide    = self.ide.clone_ref();
@@ -633,15 +650,21 @@ impl Searcher {
                         executor::global::spawn(async move {
                             // We checked that manage_projects returns Some just a moment ago, so
                             // unwrapping is safe.
-                            let result = ide.manage_projects().unwrap().create_new_project().await;
-                            if let Err(err) = result {
+                            let manage_projects = ide.manage_projects().unwrap();
+                            let result = match action {
+                                action::ProjectManagement::CreateNewProject =>
+                                    manage_projects.create_new_project(),
+                                action::ProjectManagement::OpenProject {id,name} =>
+                                    manage_projects.open_project(*id,name.to_string().into()),
+                            };
+                            if let Err(err) = result.await {
                                 error!(logger, "Error when creating new project: {err}");
                             }
                         });
                         Ok(None)
                     },
                     Err(err) => Err(NotSupported{
-                        action_label : Action::CreateNewProject.to_string(),
+                        action_label : Action::ProjectManagement(action).to_string(),
                         reason       : err,
                     }.into())
                 }
@@ -680,39 +703,45 @@ impl Searcher {
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
-        let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
+        let expr_and_method = || {
+            let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
-        let expression = match (self.this_var(),input_chain) {
-            (Some(this_var),Some(input)) =>
-                apply_this_argument(this_var,&input.wrapped.into_ast()).repr(),
-            (None,Some(input)) => input.wrapped.into_ast().repr(),
-            (_,None)           => "".to_owned(),
+            let expression = match (self.this_var(),input_chain) {
+                (Some(this_var),Some(input)) =>
+                    apply_this_argument(this_var,&input.wrapped.into_ast()).repr(),
+                (None,Some(input)) => input.wrapped.into_ast().repr(),
+                (_,None)           => "".to_owned(),
+            };
+            let intended_method = self.intended_method();
+            (expression,intended_method)
         };
-        let intended_method = self.intended_method();
 
         // We add the required imports before we create the node/edit its content. This way, we
         // avoid an intermediate state where imports would already be in use but not yet available.
-        self.add_required_imports()?;
-        let id = match *self.mode {
+        match *self.mode {
             Mode::NewNode {position} => {
-                let mut new_node           = NewNodeInfo::new_pushed_back(expression);
-                new_node.metadata          = Some(NodeMetadata {position,intended_method});
-                new_node.introduce_pattern = ASSIGN_NAMES_FOR_NODES;
+                self.add_required_imports()?;
+                let (expression,intended_method) = expr_and_method();
+                let mut new_node                 = NewNodeInfo::new_pushed_back(expression);
+                new_node.metadata                = Some(NodeMetadata {position,intended_method});
+                new_node.introduce_pattern       = ASSIGN_NAMES_FOR_NODES;
                 let graph         = self.graph.graph();
                 if let Some(this) = self.this_arg.deref().as_ref() {
                     this.introduce_pattern(graph.clone_ref())?;
                 }
-                graph.add_node(new_node)?
+                graph.add_node(new_node)
             },
             Mode::EditNode {node_id} => {
+                self.add_required_imports()?;
+                let (expression,intended_method) = expr_and_method();
                 self.graph.graph().set_expression(node_id,expression)?;
                 self.graph.graph().module.with_node_metadata(node_id,Box::new(|md| {
                     md.intended_method = intended_method
                 }))?;
-                node_id
+                Ok(node_id)
             }
-        };
-        Ok(id)
+            mode => Err(CannotCommitExpression{mode}.into())
+        }
     }
 
     /// Adds an example to the graph.
@@ -874,7 +903,8 @@ impl Searcher {
             actions.extend(self.database.iterate_examples().map(Action::Example));
             Self::add_enso_project_entries(&actions)?;
             if self.ide.manage_projects().is_ok() {
-                actions.extend(std::iter::once(Action::CreateNewProject));
+                let create_project = action::ProjectManagement::CreateNewProject;
+                actions.extend(std::iter::once(Action::ProjectManagement(create_project)));
             }
         }
         for response in completion_responses {
@@ -990,6 +1020,34 @@ impl Searcher {
             actions.extend(std::iter::once(Action::Suggestion(Rc::new(entry))));
         }
         Ok(())
+    }
+
+    fn load_project_list(&self) {
+        let logger = self.logger.clone_ref();
+        let ide    = self.ide.clone_ref();
+        let data   = self.data.clone_ref();
+        executor::global::spawn(async move {
+            let result:FallibleResult<Vec<Action>> = async {
+                let manage_projects = ide.manage_projects()?;
+                let projects = manage_projects.list_projects().await?;
+                Ok(projects.into_iter().map(|project| {
+                    let id        = Immutable(project.id);
+                    let name      = project.name.0.into();
+                    let pm_action = action::ProjectManagement::OpenProject {id,name};
+                    Action::ProjectManagement(pm_action)
+                }).collect_vec())
+            }.await;
+            let actions = match result {
+                Ok(actions) => actions,
+                Err(err) => {
+                    error!(logger,"Cannot load projects list: {err}");
+                    default()
+                }
+            };
+            info!(logger,"Received list of projects: {actions:?}");
+            let list = Rc::new(action::List::from_actions(actions));
+            data.borrow_mut().actions = Actions::Loaded {list}
+        })
     }
 }
 
