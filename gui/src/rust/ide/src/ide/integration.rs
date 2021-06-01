@@ -126,7 +126,8 @@ impl Integration {
         executor::global::spawn(stream.for_each(move |notification| {
             if let Some(model) = weak.upgrade() {
                 match notification {
-                    controller::ide::Notification::NewProjectCreated => {
+                    controller::ide::Notification::NewProjectCreated |
+                    controller::ide::Notification::ProjectOpened     => {
                         model.setup_and_display_new_project()
                     }
                 }

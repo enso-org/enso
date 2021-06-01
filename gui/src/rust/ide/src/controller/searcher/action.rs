@@ -13,6 +13,17 @@ pub type Suggestion = Rc<model::suggestion_database::Entry>;
 /// Action of adding example code.
 pub type Example = Rc<model::suggestion_database::Example>;
 
+/// A variants of project management actions. See also [`Action`].
+#[allow(missing_docs)]
+#[derive(Clone,CloneRef,Debug,Eq,PartialEq)]
+pub enum ProjectManagement {
+    CreateNewProject,
+    OpenProject {
+        id   : Immutable<Uuid>,
+        name : ImString,
+    }
+}
+
 /// A single action on the Searcher list. See also `controller::searcher::Searcher` docs.
 #[derive(Clone,CloneRef,Debug,Eq,PartialEq)]
 pub enum Action {
@@ -23,9 +34,9 @@ pub enum Action {
     /// Add to the current module a new function with example code, and a new node in
     /// current scene calling that function.
     Example(Example),
-    /// Create a new untitled project and open it.
-    CreateNewProject,
-    // In the future, other action types will be added (like project/module management, etc.).
+    /// The project management operation: creating or opening, projects.
+    ProjectManagement(ProjectManagement),
+    // In the future, other action types will be added (like module/method management, etc.).
 }
 
 impl Display for Action {
@@ -42,7 +53,10 @@ impl Display for Action {
                 write!(f, "{}", completion.name.clone())
             }
             Self::Example(example) => write!(f,"Example: {}", example.name),
-            Self::CreateNewProject => write!(f,"New Project"),
+            Self::ProjectManagement(action) => match action {
+                ProjectManagement::CreateNewProject => write!(f,"New Project"),
+                ProjectManagement::OpenProject {name,..} => write!(f,"{}", name),
+            }
         }
     }
 }

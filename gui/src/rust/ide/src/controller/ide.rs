@@ -10,6 +10,8 @@ use crate::prelude::*;
 
 use crate::notification;
 
+pub use enso_protocol::project_manager::ProjectMetadata;
+pub use enso_protocol::project_manager::ProjectName;
 use mockall::automock;
 use parser::Parser;
 
@@ -90,7 +92,9 @@ impl StatusNotificationPublisher {
 #[derive(Copy,Clone,Debug)]
 pub enum Notification {
     /// User created a new project. The new project is opened in IDE.
-    NewProjectCreated
+    NewProjectCreated,
+    /// User opened an existing project.
+    ProjectOpened,
 }
 
 
@@ -98,6 +102,8 @@ pub enum Notification {
 // ===========
 // === API ===
 // ===========
+
+// === Managing API ===
 
 /// The API of all project management operations.
 ///
@@ -107,7 +113,16 @@ pub trait ManagingProjectAPI {
 
     /// Create a new unnamed project and open it in the IDE.
     fn create_new_project(&self) -> BoxFuture<FallibleResult>;
+
+    /// Return a list of existing projects.
+    fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;
+
+    /// Open the project with given id and name.
+    fn open_project(&self, id:Uuid, name:ProjectName) -> BoxFuture<FallibleResult>;
 }
+
+
+// === Main API ===
 
 /// The API of IDE Controller.
 #[automock]
