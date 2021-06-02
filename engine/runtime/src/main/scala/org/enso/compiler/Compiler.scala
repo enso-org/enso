@@ -127,7 +127,7 @@ class Compiler(
     */
   def generateDocs(module: Module): Unit = {
     initializeBuiltinsIr()
-    parseModule(module, true)
+    parseModule(module, isGeneratingDocs = true)
   }
 
   private def parseModule(
@@ -265,7 +265,7 @@ class Compiler(
   private def recognizeBindings(
     module: IR.Module,
     moduleContext: ModuleContext,
-    isGeneratingDocs: Boolean = false
+    isGeneratingDocs: Boolean
   ): IR.Module = {
     if (isGeneratingDocs) {
       passManager.runPassesOnModule(
