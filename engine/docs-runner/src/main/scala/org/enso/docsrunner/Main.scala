@@ -1,13 +1,12 @@
 package org.enso.docsrunner
 
 import java.io.File
-import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.{Context => EnsoContext}
 import org.enso.languageserver.io.{
   ObservableOutputStream,
   ObservablePipedInputStream
 }
-import org.enso.polyglot.{LanguageInfo, MethodNames, PolyglotContext}
+import org.enso.polyglot.{LanguageInfo, MethodNames}
 import org.graalvm.polyglot.Context
 
 object Main {
@@ -26,17 +25,18 @@ object Main {
       .in(stdIn)
       .build()
 
-    val polyCon = new PolyglotContext(executionContext)
-
-    val polyModule = polyCon.evalModule(file)
-
     val languageContext = executionContext
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
 
-    languageContext.getCompiler.generateDocs(
-      polyModule
-    ) // PolyModule => Module ?
+    val module = languageContext.getModuleForFile(file)
+
+    val generated = module.map(languageContext.getCompiler.generateDocs)
+
+  }
+
+  def main(args: Array[String]): Unit = {
+    // Go through files executing generateFrom(File f)
   }
 }

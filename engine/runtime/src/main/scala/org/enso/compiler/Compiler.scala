@@ -125,9 +125,10 @@ class Compiler(
   /** Runs part of the compiler to generate docs from Enso code.
     * @param module - the scope from which docs are generated.
     */
-  def generateDocs(module: Module): Unit = {
+  def generateDocs(module: Module): Module = {
     initializeBuiltinsIr()
     parseModule(module, isGeneratingDocs = true)
+    module
   }
 
   private def parseModule(
