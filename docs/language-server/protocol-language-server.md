@@ -32,10 +32,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryType`](#suggestionentrytype)
   - [`SuggestionId`](#suggestionid)
   - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
+  - [`SuggestionsOrderDatabaseEntry`](#suggestionsorderdatabaseentry)
   - [`FieldAction`](#fieldaction)
   - [`FieldUpdate`](#fieldupdate)
   - [`SuggestionArgumentUpdate`](#suggestionargumentupdate)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+  - [`SuggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
   - [`Export`](#export)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -132,6 +134,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/invalidateSuggestionsDatabase`](#searchinvalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+  - [`search/suggestionsOrderDatabaseUpdate`](#searchsuggestionsorderdatabaseupdate)
   - [`search/completion`](#searchcompletion)
   - [`search/import`](#searchimport)
 - [Input/Output Operations](#inputoutput-operations)
@@ -484,6 +487,32 @@ interface SuggestionsDatabaseEntry {
 }
 ```
 
+### `SuggestionsOrderDatabaseEntry`
+
+The entry in the suggestions order database.
+
+#### Format
+
+```typescript
+interface SuggestionsOrderDatabaseEntry {
+  /**
+   * The unique identifier of a suggestion referring to the `id` identifier of
+   * the suggestions database.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The suggestion that goes before this one in the source file.
+   */
+  prevId?: SuggestionId;
+
+  /**
+   * Ths suggestion that goes after this one in the source file.
+   */
+  nextId?: SuggestionId;
+}
+```
+
 ### `FieldAction`
 
 The modifying action on a record field.
@@ -646,6 +675,47 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+}
+```
+
+### `SuggestionsOrderDatabaseUpdate`
+
+The update of the suggestions order database.
+
+#### Format
+
+```typescript
+/**
+ * The kind of the suggestions order database update.
+ */
+type SuggestionsOrderDatabaseUpdate = AddOrder | RemoveOrder | ModifyOrder;
+
+interface AddOrder {
+  entry: SuggestionOrderDatabaseEntry;
+}
+
+interface RemoveOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+}
+
+interface ModifyOrder {
+  /**
+   * The unique identifier of a suggestion.
+   */
+  suggestionId: SuggestionId;
+
+  /**
+   * The previous suggestion id to update.
+   */
+  prevId?: FieldUpdate<SuggestionId>;
+
+  /**
+   * The next suggestion id to update.
+   */
+  nextId?: FieldUpdate<SuggestionId>;
 }
 ```
 
@@ -1371,6 +1441,7 @@ a given execution context.
 #### Enables
 
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+- [`search/suggestionsOrderDatabaseUpdate`](#suggestionsorderdatabaseupdate)
 
 #### Disables
 
@@ -3519,6 +3590,28 @@ database.
 {
   updates: [SuggestionsDatabaseUpdate];
   currentVersion: number;
+}
+```
+
+#### Errors
+
+None
+
+### `search/suggestionsOrderDatabaseUpdate`
+
+Sent from server to the client to inform abouth the change in the suggestions
+order database.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  updates: [SuggestionsOrderDatabaseUpdate];
 }
 ```
 
