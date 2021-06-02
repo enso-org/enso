@@ -29,6 +29,7 @@ mod leak;
 pub mod animation;
 pub mod complex_shape_system;
 pub mod dom_symbols;
+pub mod drop_manager;
 pub mod easing_animator;
 pub mod glyph_system;
 pub mod list_view;
