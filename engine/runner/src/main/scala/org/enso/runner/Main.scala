@@ -10,7 +10,6 @@ import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
-
 import java.io.File
 import java.util.UUID
 import scala.Console.err
@@ -27,7 +26,6 @@ object Main {
   private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
-  private val DOCS_OPTION                 = "docs"
   private val LANGUAGE_SERVER_OPTION      = "server"
   private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
@@ -55,10 +53,6 @@ object Main {
     val repl = CliOption.builder
       .longOpt(REPL_OPTION)
       .desc("Runs the Enso REPL.")
-      .build
-    val docs = CliOption.builder
-      .longOpt(DOCS_OPTION)
-      .desc("Generates the Enso docs.")
       .build
     val run = CliOption.builder
       .hasArg(true)
@@ -194,7 +188,6 @@ object Main {
     options
       .addOption(help)
       .addOption(repl)
-      .addOption(docs)
       .addOption(run)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
@@ -265,57 +258,6 @@ object Main {
       authors     = authors,
       maintainers = authors
     )
-    exitSuccess()
-  }
-
-  /** Handles the `--docs` CLI option.
-    */
-  private def runDocs(
-    path: String,
-    projectPath: Option[String],
-    logLevel: LogLevel
-  ): Unit = {
-    val file = new File(path)
-    if (!file.exists) {
-      println(s"File $file does not exist.")
-      exitFail()
-    }
-    val projectMode = file.isDirectory
-    val packagePath =
-      if (projectMode) {
-        projectPath match {
-          case Some(inProject) if inProject != path =>
-            println(
-              "It is not possible to run a project in context of another " +
-              "project, please do not use the `--in-project` option for " +
-              "running projects."
-            )
-            exitFail()
-          case _ =>
-        }
-        file.getAbsolutePath
-      } else projectPath.getOrElse("")
-    val context = new ContextFactory().create(
-      packagePath,
-      System.in,
-      System.out,
-      Repl(TerminalIO()),
-      strictErrors = true,
-      logLevel     = logLevel
-    )
-    if (projectMode) {
-      val pkg  = PackageManager.Default.fromDirectory(file)
-      val main = pkg.map(_.mainFile)
-      if (!main.exists(_.exists())) {
-        println("Main file does not exist.")
-        exitFail()
-      }
-      val mainFile       = main.get
-      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
-      runPackage(context, mainModuleName, file)
-    } else {
-      runSingleFile(context, file)
-    }
     exitSuccess()
   }
 
@@ -633,13 +575,6 @@ object Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
-    }
-    if (line.hasOption(DOCS_OPTION)) {
-      runDocs(
-        line.getOptionValue(RUN_OPTION),
-        Option(line.getOptionValue(IN_PROJECT_OPTION)),
-        logLevel
-      )
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)
