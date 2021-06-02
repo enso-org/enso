@@ -1145,6 +1145,55 @@ lazy val `engine-runner` = project
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
 
+lazy val `docs-runner` = project
+  .in(file("engine/docs-runner"))
+  .settings(
+    javaOptions ++= {
+      // Note [Classpath Separation]
+      val runtimeClasspath =
+        (runtime / Compile / fullClasspath).value
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
+    },
+    Compile / run / mainClass := Some("org.enso.docsrunner.Main"),
+    assembly / mainClass := (Compile / run / mainClass).value,
+    assembly / assemblyJarName := "docs.jar",
+    assembly / test := {},
+    assembly / assemblyOutputPath := file("docs.jar"),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" =>
+        MergeStrategy.concat
+      case "reference.conf" =>
+        MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
+    },
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk"     % "polyglot-tck" % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"  % graalVersion % "provided",
+      "commons-cli"         % "commons-cli"  % commonsCliVersion,
+      "com.monovore"       %% "decline"      % declineVersion,
+      "org.jline"           % "jline"        % jlineVersion,
+      "org.typelevel"      %% "cats-core"    % catsVersion
+    ),
+    run / connectInput := true
+  )
+  .dependsOn(runtime)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
+  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
+
 lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
