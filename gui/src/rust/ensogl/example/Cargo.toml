@@ -17,10 +17,12 @@ ensogl-gui-components = { path = "../../ensogl/lib/components" }
 ensogl-text = { path = "../../ensogl/lib/text" }
 ensogl-text-msdf-sys = { path = "../../ensogl/lib/text/msdf-sys" }
 ensogl-theme = { path = "../../ensogl/lib/theme" }
+ensogl-web = { path = "../lib/web" }
 wasm-bindgen = { version = "=0.2.58", features = [
   "nightly",
   "serde-serialize"
 ] }
+wasm-bindgen-futures = { version = "0.4.8" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 serde_json = { version = "1.0" }
 serde = { version = "1.0", features = ["derive"] }

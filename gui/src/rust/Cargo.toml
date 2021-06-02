@@ -9,6 +9,7 @@ members = [
   "ensogl/lib/text/embedded-fonts",
   "ensogl/lib/text/msdf-sys",
   "ensogl/lib/text",
+  "ensogl/lib/web",
   "ide",
   "ide/lib/args",
   "ide/lib/ast/impl",

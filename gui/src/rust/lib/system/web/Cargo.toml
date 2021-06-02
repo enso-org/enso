@@ -26,6 +26,7 @@ async-std = { version = "1.5.0" }
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
+  'Blob',
   'Document',
   'Node',
   'Element',
@@ -49,7 +50,8 @@ features = [
   'EventTarget',
   'DomRect',
   'DomRectReadOnly',
-  'Location'
+  'Location',
+  'ReadableStream',
 ]
 
 [dev-dependencies]
