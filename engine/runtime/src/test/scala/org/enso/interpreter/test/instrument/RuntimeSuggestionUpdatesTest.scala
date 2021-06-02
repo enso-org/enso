@@ -159,6 +159,7 @@ class RuntimeSuggestionUpdatesTest
           file    = mainFile,
           version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -225,6 +226,7 @@ class RuntimeSuggestionUpdatesTest
               |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -302,6 +304,7 @@ class RuntimeSuggestionUpdatesTest
               |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -399,6 +402,7 @@ class RuntimeSuggestionUpdatesTest
               |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -506,6 +510,7 @@ class RuntimeSuggestionUpdatesTest
               |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -632,6 +637,7 @@ class RuntimeSuggestionUpdatesTest
               |""".stripMargin.linesIterator.mkString("\n")
           ),
           actions = Vector(),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(
@@ -732,6 +738,7 @@ class RuntimeSuggestionUpdatesTest
           file    = mainFile,
           version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(),
           updates = Tree.Root(
             Vector(
               Tree.Node(

@@ -193,7 +193,7 @@ class RuntimeStdlibTest
     val suggestions = response.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
           ) =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
@@ -202,7 +202,7 @@ class RuntimeStdlibTest
     val builtinsSuggestions = response.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, _, xs)
           ) if file.getPath.contains("Builtins") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }

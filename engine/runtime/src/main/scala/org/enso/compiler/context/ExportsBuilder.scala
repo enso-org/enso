@@ -8,22 +8,22 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExport}
 
 final class ExportsBuilder {
 
-  def build(module: QualifiedName, ir: IR): Iterable[ModuleExport] = {
+  def build(moduleName: QualifiedName, ir: IR): Vector[ModuleExport] = {
     getBindings(ir).exportedSymbols.values.flatten
-      .flatMap {
+      .filter(_.module.getName != moduleName)
+      .collect {
         case BindingsMap.ResolvedMethod(module, method) =>
-          Some(ExportedSymbol.ExportedMethod(module.getName, method.name))
+          ExportedSymbol.ExportedMethod(module.getName.toString, method.name)
         case BindingsMap.ResolvedConstructor(module, cons) =>
-          Some(ExportedSymbol.ExportedAtom(module.getName, cons.name))
+          ExportedSymbol.ExportedAtom(module.getName.toString, cons.name)
         case BindingsMap.ResolvedModule(module) =>
-          Some(ExportedSymbol.ExportedModuleAtom(module.getName))
-        case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
-          None
+          ExportedSymbol.ExportedModule(module.getName.toString)
       }
-      .map(ModuleExport(module, _))
+      .map(ModuleExport(moduleName.toString, _))
+      .toVector
   }
 
-  def getBindings(ir: IR): BindingsMap =
+  private def getBindings(ir: IR): BindingsMap =
     ir.unsafeGetMetadata(
       BindingAnalysis,
       "module without binding analysis in Exports Builder"

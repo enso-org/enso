@@ -12,7 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{ModuleExport, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model
@@ -1249,12 +1249,14 @@ object Runtime {
       * @param file the module file path
       * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
+      * @param exports the list of re-exported symbols
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
       file: File,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
+      exports: Vector[ModuleExport],
       updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
         with ToLogString {
