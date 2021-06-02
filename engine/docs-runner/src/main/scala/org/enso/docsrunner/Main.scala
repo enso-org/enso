@@ -33,10 +33,18 @@ object Main {
     val module = languageContext.getModuleForFile(file)
 
     val generated = module.map(languageContext.getCompiler.generateDocs)
-
+    // TODO:
+    // - go through executed code and get all HTML docs
+    //   with their corresponding atoms/methods etc.
+    // - Save those to files
+    print(generated)
   }
 
   def main(args: Array[String]): Unit = {
     // Go through files executing generateFrom(File f)
+    val stdLibPath   = "./distribution/std-lib/Standard/src"
+    val tempFileName = "Base/Geo.enso"
+    val file         = new File(stdLibPath + "/" + tempFileName)
+    generateFrom(file)
   }
 }
