@@ -1,14 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  Cancellable,
-  PoisonPill,
-  Props,
-  Terminated
-}
+import akka.actor.{Actor, ActorRef, Cancellable, PoisonPill, Props, Terminated}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ShutDownServer
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerKiller.KillTimeout
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
@@ -30,7 +23,7 @@ class LanguageServerKiller(
   controllers: List[ActorRef],
   shutdownTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -40,7 +33,7 @@ class LanguageServerKiller(
       sender() ! AllServersKilled
       context.stop(self)
     } else {
-      log.info("Killing all servers [{}].", controllers)
+      logger.info("Killing all servers [{}].", controllers)
       controllers.foreach(context.watch)
       controllers.foreach(_ ! ShutDownServer)
       val cancellable =
@@ -61,7 +54,7 @@ class LanguageServerKiller(
     case Terminated(dead) =>
       val updated = liveControllers - dead
       if (updated.isEmpty) {
-        log.info("All language servers have been killed.")
+        logger.info("All language servers have been killed.")
         cancellable.cancel()
         replyTo ! AllServersKilled
         context.stop(self)

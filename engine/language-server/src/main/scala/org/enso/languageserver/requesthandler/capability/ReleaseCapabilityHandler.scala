@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.capability
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.{
   CapabilityNotAcquired,
@@ -30,7 +31,7 @@ class ReleaseCapabilityHandler(
   timeout: FiniteDuration,
   session: JsonSession
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = requestStage
@@ -50,7 +51,7 @@ class ReleaseCapabilityHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(
+      logger.error(
         "Releasing capability for client [{}] timed out.",
         session.clientId
       )

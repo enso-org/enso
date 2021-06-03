@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -26,7 +27,7 @@ class OpenFileHandler(
   timeout: FiniteDuration,
   rpcSession: JsonSession
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -47,7 +48,7 @@ class OpenFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(
+      logger.error(
         "Opening file request [{}] for [{}] timed out.",
         id,
         rpcSession.clientId

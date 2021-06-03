@@ -1,8 +1,9 @@
 package org.enso.languageserver.protocol.json
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Status}
+import akka.actor.{Actor, ActorRef, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
@@ -94,7 +95,7 @@ class JsonConnectionController(
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -134,7 +135,7 @@ class JsonConnectionController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      log.info("Initializing resources.")
+      logger.info("Initializing resources.")
       mainComponent.init().pipeTo(self)
       context.become(initializing(webActor, clientId, req, sender()))
 
@@ -152,7 +153,7 @@ class JsonConnectionController(
     receiver: ActorRef
   ): Receive = {
     case InitializationComponent.Initialized =>
-      log.info("RPC session initialized for client [{}].", clientId)
+      logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
       val requestHandlers = createRequestHandlers(session)
@@ -164,7 +165,7 @@ class JsonConnectionController(
       context.become(initialised(webActor, session, requestHandlers))
 
     case Status.Failure(ex) =>
-      log.error(ex, "Failed to initialize the resources. {}", ex.getMessage)
+      logger.error("Failed to initialize the resources. {}", ex.getMessage)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
       context.become(connected(webActor))
 

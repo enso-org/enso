@@ -2,7 +2,8 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
@@ -42,7 +43,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
   loggingServiceDescriptor: LoggingServiceDescriptor,
   timeoutConfig: TimeoutConfig
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with Stash
     with UnhandledLogging {
 
@@ -100,7 +101,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
-      log.info("Client connected to Project Manager [{}]", clientId)
+      logger.info("Client connected to Project Manager [{}]", clientId)
       unstashAll()
       context.become(connected(webActor))
       context.system.eventStream.publish(ClientConnected(clientId))
@@ -110,7 +111,7 @@ class ClientController[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
 
   def connected(@unused webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      log.info("Client disconnected from the Project Manager [{}]", clientId)
+      logger.info("Client disconnected from the Project Manager [{}]", clientId)
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 

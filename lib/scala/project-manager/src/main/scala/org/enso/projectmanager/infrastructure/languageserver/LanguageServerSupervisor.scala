@@ -2,15 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  Cancellable,
-  Props,
-  Scheduler,
-  Terminated
-}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Scheduler, Terminated}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
@@ -44,7 +37,7 @@ class LanguageServerSupervisor(
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -83,7 +76,7 @@ class LanguageServerSupervisor(
 
     case ServerUnresponsive =>
       cancellable.cancel()
-      log.info("Server is unresponsive. Restarting [{}].", connectionInfo)
+      logger.info("Server is unresponsive. Restarting [{}].", connectionInfo)
       serverProcessManager ! Restart
       context.become(restarting)
 
@@ -94,18 +87,18 @@ class LanguageServerSupervisor(
 
   private def restarting: Receive = {
     case ServerBootFailed(_) =>
-      log.error("Cannot restart language server.")
+      logger.error("Cannot restart language server.")
       context.parent ! ServerDied
       context.stop(self)
 
     case ServerBooted(_, newProcessManager) =>
       if (newProcessManager != serverProcessManager) {
-        log.error(
+        logger.error(
           "The process manager actor has changed. This should never happen. " +
           "Supervisor may no longer work correctly."
         )
       }
-      log.info("Language server restarted [{}].", connectionInfo)
+      logger.info("Language server restarted [{}].", connectionInfo)
       val cancellable =
         scheduler.scheduleAtFixedRate(
           supervisionConfig.initialDelay,

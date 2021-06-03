@@ -2,7 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.event.ProjectEvent.ProjectClosed
@@ -19,7 +20,7 @@ import org.enso.projectmanager.util.UnhandledLogging
   */
 class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def preStart(): Unit = {
