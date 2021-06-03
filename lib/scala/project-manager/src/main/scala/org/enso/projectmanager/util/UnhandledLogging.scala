@@ -1,13 +1,19 @@
 package org.enso.projectmanager.util
 
 import akka.actor.Actor
-import akka.event.Logging
+import com.typesafe.scalalogging.LazyLogging
+import org.enso.loggingservice.LogLevel
 
-trait UnhandledLogging { this: Actor =>
+trait UnhandledLogging extends LazyLogging { this: Actor =>
 
-  private val akkaLogger = Logging(context.system, this)
+  private val akkaLogLevel = LogLevel
+    .fromString(context.system.settings.LogLevel)
+    .getOrElse(LogLevel.Error)
 
-  override def unhandled(message: Any): Unit =
-    akkaLogger.warning("Received unknown message: {}", message)
+  override def unhandled(message: Any): Unit = {
+    if (implicitly[Ordering[LogLevel]].lteq(LogLevel.Warning, akkaLogLevel)) {
+      logger.warn("Received unknown message: {}", message.getClass)
+    }
+  }
 
 }
