@@ -2,7 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.runtime.RuntimeKiller._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -20,7 +21,7 @@ import scala.util.control.NonFatal
   */
 class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -28,7 +29,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
   override def receive: Receive = idle()
 
   private def idle(): Receive = { case ShutDownRuntime =>
-    log.info("Shutting down the runtime server [{}].", runtimeConnector)
+    logger.info("Shutting down the runtime server [{}].", runtimeConnector)
     runtimeConnector ! Api.Request(
       UUID.randomUUID(),
       Api.ShutDownRuntimeServer()
@@ -44,7 +45,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
     cancellable: Cancellable
   ): Receive = {
     case ResourceDisposalTimeout =>
-      log.error("Disposal of runtime resources timed out.")
+      logger.error("Disposal of runtime resources timed out.")
       shutDownTruffle(replyTo)
 
     case Api.Response(_, Api.RuntimeServerShutDown()) =>
@@ -61,7 +62,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
 
   private def shutDownTruffle(replyTo: ActorRef, retryCount: Int = 0): Unit = {
     try {
-      log.info(
+      logger.info(
         "Shutting down the Truffle context [{}]. " +
         "Attempt #{}.",
         truffleContext,
@@ -72,8 +73,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
       context.stop(self)
     } catch {
       case NonFatal(ex) =>
-        log.error(
-          ex,
+        logger.error(
           s"An error occurred during stopping Truffle context [{}]. {}",
           truffleContext,
           ex.getMessage

@@ -2,8 +2,9 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import akka.actor.{Actor, Cancellable, Props, Scheduler}
 import akka.stream.SubscriptionWithCancelException.StageWasCompleted
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.parser._
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
@@ -47,7 +48,7 @@ class HeartbeatSession(
   sendConfirmations: Boolean,
   quietErrors: Boolean
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -59,14 +60,14 @@ class HeartbeatSession(
   override def preStart(): Unit = {
     connection.attachListener(self)
     connection.connect()
-    log.debug("Heartbeat connection initialized [{}].", socket)
+    logger.debug("Heartbeat connection initialized [{}].", socket)
   }
 
   override def receive: Receive = pingStage
 
   private def pingStage: Receive = {
     case WebSocketConnected =>
-      log.debug("Sending ping message to {}.", socket)
+      logger.debug("Sending ping message to {}.", socket)
       connection.send(s"""
                          |{ 
                          |   "jsonrpc": "2.0",
@@ -102,7 +103,7 @@ class HeartbeatSession(
 
         case Right(id) =>
           if (id == requestId.toString) {
-            log.debug("Received correct pong message from {}.", socket)
+            logger.debug("Received correct pong message from {}.", socket)
 
             if (sendConfirmations) {
               context.parent ! HeartbeatReceived
@@ -111,12 +112,12 @@ class HeartbeatSession(
             cancellable.cancel()
             stop()
           } else {
-            log.warning("Received unknown response {}.", payload)
+            logger.warn("Received unknown response {}.", payload)
           }
       }
 
     case HeartbeatTimeout =>
-      log.debug("Heartbeat timeout detected for {}.", requestId)
+      logger.debug("Heartbeat timeout detected for {}.", requestId)
       context.parent ! ServerUnresponsive
       stop()
 
@@ -166,25 +167,25 @@ class HeartbeatSession(
     arg: AnyRef
   ): Unit = {
     if (quietErrors) {
-      log.debug(s"$message ($throwable)", arg)
+      logger.debug(s"$message ($throwable)", arg)
     } else {
-      log.error(throwable, message, arg)
+      logger.error(s"$message {}", arg, throwable.getMessage)
     }
   }
 
   private def logError(throwable: Throwable, message: String): Unit = {
     if (quietErrors) {
-      log.debug(s"$message ($throwable)")
+      logger.debug(s"$message ($throwable)")
     } else {
-      log.error(throwable, message)
+      logger.error(message, throwable)
     }
   }
 
   private def logError(message: String): Unit = {
     if (quietErrors) {
-      log.debug(message)
+      logger.debug(message)
     } else {
-      log.error(message)
+      logger.error(message)
     }
   }
 

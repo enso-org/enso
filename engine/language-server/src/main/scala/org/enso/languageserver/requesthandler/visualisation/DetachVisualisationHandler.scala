@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.visualisation
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -24,7 +25,7 @@ class DetachVisualisationHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -50,7 +51,7 @@ class DetachVisualisationHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

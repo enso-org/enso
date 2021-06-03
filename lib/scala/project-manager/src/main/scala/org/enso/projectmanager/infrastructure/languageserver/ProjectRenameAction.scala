@@ -2,8 +2,9 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Scheduler}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Scheduler}
 import akka.stream.SubscriptionWithCancelException.StageWasCompleted
+import com.typesafe.scalalogging.LazyLogging
 import io.circe
 import io.circe.Json
 import io.circe.parser.parse
@@ -50,7 +51,7 @@ class ProjectRenameAction(
   newName: String,
   scheduler: Scheduler
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.{dispatcher, system}
@@ -64,7 +65,7 @@ class ProjectRenameAction(
   private var maybeActionTimeoutCancellable: Option[Cancellable] = None
 
   override def preStart(): Unit = {
-    log.info("Requesting a Language Server to rename project [{}].", oldName)
+    logger.info("Requesting a Language Server to rename project [{}].", oldName)
     connection.attachListener(self)
     connection.connect()
     val cancellable =
@@ -92,21 +93,22 @@ class ProjectRenameAction(
       context.become(connected())
 
     case WebSocketStreamFailure(th) =>
-      log.error(
-        th,
-        "An error occurred during connecting to websocket {}.",
-        socket
+      logger.error(
+        s"An error occurred during connecting to websocket $socket.",
+        th
       )
       replyTo ! CannotConnectToServer
       stop()
 
     case ActionTimeout =>
-      log.error("Action timeout occurred. Stopping actor.")
+      logger.error("Action timeout occurred. Stopping actor.")
       replyTo ! RenameTimeout
       stop()
 
     case GracefulStop =>
-      log.warning("Ignoring stop command (Language Server is not connected).")
+      logger.warn(
+        "Ignoring stop command (Language Server is not connected)."
+      )
   }
 
   private def connected(): Receive = {
@@ -126,17 +128,17 @@ class ProjectRenameAction(
       maybeActionTimeoutCancellable.foreach(_.cancel())
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, "An error occurred during waiting for Pong message.")
+      logger.error("An error occurred during waiting for Pong message.", th)
       replyTo ! ServerUnresponsive
       stop()
 
     case ActionTimeout =>
-      log.error("Action timeout occurred. Stopping actor.")
+      logger.error("Action timeout occurred. Stopping actor.")
       replyTo ! RenameTimeout
       stop()
 
     case GracefulStop =>
-      log.warning("Ignoring stop command (Language Server is connected).")
+      logger.warn("Ignoring stop command (Language Server is connected).")
   }
 
   private def handleSuccess(payload: String): Unit = {
@@ -145,15 +147,15 @@ class ProjectRenameAction(
 
     maybeRequestId match {
       case Left(error) =>
-        log.error(error, "An error occurred during parsing rename reply.")
+        logger.error("An error occurred during parsing rename reply.", error)
 
       case Right(id) =>
         if (id == requestId.toString) {
-          log.info("Project renamed by the Language Server.")
+          logger.info("Project renamed by the Language Server.")
           replyTo ! ProjectRenamed
           stop()
         } else {
-          log.warning("Received unknown response [{}].", payload)
+          logger.warn("Received unknown response [{}].", payload)
         }
     }
   }
@@ -164,7 +166,7 @@ class ProjectRenameAction(
     val msg = maybeError
       .flatMap(_.hcursor.downField("message").as[String])
       .getOrElse("Not Provided")
-    log.error(
+    logger.error(
       "Error occurred during renaming project [code: {}, message: {}]",
       code,
       msg
@@ -181,16 +183,16 @@ class ProjectRenameAction(
       closureTimeoutCancellable.cancel()
 
     case WebSocketStreamFailure(th) =>
-      log.error(th, "An error occurred during closing web socket.")
+      logger.error("An error occurred during closing web socket.", th)
       context.stop(self)
       closureTimeoutCancellable.cancel()
 
     case SocketClosureTimeout =>
-      log.error("Socket closure timed out.")
+      logger.error("Socket closure timed out.")
       context.stop(self)
 
     case GracefulStop =>
-      log.warning(
+      logger.warn(
         "Ignoring stop command (closing connection to Language Server)."
       )
   }

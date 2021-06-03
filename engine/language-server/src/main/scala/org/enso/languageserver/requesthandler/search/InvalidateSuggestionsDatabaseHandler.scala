@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.search
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
@@ -25,7 +26,7 @@ class InvalidateSuggestionsDatabaseHandler(
   timeout: FiniteDuration,
   suggestionsHandler: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -46,13 +47,13 @@ class InvalidateSuggestionsDatabaseHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "InvalidateSuggestionsDatabase error: {}", ex.getMessage)
+      logger.error("InvalidateSuggestionsDatabase error.", ex)
       replyTo ! ResponseError(Some(id), SuggestionsDatabaseError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

@@ -3,9 +3,10 @@ package org.enso.languageserver.protocol.binary
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.event.{
   BinarySessionInitialized,
   BinarySessionTerminated
@@ -56,7 +57,7 @@ class BinaryConnectionController(
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive =
@@ -87,7 +88,7 @@ class BinaryConnectionController(
       outboundChannel ! responsePacket
       val session = BinarySession(clientId, self)
       context.system.eventStream.publish(BinarySessionInitialized(session))
-      log.info(
+      logger.info(
         "Data session initialized for client: {} [{}].",
         clientId,
         clientIp
@@ -114,7 +115,7 @@ class BinaryConnectionController(
         val handler = context.actorOf(handlers(msg.payloadType()))
         handler.forward(msg)
       } else {
-        log.error(
+        logger.error(
           "Received InboundMessage with unknown payload type [{}].",
           msg.payloadType()
         )
@@ -129,17 +130,17 @@ class BinaryConnectionController(
     maybeDataSession: Option[BinarySession] = None
   ): Receive = {
     case ConnectionClosed =>
-      log.info("Connection closed [{}].", clientIp)
+      logger.info("Connection closed [{}].", clientIp)
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
       )
       context.stop(self)
 
     case ConnectionFailed(th) =>
-      log.error(
-        th,
-        "An error occurred during processing web socket connection [{}].",
-        clientIp
+      logger.error(
+        "An error occurred during processing web socket connection [{}]. {}",
+        clientIp,
+        th.getMessage
       )
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
@@ -160,7 +161,7 @@ class BinaryConnectionController(
       case EmptyPayload  => ErrorFactory.createReceivedEmptyPayloadError()
       case DataCorrupted => ErrorFactory.createReceivedCorruptedDataError()
       case GenericDecodingFailure(th) =>
-        log.error(th, "Unrecognized error occurred in binary protocol.")
+        logger.error("Unrecognized error occurred in binary protocol.", th)
         ErrorFactory.createServiceError()
     }
 

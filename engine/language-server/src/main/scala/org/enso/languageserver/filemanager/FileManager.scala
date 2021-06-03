@@ -1,8 +1,9 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
 import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -21,7 +22,7 @@ class FileManager(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher

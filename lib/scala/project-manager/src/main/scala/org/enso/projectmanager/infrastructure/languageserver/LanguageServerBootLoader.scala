@@ -1,6 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
@@ -41,7 +42,7 @@ class LanguageServerBootLoader(
   bootTimeout: FiniteDuration,
   executor: LanguageServerExecutor
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with ActorMessageLogging
     with UnhandledLogging {
 
@@ -52,7 +53,7 @@ class LanguageServerBootLoader(
   import context.dispatcher
 
   override def preStart(): Unit = {
-    log.info("Booting a language server [{}].", descriptor)
+    logger.info("Booting a language server [{}].", descriptor)
     self ! FindFreeSocket
   }
 
@@ -65,13 +66,15 @@ class LanguageServerBootLoader(
   private def findingSocket(retry: Int = 0): Receive =
     LoggingReceive.withLabel("findingSocket") {
       case FindFreeSocket =>
-        log.debug("Looking for available socket to bind the language server.")
+        logger.debug(
+          "Looking for available socket to bind the language server."
+        )
         val jsonRpcPort = findPort()
         var binaryPort  = findPort()
         while (binaryPort == jsonRpcPort) {
           binaryPort = findPort()
         }
-        log.info(
+        logger.info(
           "Found sockets for the language server " +
           "[json:{}:{}, binary:{}:{}].",
           descriptor.networkConfig.interface,
@@ -126,7 +129,7 @@ class LanguageServerBootLoader(
     bootRequester: ActorRef
   ): Receive = {
     case Boot =>
-      log.debug("Booting a language server.")
+      logger.debug("Booting a language server.")
       context.actorOf(
         LanguageServerProcess.props(
           progressTracker = bootProgressTracker,
@@ -164,7 +167,7 @@ class LanguageServerBootLoader(
         rpcPort  = rpcPort,
         dataPort = dataPort
       )
-      log.info("Language server booted [{}].", connectionInfo)
+      logger.info("Language server booted [{}].", connectionInfo)
 
       bootRequester ! ServerBooted(connectionInfo, self)
       context.become(running(connectionInfo))
@@ -182,7 +185,7 @@ class LanguageServerBootLoader(
   private def running(connectionInfo: LanguageServerConnectionInfo): Receive =
     LoggingReceive.withLabel("running") {
       case msg @ LanguageServerProcess.ServerTerminated(exitCode) =>
-        log.debug(
+        logger.debug(
           "Language Server process has terminated with exit code {}.",
           exitCode
         )
@@ -213,7 +216,7 @@ class LanguageServerBootLoader(
   ): Receive =
     LoggingReceive.withLabel("restartingWaitingForShutdown") {
       case LanguageServerProcess.ServerTerminated(exitCode) =>
-        log.debug(
+        logger.debug(
           "Language Server process has terminated (as requested to reboot) " +
           "with exit code {}.",
           exitCode
@@ -256,7 +259,7 @@ class LanguageServerBootLoader(
     message: String,
     throwable: Option[Throwable]
   ): Unit = {
-    log.warning(message)
+    logger.warn(message)
 
     if (shouldRetry && retryCount < config.numberOfRetries) {
       context.system.scheduler
@@ -264,12 +267,12 @@ class LanguageServerBootLoader(
       context.become(findingSocket(retryCount + 1))
     } else {
       if (shouldRetry) {
-        log.error(
+        logger.error(
           "Tried {} times to boot Language Server. Giving up.",
           retryCount
         )
       } else {
-        log.error("Failed to restart the server. Giving up.")
+        logger.error("Failed to restart the server. Giving up.")
       }
       bootRequester ! ServerBootFailed(
         throwable.getOrElse(new RuntimeException(message))

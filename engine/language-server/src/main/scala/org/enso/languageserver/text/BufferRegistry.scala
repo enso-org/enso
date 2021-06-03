@@ -1,6 +1,7 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Stash, Terminated}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquisitionBadRequest,
@@ -68,11 +69,11 @@ class BufferRegistry(
   versionCalculator: ContentBasedVersioning
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def preStart(): Unit = {
-    log.info("Starting initialization.")
+    logger.info("Starting initialization.")
     context.system.eventStream
       .subscribe(self, InitializedEvent.FileVersionsRepoInitialized.getClass)
   }
@@ -81,7 +82,7 @@ class BufferRegistry(
 
   private def initializing: Receive = {
     case InitializedEvent.FileVersionsRepoInitialized =>
-      log.info("Initiaized.")
+      logger.info("Initiaized.")
       context.become(running(Map.empty))
       unstashAll()
 

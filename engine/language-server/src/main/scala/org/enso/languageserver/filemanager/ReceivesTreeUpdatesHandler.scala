@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityNotAcquiredResponse,
@@ -54,7 +55,7 @@ final class ReceivesTreeUpdatesHandler(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import ReceivesTreeUpdatesHandler._

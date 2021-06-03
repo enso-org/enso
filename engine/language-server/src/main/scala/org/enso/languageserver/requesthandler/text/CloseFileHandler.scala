@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.JsonSession
@@ -22,7 +23,7 @@ class CloseFileHandler(
   timeout: FiniteDuration,
   rpcSession: JsonSession
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -43,7 +44,7 @@ class CloseFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(
+      logger.error(
         "Closing file request [{}] for [{}] timed out.",
         id,
         rpcSession.clientId
