@@ -107,7 +107,7 @@ impl LayoutParams<frp::Sampler<f32>> {
         -> LayoutParams<f32> {
             let ret = LayoutParams{spacing,padding_left,padding_top,padding_right,padding_bottom};
             ret.map(|v| **v)
-        };
+        }
 
         network.all_with5("TopButtonsLayoutStyle", &self.spacing, &self.padding_left,
             &self.padding_top,&self.padding_right, &self.padding_bottom, to_layout)

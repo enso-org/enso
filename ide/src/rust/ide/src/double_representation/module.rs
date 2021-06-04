@@ -88,10 +88,9 @@ impl Id {
     ///
     /// Fails if the sequence is empty or if any of the segments is not a valid referent name.
     pub fn try_new(segments:impl IntoIterator<Item:AsRef<str>>) -> FallibleResult<Id> {
-        let texts = segments.into_iter();
-        let names = texts.map(|text| ReferentName::new(text.as_ref()));
-
-        let segments:Vec<_> = Result::from_iter(names)?;
+        let texts    = segments.into_iter();
+        let names    = texts.map(|text| ReferentName::new(text.as_ref()));
+        let segments = names.collect::<Result<Vec<_>,_>>()?;
         Ok(Self::new(segments))
     }
 
@@ -194,7 +193,7 @@ impl QualifiedName {
         let module_segments  = module_segments.map(|segment| segment.as_ref().to_string());
         let mut all_segments = project_name.chain(module_segments);
         let text             = all_segments.join(ast::opr::predefined::ACCESS);
-        Ok(text.try_into()?)
+        text.try_into()
     }
 
     /// Build a module's full qualified name from its name segments and the project name.
@@ -373,7 +372,7 @@ impl ImportInfo {
 
     /// Construct from a macro match AST. Fails if the Ast is not an import declaration.
     pub fn from_match(ast:known::Match) -> Option<Self> {
-        ast::macros::is_match_import(&ast).then_with(|| {
+        ast::macros::is_match_import(&ast).then(|| {
             ImportInfo::from_target_str(ast.segs.head.body.repr().trim())
         })
     }
@@ -419,7 +418,7 @@ impl Info {
     }
 
     /// Iterate over all lines in module that contain an import declaration.
-    pub fn enumerate_imports<'a>(&'a self) -> impl Iterator<Item=(ModuleCrumb, ImportInfo)> + 'a {
+    pub fn enumerate_imports(&self) -> impl Iterator<Item=(ModuleCrumb, ImportInfo)> + '_ {
         let children = self.ast.shape().enumerate();
         children.filter_map(|(crumb,ast)| Some((crumb,ImportInfo::from_ast(ast)?)))
     }
@@ -427,7 +426,7 @@ impl Info {
     /// Iterate over all import declarations in the module.
     ///
     /// If the caller wants to know *where* the declarations are, use `enumerate_imports`.
-    pub fn iter_imports<'a>(&'a self) -> impl Iterator<Item=ImportInfo> + 'a {
+    pub fn iter_imports(&self) -> impl Iterator<Item=ImportInfo> + '_ {
         self.enumerate_imports().map(|(_,import)| import)
     }
 
@@ -498,7 +497,7 @@ impl Info {
     /// Typically used to place lines with definitions in the module.
     pub fn add_ast(&mut self, ast:Ast, location:Placement) -> FallibleResult {
         #[derive(Clone,Copy,Debug,Eq,PartialEq)]
-        enum BlankLinePlacement {Before,After,None};
+        enum BlankLinePlacement {Before,After,None}
         let blank_line = match location {
             _ if self.ast.lines.is_empty() => BlankLinePlacement::None,
             Placement::Begin               => BlankLinePlacement::After,

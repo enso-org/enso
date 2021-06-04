@@ -222,6 +222,10 @@ pub mod mock {
             Rc::new(project)
         }
 
+        pub fn ide(&self, project:&model::Project) -> controller::Ide {
+            Rc::new(controller::ide::Plain::new(project.clone_ref()))
+        }
+
         pub fn fixture(&self) -> Fixture {
             self.fixture_customize(|_,_| {})
         }
@@ -242,25 +246,19 @@ pub mod mock {
             let execution = self.execution_context();
             let project   = self.project(module.clone_ref(),execution.clone_ref(),
                 suggestion_db.clone_ref(),json_client);
+            let ide            = self.ide(&project);
             let executed_graph = controller::ExecutedGraph::new_internal(graph.clone_ref(),
                 project.clone_ref(),execution.clone_ref());
             let executor       = TestWithLocalPoolExecutor::set_up();
             let data           = self.clone();
             let selected_nodes = Vec::new();
             let searcher_mode  = controller::searcher::Mode::NewNode {position:None};
-            let searcher       = controller::Searcher::new_from_graph_controller(&logger,&project,
-                executed_graph.clone_ref(),searcher_mode,selected_nodes).unwrap();
-            Fixture {
-                executor,
-                data,
-                module,
-                graph,
-                executed_graph,
-                execution,
-                suggestion_db,
-                project,
-                searcher,
-            }
+            let searcher       = controller::Searcher::new_from_graph_controller(&logger
+                ,ide.clone_ref(),&project,executed_graph.clone_ref(),searcher_mode,selected_nodes
+                ).unwrap();
+            Fixture
+                {executor,data,module,graph,executed_graph,execution,suggestion_db,project
+                ,searcher,ide}
         }
 
         /// Register an expectation that the module described by this mock data will be opened.
@@ -298,6 +296,7 @@ pub mod mock {
         pub executed_graph : controller::ExecutedGraph,
         pub suggestion_db  : Rc<model::SuggestionDatabase>,
         pub project        : model::Project,
+        pub ide            : controller::Ide,
         pub searcher       : controller::Searcher,
     }
 

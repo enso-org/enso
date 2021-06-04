@@ -168,7 +168,7 @@ impl InstanceModel {
         let set_size                      = Rc::new(set_size);
         let object                        = Rc::new(object);
         let scene                         = scene.clone_ref();
-        Ok(InstanceModel{object,on_data_received,set_size,root_node,logger,preprocessor_change,
+        Ok(InstanceModel{root_node,logger,on_data_received,set_size,object,preprocessor_change,
                          scene})
     }
 
@@ -277,7 +277,7 @@ impl Instance {
             use enso_frp::web::js_to_string;
             let logger = self.model.logger.clone();
             error!(logger,"Failed to trigger initial preprocessor update from JS: \
-            {js_to_string(js_error)}");
+            {js_to_string(&js_error)}");
         }
         self
     }

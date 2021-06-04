@@ -236,6 +236,9 @@ define_themes! { [light:0, dark:1]
             }
         }
     }
+    project {
+        default_gap_between_nodes = 60.0, 60.0;
+    }
     code {
         syntax {
             base      = Lcha(0.09,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.7);
@@ -304,6 +307,9 @@ define_themes! { [light:0, dark:1]
                 repeat_y     = 20.0 , 20.0;
                 stripe_width = 10.0 , 10.0;
                 stripe_angle = 45.0 , 45.0;
+            }
+            type_label {
+                offset_y = -23.0, -23.0;
             }
         }
         visualization {
@@ -388,6 +394,19 @@ define_themes! { [light:0, dark:1]
             padding_inner_x = 10.0, 10.0;
             padding_inner_y = 2.0, 2.0;
             height          = 30.0, 30.0;
+        }
+        slider {
+            background = graph_editor::node::background , graph_editor::node::background;
+            handle {
+                color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
+            }
+            track {
+                color = Lcha(0.9,0.0,0.0,0.5), Lcha(0.1,0.0,0.0,0.5);
+            }
+            overflow {
+                color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);
+                scale = 1.0, 1.0;
+            }
         }
     }
 

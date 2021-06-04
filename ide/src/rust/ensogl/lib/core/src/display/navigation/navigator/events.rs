@@ -103,14 +103,14 @@ impl NavigatorEventsData {
         let last_mouse_position = zero();
         let movement_type       = None;
         let properties          = RefCell::new(NavigatorEventsProperties {
-            last_mouse_position,
-            mouse_position,
-            movement_type,
-            pan_callback,
-            zoom_callback,
             zoom_speed,
             pan_speed,
             disable_events,
+            movement_type,
+            last_mouse_position,
+            mouse_position,
+            pan_callback,
+            zoom_callback,
 
         });
         Rc::new(Self {properties})
@@ -211,8 +211,8 @@ impl NavigatorEvents {
             data,
             mouse_manager,
             mouse_down,
-            mouse_move,
             mouse_up,
+            mouse_move,
             mouse_leave,
             wheel_zoom
         };

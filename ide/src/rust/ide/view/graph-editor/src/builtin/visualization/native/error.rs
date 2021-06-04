@@ -103,7 +103,7 @@ impl Error {
         let network = frp::Network::new("js_visualization_raw_text");
         let frp     = visualization::instance::Frp::new(&network);
         let model   = Model::new(scene.clone_ref());
-        Self {model,frp,network} . init()
+        Self {frp,model,network} . init()
     }
 
     fn init(self) -> Self {
@@ -178,7 +178,7 @@ impl Model {
         dom.dom().set_style_or_warn("pointer-events","auto"               ,&logger);
 
         scene.dom.layers.back.manage(&dom);
-        Model{dom,logger,size,styles,displayed,messages,scene}.init()
+        Model{logger,dom,size,styles,displayed,messages,scene}.init()
     }
 
     fn init(self) -> Self {

@@ -52,17 +52,17 @@ application icon if built on Linux or Windows due to non-trivial icon generation
 on these platforms. To develop the source code you will need the following
 setup:
 
-- **The Rust Toolchain (nightly-2019-11-04)**
+- **The Rust Toolchain (nightly-2021-05-12)**
 
   This project uses several features available only in the nightly Rust
   toolchain. Please use the [the Rust toolchain installer](https://rustup.rs) to
   install it:
 
   ```bash
-  rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
-  rustup component add clippy                 # Install the linter.
-  cargo install wasm-pack --version 0.9.1     # Install the wasm-pack toolkit.
-  cargo install cargo-watch                   # To enable ./run watch utility
+  rustup toolchain install nightly-2021-05-12     # Install the nightly channel.
+  rustup component add clippy                     # Install the linter.
+  cargo +stable install wasm-pack --version 0.9.1 # Install the wasm-pack toolkit.
+  cargo +stable install cargo-watch               # To enable ./run watch utility
   ```
 
 - **Node and Node Package Manager LTS**
@@ -259,7 +259,7 @@ The following branches are used to develop the product:
 
 By default, CI would not build artifacts from `wip` and `develop` branches in
 order to save time and resources. If you want the artifacts to be build for your
-commit, simply add `[ci build]` anywhere in your commit message.
+PR, simply add `[ci build]` anywhere in the PR description.
 
 ### Skipping CHANGELOG.md change assertions
 

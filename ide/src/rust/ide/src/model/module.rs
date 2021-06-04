@@ -139,7 +139,7 @@ impl Path {
     pub fn from_name_segments
     (root_id:Uuid, name_segments:impl IntoIterator<Item:AsRef<str>>) -> FallibleResult<Path> {
         let segment_results = name_segments.into_iter().map(|s| ReferentName::new(s.as_ref()));
-        let segments:Vec<_> = Result::from_iter(segment_results)?;
+        let segments        = segment_results.collect::<Result<Vec<_>,_>>()?;
         let id              = Id::new(segments);
         Ok(Self::from_id(root_id,&id))
     }
@@ -196,7 +196,7 @@ impl Path {
         let module          = String::from(self.qualified_module_name(project_name));
         let defined_on_type = module.clone();
         let name            = method_name.into();
-        MethodPointer {defined_on_type,name,module}
+        MethodPointer {module,defined_on_type,name}
     }
 
     /// Obtain a module's full qualified name from the path and the project name.

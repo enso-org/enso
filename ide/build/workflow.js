@@ -14,7 +14,7 @@ const yaml  = require('js-yaml')
 // =================
 
 const NODE_VERSION             = '14.15.0'
-const RUST_VERSION             = 'nightly-2019-11-04'
+const RUST_VERSION             = 'nightly-2021-05-12'
 const WASM_PACK_VERSION        = '0.9.1'
 const FLAG_NO_CHANGELOG_NEEDED = '[ci no changelog needed]'
 const FLAG_FORCE_CI_BUILD      = '[ci build]'
@@ -273,7 +273,7 @@ let assertChangelogWasUpdated = [
     getListOfChangedFiles,
     {
         name: 'Assert if CHANGELOG.md was updated (on pull request)',
-        run: `if [[ \${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'${FLAG_NO_CHANGELOG_NEEDED}') }} == false ]]; then exit 1; fi`,
+        run: `if [[ \${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') || contains(github.event.head_commit.message,'${FLAG_NO_CHANGELOG_NEEDED}') || contains(github.event.pull_request.body,'${FLAG_NO_CHANGELOG_NEEDED}') }} == false ]]; then exit 1; fi`,
         if: `github.base_ref == 'develop' || github.base_ref == 'unstable' || github.base_ref == 'stable'`
     }
 ]
@@ -325,9 +325,9 @@ prepareAwsSessionCDN = {
 }
 
 function uploadToCDN(...names) {
-    let actions = []
+    const actions = []
     for (let name of names) {
-        let action = {
+        const action = {
             name: `Upload '${name}' to CDN`,
             shell: "bash",
             run: `aws s3 cp ./artifacts/content/assets/${name} `
@@ -336,6 +336,9 @@ function uploadToCDN(...names) {
         }
         if (name.endsWith(".gz")) {
             action.run += " --content-encoding gzip";
+        }
+        if (name.endsWith(".wasm")) {
+            action.run += " --content-type 'application/wasm'";
         }
         actions.push(action)
     }
@@ -406,7 +409,7 @@ let releaseCondition = `github.ref == 'refs/heads/unstable' || github.ref == 're
 /// 2. It was a pull request to the 'unstable', or the 'stable' branch.
 /// 3. It was a commit to the 'develop' branch.
 /// Otherwise, perform a simplified (faster) build only.
-let buildCondition = `contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || ${releaseCondition}`
+let buildCondition = `contains(github.event.pull_request.body,'${FLAG_FORCE_CI_BUILD}') || contains(github.event.head_commit.message,'${FLAG_FORCE_CI_BUILD}') || github.ref == 'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref == 'stable' || (${releaseCondition})`
 
 let workflow = {
     name : "GUI CI",

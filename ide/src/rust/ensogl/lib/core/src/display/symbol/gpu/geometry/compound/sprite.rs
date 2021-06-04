@@ -177,7 +177,7 @@ impl Sprite {
         let size           = Size::new(size);
         let default_size   = Vector2(DEFAULT_SPRITE_SIZE.0,DEFAULT_SPRITE_SIZE.1);
         size.set(default_size);
-        Self {symbol,instance_id,display_object,transform,size,stats,guard}.init()
+        Self {symbol,instance_id,size,display_object,transform,stats,guard}.init()
     }
 
     /// Init display object bindings. In particular defines the behavior of the show and hide

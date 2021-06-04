@@ -304,8 +304,8 @@ impl Symbol {
             let is_hidden         = Rc::new(Cell::new(false));
             display_object.set_on_hide(f_!(is_hidden.set(true)));
             display_object.set_on_show(f__!(is_hidden.set(false)));
-            Self{id,surface,shader,surface_dirty,shader_dirty,variables,global_variables,logger
-                ,context,bindings,stats,symbol_id_uniform,display_object,is_hidden}
+            Self {id,display_object,surface,shader,surface_dirty,shader_dirty,variables
+                 ,global_variables,symbol_id_uniform,context,logger,bindings,stats,is_hidden}
         })
     }
 

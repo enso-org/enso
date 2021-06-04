@@ -127,8 +127,7 @@ pub fn compile_shader(ctx:&Context, tp:u32, src:&str) -> Result<Shader> {
         let code_with_num  = lines_with_num.join("\n");
         let message        = shader.logs(ctx);
         let error_loc_pfx  = "ERROR: 0:";
-        let out = if message.starts_with(error_loc_pfx) {
-            let msg                = &message[error_loc_pfx.len()..];
+        let out = if let Some(msg) = message.strip_prefix(error_loc_pfx) {
             let line_num:String    = msg.chars().take_while(|c| c.is_digit(10)).collect();
             let line_num           = line_num.parse::<usize>().unwrap() - 1;
             let preview_radius     = 5;

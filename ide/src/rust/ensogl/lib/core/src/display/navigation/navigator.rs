@@ -41,7 +41,7 @@ impl NavigatorModel {
         let (simulator,resize_callback,_events) = Self::start_navigator_events
             (&scene,camera,min_zoom,max_zoom,Rc::clone(&zoom_speed),Rc::clone(&pan_speed),
              Rc::clone(&disable_events));
-        Self {simulator,_events,resize_callback,zoom_speed,pan_speed,disable_events}
+        Self {_events,simulator,resize_callback,zoom_speed,pan_speed,disable_events}
     }
 
     fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<Vector3> {

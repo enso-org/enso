@@ -25,13 +25,13 @@ pub use crate::controller::graph::Connections;
 // ==============
 
 #[allow(missing_docs)]
-#[fail(display = "The node {} has not been evaluated yet.", _0)]
 #[derive(Debug,Fail,Clone,Copy)]
+#[fail(display = "The node {} has not been evaluated yet.", _0)]
 pub struct NotEvaluatedYet(double_representation::node::Id);
 
 #[allow(missing_docs)]
-#[fail(display = "The node {} does not resolve to a method call.", _0)]
 #[derive(Debug,Fail,Clone,Copy)]
+#[fail(display = "The node {} does not resolve to a method call.", _0)]
 pub struct NoResolvedMethod(double_representation::node::Id);
 
 
@@ -215,8 +215,8 @@ impl Handle {
     pub fn node_method_pointer
     (&self, node:double_representation::node::Id) -> FallibleResult<Rc<MethodPointer>> {
         let registry   = self.execution_ctx.computed_value_info_registry();
-        let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
-        let entry_id   = *node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        let node_info  = registry.get(&node).ok_or(NotEvaluatedYet(node))?;
+        let entry_id   = *node_info.method_call.as_ref().ok_or(NoResolvedMethod(node))?;
         self.project.suggestion_db().lookup_method_ptr(entry_id).map(Rc::new)
     }
 

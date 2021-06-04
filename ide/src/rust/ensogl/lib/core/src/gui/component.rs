@@ -53,7 +53,7 @@ impl ShapeViewEvents {
             out_on_drop   <- on_drop.gate(&is_mouse_over);
             eval_ out_on_drop (mouse_out.emit(()));
         }
-        Self {network,mouse_down,mouse_up,mouse_over,mouse_out,on_drop}
+        Self {network,mouse_up,mouse_down,mouse_over,mouse_out,on_drop}
     }
 }
 

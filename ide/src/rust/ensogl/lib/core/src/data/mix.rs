@@ -86,14 +86,14 @@ macro_rules! define_self_mixables {
         }
 
         impl From<$type> for Space<$type> {
-            fn from(value:$type) -> Space<$type> {
+            fn from(value:$type) -> Self {
                  Space{value}
             }
         }
 
-        impl Into<$type> for Space<$type> {
-            fn into(self) -> $type {
-                self.value
+        impl From<Space<$type>> for $type {
+            fn from(value:Space<$type>) -> Self {
+                value.value
             }
         }
     )*}

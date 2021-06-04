@@ -17,19 +17,12 @@ use ensogl::application;
 use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::display;
+use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::DEPRECATED_Animation;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl_theme::Theme as Theme;
-
-
-
-// =================
-// === Constants ===
-// =================
-
-/// The gap between the newly created node and selected one, in pixels.
-pub const NEW_NODE_Y_GAP:f32 = 60.0;
 
 
 
@@ -132,7 +125,9 @@ impl Model {
         let graph_editor_inputs = &self.graph_editor.frp.input;
         let node_id = if let Some(selected) = self.graph_editor.model.nodes.selected.first_cloned() {
             let selected_pos = self.graph_editor.model.get_node_position(selected).unwrap_or_default();
-            let y            = selected_pos.y - NEW_NODE_Y_GAP;
+            let styles       = StyleWatch::new(&self.app.display.scene().style_sheet);
+            let offset_y     = styles.get_number(ensogl_theme::project::default_gap_between_nodes);
+            let y            = selected_pos.y - offset_y;
             let pos          = Vector2(selected_pos.x,y);
             graph_editor_inputs.add_node.emit(());
             let node_id = self.graph_editor.frp.output.node_added.value();
@@ -207,7 +202,8 @@ ensogl::define_endpoints! {
         editing_committed              (NodeId, Option<searcher::entry::Id>),
         code_editor_shown              (bool),
         style                          (Theme),
-        fullscreen_visualization_shown (bool)
+        fullscreen_visualization_shown (bool),
+        default_gap_between_nodes      (f32)
     }
 }
 
@@ -275,7 +271,7 @@ impl View {
     pub fn new(app:&Application) -> Self {
         ensogl_theme::builtin::dark::register(app);
         ensogl_theme::builtin::light::register(app);
-        let theme = match ARGS.theme.as_ref().map(|s|s.as_str()) {
+        let theme = match ARGS.theme.as_deref() {
             Some("dark") => {
                 ensogl_theme::builtin::dark::enable(app);
                 Theme::Dark
@@ -301,6 +297,16 @@ impl View {
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
+
+        let style_sheet                    = &model.app.display.scene().style_sheet;
+        let styles                         = StyleWatchFrp::new(style_sheet);
+        let default_gap_between_nodes_path = ensogl_theme::project::default_gap_between_nodes;
+
+        let default_gap_between_nodes = styles.get_number_or(default_gap_between_nodes_path, 0.0);
+        frp::extend! { network
+            frp.source.default_gap_between_nodes <+ default_gap_between_nodes;
+        }
+        frp.source.default_gap_between_nodes.emit(default_gap_between_nodes.value());
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();

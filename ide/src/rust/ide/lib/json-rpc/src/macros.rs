@@ -181,7 +181,7 @@ macro_rules! make_rpc_methods {
                 fn drop(&mut self) {
                     if self.require_all_calls.get() && !std::thread::panicking() {
                         $(assert!(self.expect.$method.borrow().is_empty(),
-                            "Didn't make expected call {}");)* //TODO[ao] print method name.
+                            "Didn't make expected call");)* //TODO[ao] print method name.
                     }
                 }
             }

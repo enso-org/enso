@@ -748,8 +748,8 @@ impl AreaModel {
 
         let frp_endpoints = frp_endpoints.clone_ref();
 
-        Self {app,logger,display_object,glyph_system,buffer,lines,selection_map,camera
-             ,single_line,frp_endpoints}.init()
+        Self {app,camera,logger,frp_endpoints,buffer,display_object,glyph_system,lines,single_line
+             ,selection_map}.init()
     }
 
     fn on_modified_selection(&self, selections:&buffer::selection::Group, time:f32, do_edit:bool) {
@@ -975,7 +975,7 @@ impl AreaModel {
     }
 
     fn drop_all_but_first_line(s: &mut String) {
-        *s = s.lines().nth(0).unwrap_or("").to_string();
+        *s = s.lines().next().unwrap_or("").to_string();
     }
 
     fn key_to_string(&self, key:&Key) -> Option<String> {
@@ -1069,4 +1069,3 @@ impl Drop for Area {
         self.remove_all_cursors();
     }
 }
-

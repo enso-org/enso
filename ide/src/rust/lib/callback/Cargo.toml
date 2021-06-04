@@ -7,4 +7,4 @@ edition = "2018"
 [lib]
 
 [dependencies]
-enso-prelude = { version = "0.1.10" }
+enso-prelude = { version = "0.2.0" }

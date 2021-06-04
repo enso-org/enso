@@ -71,7 +71,7 @@ impl Scope {
     /// i.e. the identifiers that parent scope must provide.
     pub fn used_from_parent(self) -> impl Iterator<Item=LocatedName> {
         let available = self.symbols.introduced.into_iter().map(|located_name| located_name.item);
-        let available : HashSet<NormalizedName> = HashSet::from_iter(available);
+        let available = available.collect::<HashSet<_>>();
         let all_used  = self.symbols.used.into_iter();
         all_used.filter(move |name| !available.contains(&name.item))
     }

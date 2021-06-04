@@ -94,7 +94,7 @@ impl Container {
         display_object.add_child(&background_dom);
         display_object.add_child(&visualization);
 
-        Self {logger,scene,display_object,background_dom,visualization}
+        Self {logger,visualization,scene,background_dom,display_object}
     }
 
     fn create_background_dom(logger:&Logger, scene:&Scene) -> DomSymbol {

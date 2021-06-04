@@ -20,7 +20,6 @@ use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 pub fn entry_point_animation() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     web::set_stack_trace_limit();
     run_once_initialized(|| {
         let app = Application::new(&web::get_html_element_by_id("root").unwrap());

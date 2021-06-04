@@ -21,7 +21,6 @@ use wasm_bindgen::prelude::*;
 #[allow(clippy::many_single_char_names)]
 pub fn entry_point_dom_symbols() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     let world         = World::new(&web::get_html_element_by_id("root").unwrap());
     let scene         = world.scene();
     let camera        = scene.camera();

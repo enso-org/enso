@@ -187,13 +187,13 @@ where S:StorageRelation<I,T>, I:InternalFormat, T:ItemType {
 
     /// Internal format of this texture as `GlEnum`.
     pub fn gl_internal_format() -> i32 {
-        let GlEnum(u) = Self::internal_format().into_gl_enum();
+        let GlEnum(u) = Self::internal_format().to_gl_enum();
         u as i32
     }
 
     /// Format of this texture as `GlEnum`.
     pub fn gl_format() -> GlEnum {
-        Self::format().into_gl_enum()
+        Self::format().to_gl_enum()
     }
 
     /// Element type of this texture as `GlEnum`.

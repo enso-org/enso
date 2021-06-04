@@ -346,9 +346,9 @@ pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
 // === Invalid ===
 
 #[allow(missing_docs)]
+#[derive(Debug,Fail,Clone)]
 #[fail(display = "The crumb `{}` is invalid, only {} children present. Traversed crumbs: {:?}.",
 crumb,count,context)]
-#[derive(Debug,Fail,Clone)]
 pub struct InvalidCrumb {
     /// Crumb that was attempted.
     pub crumb : Crumb,

@@ -38,7 +38,7 @@ impl GpuKnownSize for u32  { type GpuByteSize = U4; }
 impl GpuKnownSize for f32  { type GpuByteSize = U4; }
 
 type Mul<A,B> = <A as DimMul<B>>::Output;
-impl<T:GpuKnownSize,R:DimName,C:DimName> GpuKnownSize for MatrixMN<T,R,C>
+impl<T:GpuKnownSize,R:DimName,C:DimName> GpuKnownSize for OMatrix<T,R,C>
     where Self:MatrixCtx<T,R,C>,
           R:DimMul<C>,
           Mul<R,C>:DimName+DimMul<GpuByteSize<T>>,

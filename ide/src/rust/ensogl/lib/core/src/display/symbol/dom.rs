@@ -114,7 +114,7 @@ impl DomSymbol {
             set_object_transform(&dom,&transform);
         }));
 
-        Self {display_object,dom,size,guard}
+        Self {dom,display_object,size,guard}
     }
 
     /// Size getter.

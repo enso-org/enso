@@ -30,7 +30,7 @@ mod huge_text_generator {
                 let line_index = i / verses_in_line;
                 let offset     = hash_from(line_index) % 32;
                 let prefix     = (0..offset).map(|_| '|').collect::<String>();
-                writeln!(file,"").unwrap();
+                writeln!(file).unwrap();
                 write!(file,"{}",prefix).unwrap();
             }
         }

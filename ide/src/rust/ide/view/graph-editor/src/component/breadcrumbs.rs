@@ -56,8 +56,8 @@ const MAGIC_SHADOW_MARGIN : f32 = 40.0;
 
 #[derive(Debug,Clone,Copy)]
 enum RelativePosition {
-    LEFT,
-    RIGHT
+    Left,
+    Right,
 }
 
 
@@ -201,8 +201,8 @@ impl BreadcrumbsModel {
 
         scene.layers.breadcrumbs_background.add_exclusive(&background);
 
-        Self{logger,display_object, root,app,breadcrumbs,project_name,breadcrumbs_container,
-            frp_inputs,current_index,camera,background,gap_width}.init(&scene)
+        Self{logger,display_object,background,project_name,root,breadcrumbs_container,app
+            ,breadcrumbs,frp_inputs,current_index,camera,gap_width}.init(&scene)
     }
 
     fn init(self, scene:&Scene) -> Self {
@@ -354,10 +354,10 @@ impl BreadcrumbsModel {
             let defined_on_type = default();
             let module          = default();
             let name            = "Hardcoded".to_string();
-            let method_pointer  = MethodPointer{defined_on_type,module,name};
+            let method_pointer  = MethodPointer{module,defined_on_type,name};
             let definition      = method_pointer.into();
             let call            = uuid::Uuid::new_v4();
-            Some(LocalCall{definition,call})
+            Some(LocalCall{call,definition})
         });
         let result = self.push_breadcrumb(&local_call);
 
@@ -532,7 +532,7 @@ impl Breadcrumbs {
 
         }
 
-        Self{frp,model}
+        Self{model,frp}
     }
 }
 

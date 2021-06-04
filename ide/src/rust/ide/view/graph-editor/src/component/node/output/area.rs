@@ -122,6 +122,7 @@ ensogl::define_endpoints! {
         set_hover                 (bool),
         set_expression            (node::Expression),
         set_expression_visibility (bool),
+        set_type_label_visibility (bool),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -130,12 +131,13 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        on_port_press        (Crumbs),
-        on_port_hover        (Switch<Crumbs>),
-        on_port_type_change  (Crumbs,Option<Type>),
-        port_size_multiplier (f32),
-        body_hover           (bool),
-        tooltip              (tooltip::Style),
+        on_port_press         (Crumbs),
+        on_port_hover         (Switch<Crumbs>),
+        on_port_type_change   (Crumbs,Option<Type>),
+        port_size_multiplier  (f32),
+        body_hover            (bool),
+        type_label_visibility (bool),
+        tooltip               (tooltip::Style),
     }
 }
 
@@ -169,7 +171,7 @@ impl Model {
         let frp            = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
-        Self {logger,display_object,ports,app,label,expression,id_crumbs_map,port_count,styles,frp}
+        Self {logger,app,display_object,ports,label,expression,id_crumbs_map,port_count,styles,frp}
             .init()
     }
 
@@ -298,7 +300,7 @@ impl Model {
                 let crumbs = port.crumbs.clone_ref();
                 let logger = &self.logger;
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,&self.styles,port_index,port_count);
+                    .init_shape(logger,&self.app,&self.styles,port_index,port_count);
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network
@@ -307,9 +309,11 @@ impl Model {
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
                     port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
                     self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
+                    port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
                     self.frp.source.tooltip <+ port_frp.tooltip;
                 }
 
+                port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -402,6 +406,8 @@ impl Area {
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
             eval frp.set_size ((t) model.set_size(*t));
+
+            frp.source.type_label_visibility <+ frp.set_type_label_visibility;
 
 
             // === Expression ===

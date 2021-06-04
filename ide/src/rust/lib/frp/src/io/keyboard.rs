@@ -124,15 +124,8 @@ impl Key {
     /// although this is MacOS specific issue, we are simulating this behavior on all platforms to
     /// keep it consistent.
     pub fn can_be_missing_when_meta_is_down(&self) -> bool {
-        match self {
-            Self::Alt      (_) => false,
-            Self::AltGr    (_) => false,
-            Self::AltGraph (_) => false,
-            Self::Control  (_) => false,
-            Self::Meta     (_) => false,
-            Self::Shift    (_) => false,
-            _                  => true
-        }
+        !matches!(self, Self::Alt(_) | Self::AltGr(_) | Self::AltGraph(_) | Self::Control(_)
+            | Self::Meta(_) | Self::Shift(_))
     }
 
     /// Simple, kebab-case name of a key.
@@ -372,7 +365,7 @@ impl Keyboard {
                 |m,c,a| *m || *c || *a
             );
         }
-        Keyboard {network,model,source,down,up,is_meta_down,is_control_down,is_alt_down
+        Keyboard {model,network,source,down,up,is_meta_down,is_control_down,is_alt_down
             ,is_modifier_down}
     }
 }

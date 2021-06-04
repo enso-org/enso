@@ -1,10 +1,8 @@
-use flatc_rust;
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use zip_extensions::read::ZipArchiveExtensions;
 
 
 

@@ -83,7 +83,7 @@ further investigation.
 | Shortcut | Action |
 | -------- | ------ |
 | <kbd>tab</kbd>                                   | Show / hide node searcher. |
-| <kbd>backspace</kbd>                             | Remove selected nodes. |
+| <kbd>backspace</kbd> or <kbd>delete</kbd>        | Remove selected nodes. |
 | <kbd>cmd</kbd>+<kbd>g</kbd>                      | Collapse (group) selected nodes. |
 | <kbd>meta</kbd>+<kbd>LMB</kbd>                   | Start editing node expression. |
 | <kbd>meta</kbd>+<kbd>enter</kbd>                 | Start editing node expression. |

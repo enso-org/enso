@@ -942,21 +942,16 @@ impl SemanticSplit {
     fn semantically_binned_edges(edge_data:&EdgeModelData) -> Vec<Vec<display::object::Id>> {
         let front  = &edge_data.front;
         let back   = &edge_data.back;
-        let layout = edge_data.layout_state.get();
-        match layout {
-            _ => {
-                vec![
-                    vec![EdgeShape::id(&front.side_line),  EdgeShape::id(&back.side_line)  ],
-                    vec![EdgeShape::id(&front.corner),     EdgeShape::id(&back.corner)     ],
-                    vec![EdgeShape::id(&front.main_line),  EdgeShape::id(&back.main_line),
-                         EdgeShape::id(&front.arrow),      EdgeShape::id(&back.arrow)      ],
-                    vec![EdgeShape::id(&front.corner2),    EdgeShape::id(&back.corner2)    ],
-                    vec![EdgeShape::id(&front.side_line2), EdgeShape::id(&back.side_line2) ],
-                    vec![EdgeShape::id(&front.corner3),    EdgeShape::id(&back.corner3)    ],
-                    vec![EdgeShape::id(&front.port_line)                                   ],
-                ]
-            }
-        }
+        vec![
+            vec![EdgeShape::id(&front.side_line),  EdgeShape::id(&back.side_line)  ],
+            vec![EdgeShape::id(&front.corner),     EdgeShape::id(&back.corner)     ],
+            vec![EdgeShape::id(&front.main_line),  EdgeShape::id(&back.main_line),
+                 EdgeShape::id(&front.arrow),      EdgeShape::id(&back.arrow)      ],
+            vec![EdgeShape::id(&front.corner2),    EdgeShape::id(&back.corner2)    ],
+            vec![EdgeShape::id(&front.side_line2), EdgeShape::id(&back.side_line2) ],
+            vec![EdgeShape::id(&front.corner3),    EdgeShape::id(&back.corner3)    ],
+            vec![EdgeShape::id(&front.port_line)                                   ],
+        ]
     }
 
     /// Return `Id`s that match the given index condition `cond`.
@@ -1019,7 +1014,7 @@ impl ShapeViewEventsProxy {
             mouse_out  <- on_mouse_out.constant(());
         }
 
-        Self {on_mouse_down,mouse_down,mouse_over,mouse_out,on_mouse_out,on_mouse_over}
+        Self {mouse_down,mouse_over,mouse_out,on_mouse_down,on_mouse_over,on_mouse_out}
     }
 }
 
@@ -1056,8 +1051,8 @@ impl Frp {
             def set_color       = source();
         }
         let shape_events = ShapeViewEventsProxy::new(&network);
-        Self {source_width,source_height,target_position,target_attached,source_attached,redraw,
-              hover_position,shape_events,set_disabled,set_color}
+        Self {source_width,source_height,target_position,target_attached,source_attached,redraw
+             ,set_disabled,set_color,hover_position,shape_events}
     }
 }
 
@@ -1266,9 +1261,8 @@ impl EdgeModelData {
         let hover_target    = default();
 
         let scene = scene.into();
-        Self {display_object,logger,frp,front,back,source_width,source_height,target_position,
-              target_attached,source_attached,hover_position,
-              layout_state,hover_target,joint,scene}
+        Self {display_object,logger,frp,front,back,joint,source_width,source_height,target_position
+             ,target_attached,source_attached,layout_state,hover_position,hover_target,scene}
     }
 
     /// Set the color of the edge.
