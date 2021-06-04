@@ -15,7 +15,6 @@ use ide::prelude::*;
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
 use ide::double_representation::identifier::ReferentName;
-use ide::model::Project;
 use ide::model::module;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
@@ -65,7 +64,8 @@ wasm_bindgen_test_configure!(run_in_browser);
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
     let _guard   = ide::initializer::setup_global_executor();
-    let project  = setup_project().await;
+    let ide      = setup_ide().await;
+    let project  = ide.current_project();
     let client   = project.json_rpc();
     let root_id  = project.content_root_id();
     let project_name = ReferentName::new(project.name()).unwrap();
@@ -279,30 +279,31 @@ async fn file_events() {
 /// This procedure sets up the project, testing:
 /// * using project picker to open (or create) a project
 /// * establishing a binary protocol connection with Language Server
-async fn setup_project() -> Project {
-    ensogl_system_web::set_stdout();
+async fn setup_ide() -> controller::Ide {
     let logger = Logger::new("Test");
     let config = ide::config::Startup::default();
     info!(logger,"Setting up the project.");
     let initializer = ide::Initializer::new(config);
     let error_msg   = "Couldn't open project.";
-    initializer.initialize_project_model().await.expect(error_msg)
+    initializer.initialize_ide_controller().await.expect(error_msg)
 }
 
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let _guard   = ide::initializer::setup_global_executor();
-    let project  = setup_project().await;
-    println!("Got project: {:?}",project);
+    let logger = Logger::new("Test");
+    let _guard  = ide::initializer::setup_global_executor();
+    let ide     = setup_ide().await;
+    let project = ide.current_project();
+    info!(logger,"Got project: {project:?}");
     // Edit file using the text protocol
     let path     = Path::new(project.json_rpc().content_root(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
     let written  = project.json_rpc().write_file(&path,&contents).await.unwrap();
-    println!("Written: {:?}", written);
+    info!(logger,"Written: {written:?}");
     let read_back = project.json_rpc().read_file(&path).await.unwrap();
-    println!("Read back: {:?}", read_back);
+    info!(logger,"Read back: {read_back:?}");
     assert_eq!(contents, read_back.contents);
 
     // Edit file using the binary protocol.
@@ -320,20 +321,22 @@ async fn file_operations_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let project  = setup_project().await;
-    println!("Got project: {:?}", project);
+    let logger  = Logger::new("Test");
+    let ide     = setup_ide().await;
+    let project = ide.current_project();
+    info!(logger,"Got project: {project:?}");
 
     let expression = "x -> x.json_serialize";
 
     use ensogl::system::web::sleep;
-    use ide::MAIN_DEFINITION_NAME;
+    use controller::project::MAIN_DEFINITION_NAME;
 
     let logger                = Logger::new("Test");
     let module_path           = ide::initial_module_path(&project).unwrap();
     let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
-    println!("Got module: {:?}", module);
+    info!(logger,"Got module: {module:?}");
     let graph_executed        = controller::ExecutedGraph::new(&logger,project,method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
@@ -342,13 +345,13 @@ async fn binary_visualization_updates_test_hlp() {
     // We must yield control for a moment, so the text edit is applied.
     sleep(Duration::from_millis(1)).await;
 
-    println!("Main graph: {:?}", graph_executed);
-    println!("The code is: {:?}", module.ast().repr());
-    println!("Main node: {:?} with {}", the_node, the_node.expression().repr());
+    info!(logger,"Main graph: {graph_executed:?}");
+    info!(logger,"The code is: {module.ast().repr():?}");
+    info!(logger,"Main node: {the_node:?} with {the_node.expression().repr()}");
 
     let visualization = Visualization::new(the_node.id(),expression,module_qualified_name);
     let     stream    = graph_executed.attach_visualization(visualization.clone()).await.unwrap();
-    println!("Attached the visualization {}", visualization.id);
+    info!(logger,"Attached the visualization {visualization.id}");
     let mut stream    = stream.boxed_local();
     let first_event = stream.next().await.unwrap(); // await update
     assert_eq!(first_event.as_ref(), "30".as_bytes());

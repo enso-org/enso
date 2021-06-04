@@ -31,7 +31,6 @@ const STUB_MODULE:&str = "from Base import all\n\nmain = IO.println \"Hello\"\n"
 #[allow(dead_code)]
 pub fn entry_point_interface() {
     web::forward_panic_hook_to_console();
-    web::set_stdout();
     web::set_stack_trace_limit();
     run_once_initialized(|| {
         let app = Application::new(&web::get_html_element_by_id("root").unwrap());
@@ -273,7 +272,7 @@ pub fn expression_mock_string(label:&str) -> Expression {
     let output_span_tree    = span_tree::SpanTree::default();
     let input_span_tree     = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     let whole_expression_id = default();
-    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
+    Expression {pattern,code,whole_expression_id,input_span_tree,output_span_tree}
 }
 
 pub fn expression_mock() -> Expression {
@@ -291,7 +290,7 @@ pub fn expression_mock() -> Expression {
     let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     let whole_expression_id = default();
-    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
+    Expression {pattern,code,whole_expression_id,input_span_tree,output_span_tree}
 }
 
 pub fn expression_mock2() -> Expression {
@@ -330,7 +329,7 @@ pub fn expression_mock2() -> Expression {
         .add_empty_child(36,span_tree::node::InsertionPointType::Append)
         .build();
     let whole_expression_id = default();
-    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
+    Expression {pattern,code,whole_expression_id,input_span_tree,output_span_tree}
 }
 
 pub fn expression_mock3() -> Expression {
@@ -365,5 +364,5 @@ pub fn expression_mock3() -> Expression {
     let output_span_tree = span_tree::SpanTree::new(&ast,&ctx).unwrap();//span_tree::SpanTree::default();
     let input_span_tree  = span_tree::SpanTree::new(&ast,&ctx).unwrap();
     let whole_expression_id = default();
-    Expression {pattern,code,input_span_tree,output_span_tree,whole_expression_id}
+    Expression {pattern,code,whole_expression_id,input_span_tree,output_span_tree}
 }

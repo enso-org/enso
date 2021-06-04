@@ -32,8 +32,12 @@ impl <Arg> OptionalFmMutClosure<Arg> {
     }
 
     /// Stores the given closure.
-    pub fn store(&mut self, closure:Closure<dyn FnMut(Arg)>) {
+    pub fn store(&mut self, closure:Closure<dyn FnMut(Arg)>) -> &Function {
         self.closure = Some(closure);
+        // TODO [mwu]: `insert` should be used when we bump rustc - and then get rid of unwrap.
+        //              Blocked by https://github.com/enso-org/ide/issues/1028
+        // The `unwrap` call is safe, because the line above set closure to `Some`.
+        self.js_ref().unwrap()
     }
 
     /// Obtain JS reference to the closure (that can be passed e.g. as a callback
@@ -43,12 +47,12 @@ impl <Arg> OptionalFmMutClosure<Arg> {
     }
 
     /// Wraps given function into a Closure.
-    pub fn wrap(&mut self, f:impl ClosureFn<Arg>) {
+    pub fn wrap(&mut self, f:impl ClosureFn<Arg>) -> &Function  {
         let boxed = Box::new(f);
         // Note: [mwu] Not sure exactly why, but compiler sometimes require this
         // explicit type below and sometimes does not.
         let wrapped:Closure<dyn FnMut(Arg)> = Closure::wrap(boxed);
-        self.store(wrapped);
+        self.store(wrapped)
     }
 
     /// Clears the current closure.
@@ -56,5 +60,21 @@ impl <Arg> OptionalFmMutClosure<Arg> {
     /// on calling attempt. Be careful of dangling references.
     pub fn clear(&mut self) {
         self.closure = None;
+    }
+
+    /// Register this closure as an event handler.
+    /// No action is taken if there is no closure stored.
+    pub fn add_listener<EventType:crate::event::Type>(&self, target:&EventType::Target) {
+        if let Some(function) = self.js_ref() {
+            EventType::add_listener(target, function)
+        }
+    }
+
+    /// Unregister this closure as an event handler. The closure must be the same as when it was
+    /// registered.
+    pub fn remove_listener<EventType:crate::event::Type>(&self, target:&EventType::Target) {
+        if let Some(function) = self.js_ref() {
+            EventType::remove_listener(target, function)
+        }
     }
 }

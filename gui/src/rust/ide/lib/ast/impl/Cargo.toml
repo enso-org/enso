@@ -17,7 +17,7 @@ serde_json = { version = "1.0" }
 shrinkwraprs = { version = "0.2.1" }
 uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 ast-macros = { path = "../macros" }
-enso-data = { version = "0.1.4" }
-enso-prelude = { version = "0.1.10" }
-enso-shapely = { version = "0.1.4" }
+enso-data = { version = "0.2.0" }
+enso-prelude = { version = "0.2.0" }
+enso-shapely = { version = "0.2.0" }
 utils = { path = "../../utils" }

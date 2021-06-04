@@ -168,8 +168,8 @@ impl Frp {
         };
         preprocessor_change.emit(PreprocessorConfiguration::default());
         let on_data_receive_error  = data_receive_error.clone_ref().into();
-        Self {on_preprocessor_change,on_data_receive_error,is_active,preprocessor_change,inputs
-            ,data_receive_error}
+        Self {inputs,on_preprocessor_change,on_data_receive_error,is_active,data_receive_error
+             ,preprocessor_change}
     }
 
     /// Extend the FRP network with mechanism of passing all mouse and keyboard event to DOM when

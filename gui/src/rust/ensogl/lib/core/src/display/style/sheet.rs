@@ -155,8 +155,14 @@ impl Debug for Expression {
 
 impl PartialEq for Expression {
     fn eq(&self, other:&Self) -> bool {
-        let same_args     = self.args == other.args;
-        let same_function = Rc::ptr_eq(&self.function,&other.function);
+        let same_args = self.args == other.args;
+        // Rc stores a fat pointer, and fat pointers can refer to different vtables even if they
+        // point to the same value. Here we want only to compare the data part, while ignoring
+        // the vtable. The *const u8 cast discards the vtable.
+        // See: https://github.com/rust-lang/rust/issues/46139
+        let lhs_ptr = Rc::as_ptr(&self.function) as *const u8;
+        let rhs_ptr = Rc::as_ptr(&other.function) as *const u8;
+        let same_function = lhs_ptr == rhs_ptr;
         same_args && same_function
     }
 }

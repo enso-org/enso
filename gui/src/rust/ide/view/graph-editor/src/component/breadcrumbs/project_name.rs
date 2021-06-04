@@ -155,7 +155,7 @@ impl ProjectNameModel {
         scene.layers.breadcrumbs_background.add_exclusive(&view);
 
         let project_name = default();
-        Self{app,logger,view,style,display_object,text_field,project_name}.init()
+        Self{app,logger,display_object,view,style,text_field,project_name}.init()
     }
 
     /// Compute the width of the ProjectName view.
@@ -355,7 +355,7 @@ impl ProjectName {
         frp.deselect();
         frp.input.set_name.emit(UNINITIALIZED_PROJECT_NAME.to_string());
 
-        Self{frp,model}
+        Self{model,frp}
     }
 
 }

@@ -126,6 +126,7 @@ ensogl::define_endpoints! {
         add_event      (event::Label),
         add_process    (process::Label),
         finish_process (process::Id),
+        clear_all      (),
     }
     Output {
         last_event        (event::Id),
@@ -241,6 +242,11 @@ impl Model {
     fn last_event_message(&self) -> event::Label {
         self.events.borrow().last().cloned().unwrap_or_default()
     }
+
+    fn clear_all(&self) {
+        self.events.borrow_mut().clear();
+        self.processes.borrow_mut().clear();
+    }
 }
 
 
@@ -288,14 +294,18 @@ impl View {
             label <- any(label_after_adding_event,label_after_adding_process,label_after_finishing_process);
             eval label ((label) model.label.set_content(label.to_string()));
 
+            eval_ frp.clear_all (model.clear_all());
+
             frp.source.last_event   <+ event_added;
             frp.source.last_process <+ process_added;
 
             frp.source.displayed_event <+ event_added.map(|id| Some(*id));
             frp.source.displayed_event <+ process_added.constant(None);
+            frp.source.displayed_event <+ frp.clear_all.constant(None);
             frp.source.displayed_process <+ process_added.map(|id| Some(*id));
             frp.source.displayed_process <+ event_added.constant(None);
             frp.source.displayed_process <+ displayed_process_finished.constant(None);
+            frp.source.displayed_process <+ frp.clear_all.constant(None);
 
             eval_ model.label.output.width (model.update_layout());
             eval_ scene.frp.camera_changed (model.camera_changed());

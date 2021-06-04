@@ -82,7 +82,7 @@ pub struct DirtyFlag<T,OnMut> {
 impl<OnMut,T:Default> DirtyFlag<T,OnMut> {
     pub fn new(logger:Logger, on_set:OnMut) -> Self {
         let data = default();
-        Self {data,on_set,logger}
+        Self {data,logger,on_set}
     }
 
     pub fn take(&mut self) -> T {

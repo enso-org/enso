@@ -1,6 +1,8 @@
 //! Module defining `JsExecutor` - an executor that tries running until stalled
 //! on each animation frame callback call.
 
+pub mod test;
+
 use crate::prelude::*;
 
 use ensogl::control::callback;

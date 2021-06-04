@@ -22,7 +22,7 @@ use std::ops::*;
 pub trait VarInitializer<T> = VarInitializerMarker<T> + Into<Glsl>;
 
 /// Marker trait for `VarInitializer`.
-pub trait VarInitializerMarker<T> {}
+#[marker] pub trait VarInitializerMarker<T> {}
 
 
 // === Instances ===

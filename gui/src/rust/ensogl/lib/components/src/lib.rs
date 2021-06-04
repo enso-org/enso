@@ -16,11 +16,13 @@
 
 #![recursion_limit="512"]
 
+pub mod component;
 pub mod drop_down_menu;
-pub mod list_view;
 pub mod label;
-pub mod toggle_button;
+pub mod list_view;
 pub mod shadow;
+pub mod selector;
+pub mod toggle_button;
 
 /// Commonly used types and functions.
 pub mod prelude {

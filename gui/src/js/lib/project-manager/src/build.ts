@@ -1,14 +1,19 @@
 /// Build script that downloads and extracts the project manager from CI.
 /// The project manager will be available at `paths.dist.bin` after running this script.
 
+// @ts-ignore
 import { http } from 'follow-redirects'
 import * as os from 'os'
 import * as fss from 'fs'
 import * as path from 'path'
+// @ts-ignore
 import * as tar from 'tar'
+// @ts-ignore
 import * as unzipper from 'unzipper'
 import * as url from 'url'
+// @ts-ignore
 import * as paths from './../../../../../build/paths'
+import { IncomingMessage } from 'http'
 const fs = fss.promises
 
 const distPath = paths.dist.bin
@@ -38,7 +43,7 @@ async function get_project_manager_url(): Promise<string> {
     console.log('webpack target ' + target_platform)
     // Usually it is a good idea to synchronize this constant with `ENGINE_VERSION_FOR_NEW_PROJECTS` in
     // src/rust/ide/src/ide/initializer.rs. See also https://github.com/enso-org/ide/issues/1359
-    const version = '0.2.10'
+    const version = '0.2.11'
     let base_url: string = 'https://github.com/enso-org/'
     base_url += 'enso/releases/download/'
     base_url += `enso-${version}/enso-project-manager-${version}`
@@ -66,7 +71,7 @@ function make_project_manager_binary_executable() {
     }
 }
 
-function decompress_project_manager(source_file_path, target_folder) {
+function decompress_project_manager(source_file_path: fss.PathLike, target_folder: string) {
     let decompressor
     if (source_file_path.toString().endsWith('.zip')) {
         decompressor = unzipper.Extract({ path: target_folder })
@@ -109,11 +114,15 @@ class DownloadProgressIndicator {
 }
 
 // TODO: Consider adding to common library for re-use in other parts of the build system.
-async function download_project_manager(
-    file_url: string,
-    overwrite: boolean
-): Promise<void> {
-    const file_name = url.parse(file_url).pathname.split('/').pop()
+async function download_project_manager(file_url: string, overwrite: boolean): Promise<void> {
+    const parse_result = url.parse(file_url).pathname
+    if (parse_result === undefined || parse_result === null) {
+        throw `File URL does not contain valid path name: ` + file_url
+    }
+    const file_name = parse_result.split('/').pop()
+    if (file_name === undefined || file_name === null) {
+        throw `File URL does not contain path separator: ` + file_url
+    }
     const file_path = path.resolve(distPath, file_name)
 
     if (fss.existsSync(file_path) && !overwrite) {
@@ -134,8 +143,8 @@ async function download_project_manager(
 
     const target_file = fss.createWriteStream(file_path)
     const progress_indicator = new DownloadProgressIndicator()
-    http.get(options, (res) => {
-        res.on('data', (data) => {
+    http.get(options, (res: IncomingMessage) => {
+        res.on('data', (data: string) => {
             target_file.write(data)
             progress_indicator.add_progress_bytes(data.length)
         }).on('end', () => {

@@ -132,7 +132,7 @@ impl System {
         let atlas       = self.atlas.clone();
         color.set(Vector4::new(0.0,0.0,0.0,0.0));
         atlas_index.set(0.0);
-        Glyph {context,sprite,atlas_index,color,font,atlas}
+        Glyph {sprite,context,font,color,atlas_index,atlas}
     }
 
     /// Get underlying sprite system.
@@ -178,5 +178,3 @@ impl System {
         material
     }
 }
-
-

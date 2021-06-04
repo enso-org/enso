@@ -92,7 +92,7 @@ mod tests {
             let rad_from_deg = Radians::from(deg);
             assert_eq!(deg, deg_from_rad);
             assert_eq!(rad, rad_from_deg);
-        };
+        }
 
         assert_equivalence(720.0.degrees(),  (PI * 4.0).radians());
         assert_equivalence(360.0.degrees(),  (PI * 2.0).radians());

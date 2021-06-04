@@ -111,8 +111,8 @@ pub struct AstInPattern {
 }
 
 /// Helper function that returns all AST nodes being on leaves of MacroPatternMatch.
-pub fn all_ast_nodes_in_pattern<'a>
-(pattern:&'a MacroPatternMatch<Shifted<Ast>>) -> impl Iterator<Item=AstInPattern> + 'a {
+pub fn all_ast_nodes_in_pattern
+(pattern:&MacroPatternMatch<Shifted<Ast>>) -> impl Iterator<Item=AstInPattern> + '_ {
     use ast::MacroPatternMatchRaw::*;
 
     PatternDfs::new(pattern).filter_map(|pattern| {

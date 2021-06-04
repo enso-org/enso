@@ -241,6 +241,17 @@ impl Network {
         self.register(OwnedAny::new4(label,t1,t2,t3,t4))
     }
 
+    /// Specialized version of `any`.
+    pub fn any5<T1,T2,T3,T4,T5,T:Data>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Stream<T>
+    where T1:EventOutput<Output=T>,
+          T2:EventOutput<Output=T>,
+          T3:EventOutput<Output=T>,
+          T4:EventOutput<Output=T>,
+          T5:EventOutput<Output=T> {
+        self.register(OwnedAny::new5(label,t1,t2,t3,t4,t5))
+    }
+
 
     // === Any_ ===
 
@@ -272,6 +283,13 @@ impl Network {
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4) -> Stream<()>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
         self.register(OwnedAny_::new4(label,t1,t2,t3,t4))
+    }
+
+    /// Specialized version of `any_`.
+    pub fn any5_<T1,T2,T3,T4,T5>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Stream<()>
+    where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+        self.register(OwnedAny_::new5(label,t1,t2,t3,t4,t5))
     }
 
 
@@ -624,6 +642,16 @@ impl DynamicNetwork {
         OwnedAny::new4(label,t1,t2,t3,t4).into()
     }
 
+    pub fn any5<T1,T2,T3,T4,T5,T:Data>
+    (self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> OwnedStream<T>
+    where T1:EventOutput<Output=T>,
+              T2:EventOutput<Output=T>,
+              T3:EventOutput<Output=T>,
+              T4:EventOutput<Output=T>,
+              T5:EventOutput<Output=T> {
+        OwnedAny::new5(label,t1,t2,t3,t4,t5).into()
+    }
+
 
     // === Any_ ===
 
@@ -650,6 +678,12 @@ impl DynamicNetwork {
     (self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4) -> OwnedStream<()>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
         OwnedAny_::new4(label,t1,t2,t3,t4).into()
+    }
+
+    pub fn any5_<T1,T2,T3,T4,T5>
+    (self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> OwnedStream<()>
+    where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+        OwnedAny_::new5(label,t1,t2,t3,t4,t5).into()
     }
 
 
@@ -1257,6 +1291,16 @@ impl<Out:Data> OwnedAny<Out> {
         Self::new(label).with(t1).with(t2).with(t3).with(t4)
     }
 
+    /// Constructor for 5 input streams.
+    pub fn new5<T1,T2,T3,T4,T5>(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Self
+        where T1:EventOutput<Output=Out>,
+              T2:EventOutput<Output=Out>,
+              T3:EventOutput<Output=Out>,
+              T4:EventOutput<Output=Out>,
+              T5:EventOutput<Output=Out> {
+        Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
+    }
+
     /// Emit new event. It's questionable if this node type should expose the `emit` functionality,
     /// but the current usage patterns proven it is a very handy utility. This node is used to
     /// define sources of frp output streams. Sources allow multiple streams to be attached and
@@ -1350,6 +1394,12 @@ impl OwnedAny_ {
     pub fn new4<T1,T2,T3,T4>(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4) -> Self
         where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput {
         Self::new(label).with(t1).with(t2).with(t3).with(t4)
+    }
+
+    /// Constructor for 5 input streams.
+    pub fn new5<T1,T2,T3,T4,T5>(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Self
+        where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T5:EventOutput {
+        Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
     }
 }
 
@@ -1644,6 +1694,16 @@ impl<Out:Data> OwnedAllMut<Out> {
               T3:EventOutput<Output=Out>,
               T4:EventOutput<Output=Out> {
         Self::new(label).with(t1).with(t2).with(t3).with(t4)
+    }
+
+    /// Constructor for 5 input streams.
+    pub fn new5<T1,T2,T3,T4,T5>(label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Self
+        where T1:EventOutput<Output=Out>,
+              T2:EventOutput<Output=Out>,
+              T3:EventOutput<Output=Out>,
+              T4:EventOutput<Output=Out>,
+              T5:EventOutput<Output=Out> {
+        Self::new(label).with(t1).with(t2).with(t3).with(t4).with(t5)
     }
 }
 

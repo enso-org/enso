@@ -279,9 +279,9 @@ impl LayerModel {
         let depth_order                     = default();
         let depth_order_dirty               = dirty::SharedBool::new(logger_dirty,on_mut);
         let all_layers_registry                = all_layers_registry.clone();
-        Self {id,logger,camera,shape_system_registry,shape_system_to_symbol_info_map,elements
-             ,symbols_ordered,depth_order,depth_order_dirty,all_layers_registry
-             ,symbol_to_shape_system_map}
+        Self {id,logger,camera,shape_system_registry,shape_system_to_symbol_info_map
+             ,symbol_to_shape_system_map,elements,symbols_ordered,depth_order,depth_order_dirty
+             ,all_layers_registry}
     }
 
     /// Vector of all symbols registered in this layer, ordered according to the defined depth-order
@@ -615,7 +615,7 @@ impl Layers {
     pub fn new(logger:impl AnyLogger) -> Self {
         let model = LayersModel::new(logger);
         let main  = model.new_layer();
-        Self {model,main}
+        Self {main,model}
     }
 }
 

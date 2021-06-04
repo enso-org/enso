@@ -27,7 +27,7 @@ pub const QUALIFIED_EXPORT_KEYWORD:&str = "export";
 /// capable of storing import declarations). Returns `None` otherwise.
 pub fn ast_as_import_match(ast:&Ast) -> Option<known::Match> {
     let macro_match = known::Match::try_from(ast).ok()?;
-    is_match_import(&macro_match).then(macro_match)
+    is_match_import(&macro_match).then_some(macro_match)
 }
 
 /// Check if the given macro match node is an import declaration.
@@ -73,7 +73,7 @@ pub struct LambdaInfo<'a> {
 pub fn as_lambda_match(ast:&Ast) -> Option<known::Match> {
     let macro_match = known::Match::try_from(ast).ok()?;
     let segment     = &macro_match.segs.head;
-    crate::opr::is_arrow_opr(&segment.head).then(macro_match)
+    crate::opr::is_arrow_opr(&segment.head).then_some(macro_match)
 }
 
 /// Describes the given Ast as lambda, if this is a matched `->` builtin macro.
@@ -84,7 +84,7 @@ pub fn as_lambda(ast:&Ast) -> Option<LambdaInfo> {
     let opr            = ast.get_located(child_iter.next()?).ok()?;
     let body           = ast.get_located(child_iter.next()?).ok()?;
     let is_arrow       = crate::opr::is_arrow_opr(&opr.item);
-    is_arrow.then(LambdaInfo {arg,opr,body})
+    is_arrow.then_some(LambdaInfo {arg,opr,body})
 }
 
 
@@ -96,7 +96,7 @@ pub fn as_lambda(ast:&Ast) -> Option<LambdaInfo> {
 impl crate::Match<Ast> {
     /// Iterates matched ASTs. Skips segment heads ("keywords").
     /// For example, for `(a)` it iterates only over `a`, skkipping segment heads `(` and `)`.
-    pub fn iter_pat_match_subcrumbs<'a>(&'a self) -> impl Iterator<Item=MatchCrumb> + 'a {
+    pub fn iter_pat_match_subcrumbs(&self) -> impl Iterator<Item=MatchCrumb> + '_ {
         self.iter_subcrumbs().filter(|crumb| {
             use crate::crumbs::SegmentMatchCrumb;
             match crumb {
@@ -116,7 +116,7 @@ impl crate::Match<Ast> {
 impl crate::Ambiguous<Ast> {
     /// Iterates matched ASTs. Skips segment heads ("keywords").
     /// For example, for `(a)` it iterates only over `a`, skkipping segment heads `(` and `)`.
-    pub fn iter_pat_match_subcrumbs<'a>(&'a self) -> impl Iterator<Item=AmbiguousCrumb> + 'a {
+    pub fn iter_pat_match_subcrumbs(&self) -> impl Iterator<Item=AmbiguousCrumb> + '_ {
         self.iter_subcrumbs().filter(|crumb| {
             crumb.field != crate::crumbs::AmbiguousSegmentCrumb::Head
         })

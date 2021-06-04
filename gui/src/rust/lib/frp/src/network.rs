@@ -145,7 +145,7 @@ impl WeakNetwork {
 
     /// ID getter of this network.
     pub fn id(&self) -> NetworkId {
-        NetworkId(self.data.as_raw() as *const() as usize)
+        NetworkId(self.data.as_ptr() as *const() as usize)
     }
 }
 

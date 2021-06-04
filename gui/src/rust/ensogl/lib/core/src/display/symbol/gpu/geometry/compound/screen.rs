@@ -28,7 +28,7 @@ impl Screen {
         sprite_system.set_geometry_material(Self::geometry_material());
         sprite_system.set_material(Self::surface_material());
         let sprite = sprite_system.new_instance();
-        Self {sprite_system,sprite}
+        Self {sprite,sprite_system}
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.

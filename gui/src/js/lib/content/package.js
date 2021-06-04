@@ -14,6 +14,10 @@ let config = {
         "compression-webpack-plugin": "^3.1.0",
         "copy-webpack-plugin": "^5.1.1",
         "yaml-loader": "^0.6.0",
+        "ts-loader": "^8.0.3",
+        "typescript": "^4.0.2",
+        "webpack": "^4.44.1",
+        "webpack-cli": "^3.3.12"
     }
 }
 

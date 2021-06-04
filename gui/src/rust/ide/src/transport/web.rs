@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use ensogl_system_web::closure::storage::OptionalFmMutClosure;
 use ensogl_system_web::js_to_string;
+use ensogl_system_web::event::listener::Slot;
 use failure::Error;
 use futures::channel::mpsc;
 use json_rpc::Transport;
@@ -11,9 +11,6 @@ use json_rpc::TransportEvent;
 use utils::channel;
 use wasm_bindgen::JsCast;
 use web_sys::BinaryType;
-use web_sys::CloseEvent;
-use web_sys::Event;
-use web_sys::MessageEvent;
 
 
 
@@ -36,6 +33,14 @@ pub enum ConnectingError {
     FailedToConnect,
 }
 
+impl ConnectingError {
+    /// Create a `ConstructionError` value from a JS value describing an error.
+    pub fn construction_error(js_val:impl AsRef<JsValue>) -> Self {
+        let text = js_to_string(js_val);
+        ConnectingError::ConstructionError(text)
+    }
+}
+
 /// Error that may occur when attempting to send the data over WebSocket
 /// transport.
 #[derive(Clone,Debug,Fail)]
@@ -51,7 +56,7 @@ pub enum SendingError {
 impl SendingError {
     /// Constructs from the error yielded by one of the JS's WebSocket sending functions.
     pub fn from_send_error(error:JsValue) -> SendingError {
-        SendingError::FailedToSend(js_to_string(error))
+        SendingError::FailedToSend(js_to_string(&error))
     }
 }
 
@@ -98,51 +103,201 @@ impl State {
 
 
 // =================
+// === JS Events ===
+// =================
+
+/// Description of events that can be emitted by JS WebSocket.
+pub mod event {
+    use super::*;
+    use ensogl_system_web::event::Type;
+
+    /// Represents WebSocket.open event.
+    #[derive(Clone,Copy,Debug)]
+    pub enum Open{}
+    impl Type for Open {
+        type Interface = web_sys::Event;
+        type Target = web_sys::WebSocket;
+        const NAME:&'static str = "open";
+    }
+
+    /// Represents WebSocket.close event.
+    #[derive(Clone,Copy,Debug)]
+    pub enum Close{}
+    impl Type for Close {
+        type Interface = web_sys::CloseEvent;
+        type Target = web_sys::WebSocket;
+        const NAME:&'static str = "close";
+    }
+
+    /// Represents WebSocket.message event.
+    #[derive(Clone,Copy,Debug)]
+    pub enum Message{}
+    impl Type for Message {
+        type Interface = web_sys::MessageEvent;
+        type Target = web_sys::WebSocket;
+        const NAME:&'static str = "message";
+    }
+
+    /// Represents WebSocket.error event.
+    #[derive(Clone,Copy,Debug)]
+    pub enum Error{}
+    impl Type for Error {
+        type Interface = web_sys::Event;
+        type Target = web_sys::WebSocket;
+        const NAME:&'static str = "error";
+    }
+}
+
+
+
+// =============
+// === Model ===
+// =============
+
+/// An owning wrapper over JS `WebSocket` object and callbacks to its signals.
+#[derive(Derivative)]
+#[derivative(Debug)]
+#[allow(missing_docs)]
+struct Model {
+    // === User-provided callbacks ===
+    pub on_close          : Slot<event::Close>,
+    pub on_message        : Slot<event::Message>,
+    pub on_open           : Slot<event::Open>,
+    pub on_error          : Slot<event::Error>,
+
+
+    // === Internal ===
+    pub logger            : Logger,
+    pub socket            : web_sys::WebSocket,
+    /// Special callback on "close" event. As it must be invoked after `on_close`, care should be
+    /// taken to keep it registered as an event listener *after* `on_close` registration.
+    /// By default `Model` takes care of it by itself.
+    pub on_close_internal : Slot<event::Close>,
+    /// When enabled, the WS will try to automatically reconnect whenever connection is lost.
+    pub auto_reconnect    : bool,
+}
+
+impl Model {
+    /// Wraps given WebSocket object.
+    pub fn new(socket:web_sys::WebSocket, logger:Logger) -> Model {
+        socket.set_binary_type(BinaryType::Arraybuffer);
+        Model {
+            on_close          : Slot::new(&socket, &logger),
+            on_message        : Slot::new(&socket, &logger),
+            on_open           : Slot::new(&socket, &logger),
+            on_error          : Slot::new(&socket, &logger),
+            on_close_internal : Slot::new(&socket, &logger),
+            auto_reconnect    : true,
+            logger,
+            socket,
+        }
+    }
+
+    /// Close the socket.
+    pub fn close(&mut self, reason:&str) -> Result<(),JsValue> {
+        // If socket was manually requested to close, it should not try to reconnect then.
+        self.auto_reconnect = false;
+        let normal_closure  = 1000;
+        self.socket.close_with_code_and_reason(normal_closure,reason)?;
+        self.clear_callbacks();
+        Ok(())
+    }
+
+    /// Clear all the available callbacks.
+    pub fn clear_callbacks(&mut self) {
+        // We list explicitly all the fields, to get a compiler error when a new slot as added
+        // but not handled here.
+        #[allow(clippy::unneeded_field_pattern)]
+        let Self{
+            // Callback slots to be cleared.
+            on_close, on_error, on_message, on_open, on_close_internal,
+            // Explicitly ignored non-slot fields.
+            auto_reconnect:_, logger:_, socket:_
+        } = self;
+        // We don't care if removing actually removed anything.
+        // If callbacks were not set, then they are clear from the start.
+        on_close.clear_callback();
+        on_error.clear_callback();
+        on_message.clear_callback();
+        on_open.clear_callback();
+        on_close_internal.clear_callback()
+    }
+
+    /// Establish a new WS connection, using the same URL as the previous one.
+    /// All callbacks will be transferred to the new connection.
+    pub fn reconnect(&mut self) -> Result<(),JsValue> {
+       if !self.auto_reconnect {
+           return Err(js_sys::Error::new("Reconnecting has been disabled").into());
+       }
+
+        let url = self.socket.url();
+        info!(self.logger, "Reconnecting WS to {url}.");
+
+        let new_ws = web_sys::WebSocket::new(&url)?;
+
+        self.on_close.         set_target(&new_ws);
+        self.on_error.         set_target(&new_ws);
+        self.on_message.       set_target(&new_ws);
+        self.on_open.          set_target(&new_ws);
+        self.on_close_internal.set_target(&new_ws);
+        self.socket = new_ws;
+
+        Ok(())
+    }
+}
+
+impl Drop for Model {
+    fn drop(&mut self) {
+        info!(self.logger, "Dropping WS model.");
+        if let Err(e) = self.close("Rust Value has been dropped.") {
+            error!(self.logger,"Error when closing socket due to being dropped: {js_to_string(&e)}")
+        }
+    }
+}
+
+
+
+// =================
 // === WebSocket ===
 // =================
 
-/// Wrapper over JS `WebSocket` object and callbacks to its signals.
-#[derive(Debug)]
+/// Wrapper over JS `WebSocket` meant for general use.
+#[derive(Clone,CloneRef,Debug)]
 pub struct WebSocket {
     #[allow(missing_docs)]
-    pub logger     : Logger,
-    /// Handle to the JS `WebSocket` object.
-    pub ws         : web_sys::WebSocket,
-    /// Handle to a closure connected to `WebSocket.onmessage`.
-    pub on_message : OptionalFmMutClosure<MessageEvent>,
-    /// Handle to a closure connected to `WebSocket.onclose`.
-    pub on_close   : OptionalFmMutClosure<CloseEvent>,
-    /// Handle to a closure connected to `WebSocket.onopen`.
-    pub on_open    : OptionalFmMutClosure<Event>,
-    /// Handle to a closure connected to `WebSocket.onerror`.
-    pub on_error   : OptionalFmMutClosure<Event>,
+    pub logger : Logger,
+    model      : Rc<RefCell<Model>>,
 }
 
 impl WebSocket {
-    /// Wraps given WebSocket object.
-    pub fn new
-    (ws:web_sys::WebSocket, parent:impl AnyLogger, name:impl AsRef<str>) -> WebSocket {
-        ws.set_binary_type(BinaryType::Arraybuffer);
-        WebSocket {
-            ws,
-            logger     : Logger::sub(parent,name),
-            on_message : default(),
-            on_close   : default(),
-            on_open    : default(),
-            on_error   : default(),
-        }
+    /// Wrap given raw JS WebSocket object.
+    pub fn new(ws:web_sys::WebSocket, parent:impl AnyLogger) -> WebSocket {
+        let logger = Logger::sub(parent,ws.url());
+        let model  = Rc::new(RefCell::new(Model::new(ws,logger.clone())));
+        WebSocket {logger,model}
     }
 
     /// Establish connection with endpoint defined by the given URL and wrap it.
     /// Asynchronous, because it waits until connection is established.
     pub async fn new_opened
-    (parent:impl AnyLogger, url:impl Str) -> Result<WebSocket,ConnectingError> {
-        let ws = web_sys::WebSocket::new(url.as_ref()).map_err(|e| {
-            ConnectingError::ConstructionError(js_to_string(e))
-        })?;
-        let mut wst = WebSocket::new(ws,&parent,url.into());
+    (parent:impl AnyLogger, url:&str) -> Result<WebSocket,ConnectingError> {
+        let ws      = web_sys::WebSocket::new(url).map_err(ConnectingError::construction_error)?;
+        let mut wst = WebSocket::new(ws,&parent);
         wst.wait_until_open().await?;
         Ok(wst)
+    }
+
+    /// Generate a callback to be invoked when socket needs reconnecting.
+    fn reconnect_trigger(&self) -> impl FnMut(web_sys::CloseEvent) {
+        let model  = Rc::downgrade(&self.model);
+        let logger = self.logger.clone();
+        move |_| {
+            if let Some(model) = model.upgrade() {
+                if let Err(e) = model.borrow_mut().reconnect() {
+                    error!(logger,"Failed to reconnect: {js_to_string(&e)}");
+                }
+            }
+        }
     }
 
     /// Awaits until `open` signal has been emitted. Clears any callbacks on
@@ -152,6 +307,7 @@ impl WebSocket {
         // We shall wait for whatever comes first.
         let (transmitter, mut receiver) = mpsc::unbounded::<Result<(),()>>();
         let transmitter_clone = transmitter.clone();
+
         self.set_on_close(move |_| {
             // Note [mwu] Ignore argument, `CloseEvent` here contains rubbish
             // anyway, nothing useful to pass to caller. Error code or reason
@@ -164,7 +320,8 @@ impl WebSocket {
 
         match receiver.next().await {
             Some(Ok(())) => {
-                self.clear_callbacks();
+                self.model.borrow_mut().clear_callbacks();
+                self.model.borrow_mut().on_close_internal.set_callback(self.reconnect_trigger());
                 info!(self.logger, "Connection opened.");
                 Ok(())
             }
@@ -174,43 +331,35 @@ impl WebSocket {
 
     /// Checks the current state of the connection.
     pub fn state(&self) -> State {
-        State::query_ws(&self.ws)
+        State::query_ws(&self.model.borrow().socket)
+    }
+
+    fn with_borrow_mut_model<R>(&mut self, f:impl FnOnce(&mut Model) -> R) -> R {
+        with(self.model.borrow_mut(), |mut model| f(model.deref_mut()))
     }
 
     /// Sets callback for the `close` event.
-    pub fn set_on_close(&mut self, f:impl FnMut(CloseEvent) + 'static) {
-        self.on_close.wrap(f);
-        self.ws.set_onclose(self.on_close.js_ref());
+    pub fn set_on_close(&mut self, f:impl FnMut(web_sys::CloseEvent) + 'static) {
+        self.with_borrow_mut_model(move |model| {
+            model.on_close.set_callback(f);
+            // Force internal callback to be after the user-defined one.
+            model.on_close_internal.reattach();
+        });
     }
 
     /// Sets callback for the `error` event.
-    pub fn set_on_error(&mut self, f:impl FnMut(Event) + 'static) {
-        self.on_error.wrap(f);
-        self.ws.set_onerror(self.on_error.js_ref());
+    pub fn set_on_error(&mut self, f:impl FnMut(web_sys::Event) + 'static) {
+        self.with_borrow_mut_model(move |model| model.on_error.set_callback(f))
     }
 
     /// Sets callback for the `message` event.
-    pub fn set_on_message(&mut self, f:impl FnMut(MessageEvent) + 'static) {
-        self.on_message.wrap(f);
-        self.ws.set_onmessage(self.on_message.js_ref());
+    pub fn set_on_message(&mut self, f:impl FnMut(web_sys::MessageEvent) + 'static) {
+        self.with_borrow_mut_model(move |model| model.on_message.set_callback(f))
     }
 
     /// Sets callback for the `open` event.
-    pub fn set_on_open(&mut self, f:impl FnMut(Event) + 'static) {
-        self.on_open.wrap(f);
-        self.ws.set_onopen(self.on_open.js_ref());
-    }
-
-    /// Clears all the available callbacks.
-    pub fn clear_callbacks(&mut self) {
-        self.on_close  .clear();
-        self.on_error  .clear();
-        self.on_message.clear();
-        self.on_open   .clear();
-        self.ws.set_onclose(None);
-        self.ws.set_onerror(None);
-        self.ws.set_onmessage(None);
-        self.ws.set_onopen(None);
+    pub fn set_on_open(&mut self, f:impl FnMut(web_sys::Event) + 'static) {
+        self.with_borrow_mut_model(move |model| model.on_open.set_callback(f))
     }
 
     /// Executes a given function with a mutable reference to the socket.
@@ -218,7 +367,9 @@ impl WebSocket {
     ///
     /// Fails if the socket is not opened or if the sending function failed.
     /// The error from `F` shall be translated into `SendingError`.
-    pub fn send_with_open_socket<F,R>(&mut self, f:F) -> Result<R,Error>
+    ///
+    /// WARNING: `f` works under borrow_mut and must not give away control.
+    fn send_with_open_socket<F,R>(&mut self, f:F) -> Result<R,Error>
     where F : FnOnce(&mut web_sys::WebSocket) -> Result<R,JsValue> {
         // Sending through the closed WebSocket can return Ok() with error only
         // appearing in the log. We explicitly check for this to get failure as
@@ -230,7 +381,7 @@ impl WebSocket {
         if state != State::Open {
             Err(SendingError::NotOpen(state).into())
         } else {
-            let result = f(&mut self.ws);
+            let result = f(&mut self.model.borrow_mut().socket);
             result.map_err(|e| SendingError::from_send_error(e).into())
         }
     }
@@ -238,13 +389,13 @@ impl WebSocket {
 
 impl Transport for WebSocket {
     fn send_text(&mut self, message:&str) -> Result<(), Error> {
-        info!(self.logger, "Sending text message of length {message.len()}");
+        info!(self.logger, "Sending text message of length {message.len()}.");
         debug!(self.logger, "Message contents: {message}");
         self.send_with_open_socket(|ws| ws.send_with_str(message))
     }
 
     fn send_binary(&mut self, message:&[u8]) -> Result<(), Error> {
-        info!(self.logger, "Sending binary message of length {message.len()}");
+        info!(self.logger, "Sending binary message of length {message.len()}.");
         debug!(self.logger,|| format!("Message contents: {:x?}", message));
         // TODO [mwu]
         //   Here we workaround issue from wasm-bindgen 0.2.58:
@@ -289,5 +440,44 @@ impl Transport for WebSocket {
             info!(logger_copy,"Connection has been opened.");
             channel::emit(&transmitter, TransportEvent::Opened);
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use ensogl::system::web;
+    use std::time::Duration;
+
+
+    /// Provisional code allowing testing WS behavior and its events.
+    /// Keeping it for future debug purposes.
+    /// To run uncomment attribute line and invoke:
+    /// `cargo watch -- wasm-pack test .\ide\ --chrome  --  websocket_test`
+    //#[wasm_bindgen_test::wasm_bindgen_test]
+    #[allow(dead_code)]
+    async fn websocket_tests() {
+        executor::web::test::setup_and_forget();
+        let logger = DefaultTraceLogger::new("Test");
+        info!(logger,"Started");
+
+        // Create WebSocket
+        let ws     = WebSocket::new_opened(&logger,"ws://localhost:30445").await;
+        let mut ws = ws.expect("Couldn't connect to WebSocket server.");
+        info!(logger,"WebSocket opened: {ws:?}");
+
+        // Log events
+        let handler = ws.establish_event_stream().for_each(f!([logger](event) {
+            info!(logger,"Socket emitted event: {event:?}");
+            futures::future::ready(())
+        }));
+
+        // Spawn task to process events stream.
+        executor::global::spawn(handler);
+
+        // Close socket after some delay.
+        web::sleep(Duration::from_secs(20)).await;
+        info!(logger,"Finished");
     }
 }

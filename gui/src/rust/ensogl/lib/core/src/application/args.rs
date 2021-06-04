@@ -10,7 +10,7 @@ use crate::prelude::*;
 // =================
 
 /// Marker trait used to disambiguate overlapping impls of [`ArgReader`].
-pub trait ArgMarker {}
+#[marker] pub trait ArgMarker {}
 
 /// Trait used to convert provided string arguments to the desired type.
 #[allow(missing_docs)]
@@ -74,7 +74,7 @@ impl ArgReader for bool {
 // =================
 
 /// Defines an application argument reader. As a result, a new lazy-initialized static variable
-/// `ARGS` will be created and it will read the arguments on its first access (in case you want to
+/// `ARGS` will be created, and it will read the arguments on its first access (in case you want to
 /// force argument read, use the `init` function).
 ///
 /// For example, given the following definition:

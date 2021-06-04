@@ -9,9 +9,9 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 enso-frp = { path = "../../../lib/frp" }
-enso-logger = { version = "0.2.2" }
-enso-prelude = { version = "0.1.10" }
-enso-shapely = { version = "0.1.4" }
+enso-logger = { version = "0.3.0" }
+enso-prelude = { version = "0.2.0" }
+enso-shapely = { version = "0.2.0" }
 enso-types = { path = "../../../lib/types" }
 ensogl-core = { path = "../core" }
 ensogl-text = { path = "../text" }
@@ -19,3 +19,4 @@ ensogl-theme = { path = "../theme" }
 
 [dev-dependencies]
 wasm-bindgen-test = { version = "0.3.8" }
+float_eq          = "0.5"

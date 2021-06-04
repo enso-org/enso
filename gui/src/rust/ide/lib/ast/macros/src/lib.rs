@@ -16,7 +16,7 @@ use proc_macro2::TokenStream;
 use proc_macro2::Ident;
 use proc_macro2::Span;
 use quote::quote;
-use syn;
+
 
 
 // ==============

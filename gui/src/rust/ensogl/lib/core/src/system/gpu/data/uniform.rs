@@ -176,20 +176,6 @@ impl<Value:Clone> {
     }
 }}
 
-impl<Value:UniformUpload> UniformData<Value> {
-    /// Uploads the uniform data to the provided location of the currently bound shader program.
-    pub fn upload(&self, context:&Context, location:&WebGlUniformLocation) {
-        self.value.upload_uniform(context,location);
-    }
-}
-
-impl<Value:UniformUpload> Uniform<Value> {
-    /// Uploads the uniform data to the provided location of the currently bound shader program.
-    pub fn upload(&self, context:&Context, location:&WebGlUniformLocation) {
-        self.rc.borrow().upload(context,location)
-    }
-}
-
 
 
 // ========================
@@ -241,7 +227,20 @@ crate::with_all_prim_types!([[define_any_prim_uniform][]]);
 /// Set of operations exposed by the `AnyPrimUniform` value.
 #[enum_dispatch]
 pub trait AnyPrimUniformOps {
+    /// Uploads the uniform data to the provided location of the currently bound shader program.
     fn upload(&self, context:&Context, location:&WebGlUniformLocation);
+}
+
+impl<Value:UniformUpload> AnyPrimUniformOps for Uniform<Value> {
+    fn upload(&self, context:&Context, location:&WebGlUniformLocation) {
+        self.rc.borrow().upload(context,location)
+    }
+}
+
+impl<Value:UniformUpload> AnyPrimUniformOps for UniformData<Value> {
+    fn upload(&self, context:&Context, location:&WebGlUniformLocation) {
+        self.value.upload_uniform(context,location)
+    }
 }
 
 

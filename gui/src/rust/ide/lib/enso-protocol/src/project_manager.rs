@@ -100,7 +100,7 @@ impl Display for IpWithSocket {
 }
 
 /// Project name.
-#[derive(Debug,Display,Clone,Serialize,Deserialize,From,PartialEq,Shrinkwrap)]
+#[derive(Clone,Debug,Deserialize,Display,Eq,From,Hash,PartialEq,Serialize,Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct ProjectName(pub String);
 
@@ -109,6 +109,14 @@ impl ProjectName {
     pub fn new(name : impl Str) -> Self {
         Self(name.into())
     }
+}
+
+impl AsRef<str> for ProjectName {
+    fn as_ref(&self) -> &str { &self.0 }
+}
+
+impl From<ProjectName> for String {
+    fn from(name:ProjectName) -> Self { name.0 }
 }
 
 /// Project information, such as name, its id and last time it was opened.

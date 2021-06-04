@@ -70,15 +70,15 @@ impl Default for Shape {
     }
 }
 
-impl Into<Vector2<f32>> for Shape {
-    fn into(self) -> Vector2<f32> {
-        Vector2::new(self.width,self.height)
+impl From<Shape> for Vector2<f32> {
+    fn from(value:Shape) -> Self {
+        Vector2::new(value.width,value.height)
     }
 }
 
-impl Into<Vector2<f32>> for &Shape {
-    fn into(self) -> Vector2<f32> {
-        Vector2::new(self.width,self.height)
+impl From<&Shape> for Vector2<f32> {
+    fn from(value:&Shape) -> Self {
+        Vector2::new(value.width,value.height)
     }
 }
 

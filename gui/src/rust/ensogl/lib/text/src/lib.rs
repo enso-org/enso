@@ -70,10 +70,9 @@
 //!   into a sequence of glyphs within the specified font. The rules for this conversion might be
 //!   complicated, locale dependent, and are beyond the scope of the Unicode standard.
 
-#![feature(clamp)]
-#![feature(saturating_neg)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
+#![feature(option_zip)]
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]

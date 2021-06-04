@@ -33,14 +33,12 @@ mod tests {
             blah : String,
             boom : Vec<i32>,
         }
-        ;
         #[derive(Debug,Deserialize,PartialEq,Serialize)]
         struct Bar {
             #[serde(deserialize_with = "deserialize_or_default")]
             blah : String,
             boom : Vec<i32>,
         }
-        ;
         let code   = r#"{"blah" : {}, "boom" : [1,2,3] }"#;
         let result = serde_json::from_str::<Foo>(code);
         assert!(result.is_err());

@@ -97,8 +97,8 @@ impl World {
             })
         );
 
-        Self{scene,scene_dirty,logger,main_loop,uniforms,main_loop_frame,stats,stats_monitor
-            ,on_before_frame,on_after_frame}.init()
+        Self {logger,scene,scene_dirty,main_loop,uniforms,stats,stats_monitor,main_loop_frame
+             ,on_before_frame,on_after_frame}.init()
     }
 
     fn init(self) -> Self {

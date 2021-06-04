@@ -57,7 +57,7 @@ impl BitField for BitField256 {
     }
 
     #[inline]
-    #[allow(clippy::collapsible_if)]
+    #[allow(clippy::collapsible_else_if)]
     fn set_bit(&mut self, bit:usize, value:bool) -> &mut Self {
         assert!(bit < Self::BIT_LENGTH);
         if value {

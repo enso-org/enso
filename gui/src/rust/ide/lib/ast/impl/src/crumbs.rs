@@ -62,13 +62,13 @@ impl<T> IndexedAccess for ShiftedVec1<T> {
 
 
 #[allow(missing_docs)]
-#[fail(display = "The crumb refers to a {} which is not present.", _0)]
 #[derive(Debug,Fail,Clone)]
+#[fail(display = "The crumb refers to a {} which is not present.", _0)]
 pub struct NotPresent(String);
 
 #[allow(missing_docs)]
-#[fail(display = "The crumb refers to {} by index that is out of bounds.", _0)]
 #[derive(Debug,Fail,Clone)]
+#[fail(display = "The crumb refers to {} by index that is out of bounds.", _0)]
 pub struct IndexOutOfBounds(String);
 
 #[allow(missing_docs)]

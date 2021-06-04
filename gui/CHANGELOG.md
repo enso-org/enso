@@ -1,3 +1,53 @@
+# Enso 2.0.0-alpha.5 (2021-05-14)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [Create New Project action in Searcher][1566]. When you bring the searcher
+  with tab having no node selected, a new action will be available next to the
+  examples and code suggestions: `Create New Project`. When you choose it by
+  clicking with mouse or selecting and pressing enter, a new unnamed project
+  will be created and opened in the application. Then you can give a name to
+  this project.
+
+#### EnsoGL (rendering engine)
+
+- [Components for picking numbers and ranges.][1524]. We now have some internal
+  re-usable UI components for selecting numbers or a range. Stay tuned for them
+  appearing in the IDE.
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
+
+- [Delete key will delete selected nodes][1538]. Only the non-intuitive
+  backspace key was assigned to this action before.
+- [It is possible to move around after deleting a node with a selected
+  visualization][1556]. Deleting a node while its attached visualization was
+  selected made it impossible to pan or zoom around the stage afterwards. This
+  error is fixed now.
+- [Fixed an internal error that would make the IDE fail on some browser.][1561].
+  Instead of crashing on browser that don't support the feature we use, we are
+  now just start a little bit slower.
+
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.11][1541].
+
+If you're interested in the enhancements and fixes made to the Enso compiler,
+you can find their release notes
+[here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1541]: https://github.com/enso-org/ide/pull/1541
+[1538]: https://github.com/enso-org/ide/pull/1538
+[1524]: https://github.com/enso-org/ide/pull/1524
+[1556]: https://github.com/enso-org/ide/pull/1556
+[1561]: https://github.com/enso-org/ide/pull/1561
+[1566]: https://github.com/enso-org/ide/pull/1566
+
+<br/>
+
 # Enso 2.0.0-alpha.4 (2021-05-04)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
@@ -83,6 +133,9 @@ you can find their release notes
   values of the precomputed bins, which is useful when the dataset is relatively
   big, and it's cheaper to send the precomputed bins rather than the entire
   dataset.
+- [Output type labels.][1427] The labels, that show the output type of a node on
+  hover, appear now in a fixed position right below the node, instead of a
+  pop-up, as they did before.
 
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
 

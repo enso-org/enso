@@ -379,6 +379,10 @@ macro_rules! define_endpoints {
                 self.status_map.clone()
             }
         }
+
+        impl $crate::application::command::FrpNetworkProvider for Frp {
+            fn network(&self) -> &$crate::frp::Network { &self.network }
+        }
     };
 }
 

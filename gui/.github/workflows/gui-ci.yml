@@ -78,6 +78,7 @@ jobs:
         run: >-
           if [[ ${{ contains(steps.changed_files.outputs.list,'CHANGELOG.md') ||
           contains(github.event.head_commit.message,'[ci no changelog needed]')
+          || contains(github.event.pull_request.body,'[ci no changelog needed]')
           }} == false ]]; then exit 1; fi
         if: >-
           github.base_ref == 'develop' || github.base_ref == 'unstable' ||
@@ -103,7 +104,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2019-11-04
+          toolchain: nightly-2021-05-12
           override: true
       - name: Install Prettier
         run: npm install --save-dev --save-exact prettier
@@ -132,7 +133,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2019-11-04
+          toolchain: nightly-2021-05-12
           override: true
       - name: Run tests (no WASM)
         run: node ./run test --no-wasm --skip-version-validation
@@ -153,7 +154,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2019-11-04
+          toolchain: nightly-2021-05-12
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -207,7 +208,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2019-11-04
+          toolchain: nightly-2021-05-12
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -246,10 +247,11 @@ jobs:
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
     if: >-
-      !(contains(github.event.head_commit.message,'[ci build]') || github.ref ==
+      !(contains(github.event.pull_request.body,'[ci build]') ||
+      contains(github.event.head_commit.message,'[ci build]') || github.ref ==
       'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
-      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
-      'refs/heads/stable')
+      == 'stable' || (github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/stable'))
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -278,7 +280,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2019-11-04
+          toolchain: nightly-2021-05-12
           override: true
       - name: Install wasm-pack (macOS)
         env:
@@ -375,10 +377,11 @@ jobs:
             dist/client/enso-linux-${{fromJson(steps.changelog.outputs.content).version}}.AppImage.sha256
         if: startsWith(matrix.os,'ubuntu')
     if: >-
+      contains(github.event.pull_request.body,'[ci build]') ||
       contains(github.event.head_commit.message,'[ci build]') || github.ref ==
       'refs/heads/develop' || github.base_ref == 'unstable' || github.base_ref
-      == 'stable' || github.ref == 'refs/heads/unstable' || github.ref ==
-      'refs/heads/stable'
+      == 'stable' || (github.ref == 'refs/heads/unstable' || github.ref ==
+      'refs/heads/stable')
   release_to_github:
     name: GitHub Release
     runs-on: ${{ matrix.os }}
@@ -484,7 +487,8 @@ jobs:
         run: >-
           aws s3 cp ./artifacts/content/assets/ide.wasm
           s3://ensocdn/ide/${{fromJson(steps.changelog.outputs.content).version}}/ide.wasm
-          --profile s3-upload --acl public-read
+          --profile s3-upload --acl public-read --content-type
+          'application/wasm'
       - name: Upload 'wasm_imports.js.gz' to CDN
         shell: bash
         run: >-

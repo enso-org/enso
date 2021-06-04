@@ -90,7 +90,7 @@ impl<Callback> RawLoopData<Callback> {
     fn new(callback:Callback) -> Self {
         let on_frame  = default();
         let handle_id = default();
-        Self {on_frame,callback,handle_id}
+        Self {callback,on_frame,handle_id}
     }
 
     /// Run the animation frame.
@@ -144,6 +144,7 @@ where Callback : LoopCallback {
     }
 }
 
+/// Callback for an animation frame.
 pub type OnFrame<Callback> = impl FnMut(f32);
 fn on_frame<Callback>(mut callback:Callback, time_info_ref:Rc<Cell<TimeInfo>>) -> OnFrame<Callback>
 where Callback : LoopCallback {

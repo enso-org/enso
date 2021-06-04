@@ -3,18 +3,16 @@
 use crate::prelude::*;
 
 use crate::config;
+use crate::controller::project::ENGINE_VERSION_FOR_NEW_PROJECTS;
 use crate::ide::Ide;
 use crate::transport::web::WebSocket;
 
-use enso_protocol::binary;
-use enso_protocol::language_server;
 use enso_protocol::project_manager;
 use enso_protocol::project_manager::ProjectName;
 use uuid::Uuid;
 use ensogl::application::Application;
 use ensogl::system::web;
-use ensogl::system::web::platform;
-use ensogl::system::web::platform::Platform;
+
 
 
 // =================
@@ -25,11 +23,6 @@ use ensogl::system::web::platform::Platform;
 //     download required version of Engine. This should be handled properly when implementing
 //     https://github.com/enso-org/ide/issues/1034
 const PROJECT_MANAGER_TIMEOUT_SEC     : u64  = 2 * 60 * 60;
-const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.10";
-
-// Usually it is a good idea to synchronize this version with the bundled Engine version in
-// src/js/lib/project-manager/src/build.ts. See also https://github.com/enso-org/ide/issues/1359
-const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.10";
 
 
 
@@ -62,7 +55,7 @@ impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config:config::Startup) -> Self {
         let logger = Logger::new("ide::Initializer");
-        Self{logger,config}
+        Self{config,logger}
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
@@ -71,19 +64,20 @@ impl Initializer {
         let executor = setup_global_executor();
         executor::global::spawn(async move {
             info!(self.logger, "Starting IDE with the following config: {self.config:?}");
-            let project_model = self.initialize_project_model();
+
             let application   = Application::new(&web::get_html_element_by_id("root").unwrap());
             let view          = application.new_view::<ide_view::project::View>();
             let status_bar    = view.status_bar().clone_ref();
+            // We know the name of new project before it loads. We set it right now to avoid
+            // displaying placeholder on the scene during loading.
             view.graph().model.breadcrumbs.project_name(self.config.project_name.to_string());
             application.display.add_child(&view);
             // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
             //      issues to user, such information should be properly passed
             //      in case of setup failure.
-            let result = (async {
-                let project_model = project_model.await?;
-                self.display_warning_on_unsupported_engine_version(&view,&project_model)?;
-                Ide::new(application,view.clone_ref(),project_model).await
+            let result:FallibleResult<Ide> = (async {
+                let controller    = self.initialize_ide_controller().await?;
+                Ok(Ide::new(application,view.clone_ref(),controller).await)
             }).await;
 
             match result {
@@ -108,33 +102,30 @@ impl Initializer {
         std::mem::forget(executor);
     }
 
-    /// Initialize and return a new Project Model.
+    /// Initialize and return a new Ide Controller.
     ///
     /// This will setup all required connections to backend properly, according to the
     /// configuration.
-    pub async fn initialize_project_model(&self) -> FallibleResult<model::Project> {
+    pub async fn initialize_ide_controller(&self) -> FallibleResult<controller::Ide> {
         use crate::config::BackendService::*;
         match &self.config.backend {
             ProjectManager { endpoint } => {
                 let project_manager = self.setup_project_manager(endpoint).await?;
-                let logger          = self.logger.clone_ref();
                 let project_name    = self.config.project_name.clone();
-                let initializer     = WithProjectManager {logger,project_manager,project_name};
-                initializer.initialize_project_model().await
+                let controller      = controller::ide::Desktop::new_with_opened_project
+                    (project_manager,project_name).await?;
+                Ok(Rc::new(controller))
             }
             LanguageServer {json_endpoint,binary_endpoint} => {
-                let logger          = &self.logger;
-                let project_manager = None;
                 let json_endpoint   = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
+                let project_name    = self.config.project_name.clone();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
-                let version         = ENGINE_VERSION_FOR_NEW_PROJECTS.to_owned();
-                let project_id      = default();
-                let project_name    = self.config.project_name.clone();
-                let project_model   = create_project_model(logger,project_manager,json_endpoint
-                    ,binary_endpoint,version,project_id,project_name);
-                project_model.await
+                let version    = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS)?;
+                let controller = controller::ide::Plain::from_ls_endpoints
+                    (project_name,version,json_endpoint,binary_endpoint).await?;
+                Ok(Rc::new(controller))
             }
         }
     }
@@ -148,29 +139,6 @@ impl Initializer {
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());
         Ok(Rc::new(project_manager))
-    }
-
-    fn display_warning_on_unsupported_engine_version
-    (&self, view:&ide_view::project::View, project:&model::Project) -> FallibleResult {
-        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
-        let version      = project.engine_version();
-        if !requirements.matches(version) {
-            let message = format!("Unsupported Engine version. Please update engine_version in {} \
-                to {}.",self.package_yaml_path(),ENGINE_VERSION_FOR_NEW_PROJECTS);
-            let label   = ide_view::status_bar::event::Label::from(message);
-            view.status_bar().add_event(label);
-        }
-        Ok(())
-    }
-
-    fn package_yaml_path(&self) -> String {
-        let project_name = &self.config.project_name;
-        match platform::current() {
-            Some(Platform::Linux)   |
-            Some(Platform::MacOS)   => format!("~/enso/projects/{}/package.yaml", project_name),
-            Some(Platform::Windows) => format!("%userprofile%\\enso\\projects\\{}\\package.yaml", project_name),
-            _ => format!("<path-to-enso-projects>/{}/package.yaml", project_name)
-        }
     }
 }
 
@@ -198,9 +166,9 @@ pub struct WithProjectManager {
 impl WithProjectManager {
     /// Constructor.
     pub fn new
-    (parent:impl AnyLogger, project_manager:Rc<dyn project_manager::API>, project_name:ProjectName)
+    (project_manager:Rc<dyn project_manager::API>, project_name:ProjectName)
      -> Self {
-        let logger = Logger::sub(parent,"WithProjectManager");
+        let logger = Logger::new("initializer::WithProjectManager");
         Self {logger,project_manager,project_name}
     }
 
@@ -208,19 +176,12 @@ impl WithProjectManager {
     ///
     /// If the project with given name does not exist yet, it will be created.
     pub async fn initialize_project_model(self) -> FallibleResult<model::Project> {
-        use project_manager::MissingComponentAction::*;
-
         let project_id      = self.get_project_or_create_new().await?;
-        let opened_project  = self.project_manager.open_project(&project_id,&Install).await?;
         let logger          = &self.logger;
-        let json_endpoint   = opened_project.language_server_json_address.to_string();
-        let binary_endpoint = opened_project.language_server_binary_address.to_string();
-        let engine_version  = opened_project.engine_version;
-        let project_manager = Some(self.project_manager);
+        let project_manager = self.project_manager;
         let project_name    = self.project_name;
-        let project_model   = create_project_model(logger,project_manager,json_endpoint
-            ,binary_endpoint,engine_version,project_id,project_name);
-        project_model.await
+        model::project::Synchronized::new_opened(logger,project_manager,project_id,project_name)
+            .await
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.
@@ -267,33 +228,6 @@ pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
     executor
 }
 
-/// Initializes the json and binary connection to Language Server, and creates a Project Model
-async fn create_project_model
-(logger : &Logger
- , project_manager : Option<Rc<dyn project_manager::API>>
- , json_endpoint   : String
- , binary_endpoint : String
- , engine_version  : String
- , project_id      : Uuid
- , project_name    : ProjectName
-) -> FallibleResult<model::Project> {
-    info!(logger, "Establishing Language Server connection.");
-    let client_id     = Uuid::new_v4();
-    let json_ws       = WebSocket::new_opened(logger,json_endpoint).await?;
-    let binary_ws     = WebSocket::new_opened(logger,binary_endpoint).await?;
-    let client_json   = language_server::Client::new(json_ws);
-    let client_binary = binary::Client::new(logger,binary_ws);
-    crate::executor::global::spawn(client_json.runner());
-    crate::executor::global::spawn(client_binary.runner());
-    let connection_json   = language_server::Connection::new(client_json,client_id).await?;
-    let connection_binary = binary::Connection::new(client_binary,client_id).await?;
-    let version           = semver::Version::parse(&engine_version)?;
-    let ProjectName(name) = project_name;
-    let project           = model::project::Synchronized::from_connections
-        (logger,project_manager,connection_json,connection_binary,version,project_id,name).await?;
-    Ok(Rc::new(project))
-}
-
 
 
 // =============
@@ -308,13 +242,6 @@ mod test {
     use wasm_bindgen_test::wasm_bindgen_test;
 
 
-
-    #[test]
-    fn new_project_engine_version_fills_requirements() {
-        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED).unwrap();
-        let version      = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS).unwrap();
-        assert!(requirements.matches(&version))
-    }
 
     #[wasm_bindgen_test(async)]
     async fn get_project_or_create_new() {

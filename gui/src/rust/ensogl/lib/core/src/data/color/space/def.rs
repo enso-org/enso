@@ -388,7 +388,7 @@ impl Rgb {
     }
 
     /// Convert the color to JavaScript representation.
-    pub fn to_javascript_string(&self) -> String {
+    pub fn to_javascript_string(self) -> String {
         let red   = (self.red*255.0).round() as i32;
         let green = (self.green*255.0).round() as i32;
         let blue  = (self.blue*255.0).round() as i32;
@@ -397,6 +397,16 @@ impl Rgb {
 }
 
 impl Rgba {
+    /// Constructor.
+    pub fn black() -> Self {
+        Self::new(0.0,0.0,0.0,1.0)
+    }
+
+    /// Constructor.
+    pub fn white() -> Self {
+        Self::new(1.0,1.0,1.0,1.0)
+    }
+
     /// Constructor.
     pub fn red() -> Self {
         Self::new(1.0,0.0,0.0,1.0)
@@ -423,7 +433,7 @@ impl Rgba {
     }
 
     /// Convert the color to JavaScript representation.
-    pub fn to_javascript_string(&self) -> String {
+    pub fn to_javascript_string(self) -> String {
         let red   = (self.red*255.0).round() as i32;
         let green = (self.green*255.0).round() as i32;
         let blue  = (self.blue*255.0).round() as i32;
@@ -517,7 +527,7 @@ impl Lcha {
     pub fn violet      (l:f32, c:f32) -> Lcha { Lch::violet     (l,c) . into() }
 
     /// Convert the color to JavaScript representation.
-    pub fn to_javascript_string(&self) -> String {
+    pub fn to_javascript_string(self) -> String {
         Rgba::from(self).to_javascript_string()
     }
 }

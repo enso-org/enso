@@ -10,7 +10,6 @@
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(type_ascription)]
-#![feature(matches_macro)]
 #![feature(exact_size_is_empty)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]

@@ -68,7 +68,7 @@ where mix::Repr<T> : inertia::Value {
         }
         let value = value_src.into();
         network.store(&simulator);
-        Self{target,precision,value,skip}
+        Self{target,precision,skip,value}
     }
 
     /// Constructor. The initial value is provided explicitly.
