@@ -1,6 +1,7 @@
 package org.enso.languageserver.search
 
 import java.util.UUID
+import java.util.concurrent.Executors
 
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
@@ -37,7 +38,8 @@ import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
-import scala.concurrent.Future
+import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /** The handler of search requests.
@@ -88,8 +90,7 @@ final class SuggestionsHandler(
     with LazyLogging
     with UnhandledLogging {
 
-  import SuggestionsHandler.ProjectNameUpdated
-  import context.dispatcher
+  import SuggestionsHandler._
 
   private val timeout = config.executionContext.requestTimeout
 
@@ -173,7 +174,7 @@ final class SuggestionsHandler(
 
     case SuggestionsHandler.Verified =>
       logger.info("Verified.")
-      context.become(initialized(projectName, graph, Set()))
+      context.become(initialized(projectName, graph, Set(), State()))
       unstashAll()
 
     case _ =>
@@ -183,24 +184,33 @@ final class SuggestionsHandler(
   def initialized(
     projectName: String,
     graph: TypeGraph,
-    clients: Set[ClientId]
+    clients: Set[ClientId],
+    state: State
   ): Receive = {
     case AcquireCapability(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       sender() ! CapabilityAcquired
-      context.become(initialized(projectName, graph, clients + client.clientId))
+      context.become(
+        initialized(projectName, graph, clients + client.clientId, state)
+      )
 
     case ReleaseCapability(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       sender() ! CapabilityReleased
-      context.become(initialized(projectName, graph, clients - client.clientId))
+      context.become(
+        initialized(projectName, graph, clients - client.clientId, state)
+      )
+
+    case msg: Api.SuggestionsDatabaseModuleUpdateNotification
+        if state.isSuggestionUpdatesRunning =>
+      state.suggestionUpdatesQueue.enqueue(msg)
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
-      log.debug("Got module update [{}].", MaskedPath(msg.file.toPath))
+      logger.debug("Got module update [{}].", MaskedPath(msg.file.toPath))
       val isVersionChanged =
         fileVersionsRepo.getVersion(msg.file).map { digestOpt =>
           !digestOpt.map(ContentVersion(_)).contains(msg.version)
@@ -213,7 +223,7 @@ final class SuggestionsHandler(
       applyUpdatesIfVersionChanged
         .onComplete {
           case Success(Some(notification)) =>
-            log.debug(
+            logger.debug(
               "Complete module update [{}].",
               MaskedPath(msg.file.toPath)
             )
@@ -222,11 +232,13 @@ final class SuggestionsHandler(
                 sessionRouter ! DeliverToJsonController(clientId, notification)
               }
             }
+            self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Success(None) =>
-            log.warning(
-              "Empty module update [{}].",
+            logger.debug(
+              "Skip module update, version not changed [{}].",
               MaskedPath(msg.file.toPath)
             )
+            self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
               "Error applying suggestion database updates [{}, {}]. {}",
@@ -234,7 +246,16 @@ final class SuggestionsHandler(
               msg.version,
               ex.getMessage
             )
+            self ! SuggestionsHandler.SuggestionUpdatesCompleted
         }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionUpdatesRunning = true)
+        )
+      )
 
     case Api.ExpressionUpdates(_, updates) =>
       logger.debug(
@@ -412,7 +433,21 @@ final class SuggestionsHandler(
 
     case ProjectNameUpdated(name, updates) =>
       updates.foreach(sessionRouter ! _)
-      context.become(initialized(name, graph, clients))
+      context.become(initialized(name, graph, clients, state))
+
+    case SuggestionUpdatesCompleted =>
+      if (state.suggestionUpdatesQueue.nonEmpty) {
+        self ! state.suggestionUpdatesQueue.dequeue()
+      }
+      context.become(
+        initialized(
+          projectName,
+          graph,
+          clients,
+          state.copy(isSuggestionUpdatesRunning = false)
+        )
+      )
+
   }
 
   /** Transition the initialization process.
@@ -561,6 +596,9 @@ final class SuggestionsHandler(
 
 object SuggestionsHandler {
 
+  implicit private val dispatcher: ExecutionContext =
+    ExecutionContext.fromExecutorService(Executors.newSingleThreadExecutor())
+
   /** The notification about the project name update.
     *
     * @param projectName the new project name
@@ -583,6 +621,9 @@ object SuggestionsHandler {
 
   /** The notification that the suggestions database has been verified. */
   case object Verified
+
+  /** The notification that the suggestion updates are processed. */
+  case object SuggestionUpdatesCompleted
 
   /** The initialization state of the handler.
     *
@@ -608,6 +649,18 @@ object SuggestionsHandler {
         graph <- typeGraph
       } yield (name, graph)
   }
+
+  /** The suggestion updates state.
+    *
+    * @param suggestionUpdatesQueue the queue containing update messages
+    * @param isSuggestionUpdatesRunning a flag for a running update action
+    */
+  case class State(
+    suggestionUpdatesQueue: mutable.Queue[
+      Api.SuggestionsDatabaseModuleUpdateNotification
+    ]                                   = mutable.Queue.empty,
+    isSuggestionUpdatesRunning: Boolean = false
+  )
 
   /** Creates a configuration object used to create a [[SuggestionsHandler]].
     *
