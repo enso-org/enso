@@ -21,7 +21,8 @@
 
 #### Visual Environment
 
-- [Delete key will delete selected nodes][1538].
+- [Delete key will delete selected nodes][1538]. Only the non-intuitive
+  backspace key was assigned to this action before.
 - [It is possible to move around after deleting a node with a selected
   visualization][1556]. Deleting a node while its attached visualization was
   selected made it impossible to pan or zoom around the stage afterwards. This
