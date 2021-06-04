@@ -40,24 +40,24 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(initQuery)
+    db.run(initQuery.transactionally)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
-    db.run(cleanQuery)
+    db.run(cleanQuery.transactionally)
 
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
-    db.run(getAllQuery)
+    db.run(getAllQuery.transactionally)
 
   /** @inheritdoc */
   override def getAllMethods(
     calls: Seq[(String, String, String)]
   ): Future[Seq[Option[Long]]] =
-    db.run(getAllMethodsQuery(calls))
+    db.run(getAllMethodsQuery(calls).transactionally)
 
   override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery)
+    db.run(getAllModulesQuery.transactionally)
 
   /** @inheritdoc */
   override def search(
@@ -67,47 +67,49 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     kinds: Option[Seq[Suggestion.Kind]],
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(module, selfType, returnType, kinds, position))
+    db.run(
+      searchQuery(module, selfType, returnType, kinds, position).transactionally
+    )
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
-    db.run(selectQuery(id))
+    db.run(selectQuery(id).transactionally)
 
   /** @inheritdoc */
   override def insert(suggestion: Suggestion): Future[Option[Long]] =
-    db.run(insertQuery(suggestion))
+    db.run(insertQuery(suggestion).transactionally)
 
   /** @inheritdoc */
   override def insertAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
-    db.run(insertAllQuery(suggestions))
+    db.run(insertAllQuery(suggestions).transactionally)
 
   /** @inheritdoc */
   override def applyTree(
     tree: Tree[SuggestionUpdate]
   ): Future[(Long, Seq[QueryResult[SuggestionUpdate]])] =
-    db.run(applyTreeQuery(tree))
+    db.run(applyTreeQuery(tree).transactionally)
 
   /** @inheritdoc */
   override def applyActions(
     actions: Seq[SuggestionsDatabaseAction]
   ): Future[Seq[QueryResult[SuggestionsDatabaseAction]]] =
-    db.run(applyActionsQuery(actions))
+    db.run(applyActionsQuery(actions).transactionally)
 
   /** @inheritdoc */
   override def remove(suggestion: Suggestion): Future[Option[Long]] =
-    db.run(removeQuery(suggestion))
+    db.run(removeQuery(suggestion).transactionally)
 
   /** @inheritdoc */
   override def removeModules(modules: Seq[String]): Future[(Long, Seq[Long])] =
-    db.run(removeByModuleQuery(modules))
+    db.run(removeByModuleQuery(modules).transactionally)
 
   /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
-    db.run(removeAllQuery(suggestions))
+    db.run(removeAllQuery(suggestions).transactionally)
 
   /** @inheritdoc */
   override def update(
@@ -126,14 +128,14 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         returnType,
         documentation,
         scope
-      )
+      ).transactionally
     )
 
   /** @inheritdoc */
   override def updateAll(
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): Future[(Long, Seq[Option[Long]])] =
-    db.run(updateAllQuery(expressions))
+    db.run(updateAllQuery(expressions).transactionally)
 
   /** @inheritdoc */
   override def renameProject(
@@ -148,11 +150,11 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       Seq[(Long, Int, String)]
     )
   ] =
-    db.run(renameProjectQuery(oldName, newName))
+    db.run(renameProjectQuery(oldName, newName).transactionally)
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
-    db.run(currentVersionQuery)
+    db.run(currentVersionQuery.transactionally)
 
   /** Close the database. */
   def close(): Unit =

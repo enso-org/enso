@@ -14,36 +14,36 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** Initialize the repo. */
   override def init: Future[Unit] =
-    db.run(initQuery)
+    db.run(initQuery.transactionally)
 
   /** @inheritdoc */
   override def getVersion(file: File): Future[Option[Array[Byte]]] =
-    db.run(getVersionQuery(file))
+    db.run(getVersionQuery(file).transactionally)
 
   /** @inheritdoc */
   override def setVersion(
     file: File,
     digest: Array[Byte]
   ): Future[Option[Array[Byte]]] =
-    db.run(setVersionQuery(file, digest))
+    db.run(setVersionQuery(file, digest).transactionally)
 
   /** @inheritdoc */
   override def updateVersion(file: File, digest: Array[Byte]): Future[Boolean] =
-    db.run(updateVersionQuery(file, digest))
+    db.run(updateVersionQuery(file, digest).transactionally)
 
   /** @inheritdoc */
   override def updateVersions(
     versions: Seq[(File, Array[Byte])]
   ): Future[Unit] =
-    db.run(updateVersionsQuery(versions))
+    db.run(updateVersionsQuery(versions).transactionally)
 
   /** @inheritdoc */
   override def remove(file: File): Future[Unit] =
-    db.run(removeQuery(file))
+    db.run(removeQuery(file).transactionally)
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
-    db.run(cleanQuery)
+    db.run(cleanQuery.transactionally)
 
   /** Close the database. */
   def close(): Unit =
