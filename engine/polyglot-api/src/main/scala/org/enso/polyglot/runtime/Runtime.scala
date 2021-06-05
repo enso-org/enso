@@ -574,6 +574,7 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
+        documentationHtml: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None
       ) extends SuggestionAction
           with ToLogString {
@@ -586,6 +587,9 @@ object Runtime {
           s"documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
+          s"documentationHtml=" +
+          (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
+           else documentationHtml) +
           s",scope=$scope" +
           ")"
       }
