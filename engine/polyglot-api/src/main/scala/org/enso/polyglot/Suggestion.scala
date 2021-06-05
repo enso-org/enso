@@ -132,7 +132,8 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    documentationHtml: Option[String]
   ) extends Suggestion
       with ToLogString {
 
@@ -145,6 +146,9 @@ object Suggestion {
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"returnType=$returnType,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      s",documentationHtml=" +
+      (if (shouldMask) documentationHtml.map(_ => STUB)
+       else documentationHtml) +
       ")"
   }
 
@@ -165,7 +169,8 @@ object Suggestion {
     arguments: Seq[Argument],
     selfType: String,
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    documentationHtml: Option[String]
   ) extends Suggestion
       with ToLogString {
 
@@ -178,6 +183,9 @@ object Suggestion {
       s"selfType=$selfType," +
       s"returnType=$returnType,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      s",documentationHtml=" +
+      (if (shouldMask) documentationHtml.map(_ => STUB)
+       else documentationHtml) +
       ")"
   }
 
