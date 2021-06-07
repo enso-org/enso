@@ -77,7 +77,7 @@ table Error {
 }
 
 // The error payload for a read out of bounds error.
-struct ReadOutOfBoundsError {
+table ReadOutOfBoundsError {
   // The actual length of the file in which the read was out of bounds.
   fileLength : ulong;
 }

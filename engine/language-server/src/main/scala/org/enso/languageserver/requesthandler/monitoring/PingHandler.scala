@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.monitoring
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{
   Errors,
   Id,
@@ -25,7 +26,7 @@ class PingHandler(
   timeout: FiniteDuration,
   shouldReplyWhenTimedOut: Boolean
 ) extends Actor
-    with ActorLogging {
+    with LazyLogging {
 
   import context.dispatcher
 
@@ -48,7 +49,7 @@ class PingHandler(
     count: Int = 0
   ): Receive = {
     case RequestTimeout =>
-      log.error(
+      logger.error(
         "Health check timed out. Only {}/{} subsystems replied on time.",
         count,
         subsystems.size

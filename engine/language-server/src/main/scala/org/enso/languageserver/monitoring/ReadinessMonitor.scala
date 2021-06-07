@@ -1,6 +1,7 @@
 package org.enso.languageserver.monitoring
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.event.InitializedEvent.{
   InitializationFailed,
   InitializationFinished
@@ -8,7 +9,7 @@ import org.enso.languageserver.event.InitializedEvent.{
 import org.enso.languageserver.monitoring.MonitoringProtocol.{IsReady, KO, OK}
 
 /** An actor that monitors if the system is ready to accept requests. */
-class ReadinessMonitor() extends Actor with ActorLogging {
+class ReadinessMonitor() extends Actor with LazyLogging {
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -28,7 +29,7 @@ class ReadinessMonitor() extends Actor with ActorLogging {
       context.become(ready())
 
     case InitializationFailed =>
-      log.error("Initialization failed. Terminating JVM...")
+      logger.error("Initialization failed. Terminating JVM...")
       System.exit(1)
   }
 

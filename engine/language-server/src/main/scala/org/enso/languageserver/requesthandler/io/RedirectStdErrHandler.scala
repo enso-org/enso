@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.io
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Request, ResponseResult, Unused}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.io.InputOutputApi.RedirectStandardError
@@ -14,7 +15,7 @@ import org.enso.languageserver.util.UnhandledLogging
   */
 class RedirectStdErrHandler(stdErrController: ActorRef, clientId: ClientId)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = {

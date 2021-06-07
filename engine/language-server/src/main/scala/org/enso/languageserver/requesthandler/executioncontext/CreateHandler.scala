@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.executioncontext
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.{
   CanModify,
@@ -29,7 +30,7 @@ class CreateHandler(
   contextRegistry: ActorRef,
   session: JsonSession
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import ContextRegistryProtocol._
@@ -51,7 +52,7 @@ class CreateHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

@@ -2,7 +2,8 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
@@ -48,7 +49,7 @@ class LanguageServerRegistry(
   loggingServiceDescriptor: LoggingServiceDescriptor,
   executor: LanguageServerExecutor
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = running()

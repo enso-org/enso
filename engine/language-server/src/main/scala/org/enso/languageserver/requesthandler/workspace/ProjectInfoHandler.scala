@@ -1,7 +1,8 @@
 package org.enso.languageserver.requesthandler.workspace
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
 import buildinfo.Info
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Request, ResponseError, ResponseResult}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.FileManagerApi
@@ -9,7 +10,6 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Config => PkgConfig}
-
 import java.io.{File, FileInputStream}
 import java.nio.charset.StandardCharsets
 
@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets
   */
 class ProjectInfoHandler(languageServerConfig: Config)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive = { case Request(ProjectInfo, id, _) =>
@@ -43,14 +43,14 @@ class ProjectInfoHandler(languageServerConfig: Config)
           projectInfo
         )
       } else {
-        log.error(
+        logger.error(
           "Could not decode the package configuration at [{}].",
           MaskedPath(configFile.toPath)
         )
         sender() ! ResponseError(Some(id), FileManagerApi.CannotDecodeError)
       }
     } else {
-      log.error(
+      logger.error(
         "Could not find the package configuration in the project at [{}].",
         MaskedPath(projectRoot.toPath)
       )

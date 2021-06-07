@@ -1,7 +1,8 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   DetachVisualisation,
@@ -43,7 +44,7 @@ final class ContextEventsListener(
   sessionRouter: ActorRef,
   updatesSendRate: FiniteDuration
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import ContextEventsListener.RunExpressionUpdates
@@ -195,7 +196,7 @@ final class ContextEventsListener(
               methodPointerToSuggestion.get(pointer) match {
                 case suggestionId @ Some(_) => suggestionId
                 case None =>
-                  log.error("Unable to find suggestion for [{}].", pointer)
+                  logger.error("Unable to find suggestion for [{}].", pointer)
                   None
               }
             },

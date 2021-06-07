@@ -20,6 +20,7 @@ ordering the results.
   - [Runtime Inspection](#runtime-inspection)
   - [Search Indexes](#search-indexes)
 - [Results Ranking](#results-ranking)
+- [Implementation](#implementation)
 
 <!-- /MarkdownTOC -->
 
@@ -45,18 +46,19 @@ directory. That way the index can be preserved between the IDE restarts.
 
 Suggestions table stores suggestion entries.
 
-| Column          | Type      | Description                                                         |
-| --------------- | --------- | ------------------------------------------------------------------- |
-| `id`            | `INTEGER` | the unique identifier                                               |
-| `externalId`    | `UUID`    | the external id from the IR                                         |
-| `kind`          | `INTEGER` | the type of suggestion entry, i.e. Atom, Method, Function, or Local |
-| `module`        | `TEXT`    | the module name                                                     |
-| `name`          | `TEXT`    | the suggestion name                                                 |
-| `self_type`     | `TEXT`    | the self type of the Method                                         |
-| `return_type`   | `TEXT`    | the return type of the entry                                        |
-| `scope_start`   | `INTEGER` | the start position of the definition scope                          |
-| `scope_end`     | `INTEGER` | the end position of the definition scope                            |
-| `documentation` | `TEXT`    | the documentation string                                            |
+| Column               | Type      | Description                                                         |
+| -------------------- | --------- | ------------------------------------------------------------------- |
+| `id`                 | `INTEGER` | the unique identifier                                               |
+| `externalId`         | `UUID`    | the external id from the IR                                         |
+| `kind`               | `INTEGER` | the type of suggestion entry, i.e. Atom, Method, Function, or Local |
+| `module`             | `TEXT`    | the module name                                                     |
+| `name`               | `TEXT`    | the suggestion name                                                 |
+| `self_type`          | `TEXT`    | the self type of the Method                                         |
+| `return_type`        | `TEXT`    | the return type of the entry                                        |
+| `scope_start`        | `INTEGER` | the start position of the definition scope                          |
+| `scope_end`          | `INTEGER` | the end position of the definition scope                            |
+| `documentation`      | `TEXT`    | the documentation string                                            |
+| `documentation_html` | `TEXT`    | the documentation string rendered as HTML                           |
 
 #### Arguments Table
 
@@ -91,6 +93,28 @@ Keeps track of SHA versions of the opened files.
 | -------- | ------ | --------------------------------- |
 | `path`   | `TEXT` | the unique identifier of the file |
 | `digest` | `BLOB` | the SHA hash of the file contents |
+
+#### Schema Version Table
+
+Schema version table has a single row with the current database schema version.
+It is used during the application startup to check that the database schema is
+up to date with the application version.
+
+| Column | Type      | Description                                                        |
+| ------ | --------- | ------------------------------------------------------------------ |
+| `id`   | `INTEGER` | unique identifier representing the currend database schema version |
+
+#### Suggestions Order Table
+
+Suggestions order table stores the order of the module-level entries in the
+source file. `suggestion_id` column is a foreign key that refers to the `id`
+primary key in the Suggestions table.
+
+| Column          | Type      | Description                              |
+| --------------- | --------- | ---------------------------------------- |
+| `suggestion_id` | `INTEGER` | the unique identifier of a suggestion    |
+| `prev_id`       | `INTEGER` | the suggestion that goes before this one |
+| `next_id`       | `INTEGER` | the suggestion that goes after this one  |
 
 ### Static Analysis
 

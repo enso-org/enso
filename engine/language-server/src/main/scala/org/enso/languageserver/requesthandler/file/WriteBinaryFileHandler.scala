@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor._
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
@@ -32,7 +33,7 @@ class WriteBinaryFileHandler(
   fileManager: ActorRef,
   replyTo: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -57,7 +58,7 @@ class WriteBinaryFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(
+      logger.error(
         "Failure during WriteBinaryFile operation: {}",
         MaskedString(ex.getMessage)
       )
@@ -67,7 +68,7 @@ class WriteBinaryFileHandler(
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request WriteBinaryFile [{}] timed out.", requestId)
+      logger.error("Request WriteBinaryFile [{}] timed out.", requestId)
       val packet = ErrorFactory.createServiceError(Some(requestId))
       replyTo ! packet
       context.stop(self)
