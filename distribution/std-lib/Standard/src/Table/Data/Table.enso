@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.System.Platform
 import Standard.Table.Data.Column
 import Standard.Table.Io.Csv
+import Standard.Visualization
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 
@@ -165,6 +166,18 @@ type Table
             items = c.to_vector.take_start max_size
             Json.from_pairs [['name', name], ['data', items]]
         Json.from_pairs [row_count, ['columns', cols]] . to_text
+
+    ## UNSTABLE
+       ADVANCED
+
+       Guides the visualization system to display the most suitable graphical
+       representation for this table.
+    default_visualization : Visualization.Id.Id
+    default_visualization =
+        cols = this.columns.map .name . map .to_lower_case
+        if cols.contains "latitude" && cols.contains "longitude" then Visualization.Id.geo_map else
+            if cols.contains "x" && cols.contains "y" then Visualization.Id.scatter_plot else
+                Visualization.Id.table
 
     ## Returns the column with the given name.
 

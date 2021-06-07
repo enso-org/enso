@@ -5,6 +5,7 @@ import Standard.Test
 import Visualization_Tests.Geo_Map_Spec
 import Visualization_Tests.Helpers_Spec
 import Visualization_Tests.Histogram_Spec
+import Visualization_Tests.Id_Spec
 import Visualization_Tests.Scatter_Plot_Spec
 import Visualization_Tests.Sql_Spec
 import Visualization_Tests.Table_Spec
@@ -14,6 +15,7 @@ main = Test.Suite.run_main <|
     Geo_Map_Spec.spec
     Helpers_Spec.spec
     Histogram_Spec.spec
+    Id_Spec.spec
     Scatter_Plot_Spec.spec
     Sql_Spec.spec
     Table_Spec.spec
