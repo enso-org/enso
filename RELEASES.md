@@ -31,6 +31,11 @@
   ([#1759](https://github.com/enso-org/enso/pull/1759)). This allows the IDE to
   get information about the running project in contexts where the project
   manager isn't available or works differently.
+- Added the `file/checksum` endpoint to the language server
+  ([#1787](https://github.com/enso-org/enso/pull/1787)). This allows the IDE to
+  verify the integrity of files that it has transferred. The checksum is
+  calculated in a streaming fashion so the checksummed file need not be resident
+  in memory all at once.
 
 ## Libraries
 
