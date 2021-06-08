@@ -235,7 +235,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
-          val tenMb        = 1 * 1024 * 1024
+          val tenMb        = 1 * 1024 * 1024 * 10
           var currentBytes = stream.readNBytes(tenMb)
 
           while (currentBytes.nonEmpty) {

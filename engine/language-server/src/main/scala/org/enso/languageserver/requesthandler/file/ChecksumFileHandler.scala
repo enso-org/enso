@@ -12,7 +12,6 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.logger.masking.MaskedString
 
-import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for the `file/checksum` command.
@@ -21,8 +20,8 @@ import scala.concurrent.duration.FiniteDuration
   * @param fileManager a file system manager actor
   */
 class ChecksumFileHandler(
-  @unused requestTimeout: FiniteDuration,
-  @unused fileManager: ActorRef
+  requestTimeout: FiniteDuration,
+  fileManager: ActorRef
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
