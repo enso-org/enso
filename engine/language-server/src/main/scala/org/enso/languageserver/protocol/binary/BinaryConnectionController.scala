@@ -204,7 +204,7 @@ class BinaryConnectionController(
       WRITE_FILE_CMD -> WriteBinaryFileHandler
         .props(requestTimeout, fileManager, outboundChannel),
       READ_FILE_CMD -> ReadBinaryFileHandler
-        .props(requestTimeout, fileManager, outboundChannel)
+        .props(requestTimeout, fileManager, outboundChannel),
     )
   }
 

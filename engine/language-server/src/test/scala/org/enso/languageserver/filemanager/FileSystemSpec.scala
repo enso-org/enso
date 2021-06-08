@@ -2,12 +2,14 @@ package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
 import java.nio.file.attribute.BasicFileAttributes
-
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect.Effects
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
 
@@ -640,6 +642,30 @@ class FileSystemSpec extends AnyFlatSpec with Matchers with Effects {
     result shouldBe Left(FileNotFound)
   }
 
+  it should "return the correct checksum when the target is a file" in new TestCtx {
+    val path         = Paths.get(testDirPath.toString, "a.txt")
+    val fileContents = "Hello, Enso!"
+    createFileContaining(fileContents, path)
+
+    val expectedDigest =
+      MessageDigest.getInstance("SHA3-224").digest(Files.readAllBytes(path))
+    val expectedDigestString = Hex.toHexString(expectedDigest)
+
+    val result = objectUnderTest.digest(path.toFile).unsafeRunSync()
+    result shouldBe Right(expectedDigestString)
+  }
+
+  it should "return an error if the provided path is not a file" in new TestCtx {
+    val result = objectUnderTest.digest(testDirPath.toFile).unsafeRunSync()
+    result shouldBe Left(NotFile)
+  }
+
+  it should "return a FileNotFound error when getting the checksum if the file does not exist" in new TestCtx {
+    val path   = Paths.get(testDirPath.toString, "nonexistent.txt")
+    val result = objectUnderTest.digest(path.toFile).unsafeRunSync()
+    result shouldBe Left(FileNotFound)
+  }
+
   def readTxtFile(path: Path): String = {
     val buffer  = Source.fromFile(path.toFile)
     val content = buffer.getLines().mkString
@@ -648,8 +674,19 @@ class FileSystemSpec extends AnyFlatSpec with Matchers with Effects {
   }
 
   def createEmptyFile(path: Path): Path = {
-    Files.createDirectories(path.getParent())
+    Files.createDirectories(path.getParent)
     Files.createFile(path)
+  }
+
+  def createFileContaining(contents: String, path: Path): Path = {
+    createFileContaining(contents.getBytes(StandardCharsets.UTF_8), path)
+  }
+
+  def createFileContaining(contents: Array[Byte], path: Path): Path = {
+    Files.createDirectories(path.getParent)
+    Files.createFile(path)
+    Files.write(path, contents)
+    path
   }
 
   trait TestCtx {

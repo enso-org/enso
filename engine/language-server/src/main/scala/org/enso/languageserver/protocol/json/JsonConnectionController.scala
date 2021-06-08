@@ -6,18 +6,10 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
-import org.enso.languageserver.capability.CapabilityApi.{
-  AcquireCapability,
-  ForceReleaseCapability,
-  GrantCapability,
-  ReleaseCapability
-}
+import org.enso.languageserver.capability.CapabilityApi.{AcquireCapability, ForceReleaseCapability, GrantCapability, ReleaseCapability}
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Config
-import org.enso.languageserver.event.{
-  JsonSessionInitialized,
-  JsonSessionTerminated
-}
+import org.enso.languageserver.event.{JsonSessionInitialized, JsonSessionTerminated}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
@@ -28,37 +20,19 @@ import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io._
-import org.enso.languageserver.requesthandler.monitoring.{
-  InitialPingHandler,
-  PingHandler
-}
+import org.enso.languageserver.requesthandler.monitoring.{InitialPingHandler, PingHandler}
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
-import org.enso.languageserver.requesthandler.visualisation.{
-  AttachVisualisationHandler,
-  DetachVisualisationHandler,
-  ExecuteExpressionHandler,
-  ModifyVisualisationHandler
-}
+import org.enso.languageserver.requesthandler.visualisation.{AttachVisualisationHandler, DetachVisualisationHandler, ExecuteExpressionHandler, ModifyVisualisationHandler}
 import org.enso.languageserver.requesthandler.workspace.ProjectInfoHandler
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.VisualisationApi.{
-  AttachVisualisation,
-  DetachVisualisation,
-  ExecuteExpression,
-  ModifyVisualisation
-}
+import org.enso.languageserver.runtime.VisualisationApi.{AttachVisualisation, DetachVisualisation, ExecuteExpression, ModifyVisualisation}
 import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
-import org.enso.languageserver.session.SessionApi.{
-  InitProtocolConnection,
-  ResourcesInitializationError,
-  SessionAlreadyInitialisedError,
-  SessionNotInitialisedError
-}
+import org.enso.languageserver.session.SessionApi.{InitProtocolConnection, ResourcesInitializationError, SessionAlreadyInitialisedError, SessionNotInitialisedError}
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
@@ -320,6 +294,7 @@ class JsonConnectionController(
       ListFile   -> file.ListFileHandler.props(requestTimeout, fileManager),
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
+      ChecksumFile -> file.ChecksumFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextDestroy -> executioncontext.DestroyHandler

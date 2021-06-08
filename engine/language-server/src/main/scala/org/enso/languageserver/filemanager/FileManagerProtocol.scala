@@ -176,4 +176,18 @@ object FileManagerProtocol {
     * @param result either file system failure or attributes
     */
   case class InfoFileResult(result: Either[FileSystemFailure, FileAttributes])
+
+  /** Requests that the Language Server provide the checksum of the specified
+    * file system object
+    *
+    * @param path to the file system object
+    */
+  case class ChecksumRequest(path: Path)
+
+  /** Returns the checksum of the file system object in question.
+    *
+    * @param checksum either a FS failure or the checksum as a base64-encoded
+    *                 string
+    */
+  case class ChecksumResponse(checksum: Either[FileSystemFailure, String])
 }

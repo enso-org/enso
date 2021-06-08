@@ -194,6 +194,16 @@ class FileManager(
         .map(FileManagerProtocol.InfoFileResult)
         .pipeTo(sender())
       ()
+
+    case FileManagerProtocol.ChecksumRequest(path) =>
+      val getChecksum = for {
+        rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+        checksum <- fs.digest(path.toFile(rootPath))
+      } yield checksum
+      exec
+        .execTimed(config.fileManager.timeout, getChecksum)
+        .map(FileManagerProtocol.ChecksumResponse)
+        .pipeTo(sender())
   }
 }
 
