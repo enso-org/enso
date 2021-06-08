@@ -14,6 +14,13 @@ This document describes the concept of Editions.
 
 - [What Is An Edition](#what-is-an-edition)
 - [The Edition File](#the-edition-file)
+  - [Repositories](#repositories)
+  - [Libraries](#libraries)
+  - [Extending the Editions](#extending-the-editions)
+  - [An Example Configuration](#an-example-configuration)
+- [Edition Resolution](#edition-resolution)
+  - [Updating the Editions](#updating-the-editions)
+- [Library Resolution](#library-resolution)
 
 <!-- /MarkdownTOC -->
 
@@ -40,11 +47,15 @@ The Edition file is a YAML file that can contain the following fields:
 - `engine-version` which should be a semantic versioning string specifying the
   engine version that should be associated with that edition,
 - `repositories` which defines the repositories which are sources of library
-  packages, its format is described below,
+  packages, its format is [described below](#repositories),
 - `extends` which can contain a name of another Edition that this Edition
   extends,
-- `packages` which defines the packages that this Edition should include, its
-  format is described below.
+- `libraries` which defines the libraries that this Edition should include, its
+  format is [described below](#libraries),
+- `prefer-local-libraries` is a flag that tells to prefer local library versions
+  over the version specified in any parent editions (see
+  [Library Resolution](#library-resolution) for details); if it is not set, it
+  defaults to false.
 
 Every field is optional, but an Edition file to be valid must specify at least
 the engine version to be used (either by specifying it directly or extending
@@ -64,14 +75,14 @@ The `name` can be any string which only needs to be consistent with the names
 used in the package definitions. The only reserved name is `local`, which is a
 special repository name, as [explained below](#library-resolution).
 
-### Packages
+### Libraries
 
-The `packages` field defines the set of packages included in the edition.
+The `libraries` field defines the set of libraries included in the edition.
 
-Each package is represented by an object that must have:
+Each library is represented by an object that must have:
 
-- a `name` field which is the fully qualified name of the package (consisting of
-  its prefix and the package name itself),
+- a `name` field which is the fully qualified name of the library (consisting of
+  its prefix and the name itself),
 - a `repository` field which specifies which repository this package should be
   downloaded from. The `repository` field should refer to the `name` of one of
   the repositories defined in the edition or to `local`,
@@ -95,21 +106,21 @@ also override specific settings.
 If the `engine-version` is specified in the current edition, it overrides the
 engine version that was implied from the parent edition.
 
-If the current edition specifies its packages, they are added to the set of
-available packages defined by the parent edition. If the current edition defines
-a package that has the same fully qualified name as a package that was already
-defined in the parent edition, the definition from the current edition takes
-precedence. This is the most important mechanism of extending editions that
-allows to override package settings.
+If the current edition specifies its libraries, they are added to the set of
+available libraries defined by the parent edition. If the current edition
+defines a library that has the same fully qualified name as a library that was
+already defined in the parent edition, the definition from the current edition
+takes precedence. This is the most important mechanism of extending editions
+that allows to override library settings.
 
-The packages defined in the current edition can refer to the repositories
-defined both in the current edition and in the parent. However if the current
+The libraries defined in the current edition can refer to the repositories
+defined both in the current edition and in the parent. However, if the current
 edition defines a repository with the same name as some repository defined in
 the parent edition, the definition from the current edition takes precedence for
 the package definitions of the current definition, **but** the package
 definitions in the parent edition are not affected (they still refer to the
 definition from the their own edition). So you can shadow a repository name, but
-you cannot override it for packages from the parent edition - instead packages
+you cannot override it for libraries from the parent edition - instead libraries
 whose repository should be changed must all be overridden in the current
 edition.
 
@@ -128,7 +139,7 @@ engine-version: 1.2.3
 repositories:
   - name: secondary
     url: https://example.com/
-packages:
+libraries:
   - name: Foo.Bar
     version: 1.0.0
     repository: secondary
@@ -142,4 +153,52 @@ provided here.
 
 ## Edition Resolution
 
+The edition configuration for a project is loaded from the `edition` section in
+its `package.yaml` configuration. This 'per-project' edition has no assigned
+names, but it can refer to other editions by their names (when extending them).
+These editions are resolved using the logic below:
+
+1. Each `<edition-name>` corresponds to a file `<edition-name>.yaml`.
+2. First, the directory `<ENSO_HOME>/editions` is scanned for a matching edition
+   file.
+3. If none is found above, the directory `$ENSO_DATA_DIRECTORY/editions` is
+   checked.
+
+See [The Enso Distribution](../distribution/distribution.md) for definitions of
+the directories.
+
+### Updating the Editions
+
+The file `$ENSO_DATA_DIRECTORY/editions/sources.txt` should contain a list of
+edition provides. Each new line should consist of a single URL which should
+return a list of editions that it provides.
+
+When `enso update-editions` is called or when requested by the IDE, these
+providers are queried and any new edition files are downloaded to the
+`$ENSO_DATA_DIRECTORY/editions` directory. Editions are assumed to be immutable,
+so edition files that already exist on disk are not redownloaded.
+
 ## Library Resolution
+
+Below are listed the steps that are taken when resolving an import of library
+`Foo.Bar`:
+
+1. First the list of libraries defined directly in the `edition` section of
+   `package.yaml` of the current project is checked, and if it defines the
+   version and repository to use for downloads if its not yet cached;
+2. If and only if the edition implies `prefer-local-libraries` and if the
+   directory `<ENSO_HOME>/libraries/Foo/Bar` exists, that is chosen as the
+   library that should be used, regardless of the version that is there;
+3. Otherwise, any parent editions are consulted; if they too do not contain the
+   library that we are searching for, an error is reported.
+4. Once we know the library version to be used:
+   1. If the repository associated with the library is `local`, the package at
+      `<ENSO_HOME>/libraries/Foo/Bar` is loaded (and if it does not exist, an
+      error is reported).
+   2. Otherwise, the edition must have defined an exact `<version>` of the
+      library that is supposed to be used.
+   3. If the library is already downloaded in the local repository cache, that
+      is the directory `$ENSO_DATA_DIRECTORY/lib/Foo/Bar/<version>` exists, that
+      package is loaded.
+   4. Otherwise, the library is missing and must be downloaded from its
+      associated repository (and placed in the cache as above).
