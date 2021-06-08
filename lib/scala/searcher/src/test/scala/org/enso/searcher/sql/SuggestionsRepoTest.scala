@@ -1068,7 +1068,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         v1 shouldEqual Some(v2)
     }
 
-    "apply exports" taggedAs Retry in withRepo { repo =>
+    "apply export updates" taggedAs Retry in withRepo { repo =>
       val reexport = "Foo.Bar"
       val method   = suggestion.method.copy(reexport = Some(reexport))
       val updates = Seq(
@@ -1105,6 +1105,46 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         QueryResult(ids(0).toSeq, updates(0)),
         QueryResult(ids(2).toSeq, updates(1))
       )
+    }
+
+    "not apply exports with bigger module name" taggedAs Retry in withRepo {
+      repo =>
+        val reexport = "Foo.Bar.Baz"
+        val method   = suggestion.method.copy(reexport = Some("Foo.Bar"))
+        val updates = Seq(
+          Api.ExportsUpdate(
+            ModuleExports(
+              reexport,
+              Set(ExportedSymbol.Module(suggestion.module.module))
+            ),
+            Api.ExportsAction.Add()
+          ),
+          Api.ExportsUpdate(
+            ModuleExports(
+              reexport,
+              Set(ExportedSymbol.Method(method.module, method.name))
+            ),
+            Api.ExportsAction.Remove()
+          )
+        )
+        val action = for {
+          (_, ids) <- repo.insertAll(
+            Seq(
+              suggestion.module,
+              suggestion.atom,
+              method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          results <- repo.applyExports(updates)
+        } yield (ids, results)
+
+        val (ids, results) = Await.result(action, Timeout)
+        results should contain theSameElementsAs Seq(
+          QueryResult(ids(0).toSeq, updates(0)),
+          QueryResult(Seq(), updates(1))
+        )
     }
 
     "change version after applying exports" taggedAs Retry in withRepo { repo =>

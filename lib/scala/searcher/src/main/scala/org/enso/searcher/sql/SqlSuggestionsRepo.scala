@@ -443,10 +443,14 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   private def applyExportsQuery(
     updates: Seq[ExportsUpdate]
   ): DBIO[Seq[QueryResult[ExportsUpdate]]] = {
+    def depth(module: String): Int =
+      module.count(_ == '.')
+
     def selectSuggestionReexportUpdates(
       module: String,
       symbol: ExportedSymbol
-    ) =
+    ) = {
+      val moduleDepth = depth(module)
       sql"""
           select id
           from suggestions
@@ -454,13 +458,15 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             and name = ${symbol.name}
             and kind = ${SuggestionKind(symbol.kind)}
             and (
-              (reexport is null) or
-              (length(reexport) - length(replace(reexport, '.', '')) > ${module.length})
+              reexport is null or
+              length(reexport) - length(replace(reexport, '.', '')) > $moduleDepth
             )
          """.as[Long]
+    }
 
     // TODO [DB] SQLite 3.35 supports RETURNING clause
-    def updateSuggestionReexport(module: String, symbol: ExportedSymbol) =
+    def updateSuggestionReexport(module: String, symbol: ExportedSymbol) = {
+      val moduleDepth = depth(module)
       sqlu"""
           update suggestions
           set reexport = $module
@@ -468,10 +474,11 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
             and name = ${symbol.name}
             and kind = ${SuggestionKind(symbol.kind)}
             and (
-              (reexport is null) or
-              (length(reexport) - length(replace(reexport, '.', '')) > ${module.length})
+              reexport is null or
+              length(reexport) - length(replace(reexport, '.', '')) > $moduleDepth
             )
          """
+    }
 
     def selectSuggestionReexportUnset(module: String, symbol: ExportedSymbol) =
       Suggestions
