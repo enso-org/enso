@@ -1186,6 +1186,30 @@ lazy val launcher = project
   .dependsOn(`logging-service`)
   .dependsOn(`runtime-version-manager-test` % Test)
 
+lazy val `distribution-manager` = project
+  .in(file("lib/scala/distribution-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(pkg)
+
+lazy val `library-manager` = project
+  .in(file("lib/scala/library-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`distribution-manager`)
+
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
   .configs(Test)
@@ -1204,6 +1228,7 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
+  .dependsOn(`distribution-manager`)
 
 lazy val `runtime-version-manager-test` = project
   .in(file("lib/scala/runtime-version-manager-test"))
@@ -1224,6 +1249,7 @@ lazy val `runtime-version-manager-test` = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(testkit)
+  .dependsOn(`distribution-manager`)
 
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))

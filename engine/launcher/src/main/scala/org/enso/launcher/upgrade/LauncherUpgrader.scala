@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
+import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.components.UpgradeRequiredError

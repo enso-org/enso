@@ -8,7 +8,7 @@ import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
 import org.enso.runtimeversionmanager.locking.ResourceManager
-import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.distribution.DefaultManagers

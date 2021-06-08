@@ -1,10 +1,10 @@
 package org.enso.runtimeversionmanager.distribution
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
+import org.enso.distributionmanager.OS
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.{Environment, FileSystem, OS}
+import org.enso.runtimeversionmanager.{Environment, FileSystem}
 
 import scala.util.Try
 import scala.util.control.NonFatal

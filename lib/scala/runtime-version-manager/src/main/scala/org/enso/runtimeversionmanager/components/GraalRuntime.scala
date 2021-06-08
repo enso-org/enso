@@ -1,8 +1,8 @@
 package org.enso.runtimeversionmanager.components
 
-import java.nio.file.{Files, Path}
+import org.enso.distributionmanager.OS
 
-import org.enso.runtimeversionmanager.OS
+import java.nio.file.{Files, Path}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 
 import scala.util.{Failure, Success, Try}

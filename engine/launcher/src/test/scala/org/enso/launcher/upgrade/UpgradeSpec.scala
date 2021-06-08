@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 
 import io.circe.parser
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.{FileSystem, OS}
+import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.launcher._
 import org.enso.runtimeversionmanager.locking.{FileLockManager, LockType}

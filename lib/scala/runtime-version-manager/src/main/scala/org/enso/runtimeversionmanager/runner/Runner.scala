@@ -176,6 +176,7 @@ class Runner(
       val command = Seq(javaCommand.executableName) ++
         jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
+      // TODO [RW] set the paths from DistributionManager so that the engine can use the simple distribution resolution logic
       val extraEnvironmentOverrides =
         javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
 

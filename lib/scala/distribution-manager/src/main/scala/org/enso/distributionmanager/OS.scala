@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager
+package org.enso.distributionmanager
 
 import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}

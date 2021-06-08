@@ -1,10 +1,10 @@
 package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
+import org.enso.distributionmanager.OS
+import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.distribution.{

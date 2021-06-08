@@ -8,9 +8,9 @@ import java.nio.file.{
   Path,
   StandardCopyOption
 }
-
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
+import org.enso.distributionmanager.OS
 
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
