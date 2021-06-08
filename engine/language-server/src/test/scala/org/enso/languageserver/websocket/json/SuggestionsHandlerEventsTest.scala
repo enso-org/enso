@@ -126,7 +126,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
                 }
               }
             ],
@@ -393,7 +394,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
                 }
               },
               {
