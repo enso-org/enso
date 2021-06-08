@@ -1,15 +1,17 @@
 package org.enso.languageserver.filemanager
 
-import java.io.{File, FileNotFoundException}
-import java.nio.file._
-import java.nio.file.attribute.BasicFileAttributes
-
 import org.apache.commons.io.{FileExistsException, FileUtils}
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect.BlockingIO
 import zio._
 import zio.blocking.effectBlocking
 
+import java.io.{File, FileNotFoundException}
+import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
+import java.security.MessageDigest
 import scala.collection.mutable
+import scala.util.Using
 
 /** File manipulation facility.
   *
@@ -221,6 +223,38 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       IO.fail(FileNotFound)
     }
 
+  /** Returns the digest of the file at the provided `path`
+    *
+    * @param path the path to the filesystem object
+    * @return either [[FileSystemFailure]] or the file checksum
+    */
+  override def digest(path: File): BlockingIO[FileSystemFailure, String] = {
+    if (path.isFile) {
+      effectBlocking {
+        val messageDigest = MessageDigest.getInstance("SHA3-224")
+        Using.resource(
+          Files.newInputStream(path.toPath, StandardOpenOption.READ)
+        ) { stream =>
+          val tenMb        = 1 * 1024 * 1024 * 10
+          var currentBytes = stream.readNBytes(tenMb)
+
+          while (currentBytes.nonEmpty) {
+            messageDigest.update(currentBytes)
+            currentBytes = stream.readNBytes(tenMb)
+          }
+
+          Hex.toHexString(messageDigest.digest())
+        }
+      }.mapError(errorHandling)
+    } else {
+      if (path.exists()) {
+        IO.fail(NotFile)
+      } else {
+        IO.fail(FileNotFound)
+      }
+    }
+  }
+
   private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound
@@ -228,7 +262,6 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     case _: AccessDeniedException => AccessDenied
     case ex                       => GenericFileSystemFailure(ex.getMessage)
   }
-
 }
 
 object FileSystem {

@@ -28,6 +28,9 @@ case object OperationTimeout extends FileSystemFailure
   */
 case object NotDirectory extends FileSystemFailure
 
+/** Signal that the provided path is not a file. */
+case object NotFile extends FileSystemFailure
+
 /** Signals file system specific errors.
   *
   * @param reason a reason of failure
