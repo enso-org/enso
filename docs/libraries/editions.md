@@ -39,12 +39,12 @@ The Edition file is a YAML file that can contain the following fields:
 
 - `engine-version` which should be a semantic versioning string specifying the
   engine version that should be associated with that edition,
-- `repositories` which can contain a list of repositories which are sources of
-  library packages, its format is described below,
+- `repositories` which defines the repositories which are sources of library
+  packages, its format is described below,
 - `extends` which can contain a name of another Edition that this Edition
   extends,
-- `packages` which can contain a list of packages that this Edition should
-  include, its format is described below.
+- `packages` which defines the packages that this Edition should include, its
+  format is described below.
 
 Every field is optional, but an Edition file to be valid must specify at least
 the engine version to be used (either by specifying it directly or extending
@@ -52,12 +52,94 @@ another edition that specifies it).
 
 ### Repositories
 
-TODO
+The `repositories` field is a list of repository objects.
+
+Each object must have:
+
+- a `name` field which specifies the name under which this repository will be
+  referred to in the rest of the file,
+- a `url` field which specifies the URL of the root of that repository.
+
+The `name` can be any string which only needs to be consistent with the names
+used in the package definitions. The only reserved name is `local`, which is a
+special repository name, as [explained below](#library-resolution).
 
 ### Packages
 
-TODO
+The `packages` field defines the set of packages included in the edition.
 
-### Extending Editions
+Each package is represented by an object that must have:
 
-TODO
+- a `name` field which is the fully qualified name of the package (consisting of
+  its prefix and the package name itself),
+- a `repository` field which specifies which repository this package should be
+  downloaded from. The `repository` field should refer to the `name` of one of
+  the repositories defined in the edition or to `local`,
+- a `version` field which specifies which exact package version should be used
+  when the library is imported; it is normally required, but if the `repository`
+  is set to `local`, the version must not be specified as the version will only
+  depend on what is available in the local repository,
+- an optional `hash` that can be included to verify the integrity of the
+  package.
+
+### Extending the Editions
+
+An edition may extend another one by using the `extends` property specifying the
+name of the edition that is to be extended. Henceforth we will call the edition
+that is being extended 'the parent edition' and the other one 'the local
+edition'.
+
+The current edition inherits all configuration of the parent edition, but it can
+also override specific settings.
+
+If the `engine-version` is specified in the current edition, it overrides the
+engine version that was implied from the parent edition.
+
+If the current edition specifies its packages, they are added to the set of
+available packages defined by the parent edition. If the current edition defines
+a package that has the same fully qualified name as a package that was already
+defined in the parent edition, the definition from the current edition takes
+precedence. This is the most important mechanism of extending editions that
+allows to override package settings.
+
+The packages defined in the current edition can refer to the repositories
+defined both in the current edition and in the parent. However if the current
+edition defines a repository with the same name as some repository defined in
+the parent edition, the definition from the current edition takes precedence for
+the package definitions of the current definition, **but** the package
+definitions in the parent edition are not affected (they still refer to the
+definition from the their own edition). So you can shadow a repository name, but
+you cannot override it for packages from the parent edition - instead packages
+whose repository should be changed must all be overridden in the current
+edition.
+
+Extending editions can be arbitrarily nested. That is, an edition can extend
+another edition that extends another one etc. The only limitation is that
+obviously there can be no cycles in the chain of extensions. Multiple extensions
+are resolved as follows: first the parent edition is completely resolved (which
+may recursively need to first resolve its parents etc.) and only then the
+current edition applies its overrides.
+
+### An Example Configuration
+
+```yaml
+extends: 2021.4
+engine-version: 1.2.3
+repositories:
+  - name: secondary
+    url: https://example.com/
+packages:
+  - name: Foo.Bar
+    version: 1.0.0
+    repository: secondary
+```
+
+The edition file shown above extends a base edition file called `2021.4`. It
+overrides the engine version set in the parent edition to `1.2.3`. Moreover it
+adds a library `Foo.Bar` from the `secondary` repository, or if `2021.4`
+included the library `Foo.Bar`, its definition is overridden with the one
+provided here.
+
+## Edition Resolution
+
+## Library Resolution
