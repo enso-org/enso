@@ -320,6 +320,8 @@ class JsonConnectionController(
       ListFile   -> file.ListFileHandler.props(requestTimeout, fileManager),
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
+      ChecksumFile -> file.ChecksumFileHandler
+        .props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
