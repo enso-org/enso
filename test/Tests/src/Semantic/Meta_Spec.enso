@@ -88,3 +88,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         y = My_Type 1 2 3
         Meta.get_qualified_type_name x . should_equal "Builtins.Main.Integer"
         Meta.get_qualified_type_name y . should_equal "Tests.Semantic.Meta_Spec.My_Type"
+
+    Test.specify "should allow access to package names" <|
+        Enso_Project.name.should_equal 'Tests'
+        Base.enso_project.name.should_equal 'Standard'
