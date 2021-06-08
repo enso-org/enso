@@ -93,7 +93,8 @@ public class Builtins {
         new AtomConstructor("Project_Description", scope)
             .initializeFields(
                 new ArgumentDefinition(
-                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE));
+                    0, "prim_root_file", ArgumentDefinition.ExecutionMode.EXECUTE),
+                new ArgumentDefinition(1, "prim_config", ArgumentDefinition.ExecutionMode.EXECUTE));
     error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     meta = new Meta(language, scope);
@@ -149,7 +150,8 @@ public class Builtins {
     scope.registerMethod(primIo, "get_user_home", GetUserHomeMethodGen.makeFunction(language));
 
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
-    scope.registerMethod(runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
+    scope.registerMethod(
+        runtime, "no_inline_with_arg", NoInlineWithArgMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));

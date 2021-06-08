@@ -1,5 +1,8 @@
 # Enso Next
 
+- Implemented Standard Library methods for controlling default visualizations in
+  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
+
 ## Interpreter/Runtime
 
 - Upgraded the underlying runtime to

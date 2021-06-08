@@ -5,6 +5,7 @@ from Standard.Table.Data.Table as Table_Internal import Empty_Error
 
 import Standard.Table.Data.Storage
 import Standard.Test
+import Standard.Visualization
 
 type My x y
 
@@ -622,3 +623,20 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)
 
+    Test.group "Visualizing tables" <|
+        Test.specify "should specify default visualizations correctly" <|
+            c_1_1 = ['x', [1, 2, 3]]
+            c_1_2 = ['Y', [5.3, 56.2, 6.3]]
+            t_1 = Table.new [c_1_1, c_1_2]
+            t_1.default_visualization.should_equal Visualization.Id.scatter_plot
+
+            c_2_1 = ['LaTituDe', [5,3,2]]
+            c_2_2 = ['longitude', [6,7,8]]
+            t_2 = Table.new [c_2_1, c_2_2]
+            t_2.default_visualization.should_equal Visualization.Id.geo_map
+
+            c_3_1 = ['latitude', [5,2,5]]
+            c_3_2 = ['Y', [2,4,2]]
+            c_3_3 = ['name', ["foo", "bar", "baz"]]
+            t_3 = Table.new [c_3_1, c_3_2, c_3_3]
+            t_3.default_visualization.should_equal Visualization.Id.table
