@@ -129,12 +129,18 @@ object Suggestion {
   /** A module.
     *
     * @param module the fully qualified module name
-    * @param name the unqualified module name
     * @param documentation the documentation string
+    * @param reexport the module re-exporting this module
     */
-  case class Module(module: String, name: String, documentation: Option[String])
-      extends Suggestion
+  case class Module(
+    module: String,
+    documentation: Option[String],
+    reexport: Option[String] = None
+  ) extends Suggestion
       with ToLogString {
+
+    override def name: String =
+      module
 
     override def externalId: Option[ExternalId] =
       None
@@ -146,7 +152,7 @@ object Suggestion {
     override def toLogString(shouldMask: Boolean): String =
       s"Module(module=$module,name=$name,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      ")"
+      s",reexport=$reexport)"
   }
 
   /** A value constructor.
@@ -157,6 +163,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
+    * @param reexport the module reexporting thes atom
     */
   case class Atom(
     externalId: Option[ExternalId],
@@ -164,7 +171,8 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -177,7 +185,7 @@ object Suggestion {
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"returnType=$returnType,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      ")"
+      s",reexport=$reexport)"
   }
 
   /** A function defined on a type or a module.
@@ -189,6 +197,7 @@ object Suggestion {
     * @param selfType the self type of a method
     * @param returnType the return type of a method
     * @param documentation the documentation string
+    * @param reexport the module reexporting this method
     */
   case class Method(
     externalId: Option[ExternalId],
@@ -197,7 +206,8 @@ object Suggestion {
     arguments: Seq[Argument],
     selfType: String,
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
 
@@ -210,7 +220,7 @@ object Suggestion {
       s"selfType=$selfType," +
       s"returnType=$returnType,documentation=" +
       (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      ")"
+      s",reexport=$reexport)"
   }
 
   /** A local function definition.

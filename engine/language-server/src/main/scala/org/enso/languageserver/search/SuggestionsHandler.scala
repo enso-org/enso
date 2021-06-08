@@ -483,15 +483,17 @@ final class SuggestionsHandler(
     msg: Api.SuggestionsDatabaseModuleUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] =
     for {
-      actionResults      <- suggestionsRepo.applyActions(msg.actions)
-      (version, results) <- suggestionsRepo.applyTree(msg.updates)
-      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
+      actionResults <- suggestionsRepo.applyActions(msg.actions)
+      treeResults   <- suggestionsRepo.applyTree(msg.updates)
+      exportResults <- suggestionsRepo.applyExports(msg.exports)
+      version       <- suggestionsRepo.currentVersion
+      _             <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
     } yield {
       val actionUpdates = actionResults.flatMap {
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
           ids.map(SuggestionsDatabaseUpdate.Remove)
       }
-      val treeUpdates = results.flatMap {
+      val treeUpdates = treeResults.flatMap {
         case QueryResult(ids, Api.SuggestionUpdate(suggestion, action)) =>
           val verb = action.getClass.getSimpleName
           action match {
@@ -516,9 +518,28 @@ final class SuggestionsHandler(
               }
           }
       }
+      val exportUpdates = exportResults.flatMap { queryResult =>
+        val update = queryResult.value
+        update.action match {
+          case Api.ExportsAction.Add() =>
+            queryResult.ids.map { id =>
+              SuggestionsDatabaseUpdate.Modify(
+                id       = id,
+                reexport = Some(fieldUpdate(update.exports.module))
+              )
+            }
+          case Api.ExportsAction.Remove() =>
+            queryResult.ids.map { id =>
+              SuggestionsDatabaseUpdate.Modify(
+                id       = id,
+                reexport = Some(fieldRemove)
+              )
+            }
+        }
+      }
       SuggestionsDatabaseUpdateNotification(
         version,
-        actionUpdates ++ treeUpdates
+        actionUpdates ++ treeUpdates ++ exportUpdates
       )
     }
 
@@ -540,6 +561,9 @@ final class SuggestionsHandler(
     */
   private def fieldUpdate[A](value: A): FieldUpdate[A] =
     FieldUpdate(FieldAction.Set, Some(value))
+
+  private def fieldRemove[A]: FieldUpdate[A] =
+    FieldUpdate[A](FieldAction.Remove, None)
 
   /** Construct [[SuggestionArgumentUpdate]] from the runtime message.
     *

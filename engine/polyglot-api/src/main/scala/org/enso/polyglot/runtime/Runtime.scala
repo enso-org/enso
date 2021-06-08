@@ -12,7 +12,7 @@ import com.fasterxml.jackson.module.scala.{
   ScalaObjectMapper
 }
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
-import org.enso.polyglot.{ModuleExport, Suggestion}
+import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model
@@ -574,7 +574,8 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
-        scope: Option[Suggestion.Scope]                   = None
+        scope: Option[Suggestion.Scope]                   = None,
+        reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
           with ToLogString {
 
@@ -583,10 +584,12 @@ object Runtime {
           "Modify(" +
           s"externalId=$externalId," +
           s"artuments=${arguments.map(_.map(_.toLogString(shouldMask)))}," +
+          s"returnType=$returnType" +
           s"documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
-          s",scope=$scope" +
+          s",scope=$scope," +
+          s"reexport=$reexport" +
           ")"
       }
     }
@@ -611,6 +614,30 @@ object Runtime {
       case class Clean(module: String) extends SuggestionsDatabaseAction
     }
 
+    case class ExportsUpdate(
+      exports: ModuleExports,
+      action: ExportsAction
+    )
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[ExportsAction.Add],
+          name  = "exportsActionAdd"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[ExportsAction.Remove],
+          name  = "exportsActionRemove"
+        )
+      )
+    )
+    sealed trait ExportsAction
+    object ExportsAction {
+      case class Add()    extends ExportsAction
+      case class Remove() extends ExportsAction
+    }
+
     /** A suggestion update.
       *
       * @param suggestion the original suggestion
@@ -623,7 +650,7 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "SuggestionUpdate(" +
+        "SuggestionUpdate(suggestion=" +
         suggestion.toLogString(shouldMask) +
         s",action=${action.toLogString(shouldMask)})"
     }
@@ -1256,7 +1283,7 @@ object Runtime {
       file: File,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
-      exports: Vector[ModuleExport],
+      exports: Seq[ExportsUpdate],
       updates: Tree[SuggestionUpdate]
     ) extends ApiNotification
         with ToLogString {
@@ -1267,6 +1294,7 @@ object Runtime {
         s"file=${MaskedPath(file.toPath).toLogString(shouldMask)}," +
         s"version=$version," +
         s"actions=$actions," +
+        s"exports=$exports" +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +
         ")"
     }

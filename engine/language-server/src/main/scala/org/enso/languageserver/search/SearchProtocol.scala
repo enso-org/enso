@@ -214,6 +214,7 @@ object SearchProtocol {
       * @param returnType the return type to update
       * @param documentation the documentation string to update
       * @param scope the scope to update
+      * @param reexport the module reexporting the suggestion
       */
     case class Modify(
       id: SuggestionId,
@@ -223,7 +224,8 @@ object SearchProtocol {
       selfType: Option[FieldUpdate[String]]                  = None,
       returnType: Option[FieldUpdate[String]]                = None,
       documentation: Option[FieldUpdate[String]]             = None,
-      scope: Option[FieldUpdate[Suggestion.Scope]]           = None
+      scope: Option[FieldUpdate[Suggestion.Scope]]           = None,
+      reexport: Option[FieldUpdate[String]]                  = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =

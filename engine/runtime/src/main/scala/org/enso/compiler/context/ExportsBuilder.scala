@@ -4,23 +4,23 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.{ExportedSymbol, ModuleExport}
+import org.enso.polyglot.{ExportedSymbol, ModuleExports}
 
 final class ExportsBuilder {
 
-  def build(moduleName: QualifiedName, ir: IR): Vector[ModuleExport] = {
-    getBindings(ir).exportedSymbols.values.flatten
+  def build(moduleName: QualifiedName, ir: IR): ModuleExports = {
+    val symbols = getBindings(ir).exportedSymbols.values.flatten
       .filter(_.module.getName != moduleName)
       .collect {
         case BindingsMap.ResolvedMethod(module, method) =>
-          ExportedSymbol.ExportedMethod(module.getName.toString, method.name)
+          ExportedSymbol.Method(module.getName.toString, method.name)
         case BindingsMap.ResolvedConstructor(module, cons) =>
-          ExportedSymbol.ExportedAtom(module.getName.toString, cons.name)
+          ExportedSymbol.Atom(module.getName.toString, cons.name)
         case BindingsMap.ResolvedModule(module) =>
-          ExportedSymbol.ExportedModule(module.getName.toString)
+          ExportedSymbol.Module(module.getName.toString)
       }
-      .map(ModuleExport(moduleName.toString, _))
-      .toVector
+      .toSet[ExportedSymbol]
+    ModuleExports(moduleName.toString, symbols)
   }
 
   private def getBindings(ir: IR): BindingsMap =

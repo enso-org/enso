@@ -153,7 +153,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       arguments     = methodArgs,
       selfType      = selfType.toString,
       returnType    = buildReturnType(returnTypeDef),
-      documentation = doc
+      documentation = doc,
+      reexport      = None
     )
   }
 
@@ -204,8 +205,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   private def buildModule(module: QualifiedName): Suggestion =
     Suggestion.Module(
       module        = module.toString,
-      name          = module.item,
-      documentation = None
+      documentation = None,
+      reexport      = None
     )
 
   /** Build suggestions for an atom definition. */
@@ -232,7 +233,8 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       name          = name,
       arguments     = arguments.map(buildArgument),
       returnType    = module.createChild(name).toString,
-      documentation = doc
+      documentation = doc,
+      reexport      = None
     )
 
   /** Build getter methods from atom arguments. */

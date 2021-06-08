@@ -23,8 +23,8 @@ class SuggestionBuilderTest extends CompilerTest {
   private val ModuleNode = Tree.Node(
     Suggestion.Module(
       module        = Module.toString,
-      name          = Module.item,
-      documentation = None
+      documentation = None,
+      reexport      = None
     ),
     Vector()
   )

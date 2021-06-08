@@ -166,7 +166,7 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    "Main",
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -745,7 +745,7 @@ class RuntimeSuggestionUpdatesTest
                 Api.SuggestionUpdate(
                   Suggestion.Module(
                     moduleName,
-                    "Main",
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()

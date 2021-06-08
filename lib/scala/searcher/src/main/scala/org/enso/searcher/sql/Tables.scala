@@ -37,11 +37,11 @@ case class ArgumentRow(
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
-  * @param documentation the documentation string
   * @param scopeStartLine the line of the start position of the scope
   * @param scopeStartOffset the offset of the start position of the scope
   * @param scopeEndLine the line of the end position of the scope
   * @param scopeEndOffset the offset of the end position of the scope
+  * @param documentation the documentation string
   */
 case class SuggestionRow(
   id: Option[Long],
@@ -52,11 +52,12 @@ case class SuggestionRow(
   name: String,
   selfType: String,
   returnType: String,
-  documentation: Option[String],
   scopeStartLine: Int,
   scopeStartOffset: Int,
   scopeEndLine: Int,
-  scopeEndOffset: Int
+  scopeEndOffset: Int,
+  documentation: Option[String],
+  reexport: Option[String]
 )
 
 /** A row in the suggestions_version table.
@@ -161,7 +162,6 @@ final class SuggestionsTable(tag: Tag)
   def name            = column[String]("name")
   def selfType        = column[String]("self_type")
   def returnType      = column[String]("return_type")
-  def documentation   = column[Option[String]]("documentation")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -170,6 +170,9 @@ final class SuggestionsTable(tag: Tag)
     column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
+  def documentation = column[Option[String]]("documentation")
+  def reexport      = column[Option[String]]("reexport")
+
   def * =
     (
       id.?,
@@ -180,11 +183,12 @@ final class SuggestionsTable(tag: Tag)
       name,
       selfType,
       returnType,
-      documentation,
       scopeStartLine,
       scopeStartOffset,
       scopeEndLine,
-      scopeEndOffset
+      scopeEndOffset,
+      documentation,
+      reexport
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
@@ -194,6 +198,7 @@ final class SuggestionsTable(tag: Tag)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
   def externalIdIdx =
     index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
+  def reexportIdx = index("suggestions_reexport_idx", reexport)
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =

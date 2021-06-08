@@ -21,7 +21,7 @@ object SuggestionDiff {
       .filter {
         case Api.SuggestionUpdate(
               _,
-              Api.SuggestionAction.Modify(None, None, None, None, None)
+              Api.SuggestionAction.Modify(None, None, None, None, None, None)
             ) =>
           false
         case _ =>

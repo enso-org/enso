@@ -6,28 +6,60 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.ExportedModule],
+      value = classOf[ExportedSymbol.Module],
       name  = "exportedModule"
     ),
     new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.ExportedAtom],
+      value = classOf[ExportedSymbol.Atom],
       name  = "exportedAtom"
     ),
     new JsonSubTypes.Type(
-      value = classOf[ExportedSymbol.ExportedMethod],
+      value = classOf[ExportedSymbol.Method],
       name  = "exportedMethod"
     )
   )
 )
 sealed trait ExportedSymbol {
   def module: String
+
+  def name: String
+
+  def kind: Suggestion.Kind
 }
 object ExportedSymbol {
 
-  case class ExportedModule(module: String) extends ExportedSymbol
+  /** The module symbol.
+    *
+    * @param module the module name
+    */
+  case class Module(module: String) extends ExportedSymbol {
 
-  case class ExportedAtom(module: String, atom: String) extends ExportedSymbol
+    override def name: String =
+      module
 
-  case class ExportedMethod(module: String, method: String)
-      extends ExportedSymbol
+    override def kind: Suggestion.Kind =
+      Suggestion.Kind.Module
+  }
+
+  /** The atom symbol.
+    *
+    * @param module the module defining this atom
+    * @param name the atom name
+    */
+  case class Atom(module: String, name: String) extends ExportedSymbol {
+
+    override def kind: Suggestion.Kind =
+      Suggestion.Kind.Atom
+  }
+
+  /** The method symbol.
+    *
+    * @param module the module defining this method
+    * @param name the method name
+    */
+  case class Method(module: String, name: String) extends ExportedSymbol {
+
+    override def kind: Suggestion.Kind =
+      Suggestion.Kind.Method
+  }
 }

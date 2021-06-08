@@ -8,6 +8,7 @@ import org.enso.compiler.context.{
   Changeset,
   ExportsBuilder,
   ModuleContext,
+  ModuleExportsDiff,
   SuggestionBuilder,
   SuggestionDiff
 }
@@ -23,7 +24,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.polyglot.Suggestion
+import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.buffer.Rope
@@ -166,7 +167,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
-        exports = exports,
+        exports = Vector(Api.ExportsUpdate(exports, Api.ExportsAction.Add())),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
       sendModuleUpdate(notification)
@@ -180,7 +181,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): Unit = {
     val moduleName = module.getName
     val version    = ctx.versioning.evalVersion(module.getLiteralSource.toString)
-    val exports    = exportsBuilder.build(moduleName, module.getIr)
     if (module.isIndexed) {
       ctx.executionService.getLogger
         .log(Level.FINEST, s"Analyzing indexed module $moduleName")
@@ -191,11 +191,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
           .build(moduleName, module.getIr)
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
+      val prevExports = exportsBuilder.build(moduleName, changeset.ir)
+      val newExports  = exportsBuilder.build(moduleName, module.getIr)
+      val exportsDiff = ModuleExportsDiff.compute(prevExports, newExports)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,
         actions = Vector(),
-        exports = exports,
+        exports = exportsDiff,
         updates = diff
       )
       sendModuleUpdate(notification)
@@ -205,12 +208,14 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val newSuggestions =
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
+      val prevExports = ModuleExports(moduleName.toString, Set())
+      val newExports  = exportsBuilder.build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = new File(module.getPath),
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
-        exports = exports,
+        exports = ModuleExportsDiff.compute(prevExports, newExports),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
       sendModuleUpdate(notification)
