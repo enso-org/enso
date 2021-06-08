@@ -138,6 +138,18 @@ object FileManagerApi {
     }
   }
 
+  case object ChecksumFile extends Method("file/checksum") {
+    case class Params(path: Path)
+    case class Result(checksum: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ChecksumFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ChecksumFile.Result
+    }
+  }
+
   case object EventFile extends Method("file/event") {
 
     case class Params(path: Path, kind: FileEventKind)
@@ -162,6 +174,8 @@ object FileManagerApi {
   case object OperationTimeoutError extends Error(1005, "IO operation timeout")
 
   case object NotDirectoryError extends Error(1006, "Path is not a directory")
+
+  case object NotFileError extends Error(1007, "Path is not a file")
 
   case object CannotDecodeError
       extends Error(1010, "Cannot decode the project configuration")

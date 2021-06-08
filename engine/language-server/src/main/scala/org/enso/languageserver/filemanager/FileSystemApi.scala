@@ -129,6 +129,13 @@ trait FileSystemApi[F[_, _]] {
     * @return either [[FileSystemFailure]] or file attributes
     */
   def info(path: File): F[FileSystemFailure, Attributes]
+
+  /** Returns the digest for the file at the provided path.
+   *
+   * @param path the path to the filesystem object
+   * @return either [[FileSystemFailure]] or the file checksum
+   */
+  def digest(path: File): F[FileSystemFailure, String]
 }
 
 object FileSystemApi {

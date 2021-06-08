@@ -3,12 +3,13 @@ package org.enso.languageserver.websocket.json
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data._
 import org.enso.testkit.RetrySpec
 
+import java.security.MessageDigest
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -1640,6 +1641,108 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
     }
 
+    "get file checksum" in {
+      val client = getInitialisedWsClient()
+      // create a file
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 46,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "test.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "info" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 46,
+            "result": null
+          }
+          """)
+      val path = Paths.get(testContentRoot.toString, "info", "test.txt")
+      path.toFile.isFile shouldBe true
+      val sum = Hex.toHexString(
+        MessageDigest.getInstance("SHA3-224").digest(Files.readAllBytes(path))
+      )
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info", "test.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "result" : {
+              "checksum" : $sum
+            }
+          }
+            """)
+    }
+
+    "return a NotFile error when the provided path is not a file" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "error": {
+              "code": 1007,
+              "message": "Path is not a file"
+            }
+          }
+          """)
+    }
+
+    "return a FileNotFound error when the provided path is not found" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info", "nonexistent.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "error": {
+              "code": 1003,
+              "message": "File not found"
+            }
+          }
+          """)
+    }
   }
 
   def withCleanRoot[T](test: => T): T = {

@@ -43,6 +43,7 @@ object JsonRpc {
     .registerRequest(ListFile)
     .registerRequest(TreeFile)
     .registerRequest(InfoFile)
+    .registerRequest(ChecksumFile)
     .registerRequest(RedirectStandardOutput)
     .registerRequest(RedirectStandardError)
     .registerRequest(SuppressStandardOutput)
