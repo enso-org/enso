@@ -36,8 +36,7 @@
   verify the integrity of files that it has transferred. The checksum is
   calculated in a streaming fashion so the checksummed file need not be resident
   in memory all at once.
-- Added `documentationHtml` field to Suggestions database entry, and
-  `SuggestionsOrderedDatabaseEntry`
+- Added `documentationHtml` field to Suggestions database entry
   ([#1791](https://github.com/enso-org/enso/pull/1791))
 
 ## Libraries

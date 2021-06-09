@@ -27,15 +27,6 @@ object SearchProtocol {
     val Modify = "Modify"
   }
 
-  private object CodecOrderType {
-
-    val AddOrder = "AddOrder"
-
-    val RemoveOrder = "RemoveOrder"
-
-    val ModifyOrder = "ModifyOrder"
-  }
-
   private object SuggestionType {
 
     val Atom = "atom"
@@ -261,79 +252,6 @@ object SearchProtocol {
       }
   }
 
-  /** Base trait for suggestion order database updates. */
-  sealed trait SuggestionsOrderDatabaseUpdate
-  object SuggestionsOrderDatabaseUpdate {
-
-    /** Create or replace the database entry.
-      *
-      * @param entry new entry.
-      */
-    case class AddOrder(entry: SuggestionOrderDatabaseEntry)
-        extends SuggestionsOrderDatabaseUpdate
-
-    /** Remove the database entry.
-      *
-      * @param id the suggestion id
-      */
-    case class RemoveOrder(id: SuggestionId)
-        extends SuggestionsOrderDatabaseUpdate
-
-    /** Modify the database entry.
-      *
-      * @param id the suggestion id
-      * @param prevId previous suggestion id
-      * @param nextId next suggestion id
-      */
-    case class ModifyOrder(
-      id: SuggestionId,
-      prevId: Option[FieldUpdate[SuggestionId]] = None,
-      nextId: Option[FieldUpdate[SuggestionId]] = None
-    ) extends SuggestionsOrderDatabaseUpdate
-
-    implicit val decoder: Decoder[SuggestionsOrderDatabaseUpdate] =
-      Decoder.instance { cursor =>
-        cursor.downField(CodecField.Type).as[String].flatMap {
-          case CodecOrderType.AddOrder =>
-            Decoder[SuggestionsOrderDatabaseUpdate.AddOrder].tryDecode(cursor)
-
-          case CodecOrderType.RemoveOrder =>
-            Decoder[SuggestionsOrderDatabaseUpdate.RemoveOrder]
-              .tryDecode(cursor)
-
-          case CodecOrderType.ModifyOrder =>
-            Decoder[SuggestionsOrderDatabaseUpdate.ModifyOrder]
-              .tryDecode(cursor)
-        }
-      }
-
-    implicit val encoder: Encoder[SuggestionsOrderDatabaseUpdate] =
-      Encoder.instance[SuggestionsOrderDatabaseUpdate] {
-        case add: SuggestionsOrderDatabaseUpdate.AddOrder =>
-          Encoder[SuggestionsOrderDatabaseUpdate.AddOrder]
-            .apply(add)
-            .deepMerge(
-              Json.obj(CodecField.Type -> CodecOrderType.AddOrder.asJson)
-            )
-            .dropNullValues
-
-        case remove: SuggestionsOrderDatabaseUpdate.RemoveOrder =>
-          Encoder[SuggestionsOrderDatabaseUpdate.RemoveOrder]
-            .apply(remove)
-            .deepMerge(
-              Json.obj(CodecField.Type -> CodecOrderType.RemoveOrder.asJson)
-            )
-
-        case modify: SuggestionsOrderDatabaseUpdate.ModifyOrder =>
-          Encoder[SuggestionsOrderDatabaseUpdate.ModifyOrder]
-            .apply(modify)
-            .deepMerge(
-              Json.obj(CodecField.Type -> CodecOrderType.ModifyOrder.asJson)
-            )
-            .dropNullValues
-      }
-  }
-
   /** The type of a suggestion. */
   sealed trait SuggestionKind extends EnumEntry
   object SuggestionKind
@@ -419,48 +337,6 @@ object SearchProtocol {
           id         <- cursor.downField(CodecField.Id).as[SuggestionId]
           suggestion <- cursor.downField(CodecField.Suggestion).as[Suggestion]
         } yield SuggestionDatabaseEntry(id, suggestion)
-      }
-  }
-
-  /** The entry in the suggestions order database.
-    *
-    * @param id the suggestion id
-    * @param prevId previous suggestion id
-    * @param nextId next suggestion id
-    */
-  case class SuggestionOrderDatabaseEntry(
-    id: SuggestionId,
-    prevId: Option[SuggestionId],
-    nextId: Option[SuggestionId]
-  )
-
-  object SuggestionOrderDatabaseEntry {
-
-    private object CodecField {
-
-      val Id = "id"
-
-      val PrevId = "prevId"
-
-      val NextId = "nextId"
-    }
-
-    implicit val encoder: Encoder[SuggestionOrderDatabaseEntry] =
-      Encoder.instance { entry =>
-        Json.obj(
-          CodecField.Id     -> entry.id.asJson,
-          CodecField.PrevId -> entry.prevId.asJson,
-          CodecField.NextId -> entry.nextId.asJson
-        )
-      }
-
-    implicit val decoder: Decoder[SuggestionOrderDatabaseEntry] =
-      Decoder.instance { cursor =>
-        for {
-          id     <- cursor.downField(CodecField.Id).as[SuggestionId]
-          prevId <- cursor.downField(CodecField.PrevId).as[Option[SuggestionId]]
-          nextId <- cursor.downField(CodecField.NextId).as[Option[SuggestionId]]
-        } yield SuggestionOrderDatabaseEntry(id, prevId, nextId)
       }
   }
 
