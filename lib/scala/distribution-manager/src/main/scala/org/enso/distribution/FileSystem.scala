@@ -1,4 +1,7 @@
-package org.enso.runtimeversionmanager
+package org.enso.distribution
+
+import com.typesafe.scalalogging.Logger
+import org.apache.commons.io.FileUtils
 
 import java.io.PrintWriter
 import java.nio.file.attribute.PosixFilePermissions
@@ -8,10 +11,6 @@ import java.nio.file.{
   Path,
   StandardCopyOption
 }
-import com.typesafe.scalalogging.Logger
-import org.apache.commons.io.FileUtils
-import org.enso.distribution.OS
-
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
 import scala.util.Using

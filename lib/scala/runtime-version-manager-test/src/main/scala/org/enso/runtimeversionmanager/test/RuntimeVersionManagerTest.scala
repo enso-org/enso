@@ -1,10 +1,9 @@
 package org.enso.runtimeversionmanager.test
 
 import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.Environment
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
-import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
   InstallerKind,

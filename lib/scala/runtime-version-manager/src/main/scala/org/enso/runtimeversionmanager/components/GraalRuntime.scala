@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager.components
 import org.enso.distribution.OS
 
 import java.nio.file.{Files, Path}
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.FileSystem.PathSyntax
 
 import scala.util.{Failure, Success, Try}
 

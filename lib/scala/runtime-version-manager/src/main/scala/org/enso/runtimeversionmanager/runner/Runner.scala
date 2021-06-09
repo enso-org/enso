@@ -1,12 +1,11 @@
 package org.enso.runtimeversionmanager.runner
 
 import java.nio.file.Path
-
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.Environment
 import org.enso.logger.masking.MaskedString
-import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,

@@ -1,11 +1,10 @@
-package org.enso.runtimeversionmanager
+package org.enso.distribution
+
+import com.typesafe.scalalogging.Logger
+import org.enso.logger.masking.MaskedString
 
 import java.io.File
 import java.nio.file.Path
-import com.typesafe.scalalogging.Logger
-import org.enso.distribution.OS
-import org.enso.logger.masking.MaskedString
-
 import scala.util.Try
 
 /** Gathers some helper methods querying the system environment.

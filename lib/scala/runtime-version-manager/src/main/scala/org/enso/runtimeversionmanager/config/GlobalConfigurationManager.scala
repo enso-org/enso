@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.distribution.DistributionManager
 

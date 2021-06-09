@@ -2,8 +2,8 @@ package org.enso.runtimeversionmanager.distribution
 
 import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
+import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ResourceManager
-import org.enso.runtimeversionmanager.FileSystem
 
 /** Manages safe access to the temporary directory.
   *

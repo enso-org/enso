@@ -1,9 +1,9 @@
 package org.enso.runtimeversionmanager.distributuion
 
-import java.nio.file.{Files, Path}
+import org.enso.distribution.{Environment, FileSystem}
 
-import org.enso.runtimeversionmanager.{Environment, FileSystem}
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import java.nio.file.{Files, Path}
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   PortableDistributionManager

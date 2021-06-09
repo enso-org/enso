@@ -3,12 +3,11 @@ package org.enso.launcher.installation
 import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.distribution.OS
+import org.enso.distribution.{FileSystem, OS}
 import org.enso.distribution.locking.ResourceManager
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
-import org.enso.runtimeversionmanager.FileSystem
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.distribution.DefaultManagers

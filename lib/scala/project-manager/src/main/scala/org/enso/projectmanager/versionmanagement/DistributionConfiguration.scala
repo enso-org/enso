@@ -1,7 +1,7 @@
 package org.enso.projectmanager.versionmanagement
 
+import org.enso.distribution.Environment
 import org.enso.distribution.locking.ResourceManager
-import org.enso.runtimeversionmanager.Environment
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager

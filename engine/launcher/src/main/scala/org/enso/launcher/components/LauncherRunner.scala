@@ -1,10 +1,9 @@
 package org.enso.launcher.components
 
 import java.nio.file.{Files, Path}
-
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.Environment
+import org.enso.distribution.Environment
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner.{

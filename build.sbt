@@ -1199,6 +1199,7 @@ lazy val `distribution-manager` = project
     )
   )
   .dependsOn(pkg)
+  .dependsOn(`logging-utils`)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))

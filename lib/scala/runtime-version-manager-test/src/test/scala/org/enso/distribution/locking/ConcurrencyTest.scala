@@ -3,6 +3,7 @@ package org.enso.distribution.locking
 import java.nio.file.{Files, Path}
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
+import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.{
   LockManager,
   LockType,
@@ -10,8 +11,7 @@ import org.enso.distribution.locking.{
   Resource,
   ResourceManager
 }
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager._
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
   GraalVMVersion,

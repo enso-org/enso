@@ -1,10 +1,9 @@
 package org.enso.runtimeversionmanager.distribution
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
-import org.enso.runtimeversionmanager.Environment
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.Environment
+import org.enso.distribution.FileSystem.PathSyntax
 
 /** A specialized variant of [[DistributionManager]] that is able to detect if
   * the currently running distribution is running in portable or locally
