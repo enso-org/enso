@@ -4055,7 +4055,7 @@ Signals that the requested file read was out of bounds for the file's size.
   "code" : 1009
   "message" : "Read is out of bounds for the file"
   "data" : {
-    fileLength : 0
+    "fileLength" : 0
   }
 }
 ```

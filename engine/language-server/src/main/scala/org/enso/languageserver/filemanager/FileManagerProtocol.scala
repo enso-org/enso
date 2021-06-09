@@ -190,4 +190,22 @@ object FileManagerProtocol {
     *                 string
     */
   case class ChecksumFileResponse(checksum: Either[FileSystemFailure, String])
+
+  case class ChecksumBytesRequest(segment: Data.FileSegment)
+
+  case class ChecksumBytesResponse(
+    checksum: Either[FileSystemFailure, Array[Byte]]
+  )
+
+  /** Data-types for the file management protocol. */
+  object Data {
+
+    /** A representation of a segment in the file.
+      *
+      * @param path the path to the file in question
+      * @param byteOffset the byte offset in the file to start from
+      * @param length the number of bytes in the segment
+      */
+    case class FileSegment(path: Path, byteOffset: Long, length: Long)
+  }
 }

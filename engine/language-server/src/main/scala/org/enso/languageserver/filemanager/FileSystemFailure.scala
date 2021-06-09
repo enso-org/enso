@@ -31,6 +31,15 @@ case object NotDirectory extends FileSystemFailure
 /** Signal that the provided path is not a file. */
 case object NotFile extends FileSystemFailure
 
+/** Signals that the file cannot be overwritten. */
+case object CannotOverwrite extends FileSystemFailure
+
+/** Signals that the provided file cannot be read at the requested offset.
+  *
+  * @param fileLength the actual length of the file.
+  */
+case class ReadOutOfBounds(fileLength: Long) extends FileSystemFailure
+
 /** Signals file system specific errors.
   *
   * @param reason a reason of failure

@@ -1,15 +1,7 @@
 package org.enso.languageserver.filemanager
 
-import org.enso.languageserver.filemanager.FileManagerApi.{
-  ContentRootNotFoundError,
-  FileExistsError,
-  FileNotFoundError,
-  FileSystemError,
-  NotDirectoryError,
-  NotFileError,
-  OperationTimeoutError
-}
 import org.enso.jsonrpc.Error
+import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.protocol.json.ErrorApi
 
 object FileSystemFailureMapper {
@@ -28,6 +20,8 @@ object FileSystemFailureMapper {
       case OperationTimeout                 => OperationTimeoutError
       case NotDirectory                     => NotDirectoryError
       case NotFile                          => NotFileError
+      case CannotOverwrite                  => CannotOverwriteError
+      case ReadOutOfBounds(l)               => ReadOutOfBoundsError(l)
       case GenericFileSystemFailure(reason) => FileSystemError(reason)
     }
 
