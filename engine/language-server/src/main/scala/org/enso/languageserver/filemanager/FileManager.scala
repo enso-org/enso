@@ -4,6 +4,7 @@ import akka.actor.{Actor, Props}
 import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -202,7 +203,7 @@ class FileManager(
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
-        .map(FileManagerProtocol.ChecksumFileResponse)
+        .map(_.map(digest => Hex.toHexString(digest.bytes)))
         .pipeTo(sender())
 
     case FileManagerProtocol.ChecksumBytesRequest(segment) =>
@@ -212,7 +213,7 @@ class FileManager(
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
-        .map(FileManagerProtocol.ChecksumBytesResponse)
+        .map(_.map(_.bytes))
         .pipeTo(sender())
   }
 }

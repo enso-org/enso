@@ -1,7 +1,6 @@
 package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.FileUtils
-import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect.Effects
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -670,10 +669,13 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
 
       val expectedDigest =
         MessageDigest.getInstance("SHA3-224").digest(Files.readAllBytes(path))
-      val expectedDigestString = Hex.toHexString(expectedDigest)
 
-      val result = objectUnderTest.digest(path.toFile).unsafeRunSync()
-      result shouldBe Right(expectedDigestString)
+      val result = objectUnderTest
+        .digest(path.toFile)
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes should contain theSameElementsAs expectedDigest
     }
 
     "return an error if the provided path is not a file" in new TestCtx {
@@ -708,7 +710,7 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
         .unsafeRunSync()
         .getOrElse(fail("Should be Right"))
 
-      byteDigest should contain theSameElementsAs expectedDigest
+      byteDigest.bytes should contain theSameElementsAs expectedDigest
     }
 
     "Return a `FileNotFound` error if the file does not exist" in new TestCtx {

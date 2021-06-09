@@ -1,7 +1,6 @@
 package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
-import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect.BlockingIO
 import zio._
 import zio.blocking.effectBlocking
@@ -14,8 +13,6 @@ import scala.collection.mutable
 import scala.util.Using
 
 /** File manipulation facility.
-  *
-  * @tparam F represents target monad
   */
 class FileSystem extends FileSystemApi[BlockingIO] {
 
@@ -233,7 +230,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @param path the path to the filesystem object
     * @return either [[FileSystemFailure]] or the file checksum
     */
-  override def digest(path: File): BlockingIO[FileSystemFailure, String] = {
+  override def digest(path: File): BlockingIO[FileSystemFailure, SHA3_224] = {
     if (path.isFile) {
       effectBlocking {
         val messageDigest = MessageDigest.getInstance("SHA3-224")
@@ -248,7 +245,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
             currentBytes = stream.readNBytes(tenMb)
           }
 
-          Hex.toHexString(messageDigest.digest())
+          SHA3_224(messageDigest.digest())
         }
       }.mapError(errorHandling)
     } else {
@@ -267,7 +264,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     */
   override def digestBytes(
     segment: FileSegment
-  ): BlockingIO[FileSystemFailure, Array[Byte]] = {
+  ): BlockingIO[FileSystemFailure, SHA3_224] = {
     val path = segment.path
     if (path.isFile) {
       effectBlocking {
@@ -277,9 +274,6 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         ) { stream =>
           var bytePosition = stream.skip(segment.byteOffset)
           var bytesToRead  = segment.length
-
-          println(s"Position: $bytePosition")
-          println(s"To read: $bytesToRead")
 
           do {
             val readSize = Math.min(bytesToRead, fileChunkSize.toLong).toInt
@@ -295,7 +289,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
 
             messageDigest.update(bytes)
           } while (bytesToRead > 0)
-          messageDigest.digest()
+          SHA3_224(messageDigest.digest())
         }
       }.mapError(errorHandling)
     } else {
