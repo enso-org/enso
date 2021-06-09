@@ -2,7 +2,6 @@ package org.enso.languageserver.protocol.binary
 
 import java.nio.ByteBuffer
 import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
@@ -18,6 +17,7 @@ import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
 }
 import org.enso.languageserver.protocol.binary.BinaryConnectionController.InboundPayloadType
 import org.enso.languageserver.protocol.binary.InboundPayload.{
+  CHECKSUM_BYTES_CMD,
   INIT_SESSION_CMD,
   READ_FILE_CMD,
   WRITE_FILE_CMD
@@ -29,6 +29,7 @@ import org.enso.languageserver.protocol.binary.factory.{
   VisualisationUpdateFactory
 }
 import org.enso.languageserver.requesthandler.file.{
+  ChecksumBytesHandler,
   ReadBinaryFileHandler,
   WriteBinaryFileHandler
 }
@@ -204,6 +205,8 @@ class BinaryConnectionController(
       WRITE_FILE_CMD -> WriteBinaryFileHandler
         .props(requestTimeout, fileManager, outboundChannel),
       READ_FILE_CMD -> ReadBinaryFileHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      CHECKSUM_BYTES_CMD -> ChecksumBytesHandler
         .props(requestTimeout, fileManager, outboundChannel)
     )
   }

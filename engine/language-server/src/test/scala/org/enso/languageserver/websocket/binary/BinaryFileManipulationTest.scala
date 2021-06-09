@@ -1,25 +1,19 @@
 package org.enso.languageserver.websocket.binary
 
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.UUID
-
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.protocol.binary.{
+  FileContentsReply,
   InboundPayload,
   OutboundMessage,
   OutboundPayload
 }
-import org.enso.languageserver.protocol.binary.FileContentsReply
-import org.enso.languageserver.websocket.binary.factory.{
-  InboundMessageFactory,
-  PathFactory,
-  ReadFileCommandFactory,
-  WriteFileCommandFactory
-}
+import org.enso.languageserver.websocket.binary.factory._
 import org.enso.testkit.FlakySpec
 
+import java.io.File
+import java.nio.ByteBuffer
+import java.util.UUID
 import scala.io.Source
 
 class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
@@ -96,6 +90,25 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
   "A ChecksumBytesCommand" must {
     "Return the checksum for the provided byte range" in {
       pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      FileUtils.writeByteArrayToFile(barFile, contents)
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val checksumBytesCmd = createChecksumBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        byteOffset = 0,
+        length = 2
+      )
+
+      client.send(checksumBytesCmd)
+      val checksumResponse = client.receiveMessage[OutboundMessage]()
+      checksumResponse shouldBe Right
     }
 
     "Return a `FileNotFound` error if the file does not exist" in {
@@ -111,17 +124,40 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     }
   }
 
+  def createChecksumBytesCommandPacket(
+    requestId: UUID,
+    pathSegments: Seq[String],
+    rootId: UUID,
+    byteOffset: Long,
+    length: Long
+  ): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
+
+    val path        = PathFactory.create(rootId, pathSegments)
+    val fileSegment = FileSegmentFactory.create(path, byteOffset, length)
+    val command     = ChecksumBytesCommandFactory.create(fileSegment)
+
+    val incomingMessage = InboundMessageFactory.create(
+      requestId,
+      None,
+      InboundPayload.CHECKSUM_BYTES_CMD,
+      command
+    )
+
+    builder.finish(incomingMessage)
+    builder.dataBuffer()
+  }
+
   def createWriteFileCmdPacket(
     requestId: UUID,
     pathSegment: String,
     rootId: UUID,
     contents: Array[Byte]
   ): ByteBuffer = {
-    implicit val builder = new FlatBufferBuilder(1024)
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
 
     val path = PathFactory.create(rootId, Seq(pathSegment))
-
-    val cmd = WriteFileCommandFactory.create(path, contents)
+    val cmd  = WriteFileCommandFactory.create(path, contents)
 
     val inMsg = InboundMessageFactory.create(
       requestId,
@@ -129,6 +165,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       InboundPayload.WRITE_FILE_CMD,
       cmd
     )
+
     builder.finish(inMsg)
     builder.dataBuffer()
   }
@@ -138,11 +175,10 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     pathSegment: String,
     rootId: UUID
   ): ByteBuffer = {
-    implicit val builder = new FlatBufferBuilder(1024)
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
 
     val path = PathFactory.create(rootId, Seq(pathSegment))
-
-    val cmd = ReadFileCommandFactory.create(path)
+    val cmd  = ReadFileCommandFactory.create(path)
 
     val inMsg = InboundMessageFactory.create(
       requestId,
@@ -150,6 +186,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       InboundPayload.READ_FILE_CMD,
       cmd
     )
+
     builder.finish(inMsg)
     builder.dataBuffer()
   }

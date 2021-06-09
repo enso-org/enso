@@ -195,14 +195,14 @@ class FileManager(
         .pipeTo(sender())
       ()
 
-    case FileManagerProtocol.ChecksumRequest(path) =>
+    case FileManagerProtocol.ChecksumFileRequest(path) =>
       val getChecksum = for {
         rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
         checksum <- fs.digest(path.toFile(rootPath))
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
-        .map(FileManagerProtocol.ChecksumResponse)
+        .map(FileManagerProtocol.ChecksumFileResponse)
         .pipeTo(sender())
   }
 }

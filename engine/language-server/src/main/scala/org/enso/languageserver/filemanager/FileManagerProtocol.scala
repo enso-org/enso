@@ -182,12 +182,12 @@ object FileManagerProtocol {
     *
     * @param path to the file system object
     */
-  case class ChecksumRequest(path: Path)
+  case class ChecksumFileRequest(path: Path)
 
   /** Returns the checksum of the file system object in question.
     *
     * @param checksum either a FS failure or the checksum as a base64-encoded
     *                 string
     */
-  case class ChecksumResponse(checksum: Either[FileSystemFailure, String])
+  case class ChecksumFileResponse(checksum: Either[FileSystemFailure, String])
 }

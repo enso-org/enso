@@ -48,6 +48,7 @@ object ErrorFactory {
     message: String,
     maybeCorrelationId: Option[EnsoUUID] = None
   ): ByteBuffer = {
+    // TODO [AA] Add support for error data
     implicit val builder = new FlatBufferBuilder(1024)
     val offset =
       Error.createError(
