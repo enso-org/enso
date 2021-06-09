@@ -13,7 +13,6 @@ import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.locking.ResourceManager
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider

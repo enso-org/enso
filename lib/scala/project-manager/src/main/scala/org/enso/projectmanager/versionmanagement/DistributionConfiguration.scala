@@ -9,7 +9,6 @@ import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.locking.ResourceManager
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
 import org.enso.runtimeversionmanager.runner.JVMSettings

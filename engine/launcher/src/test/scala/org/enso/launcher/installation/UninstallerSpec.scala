@@ -1,7 +1,8 @@
 package org.enso.launcher.installation
 
-import java.nio.file.{Files, Path}
+import org.enso.distribution.OS
 
+import java.nio.file.{Files, Path}
 import org.enso.runtimeversionmanager.FileSystem
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.test.WithTemporaryDirectory

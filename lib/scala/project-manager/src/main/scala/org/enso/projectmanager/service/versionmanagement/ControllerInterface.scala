@@ -11,7 +11,6 @@ import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.locking.Resource
 
 import scala.util.{Failure, Success, Try}
 

@@ -6,7 +6,6 @@ import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.locking.Resource
 
 /** A simple [[RuntimeVersionManagementUserInterface]] that does not allow to
   * install any versions and does not track any progress.

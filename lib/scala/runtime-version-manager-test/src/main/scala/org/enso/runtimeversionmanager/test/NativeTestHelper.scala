@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.test
 
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 
 import java.io.{
   BufferedReader,

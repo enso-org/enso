@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.components
 
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 
 import java.nio.file.Path
 import org.scalatest.matchers.should.Matchers

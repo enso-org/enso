@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 /** Manages locks that can be used to synchronize different launcher processes
   * running in parallel to avoid components corruption caused by simultaneous

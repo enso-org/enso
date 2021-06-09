@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.test
 
-import org.enso.runtimeversionmanager.locking.ResourceManager
+import org.enso.distribution.locking.ResourceManager
 
 object TestLocalResourceManager {
 

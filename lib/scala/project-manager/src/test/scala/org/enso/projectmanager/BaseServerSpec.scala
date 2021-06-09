@@ -10,7 +10,7 @@ import io.circe.Json
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.loggingservice.printers.StderrPrinterWithColors

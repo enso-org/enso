@@ -1184,6 +1184,7 @@ lazy val launcher = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+  .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
 lazy val `distribution-manager` = project
@@ -1249,6 +1250,7 @@ lazy val `runtime-version-manager-test` = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(testkit)
+  .dependsOn(cli)
   .dependsOn(`distribution-manager`)
 
 lazy val `locking-test-helper` = project

@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 /** Defines callbacks that can be called when a requested resource is locked and
   * the application has to wait for other processes.

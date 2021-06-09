@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.releases.graalvm
 
 import java.nio.file.Path
 import org.enso.cli.task.TaskProgress
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.releases.github.GithubReleaseProvider
 import org.enso.runtimeversionmanager.releases.{

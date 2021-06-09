@@ -3,11 +3,11 @@ package org.enso.runtimeversionmanager.test
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
+import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.locking.Resource
 
 /** [[RuntimeVersionManagementUserInterface]] for usage in testing.
   *

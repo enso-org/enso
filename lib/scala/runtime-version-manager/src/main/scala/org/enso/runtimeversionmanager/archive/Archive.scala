@@ -22,7 +22,7 @@ import org.enso.cli.task.{
   TaskProgress,
   TaskProgressImplementation
 }
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 import org.enso.runtimeversionmanager.archive.internal.{
   ArchiveIterator,
   BaseRenamer

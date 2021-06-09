@@ -10,7 +10,7 @@ import java.nio.file.{
 }
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 
 import scala.collection.Factory
 import scala.jdk.StreamConverters._

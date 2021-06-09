@@ -1,9 +1,15 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 import java.nio.file.{Files, Path}
-
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
+import org.enso.distribution.locking.{
+  LockManager,
+  LockType,
+  LockUserInterface,
+  Resource,
+  ResourceManager
+}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager._
 import org.enso.runtimeversionmanager.components.{

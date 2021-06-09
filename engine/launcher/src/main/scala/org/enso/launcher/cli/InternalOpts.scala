@@ -2,11 +2,11 @@ package org.enso.launcher.cli
 
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
-
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
+import org.enso.distribution.OS
 import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.cli.Arguments._

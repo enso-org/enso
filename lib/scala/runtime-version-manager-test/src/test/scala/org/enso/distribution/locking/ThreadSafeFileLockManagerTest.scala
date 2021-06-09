@@ -1,7 +1,13 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
+
+import org.enso.distribution.locking.LockType.Shared
+import org.enso.distribution.locking.{
+  FileLockManager,
+  LockType,
+  ThreadSafeFileLockManager
+}
 
 import java.nio.file.Path
-
 import org.enso.runtimeversionmanager.test.{
   NativeTestHelper,
   TestSynchronizer,
@@ -69,7 +75,7 @@ class ThreadSafeFileLockManagerTest
   "ThreadSafeFileLockManager" should {
     "allow multiple concurrent shared locks" in {
       val name = "resource1"
-      val r1   = lockManager.acquireLock(name, LockType.Shared)
+      val r1   = lockManager.acquireLock(name, Shared)
       val r2   = lockManager.acquireLock(name, LockType.Shared)
       r1.release()
       r2.release()

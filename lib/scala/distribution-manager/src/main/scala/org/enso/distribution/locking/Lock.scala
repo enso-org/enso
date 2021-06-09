@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 import scala.util.Using.Releasable
 

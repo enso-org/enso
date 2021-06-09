@@ -1,10 +1,16 @@
 package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
+import org.enso.distribution.OS
+import org.enso.distribution.locking.{
+  LockType,
+  LockUserInterface,
+  Resource,
+  ResourceManager
+}
 import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
@@ -15,18 +21,13 @@ import org.enso.launcher.cli.{
   GlobalCLIOptions,
   InternalOpts
 }
-import org.enso.runtimeversionmanager.locking.{
-  LockType,
-  LockUserInterface,
-  Resource,
-  ResourceManager
-}
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.launcher.releases.LauncherRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.logger.LoggerSyntax
+import org.enso.runtimeversionmanager.locking.Resources
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -66,7 +67,7 @@ class LauncherUpgrader(
     }
     resourceManager.withResource(
       failIfAnotherUpgradeIsRunning,
-      Resource.LauncherExecutable,
+      Resources.LauncherExecutable,
       LockType.Exclusive
     ) {
       runCleanup(isStartup = true)

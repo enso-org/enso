@@ -14,10 +14,6 @@ import org.enso.runtimeversionmanager.distribution.{
   DistributionManager,
   TemporaryDirectoryManager
 }
-import org.enso.runtimeversionmanager.locking.{
-  ResourceManager,
-  ThreadSafeFileLockManager
-}
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,

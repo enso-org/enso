@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 import com.typesafe.scalalogging.Logger
 

@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager
 import java.io.File
 import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 import org.enso.logger.masking.MaskedString
 
 import scala.util.Try

@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.locking
+package org.enso.distribution.locking
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Files, Path, StandardOpenOption}

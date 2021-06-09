@@ -1,6 +1,6 @@
 package org.enso.runtimeversionmanager.components
 
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 
 import java.nio.file.{Files, Path}
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax

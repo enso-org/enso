@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path}
 import nl.gn0s1s.bump.SemVer
-import org.enso.distributionmanager.OS
+import org.enso.distribution.OS
 import org.enso.runtimeversionmanager.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.releases.ReleaseNotFound
