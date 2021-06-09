@@ -152,19 +152,19 @@ trait FileSystemApi[F[_, _]] {
     * @return either a [[FileSystemFailure]] or the checksum of the `bytes` as
     *         they were written to disk
     */
-//  def writeBytes(
-//    path: File,
-//    byteOffset: Long,
-//    overwriteExisting: Boolean,
-//    bytes: Array[Byte]
-//  ): F[FileSystemFailure, SHA3_224]
+  def writeBytes(
+    path: File,
+    byteOffset: Long,
+    overwriteExisting: Boolean,
+    bytes: Array[Byte]
+  ): F[FileSystemFailure, SHA3_224]
 
   /** Reads the bytes specified by `segment` from the specified `segment.file`.
    *
    * @param segment a description of the portion of a file to checksum
    * @return either [[FileSystemFailure]] or the bytes representing the checksum
    */
-//  def readBytes(segment: FileSegment): F[FileSystemFailure, ReadBytesResult]
+  def readBytes(segment: FileSegment): F[FileSystemFailure, ReadBytesResult]
 }
 
 object FileSystemApi {

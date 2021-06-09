@@ -750,6 +750,58 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
     }
   }
 
+  "Writing bytes" should {
+    "Write the provided bytes to the specified file" in new TestCtx {
+      pending
+    }
+
+    "Provide the checksum of the written bytes" in new TestCtx {
+      pending
+    }
+
+    "Create the file from scratch if it doesn't exist" in new TestCtx {
+      pending
+    }
+
+    "Fill any intervening space with null bytes" in new TestCtx {
+      pending
+    }
+
+    "Return a `CannotOverwrite` error if `byteOffset < file.length`" in new TestCtx {
+      pending
+    }
+
+    "Return a `NotFile` error if the provided path is not a file" in new TestCtx {
+      pending
+    }
+  }
+
+  "Reading bytes" should {
+    "Read the specified bytes from the file" in new TestCtx {
+      pending
+    }
+
+    "Read less bytes if the specified segment would take it off the end of the file" in new TestCtx {
+      pending
+    }
+
+    "Return a checksum for the read bytes" in new TestCtx {
+      pending
+    }
+
+    "Return a `FileNotFound` error if the file does not exist" in new TestCtx {
+      pending
+    }
+
+    "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in new TestCtx {
+      pending
+    }
+
+    "Return a `NotFile` error if the provided path is not a file" in new TestCtx {
+      pending
+    }
+  }
+
   def readTxtFile(path: Path): String = {
     val buffer  = Source.fromFile(path.toFile)
     val content = buffer.getLines().mkString

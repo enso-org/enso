@@ -301,6 +301,17 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     }
   }
 
+  override def writeBytes(
+    path: File,
+    byteOffset: Long,
+    overwriteExisting: Boolean,
+    bytes: Array[Byte]
+  ): BlockingIO[FileSystemFailure, SHA3_224] = ???
+
+  override def readBytes(
+    segment: FileSegment
+  ): BlockingIO[FileSystemFailure, ReadBytesResult] = ???
+
   private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException      => FileNotFound
     case _: NoSuchFileException        => FileNotFound
