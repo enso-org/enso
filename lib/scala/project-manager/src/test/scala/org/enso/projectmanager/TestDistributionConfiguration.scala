@@ -1,7 +1,8 @@
 package org.enso.projectmanager
 
-import java.nio.file.Path
+import org.enso.distribution.locking.ResourceManager
 
+import java.nio.file.Path
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
