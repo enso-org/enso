@@ -3,7 +3,6 @@ package org.enso.editions
 import nl.gn0s1s.bump.SemVer
 
 import java.net.URL
-import scala.util.Try
 
 trait Editions {
   type NestedEditionType

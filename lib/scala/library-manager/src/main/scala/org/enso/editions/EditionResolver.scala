@@ -8,6 +8,7 @@ case class EditionResolver(provider: EditionProvider) {
   def resolve(
     edition: RawEdition
   ): Either[EditionResolutionError, ResolvedEdition] =
+    // TODO [RW] cycles
     for {
       parent <- resolveParent(edition.parent)
       preferLocalLibraries = edition.preferLocalLibraries.getOrElse(false)

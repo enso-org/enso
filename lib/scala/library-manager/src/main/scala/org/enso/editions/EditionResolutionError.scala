@@ -17,4 +17,9 @@ object EditionResolutionError {
         s"A library `$libraryName` references a repository `$repositoryName` " +
         s"that is not defined in the edition or its parents."
       )
+
+  case class EditionResolutionCycle(editions: List[String])
+      extends EditionResolutionError(
+        s"Edition resolution encountered a cycle: $editions"
+      )
 }

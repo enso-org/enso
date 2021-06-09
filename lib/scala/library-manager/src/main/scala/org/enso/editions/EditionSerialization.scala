@@ -2,7 +2,7 @@ package org.enso.editions
 
 import cats.Show
 import io.circe.syntax.EncoderOps
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json}
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
 import org.enso.pkg.SemVerJson._
@@ -11,9 +11,15 @@ import java.net.URL
 import scala.util.Try
 
 object EditionSerialization {
+  def parseYamlString(yamlString: String): Try[Raw.Edition] =
+    yaml.parser
+      .parse(yamlString)
+      .flatMap(_.as[Raw.Edition])
+      .toTry
+
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {
-      parent        <- json.get[Option[String]](Fields.Parent)
+      parent        <- json.get[Option[EditionName]](Fields.Parent)
       engineVersion <- json.get[Option[SemVer]](Fields.EngineVersion)
       preferLocalLibraries <- json.get[Option[Boolean]](
         Fields.PreferLocalLibraries
@@ -41,7 +47,7 @@ object EditionSerialization {
         else
           Right(
             Raw.Edition(
-              parent               = parent,
+              parent               = parent.map(_.name),
               engineVersion        = engineVersion,
               preferLocalLibraries = preferLocalLibraries,
               repositories         = repositoryMap,
@@ -86,6 +92,16 @@ object EditionSerialization {
     val Libraries            = "libraries"
     val LocalRepositoryName  = "local"
     val PreferLocalLibraries = "prefer-local-libraries"
+  }
+
+  case class EditionName(name: String)
+
+  implicit private val editionNameDecoder: Decoder[EditionName] = { json =>
+    json
+      .as[String]
+      .orElse(json.as[Int].map(_.toString))
+      .orElse(json.as[Float].map(_.toString))
+      .map(EditionName)
   }
 
   implicit private val libraryDecoder: Decoder[Raw.Library] = { json =>
