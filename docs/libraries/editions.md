@@ -93,6 +93,8 @@ Each library is represented by an object that must have:
 - an optional `hash` that can be included to verify the integrity of the
   package.
 
+The `hash` field is currently not implemented.
+
 ### Extending the Editions
 
 An edition may extend another one by using the `extends` property specifying the
