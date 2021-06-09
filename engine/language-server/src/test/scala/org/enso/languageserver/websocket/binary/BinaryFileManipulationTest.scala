@@ -93,6 +93,24 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   }
 
+  "A ChecksumBytesCommand" must {
+    "Return the checksum for the provided byte range" in {
+      pending
+    }
+
+    "Return a `FileNotFound` error if the file does not exist" in {
+      pending
+    }
+
+    "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
+      pending
+    }
+
+    "Return a `NotFile` error if the provided path is not a file" in {
+      pending
+    }
+  }
+
   def createWriteFileCmdPacket(
     requestId: UUID,
     pathSegment: String,
