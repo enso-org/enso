@@ -191,13 +191,21 @@ object FileManagerProtocol {
     */
   case class ChecksumFileResponse(checksum: Either[FileSystemFailure, String])
 
+  /** Requests that the file manager provide the checksum of the specified bytes in a file.
+    *
+    * @param segment a description of the bytes in a file to checksum.
+    */
   case class ChecksumBytesRequest(segment: Data.FileSegment)
 
+  /** Returns the checksum of the bytes in question.
+    *
+    * @param checksum either a FS failure or the checksum as an array of bytes
+    */
   case class ChecksumBytesResponse(
     checksum: Either[FileSystemFailure, Array[Byte]]
   )
 
-  /** Data-types for the file management protocol. */
+  /** Data types for the protocol. */
   object Data {
 
     /** A representation of a segment in the file.
@@ -206,6 +214,10 @@ object FileManagerProtocol {
       * @param byteOffset the byte offset in the file to start from
       * @param length the number of bytes in the segment
       */
-    case class FileSegment(path: Path, byteOffset: Long, length: Long)
+    case class FileSegment(path: Path, byteOffset: Long, length: Long) {
+      def toApiSegment(rootPath: File): FileSystemApi.FileSegment = {
+        FileSystemApi.FileSegment(path.toFile(rootPath), byteOffset, length)
+      }
+    }
   }
 }

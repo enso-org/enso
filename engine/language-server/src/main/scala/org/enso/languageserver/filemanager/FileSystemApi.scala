@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.{BasicFileAttributes, FileTime}
 import java.time.{OffsetDateTime, ZoneOffset}
-
 import org.enso.languageserver.effect.BlockingIO
 
 import scala.collection.mutable.ArrayBuffer
@@ -131,14 +130,29 @@ trait FileSystemApi[F[_, _]] {
   def info(path: File): F[FileSystemFailure, Attributes]
 
   /** Returns the digest for the file at the provided path.
-   *
-   * @param path the path to the filesystem object
-   * @return either [[FileSystemFailure]] or the file checksum
-   */
+    *
+    * @param path the path to the filesystem object
+    * @return either [[FileSystemFailure]] or the file checksum
+    */
   def digest(path: File): F[FileSystemFailure, String]
+
+  /** Returns the digest for the bytes in the file described by `segment`.
+    *
+    * @param segment a description of the portion of a file to checksum
+    * @return either [[FileSystemFailure]] or the bytes representing the checksum
+    */
+  def digestBytes(segment: FileSegment): F[FileSystemFailure, Array[Byte]]
 }
 
 object FileSystemApi {
+
+  /** A representation of a segment in the file.
+    *
+    * @param path the path to the file in question
+    * @param byteOffset the byte offset in the file to start from
+    * @param length the number of bytes in the segment
+    */
+  case class FileSegment(path: File, byteOffset: Long, length: Long)
 
   /** An object representing abstract file system entry.
     */

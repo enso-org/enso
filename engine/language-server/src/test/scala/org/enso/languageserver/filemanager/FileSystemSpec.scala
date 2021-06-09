@@ -690,19 +690,61 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "Byte-range checksum" should {
     "return the checksum for a provided byte range" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      val byteOffset   = 1L
+      val byteCount    = 3L
+      createFileContaining(fileContents, path)
+
+      // Digest of "ell"
+      val expectedDigest = MessageDigest
+        .getInstance("SHA3-224")
+        .digest(fileContents.getBytes(StandardCharsets.UTF_8).slice(1, 4))
+
+      val byteDigest = objectUnderTest
+        .digestBytes(
+          FileSystemApi.FileSegment(path.toFile, byteOffset, byteCount)
+        )
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      byteDigest should contain theSameElementsAs expectedDigest
     }
 
     "Return a `FileNotFound` error if the file does not exist" in new TestCtx {
-      pending
+      val path       = Paths.get(testDirPath.toString, "nonexistent.txt")
+      val byteOffset = 1L
+      val byteCount  = 3L
+
+      val result = objectUnderTest
+        .digestBytes(
+          FileSystemApi.FileSegment(path.toFile, byteOffset, byteCount)
+        )
+        .unsafeRunSync()
+      result shouldBe Left(FileNotFound)
     }
 
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      createFileContaining(fileContents, path)
+
+      val startOutOfBounds = objectUnderTest
+        .digestBytes(FileSystemApi.FileSegment(path.toFile, 13, 0))
+        .unsafeRunSync()
+      startOutOfBounds shouldBe Left(ReadOutOfBounds(12))
+
+      val endOutOfBounds = objectUnderTest
+        .digestBytes(FileSystemApi.FileSegment(path.toFile, 5, 10))
+        .unsafeRunSync()
+      endOutOfBounds shouldBe Left(ReadOutOfBounds(12))
     }
 
     "Return a `NotFile` error if the provided path is not a file" in new TestCtx {
-      pending
+      val result = objectUnderTest
+        .digestBytes(FileSystemApi.FileSegment(testDirPath.toFile, 0L, 3L))
+        .unsafeRunSync()
+      result shouldBe Left(NotFile)
     }
   }
 

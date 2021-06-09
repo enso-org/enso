@@ -19,6 +19,11 @@ import scala.util.Using
   */
 class FileSystem extends FileSystemApi[BlockingIO] {
 
+  private val tenMb: Int = 1 * 1024 * 1024 * 10
+
+  /** The stride used by the [[FileSystem]] when processing a file in chunks. */
+  val fileChunkSize: Int = tenMb
+
   import FileSystemApi._
 
   /** Writes textual content to a file.
@@ -236,7 +241,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
           val tenMb        = 1 * 1024 * 1024 * 10
-          var currentBytes = stream.readNBytes(tenMb)
+          var currentBytes = stream.readNBytes(fileChunkSize)
 
           while (currentBytes.nonEmpty) {
             messageDigest.update(currentBytes)
@@ -255,16 +260,70 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     }
   }
 
+  /** Returns the digest of the bytes described by `segment`.
+    *
+    * @param segment a description of the portion of a file to checksum
+    * @return either [[FileSystemFailure]] or the bytes representing the checksum
+    */
+  override def digestBytes(
+    segment: FileSegment
+  ): BlockingIO[FileSystemFailure, Array[Byte]] = {
+    val path = segment.path
+    if (path.isFile) {
+      effectBlocking {
+        val messageDigest = MessageDigest.getInstance("SHA3-224")
+        Using.resource(
+          Files.newInputStream(path.toPath, StandardOpenOption.READ)
+        ) { stream =>
+          var bytePosition = stream.skip(segment.byteOffset)
+          var bytesToRead  = segment.length
+
+          println(s"Position: $bytePosition")
+          println(s"To read: $bytesToRead")
+
+          do {
+            val readSize = Math.min(bytesToRead, fileChunkSize.toLong).toInt
+            val bytes    = stream.readNBytes(readSize)
+
+            bytePosition += bytes.length
+
+            if (bytes.isEmpty || bytes.length != bytesToRead) {
+              throw FileSystem.ReadOutOfBounds(bytePosition)
+            }
+
+            bytesToRead -= bytes.length
+
+            messageDigest.update(bytes)
+          } while (bytesToRead > 0)
+          messageDigest.digest()
+        }
+      }.mapError(errorHandling)
+    } else {
+      if (path.exists()) {
+        IO.fail(NotFile)
+      } else {
+        IO.fail(FileNotFound)
+      }
+    }
+  }
+
   private val errorHandling: Throwable => FileSystemFailure = {
-    case _: FileNotFoundException => FileNotFound
-    case _: NoSuchFileException   => FileNotFound
-    case _: FileExistsException   => FileExists
-    case _: AccessDeniedException => AccessDenied
-    case ex                       => GenericFileSystemFailure(ex.getMessage)
+    case _: FileNotFoundException      => FileNotFound
+    case _: NoSuchFileException        => FileNotFound
+    case _: FileExistsException        => FileExists
+    case _: AccessDeniedException      => AccessDenied
+    case FileSystem.ReadOutOfBounds(l) => ReadOutOfBounds(l)
+    case ex                            => GenericFileSystemFailure(ex.getMessage)
   }
 }
 
 object FileSystem {
+
+  /** An exception for when a file segment read goes out of bounds.
+    *
+    * @param length the true length of the file
+    */
+  case class ReadOutOfBounds(length: Long) extends Throwable
 
   import FileSystemApi._
 
