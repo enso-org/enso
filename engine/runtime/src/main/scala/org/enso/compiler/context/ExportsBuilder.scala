@@ -8,6 +8,11 @@ import org.enso.polyglot.{ExportedSymbol, ModuleExports}
 
 final class ExportsBuilder {
 
+  /** Build module exports from the given IR.
+    *
+    * @param moduleName the module name
+    * @param ir the module IR
+    */
   def build(moduleName: QualifiedName, ir: IR): ModuleExports = {
     val symbols = getBindings(ir).exportedSymbols.values.flatten
       .filter(_.module.getName != moduleName)
@@ -26,6 +31,6 @@ final class ExportsBuilder {
   private def getBindings(ir: IR): BindingsMap =
     ir.unsafeGetMetadata(
       BindingAnalysis,
-      "module without binding analysis in Exports Builder"
+      "Module without binding analysis in Exports Builder."
     )
 }

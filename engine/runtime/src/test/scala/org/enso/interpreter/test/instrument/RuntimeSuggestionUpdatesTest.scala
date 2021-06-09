@@ -845,4 +845,305 @@ class RuntimeSuggestionUpdatesTest
     )
   }
 
+  it should "index exports" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val mainCode =
+      """from Builtins import all
+        |
+        |import Test.A
+        |from Test.A export all
+        |
+        |main = IO.println "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+    val aCode =
+      """from Builtins import all
+        |
+        |type MyType
+        |    type MkA a
+        |
+        |Integer.fortytwo = 42
+        |
+        |hello = "Hello World!"
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    val mainVersion = contentsVersion(mainCode)
+    val mainFile    = context.writeMain(mainCode)
+    val aVersion    = contentsVersion(aCode)
+    val aFile       = context.writeInSrcDir("A", aCode)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open files
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, mainCode, false))
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(Api.OpenFileNotification(aFile, aCode, false))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file    = aFile,
+          version = aVersion,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean("Test.A")),
+          exports = Vector(),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module("Test.A", None, None),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Atom(
+                    None,
+                    "Test.A",
+                    "MkA",
+                    List(
+                      Suggestion
+                        .Argument("a", "Builtins.Main.Any", false, false, None)
+                    ),
+                    "Test.A.MkA",
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.A",
+                    "a",
+                    List(
+                      Suggestion
+                        .Argument("this", "Test.A.MkA", false, false, None)
+                    ),
+                    "Test.A.MkA",
+                    "Builtins.Main.Any",
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.A",
+                    "fortytwo",
+                    List(
+                      Suggestion.Argument(
+                        "this",
+                        "Builtins.Main.Integer",
+                        false,
+                        false,
+                        None
+                      )
+                    ),
+                    "Builtins.Main.Integer",
+                    "Builtins.Main.Any",
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    "Test.A",
+                    "hello",
+                    List(
+                      Suggestion.Argument("this", "Test.A", false, false, None)
+                    ),
+                    "Test.A",
+                    "Builtins.Main.Any",
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file    = mainFile,
+          version = mainVersion,
+          actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Test.Main",
+                Set(
+                  ExportedSymbol.Atom("Test.A", "MkA"),
+                  ExportedSymbol.Method("Test.A", "hello")
+                )
+              ),
+              Api.ExportsAction.Add()
+            )
+          ),
+          updates = Tree.Root(
+            Vector(
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Module(
+                    moduleName,
+                    None,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              ),
+              Tree.Node(
+                Api.SuggestionUpdate(
+                  Suggestion.Method(
+                    None,
+                    moduleName,
+                    "main",
+                    List(
+                      Suggestion
+                        .Argument("this", "Test.Main", false, false, None)
+                    ),
+                    "Test.Main",
+                    Constants.ANY,
+                    None
+                  ),
+                  Api.SuggestionAction.Add()
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 22), model.Position(3, 22)),
+              " hiding hello"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |import Test.A
+              |from Test.A export all hiding hello
+              |
+              |main = IO.println "Hello World!"
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Test.Main",
+                Set(ExportedSymbol.Method("Test.A", "hello"))
+              ),
+              Api.ExportsAction.Remove()
+            )
+          ),
+          updates = Tree.Root(Vector())
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 0), model.Position(5, 0)),
+              ""
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseModuleUpdateNotification(
+          file = mainFile,
+          version = contentsVersion(
+            """from Builtins import all
+              |
+              |main = IO.println "Hello World!"
+              |""".stripMargin.linesIterator.mkString("\n")
+          ),
+          actions = Vector(),
+          exports = Vector(
+            Api.ExportsUpdate(
+              ModuleExports(
+                "Test.Main",
+                Set(ExportedSymbol.Atom("Test.A", "MkA"))
+              ),
+              Api.ExportsAction.Remove()
+            )
+          ),
+          updates = Tree.Root(Vector())
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("Hello World!")
+  }
+
 }

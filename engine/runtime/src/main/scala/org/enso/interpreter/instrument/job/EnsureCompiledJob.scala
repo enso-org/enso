@@ -24,6 +24,7 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{ModuleExports, Suggestion}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
@@ -109,6 +110,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
           if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
             getCompiledModules(moduleScope).foreach(analyzeModuleInScope)
+          } else {
+            val projectModules = getCompiledModules(moduleScope)
+              .filter(m => rootName(m.getName) == rootName(module.getName))
+            projectModules.foreach(analyzeModuleInScope)
           }
           analyzeModule(moduleScope.getModule, changeset)
         }
@@ -160,14 +165,15 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val newSuggestions = SuggestionBuilder(module.getLiteralSource)
         .build(moduleName, module.getIr)
         .filter(isSuggestionGlobal)
-      val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
-      val exports = exportsBuilder.build(module.getName, module.getIr)
+      val version     = ctx.versioning.evalVersion(module.getLiteralSource.toString)
+      val prevExports = ModuleExports(moduleName.toString, Set())
+      val newExports  = exportsBuilder.build(module.getName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
         file    = getIndexingPath(module),
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
-        exports = Vector(Api.ExportsUpdate(exports, Api.ExportsAction.Add())),
+        exports = ModuleExportsDiff.compute(prevExports, newExports),
         updates = SuggestionDiff.compute(Tree.empty, newSuggestions)
       )
       sendModuleUpdate(notification)
@@ -385,7 +391,11 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def sendModuleUpdate(
     payload: Api.SuggestionsDatabaseModuleUpdateNotification
   )(implicit ctx: RuntimeContext): Unit =
-    if (payload.actions.nonEmpty || !payload.updates.isEmpty) {
+    if (
+      payload.actions.nonEmpty ||
+      payload.exports.nonEmpty ||
+      !payload.updates.isEmpty
+    ) {
       ctx.endpoint.sendToClient(Api.Response(payload))
     }
 
@@ -501,6 +511,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     } else
       new File(module.getPath)
 
+  private def rootName(name: QualifiedName): String =
+    name.path.headOption.getOrElse(name.item)
 }
 
 object EnsureCompiledJob {
