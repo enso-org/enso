@@ -1,13 +1,14 @@
 package org.enso.runtimeversionmanager.distributuion
 
-import org.enso.distribution.{Environment, FileSystem}
+import org.enso.distribution.{
+  DistributionManager,
+  Environment,
+  FileSystem,
+  PortableDistributionManager
+}
 
 import java.nio.file.{Files, Path}
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  PortableDistributionManager
-}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
   WithTemporaryDirectory

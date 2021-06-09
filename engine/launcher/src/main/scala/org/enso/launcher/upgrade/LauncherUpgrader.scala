@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.distribution.{FileSystem, OS}
+import org.enso.distribution.{DistributionManager, FileSystem, OS}
 import org.enso.distribution.locking.{
   LockType,
   LockUserInterface,
@@ -15,7 +15,6 @@ import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.components.UpgradeRequiredError
-import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.launcher.cli.{
   CLIProgressReporter,
   GlobalCLIOptions,

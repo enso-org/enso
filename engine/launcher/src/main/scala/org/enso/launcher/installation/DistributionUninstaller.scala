@@ -4,11 +4,10 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.distribution.{FileSystem, OS}
+import org.enso.distribution.{FileSystem, OS, PortableDistributionManager}
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{
   GlobalCLIOptions,

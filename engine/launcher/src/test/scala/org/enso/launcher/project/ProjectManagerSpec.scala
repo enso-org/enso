@@ -1,8 +1,8 @@
 package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.DistributionManager
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}

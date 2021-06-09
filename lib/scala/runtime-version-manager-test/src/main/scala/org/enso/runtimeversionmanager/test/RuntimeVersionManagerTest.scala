@@ -2,7 +2,11 @@ package org.enso.runtimeversionmanager.test
 
 import java.nio.file.Path
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.Environment
+import org.enso.distribution.{
+  DistributionManager,
+  Environment,
+  PortableDistributionManager
+}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
@@ -10,11 +14,7 @@ import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  PortableDistributionManager,
-  TemporaryDirectoryManager
-}
+import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
 import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
 import org.scalatest.OptionValues
