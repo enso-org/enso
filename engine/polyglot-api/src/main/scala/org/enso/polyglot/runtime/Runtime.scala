@@ -567,6 +567,7 @@ object Runtime {
         * @param arguments the arguments to update
         * @param returnType the return type to update
         * @param documentation the documentation string to update
+        * @param documentationHtml the HTML documentation to update
         * @param scope the scope to update
         */
       case class Modify(

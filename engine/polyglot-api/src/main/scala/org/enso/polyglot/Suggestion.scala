@@ -144,12 +144,11 @@ object Suggestion {
       s"module=$module," +
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      s",documentationHtml=" +
-      (if (shouldMask) documentationHtml.map(_ => STUB)
-       else documentationHtml) +
-      ")"
+      s"returnType=$returnType" +
+      s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                            else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) + ")"
   }
 
   /** A function defined on a type or a module.
@@ -181,11 +180,11 @@ object Suggestion {
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      s",documentationHtml=" +
-      (if (shouldMask) documentationHtml.map(_ => STUB)
-       else documentationHtml) +
+      s"returnType=$returnType," +
+      s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                           else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) +
       ")"
   }
 
