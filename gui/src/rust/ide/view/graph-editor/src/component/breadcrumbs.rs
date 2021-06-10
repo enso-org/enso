@@ -214,6 +214,7 @@ impl BreadcrumbsModel {
         ensogl::shapes_order_dependencies! {
             scene => {
                 background -> breadcrumb::background;
+                background -> project_name::background;
             }
         }
 

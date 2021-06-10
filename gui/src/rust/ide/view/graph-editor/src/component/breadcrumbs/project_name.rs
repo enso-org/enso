@@ -41,7 +41,8 @@ pub const LINE_HEIGHT          : f32  = TEXT_SIZE * 1.5;
 // === Background ===
 // ==================
 
-mod background {
+/// A transparent "background" of project name, set for capturing mouse events.
+pub mod background {
     use super::*;
 
     ensogl::define_shape_system! {
