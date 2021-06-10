@@ -382,8 +382,9 @@ impl NodeModel {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.scene() => {
-                edge::back::corner        -> backdrop;
-                edge::back::line          -> backdrop;
+                edge::back::corner        -> error_shape;
+                edge::back::line          -> error_shape;
+                error_shape               -> backdrop;
                 backdrop                  -> output::port::single_port;
                 backdrop                  -> output::port::multi_port;
                 output::port::single_port -> background;
