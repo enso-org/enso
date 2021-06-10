@@ -163,7 +163,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
-    * @param reexport the module reexporting thes atom
+    * @param reexport the module re-exporting this atom
     */
   case class Atom(
     externalId: Option[ExternalId],
@@ -193,11 +193,11 @@ object Suggestion {
     * @param externalId the external id
     * @param module the module name
     * @param name the method name
-    * @param arguments the function arguments
+    * @param arguments the list of arguments
     * @param selfType the self type of a method
     * @param returnType the return type of a method
     * @param documentation the documentation string
-    * @param reexport the module reexporting this method
+    * @param reexport the module re-exporting this method
     */
   case class Method(
     externalId: Option[ExternalId],
