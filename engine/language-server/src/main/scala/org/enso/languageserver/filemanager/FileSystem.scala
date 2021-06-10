@@ -358,7 +358,35 @@ class FileSystem extends FileSystemApi[BlockingIO] {
 
   override def readBytes(
     segment: FileSegment
-  ): BlockingIO[FileSystemFailure, ReadBytesResult] = ???
+  ): BlockingIO[FileSystemFailure, ReadBytesResult] = {
+    val path = segment.path
+    if (path.isFile) {
+      effectBlocking {
+        Using.resource(
+          Files.newInputStream(path.toPath, StandardOpenOption.READ)
+        ) { stream =>
+          val bytePosition = stream.skip(segment.byteOffset)
+
+          if (bytePosition < segment.byteOffset) {
+            throw FileSystem.ReadOutOfBounds(bytePosition)
+          }
+
+          val bytesToRead  = segment.length
+          val bytes        = stream.readNBytes(bytesToRead.toInt)
+
+          val digest = MessageDigest.getInstance("SHA3-224").digest(bytes)
+
+          ReadBytesResult(SHA3_224(digest), bytes)
+        }
+      }.mapError(errorHandling)
+    } else {
+      if (path.exists()) {
+        IO.fail(NotFile)
+      } else {
+        IO.fail(FileNotFound)
+      }
+    }
+  }
 
   private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException      => FileNotFound

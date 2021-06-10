@@ -1647,7 +1647,9 @@ This method will create a file if no file is present at `path`.
 - If `byteOffset` is less than the length of the file and `overwriteExisting` is
   set, it will truncate the file to length `byteOffset + bytes.length`.
 - If `byteOffset > file.length`, the bytes in the range
-  `[file.length, byteOffset)` will be filled with null bytes.
+  `[file.length, byteOffset)` will be filled with null bytes. Please note that,
+  in this case, the checksum in the response will also be calculated on the null
+  bytes.
 
 #### Parameters
 

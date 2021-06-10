@@ -912,27 +912,78 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "Reading bytes" should {
     "Read the specified bytes from the file" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      createFileContaining(fileContents, path)
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 2, 3))
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes shouldEqual "llo".getBytes(StandardCharsets.UTF_8)
     }
 
     "Read less bytes if the specified segment would take it off the end of the file" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      createFileContaining(fileContents, path)
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 9, 10))
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes shouldEqual "so!".getBytes(StandardCharsets.UTF_8)
     }
 
     "Return a checksum for the read bytes" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      createFileContaining(fileContents, path)
+
+      val expectedDigest = MessageDigest
+        .getInstance("SHA3-224")
+        .digest("llo".getBytes(StandardCharsets.UTF_8))
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 2, 3))
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.checksum.bytes should contain theSameElementsAs expectedDigest
     }
 
     "Return a `FileNotFound` error if the file does not exist" in new TestCtx {
-      pending
+      val path = Paths.get(testDirPath.toString, "nonexistent.txt")
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 2, 3))
+        .unsafeRunSync()
+
+      result shouldBe Left(FileNotFound)
     }
 
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, Enso!"
+      createFileContaining(fileContents, path)
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 15, 10))
+        .unsafeRunSync()
+
+      result shouldBe Left(ReadOutOfBounds(12))
     }
 
     "Return a `NotFile` error if the provided path is not a file" in new TestCtx {
-      pending
+      val path = Paths.get(testDirPath.toString)
+
+      val result = objectUnderTest
+        .readBytes(FileSystemApi.FileSegment(path.toFile, 2, 3))
+        .unsafeRunSync()
+
+      result shouldBe Left(NotFile)
     }
   }
 
