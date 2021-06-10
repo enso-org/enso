@@ -21,6 +21,16 @@ object EditionSerialization {
     for {
       parent        <- json.get[Option[EditionName]](Fields.Parent)
       engineVersion <- json.get[Option[SemVer]](Fields.EngineVersion)
+      _ <-
+        if (parent.isEmpty && engineVersion.isEmpty)
+          Left(
+            DecodingFailure(
+              s"The edition must specify at least one of " +
+              s"${Fields.EngineVersion} or ${Fields.Parent}.",
+              json.history
+            )
+          )
+        else Right(())
       preferLocalLibraries <- json.get[Option[Boolean]](
         Fields.PreferLocalLibraries
       )

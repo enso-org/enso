@@ -1,10 +1,11 @@
 package org.enso.editions
 
+import nl.gn0s1s.bump.SemVer
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
   "EditionSerialization" should {
@@ -21,7 +22,101 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
         edition.engineVersion should be(empty)
       }
     }
-    "parse a standalone edition" in                                                            {}
-    "not parse an edition that does not define the engine version nor attempt to derive it" in {}
+
+    "parse a standalone edition" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """engine-version: 1.2.3-SNAPSHOT
+          |repositories:
+          | - name: example
+          |   url: https://example.com/
+          | - name: foo
+          |   url: http://127.0.0.1:8080/root
+          |libraries:
+          | - name: Foo.Local
+          |   repository: local
+          | - name: Bar.Baz
+          |   repository: example
+          |   version: 0.0.0
+          | - name: A.B
+          |   repository: bar
+          |   version: 1.0.1
+          |prefer-local-libraries: true
+          |""".stripMargin
+      )
+      inside(parsed) { case Success(edition) =>
+        edition.parent should be(empty)
+        edition.repositories.size shouldEqual 2
+        edition.repositories("example").name shouldEqual "example"
+        edition
+          .repositories("example")
+          .url
+          .toString shouldEqual "https://example.com/"
+        edition.repositories("foo").name shouldEqual "foo"
+        edition
+          .repositories("foo")
+          .url
+          .toString shouldEqual "http://127.0.0.1:8080/root"
+
+        edition.libraries.values should contain theSameElementsAs Seq(
+          Editions.Raw.LocalLibrary("Foo.Local"),
+          Editions.Raw.RegularLibrary("Bar.Baz", SemVer(0, 0, 0), "example"),
+          Editions.Raw.RegularLibrary("A.B", SemVer(1, 0, 1), "bar")
+        )
+        edition.preferLocalLibraries should contain(true)
+        edition.engineVersion should contain(SemVer(1, 2, 3, Some("SNAPSHOT")))
+      }
+    }
+
+    "not parse an edition that does not define the engine version nor attempt to derive it" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """libraries:
+          |- name: foo
+          |  repository: local
+          |""".stripMargin
+      )
+      inside(parsed) { case Failure(exception) =>
+        exception.getMessage should include(
+          "The edition must specify at least one of"
+        )
+      }
+    }
+
+    "not allow invalid urls for repositories" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """extends: foo
+          |repositories:
+          |- name: bar
+          |  url: baz
+          |""".stripMargin
+      )
+      inside(parsed) { case Failure(exception) =>
+        exception.getMessage should include("Cannot parse an URL")
+      }
+    }
+
+    "not allow invalid version combinations for libraries" in {
+      val parsed = EditionSerialization.parseYamlString(
+        """extends: foo
+          |libraries:
+          |- name: bar
+          |  repository: local
+          |  version: 1.2.3-SHOULD-NOT-BE-HERE
+          |""".stripMargin
+      )
+      inside(parsed) { case Failure(exception) =>
+        exception.getMessage should include("Version field must not be set")
+      }
+
+      val parsed2 = EditionSerialization.parseYamlString(
+        """extends: foo
+          |libraries:
+          |- name: bar
+          |  repository: something
+          |""".stripMargin
+      )
+      inside(parsed2) { case Failure(exception) =>
+        exception.getMessage should include("Version field is mandatory")
+      }
+    }
   }
 }
