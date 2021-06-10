@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    This file is required for the macOS notarisation. To get notarised we need to run with a
+    hardened runtime, which restricts some things our application can do. Since we actually need
+    some of the restricted features (for example, JIT) we need to specify the entitlements we
+    require.
+
+    See https://developer.apple.com/documentation/security/hardened_runtime for more background
+    information.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>com.apple.security.cs.allow-jit</key>
+        <true/>
+        <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+        <true/>
+        <key>com.apple.security.cs.disable-executable-page-protection</key>
+        <true/>
+        <key>com.apple.security.cs.disable-library-validation</key>
+        <true/>
+        <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+        <true/>
+    </dict>
+</plist>

@@ -10,6 +10,8 @@
   clicking with mouse or selecting and pressing enter, a new unnamed project
   will be created and opened in the application. Then you can give a name to
   this project.
+- [Signed builds.][1366] Our builds are signed and will avoid warnings from the
+  operating system about being untrusted.
 
 #### EnsoGL (rendering engine)
 
@@ -39,6 +41,7 @@ If you're interested in the enhancements and fixes made to the Enso compiler,
 you can find their release notes
 [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
+[1366]: https://github.com/enso-org/ide/pull/1366
 [1541]: https://github.com/enso-org/ide/pull/1541
 [1538]: https://github.com/enso-org/ide/pull/1538
 [1524]: https://github.com/enso-org/ide/pull/1524
