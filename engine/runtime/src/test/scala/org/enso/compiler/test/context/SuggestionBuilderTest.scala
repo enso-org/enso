@@ -22,12 +22,13 @@ class SuggestionBuilderTest extends CompilerTest {
   private val Module = QualifiedName(List("Unnamed"), "Test")
   private val ModuleAtomNode = Tree.Node(
     Suggestion.Atom(
-      externalId    = None,
-      module        = Module.toString,
-      name          = Module.item,
-      arguments     = Seq(),
-      returnType    = Module.toString,
-      documentation = None
+      externalId        = None,
+      module            = Module.toString,
+      name              = Module.item,
+      arguments         = Seq(),
+      returnType        = Module.toString,
+      documentation     = None,
+      documentationHtml = None
     ),
     Vector()
   )
@@ -51,9 +52,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -80,9 +82,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = Some(" The foo")
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = Some(" The foo"),
+              documentationHtml = Some("<p>The foo</p>")
             ),
             Vector()
           )
@@ -110,9 +113,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Number",
-              documentation = Some(" The foo")
+              selfType          = "Unnamed.Test",
+              returnType        = "Number",
+              documentation     = Some(" The foo"),
+              documentationHtml = Some("<p>The foo</p>")
             ),
             Vector()
           )
@@ -140,9 +144,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Foo.Bar",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Foo.Bar",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -171,9 +176,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("a", "Text", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Number",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Number",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -208,9 +214,10 @@ class SuggestionBuilderTest extends CompilerTest {
                   None
                 )
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Number",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Number",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -239,9 +246,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Foo.Bar Baz",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Foo.Bar Baz",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -275,9 +283,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -327,9 +336,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, true, Some("0"))
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -352,12 +362,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "MyType",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "MyType",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -374,9 +385,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -411,12 +423,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "MyAtom",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.MyAtom",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "MyAtom",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.MyAtom",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -431,9 +444,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("a", "Number", false, false, None),
                 Suggestion.Argument("b", "Number", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyAtom",
-              returnType    = "Number",
-              documentation = Some(" My bar")
+              selfType          = "Unnamed.Test.MyAtom",
+              returnType        = "Number",
+              documentation     = Some(" My bar"),
+              documentationHtml = Some("<p> My bar</p>")
             ),
             Vector()
           )
@@ -457,12 +471,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "MyAtom",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.MyAtom",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "MyAtom",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.MyAtom",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -476,9 +491,10 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.MyAtom", false, false, None),
                 Suggestion.Argument("f", "Number -> Number", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyAtom",
-              returnType    = "Number",
-              documentation = None
+              selfType          = "Unnamed.Test.MyAtom",
+              returnType        = "Number",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -506,9 +522,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, true, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -531,12 +548,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "A",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "A",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -549,9 +567,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("a", "Unnamed.Test.A", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -579,9 +598,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -629,9 +649,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -692,9 +713,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -736,12 +758,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "A",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "A",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -753,9 +776,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -801,9 +825,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -847,9 +872,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -906,9 +932,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -947,12 +974,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "A",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "A",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -964,9 +992,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -1008,8 +1037,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = None
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1022,9 +1052,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1037,9 +1068,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1069,8 +1101,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = Some(" My sweet type")
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = Some(" My sweet type"),
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1083,9 +1116,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1098,9 +1132,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1122,12 +1157,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nothing",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nothing",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nothing",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nothing",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1140,8 +1176,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Just",
-              documentation = None
+              returnType        = "Unnamed.Test.Just",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1154,9 +1191,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Just",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Just",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1181,12 +1219,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nothing",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nothing",
-              documentation = Some(" Nothing here")
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nothing",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nothing",
+              documentation     = Some(" Nothing here"),
+              documentationHtml = Some(" Nothing here")
             ),
             Vector()
           ),
@@ -1199,8 +1238,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Just",
-              documentation = Some(" Something there")
+              returnType        = "Unnamed.Test.Just",
+              documentation     = Some(" Something there"),
+              documentationHtml = Some(" Something there")
             ),
             Vector()
           ),
@@ -1213,9 +1253,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Just",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Just",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1243,23 +1284,25 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Cons",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Cons",
-              documentation = Some(" And more")
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Cons",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Cons",
+              documentation     = Some(" And more"),
+              documentationHtml = Some(" And more")
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nil",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nil",
-              documentation = Some(" End")
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nil",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nil",
+              documentation     = Some(" End"),
+              documentationHtml = Some(" End")
             ),
             Vector()
           ),
@@ -1272,9 +1315,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Cons", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Cons",
-              returnType    = "List",
-              documentation = Some(" a method")
+              selfType          = "Unnamed.Test.Cons",
+              returnType        = "List",
+              documentation     = Some(" a method"),
+              documentationHtml = Some(" a method")
             ),
             Vector()
           ),
@@ -1287,9 +1331,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Nil", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Nil",
-              returnType    = "List",
-              documentation = Some(" a method")
+              selfType          = "Unnamed.Test.Nil",
+              returnType        = "List",
+              documentation     = Some(" a method"),
+              documentationHtml = Some(" a method")
             ),
             Vector()
           )
@@ -1314,12 +1359,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nothing",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nothing",
-              documentation = None
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nothing",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nothing",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1332,8 +1378,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Just",
-              documentation = None
+              returnType        = "Unnamed.Test.Just",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1346,9 +1393,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Just", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Just",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Just",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1363,9 +1411,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType      = "Unnamed.Test.Nothing",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Nothing",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1380,9 +1429,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("f", SuggestionBuilder.Any, false, false, None)
               ),
-              selfType      = "Unnamed.Test.Just",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Just",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1412,8 +1462,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = None
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1426,9 +1477,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1441,9 +1493,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.MyType", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyType",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.MyType",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1455,9 +1508,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1485,8 +1539,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Test",
-              documentation = None
+              returnType        = "Unnamed.Test.Test",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1499,9 +1554,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1513,9 +1569,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1545,12 +1602,13 @@ class SuggestionBuilderTest extends CompilerTest {
           Tree.Node(
             Suggestion
               .Atom(
-                externalId    = None,
-                module        = "Unnamed.Test",
-                name          = "A",
-                arguments     = List(),
-                returnType    = "Unnamed.Test.A",
-                documentation = None
+                externalId        = None,
+                module            = "Unnamed.Test",
+                name              = "A",
+                arguments         = List(),
+                returnType        = "Unnamed.Test.A",
+                documentation     = None,
+                documentationHtml = None
               ),
             Vector()
           ),
@@ -1564,9 +1622,10 @@ class SuggestionBuilderTest extends CompilerTest {
                   .Argument("this", "Unnamed.Test.A", false, false, None),
                 Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
               ),
-              selfType      = "Unnamed.Test.A",
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              selfType          = "Unnamed.Test.A",
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1579,9 +1638,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None),
                 Suggestion.Argument("x", "Unnamed.Test.A", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Unnamed.Test.A",
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = "Unnamed.Test.A",
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           ),
@@ -1593,9 +1653,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = List(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1627,9 +1688,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector()
           )
@@ -1662,9 +1724,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
@@ -1717,9 +1780,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = None
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = None,
+              documentationHtml = None
             ),
             Vector(
               Tree.Node(
