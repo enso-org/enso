@@ -217,7 +217,7 @@ class FileManager(
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
-        .map(_.map(_.bytes))
+        .map(x => FileManagerProtocol.ChecksumBytesResponse(x.map(_.bytes)))
         .pipeTo(sender())
 
     // TODO [AA] writeBytes and readBytes
