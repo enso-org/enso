@@ -143,23 +143,43 @@ let installWasmPackOnLinux   = installWasmPackOn('Linux','ubuntu','unknown-linux
 // We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
 let installWasmPack = [installWasmPackOnMacOS, installWasmPackOnWindows, installWasmPackOnLinux]
 
+const installJava = {
+    uses: 'actions/setup-java@v2',
+    with: {
+        distribution: 'adopt',
+        'java-version': '11',
+    },
+}
+
 
 
 // =============================
 // === Build, Lint, and Test ===
 // =============================
 
-function buildOn(name,sys) {
-    return {
-        name: `Build (${name})`,
-        run: `node ./run dist --skip-version-validation --target ${name}`,
-        if: `startsWith(matrix.os,'${sys}')`
+function buildOn(target,sys,env) {
+    const name = `Build (${target})`
+    const run  = `node ./run dist --skip-version-validation --target ${target}`
+    const _if = `startsWith(matrix.os,'${sys}')`
+    if (env) {
+        return {name,env,run,if:_if}
+    } else {
+        return  {name,run,if:_if}
     }
 }
 
-buildOnMacOS   = buildOn('macos','macos')
-buildOnWindows = buildOn('win','windows')
-buildOnLinux   = buildOn('linux','ubuntu')
+buildOnMacOS = buildOn('macos', 'macos', {
+    CSC_LINK: '${{secrets.APPLE_CODE_SIGNING_CERT}}',
+    CSC_KEY_PASSWORD: '${{secrets.APPLE_CODE_SIGNING_CERT_PASSWORD}}',
+    CSC_IDENTITY_AUTO_DISCOVERY: true,
+    APPLEID:'${{secrets.APPLE_NOTARIZATION_USERNAME}}',
+    APPLEIDPASS:'${{secrets.APPLE_NOTARIZATION_PASSWORD}}',
+})
+buildOnWindows = buildOn('win', 'windows', {
+    WIN_CSC_LINK: '${{secrets.MICROSOFT_CODE_SIGNING_CERT}}',
+    WIN_CSC_KEY_PASSWORD: '${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}',
+})
+buildOnLinux = buildOn('linux', 'ubuntu')
 
 let lintMarkdown = {
     name: "Lint Markdown sources",
@@ -451,13 +471,16 @@ let workflow = {
             installNode,
             installRust,
             installWasmPack,
+            installJava,
             buildOnMacOS,
-        ],{if:`!(${buildCondition})`}),
+        ]),
         build: job_on_all_platforms("Build", [
             getCurrentReleaseChangelogInfo,
             installNode,
             installRust,
             installWasmPack,
+            // Needed for package signing on macOS.
+            installJava,
             buildOnMacOS,
             buildOnWindows,
             buildOnLinux,
