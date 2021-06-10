@@ -2,13 +2,15 @@ package org.enso.editions
 
 import cats.Show
 import io.circe.syntax.EncoderOps
-import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json}
+import io.circe._
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 
+import java.io.FileReader
 import java.net.URL
-import scala.util.Try
+import java.nio.file.Path
+import scala.util.{Try, Using}
 
 object EditionSerialization {
   def parseYamlString(yamlString: String): Try[Raw.Edition] =
@@ -16,6 +18,14 @@ object EditionSerialization {
       .parse(yamlString)
       .flatMap(_.as[Raw.Edition])
       .toTry
+
+  def loadEdition(path: Path): Try[Raw.Edition] =
+    Using(new FileReader(path.toFile)) { reader =>
+      yaml.parser
+        .parse(reader)
+        .flatMap(_.as[Raw.Edition])
+        .toTry
+    }.flatten
 
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {

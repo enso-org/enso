@@ -5,7 +5,7 @@ import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}

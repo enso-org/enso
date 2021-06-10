@@ -6,6 +6,7 @@ import org.enso.editions.EditionResolutionError.{
   LibraryReferencesUndefinedRepository
 }
 import org.enso.editions.Editions.{RawEdition, ResolvedEdition}
+import org.enso.editions.provider.EditionProvider
 
 import scala.annotation.tailrec
 

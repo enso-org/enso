@@ -3,6 +3,7 @@ package org.enso.editions
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.EditionResolutionError.EditionResolutionCycle
 import org.enso.editions.Editions.Repository
+import org.enso.editions.provider.EditionProvider
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}

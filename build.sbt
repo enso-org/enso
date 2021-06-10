@@ -583,11 +583,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
-      "nl.gn0s1s"     %% "bump"       % bumpVersion,
       "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
       "commons-io"     % "commons-io" % commonsIoVersion
     )
   )
+  .dependsOn(editions)
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -729,6 +729,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
@@ -1195,11 +1196,25 @@ lazy val `distribution-manager` = project
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
-  .dependsOn(pkg)
   .dependsOn(`logging-utils`)
+
+lazy val editions = project
+  .in(file("lib/scala/editions"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "nl.gn0s1s"                  %% "bump"          % bumpVersion,
+      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
@@ -1211,6 +1226,7 @@ lazy val `library-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .dependsOn(editions)
   .dependsOn(`distribution-manager`)
 
 lazy val `runtime-version-manager` = project

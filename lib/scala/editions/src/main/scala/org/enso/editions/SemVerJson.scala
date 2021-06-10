@@ -1,7 +1,7 @@
-package org.enso.pkg
+package org.enso.editions
 
-import io.circe.{Decoder, DecodingFailure, Encoder}
 import io.circe.syntax._
+import io.circe.{Decoder, DecodingFailure, Encoder}
 import nl.gn0s1s.bump.SemVer
 
 object SemVerJson {
