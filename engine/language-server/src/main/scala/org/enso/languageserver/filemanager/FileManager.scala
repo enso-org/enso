@@ -215,6 +215,8 @@ class FileManager(
         .execTimed(config.fileManager.timeout, getChecksum)
         .map(_.map(_.bytes))
         .pipeTo(sender())
+
+    // TODO [AA] writeBytes and readBytes
   }
 }
 

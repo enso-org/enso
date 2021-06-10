@@ -11,6 +11,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.security.MessageDigest
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
 class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
 
@@ -752,27 +753,160 @@ class FileSystemSpec extends AnyWordSpecLike with Matchers with Effects {
 
   "Writing bytes" should {
     "Write the provided bytes to the specified file" in new TestCtx {
-      pending
-    }
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, "
+      createFileContaining(fileContents, path)
 
-    "Provide the checksum of the written bytes" in new TestCtx {
-      pending
+      val bytes      = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset = 7L
+
+      val expectedChecksum = MessageDigest.getInstance("SHA3-224").digest(bytes)
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = false,
+          bytes
+        )
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes should contain theSameElementsAs expectedChecksum
+
+      val writtenContents = Files
+        .readAllLines(path, StandardCharsets.UTF_8)
+        .asScala
+        .toSeq
+        .mkString("\n")
+      writtenContents shouldEqual "Hello, Enso!"
     }
 
     "Create the file from scratch if it doesn't exist" in new TestCtx {
-      pending
+      val path = Paths.get(testDirPath.toString, "a.txt")
+      objectUnderTest.exists(path.toFile).unsafeRunSync() shouldBe Right(false)
+
+      val bytes      = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset = 0L
+
+      val expectedChecksum = MessageDigest.getInstance("SHA3-224").digest(bytes)
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = false,
+          bytes
+        )
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes should contain theSameElementsAs expectedChecksum
+
+      val writtenContents = Files
+        .readAllLines(path, StandardCharsets.UTF_8)
+        .asScala
+        .toSeq
+        .mkString("\n")
+      writtenContents shouldEqual "Enso!"
     }
 
     "Fill any intervening space with null bytes" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, "
+      createFileContaining(fileContents, path)
+
+      val bytes        = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset   = 20L
+      val writtenBytes = Array.fill(13)(0x0.toByte) ++ bytes
+
+      val expectedChecksum =
+        MessageDigest.getInstance("SHA3-224").digest(writtenBytes)
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = false,
+          bytes
+        )
+        .unsafeRunSync()
+        .getOrElse(fail("Should be Right"))
+
+      result.bytes should contain theSameElementsAs expectedChecksum
+
+      val writtenContents = Files.readAllBytes(path)
+      val expectedContents =
+        fileContents.getBytes(StandardCharsets.UTF_8) ++ writtenBytes
+
+      writtenContents shouldEqual expectedContents
+    }
+
+    "Truncate the file if `byteOffset < length` and `overwriteExisting` is set" in new TestCtx {
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, World!"
+      createFileContaining(fileContents, path)
+
+      val bytes      = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset = 7L
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = true,
+          bytes
+        )
+        .unsafeRunSync()
+
+      result.isRight shouldBe true
+
+      val writtenContents = Files
+        .readAllLines(path, StandardCharsets.UTF_8)
+        .asScala
+        .toSeq
+        .mkString("\n")
+      val expectedContents = "Hello, Enso!"
+
+      writtenContents shouldEqual expectedContents
     }
 
     "Return a `CannotOverwrite` error if `byteOffset < file.length`" in new TestCtx {
-      pending
+      val path         = Paths.get(testDirPath.toString, "a.txt")
+      val fileContents = "Hello, World!"
+      createFileContaining(fileContents, path)
+
+      val bytes      = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset = 7L
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = false,
+          bytes
+        )
+        .unsafeRunSync()
+
+      result shouldBe Left(CannotOverwrite)
     }
 
     "Return a `NotFile` error if the provided path is not a file" in new TestCtx {
-      pending
+      val path = Paths.get(testDirPath.toString)
+
+      val bytes      = "Enso!".getBytes(StandardCharsets.UTF_8)
+      val byteOffset = 7L
+
+      val result = objectUnderTest
+        .writeBytes(
+          path.toFile,
+          byteOffset,
+          overwriteExisting = false,
+          bytes
+        )
+        .unsafeRunSync()
+
+      result shouldBe Left(NotFile)
     }
   }
 

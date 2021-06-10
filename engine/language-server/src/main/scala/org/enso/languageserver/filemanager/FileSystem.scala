@@ -5,7 +5,8 @@ import org.enso.languageserver.effect.BlockingIO
 import zio._
 import zio.blocking.effectBlocking
 
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, RandomAccessFile}
+import java.nio.ByteBuffer
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
@@ -306,7 +307,54 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     byteOffset: Long,
     overwriteExisting: Boolean,
     bytes: Array[Byte]
-  ): BlockingIO[FileSystemFailure, SHA3_224] = ???
+  ): BlockingIO[FileSystemFailure, SHA3_224] = {
+    if (path.isDirectory) {
+      IO.fail(NotFile)
+    } else {
+      effectBlocking {
+        Using.resource(new RandomAccessFile(path, "rw")) { file =>
+          Using.resource(file.getChannel) { chan =>
+            val lock = chan.lock()
+            try {
+              val fileSize = chan.size()
+
+              val messageDigest = MessageDigest.getInstance("SHA3-224")
+
+              if (byteOffset < fileSize) {
+                if (overwriteExisting) {
+                  chan.truncate(byteOffset)
+                } else {
+                  throw FileSystem.CannotOverwrite
+                }
+              } else if (byteOffset > fileSize) {
+                chan.position(fileSize)
+                var nullBytesLeft = byteOffset - fileSize
+
+                do {
+                  val numBytesInRound =
+                    Math.min(nullBytesLeft, fileChunkSize.toLong)
+                  val bytes    = Array.fill(numBytesInRound.toInt)(0x0.toByte)
+                  val bytesBuf = ByteBuffer.wrap(bytes)
+                  messageDigest.update(bytes)
+                  chan.write(bytesBuf)
+
+                  nullBytesLeft -= numBytesInRound
+                } while (nullBytesLeft > 0)
+              }
+
+              chan.position(chan.size())
+              messageDigest.update(bytes)
+              chan.write(ByteBuffer.wrap(bytes))
+
+              SHA3_224(messageDigest.digest())
+            } finally {
+              lock.release()
+            }
+          }
+        }
+      }.mapError(errorHandling)
+    }
+  }
 
   override def readBytes(
     segment: FileSegment
@@ -318,6 +366,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     case _: FileExistsException        => FileExists
     case _: AccessDeniedException      => AccessDenied
     case FileSystem.ReadOutOfBounds(l) => ReadOutOfBounds(l)
+    case FileSystem.CannotOverwrite    => CannotOverwrite
     case ex                            => GenericFileSystemFailure(ex.getMessage)
   }
 }
@@ -329,6 +378,11 @@ object FileSystem {
     * @param length the true length of the file
     */
   case class ReadOutOfBounds(length: Long) extends Throwable
+
+  /** An exception for when overwriting would be required but the corresponding
+    * flag is not set.
+    */
+  case object CannotOverwrite extends Throwable
 
   import FileSystemApi._
 

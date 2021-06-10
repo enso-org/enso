@@ -1644,6 +1644,8 @@ This method will create a file if no file is present at `path`.
   length of the file.
 - The `byteOffset` property is zero-indexed. To append to the file you begin
   writing at index `file.length`.
+- If `byteOffset` is less than the length of the file and `overwriteExisting` is
+  set, it will truncate the file to length `byteOffset + bytes.length`.
 - If `byteOffset > file.length`, the bytes in the range
   `[file.length, byteOffset)` will be filled with null bytes.
 
