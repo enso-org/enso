@@ -243,7 +243,17 @@ jobs:
                       rm -r $WASMPACKDIR
         shell: bash
         if: startsWith(matrix.os,'ubuntu')
+      - uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: '11'
       - name: Build (macos)
+        env:
+          CSC_LINK: ${{secrets.APPLE_CODE_SIGNING_CERT}}
+          CSC_KEY_PASSWORD: ${{secrets.APPLE_CODE_SIGNING_CERT_PASSWORD}}
+          CSC_IDENTITY_AUTO_DISCOVERY: true
+          APPLEID: ${{secrets.APPLE_NOTARIZATION_USERNAME}}
+          APPLEIDPASS: ${{secrets.APPLE_NOTARIZATION_PASSWORD}}
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
     if: >-
@@ -315,10 +325,23 @@ jobs:
                       rm -r $WASMPACKDIR
         shell: bash
         if: startsWith(matrix.os,'ubuntu')
+      - uses: actions/setup-java@v2
+        with:
+          distribution: adopt
+          java-version: '11'
       - name: Build (macos)
+        env:
+          CSC_LINK: ${{secrets.APPLE_CODE_SIGNING_CERT}}
+          CSC_KEY_PASSWORD: ${{secrets.APPLE_CODE_SIGNING_CERT_PASSWORD}}
+          CSC_IDENTITY_AUTO_DISCOVERY: true
+          APPLEID: ${{secrets.APPLE_NOTARIZATION_USERNAME}}
+          APPLEIDPASS: ${{secrets.APPLE_NOTARIZATION_PASSWORD}}
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
       - name: Build (win)
+        env:
+          WIN_CSC_LINK: ${{secrets.MICROSOFT_CODE_SIGNING_CERT}}
+          WIN_CSC_KEY_PASSWORD: ${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}
         run: node ./run dist --skip-version-validation --target win
         if: startsWith(matrix.os,'windows')
       - name: Build (linux)
