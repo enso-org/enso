@@ -30,8 +30,9 @@ let config = {
         "copy-webpack-plugin": "^5.1.1",
         "devtron": "^1.4.0",
         "electron": "11.1.1",
-        "electron-builder": "^22.9.1",
-        "crypto-js": "4.0.0"
+        "electron-builder": "^22.10.5",
+        "crypto-js": "4.0.0",
+        "electron-notarize" : "1.0.0",
     },
 
     scripts: {
@@ -53,6 +54,16 @@ config.build = {
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
         type: 'distribution',
+        // The following settings are required for macOS signing and notarisation.
+        // The hardened runtime is required to be able to notarise the application.
+        hardenedRuntime: true,
+        // This is a custom check that is not working correctly, so we disable it. See for more
+        // details https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
+        gatekeeperAssess: false,
+        // Location of the entitlements files with the entitlements we need to run our application
+        // in the hardened runtime.
+        entitlements: './entitlements.mac.plist',
+        entitlementsInherit: './entitlements.mac.plist',
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
@@ -82,27 +93,34 @@ config.build = {
         output: paths.dist.client,
     },
     nsis: {
-        // Disables "block map" generation during electron building. Block maps 
+        // Disables "block map" generation during electron building. Block maps
         // can be used for incremental package update on client-side. However,
         // their generation can take long time (even 30 mins), so we removed it
         // for now. Moreover, we may probably never need them, as our updates
-        // are handled by us. More info: 
+        // are handled by us. More info:
         // https://github.com/electron-userland/electron-builder/issues/2851
         // https://github.com/electron-userland/electron-builder/issues/2900
         differentialPackage: false
     },
     dmg: {
-        // Disables "block map" generation during electron building. Block maps 
+        // Disables "block map" generation during electron building. Block maps
         // can be used for incremental package update on client-side. However,
         // their generation can take long time (even 30 mins), so we removed it
         // for now. Moreover, we may probably never need them, as our updates
-        // are handled by us. More info: 
+        // are handled by us. More info:
         // https://github.com/electron-userland/electron-builder/issues/2851
         // https://github.com/electron-userland/electron-builder/issues/2900
-        writeUpdateInfo: false
+        writeUpdateInfo: false,
+        // Disable code signing of the final dmg as this triggers an issue
+        // with Apple’s Gatekeeper. Since the DMG contains a signed and
+        // notarised application it will still be detected as trusted.
+        // For more details see step (4) at
+        // https://kilianvalkhof.com/2019/electron/notarizing-your-electron-application/
+        sign: false
     },
     publish: [],
-    afterAllArtifactBuild: 'tasks/computeHashes.js'
+    afterAllArtifactBuild: 'tasks/computeHashes.js',
+    afterSign: "tasks/notarize.js",
 }
 
 module.exports = {config}
