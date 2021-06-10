@@ -203,7 +203,11 @@ class FileManager(
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
-        .map(_.map(digest => Hex.toHexString(digest.bytes)))
+        .map(x =>
+          FileManagerProtocol.ChecksumFileResponse(
+            x.map(digest => Hex.toHexString(digest.bytes))
+          )
+        )
         .pipeTo(sender())
 
     case FileManagerProtocol.ChecksumBytesRequest(segment) =>
