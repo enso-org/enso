@@ -212,6 +212,42 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     }
   }
 
+  "A WriteBytesCommand" must {
+    "Write the provided bytes to the specified file" in {
+      pending
+    }
+
+    "Create the file from scratch if it doesn't exist" in {
+      pending
+    }
+
+    "Return a `CannotOverwrite` error if `byteOffset < file.length`" in {
+      pending
+    }
+
+    "Return a `NotFile` error if the provided path is not a file" in {
+      pending
+    }
+  }
+
+  "A ReadBytesCommand" must {
+    "Read the specified bytes from the file" in {
+      pending
+    }
+
+    "Return a `FileNotFound` error if the file does not exist" in {
+      pending
+    }
+
+    "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
+      pending
+    }
+
+    "Return a `NotFile` error if the provided path is not a file" in {
+      pending
+    }
+  }
+
   def createChecksumBytesCommandPacket(
     requestId: UUID,
     pathSegments: Seq[String],
@@ -224,6 +260,59 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     val path        = PathFactory.create(rootId, pathSegments)
     val fileSegment = FileSegmentFactory.create(path, byteOffset, length)
     val command     = ChecksumBytesCommandFactory.create(fileSegment)
+
+    val incomingMessage = InboundMessageFactory.create(
+      requestId,
+      None,
+      InboundPayload.CHECKSUM_BYTES_CMD,
+      command
+    )
+
+    builder.finish(incomingMessage)
+    builder.dataBuffer()
+  }
+
+  def createWriteBytesCommandPacket(
+    requestId: UUID,
+    pathSegments: Seq[String],
+    rootId: UUID,
+    byteOffset: Long,
+    bytes: Array[Byte],
+    overwriteExisting: Boolean
+  ): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
+
+    val path = PathFactory.create(rootId, pathSegments)
+    val command = WriteBytesCommandFactory.create(
+      path,
+      byteOffset,
+      overwriteExisting,
+      bytes
+    )
+
+    val incomingMessage = InboundMessageFactory.create(
+      requestId,
+      None,
+      InboundPayload.WRITE_BYTES_CMD,
+      command
+    )
+
+    builder.finish(incomingMessage)
+    builder.dataBuffer()
+  }
+
+  def createReadBytesCommandPacket(
+    requestId: UUID,
+    pathSegments: Seq[String],
+    rootId: UUID,
+    byteOffset: Long,
+    length: Long
+  ): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(1024)
+
+    val path        = PathFactory.create(rootId, pathSegments)
+    val fileSegment = FileSegmentFactory.create(path, byteOffset, length)
+    val command     = ReadBytesCommandFactory.create(fileSegment)
 
     val incomingMessage = InboundMessageFactory.create(
       requestId,
