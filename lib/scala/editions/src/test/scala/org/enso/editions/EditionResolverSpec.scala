@@ -27,7 +27,7 @@ class EditionResolverSpec
         ),
         libraries = Map(
           "Standard.Base" -> Editions.Raw
-            .RegularLibrary("Standard.Base", SemVer(1, 2, 3), "main")
+            .PublishedLibrary("Standard.Base", SemVer(1, 2, 3), "main")
         )
       ),
       "cycleA" -> Editions.Raw.Edition(
@@ -68,7 +68,7 @@ class EditionResolverSpec
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
           "foo.bar" -> Editions.Raw
-            .RegularLibrary("foo.bar", SemVer(1, 2, 3), "foo")
+            .PublishedLibrary("foo.bar", SemVer(1, 2, 3), "foo")
         )
       )
 
@@ -81,7 +81,7 @@ class EditionResolverSpec
         resolved.libraries("bar.baz") shouldEqual Editions.Resolved
           .LocalLibrary("bar.baz")
         resolved.libraries("foo.bar") shouldEqual Editions.Resolved
-          .RegularLibrary("foo.bar", SemVer(1, 2, 3), repo)
+          .PublishedLibrary("foo.bar", SemVer(1, 2, 3), repo)
       }
     }
 
@@ -94,7 +94,7 @@ class EditionResolverSpec
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
           "foo.bar" -> Editions.Raw
-            .RegularLibrary("foo.bar", SemVer(1, 2, 3), "main")
+            .PublishedLibrary("foo.bar", SemVer(1, 2, 3), "main")
         )
       )
 
@@ -104,7 +104,7 @@ class EditionResolverSpec
         resolved.libraries("bar.baz") shouldEqual Editions.Resolved
           .LocalLibrary("bar.baz")
         resolved.libraries("foo.bar") shouldEqual Editions.Resolved
-          .RegularLibrary(
+          .PublishedLibrary(
             "foo.bar",
             SemVer(1, 2, 3),
             FakeEditionProvider.mainRepo
@@ -124,7 +124,7 @@ class EditionResolverSpec
         repositories         = Map("main" -> localRepo),
         libraries = Map(
           "foo.bar" -> Editions.Raw
-            .RegularLibrary("foo.bar", SemVer(1, 2, 3), "main")
+            .PublishedLibrary("foo.bar", SemVer(1, 2, 3), "main")
         )
       )
 
@@ -132,14 +132,14 @@ class EditionResolverSpec
         resolved.parent should be(defined)
         resolved.libraries should have size 1
         resolved.libraries("foo.bar") shouldEqual
-        Editions.Resolved.RegularLibrary(
+        Editions.Resolved.PublishedLibrary(
           "foo.bar",
           SemVer(1, 2, 3),
           localRepo
         )
 
         resolved.parent.value.libraries("Standard.Base") shouldEqual
-        Editions.Resolved.RegularLibrary(
+        Editions.Resolved.PublishedLibrary(
           "Standard.Base",
           SemVer(1, 2, 3),
           FakeEditionProvider.mainRepo

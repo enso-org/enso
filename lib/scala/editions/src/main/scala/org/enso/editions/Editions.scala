@@ -14,7 +14,7 @@ trait Editions {
     def qualifiedName: String
   }
   case class LocalLibrary(override val qualifiedName: String) extends Library
-  case class RegularLibrary(
+  case class PublishedLibrary(
     override val qualifiedName: String,
     version: SemVer,
     repository: LibraryRepositoryType

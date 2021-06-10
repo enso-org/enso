@@ -67,11 +67,16 @@ case class EditionResolver(provider: EditionProvider) {
   ] = library match {
     case Editions.Raw.LocalLibrary(qualifiedName) =>
       Right(Editions.Resolved.LocalLibrary(qualifiedName))
-    case Editions.Raw.RegularLibrary(qualifiedName, version, repositoryName) =>
+    case Editions.Raw.PublishedLibrary(
+          qualifiedName,
+          version,
+          repositoryName
+        ) =>
       (currentRepositories.get(repositoryName), parent) match {
         case (Some(repository), _) =>
           Right(
-            Editions.Resolved.RegularLibrary(qualifiedName, version, repository)
+            Editions.Resolved
+              .PublishedLibrary(qualifiedName, version, repository)
           )
         case (None, Some(parentEdition)) =>
           resolveLibrary(

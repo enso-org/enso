@@ -34,7 +34,8 @@ case class DistributionPaths(
   config: Path,
   locks: Path,
   logs: Path,
-  unsafeTemporaryDirectory: Path
+  unsafeTemporaryDirectory: Path,
+  ensoHome: Path
 ) {
 
   /** @inheritdoc */
@@ -46,7 +47,8 @@ case class DistributionPaths(
        |  bundle   = $bundle,
        |  config   = $config,
        |  locks    = $locks,
-       |  tmp      = $unsafeTemporaryDirectory
+       |  tmp      = $unsafeTemporaryDirectory,
+       |  ensoHome = $ensoHome
        |)""".stripMargin
 
   /** Sequence of paths to search for engine installations, in order of
@@ -59,6 +61,15 @@ case class DistributionPaths(
     */
   def runtimeSearchPaths: Seq[Path] =
     Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
+
+  /** Sequence of paths to search for edition configurations, in order of
+    * precedence.
+    */
+  def editionSearchPaths: Seq[Path] =
+    Seq(
+      ensoHome / DistributionManager.EDITIONS_DIRECTORY,
+      dataRoot / DistributionManager.EDITIONS_DIRECTORY
+    )
 }
 
 /** Paths to secondary directories for additionally bundled engine
@@ -82,6 +93,7 @@ case class Bundle(engines: Path, runtimes: Path)
   */
 class DistributionManager(val env: Environment) {
   private val logger = Logger[DistributionManager]
+  import DistributionManager._
 
   /** Determines paths that should be used by the launcher.
     */
@@ -90,14 +102,6 @@ class DistributionManager(val env: Environment) {
     logger.debug("Detected paths: {}", paths)
     paths
   }
-
-  val ENGINES_DIRECTORY  = "dist"
-  val RUNTIMES_DIRECTORY = "runtime"
-  val CONFIG_DIRECTORY   = "config"
-  val BIN_DIRECTORY      = "bin"
-  val LOCK_DIRECTORY     = "lock"
-  val LOG_DIRECTORY      = "log"
-  val TMP_DIRECTORY      = "tmp"
 
   protected def detectPaths(): DistributionPaths = {
     val dataRoot   = LocallyInstalledDirectories.dataDirectory
@@ -111,9 +115,18 @@ class DistributionManager(val env: Environment) {
       config                   = configRoot,
       locks                    = runRoot / LOCK_DIRECTORY,
       logs                     = LocallyInstalledDirectories.logDirectory,
-      unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY
+      unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY,
+      ensoHome                 = detectEnsoHome()
     )
   }
+
+  private val ENSO_HOME = "ENSO_HOME"
+
+  /** Finds the path to the ENSO_HOME directory that is used for keeping user's
+    * projects, libraries and other custom artifacts.
+    */
+  protected def detectEnsoHome(): Path =
+    env.getEnvPath(ENSO_HOME).getOrElse(env.getHome / "enso")
 
   /** Name of the file that should be placed in the distribution root to mark it
     * as running in portable mode.
@@ -312,4 +325,15 @@ class DistributionManager(val env: Environment) {
     def installedDistributionExists: Boolean =
       safeDataDirectory.exists(Files.isDirectory(_))
   }
+}
+
+object DistributionManager {
+  val ENGINES_DIRECTORY  = "dist"
+  val RUNTIMES_DIRECTORY = "runtime"
+  val CONFIG_DIRECTORY   = "config"
+  val BIN_DIRECTORY      = "bin"
+  val LOCK_DIRECTORY     = "lock"
+  val LOG_DIRECTORY      = "log"
+  val TMP_DIRECTORY      = "tmp"
+  val EDITIONS_DIRECTORY = "editions"
 }

@@ -1227,6 +1227,7 @@ lazy val `library-manager` = project
     )
   )
   .dependsOn(editions)
+  .dependsOn(cli)
   .dependsOn(`distribution-manager`)
 
 lazy val `runtime-version-manager` = project

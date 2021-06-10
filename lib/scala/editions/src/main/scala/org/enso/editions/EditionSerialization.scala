@@ -138,7 +138,7 @@ object EditionSerialization {
       else {
         version match {
           case Some(versionValue) =>
-            Right(Raw.RegularLibrary(name, versionValue, repository))
+            Right(Raw.PublishedLibrary(name, versionValue, repository))
           case None =>
             Left(
               DecodingFailure(
@@ -162,7 +162,7 @@ object EditionSerialization {
         Fields.Name       -> name.asJson,
         Fields.Repository -> Fields.LocalRepositoryName.asJson
       )
-    case Raw.RegularLibrary(name, version, repository) =>
+    case Raw.PublishedLibrary(name, version, repository) =>
       Json.obj(
         Fields.Name       -> name.asJson,
         Fields.Version    -> version.asJson,

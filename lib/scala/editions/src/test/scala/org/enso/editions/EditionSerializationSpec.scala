@@ -59,8 +59,8 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
 
         edition.libraries.values should contain theSameElementsAs Seq(
           Editions.Raw.LocalLibrary("Foo.Local"),
-          Editions.Raw.RegularLibrary("Bar.Baz", SemVer(0, 0, 0), "example"),
-          Editions.Raw.RegularLibrary("A.B", SemVer(1, 0, 1), "bar")
+          Editions.Raw.PublishedLibrary("Bar.Baz", SemVer(0, 0, 0), "example"),
+          Editions.Raw.PublishedLibrary("A.B", SemVer(1, 0, 1), "bar")
         )
         edition.preferLocalLibraries should contain(true)
         edition.engineVersion should contain(SemVer(1, 2, 3, Some("SNAPSHOT")))
