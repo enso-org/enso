@@ -412,9 +412,9 @@ type SuggestionEntry =
   | SuggestionEntryLocal;
 
 interface SuggestionEntryModule {
-  name: string;
   module: string;
   documentation?: string;
+  reexport?: string;
 }
 
 interface SuggestionEntryAtom {
@@ -424,6 +424,7 @@ interface SuggestionEntryAtom {
   arguments: SuggestionEntryArgument[];
   returnType: string;
   documentation?: string;
+  reexport?: string;
 }
 
 interface SuggestionEntryMethod {
@@ -434,6 +435,7 @@ interface SuggestionEntryMethod {
   selfType: string;
   returnType: string;
   documentation?: string;
+  reexport?: string;
 }
 
 interface SuggestionEntryFunction {
@@ -683,6 +685,11 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+
+  /**
+   * The reexport field to update.
+   */
+  reexport?: FieldUpdate<String>;
 }
 ```
 

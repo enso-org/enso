@@ -568,6 +568,7 @@ object Runtime {
         * @param returnType the return type to update
         * @param documentation the documentation string to update
         * @param scope the scope to update
+        * @param reexport the reexport field to update
         */
       case class Modify(
         externalId: Option[Option[Suggestion.ExternalId]] = None,
