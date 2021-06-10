@@ -220,7 +220,25 @@ class FileManager(
         .map(x => FileManagerProtocol.ChecksumBytesResponse(x.map(_.bytes)))
         .pipeTo(sender())
 
-    // TODO [AA] writeBytes and readBytes
+    case FileManagerProtocol.WriteBytesRequest(path, off, overwrite, bytes) =>
+      val doWrite = for {
+        rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+        response <- fs.writeBytes(path.toFile(rootPath), off, overwrite, bytes)
+      } yield response
+      exec
+        .execTimed(config.fileManager.timeout, doWrite)
+        .map(x => FileManagerProtocol.WriteBytesResponse(x.map(_.bytes)))
+        .pipeTo(sender())
+
+    case FileManagerProtocol.ReadBytesRequest(segment) =>
+      val doRead = for {
+        rootPath <- IO.fromEither(config.findContentRoot(segment.path.rootId))
+        response <- fs.readBytes(segment.toApiSegment(rootPath))
+      } yield response
+      exec
+        .execTimed(config.fileManager.timeout, doRead)
+        .map(FileManagerProtocol.ReadBytesResponse)
+        .pipeTo(sender())
   }
 }
 

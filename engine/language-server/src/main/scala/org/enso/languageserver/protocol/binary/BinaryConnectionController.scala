@@ -1,7 +1,5 @@
 package org.enso.languageserver.protocol.binary
 
-import java.nio.ByteBuffer
-import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
@@ -16,23 +14,14 @@ import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   OutboundStreamEstablished
 }
 import org.enso.languageserver.protocol.binary.BinaryConnectionController.InboundPayloadType
-import org.enso.languageserver.protocol.binary.InboundPayload.{
-  CHECKSUM_BYTES_CMD,
-  INIT_SESSION_CMD,
-  READ_FILE_CMD,
-  WRITE_FILE_CMD
-}
+import org.enso.languageserver.protocol.binary.InboundPayload._
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SuccessReplyFactory,
   VisualisationUpdateFactory
 }
-import org.enso.languageserver.requesthandler.file.{
-  ChecksumBytesHandler,
-  ReadBinaryFileHandler,
-  WriteBinaryFileHandler
-}
+import org.enso.languageserver.requesthandler.file._
 import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
@@ -43,6 +32,8 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
   GenericDecodingFailure
 }
 
+import java.nio.ByteBuffer
+import java.util.UUID
 import scala.annotation.unused
 import scala.concurrent.duration._
 
@@ -207,6 +198,10 @@ class BinaryConnectionController(
       READ_FILE_CMD -> ReadBinaryFileHandler
         .props(requestTimeout, fileManager, outboundChannel),
       CHECKSUM_BYTES_CMD -> ChecksumBytesHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      WRITE_BYTES_CMD -> WriteBytesHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      READ_BYTES_CMD -> ReadBytesHandler
         .props(requestTimeout, fileManager, outboundChannel)
     )
   }

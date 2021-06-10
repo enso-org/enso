@@ -22,14 +22,18 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.file.PathUtils
 import org.enso.logger.masking.MaskedString
 
-import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
-// TODO [AA] Doc, remove @unused
+/** A handler for a checksum bytes request.
+  *
+  * @param requestTimeout a request timeout
+  * @param fileManager a reference to the file-manager actor
+  * @param replyTo the actor to reply to
+  */
 class ChecksumBytesHandler(
-  @unused requestTimeout: FiniteDuration,
-  @unused fileManager: ActorRef,
-  @unused replyTo: ActorRef
+  requestTimeout: FiniteDuration,
+  fileManager: ActorRef,
+  replyTo: ActorRef
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {

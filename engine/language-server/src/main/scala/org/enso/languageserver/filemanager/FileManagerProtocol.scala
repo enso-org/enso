@@ -191,7 +191,8 @@ object FileManagerProtocol {
     */
   case class ChecksumFileResponse(checksum: Either[FileSystemFailure, String])
 
-  /** Requests that the file manager provide the checksum of the specified bytes in a file.
+  /** Requests that the file manager provide the checksum of the specified bytes
+    * in a file.
     *
     * @param segment a description of the bytes in a file to checksum.
     */
@@ -203,6 +204,45 @@ object FileManagerProtocol {
     */
   case class ChecksumBytesResponse(
     checksum: Either[FileSystemFailure, Array[Byte]]
+  )
+
+  /** Requests that the file manager writes the provided `bytes` to the file at
+    * `path`.
+    *
+    * @param path the file to write to
+    * @param byteOffset the offset in the file to begin writing from
+    * @param overwriteExisting whether or not the request can overwrite existing
+    *                          data
+    * @param bytes the bytes to write
+    */
+  case class WriteBytesRequest(
+    path: Path,
+    byteOffset: Long,
+    overwriteExisting: Boolean,
+    bytes: Array[Byte]
+  )
+
+  /** Returns the checksum of the bytes that were written to disk.
+    *
+    * @param checksum either a FS failure or the checksum as an array of bytes
+    */
+  case class WriteBytesResponse(
+    checksum: Either[FileSystemFailure, Array[Byte]]
+  )
+
+  /** Requests to read the bytes in the file identified by `segment`.
+    *
+    * @param segment an identification of where the bytes should be read from
+    */
+  case class ReadBytesRequest(segment: Data.FileSegment)
+
+  /** Returns the requested bytes and their checksum.
+    *
+    * @param result either a FS failure or the checksum and corresponding bytes
+    *               that were read
+    */
+  case class ReadBytesResponse(
+    result: Either[FileSystemFailure, FileSystemApi.ReadBytesResult]
   )
 
   /** Data types for the protocol. */
