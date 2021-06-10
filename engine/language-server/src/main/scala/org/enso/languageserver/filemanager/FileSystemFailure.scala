@@ -2,7 +2,11 @@ package org.enso.languageserver.filemanager
 
 /** Represents file system failures.
   */
-sealed trait FileSystemFailure
+sealed trait FileSystemFailure {
+
+  /** Tells whether the error has additional data. */
+  def hasData: Boolean = false
+}
 
 /** Informs that the requested content root cannot be found.
   */
@@ -38,10 +42,14 @@ case object CannotOverwrite extends FileSystemFailure
   *
   * @param fileLength the actual length of the file.
   */
-case class ReadOutOfBounds(fileLength: Long) extends FileSystemFailure
+case class ReadOutOfBounds(fileLength: Long) extends FileSystemFailure {
+  override def hasData: Boolean = true
+}
 
 /** Signals file system specific errors.
   *
   * @param reason a reason of failure
   */
-case class GenericFileSystemFailure(reason: String) extends FileSystemFailure
+case class GenericFileSystemFailure(reason: String) extends FileSystemFailure {
+  override def hasData: Boolean = true
+}

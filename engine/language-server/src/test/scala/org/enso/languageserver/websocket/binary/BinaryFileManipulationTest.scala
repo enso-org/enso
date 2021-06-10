@@ -2,17 +2,13 @@ package org.enso.languageserver.websocket.binary
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.protocol.binary.{
-  FileContentsReply,
-  InboundPayload,
-  OutboundMessage,
-  OutboundPayload
-}
+import org.enso.languageserver.protocol.binary._
 import org.enso.languageserver.websocket.binary.factory._
 import org.enso.testkit.FlakySpec
 
 import java.io.File
 import java.nio.ByteBuffer
+import java.security.MessageDigest
 import java.util.UUID
 import scala.io.Source
 
@@ -89,12 +85,16 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   "A ChecksumBytesCommand" must {
     "Return the checksum for the provided byte range" in {
-      pending
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
       val barFile   = new File(testContentRoot.toFile, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
+
+      val expectedChecksum = ByteBuffer.wrap(
+        MessageDigest.getInstance("SHA3-224").digest(contents.slice(0, 2))
+      )
+
       val client = newWsClient()
       client.send(createSessionInitCmd())
       client.expectFrame()
@@ -103,16 +103,48 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
         Seq(filename),
         testContentRootId,
         byteOffset = 0,
-        length = 2
+        length     = 2
       )
 
       client.send(checksumBytesCmd)
-      val checksumResponse = client.receiveMessage[OutboundMessage]()
-      checksumResponse shouldBe Right
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse
+        .payloadType() shouldEqual OutboundPayload.CHECKSUM_BYTES_REPLY
+      val payload = checksumResponse
+        .payload(new ChecksumBytesReply)
+        .asInstanceOf[ChecksumBytesReply]
+      val digest = payload.checksum().bytesAsByteBuffer()
+
+      digest shouldEqual expectedChecksum
     }
 
     "Return a `FileNotFound` error if the file does not exist" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val checksumBytesCmd = createChecksumBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        byteOffset = 0,
+        length     = 2
+      )
+
+      client.send(checksumBytesCmd)
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse.payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = checksumResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+      payload.code() shouldEqual 1003
+      payload.message() shouldEqual "File not found"
     }
 
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
