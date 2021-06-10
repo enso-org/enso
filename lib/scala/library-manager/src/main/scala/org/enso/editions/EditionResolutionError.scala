@@ -20,6 +20,6 @@ object EditionResolutionError {
 
   case class EditionResolutionCycle(editions: List[String])
       extends EditionResolutionError(
-        s"Edition resolution encountered a cycle: $editions"
+        s"Edition resolution encountered a cycle: ${editions.mkString(" -> ")}"
       )
 }

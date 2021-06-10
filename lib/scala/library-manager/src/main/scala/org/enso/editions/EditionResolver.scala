@@ -1,16 +1,26 @@
 package org.enso.editions
 
 import cats.implicits._
-import org.enso.editions.EditionResolutionError.LibraryReferencesUndefinedRepository
+import org.enso.editions.EditionResolutionError.{
+  EditionResolutionCycle,
+  LibraryReferencesUndefinedRepository
+}
 import org.enso.editions.Editions.{RawEdition, ResolvedEdition}
+
+import scala.annotation.tailrec
 
 case class EditionResolver(provider: EditionProvider) {
   def resolve(
     edition: RawEdition
   ): Either[EditionResolutionError, ResolvedEdition] =
-    // TODO [RW] cycles
+    resolveEdition(edition, Nil)
+
+  private def resolveEdition(
+    edition: RawEdition,
+    visitedEditions: List[String]
+  ): Either[EditionResolutionError, ResolvedEdition] =
     for {
-      parent <- resolveParent(edition.parent)
+      parent <- resolveParent(edition.parent, visitedEditions)
       preferLocalLibraries = edition.preferLocalLibraries.getOrElse(false)
       libraries <- resolveLibraries(
         edition.libraries,
@@ -45,6 +55,7 @@ case class EditionResolver(provider: EditionProvider) {
     resolvedPairs.map(Map.from)
   }
 
+  @tailrec
   private def resolveLibrary(
     library: Editions.Raw.Library,
     currentRepositories: Map[String, Editions.Repository],
@@ -78,17 +89,22 @@ case class EditionResolver(provider: EditionProvider) {
   }
 
   private def resolveParent(
-    parent: Option[String]
+    parent: Option[String],
+    visitedEditions: List[String]
   ): Either[EditionResolutionError, Option[ResolvedEdition]] = parent match {
     case Some(parentName) =>
-      for {
-        rawParent <- provider
-          .findEditionForName(parentName)
-          .toEither
-          .left
-          .map(EditionResolutionError.CannotLoadParentEdition)
-        res <- resolve(rawParent)
-      } yield Some(res)
+      if (visitedEditions.contains(parentName)) {
+        val cycle = parentName :: visitedEditions
+        Left(EditionResolutionCycle(cycle.reverse))
+      } else
+        for {
+          rawParent <- provider
+            .findEditionForName(parentName)
+            .toEither
+            .left
+            .map(EditionResolutionError.CannotLoadParentEdition)
+          res <- resolveEdition(rawParent, parentName :: visitedEditions)
+        } yield Some(res)
     case None => Right(None)
   }
 }
