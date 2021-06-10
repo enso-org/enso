@@ -175,6 +175,12 @@ impl DomScene {
         self.data.dom.set_style_or_warn("z-index", z.to_string(), &self.logger);
     }
 
+    /// Sets the CSS property `filter: grayscale({value})` on this element. A value of 0.0 displays
+    /// the element normally. A value of 1.0 will make the element completely gray.
+    pub fn filter_grayscale(&self, value:f32) {
+        self.data.dom.set_style_or_warn("filter",format!("grayscale({})",value),&self.logger);
+    }
+
     /// Creates a new instance of DomSymbol and adds it to parent.
     pub fn manage(&self, object:&DomSymbol) {
         let dom  = object.dom();

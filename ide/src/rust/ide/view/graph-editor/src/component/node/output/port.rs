@@ -6,6 +6,7 @@ use crate::tooltip::Placement;
 use crate::Type;
 use crate::component::node;
 use crate::component::type_coloring;
+use crate::view;
 
 use enso_frp as frp;
 use ensogl::Animation;
@@ -17,6 +18,7 @@ use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
 use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::shape::Var;
 use ensogl::display::shape::primitive::def::class::ShapeOps;
 use ensogl::display;
@@ -62,10 +64,6 @@ const SHOW_TYPE_AS_LABEL   : bool = true;
 ///  ╰──────────────────────────────╯ ▼ (node_size / 2) + PORT_SIZE
 ///  ◄──────────────────────────────►
 ///   width = node_width + PORT_SIZE
-
-
-
-
 /// ```
 ///
 /// The corners are rounded with the `radius = inner_radius + port_area_size`. The shape also
@@ -420,6 +418,7 @@ ensogl::define_endpoints! {
         set_usage_type            (Option<Type>),
         set_type_label_visibility (bool),
         set_size                  (Vector2),
+        set_view_mode             (view::Mode),
     }
 
     Output {
@@ -449,6 +448,7 @@ impl Model {
     , logger     : impl AnyLogger
     , app        : &Application
     , styles     : &StyleWatch
+    , styles_frp : &StyleWatchFrp
     , port_index : usize
     , port_count : usize
     ) -> (display::object::Instance,Frp) {
@@ -479,11 +479,16 @@ impl Model {
         self.port_count = max(port_count, 1);
         self.port_index = port_index;
 
-        self.init_frp(&shape,&type_label,styles);
+        self.init_frp(&shape,&type_label,styles,styles_frp);
         (display_object,self.frp.as_ref().unwrap().clone_ref())
     }
 
-    fn init_frp(&mut self,shape:&PortShapeView,type_label:&text::Area,styles:&StyleWatch) {
+    fn init_frp
+    ( &mut self
+    , shape:&PortShapeView
+    , type_label:&text::Area
+    , styles:&StyleWatch
+    , styles_frp:&StyleWatchFrp) {
         let frp                = Frp::new();
         let network            = &frp.network;
         let events             = shape.events();
@@ -536,8 +541,14 @@ impl Model {
                 |usage_tp,def_tp| usage_tp.clone().or_else(|| def_tp.clone())
             );
 
-            color_tgt <- frp.tp.map(f!([styles](t) type_coloring::compute_for_selection(t.as_ref(),&styles)));
-            color.target <+ color_tgt;
+            normal_color        <- frp.tp.map(f!([styles](t)
+                type_coloring::compute_for_selection(t.as_ref(),&styles)));
+            init_color          <- source::<()>();
+            let profiling_color  = styles_frp.get_color(ensogl_theme::code::types::any::selection);
+            profiling_color     <- all_with(&profiling_color,&init_color,|c,_|color::Lcha::from(c));
+            in_profiling_mode   <- frp.set_view_mode.map(|mode| mode.is_profiling());
+            color_tgt           <- in_profiling_mode.switch(&normal_color,&profiling_color);
+            color.target        <+ color_tgt;
             eval color.value ((t) shape.set_color(t.into()));
 
             full_type_timer.start <+ frp.on_hover.on_true();
@@ -549,15 +560,18 @@ impl Model {
                 })
             });
         }
+        init_color.emit(());
 
         if SHOW_TYPE_AS_LABEL {
             frp::extend! { network
 
                 // === Type Label ===
 
-                type_label_visibility        <- frp.on_hover.and(&frp.set_type_label_visibility);
-                type_label_opacity.target    <+ type_label_visibility.on_true().constant(PORT_OPACITY_HOVERED);
-                type_label_opacity.target    <+ type_label_visibility.on_false().constant(0.0);
+                type_label_visibility     <- frp.on_hover.and(&frp.set_type_label_visibility);
+                on_type_label_visible     <- type_label_visibility.on_true();
+                type_label_opacity.target <+ on_type_label_visible.constant(PORT_OPACITY_HOVERED);
+                type_label_opacity.target <+ type_label_visibility.on_false().constant(0.0);
+
                 type_label_color             <- all_with(&color.value,&type_label_opacity.value,
                     |color,&opacity| color.opaque.with_alpha(opacity).into());
                 type_label.set_color_all     <+ type_label_color;

@@ -213,7 +213,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             // === State ===
 
             toggle <- any(frp.toggle,icon.mouse_down);
-            frp.source.state <+ toggle.toggle();
+            frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 
 
@@ -242,6 +242,7 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
             eval color.value ((color) model.icon.set_color(color.into()));
         }
 
+        frp.set_state.emit(false);
         color.target_alpha.emit(0.0);
         self
     }

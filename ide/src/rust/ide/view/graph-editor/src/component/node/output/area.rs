@@ -9,6 +9,7 @@ use ensogl::animation::hysteretic::HystereticAnimation;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display;
 use ensogl_text as text;
 use ensogl_theme as theme;
@@ -19,6 +20,7 @@ use crate::component::node::input;
 use crate::component::node::output::port;
 use crate::component::node;
 use crate::tooltip;
+use crate::view;
 use enso_args::ARGS;
 
 
@@ -123,6 +125,7 @@ ensogl::define_endpoints! {
         set_expression            (node::Expression),
         set_expression_visibility (bool),
         set_type_label_visibility (bool),
+        set_view_mode             (view::Mode),
 
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -138,6 +141,7 @@ ensogl::define_endpoints! {
         body_hover            (bool),
         type_label_visibility (bool),
         tooltip               (tooltip::Style),
+        view_mode             (view::Mode),
     }
 }
 
@@ -153,6 +157,7 @@ pub struct Model {
     id_crumbs_map  : RefCell<HashMap<ast::Id,Crumbs>>,
     port_count     : Cell<usize>,
     styles         : StyleWatch,
+    styles_frp     : StyleWatchFrp,
     frp            : FrpEndpoints,
 }
 
@@ -168,11 +173,12 @@ impl Model {
         let expression     = default();
         let port_count     = default();
         let styles         = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles_frp     = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let frp            = frp.output.clone_ref();
         display_object.add_child(&label);
         display_object.add_child(&ports);
-        Self {logger,app,display_object,ports,label,expression,id_crumbs_map,port_count,styles,frp}
-            .init()
+        Self {logger,app,display_object,ports,label,expression,id_crumbs_map,port_count,styles
+            ,styles_frp,frp}.init()
     }
 
     fn init(self) -> Self {
@@ -300,20 +306,24 @@ impl Model {
                 let crumbs = port.crumbs.clone_ref();
                 let logger = &self.logger;
                 let (port_shape,port_frp) = port.payload_mut()
-                    .init_shape(logger,&self.app,&self.styles,port_index,port_count);
+                    .init_shape(logger,&self.app,&self.styles,&self.styles_frp,port_index
+                    ,port_count);
                 let port_network = &port_frp.network;
 
                 frp::extend! { port_network
                     self.frp.source.on_port_hover <+ port_frp.on_hover.map
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
-                    port_frp.set_size_multiplier <+ self.frp.port_size_multiplier;
+
+                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
                     self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
-                    port_frp.set_type_label_visibility <+ self.frp.type_label_visibility;
-                    self.frp.source.tooltip <+ port_frp.tooltip;
+                    port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
+                    self.frp.source.tooltip             <+ port_frp.tooltip;
+                    port_frp.set_view_mode              <+ self.frp.view_mode;
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
+                port_frp.set_view_mode.emit(self.frp.view_mode.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -423,11 +433,18 @@ impl Area {
             port_hover               <- frp.on_port_hover.map(|t| t.is_on());
             frp.source.body_hover    <+ frp.set_hover || port_hover;
             expr_vis                 <- frp.body_hover || frp.set_expression_visibility;
+            in_normal_mode           <- frp.set_view_mode.map(|m| m.is_normal());
+            expr_vis                 <- expr_vis && in_normal_mode;
             label_alpha_tgt          <- expr_vis.map(move |t| if *t {label_vis_alpha} else {0.0} );
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
             eval new_label_color ((color) model.label.set_color_all(color::Rgba::from(color)));
+
+
+            // === View Mode ===
+
+            frp.source.view_mode <+ frp.set_view_mode;
         }
 
         label_color.target_alpha(0.0);

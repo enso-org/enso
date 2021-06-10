@@ -526,7 +526,7 @@ impl<Host> Model<Host> {
 // ==========
 
 /// Globally unique identifier of a display object.
-#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq,Ord,PartialOrd)]
 pub struct Id(usize);
 
 
