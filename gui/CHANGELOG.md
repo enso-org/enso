@@ -4,6 +4,11 @@
 
 #### Visual Environment
 
+- [Profling mode.][1546] The IDE contains a profiling mode now which can be
+  entered through a button in the top-right corner or through the keybinding
+  <kbd>ctrl</kbd>+<kbd>p</kbd>. This mode does not display any information yet.
+  In the future, it will display the running times of nodes and maybe more
+  useful statistics.
 - [Signed builds.][1366] Our builds are signed and will avoid warnings from the
   operating system about being untrusted.
 - [Opening projects in application graphical interface][1587]. Press `cmd`+`o`

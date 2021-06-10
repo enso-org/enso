@@ -10,6 +10,7 @@ use ensogl::data::color;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
+use ensogl::Animation;
 use ensogl::display;
 use ensogl::gui::cursor;
 use ensogl_text as text;
@@ -20,7 +21,9 @@ use text::Text;
 use crate::Type;
 use crate::component::type_coloring;
 use crate::node::input::port;
+use crate::node::profiling;
 use crate::node;
+use crate::view;
 
 
 
@@ -193,6 +196,9 @@ ensogl::define_endpoints! {
         /// if any. It is used to highlight ports if they are missing type information or if their
         /// types are polymorphic.
         set_ports_active (bool,Option<Type>),
+
+        set_view_mode        (view::Mode),
+        set_profiling_status (profiling::Status),
     }
 
     Output {
@@ -206,6 +212,7 @@ ensogl::define_endpoints! {
         on_port_hover       (Switch<Crumbs>),
         on_port_type_change (Crumbs,Option<Type>),
         on_background_press (),
+        view_mode           (view::Mode),
     }
 }
 
@@ -221,6 +228,7 @@ pub struct Model {
     expression     : RefCell<Expression>,
     id_crumbs_map  : RefCell<HashMap<ast::Id,Crumbs>>,
     styles         : StyleWatch,
+    styles_frp     : StyleWatchFrp,
 }
 
 impl Model {
@@ -235,10 +243,12 @@ impl Model {
         let id_crumbs_map  = default();
         let expression     = default();
         let styles         = StyleWatch::new(&app.display.scene().style_sheet);
+        let styles_frp     = StyleWatchFrp::new(&app.display.scene().style_sheet);
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
-        Self {logger,app,display_object,ports,header,label,expression,id_crumbs_map,styles}.init()
+        Self {logger,app,display_object,ports,header,label,expression,id_crumbs_map,styles
+             ,styles_frp}.init()
     }
 
     fn init(self) -> Self {
@@ -318,9 +328,10 @@ impl Deref for Area {
 
 impl Area {
     pub fn new(logger:impl AnyLogger, app:&Application) -> Self {
-        let model   = Rc::new(Model::new(logger,app));
-        let frp     = Frp::new();
-        let network = &frp.network;
+        let model           = Rc::new(Model::new(logger,app));
+        let frp             = Frp::new();
+        let network         = &frp.network;
+        let selection_color = Animation::new(network);
 
         frp::extend! { network
 
@@ -387,6 +398,33 @@ impl Area {
             // === Expression Type ===
 
             eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+
+
+            // === View Mode ===
+
+            frp.output.source.view_mode <+ frp.set_view_mode;
+
+            in_profiling_mode <- frp.view_mode.map(|m| m.is_profiling());
+            finished          <- frp.set_profiling_status.map(|s| s.is_finished());
+            profiled          <- in_profiling_mode && finished;
+
+            use theme::code::syntax;
+            let std_selection_color      = model.styles_frp.get_color(syntax::selection);
+            let profiled_selection_color = model.styles_frp.get_color(syntax::profiling::selection);
+            let std_base_color           = model.styles_frp.get_color(syntax::base);
+            let profiled_base_color      = model.styles_frp.get_color(syntax::profiling::base);
+
+            selection_color_rgba <- profiled.switch(&std_selection_color,&profiled_selection_color);
+
+            selection_color.target          <+ selection_color_rgba.map(|c| color::Lcha::from(c));
+            model.label.set_selection_color <+ selection_color.value.map(|&c| color::Rgb::from(c));
+
+            init_colors         <- source::<()>();
+            std_base_color      <- all(std_base_color,init_colors)._0();
+            profiled_base_color <- all(profiled_base_color,init_colors)._0();
+            base_color          <- profiled.switch(&std_base_color,&profiled_base_color);
+            eval base_color ((color) model.label.set_default_color(color));
+            init_colors.emit(());
         }
 
         Self {frp,model}
@@ -536,8 +574,10 @@ impl Area {
                 }
 
                 // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-                let styles             = StyleWatch::new(&self.model.app.display.scene().style_sheet);
-                let any_type_sel_color = color::Lcha::from(styles.get_color(theme::code::types::any::selection));
+                let style_sheet        = &self.model.app.display.scene().style_sheet;
+                let styles             = StyleWatch::new(style_sheet);
+                let styles_frp         = &self.model.styles_frp;
+                let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
                 let crumbs             = port.crumbs.clone_ref();
                 let port_network       = &port.network;
                 let frp                = &self.frp.output;
@@ -592,19 +632,30 @@ impl Area {
 
                     let port_shape_hover = port_shape.hover.clone_ref();
                     pointer_style_out   <- mouse_out.map(|_| default());
-                    pointer_style_over  <- map3(&mouse_over,&frp.set_ports_active,&port.tp,
-                        move |_,(_,edge_tp),port_tp| {
-                            let tp    = port_tp.as_ref().or_else(||edge_tp.as_ref());
-                            let color = tp.map(|tp| type_coloring::compute(tp,&styles));
-                            let color = color.unwrap_or(any_type_sel_color);
-                            cursor::Style::new_highlight(&port_shape_hover,padded_size,Some(color))
-                        }
+
+                    init_color         <- source::<()>();
+                    any_type_sel_color <- all_with(&any_type_sel_color,&init_color,
+                        |c,_| color::Lcha::from(c));
+                    tp                 <- all_with(&port.tp,&frp.set_ports_active,
+                        |tp,(_,edge_tp)| tp.clone().or_else(||edge_tp.clone()));
+                    tp_color           <- tp.map(
+                        f!([styles](tp) tp.map_ref(|tp| type_coloring::compute(tp,&styles))));
+                    tp_color           <- all_with(&tp_color,&any_type_sel_color,
+                        |tp_color,any_type_sel_color| tp_color.unwrap_or(*any_type_sel_color));
+                    in_profiling_mode  <- frp.view_mode.map(|m| matches!(m,view::Mode::Profiling));
+                    pointer_color_over <- in_profiling_mode.switch(&tp_color,&any_type_sel_color);
+                    pointer_style_over <- pointer_color_over.map(move |color|
+                        cursor::Style::new_highlight(&port_shape_hover,padded_size,Some(color))
                     );
+                    pointer_style_over <- pointer_style_over.sample(&mouse_over);
+
                     pointer_style_hover <- any(pointer_style_over,pointer_style_out);
                     pointer_styles      <- all[pointer_style_hover,self.model.label.pointer_style];
                     pointer_style       <- pointer_styles.fold();
                     self.frp.output.source.pointer_style <+ pointer_style;
                 }
+                init_color.emit(());
+                frp.source.view_mode.emit(frp.view_mode.value());
                 port_shape.display_object().clone_ref()
             };
 
@@ -627,9 +678,6 @@ impl Area {
     /// this way, rather than delegate it to every port.
     fn init_port_frp_on_new_expression(&self, expression:&mut Expression) {
         let model          = &self.model;
-        let selected_color = color::Lcha::from(model.styles.get_color(theme::code::types::selected));
-        let disabled_color = color::Lcha::from(model.styles.get_color(theme::code::syntax::disabled));
-        let expected_color = color::Lcha::from(model.styles.get_color(theme::code::syntax::expected));
 
         let parent_tp : Option<frp::Stream<Option<Type>>> = None;
         expression.root_ref_mut().dfs_with_layer_data(parent_tp,|node,parent_tp| {
@@ -663,54 +711,104 @@ impl Area {
 
             // === Code Coloring ===
 
-            let styles = model.styles.clone_ref();
-            frp::extend! { port_network
-                base_color <- frp.tp.map(f!([styles](t) type_coloring::compute_for_code(t.as_ref(),&styles)));
-            }
+            let styles     = model.styles.clone_ref();
+            let styles_frp = model.styles_frp.clone_ref();
 
             if node.children.is_empty() {
                 let is_expected_arg = node.is_expected_argument();
-                let label_color     = color::Animation::new(port_network);
+
+                use theme::code::syntax;
+                let selected_color          = styles_frp.get_color(theme::code::types::selected);
+                let std_base_color          = styles_frp.get_color(syntax::base);
+                let std_disabled_color      = styles_frp.get_color(syntax::disabled);
+                let std_expected_color      = styles_frp.get_color(syntax::expected);
+                let std_editing_color       = styles_frp.get_color(syntax::base);
+                let profiled_base_color     = styles_frp.get_color(syntax::profiling::base);
+                let profiled_disabled_color = styles_frp.get_color(syntax::profiling::disabled);
+                let profiled_expected_color = styles_frp.get_color(syntax::profiling::expected);
+                let profiled_editing_color  = styles_frp.get_color(syntax::profiling::base);
+
                 frp::extend! { port_network
-                    is_selected    <- frp.set_hover || frp.set_parent_connected;
-                    text_color_tgt <- all_with3(&base_color,&is_selected,&self.frp.set_disabled,
-                        move |base_color,is_selected,is_disabled| {
-                            if      *is_selected    { selected_color }
-                            else if *is_disabled    { disabled_color }
-                            else if is_expected_arg { expected_color }
-                            else                    { *base_color }
+                    in_profiling_mode <- self.view_mode.map(|m| m.is_profiling());
+                    finished          <- self.set_profiling_status.map(|s| s.is_finished());
+                    profiled          <- in_profiling_mode && finished;
+                    selected          <- frp.set_hover || frp.set_parent_connected;
+
+                    init_colors         <- source::<()>();
+                    std_base_color      <- all(std_base_color,init_colors)._0();
+                    profiled_base_color <- all(profiled_base_color,init_colors)._0();
+
+                    profiling_color <- finished.switch(&std_base_color,&profiled_base_color);
+                    normal_color    <- frp.tp.map(f!([styles](t)
+                        color::Rgba::from(type_coloring::compute_for_code(t.as_ref(),&styles))));
+                    base_color      <- in_profiling_mode.switch(&normal_color,&profiling_color);
+
+                    disabled_color <- profiled.switch(&std_disabled_color,&profiled_disabled_color);
+                    expected_color <- profiled.switch(&std_expected_color,&profiled_expected_color);
+                    editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
+                    // Fixme: `label_color` should be animated, when when we can set text colors
+                    //        more efficiently. (See https://github.com/enso-org/ide/issues/1031)
+                    label_color    <- all_with8(&self.set_edit_mode,&selected,&self.frp.set_disabled
+                        ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
+                        ,move |&editing,&selected,&disabled,&editing_color,&selected_color
+                        ,&disabled_color,&expected_color,&base_color| {
+                            if      editing         { color::Lcha::from(editing_color) }
+                            else if selected        { color::Lcha::from(selected_color) }
+                            else if disabled        { color::Lcha::from(disabled_color) }
+                            else if is_expected_arg { color::Lcha::from(expected_color) }
+                            else                    { color::Lcha::from(base_color) }
                         });
-                    label_color.target <+ text_color_tgt;
                 }
 
                 let index  = node.payload.index;
                 let length = node.payload.length;
                 let label  = model.label.clone_ref();
                 frp::extend! { port_network
-                    eval label_color.value ([label](color) {
+                    set_color <- all_with(&label_color,&self.set_edit_mode,|&color, _| color);
+                    eval set_color ([label](color) {
                         let start_bytes = (index as i32).bytes();
                         let end_bytes   = ((index + length) as i32).bytes();
                         let range       = ensogl_text::buffer::Range::from(start_bytes..end_bytes);
                         label.set_color_bytes(range,color::Rgba::from(color));
                     });
                 }
+
+                init_colors.emit(());
+                self.set_view_mode(self.view_mode.value());
             }
 
 
             // === Highlight Coloring ===
 
-            let viz_color = color::Animation::new(port_network);
             if let Some(port_shape) = &node.payload.shape {
+                let viz_color          = color::Animation::new(port_network);
+                let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
+
                 frp::extend! { port_network
-                    port_tp       <- all(&frp.set_hover,&frp.tp)._1();
-                    new_viz_color <- all_with(&port_tp,&frp.set_connected,f!([styles]
-                        (port_tp,(is_connected,edge_tp)) {
-                            let tp    = port_tp.as_ref().or_else(||edge_tp.as_ref());
-                            let color = select_color(&styles,tp);
-                            if *is_connected {color} else { color::Lcha::transparent() }
-                        }
-                    ));
-                    viz_color.target <+ new_viz_color;
+                    normal_viz_color <- all_with(&frp.tp,&frp.set_connected,
+                        f!([styles](port_tp,(_,edge_tp)) {
+                            let tp = port_tp.as_ref().or_else(||edge_tp.as_ref());
+                            select_color(&styles,tp)
+                        }));
+                    init_color          <- source::<()>();
+                    profiling_viz_color <- all_with(&any_type_sel_color,&init_color,
+                        |c,_| color::Lcha::from(c));
+                    profiling           <- self.view_mode.map(|m| m.is_profiling());
+                    connected_viz_color <- profiling.switch(&normal_viz_color,&profiling_viz_color);
+                    is_connected        <- frp.set_connected.map(|(is_connected,_)| *is_connected);
+                    transparent         <- init_color.constant(color::Lcha::transparent());
+                    viz_color_target    <- is_connected.switch(&transparent,&connected_viz_color);
+
+                    // We need to make sure that the network contains correct values before we
+                    // connect the `viz_color` animation. The reason is that the animation will
+                    // start from the first value that it receives, and during initialization of the
+                    // network, while some nodes are still set to their defaults, this first  value
+                    // would be incorrect, causing the animation in some cases to start from black
+                    // (the default color) and animating towards the color that we really want to
+                    // set.
+                    init_color.emit(());
+
+                    viz_color.target    <+ viz_color_target;
                     eval viz_color.value ((t)
                         port_shape.viz.color.set(color::Rgba::from(t).into())
                     );
@@ -718,6 +816,8 @@ impl Area {
             }
             Some(frp.tp.clone_ref().into())
         });
+
+        self.frp.source.view_mode.emit(self.frp.view_mode.value());
     }
 
     /// This function first assigns the new expression to the model and then emits the definition

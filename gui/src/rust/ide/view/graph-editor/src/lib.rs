@@ -29,8 +29,13 @@ pub mod component;
 
 pub mod builtin;
 pub mod data;
+#[warn(missing_docs)]
+pub mod profiling;
+#[warn(missing_docs)]
+pub mod view;
 
 use crate::component::node;
+pub use crate::node::profiling::Status as NodeProfilingStatus;
 use crate::component::tooltip::Tooltip;
 use crate::component::visualization::instance::PreprocessorConfiguration;
 use crate::component::tooltip;
@@ -41,6 +46,7 @@ use crate::data::enso;
 
 use enso_args::ARGS;
 use enso_frp as frp;
+use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl::DEPRECATED_Tween;
 use ensogl::application::Application;
@@ -51,6 +57,7 @@ use ensogl::display::Scene;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::Id;
 use ensogl::display::shape::StyleWatch;
+use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display;
 use ensogl::gui::cursor;
 use ensogl::prelude::*;
@@ -397,6 +404,8 @@ ensogl::define_endpoints! {
         collapse_selected_nodes(),
         /// Indicate whether this node had an error or not.
         set_node_error_status(NodeId,Option<node::error::Error>),
+        /// Indicate whether this node has finished execution.
+        set_node_profiling_status(NodeId,node::profiling::Status),
 
 
         // === Visualization ===
@@ -419,6 +428,11 @@ ensogl::define_endpoints! {
         /// Can be used, e.g., if there is a fullscreen visualisation active, or navigation should
         ///only work for a selected visualisation.
         set_navigator_disabled(bool),
+
+
+        // === Modes ===
+
+        toggle_profiling_mode(),
 
 
         // === Debug ===
@@ -549,6 +563,8 @@ ensogl::define_endpoints! {
         node_being_edited (Option<NodeId>),
         node_editing (bool),
 
+        view_mode (view::Mode),
+
         navigator_active (bool),
     }
 }
@@ -574,7 +590,7 @@ pub struct Node {
     pub out_edges : SharedHashSet<EdgeId>,
 }
 
-#[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,CloneRef,Copy,Debug,Default,Eq,From,Hash,Into,PartialEq,Ord,PartialOrd)]
 pub struct NodeId(pub Id);
 
 impl Node {
@@ -1079,8 +1095,8 @@ impl GraphEditorModelWithNetwork {
         let node_id = node.id();
         self.add_child(&node);
 
-        let touch = &self.touch_state;
-        let model = &self.model;
+        let touch      = &self.touch_state;
+        let model      = &self.model;
 
         let NodeCreationContext {pointer_style,tooltip_update,output_press,input_press,output} = ctx;
 
@@ -1115,13 +1131,21 @@ impl GraphEditorModelWithNetwork {
                model.frp.source.hover_node_output.emit(output);
             });
 
-            eval node.model.input.frp.on_port_type_change(((crumbs,_))
-                model.with_input_edge_id(node_id,crumbs,|id| model.refresh_edge_color(id))
-            );
+            let neutral_color = model.styles_frp.get_color(theme::code::types::any::selection);
 
-            eval node.model.output.frp.on_port_type_change(((crumbs,_))
-                model.with_output_edge_id(node_id,crumbs,|id| model.refresh_edge_color(id))
-            );
+            _eval <- all_with(&node.model.input.frp.on_port_type_change,&neutral_color,
+                f!(((crumbs,_),neutral_color)
+                    model.with_input_edge_id(node_id,crumbs,|id|
+                        model.refresh_edge_color(id,neutral_color.into())
+                    )
+                ));
+
+            _eval <- all_with(&node.model.input.frp.on_port_type_change,&neutral_color,
+                f!(((crumbs,_),neutral_color)
+                    model.with_output_edge_id(node_id,crumbs,|id|
+                        model.refresh_edge_color(id,neutral_color.into())
+                    )
+                ));
 
             eval node.frp.expression((t) output.source.node_expression_set.emit((node_id,t.into())));
 
@@ -1172,7 +1196,23 @@ impl GraphEditorModelWithNetwork {
             output.source.visualization_enabled <+
                 vis_enabled.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
             output.source.visualization_disabled <+ vis_disabled.constant(node_id);
+
+
+            // === View Mode ===
+
+            node.set_view_mode <+ self.model.frp.view_mode;
+
+
+            // === Profiling ===
+
+            let profiling_min_duration              = &self.model.profiling_statuses.min_duration;
+            node.set_profiling_min_global_duration <+ self.model.profiling_statuses.min_duration;
+            node.set_profiling_min_global_duration(profiling_min_duration.value());
+            let profiling_max_duration              = &self.model.profiling_statuses.max_duration;
+            node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
+            node.set_profiling_max_global_duration(profiling_max_duration.value());
         }
+        node.set_view_mode(self.model.frp.view_mode.value());
         let initial_metadata = visualization::Metadata {
             preprocessor : node.model.visualization.frp.preprocessor.value()
         };
@@ -1278,6 +1318,9 @@ pub struct GraphEditorModel {
     visualisations     : Visualisations,
     frp                : FrpEndpoints,
     navigator          : Navigator,
+    profiling_statuses : profiling::Statuses,
+    profiling_button   : component::profiling::Button,
+    styles_frp         : StyleWatchFrp,
 }
 
 
@@ -1289,24 +1332,27 @@ impl GraphEditorModel {
     , cursor : cursor::Cursor
     , frp    : &Frp
     ) -> Self {
-        let network        = &frp.network;
-        let scene          = app.display.scene();
-        let logger         = Logger::new("GraphEditor");
-        let display_object = display::object::Instance::new(&logger);
-        let nodes          = Nodes::new(&logger);
-        let edges          = Edges::new(&logger);
-        let vis_registry   = visualization::Registry::with_default_visualizations();
-        let visualisations = default();
-        let touch_state    = TouchState::new(network,&scene.mouse.frp);
-        let breadcrumbs    = component::Breadcrumbs::new(app.clone_ref());
-        let app            = app.clone_ref();
-        let frp            = frp.output.clone_ref();
-        let navigator      = Navigator::new(&scene,&scene.camera());
-        let tooltip        = Tooltip::new(&app);
+        let network            = &frp.network;
+        let scene              = app.display.scene();
+        let logger             = Logger::new("GraphEditor");
+        let display_object     = display::object::Instance::new(&logger);
+        let nodes              = Nodes::new(&logger);
+        let edges              = Edges::new(&logger);
+        let vis_registry       = visualization::Registry::with_default_visualizations();
+        let visualisations     = default();
+        let touch_state        = TouchState::new(network,&scene.mouse.frp);
+        let breadcrumbs        = component::Breadcrumbs::new(app.clone_ref());
+        let app                = app.clone_ref();
+        let frp                = frp.output.clone_ref();
+        let navigator          = Navigator::new(&scene,&scene.camera());
+        let tooltip            = Tooltip::new(&app);
+        let profiling_statuses = profiling::Statuses::new();
+        let profiling_button   = component::profiling::Button::new(&app);
+        let styles_frp         = StyleWatchFrp::new(&scene.style_sheet);
 
         Self {
             logger,display_object,app,breadcrumbs,cursor,nodes,edges,vis_registry,tooltip,
-            touch_state,visualisations,frp,navigator,
+            touch_state,visualisations,frp,navigator,profiling_statuses,profiling_button,styles_frp
         }.init()
     }
 
@@ -1318,6 +1364,7 @@ impl GraphEditorModel {
         self.breadcrumbs.set_position_y(y_offset);
         self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
+        self.add_child(&self.profiling_button);
         self
     }
 
@@ -1681,11 +1728,17 @@ impl GraphEditorModel {
         };
     }
 
-    pub fn refresh_edge_color(&self, edge_id:EdgeId) {
+    pub fn refresh_edge_color(&self, edge_id:EdgeId, neutral_color:color::Lcha) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
-            let color = self.edge_color(edge_id);
+            let color = self.edge_color(edge_id, neutral_color);
             edge.view.frp.set_color.emit(color);
         };
+    }
+
+    fn refresh_all_edge_colors(&self, neutral_color:color::Lcha) {
+        for edge_id in self.edges.keys() {
+            self.refresh_edge_color(edge_id, neutral_color);
+        }
     }
 
     pub fn refresh_edge_source_position(&self, edge_id:EdgeId) {
@@ -1828,7 +1881,9 @@ impl GraphEditorModel {
 
     /// Return a color for the edge.
     ///
-    /// The algorithm works as follow:
+    /// In profiling mode, this is just a neutral gray.
+    ///
+    /// In normal mode, the algorithm works as follow:
     /// 1. We query the type of the currently hovered port, if any.
     /// 2. In case the previous point returns None, we query the edge target type, if any.
     /// 3. In case the previous point returns None, we query the edge source type, if any.
@@ -1837,16 +1892,21 @@ impl GraphEditorModel {
     /// This might need to be more sophisticated in the case of polymorphic types. For example,
     /// consider the edge source type to be `(a,Number)`, and target to be `(Text,a)`. These unify
     /// to `(Text,Number)`.
-    fn edge_color(&self, edge_id:EdgeId) -> color::Lcha {
+    fn edge_color(&self, edge_id:EdgeId, neutral_color:color::Lcha) -> color::Lcha {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
-        let styles    = StyleWatch::new(&self.scene().style_sheet);
-        let edge_type = self.edge_hover_type()
-            .or_else(|| self.edge_target_type(edge_id))
-            .or_else(|| self.edge_source_type(edge_id));
-        let opt_color = edge_type.map(|t|type_coloring::compute(&t,&styles));
-        opt_color.unwrap_or_else(||
-            color::Lcha::from(styles.get_color(theme::code::types::any::selection))
-        )
+        let styles = StyleWatch::new(&self.scene().style_sheet);
+        match self.frp.view_mode.value() {
+            view::Mode::Normal => {
+                let edge_type = self.edge_hover_type()
+                    .or_else(|| self.edge_target_type(edge_id))
+                    .or_else(|| self.edge_source_type(edge_id));
+                let opt_color = edge_type.map(|t|type_coloring::compute(&t,&styles));
+                opt_color.unwrap_or(neutral_color)
+            },
+            view::Mode::Profiling => {
+                neutral_color
+            }
+        }
     }
 
     fn first_detached_edge(&self) -> Option<EdgeId> {
@@ -1863,8 +1923,8 @@ impl GraphEditorModel {
     }
 
     /// Return a color for the first detached edge.
-    pub fn first_detached_edge_color(&self) -> Option<color::Lcha> {
-        self.first_detached_edge().map(|t|self.edge_color(t))
+    pub fn first_detached_edge_color(&self,neutral_color:color::Lcha) -> Option<color::Lcha> {
+        self.first_detached_edge().map(|t|self.edge_color(t,neutral_color))
     }
 
     pub fn has_edges_with_detached_targets(&self, node_id:NodeId) -> bool {
@@ -1973,6 +2033,9 @@ impl application::View for GraphEditor {
           , (Release , "" , "cmd left-mouse-button" , "edit_mode_off")
           , (Release , "" , "enter"                 , "stop_editing")
 
+          // === Profiling Mode ===
+          , (Press   , "" , "cmd p"                 , "toggle_profiling_mode")
+
           // === Debug ===
           , (Press , "debug_mode" , "ctrl d"           , "debug_set_test_visualization_data_for_selected_node")
           , (Press , "debug_mode" , "ctrl shift enter" , "debug_push_breadcrumb")
@@ -2054,7 +2117,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
     let styles             = StyleWatch::new(&scene.style_sheet);
-    let any_type_sel_color = color::Lcha::from(styles.get_color(theme::code::types::any::selection));
 
 
 
@@ -2598,6 +2660,20 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
+    // === Profiling ===
+
+    frp::extend! { network
+
+        eval inputs.set_node_profiling_status([model]((node_id,status)) {
+            if let Some(node) = model.nodes.get_cloned_ref(node_id) {
+                model.profiling_statuses.set(*node_id,*status);
+                node.set_profiling_status(status);
+            }
+        });
+
+    }
+
+
 
     // ==================
     // === Move Nodes ===
@@ -2968,13 +3044,20 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     out.source.on_edge_only_source_not_set <+ out.on_edge_target_set_with_source_not_set._0();
     out.source.on_edge_only_source_not_set <+ out.on_edge_source_unset._0();
 
-    eval out.on_edge_source_set   (((id,_)) model.refresh_edge_color(*id));
-    eval out.on_edge_target_set   (((id,_)) model.refresh_edge_color(*id));
-    eval out.on_edge_source_unset (((id,_)) model.refresh_edge_color(*id));
-    eval out.on_edge_target_unset (((id,_)) model.refresh_edge_color(*id));
+    let neutral_color = model.model.styles_frp.get_color(theme::code::types::any::selection);
+    eval out.on_edge_source_set ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
+    eval out.on_edge_target_set ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
+    eval out.on_edge_source_unset ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
+    eval out.on_edge_target_unset ([model,neutral_color]((id, _))
+        model.refresh_edge_color(*id,neutral_color.value().into()));
+    eval neutral_color ((neutral_color) model.refresh_all_edge_colors(neutral_color.into()));
 
     edge_to_refresh_on_hover <= out.hover_node_input.map(f_!(model.edges_with_detached_targets()));
-    eval edge_to_refresh_on_hover ((id) model.refresh_edge_color(*id));
+    eval edge_to_refresh_on_hover ([model,neutral_color](id)
+        model.refresh_edge_color(*id,neutral_color.value().into()));
 
 
     some_edge_sources_unset   <- out.on_all_edges_sources_set ?? out.on_some_edges_sources_unset;
@@ -3013,6 +3096,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     eval out.node_selected   ((id) model.select_node(id));
     eval out.node_deselected ((id) model.deselect_node(id));
     eval out.node_removed    ((id) model.remove_node(id));
+    model.profiling_statuses.remove <+ out.node_removed;
     out.source.on_visualization_select <+ out.node_removed.map(|&id| Switch::Off(id));
 
     eval inputs.set_node_expression (((id,expr)) model.set_node_expression(id,expr));
@@ -3044,16 +3128,18 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     frp::extend! { network
 
-    on_some_edges_detached <- out.some_edge_endpoints_unset.gate(&out.some_edge_endpoints_unset);
-    cursor_style_edge_drag <- on_some_edges_detached.map(f_!([model]{
-        if let Some(color) = model.first_detached_edge_color() {
-            cursor::Style::new_color(color).press()
-        } else {
-            cursor::Style::new_color_no_animation(any_type_sel_color).press()
-        }
-    }));
-    cursor_style_on_edge_drag_stop <- out.on_all_edges_endpoints_set.constant(default());
-    cursor_style_edge_drag         <- any (cursor_style_edge_drag,cursor_style_on_edge_drag_stop);
+    cursor_style_edge_drag <- all_with(&out.some_edge_endpoints_unset,&out.view_mode,
+        f!([model,neutral_color](some_edges_detached,_) {
+            if *some_edges_detached {
+                if let Some(color) = model.first_detached_edge_color(neutral_color.value().into()) {
+                    cursor::Style::new_color(color).press()
+                } else {
+                    cursor::Style::new_color_no_animation(neutral_color.value().into()).press()
+                }
+            } else {
+                default()
+            }
+        }));
 
     let breadcrumb_style = model.breadcrumbs.pointer_style.clone_ref();
 
@@ -3085,6 +3171,32 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
                                             &frp.enable_quick_visualization_preview);
         eval quick_visualization_preview((value) model.nodes.set_quick_preview(*value));
     }
+
+
+
+    // ==================
+    // === View Modes ===
+    // ==================
+
+    let profiling_mode_transition = Animation::new(network);
+    frp::extend! { network
+        out.source.view_mode <+ frp.toggle_profiling_mode.map2(&frp.view_mode,|_,&mode| mode.switch());
+        out.source.view_mode <+ model.profiling_button.view_mode;
+
+        model.profiling_button.set_view_mode <+ out.view_mode.on_change();
+        _eval <- all_with(&out.view_mode,&neutral_color,f!((_,neutral_color)
+            model.refresh_all_edge_colors(neutral_color.into())));
+
+        profiling_mode_transition.target <+ out.view_mode.map(|&mode| {
+            match mode {
+                view::Mode::Normal    => 0.0,
+                view::Mode::Profiling => 1.0,
+            }
+        });
+        eval profiling_mode_transition.value ((&v) scene.dom.layers.back.filter_grayscale(v));
+    }
+
+
 
     GraphEditor {model,frp}
 }

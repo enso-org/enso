@@ -12,12 +12,16 @@ pub mod output;
 pub mod error;
 #[deny(missing_docs)]
 pub mod vcs;
+#[warn(missing_docs)]
+pub mod profiling;
 
 pub use error::Error;
 pub use expression::Expression;
 
 use crate::prelude::*;
 
+use crate::component::node::profiling::ProfilingLabel;
+use crate::view;
 use crate::component::visualization;
 use crate::tooltip;
 use crate::Type;
@@ -50,10 +54,10 @@ pub const HEIGHT            : f32 = 28.0;
 pub const PADDING           : f32 = 40.0;
 pub const RADIUS            : f32 = 14.0;
 
-const INFINITE                       : f32       = 99999.0;
-const ERROR_VISUALIZATION_SIZE       : (f32,f32) = visualization::container::DEFAULT_SIZE;
+const INFINITE                 : f32       = 99999.0;
+const ERROR_VISUALIZATION_SIZE : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
-const VISUALIZATION_OFFSET_Y         : f32       = -120.0;
+const VISUALIZATION_OFFSET_Y : f32 = -120.0;
 
 const VIS_PREVIEW_ONSET_MS   : f32 = 4000.0;
 const ERROR_PREVIEW_ONSET_MS : f32 = 0000.0;
@@ -256,11 +260,15 @@ ensogl::define_endpoints! {
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
-        set_expression_usage_type        (Crumbs,Option<Type>),
-        set_output_expression_visibility (bool),
-        set_vcs_status                   (Option<vcs::Status>),
+        set_expression_usage_type         (Crumbs,Option<Type>),
+        set_output_expression_visibility  (bool),
+        set_vcs_status                    (Option<vcs::Status>),
         /// Indicate whether preview visualisations should be delayed or immediate.
-        quick_preview_vis                (bool),
+        quick_preview_vis                 (bool),
+        set_view_mode                     (view::Mode),
+        set_profiling_min_global_duration (f32),
+        set_profiling_max_global_duration (f32),
+        set_profiling_status              (profiling::Status),
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -359,6 +367,7 @@ pub struct NodeModel {
     pub background          : background::View,
     pub drag_area           : drag_area::View,
     pub error_indicator     : error_shape::View,
+    pub profiling_label     : ProfilingLabel,
     pub input               : input::Area,
     pub output              : output::Area,
     pub visualization       : visualization::Container,
@@ -396,12 +405,14 @@ impl NodeModel {
         let error_indicator_logger  = Logger::sub(&logger,"error_indicator");
 
         let error_indicator = error_shape::View::new(&error_indicator_logger);
+        let profiling_label = ProfilingLabel::new(app);
         let backdrop        = backdrop::View::new(&main_logger);
         let background      = background::View::new(&main_logger);
         let drag_area       = drag_area::View::new(&drag_logger);
         let vcs_indicator   = vcs::StatusIndicator::new(app);
         let display_object  = display::object::Instance::new(&logger);
 
+        display_object.add_child(&profiling_label);
         display_object.add_child(&drag_area);
         display_object.add_child(&backdrop);
         display_object.add_child(&background);
@@ -431,8 +442,9 @@ impl NodeModel {
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
 
         let app = app.clone_ref();
-        Self {app,display_object,logger,backdrop,background,drag_area,error_indicator,input,output
-             ,visualization,error_visualization,action_bar,vcs_indicator,style}.init()
+        Self {app,display_object,logger,backdrop,background,drag_area,error_indicator
+             ,profiling_label,input,output,visualization,error_visualization,action_bar
+             ,vcs_indicator,style}.init()
     }
 
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
@@ -478,7 +490,6 @@ impl NodeModel {
         self.backdrop.mod_position(|t| t.x = width/2.0);
         self.background.mod_position(|t| t.x = width/2.0);
         self.drag_area.mod_position(|t| t.x = width/2.0);
-
         self.error_indicator.set_position_x(width/2.0);
         self.vcs_indicator.set_position_x(width/2.0);
 
@@ -572,6 +583,7 @@ impl Node {
             eval frp.set_expression  ((a)     model.set_expression(a));
             out.source.expression                  <+ model.input.frp.expression;
             model.input.set_connected              <+ frp.set_input_connected;
+            model.input.set_disabled               <+ frp.set_disabled;
             model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
 
 
@@ -587,7 +599,17 @@ impl Node {
             out.source.skip   <+ action_bar.action_skip;
             out.source.freeze <+ action_bar.action_freeze;
             eval out.hover ((t) action_bar.set_visibility(t));
-       }
+
+
+            // === View Mode ===
+
+            model.input.set_view_mode           <+ frp.set_view_mode;
+            model.output.set_view_mode          <+ frp.set_view_mode;
+            model.profiling_label.set_view_mode <+ frp.set_view_mode;
+            model.vcs_indicator.set_visibility  <+ frp.set_view_mode.map(|&mode| {
+                !matches!(mode,view::Mode::Profiling {..})
+            });
+        }
 
 
         // === Visualizations & Errors ===
@@ -601,9 +623,14 @@ impl Node {
             frp.source.error <+ frp.set_error;
             is_error_set <- frp.error.map(|err| err.is_some());
             no_error_set <- not(&is_error_set);
-            error_color_anim.target <+ frp.error.map(f!([style](error)
-                Self::error_color(error,&style))
-            );
+            error_color_anim.target <+ all_with(&frp.error,&frp.set_view_mode,
+                f!([style](error,&mode)
+                    let error_color = Self::error_color(error,&style);
+                    match mode {
+                        view::Mode::Normal    => error_color,
+                        view::Mode::Profiling => error_color.to_grayscale(),
+                    }
+                ));
 
             eval frp.set_visualization ((t) model.visualization.frp.set_visualization.emit(t));
             visualization_enabled_frp <- bool(&frp.disable_visualization,&frp.enable_visualization);
@@ -663,16 +690,44 @@ impl Node {
 
         }
 
+        // === Profiling Indicator ===
+
+        frp::extend! { network
+            model.profiling_label.set_min_global_duration
+                <+ frp.set_profiling_min_global_duration;
+            model.profiling_label.set_max_global_duration
+                <+ frp.set_profiling_max_global_duration;
+            model.profiling_label.set_status <+ frp.set_profiling_status;
+            model.input.set_profiling_status <+ frp.set_profiling_status;
+        }
+
+        let bg_color_anim = color::Animation::new(network);
+
         frp::extend! { network
 
             // === Color Handling ===
 
             let bgg = style_frp.get_color(ensogl_theme::graph_editor::node::background);
+            let profiling_theme = profiling::Theme::from_styles(&style_frp,&network);
 
-            bg_color <- all_with(&bgg,&frp.set_disabled,f!([model](bgg,disabled) {
-                model.input.frp.set_disabled(*disabled);
-                *bgg
-            }));
+            profiling_color <- all_with5
+                (&frp.set_profiling_status,&frp.set_profiling_min_global_duration,
+                &frp.set_profiling_max_global_duration,&profiling_theme,&bgg,
+                |&status,&min,&max,&theme,&bgg| {
+                    if status.is_finished() {
+                        status.display_color(min,max,theme).with_alpha(1.0)
+                    } else {
+                        color::Lcha::from(bgg)
+                    }
+                });
+
+            bg_color_anim.target <+ all_with3(&bgg,&frp.set_view_mode,&profiling_color,
+                |bgg,&mode,&profiling_color| {
+                    match mode {
+                        view::Mode::Normal    => color::Lcha::from(*bgg),
+                        view::Mode::Profiling => profiling_color,
+                    }
+                });
 
             // FIXME [WD]: Uncomment when implementing disabled icon.
             // bg_color <- frp.set_disabled.map(f!([model,style](disabled) {
@@ -686,7 +741,8 @@ impl Node {
             //     model.background.bg_color.set(color::Rgba::from(c).into())
             // );
 
-            eval bg_color ((c) model.background.bg_color.set(c.into()));
+            eval bg_color_anim.value ((c)
+                model.background.bg_color.set(color::Rgba::from(c).into()));
 
 
             // === Tooltip ===
@@ -698,7 +754,7 @@ impl Node {
             frp.source.tooltip <+ model.output.frp.tooltip.gate_not(&block_tooltip);
 
 
-            // === Output Label ===
+            // === Type Labels ===
 
             model.output.set_type_label_visibility
                 <+ visualization_visible.not().and(&no_error_set);
@@ -720,7 +776,7 @@ impl Node {
 
         if let Some(error) = error {
             let path = match *error.kind {
-                error::Kind::Panic   => error_theme::panic,
+                error::Kind::Panic    => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
             };
             style.get_color(path).into()

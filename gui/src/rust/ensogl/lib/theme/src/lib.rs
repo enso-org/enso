@@ -245,6 +245,12 @@ define_themes! { [light:0, dark:1]
             disabled  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.2);
             expected  = Lcha(0.7,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,0.3);
             selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+            profiling {
+                base      = Lcha(1.0,0.0,0.0,0.9) , Lcha(0.0,0.0,0.0,0.7);
+                disabled  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.2);
+                expected  = Lcha(1.0,0.0,0.0,0.5) , Lcha(0.0,0.0,0.0,0.3);
+                selection = Lcha(1.0,0.0,0.0,1.0) , Lcha(0.0,0.0,0.0,1.0);
+            }
         }
         types {
             hue_steps     = 512.0 , 512.0;
@@ -308,6 +314,12 @@ define_themes! { [light:0, dark:1]
                 stripe_width = 10.0 , 10.0;
                 stripe_angle = 45.0 , 45.0;
             }
+            profiling {
+                lightness    = code::types::lightness , code::types::lightness;
+                chroma       = code::types::chroma    , code::types::chroma;
+                min_time_hue = 0.38                   , 0.38;
+                max_time_hue = 0.07                   , 0.07;
+            }
             type_label {
                 offset_y = -23.0, -23.0;
             }
@@ -363,6 +375,14 @@ define_themes! { [light:0, dark:1]
                 lightness_factor = 1.2 , 0.2;
                 chroma_factor    = 0.8 , 1.0;
             }
+        }
+        profiling_button {
+            non_toggled     = graph_editor::node::actions::button::non_toggled
+                ,graph_editor::node::actions::button::non_toggled;
+            toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
+            hovered         = graph_editor::node::actions::button::hovered
+                ,graph_editor::node::actions::button::hovered;
+            toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
         }
     }
     widget {

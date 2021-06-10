@@ -271,6 +271,41 @@ define_sdf_shapes! {
         float dist  = max(abs(position).x*norm.x + position.y*norm.y - height/2.0*norm.y, pos_y);
         return bound_sdf(dist,bounding_box(width,height/2.0));
     }
+
+
+    // === Uneven Capsule ===
+
+    /// An upright capsule shape with ends of independent width. In other words, the convex hull of
+    /// two circles where the radius of both circles can be chosen independently. The origin is at
+    /// the center of the lower circle.
+    ///
+    /// # Arguments
+    /// * `radius_top`    - Radius of the top circle.
+    /// * `radius_bottom` - Radius of the bottom circle.
+    /// * `inner_height`  - Distance between the centers of the two circles.
+    UnevenCapsule (radius_top:Pixels, radius_bottom:Pixels, inner_height:Pixels) {
+        position.x = abs(position.x);
+        float b    = (radius_bottom-radius_top) / inner_height;
+        float a    = sqrt(1.0-b*b);
+        float k    = dot(position,vec2(-b,a));
+        float dist;
+        if (k < 0.0) {
+            dist = length(position) - radius_bottom;
+        } else if (k > a * inner_height) {
+            dist = length(position-vec2(0.0,inner_height)) - radius_top;
+        } else {
+            dist = dot(position,vec2(a,b)) - radius_bottom;
+        }
+
+        float max_radius   = max(radius_top,radius_bottom);
+        float min_x        = -max_radius;
+        float max_x        = max_radius;
+        float min_y        = -radius_bottom;
+        float max_y        = inner_height + radius_top;
+        BoundingBox bounds = bounding_box(min_x,max_x,min_y,max_y);
+
+        return bound_sdf(dist,bounds);
+    }
 }
 
 

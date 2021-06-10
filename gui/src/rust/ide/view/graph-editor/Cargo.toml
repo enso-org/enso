@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 analytics = { version = "0.1.0", path = "../../lib/analytics" }
 ast = { version = "0.1.0", path = "../../lib/ast/impl" }
+bimap = { version = "0.4.0"}
 enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
 enso-logger = { version = "0.3.0" }
@@ -22,6 +23,7 @@ ensogl-text = { version = "0.1.0", path = "../../../ensogl/lib/text" }
 ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/text/msdf-sys" }
 ensogl-theme = { version = "0.1.0", path = "../../../ensogl/lib/theme" }
 failure = { version = "0.1.8" }
+ordered-float = {version = "1.0"}
 span-tree = { version = "0.1.0", path = "../../lib/span-tree" }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1", features = ["serde-serialize"] }

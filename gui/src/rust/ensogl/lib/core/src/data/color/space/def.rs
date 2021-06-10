@@ -530,6 +530,12 @@ impl Lcha {
     pub fn to_javascript_string(self) -> String {
         Rgba::from(self).to_javascript_string()
     }
+
+    /// Convert the color to grayscale by setting chroma to zero.
+    pub fn to_grayscale(mut self) -> Lcha {
+        self.data.opaque.chroma = 0.0;
+        self
+    }
 }
 
 

@@ -12,6 +12,8 @@ use crate::typeface::glyph::Glyph;
 use crate::typeface::glyph;
 use crate::typeface::pen;
 use crate::typeface;
+use crate::component::selection;
+use crate::component::Selection;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
@@ -23,9 +25,7 @@ use ensogl_core::data::color;
 use ensogl_core::display::shape::*;
 use ensogl_core::display;
 use ensogl_core::gui::cursor;
-use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 use ensogl_core::system::web::clipboard;
-use ensogl_theme as theme;
 use std::ops::Not;
 
 
@@ -37,175 +37,7 @@ use std::ops::Not;
 /// Record separator ASCII code. Used for separating of copied strings. It is defined as the `\RS`
 /// escape code (`x1E`) (https://en.wikipedia.org/wiki/ASCII).
 pub const RECORD_SEPARATOR : &str = "\x1E";
-
-
-
-// ==============
-// === Cursor ===
-// ==============
-
 const LINE_VERTICAL_OFFSET     : f32 = 4.0; // Set manually. May depend on font. To be improved.
-const CURSOR_PADDING           : f32 = 4.0;
-const CURSOR_WIDTH             : f32 = 2.0;
-const CURSOR_ALPHA             : f32 = 0.8;
-const CURSORS_SPACING          : f32 = 1.0;
-const SELECTION_ALPHA          : f32 = 0.3;
-const SELECTION_CORNER_RADIUS  : f32 = 2.0;
-const BLINK_SLOPE_IN_DURATION  : f32 = 200.0;
-const BLINK_SLOPE_OUT_DURATION : f32 = 200.0;
-const BLINK_ON_DURATION        : f32 = 300.0;
-const BLINK_OFF_DURATION       : f32 = 300.0;
-const BLINK_PERIOD             : f32 =
-    BLINK_SLOPE_IN_DURATION + BLINK_SLOPE_OUT_DURATION + BLINK_ON_DURATION + BLINK_OFF_DURATION;
-
-
-/// Text cursor and selection shape definition. If the shape is narrow, it is considered a cursor,
-/// and thus, it blinks.
-///
-/// ## Blinking Implementation
-///
-/// The blinking alpha is a time-dependent function which starts as a fully opaque value and
-/// changes periodically. The `start_time` parameter is set to the current time after each cursor
-/// operation, which makes cursor visible during typing and after position change.
-///
-/// ```compile_fail
-/// |
-/// |    on         off
-/// | <------>   <------->
-/// | --------.             .--------.             .-...
-/// |          \           /          \           /
-/// |           '---------'            '---------'
-/// |         <->         <->
-/// |      slope_out   slope_in
-/// |                                              time
-/// |-------------------------------------------------->
-/// start time
-/// ```
-pub mod selection {
-    use super::*;
-    ensogl_core::define_shape_system! {
-        (style:Style, selection:f32, start_time:f32, letter_width:f32) {
-            let width_abs      = Var::<f32>::from("abs(input_size.x)");
-            let height         = Var::<f32>::from("input_size.y");
-            let rect_width     = width_abs - 2.0 * CURSOR_PADDING;
-            let rect_height    = height    - 2.0 * CURSOR_PADDING;
-            let time           = Var::<f32>::from("input_time");
-            let one            = Var::<f32>::from(1.0);
-            let time           = time - start_time;
-            let on_time        = BLINK_ON_DURATION + BLINK_SLOPE_OUT_DURATION;
-            let off_time       = on_time + BLINK_OFF_DURATION;
-            let sampler        = time % BLINK_PERIOD;
-            let slope_out      = sampler.smoothstep(BLINK_ON_DURATION,on_time);
-            let slope_in       = sampler.smoothstep(off_time,BLINK_PERIOD);
-            let blinking_alpha = (one - slope_out + slope_in) * CURSOR_ALPHA;
-            let sel_width      = &rect_width - CURSOR_WIDTH;
-            let alpha_weight   = sel_width.smoothstep(0.0,letter_width);
-            let alpha          = alpha_weight.mix(blinking_alpha,SELECTION_ALPHA);
-            let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
-            let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
-            let color          = style.get_color(theme::code::syntax::selection);
-            let color          = format!("srgba({},{},{},{})",color.red.glsl(),color.green.glsl()
-                ,color.blue.glsl(),alpha.glsl());
-            let shape          = shape.fill(color);
-            shape.into()
-        }
-    }
-}
-
-
-
-// =================
-// === Selection ===
-// =================
-
-/// Visual representation of text cursor and text selection.
-///
-/// ## Implementation Notes
-/// Selection contains a `right_side` display object which is always placed on its right side. It is
-/// used for smooth glyph animation. For example, after several glyphs were selected and removed,
-/// the selection will gradually shrink. Making all following glyphs children of the `right_side`
-/// object will make the following glyphs  animate while the selection is shrinking.
-#[derive(Clone,CloneRef,Debug)]
-pub struct Selection {
-    logger         : Logger,
-    display_object : display::object::Instance,
-    right_side     : display::object::Instance,
-    shape_view     : selection::View,
-    network        : frp::Network,
-    position       : DEPRECATED_Animation<Vector2>,
-    width          : DEPRECATED_Animation<f32>,
-    edit_mode      : Rc<Cell<bool>>,
-}
-
-impl Deref for Selection {
-    type Target = selection::View;
-    fn deref(&self) -> &Self::Target {
-        &self.shape_view
-    }
-}
-
-impl Selection {
-    /// Constructor.
-    pub fn new(logger:impl AnyLogger, edit_mode:bool) -> Self {
-        let logger         = Logger::sub(logger,"selection");
-        let display_object = display::object::Instance::new(&logger);
-        let right_side     = display::object::Instance::new(&logger);
-        let network        = frp::Network::new("text_selection");
-        let shape_view     = selection::View::new(&logger);
-        let position       = DEPRECATED_Animation::new(&network);
-        let width          = DEPRECATED_Animation::new(&network);
-        let edit_mode      = Rc::new(Cell::new(edit_mode));
-        let debug          = false; // Change to true to slow-down movement for debug purposes.
-        let spring_factor  = if debug { 0.1 } else { 1.5 };
-
-        position . update_spring (|spring| spring * spring_factor);
-        width    . update_spring (|spring| spring * spring_factor);
-
-        Self {logger,display_object,right_side,shape_view,network,position,width,edit_mode} . init()
-    }
-
-    fn init(self) -> Self {
-        let network    = &self.network;
-        let view       = &self.shape_view;
-        let object     = &self.display_object;
-        let right_side = &self.right_side;
-        self.add_child(view);
-        view.add_child(right_side);
-        frp::extend! { network
-            _eval <- all_with(&self.position.value,&self.width.value,
-                f!([view,object,right_side](p,width){
-                    let side        = width.signum();
-                    let abs_width   = width.abs();
-                    let width       = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
-                    let view_width  = CURSOR_PADDING * 2.0 + width;
-                    let view_height = CURSOR_PADDING * 2.0 + LINE_HEIGHT;
-                    let view_x      = (abs_width/2.0) * side;
-                    let view_y      = 0.0;
-                    object.set_position_xy(*p);
-                    right_side.set_position_x(abs_width/2.0);
-                    view.size.set(Vector2(view_width,view_height));
-                    view.set_position_xy(Vector2(view_x,view_y));
-                })
-            );
-        }
-        self
-    }
-
-    fn flip_sides(&self) {
-        let width    = self.width.target_value();
-        self.position.set_value(self.position.value() + Vector2(width,0.0));
-        self.position.set_target_value(self.position.target_value() + Vector2(width,0.0));
-
-        self.width.set_value(-self.width.value());
-        self.width.set_target_value(-self.width.target_value());
-    }
-}
-
-impl display::Object for Selection {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
 
 
 
@@ -421,15 +253,17 @@ ensogl_core::define_endpoints! {
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_color_all         (color::Rgba),
         set_default_color     (color::Rgba),
+        set_selection_color   (color::Rgb),
         set_default_text_size (style::Size),
         set_content           (String),
     }
     Output {
-        pointer_style (cursor::Style),
-        width         (f32),
-        changed       (Vec<buffer::view::Change>),
-        content       (Text),
-        hovered       (bool),
+        pointer_style   (cursor::Style),
+        width           (f32),
+        changed         (Vec<buffer::view::Change>),
+        content         (Text),
+        hovered         (bool),
+        selection_color (color::Rgb),
     }
 }
 
@@ -644,6 +478,7 @@ impl Area {
                 m.buffer.frp.set_color_bytes.emit(*t);
                 m.redraw(false);
             });
+            self.frp.source.selection_color <+ self.frp.set_selection_color;
 
             // === Changes ===
 
@@ -685,7 +520,8 @@ impl Area {
 
     fn symbols(&self) -> SmallVec<[display::Symbol;1]> {
         let text_symbol       = self.data.glyph_system.sprite_system().symbol.clone_ref();
-        let selection_system  = self.data.app.display.scene().shapes.shape_system(PhantomData::<selection::Shape>);
+        let shapes            = &self.data.app.display.scene().shapes;
+        let selection_system  = shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let _selection_symbol = selection_system.shape_system.symbol.clone_ref();
         //TODO[ao] we cannot move selection symbol, as it is global for all the text areas.
         SmallVec::from_buf([text_symbol,/*selection_symbol*/])
@@ -735,7 +571,7 @@ impl AreaModel {
         // FIXME[WD]: These settings should be managed wiser. They should be set up during
         // initialization of the shape system, not for every area creation. To be improved during
         // refactoring of the architecture some day.
-        let shape_system = scene.shapes.shape_system(PhantomData::<selection::Shape>);
+        let shape_system = scene.shapes.shape_system(PhantomData::<selection::shape::Shape>);
         let symbol       = &shape_system.shape_system.sprite_system.symbol;
         shape_system.shape_system.set_pointer_events(false);
 
@@ -800,7 +636,9 @@ impl AreaModel {
                             //            animation frame. Multiple times, once per cursor.
                             //            https://github.com/enso-org/ide/issues/1031
                             eval_ selection.position.value (model.redraw(true));
+                            selection.frp.set_color <+ self.frp_endpoints.selection_color;
                         }
+                        selection.frp.set_color.emit(self.frp_endpoints.selection_color.value());
                         selection
                     }
                 };
