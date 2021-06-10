@@ -3,6 +3,7 @@ package org.enso.editions
 import nl.gn0s1s.bump.SemVer
 
 import java.net.URL
+import scala.util.Try
 
 trait Editions {
   type NestedEditionType
@@ -30,6 +31,12 @@ trait Editions {
 
 object Editions {
   case class Repository(name: String, url: URL)
+
+  object Repository {
+    def make(name: String, url: String): Try[Repository] = Try {
+      Repository(name, new URL(url))
+    }
+  }
 
   object Raw extends Editions {
     override type NestedEditionType               = String
