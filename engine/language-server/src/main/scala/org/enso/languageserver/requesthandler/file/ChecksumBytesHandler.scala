@@ -46,7 +46,7 @@ class ChecksumBytesHandler(
       msg.payload(new ChecksumBytesCommand).asInstanceOf[ChecksumBytesCommand]
     val segment = payload.segment
     fileManager ! FileManagerProtocol.ChecksumBytesRequest(
-      convertFileSegment(segment)
+      ChecksumBytesHandler.convertFileSegment(segment)
     )
     val cancellable = context.system.scheduler.scheduleOnce(
       requestTimeout,
@@ -111,16 +111,6 @@ class ChecksumBytesHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  private def convertFileSegment(
-    segment: FileSegment
-  ): FileManagerProtocol.Data.FileSegment = {
-    FileManagerProtocol.Data.FileSegment(
-      PathUtils.convertBinaryPath(segment.path),
-      segment.byteOffset(),
-      segment.length()
-    )
-  }
 }
 object ChecksumBytesHandler {
 
@@ -137,5 +127,20 @@ object ChecksumBytesHandler {
     replyTo: ActorRef
   ): Props = {
     Props(new ChecksumBytesHandler(timeout, fileManager, replyTo))
+  }
+
+  /** Converts from a binary file segment to a protocol one.
+   *
+   * @param segment the segment to convert
+   * @return `segment` using protocol types
+   */
+  def convertFileSegment(
+    segment: FileSegment
+  ): FileManagerProtocol.Data.FileSegment = {
+    FileManagerProtocol.Data.FileSegment(
+      PathUtils.convertBinaryPath(segment.path),
+      segment.byteOffset(),
+      segment.length()
+    )
   }
 }

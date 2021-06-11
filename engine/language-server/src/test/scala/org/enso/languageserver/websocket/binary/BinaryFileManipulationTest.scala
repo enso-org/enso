@@ -237,12 +237,12 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       )
 
       client.send(writeBytesCommand)
-      val checksumResponse = client
+      val writeResponse = client
         .receiveMessage[OutboundMessage]()
         .getOrElse(fail("Should be right"))
-      checksumResponse
+      writeResponse
         .payloadType() shouldEqual OutboundPayload.WRITE_BYTES_REPLY
-      val payload = checksumResponse
+      val payload = writeResponse
         .payload(new WriteBytesReply)
         .asInstanceOf[WriteBytesReply]
       val digest = payload.checksum().bytesAsByteBuffer()
@@ -279,12 +279,12 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       )
 
       client.send(writeBytesCommand)
-      val checksumResponse = client
+      val writeResponse = client
         .receiveMessage[OutboundMessage]()
         .getOrElse(fail("Should be right"))
-      checksumResponse
+      writeResponse
         .payloadType() shouldEqual OutboundPayload.WRITE_BYTES_REPLY
-      val payload = checksumResponse
+      val payload = writeResponse
         .payload(new WriteBytesReply)
         .asInstanceOf[WriteBytesReply]
       val digest      = payload.checksum().bytesAsByteBuffer()
@@ -323,12 +323,12 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       )
 
       client.send(writeBytesCommand)
-      val checksumResponse = client
+      val writeResponse = client
         .receiveMessage[OutboundMessage]()
         .getOrElse(fail("Should be right"))
-      checksumResponse
+      writeResponse
         .payloadType() shouldEqual OutboundPayload.ERROR
-      val payload = checksumResponse
+      val payload = writeResponse
         .payload(new Error)
         .asInstanceOf[Error]
       payload.dataType() shouldEqual ErrorPayload.NONE
@@ -340,7 +340,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
     "Return a `NotFile` error if the provided path is not a file" in {
       val requestId = UUID.randomUUID()
-      val newBytes = Array[Byte](65, 66, 67)
+      val newBytes  = Array[Byte](65, 66, 67)
 
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -355,12 +355,12 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       )
 
       client.send(writeBytesCommand)
-      val checksumResponse = client
+      val writeResponse = client
         .receiveMessage[OutboundMessage]()
         .getOrElse(fail("Should be right"))
-      checksumResponse
+      writeResponse
         .payloadType() shouldEqual OutboundPayload.ERROR
-      val payload = checksumResponse
+      val payload = writeResponse
         .payload(new Error)
         .asInstanceOf[Error]
       payload.dataType() shouldEqual ErrorPayload.NONE
@@ -371,19 +371,146 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   "A ReadBytesCommand" must {
     "Read the specified bytes from the file" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      FileUtils.writeByteArrayToFile(barFile, contents)
+
+      val expectedBytes = Array[Byte](65, 66)
+      val expectedChecksum =
+        MessageDigest.getInstance("SHA3-224").digest(expectedBytes)
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val readBytesCommand = createReadBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        0L,
+        2L
+      )
+
+      client.send(readBytesCommand)
+      val readResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      readResponse
+        .payloadType() shouldEqual OutboundPayload.READ_BYTES_REPLY
+      val payload = readResponse
+        .payload(new ReadBytesReply)
+        .asInstanceOf[ReadBytesReply]
+      val digestBuffer = payload.checksum().bytesAsByteBuffer()
+      val digest       = new Array[Byte](payload.checksum().bytesLength())
+      digestBuffer.get(digest)
+      val bytesBuffer = payload.bytesAsByteBuffer()
+      val bytes       = new Array[Byte](payload.bytesLength())
+      bytesBuffer.get(bytes)
+
+      bytes should contain theSameElementsAs expectedBytes
+      digest should contain theSameElementsAs expectedChecksum
+
+      Files.delete(barFile.toPath)
     }
 
     "Return a `FileNotFound` error if the file does not exist" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "does_not_exist.bin"
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val readBytesCommand = createReadBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        0L,
+        2L
+      )
+
+      client.send(readBytesCommand)
+      val readResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      readResponse
+        .payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = readResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+
+      payload.code shouldEqual 1003
+      payload.message shouldEqual "File not found"
+      payload.dataType shouldEqual ErrorPayload.NONE
     }
 
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      FileUtils.writeByteArrayToFile(barFile, contents)
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val readBytesCommand = createReadBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        3L,
+        2L
+      )
+
+      client.send(readBytesCommand)
+      val readResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      readResponse
+        .payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = readResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+
+      payload.code shouldEqual 1009
+      payload.message shouldEqual "Read is out of bounds for the file"
+      payload.dataType() shouldEqual ErrorPayload.READ_OOB
+
+      val data = payload
+        .data(new ReadOutOfBoundsError)
+        .asInstanceOf[ReadOutOfBoundsError]
+      data.fileLength() shouldEqual 3
+
+      Files.delete(barFile.toPath)
     }
 
     "Return a `NotFile` error if the provided path is not a file" in {
-      pending
+      val requestId = UUID.randomUUID()
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val readBytesCommand = createReadBytesCommandPacket(
+        requestId,
+        Seq(),
+        testContentRootId,
+        0L,
+        2L
+      )
+
+      client.send(readBytesCommand)
+      val readResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      readResponse
+        .payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = readResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+
+      payload.code shouldEqual 1007
+      payload.message shouldEqual "Path is not a file"
+      payload.dataType shouldEqual ErrorPayload.NONE
     }
   }
 
@@ -456,7 +583,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     val incomingMessage = InboundMessageFactory.create(
       requestId,
       None,
-      InboundPayload.CHECKSUM_BYTES_CMD,
+      InboundPayload.READ_BYTES_CMD,
       command
     )
 

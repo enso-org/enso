@@ -22,7 +22,12 @@ import org.enso.logger.masking.MaskedString
 
 import scala.concurrent.duration.FiniteDuration
 
-// TODO [AA] Doc, remove @unused
+/** A handler for a write bytes request
+  *
+  * @param requestTimeout a request timeout
+  * @param fileManager a reference to the file-manager actor
+  * @param replyTo the actor to reply to
+  */
 class WriteBytesHandler(
   requestTimeout: FiniteDuration,
   fileManager: ActorRef,
@@ -37,7 +42,6 @@ class WriteBytesHandler(
   private def requestStage: Receive = { case msg: InboundMessage =>
     val payload =
       msg.payload(new WriteBytesCommand).asInstanceOf[WriteBytesCommand]
-    // TODO [AA] Can we do better here?
     val byteBuf = payload.bytesAsByteBuffer()
     val bytes   = new Array[Byte](byteBuf.remaining())
     byteBuf.get(bytes)

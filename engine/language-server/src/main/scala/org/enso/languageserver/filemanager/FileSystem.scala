@@ -365,14 +365,16 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
-          val bytePosition = stream.skip(segment.byteOffset)
+          stream.skip(segment.byteOffset)
+          val fileSize      = Files.size(path.toPath)
+          val lastByteIndex = fileSize - 1
 
-          if (bytePosition < segment.byteOffset) {
-            throw FileSystem.ReadOutOfBounds(bytePosition)
+          if (lastByteIndex < segment.byteOffset) {
+            throw FileSystem.ReadOutOfBounds(fileSize)
           }
 
-          val bytesToRead  = segment.length
-          val bytes        = stream.readNBytes(bytesToRead.toInt)
+          val bytesToRead = segment.length
+          val bytes       = stream.readNBytes(bytesToRead.toInt)
 
           val digest = MessageDigest.getInstance("SHA3-224").digest(bytes)
 
