@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.{BasicFileAttributes, FileTime}
 import java.time.{OffsetDateTime, ZoneOffset}
-
 import org.enso.languageserver.effect.BlockingIO
 
 import scala.collection.mutable.ArrayBuffer
@@ -131,14 +130,65 @@ trait FileSystemApi[F[_, _]] {
   def info(path: File): F[FileSystemFailure, Attributes]
 
   /** Returns the digest for the file at the provided path.
+    *
+    * @param path the path to the filesystem object
+    * @return either [[FileSystemFailure]] or the file checksum
+    */
+  def digest(path: File): F[FileSystemFailure, SHA3_224]
+
+  /** Returns the digest for the bytes in the file described by `segment`.
+    *
+    * @param segment a description of the portion of a file to checksum
+    * @return either [[FileSystemFailure]] or the bytes representing the checksum
+    */
+  def digestBytes(segment: FileSegment): F[FileSystemFailure, SHA3_224]
+
+  /** Writes the provided `bytes` to the file at `path` on disk.
+    *
+    * @param path the path to the file into which the bytes will be written
+    * @param byteOffset the offset in the file to start writing from
+    * @param overwriteExisting whether existing bytes can be overwritten
+    * @param bytes the bytes to write to the file
+    * @return either a [[FileSystemFailure]] or the checksum of the `bytes` as
+    *         they were written to disk
+    */
+  def writeBytes(
+    path: File,
+    byteOffset: Long,
+    overwriteExisting: Boolean,
+    bytes: Array[Byte]
+  ): F[FileSystemFailure, SHA3_224]
+
+  /** Reads the bytes specified by `segment` from the specified `segment.file`.
    *
-   * @param path the path to the filesystem object
-   * @return either [[FileSystemFailure]] or the file checksum
+   * @param segment a description of the portion of a file to checksum
+   * @return either [[FileSystemFailure]] or the bytes representing the checksum
    */
-  def digest(path: File): F[FileSystemFailure, String]
+  def readBytes(segment: FileSegment): F[FileSystemFailure, ReadBytesResult]
 }
 
 object FileSystemApi {
+
+  /** A SHA3-224 digest on the filesystem.
+   *
+   * @param bytes the bytes that represent the value of the digest
+   */
+  case class SHA3_224(bytes: Array[Byte])
+
+  /** The bytes read from the file.
+   *
+   * @param checksum the checksum of `bytes`
+   * @param bytes the bytes that were read
+   */
+  case class ReadBytesResult(checksum: SHA3_224, bytes: Array[Byte])
+
+  /** A representation of a segment in the file.
+    *
+    * @param path the path to the file in question
+    * @param byteOffset the byte offset in the file to start from
+    * @param length the number of bytes in the segment
+    */
+  case class FileSegment(path: File, byteOffset: Long, length: Long)
 
   /** An object representing abstract file system entry.
     */
