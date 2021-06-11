@@ -31,23 +31,25 @@ object SuggestionRandom {
 
   def nextSuggestionAtom(): Suggestion.Atom =
     Suggestion.Atom(
-      externalId    = optional(UUID.randomUUID()),
-      module        = "Test.Main",
-      name          = nextString(),
-      arguments     = Seq(),
-      returnType    = nextString(),
-      documentation = optional(nextString())
+      externalId        = optional(UUID.randomUUID()),
+      module            = "Test.Main",
+      name              = nextString(),
+      arguments         = Seq(),
+      returnType        = nextString(),
+      documentation     = optional(nextString()),
+      documentationHtml = optional(nextString())
     )
 
   def nextSuggestionMethod(): Suggestion.Method =
     Suggestion.Method(
-      externalId    = optional(UUID.randomUUID()),
-      module        = "Test.Main",
-      name          = nextString(),
-      arguments     = Seq(),
-      selfType      = nextString(),
-      returnType    = nextString(),
-      documentation = optional(nextString())
+      externalId        = optional(UUID.randomUUID()),
+      module            = "Test.Main",
+      name              = nextString(),
+      arguments         = Seq(),
+      selfType          = nextString(),
+      returnType        = nextString(),
+      documentation     = optional(nextString()),
+      documentationHtml = optional(nextString())
     )
 
   def nextSuggestionFunction(): Suggestion.Function =
