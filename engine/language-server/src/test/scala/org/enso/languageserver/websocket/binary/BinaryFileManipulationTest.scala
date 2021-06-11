@@ -214,19 +214,158 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   "A WriteBytesCommand" must {
     "Write the provided bytes to the specified file" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      FileUtils.writeByteArrayToFile(barFile, contents)
+
+      val newBytes = Array[Byte](65, 66, 67)
+      val expectedChecksum =
+        ByteBuffer.wrap(MessageDigest.getInstance("SHA3-224").digest(newBytes))
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val writeBytesCommand = createWriteBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        3L,
+        newBytes,
+        overwriteExisting = false
+      )
+
+      client.send(writeBytesCommand)
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse
+        .payloadType() shouldEqual OutboundPayload.WRITE_BYTES_REPLY
+      val payload = checksumResponse
+        .payload(new WriteBytesReply)
+        .asInstanceOf[WriteBytesReply]
+      val digest = payload.checksum().bytesAsByteBuffer()
+
+      digest shouldEqual expectedChecksum
+
+      val expectedBytes = Array[Byte](65, 66, 67, 65, 66, 67)
+      val writtenBytes  = Files.readAllBytes(barFile.toPath)
+
+      writtenBytes should contain theSameElementsAs expectedBytes
+
+      Files.delete(barFile.toPath)
     }
 
     "Create the file from scratch if it doesn't exist" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+
+      val newBytes = Array[Byte](65, 66, 67)
+      val expectedChecksum =
+        MessageDigest.getInstance("SHA3-224").digest(newBytes)
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val writeBytesCommand = createWriteBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        0L,
+        newBytes,
+        overwriteExisting = false
+      )
+
+      client.send(writeBytesCommand)
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse
+        .payloadType() shouldEqual OutboundPayload.WRITE_BYTES_REPLY
+      val payload = checksumResponse
+        .payload(new WriteBytesReply)
+        .asInstanceOf[WriteBytesReply]
+      val digest      = payload.checksum().bytesAsByteBuffer()
+      val digestBytes = new Array[Byte](digest.remaining())
+      digest.get(digestBytes)
+
+      digestBytes shouldEqual expectedChecksum
+
+      val expectedBytes = Array[Byte](65, 66, 67)
+      val writtenBytes  = Files.readAllBytes(barFile.toPath)
+
+      writtenBytes should contain theSameElementsAs expectedBytes
+
+      Files.delete(barFile.toPath)
     }
 
     "Return a `CannotOverwrite` error if `byteOffset < file.length`" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val filename  = "bar.bin"
+      val barFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      FileUtils.writeByteArrayToFile(barFile, contents)
+
+      val newBytes = Array[Byte](65, 66, 67)
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val writeBytesCommand = createWriteBytesCommandPacket(
+        requestId,
+        Seq(filename),
+        testContentRootId,
+        1L,
+        newBytes,
+        overwriteExisting = false
+      )
+
+      client.send(writeBytesCommand)
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse
+        .payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = checksumResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+      payload.dataType() shouldEqual ErrorPayload.NONE
+      payload.code() shouldEqual 1008
+      payload.message() shouldEqual "Cannot overwrite the file without `overwriteExisting` set"
+
+      Files.delete(barFile.toPath)
     }
 
     "Return a `NotFile` error if the provided path is not a file" in {
-      pending
+      val requestId = UUID.randomUUID()
+      val newBytes = Array[Byte](65, 66, 67)
+
+      val client = newWsClient()
+      client.send(createSessionInitCmd())
+      client.expectFrame()
+      val writeBytesCommand = createWriteBytesCommandPacket(
+        requestId,
+        Seq(),
+        testContentRootId,
+        1L,
+        newBytes,
+        overwriteExisting = false
+      )
+
+      client.send(writeBytesCommand)
+      val checksumResponse = client
+        .receiveMessage[OutboundMessage]()
+        .getOrElse(fail("Should be right"))
+      checksumResponse
+        .payloadType() shouldEqual OutboundPayload.ERROR
+      val payload = checksumResponse
+        .payload(new Error)
+        .asInstanceOf[Error]
+      payload.dataType() shouldEqual ErrorPayload.NONE
+      payload.code() shouldEqual 1007
+      payload.message() shouldEqual "Path is not a file"
     }
   }
 
