@@ -1,4 +1,4 @@
-package org.enso.pkg
+package org.enso.editions
 
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}

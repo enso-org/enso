@@ -2,10 +2,10 @@ package org.enso.runtimeversionmanager.runner
 
 import java.io.File
 import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
+import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.pkg.{Config, DefaultEnsoVersion, Package, SemVerEnsoVersion}
+import org.enso.pkg.{Config, Package}
 
 /** Represents an Enso project.
   *

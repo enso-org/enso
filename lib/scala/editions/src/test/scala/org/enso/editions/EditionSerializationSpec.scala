@@ -63,7 +63,9 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           Editions.Raw.PublishedLibrary("A.B", SemVer(1, 0, 1), "bar")
         )
         edition.preferLocalLibraries should contain(true)
-        edition.engineVersion should contain(SemVer(1, 2, 3, Some("SNAPSHOT")))
+        edition.engineVersion should contain(
+          SemVerEnsoVersion(SemVer(1, 2, 3, Some("SNAPSHOT")))
+        )
       }
     }
 

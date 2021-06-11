@@ -1,17 +1,12 @@
 package org.enso.pkg
 
 import io.circe.syntax._
-import io.circe.generic.auto._
-import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json}
+import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.yaml.Printer
+import org.enso.editions.{DefaultEnsoVersion, Editions, EnsoVersion}
+import org.enso.editions.EditionSerialization._
 
 import scala.util.Try
-
-/** An extra project dependency.
-  * @param name name of the package
-  * @param version package version
-  */
-case class Dependency(name: String, version: String)
 
 /** Contact information to a user.
   *
@@ -78,14 +73,12 @@ object Contact {
   *
   * @param name package name
   * @param version package version
-  * @param ensoVersion version of the Enso engine associated with the package,
-  *                    can be set to `default` which defaults to the locally
-  *                    installed version
   * @param license package license
   * @param authors name and contact information of the package author(s)
   * @param maintainers name and contact information of current package
   *                   maintainer(s)
-  * @param dependencies a list of package dependencies
+  * @param edition the Edition associated with the project; it implies the
+  *                engine version and dependency configuration to be used
   * @param originalJson a Json object holding the original values that this
   *                     Config was created from, used to preserve configuration
   *                     keys that are not known
@@ -93,12 +86,11 @@ object Contact {
 case class Config(
   name: String,
   version: String,
-  ensoVersion: EnsoVersion,
   license: String,
   authors: List[Contact],
   maintainers: List[Contact],
-  dependencies: List[Dependency],
-  originalJson: Json = Json.obj()
+  edition: Editions.RawEdition,
+  originalJson: JsonObject = JsonObject()
 ) {
 
   /** Converts the configuration into a YAML representation.
@@ -109,62 +101,81 @@ case class Config(
 
 object Config {
   private object JsonFields {
-    val name: String         = "name"
-    val version: String      = "version"
-    val ensoVersion: String  = "enso-version"
-    val license: String      = "license"
-    val author: String       = "authors"
-    val maintainer: String   = "maintainers"
-    val dependencies: String = "dependencies"
+    val name: String        = "name"
+    val version: String     = "version"
+    val ensoVersion: String = "enso-version"
+    val license: String     = "license"
+    val author: String      = "authors"
+    val maintainer: String  = "maintainers"
+    val edition: String     = "edition"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name    <- json.get[String](JsonFields.name)
-      version <- json.getOrElse[String](JsonFields.version)("dev")
-      ensoVersion <-
-        json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
-      license    <- json.getOrElse(JsonFields.license)("")
-      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
-      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
-      dependencies <- json.getOrElse[List[Dependency]](JsonFields.dependencies)(
-        List()
-      )
+      name        <- json.get[String](JsonFields.name)
+      version     <- json.getOrElse[String](JsonFields.version)("dev")
+      ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
+      edition     <- json.get[Option[Editions.RawEdition]](JsonFields.edition)
+      license     <- json.getOrElse(JsonFields.license)("")
+      author      <- json.getOrElse[List[Contact]](JsonFields.author)(List())
+      maintainer  <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
+      finalEdition <-
+        editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
+          error => DecodingFailure(error, json.history)
+        }
+      originals <- json.as[JsonObject]
     } yield Config(
-      name,
-      version,
-      ensoVersion,
-      license,
-      author,
-      maintainer,
-      dependencies,
-      json.value
+      name         = name,
+      version      = version,
+      license      = license,
+      authors      = author,
+      maintainers  = maintainer,
+      edition      = finalEdition,
+      originalJson = originals
     )
   }
 
   implicit val encoder: Encoder[Config] = { config =>
     val originals = config.originalJson
-    val overrides = Json.obj(
-      JsonFields.name        -> config.name.asJson,
-      JsonFields.version     -> config.version.asJson,
-      JsonFields.ensoVersion -> config.ensoVersion.asJson,
-      JsonFields.license     -> config.license.asJson,
-      JsonFields.author      -> config.authors.asJson,
-      JsonFields.maintainer  -> config.maintainers.asJson
+    val overrides = JsonObject(
+      JsonFields.name       -> config.name.asJson,
+      JsonFields.version    -> config.version.asJson,
+      JsonFields.edition    -> config.edition.asJson,
+      JsonFields.license    -> config.license.asJson,
+      JsonFields.author     -> config.authors.asJson,
+      JsonFields.maintainer -> config.maintainers.asJson
     )
-    val base = originals.deepMerge(overrides)
-    val withDeps =
-      if (config.dependencies.nonEmpty)
-        base.deepMerge(
-          Json.obj(JsonFields.dependencies -> config.dependencies.asJson)
-        )
-      else base
-    withDeps
+    originals.remove(JsonFields.ensoVersion).deepMerge(overrides).asJson
   }
 
   /** Tries to parse the [[Config]] from a YAML string.
     */
   def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
+  }
+
+  def makeCompatibilityEditionFromVersion(
+    ensoVersion: EnsoVersion
+  ): Editions.RawEdition = Editions.Raw.Edition(
+    parent               = None,
+    engineVersion        = Some(ensoVersion),
+    preferLocalLibraries = None,
+    repositories         = Map(),
+    libraries            = Map()
+  )
+
+  private def editionOrVersionBackwardsCompatibility(
+    edition: Option[Editions.RawEdition],
+    ensoVersion: Option[EnsoVersion]
+  ): Either[String, Editions.RawEdition] = (edition, ensoVersion) match {
+    case (Some(_), Some(_)) =>
+      Left(
+        s"The deprecated `${JsonFields.ensoVersion}` should not be defined " +
+        s"if the `${JsonFields.edition}` that replaces it is already defined."
+      )
+    case (Some(edition), _) => Right(edition)
+    case _ =>
+      val version = ensoVersion.getOrElse(DefaultEnsoVersion)
+      Right(makeCompatibilityEditionFromVersion(version))
   }
 }

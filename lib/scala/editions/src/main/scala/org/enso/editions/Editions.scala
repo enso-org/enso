@@ -22,7 +22,7 @@ trait Editions {
 
   case class Edition(
     parent: Option[NestedEditionType],
-    engineVersion: Option[SemVer],
+    engineVersion: Option[EnsoVersion],
     preferLocalLibraries: PreferLocalLibrariesSettingType,
     repositories: Map[String, Editions.Repository],
     libraries: Map[String, Library]
@@ -53,7 +53,7 @@ object Editions {
   type RawEdition      = Raw.Edition
   type ResolvedEdition = Resolved.Edition
   implicit class ResolvedEditionOps(edition: ResolvedEdition) {
-    def getEngineVersion: SemVer = edition.engineVersion.getOrElse {
+    def getEngineVersion: EnsoVersion = edition.engineVersion.getOrElse {
       val parent = edition.parent.getOrElse {
         throw new IllegalStateException(
           "Internal error: Resolved edition does not imply an engine version."

@@ -1,10 +1,11 @@
 package org.enso.projectmanager.model
 
+import org.enso.editions.{DefaultEnsoVersion, EnsoVersion}
+
 import java.nio.file.attribute.FileTime
 import java.time.OffsetDateTime
 import java.util.UUID
-
-import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
+import org.enso.pkg.DefaultEnsoVersion
 
 /** Project entity.
   *

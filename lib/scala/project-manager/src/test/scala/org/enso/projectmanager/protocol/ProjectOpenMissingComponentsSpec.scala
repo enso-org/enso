@@ -2,12 +2,11 @@ package org.enso.projectmanager.protocol
 
 import java.io.File
 import java.util.UUID
-
 import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.SemVerEnsoVersion
+import org.enso.editions.SemVerEnsoVersion
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec

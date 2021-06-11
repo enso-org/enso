@@ -3,10 +3,11 @@ package org.enso.runner
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
+import org.enso.editions.SemVerEnsoVersion
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.loggingservice.LogLevel
-import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
+import org.enso.pkg.{Contact, PackageManager}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException

@@ -7,7 +7,8 @@ import org.enso.distribution.{
   Environment,
   PortableDistributionManager
 }
-import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
+import org.enso.editions.SemVerEnsoVersion
+import org.enso.pkg.PackageManager
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
   InstallerKind,
