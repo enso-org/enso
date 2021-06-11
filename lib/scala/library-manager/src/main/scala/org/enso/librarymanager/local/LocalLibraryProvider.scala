@@ -10,5 +10,6 @@ trait LocalLibraryProvider {
 }
 
 object LocalLibraryProvider {
-  def make(distributionManager: DistributionManager): LocalLibraryProvider = ???
+  def make(distributionManager: DistributionManager): LocalLibraryProvider =
+    new DefaultLocalLibraryProvider(distributionManager)
 }

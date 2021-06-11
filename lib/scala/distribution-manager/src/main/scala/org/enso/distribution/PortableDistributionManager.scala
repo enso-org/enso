@@ -71,16 +71,17 @@ class PortableDistributionManager(env: Environment)
       val home = detectEnsoHome()
       import DistributionManager._
       DistributionPaths(
-        dataRoot                 = root,
-        runtimes                 = root / RUNTIMES_DIRECTORY,
-        engines                  = root / ENGINES_DIRECTORY,
-        bundle                   = None,
-        config                   = root / CONFIG_DIRECTORY,
-        locks                    = root / LOCK_DIRECTORY,
-        logs                     = root / LOG_DIRECTORY,
-        unsafeTemporaryDirectory = root / TMP_DIRECTORY,
-        ensoHome                 = home,
-        customEditions           = detectCustomEditionPaths(home)
+        dataRoot                  = root,
+        runtimes                  = root / RUNTIMES_DIRECTORY,
+        engines                   = root / ENGINES_DIRECTORY,
+        bundle                    = None,
+        config                    = root / CONFIG_DIRECTORY,
+        locks                     = root / LOCK_DIRECTORY,
+        logs                      = root / LOG_DIRECTORY,
+        unsafeTemporaryDirectory  = root / TMP_DIRECTORY,
+        customEditions            = detectCustomEditionPaths(home),
+        localLibrariesSearchPaths = detectLocalLibraryPaths(home),
+        ensoHome                  = home
       )
     } else super.detectPaths()
 

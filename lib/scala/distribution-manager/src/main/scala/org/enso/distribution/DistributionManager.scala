@@ -26,6 +26,8 @@ import scala.util.control.NonFatal
   *                                 be used directly, see
   *                                 [[TemporaryDirectoryManager]]
   * @param customEditions the search paths for editions
+  *  @param localLibrariesSearchPaths a sequence of paths to search for local
+  *                                   libraries, in order of precedence
   * @param ensoHome the home directory for user's projects etc.
   */
 case class DistributionPaths(
@@ -38,6 +40,7 @@ case class DistributionPaths(
   logs: Path,
   unsafeTemporaryDirectory: Path,
   customEditions: Seq[Path],
+  localLibrariesSearchPaths: Seq[Path],
   ensoHome: Path
 ) {
 
@@ -67,6 +70,9 @@ case class DistributionPaths(
 
   /** The directory for cached editions managed by us. */
   def cachedEditions: Path = dataRoot / DistributionManager.EDITIONS_DIRECTORY
+
+  /** The directory for cached libraries managed by us. */
+  def cachedLibraries: Path = dataRoot / DistributionManager.LIBRARIES_DIRECTORY
 
   /** Sequence of paths to search for edition configurations, in order of
     * precedence.
@@ -112,21 +118,23 @@ class DistributionManager(val env: Environment) {
     val runRoot    = LocallyInstalledDirectories.runtimeDirectory
     val home       = detectEnsoHome()
     DistributionPaths(
-      dataRoot                 = dataRoot,
-      runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
-      engines                  = dataRoot / ENGINES_DIRECTORY,
-      bundle                   = detectBundle(),
-      config                   = configRoot,
-      locks                    = runRoot / LOCK_DIRECTORY,
-      logs                     = LocallyInstalledDirectories.logDirectory,
-      unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY,
-      customEditions           = detectCustomEditionPaths(home),
-      ensoHome                 = home
+      dataRoot                  = dataRoot,
+      runtimes                  = dataRoot / RUNTIMES_DIRECTORY,
+      engines                   = dataRoot / ENGINES_DIRECTORY,
+      bundle                    = detectBundle(),
+      config                    = configRoot,
+      locks                     = runRoot / LOCK_DIRECTORY,
+      logs                      = LocallyInstalledDirectories.logDirectory,
+      unsafeTemporaryDirectory  = dataRoot / TMP_DIRECTORY,
+      customEditions            = detectCustomEditionPaths(home),
+      localLibrariesSearchPaths = detectLocalLibraryPaths(home),
+      ensoHome                  = home
     )
   }
 
   private val ENSO_HOME         = "ENSO_HOME"
   private val ENSO_EDITION_PATH = "ENSO_EDITION_PATH"
+  private val ENSO_LIBRARY_PATH = "ENSO_LIBRARY_PATH"
 
   /** Finds the path to the ENSO_HOME directory that is used for keeping user's
     * projects, libraries and other custom artifacts.
@@ -138,7 +146,14 @@ class DistributionManager(val env: Environment) {
     env
       .getEnvPaths(ENSO_EDITION_PATH)
       .getOrElse {
-        Seq(ensoHome / DistributionManager.EDITIONS_DIRECTORY)
+        Seq(ensoHome / DistributionManager.Home.EDITIONS_DIRECTORY)
+      }
+
+  protected def detectLocalLibraryPaths(ensoHome: Path): Seq[Path] =
+    env
+      .getEnvPaths(ENSO_LIBRARY_PATH)
+      .getOrElse {
+        Seq(ensoHome / DistributionManager.Home.LIBRARIES_DIRECTORY)
       }
 
   /** Name of the file that should be placed in the distribution root to mark it
@@ -341,12 +356,18 @@ class DistributionManager(val env: Environment) {
 }
 
 object DistributionManager {
-  val ENGINES_DIRECTORY  = "dist"
-  val RUNTIMES_DIRECTORY = "runtime"
-  val CONFIG_DIRECTORY   = "config"
-  val BIN_DIRECTORY      = "bin"
-  val LOCK_DIRECTORY     = "lock"
-  val LOG_DIRECTORY      = "log"
-  val TMP_DIRECTORY      = "tmp"
-  val EDITIONS_DIRECTORY = "editions"
+  val ENGINES_DIRECTORY   = "dist"
+  val RUNTIMES_DIRECTORY  = "runtime"
+  val CONFIG_DIRECTORY    = "config"
+  val BIN_DIRECTORY       = "bin"
+  val LOCK_DIRECTORY      = "lock"
+  val LOG_DIRECTORY       = "log"
+  val TMP_DIRECTORY       = "tmp"
+  val EDITIONS_DIRECTORY  = "editions"
+  val LIBRARIES_DIRECTORY = "lib"
+
+  object Home {
+    val EDITIONS_DIRECTORY  = "editions"
+    val LIBRARIES_DIRECTORY = "libraries"
+  }
 }
