@@ -728,11 +728,12 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   )
   .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
-  .dependsOn(pkg)
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
+  .dependsOn(`library-manager`)
+  .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
@@ -1201,6 +1202,8 @@ lazy val `distribution-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .dependsOn(editions)
+  .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
 lazy val editions = project

@@ -1,7 +1,7 @@
 package org.enso.projectmanager.versionmanagement
 
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.{DistributionManager, Environment}
+import org.enso.distribution.{DistributionManager, EditionManager, Environment}
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
@@ -47,6 +47,9 @@ object DefaultDistributionConfiguration
 
   /** @inheritdoc */
   lazy val resourceManager = new ResourceManager(lockManager)
+
+  /** @inheritdoc */
+  lazy val editionManager = EditionManager(distributionManager)
 
   /** @inheritdoc */
   lazy val temporaryDirectoryManager =

@@ -3,8 +3,6 @@ package org.enso.librarymanager
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.local.LocalLibraryProvider
 
-import java.nio.file.Path
-
 case class LibraryResolver(
   localLibraryProvider: LocalLibraryProvider
 ) {

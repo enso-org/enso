@@ -4,7 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
-import org.enso.librarymanager.{LibraryResolver, LibraryVersion}
+import org.enso.librarymanager.LibraryVersion
 
 import java.nio.file.Path
 

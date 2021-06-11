@@ -3,7 +3,6 @@ package org.enso.projectmanager.service.config
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{DefaultEnsoVersion, EnsoVersion, SemVerEnsoVersion}
-import org.enso.pkg.SemVerEnsoVersion
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure

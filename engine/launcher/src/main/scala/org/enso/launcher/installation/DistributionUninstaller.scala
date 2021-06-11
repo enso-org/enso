@@ -4,7 +4,12 @@ import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.distribution.{FileSystem, OS, PortableDistributionManager}
+import org.enso.distribution.{
+  DistributionManager,
+  FileSystem,
+  OS,
+  PortableDistributionManager
+}
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
@@ -176,7 +181,7 @@ class DistributionUninstaller(
   private val knownDataDirectories =
     Set.from(
       manager.LocallyInstalledDirectories.possibleDirectoriesInsideDataDirectory
-    ) - manager.LOCK_DIRECTORY
+    ) - DistributionManager.LOCK_DIRECTORY
 
   /** Removes all files contained in the ENSO_DATA_DIRECTORY and possibly the
     * directory itself.
@@ -209,7 +214,7 @@ class DistributionUninstaller(
     resourceManager.unlockTemporaryDirectory()
     resourceManager.releaseMainLock()
 
-    val lockDirectory = dataRoot / manager.LOCK_DIRECTORY
+    val lockDirectory = dataRoot / DistributionManager.LOCK_DIRECTORY
     if (Files.isDirectory(lockDirectory)) {
       for (lock <- FileSystem.listDirectory(lockDirectory)) {
         try {

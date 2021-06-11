@@ -1,7 +1,7 @@
 package org.enso.projectmanager.versionmanagement
 
-import org.enso.distribution.{DistributionManager, Environment}
 import org.enso.distribution.locking.ResourceManager
+import org.enso.distribution.{DistributionManager, EditionManager, Environment}
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -27,6 +27,9 @@ trait DistributionConfiguration {
 
   /** A [[ResourceManager]] instance. */
   def resourceManager: ResourceManager
+
+  /** An [[EditionManager]] instance. */
+  def editionManager: EditionManager
 
   /** A [[TemporaryDirectoryManager]] instance. */
   def temporaryDirectoryManager: TemporaryDirectoryManager

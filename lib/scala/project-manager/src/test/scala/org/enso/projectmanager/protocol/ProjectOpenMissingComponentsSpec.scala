@@ -48,8 +48,11 @@ class ProjectOpenMissingComponentsSpec
     val pkgManager = org.enso.pkg.PackageManager.Default
     val pkg        = pkgManager.loadPackage(projectDir).get
     pkg.updateConfig(config =>
-      config.copy(ensoVersion =
-        SemVerEnsoVersion(SemVer(0, 999, 0, Some("broken")))
+      config.copy(edition =
+        config.edition.copy(
+          engineVersion =
+            Some(SemVerEnsoVersion(SemVer(0, 999, 0, Some("broken"))))
+        )
       )
     )
 

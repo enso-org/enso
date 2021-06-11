@@ -1,19 +1,21 @@
 package org.enso.runtimeversionmanager.runner
 
-import java.nio.file.Path
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.Environment
+import org.enso.distribution.{EditionManager, Environment}
+import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.logger.masking.MaskedString
+import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
   GraalRuntime,
   RuntimeVersionManager
 }
-import org.enso.loggingservice.LogLevel
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 
+import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
@@ -24,6 +26,8 @@ import scala.util.Try
   */
 class Runner(
   runtimeVersionManager: RuntimeVersionManager,
+  globalConfigurationManager: GlobalConfigurationManager,
+  editionManager: EditionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) {
@@ -76,7 +80,7 @@ class Runner(
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
-    val version     = versionOverride.getOrElse(project.version)
+    val version     = resolveVersion(versionOverride, project)
     val projectPath = project.path.toAbsolutePath.normalize.toString
     startLanguageServer(
       options,
@@ -225,6 +229,19 @@ class Runner(
     connectionSetting match {
       case Some(uri) => Seq("--logger-connect", uri.toString)
       case None      => Seq()
+    }
+  }
+
+  protected def resolveVersion(
+    versionOverride: Option[SemVer],
+    project: Project
+  ): SemVer = versionOverride.getOrElse {
+    val edition = project.edition
+    val version = editionManager.resolveEngineVersion(edition).get
+    version match {
+      case DefaultEnsoVersion =>
+        globalConfigurationManager.defaultVersion
+      case SemVerEnsoVersion(version) => version
     }
   }
 }

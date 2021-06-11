@@ -1,6 +1,6 @@
 package org.enso.projectmanager
 
-import org.enso.distribution.DistributionManager
+import org.enso.distribution.{DistributionManager, EditionManager}
 import org.enso.distribution.locking.ResourceManager
 
 import java.nio.file.Path
@@ -63,6 +63,8 @@ class TestDistributionConfiguration(
   lazy val lockManager = new TestLocalLockManager
 
   lazy val resourceManager = new ResourceManager(lockManager)
+
+  lazy val editionManager: EditionManager = EditionManager(distributionManager)
 
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)

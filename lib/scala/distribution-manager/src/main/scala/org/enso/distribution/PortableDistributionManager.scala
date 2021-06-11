@@ -68,6 +68,7 @@ class PortableDistributionManager(env: Environment)
   override protected def detectPaths(): DistributionPaths =
     if (isRunningPortable) {
       val root = env.getPathToRunningExecutable.getParent.getParent
+      import DistributionManager._
       DistributionPaths(
         dataRoot                 = root,
         runtimes                 = root / RUNTIMES_DIRECTORY,
@@ -76,7 +77,8 @@ class PortableDistributionManager(env: Environment)
         config                   = root / CONFIG_DIRECTORY,
         locks                    = root / LOCK_DIRECTORY,
         logs                     = root / LOG_DIRECTORY,
-        unsafeTemporaryDirectory = root / TMP_DIRECTORY
+        unsafeTemporaryDirectory = root / TMP_DIRECTORY,
+        ensoHome                 = detectEnsoHome()
       )
     } else super.detectPaths()
 
