@@ -1,12 +1,12 @@
 package org.enso.languageserver.filemanager
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
-import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect.BlockingIO
 import zio._
 import zio.blocking.effectBlocking
 
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, RandomAccessFile}
+import java.nio.ByteBuffer
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
@@ -14,10 +14,13 @@ import scala.collection.mutable
 import scala.util.Using
 
 /** File manipulation facility.
-  *
-  * @tparam F represents target monad
   */
 class FileSystem extends FileSystemApi[BlockingIO] {
+
+  private val tenMb: Int = 1 * 1024 * 1024 * 10
+
+  /** The stride used by the [[FileSystem]] when processing a file in chunks. */
+  val fileChunkSize: Int = tenMb
 
   import FileSystemApi._
 
@@ -228,22 +231,157 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @param path the path to the filesystem object
     * @return either [[FileSystemFailure]] or the file checksum
     */
-  override def digest(path: File): BlockingIO[FileSystemFailure, String] = {
+  override def digest(path: File): BlockingIO[FileSystemFailure, SHA3_224] = {
     if (path.isFile) {
       effectBlocking {
         val messageDigest = MessageDigest.getInstance("SHA3-224")
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
-          val tenMb        = 1 * 1024 * 1024 * 10
-          var currentBytes = stream.readNBytes(tenMb)
+          var currentBytes = stream.readNBytes(fileChunkSize)
 
           while (currentBytes.nonEmpty) {
             messageDigest.update(currentBytes)
-            currentBytes = stream.readNBytes(tenMb)
+            currentBytes = stream.readNBytes(fileChunkSize)
           }
 
-          Hex.toHexString(messageDigest.digest())
+          SHA3_224(messageDigest.digest())
+        }
+      }.mapError(errorHandling)
+    } else {
+      if (path.exists()) {
+        IO.fail(NotFile)
+      } else {
+        IO.fail(FileNotFound)
+      }
+    }
+  }
+
+  /** Returns the digest of the bytes described by `segment`.
+    *
+    * @param segment a description of the portion of a file to checksum
+    * @return either [[FileSystemFailure]] or the bytes representing the checksum
+    */
+  override def digestBytes(
+    segment: FileSegment
+  ): BlockingIO[FileSystemFailure, SHA3_224] = {
+    val path = segment.path
+    if (path.isFile) {
+      effectBlocking {
+        val messageDigest = MessageDigest.getInstance("SHA3-224")
+        Using.resource(
+          Files.newInputStream(path.toPath, StandardOpenOption.READ)
+        ) { stream =>
+          val fileLength = Files.size(path.toPath)
+          val lastByteIndex = fileLength - 1
+          val lastSegIndex = segment.byteOffset + segment.length
+
+          if (segment.byteOffset > lastByteIndex || lastSegIndex > lastByteIndex) {
+            throw FileSystem.ReadOutOfBounds(fileLength)
+          }
+
+          var bytePosition = stream.skip(segment.byteOffset)
+          var bytesToRead  = segment.length
+
+          do {
+            val readSize = Math.min(bytesToRead, fileChunkSize.toLong).toInt
+            val bytes    = stream.readNBytes(readSize)
+
+            bytePosition += bytes.length
+
+            bytesToRead -= bytes.length
+
+            messageDigest.update(bytes)
+          } while (bytesToRead > 0)
+          SHA3_224(messageDigest.digest())
+        }
+      }.mapError(errorHandling)
+    } else {
+      if (path.exists()) {
+        IO.fail(NotFile)
+      } else {
+        IO.fail(FileNotFound)
+      }
+    }
+  }
+
+  override def writeBytes(
+    path: File,
+    byteOffset: Long,
+    overwriteExisting: Boolean,
+    bytes: Array[Byte]
+  ): BlockingIO[FileSystemFailure, SHA3_224] = {
+    if (path.isDirectory) {
+      IO.fail(NotFile)
+    } else {
+      effectBlocking {
+        Using.resource(new RandomAccessFile(path, "rw")) { file =>
+          Using.resource(file.getChannel) { chan =>
+            val lock = chan.lock()
+            try {
+              val fileSize = chan.size()
+
+              val messageDigest = MessageDigest.getInstance("SHA3-224")
+
+              if (byteOffset < fileSize) {
+                if (overwriteExisting) {
+                  chan.truncate(byteOffset)
+                } else {
+                  throw FileSystem.CannotOverwrite
+                }
+              } else if (byteOffset > fileSize) {
+                chan.position(fileSize)
+                var nullBytesLeft = byteOffset - fileSize
+
+                do {
+                  val numBytesInRound =
+                    Math.min(nullBytesLeft, fileChunkSize.toLong)
+                  val bytes    = Array.fill(numBytesInRound.toInt)(0x0.toByte)
+                  val bytesBuf = ByteBuffer.wrap(bytes)
+                  messageDigest.update(bytes)
+                  chan.write(bytesBuf)
+
+                  nullBytesLeft -= numBytesInRound
+                } while (nullBytesLeft > 0)
+              }
+
+              chan.position(chan.size())
+              messageDigest.update(bytes)
+              chan.write(ByteBuffer.wrap(bytes))
+
+              SHA3_224(messageDigest.digest())
+            } finally {
+              lock.release()
+            }
+          }
+        }
+      }.mapError(errorHandling)
+    }
+  }
+
+  override def readBytes(
+    segment: FileSegment
+  ): BlockingIO[FileSystemFailure, ReadBytesResult] = {
+    val path = segment.path
+    if (path.isFile) {
+      effectBlocking {
+        Using.resource(
+          Files.newInputStream(path.toPath, StandardOpenOption.READ)
+        ) { stream =>
+          stream.skip(segment.byteOffset)
+          val fileSize      = Files.size(path.toPath)
+          val lastByteIndex = fileSize - 1
+
+          if (lastByteIndex < segment.byteOffset) {
+            throw FileSystem.ReadOutOfBounds(fileSize)
+          }
+
+          val bytesToRead = segment.length
+          val bytes       = stream.readNBytes(bytesToRead.toInt)
+
+          val digest = MessageDigest.getInstance("SHA3-224").digest(bytes)
+
+          ReadBytesResult(SHA3_224(digest), bytes)
         }
       }.mapError(errorHandling)
     } else {
@@ -256,15 +394,28 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   }
 
   private val errorHandling: Throwable => FileSystemFailure = {
-    case _: FileNotFoundException => FileNotFound
-    case _: NoSuchFileException   => FileNotFound
-    case _: FileExistsException   => FileExists
-    case _: AccessDeniedException => AccessDenied
-    case ex                       => GenericFileSystemFailure(ex.getMessage)
+    case _: FileNotFoundException      => FileNotFound
+    case _: NoSuchFileException        => FileNotFound
+    case _: FileExistsException        => FileExists
+    case _: AccessDeniedException      => AccessDenied
+    case FileSystem.ReadOutOfBounds(l) => ReadOutOfBounds(l)
+    case FileSystem.CannotOverwrite    => CannotOverwrite
+    case ex                            => GenericFileSystemFailure(ex.getMessage)
   }
 }
 
 object FileSystem {
+
+  /** An exception for when a file segment read goes out of bounds.
+    *
+    * @param length the true length of the file
+    */
+  case class ReadOutOfBounds(length: Long) extends Throwable
+
+  /** An exception for when overwriting would be required but the corresponding
+    * flag is not set.
+    */
+  case object CannotOverwrite extends Throwable
 
   import FileSystemApi._
 

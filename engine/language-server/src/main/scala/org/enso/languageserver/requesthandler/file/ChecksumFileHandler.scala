@@ -31,7 +31,7 @@ class ChecksumFileHandler(
 
   private def requestStage: Receive = {
     case Request(ChecksumFile, id, params: ChecksumFile.Params) =>
-      fileManager ! FileManagerProtocol.ChecksumRequest(params.path)
+      fileManager ! FileManagerProtocol.ChecksumFileRequest(params.path)
       val cancellable = context.system.scheduler.scheduleOnce(
         requestTimeout,
         self,
@@ -60,7 +60,7 @@ class ChecksumFileHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case FileManagerProtocol.ChecksumResponse(Left(failure)) =>
+    case FileManagerProtocol.ChecksumFileResponse(Left(failure)) =>
       replyTo ! ResponseError(
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
@@ -68,7 +68,7 @@ class ChecksumFileHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case FileManagerProtocol.ChecksumResponse(Right(result)) =>
+    case FileManagerProtocol.ChecksumFileResponse(Right(result)) =>
       replyTo ! ResponseResult(ChecksumFile, id, ChecksumFile.Result(result))
       cancellable.cancel()
       context.stop(self)

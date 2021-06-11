@@ -36,6 +36,9 @@
   verify the integrity of files that it has transferred. The checksum is
   calculated in a streaming fashion so the checksummed file need not be resident
   in memory all at once.
+- Added support for reading and writing byte ranges in files remotely
+  ([#1795](https://github.com/enso-org/enso/pull/1795)). This allows the IDE to
+  transfer files to a remote back-end in a streaming fashion.
 
 ## Libraries
 
