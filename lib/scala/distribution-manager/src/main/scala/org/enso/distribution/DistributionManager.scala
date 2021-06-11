@@ -25,6 +25,8 @@ import scala.util.control.NonFatal
   * @param unsafeTemporaryDirectory path to the temporary directory, should not
   *                                 be used directly, see
   *                                 [[TemporaryDirectoryManager]]
+  * @param customEditions the search paths for editions
+  * @param ensoHome the home directory for user's projects etc.
   */
 case class DistributionPaths(
   dataRoot: Path,
@@ -35,6 +37,7 @@ case class DistributionPaths(
   locks: Path,
   logs: Path,
   unsafeTemporaryDirectory: Path,
+  customEditions: Seq[Path],
   ensoHome: Path
 ) {
 
@@ -62,14 +65,14 @@ case class DistributionPaths(
   def runtimeSearchPaths: Seq[Path] =
     Seq(runtimes) ++ bundle.map(_.runtimes).toSeq
 
+  /** The directory for cached editions managed by us. */
+  def cachedEditions: Path = dataRoot / DistributionManager.EDITIONS_DIRECTORY
+
   /** Sequence of paths to search for edition configurations, in order of
     * precedence.
     */
   def editionSearchPaths: Seq[Path] =
-    Seq(
-      ensoHome / DistributionManager.EDITIONS_DIRECTORY,
-      dataRoot / DistributionManager.EDITIONS_DIRECTORY
-    )
+    customEditions ++ Seq(cachedEditions)
 }
 
 /** Paths to secondary directories for additionally bundled engine
@@ -107,6 +110,7 @@ class DistributionManager(val env: Environment) {
     val dataRoot   = LocallyInstalledDirectories.dataDirectory
     val configRoot = LocallyInstalledDirectories.configDirectory
     val runRoot    = LocallyInstalledDirectories.runtimeDirectory
+    val home       = detectEnsoHome()
     DistributionPaths(
       dataRoot                 = dataRoot,
       runtimes                 = dataRoot / RUNTIMES_DIRECTORY,
@@ -116,17 +120,26 @@ class DistributionManager(val env: Environment) {
       locks                    = runRoot / LOCK_DIRECTORY,
       logs                     = LocallyInstalledDirectories.logDirectory,
       unsafeTemporaryDirectory = dataRoot / TMP_DIRECTORY,
-      ensoHome                 = detectEnsoHome()
+      customEditions           = detectCustomEditionPaths(home),
+      ensoHome                 = home
     )
   }
 
-  private val ENSO_HOME = "ENSO_HOME"
+  private val ENSO_HOME         = "ENSO_HOME"
+  private val ENSO_EDITION_PATH = "ENSO_EDITION_PATH"
 
   /** Finds the path to the ENSO_HOME directory that is used for keeping user's
     * projects, libraries and other custom artifacts.
     */
   protected def detectEnsoHome(): Path =
     env.getEnvPath(ENSO_HOME).getOrElse(env.getHome / "enso")
+
+  protected def detectCustomEditionPaths(ensoHome: Path): Seq[Path] =
+    env
+      .getEnvPaths(ENSO_EDITION_PATH)
+      .getOrElse {
+        Seq(ensoHome / DistributionManager.EDITIONS_DIRECTORY)
+      }
 
   /** Name of the file that should be placed in the distribution root to mark it
     * as running in portable mode.

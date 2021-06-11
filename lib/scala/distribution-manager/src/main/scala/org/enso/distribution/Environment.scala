@@ -38,22 +38,35 @@ trait Environment {
     *
     * If it is not defined or is not a valid path, returns None.
     */
-  def getEnvPath(key: String): Option[Path] = {
-    def parsePathWithWarning(str: String): Option[Path] = {
-      val result = safeParsePath(str)
-      if (result.isEmpty) {
-        Logger[Environment].warn(
-          "System variable [{}] was set to [{}], but it did not " +
-          "represent a valid path, so it has been ignored.",
-          key,
-          MaskedString(str)
-        )
+  def getEnvPath(key: String): Option[Path] =
+    getEnvVar(key).flatMap(parsePathWithWarning(key))
+
+  /** Queries the system environment for the given variable that should
+    * represent a list of valid filesystem paths.
+    *
+    * If a path is on the list but is invalid, it is skipped.
+    */
+  def getEnvPaths(key: String): Option[Seq[Path]] =
+    getEnvVar(key)
+      .map { value =>
+        value
+          .split(File.pathSeparator)
+          .toSeq
+          .flatMap(str => parsePathWithWarning(key)(str).toSeq)
       }
 
-      result
+  private def parsePathWithWarning(key: String)(str: String): Option[Path] = {
+    val result = safeParsePath(str)
+    if (result.isEmpty) {
+      Logger[Environment].warn(
+        "System variable [{}] was set to [{}], but it did not " +
+        "represent a valid path, so it has been ignored.",
+        key,
+        MaskedString(str)
+      )
     }
 
-    getEnvVar(key).flatMap(parsePathWithWarning)
+    result
   }
 
   /** Returns the system PATH, if available.
