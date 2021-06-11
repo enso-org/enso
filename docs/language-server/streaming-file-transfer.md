@@ -23,6 +23,7 @@ A few key requirements:
 <!-- MarkdownTOC levels="2,3" autolink="true" indent="    " -->
 
 - [Control](#control)
+  - [Concurrency](#concurrency)
 - [UX](#ux)
 
 <!-- /MarkdownTOC -->
@@ -49,6 +50,19 @@ used.
 
 Resumption of transfers is also handled by the IDE, which may keep track of what
 portions of a file have been written or read.
+
+### Concurrency
+
+The language server natively supports running these file operations in parallel
+as it spawns a separate request-handler actor for each operation. It does,
+however, not provide any _intrinsic_ guarantees to its operation. As _all_ file
+operations are evaluated in parallel, coordinating them for consistency is up to
+the IDE.
+
+For example, if you want to write bytes to a file `f1` and then checksum the
+resulting file, you need to wait for the `WriteBytesReply` to come back before
+sending `file/checksum(f1)`. Otherwise, there is no guarantee that the write has
+completed by the time the checksum is calculated.
 
 ## UX
 
