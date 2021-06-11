@@ -1,12 +1,9 @@
 package org.enso.librarymanager.published
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.TaskProgress
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
-import org.enso.librarymanager.LibraryVersion
-
-import java.nio.file.Path
+import org.enso.librarymanager.{LibraryResolutionResult, LibraryVersion}
 
 trait LibraryProvider {
 
@@ -27,5 +24,5 @@ trait LibraryProvider {
     version: SemVer,
     recommendedRepository: Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): Either[TaskProgress[Path], Path]
+  ): LibraryResolutionResult
 }

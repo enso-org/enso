@@ -10,7 +10,7 @@ case class LibraryResolver(
     libraryName: LibraryName,
     edition: Editions.ResolvedEdition
   ): Either[LibraryResolutionError, LibraryVersion] = {
-    // TODO [RW] how should prefer local libraries from parent behave in derived editions
+    // FIXME [RW] how should prefer local libraries from parent behave in derived editions
     val localInstance = localLibraryProvider.findLibrary(libraryName)
     (edition.preferLocalLibraries, localInstance) match {
       case (true, Some(path)) => Right(LocalVersion(path))
