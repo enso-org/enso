@@ -15,6 +15,7 @@ use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
 use crate::model::suggestion_database::entry::CodeToInsert;
+use crate::model::traits::*;
 use crate::notification;
 
 use data::text::TextLocation;
@@ -703,6 +704,7 @@ impl Searcher {
     /// expression, otherwise a new node is added. This will also add all imports required by
     /// picked suggestions.
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
+        let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
         let expr_and_method = || {
             let input_chain = self.data.borrow().input.as_prefix_chain(self.ide.parser());
 
@@ -796,11 +798,11 @@ impl Searcher {
 
 
     fn add_required_imports(&self) -> FallibleResult {
-        let data_borrowed        = self.data.borrow();
-        let fragments            = data_borrowed.fragments_added_by_picking.iter();
-        let imports              = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
-        let mut module           = self.module();
-        let here                 = self.module_qualified_name();
+        let data_borrowed = self.data.borrow();
+        let fragments     = data_borrowed.fragments_added_by_picking.iter();
+        let imports       = fragments.map(|frag| self.code_to_insert(frag).imports).flatten();
+        let mut module    = self.module();
+        let here          = self.module_qualified_name();
         // TODO[ao] this is a temporary workaround. See [`Searcher::add_enso_project_entries`]
         //     documentation.
         let without_enso_project = imports.filter(|i| i.to_string() != ENSO_PROJECT_SPECIAL_MODULE);

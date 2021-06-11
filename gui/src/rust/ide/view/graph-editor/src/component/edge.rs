@@ -1067,7 +1067,7 @@ impl Frp {
 /// such a way, that the borders of the circle cross at the right angle. It also computes the angle
 /// of the intersection. Please note, that the center of the first circle is in the origin.
 ///
-/// ```compile_fail
+/// ```text
 ///       r1
 ///      ◄───►                (1) x^2 + y^2 = r1^2 + r2^2
 ///    _____                  (1) => y = sqrt((r1^2 + r2^2)/x^2)

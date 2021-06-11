@@ -43,6 +43,12 @@ pub struct SourceFile {
     pub metadata : Range<ByteIndex>,
 }
 
+impl Display for SourceFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.content)
+    }
+}
+
 impl SourceFile {
     /// Describe source file contents. Uses heuristics to locate the metadata section.
     ///
@@ -140,6 +146,14 @@ impl<M:Metadata> TryFrom<&ParsedSourceFile<M>> for String {
     }
 }
 
+impl<M:Metadata> Display for ParsedSourceFile<M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.serialize() {
+            Ok(serialized) => write!(f, "{}", serialized),
+            Err(_)         => write!(f, "[NOT REPRESENTABLE SOURCE FILE]")
+        }
+    }
+}
 
 // === Parsed Source File Serialization ===
 

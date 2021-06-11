@@ -132,6 +132,7 @@ pub struct Project {
     pub parser              : Parser,
     pub logger              : Logger,
     pub notifications       : notification::Publisher<model::project::Notification>,
+    pub urm                 : Rc<model::undo_redo::Manager>,
 }
 
 impl Project {
@@ -160,12 +161,13 @@ impl Project {
         let suggestion_db           = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db           = Rc::new(suggestion_db.await?);
         let notifications           = notification::Publisher::default();
-        
+        let urm                     = Rc::new(model::undo_redo::Manager::new(&logger));
+
         let properties = Rc::new(Properties {id,name,engine_version});
 
         let ret = Project
             {properties,project_manager,language_server_rpc,language_server_bin,module_registry
-            ,execution_contexts,visualization,suggestion_db,parser,logger,notifications};
+            ,execution_contexts,visualization,suggestion_db,parser,logger,notifications,urm};
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
@@ -333,7 +335,13 @@ impl Project {
     -> impl Future<Output=FallibleResult<Rc<module::Synchronized>>> {
         let language_server = self.language_server_rpc.clone_ref();
         let parser          = self.parser.clone_ref();
-        module::Synchronized::open(path,language_server,parser)
+        let urm             = self.urm();
+        let repository      = urm.repository.clone_ref();
+        async move {
+            let module = module::Synchronized::open(path,language_server,parser,repository).await?;
+            urm.module_opened(module.clone());
+            Ok(module)
+        }
     }
 }
 
@@ -401,6 +409,10 @@ impl model::project::API for Project {
 
     fn subscribe(&self) -> Subscriber<model::project::Notification> {
         self.notifications.subscribe()
+    }
+
+    fn urm(&self) -> Rc<model::undo_redo::Manager> {
+        self.urm.clone_ref()
     }
 }
 

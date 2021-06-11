@@ -74,7 +74,7 @@ pub mod viz {
 /// a full node height, and the `viz_shape`, which is a nice, visual highlight representation.
 /// Both shapes are children of the `root` display object:
 ///
-/// ```ignore
+/// ```text
 ///     hover_shape
 ///      ◄──────►
 /// ╭───┬────────┬──┄

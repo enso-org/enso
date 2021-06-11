@@ -551,7 +551,7 @@ impl Lcha {
 /// chroma is scaled by `LCH_MAX_CHROMA_IN_SRGB_IN_STD_EQUATIONS`.
 ///
 ///
-/// ```ignore
+/// ```text
 ///                                                     ••••                     ├ 40
 ///                                                  ••••   •                    │
 ///                                               ••••       •                   │

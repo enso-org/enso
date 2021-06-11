@@ -168,6 +168,7 @@ impl SingleMaskedProvider {
     /// accounting for the removal of the selected item.
     ///
     /// Example:
+    /// ```text
     /// Mask              `Some(1)`
     /// Masked indices    [0,     1, 2]
     /// Unmasked Index    [0, 1,  2, 3]
@@ -175,9 +176,6 @@ impl SingleMaskedProvider {
     /// Mask              `None`
     /// Masked indices    [0, 1, 2, 3]
     /// Unmasked Index    [0, 1, 2, 3]
-    ///
-    /// ```
-    ///
     /// ```
     pub fn unmasked_index(&self, ix:Id) -> Id {
         match self.mask.get() {

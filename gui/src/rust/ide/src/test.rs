@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::double_representation::module;
 use crate::model::suggestion_database;
+use crate::model::undo_redo;
 use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
 use enso_frp::data::bitfield::BitField;
@@ -151,9 +152,9 @@ pub mod mock {
             let mut suggestions = HashMap::new();
             suggestions.insert(1,suggestion_entry_foo());
             suggestions.insert(2,suggestion_entry_bar());
+            let logger = Logger::new("UnifiedMock");
             Unified {
                 suggestions,
-                logger          : Logger::new("Unified"),
                 project_name    : PROJECT_NAME.to_owned(),
                 module_path     : module_path(),
                 code            : CODE.to_owned(),
@@ -162,13 +163,23 @@ pub mod mock {
                 context_id      : CONTEXT_ID,
                 root_definition : definition_name(),
                 parser          : parser::Parser::new_or_panic(),
+                logger,
             }
         }
 
-        pub fn module(&self) -> crate::model::Module {
-            let ast    = self.parser.parse_module(self.code.clone(),self.id_map.clone()).unwrap();
-            let module = crate::model::module::Plain::new(self.module_path.clone(),ast,self.metadata.clone());
-            Rc::new(module)
+        pub fn undo_redo_manager(&self) -> Rc<undo_redo::Manager> {
+            Rc::new(model::undo_redo::Manager::new(&self.logger))
+        }
+
+        pub fn module(&self, urm:Rc<undo_redo::Manager>) -> crate::model::Module {
+            let ast        = self.parser.parse_module(self.code.clone(),self.id_map.clone()).unwrap();
+            let path       = self.module_path.clone();
+            let metadata   = self.metadata.clone();
+            let repository = urm.repository.clone_ref();
+            let logger     = &self.logger;
+            let module     = Rc::new(model::module::Plain::new(logger,path,ast,metadata,repository));
+            urm.module_opened(module.clone());
+            module
         }
 
         pub fn module_qualified_name(&self) -> module::QualifiedName {
@@ -204,6 +215,7 @@ pub mod mock {
 
         pub fn project
         ( &self
+        , urm                 : Rc<undo_redo::Manager>
         , module              : model::Module
         , execution_context   : model::ExecutionContext
         , suggestion_database : Rc<model::SuggestionDatabase>
@@ -219,6 +231,7 @@ pub mod mock {
             model::project::test::expect_suggestion_db(&mut project,suggestion_database);
             let json_rpc = language_server::Connection::new_mock_rc(json_client);
             model::project::test::expect_json_rpc(&mut project,json_rpc);
+            project.expect_urm().returning_st(move || urm.clone_ref());
             Rc::new(project)
         }
 
@@ -238,13 +251,14 @@ pub mod mock {
             controller::searcher::test::expect_completion(&mut json_client, &[]);
             customize_json_rpc(self,&mut json_client);
 
-            let logger        = Logger::new("UnifiedMock");
-            let module        = self.module();
+            let logger        = self.logger.clone_ref();
+            let urm           = self.undo_redo_manager();
+            let module        = self.module(urm.clone());
             let suggestion_db = Rc::new(model::SuggestionDatabase::new_from_entries(&logger,
                 &self.suggestions));
             let graph     = self.graph(&logger,module.clone_ref(),suggestion_db.clone_ref());
             let execution = self.execution_context();
-            let project   = self.project(module.clone_ref(),execution.clone_ref(),
+            let project   = self.project(urm,module.clone_ref(),execution.clone_ref(),
                 suggestion_db.clone_ref(),json_client);
             let ide            = self.ide(&project);
             let executed_graph = controller::ExecutedGraph::new_internal(graph.clone_ref(),
@@ -257,7 +271,7 @@ pub mod mock {
                 ,ide.clone_ref(),&project,executed_graph.clone_ref(),searcher_mode,selected_nodes
                 ).unwrap();
             Fixture
-                {executor,data,module,graph,executed_graph,execution,suggestion_db,project
+                {logger,executor,data,module,graph,executed_graph,execution,suggestion_db,project
                 ,searcher,ide}
         }
 
@@ -288,7 +302,7 @@ pub mod mock {
 
     #[derive(Debug)]
     pub struct Fixture {
-        pub executor       : TestWithLocalPoolExecutor,
+        pub logger         : DefaultTraceLogger,
         pub data           : Unified,
         pub module         : model::Module,
         pub graph          : controller::Graph,
@@ -298,6 +312,7 @@ pub mod mock {
         pub project        : model::Project,
         pub ide            : controller::Ide,
         pub searcher       : controller::Searcher,
+        pub executor       : TestWithLocalPoolExecutor, // Last to drop the executor as last.
     }
 
     impl Fixture {
@@ -316,24 +331,21 @@ pub mod mock {
             let parser        = self.data.parser.clone();
             let path          = self.data.module_path.clone();
             let ls            = self.project.json_rpc().clone();
-            let module_future = model::module::Synchronized::open(path,ls,parser);
+            let repository    = self.project.urm().repository.clone_ref();
+            let module_future = model::module::Synchronized::open(path,ls,parser,repository);
             // We can `expect_ready`, because in fact this is synchronous in test conditions.
             // (there's no real asynchronous connection beneath, just the `MockClient`)
-            module_future.boxed_local().expect_ready().unwrap()
+            let module = module_future.boxed_local().expect_ready().unwrap();
+            self.project.urm().module_opened(module.clone());
+            module
+
         }
 
         /// Create a synchronized module model and a module controller paired with it.
         ///
         /// Same considerations need to be made as with `[synchronized_module]`.
         pub fn synchronized_module_w_controller(&self) -> (Rc<model::module::Synchronized>,controller::Module) {
-            let parser = self.data.parser.clone();
-            let path   = self.data.module_path.clone();
-            let ls     = self.project.json_rpc().clone();
-            let module_fut = model::module::Synchronized::open(path,ls,parser);
-            // We can `expect_ready`, because in fact this is synchronous.
-            // (there's no real asynchronous connection beneath, just the `MockClient`)
-            let model = module_fut.boxed_local().expect_ready().unwrap();
-
+            let model = self.synchronized_module();
             let controller = controller::module::Handle {
                 language_server : self.project.json_rpc(),
                 model           : model.clone(),
