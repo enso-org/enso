@@ -75,6 +75,13 @@ pub struct Id {
     segments:Vec<ReferentName>
 }
 
+impl Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = self.segments.iter().map(AsRef::<str>::as_ref).join(".");
+        write!(f,"{}",s)
+    }
+}
+
 impl Id {
     /// Construct a module's ID value from a name segments sequence.
     ///

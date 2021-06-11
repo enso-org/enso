@@ -225,7 +225,8 @@ mod tests {
         // Check that module without main gets it after the call.
         let empty_module_code = "";
         data.set_code(empty_module_code);
-        let module = data.module();
+        let urm    = data.undo_redo_manager();
+        let module = data.module(urm.clone_ref());
         assert!(module.lookup_method(&data.project_name,&main_ptr).is_err());
         Project::add_main_if_missing(&data.project_name, &module, &main_ptr, &parser).unwrap();
         assert!(module.lookup_method(&data.project_name,&main_ptr).is_ok());
@@ -233,7 +234,7 @@ mod tests {
         // Now check that modules that have main already defined won't get modified.
         let mut expect_intact = move |code:&str| {
             data.set_code(code);
-            let module = data.module();
+            let module = data.module(urm.clone_ref());
             Project::add_main_if_missing(&data.project_name, &module, &main_ptr, &parser).unwrap();
             assert_eq!(code,module.ast().repr());
         };

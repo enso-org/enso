@@ -327,6 +327,8 @@ impl Integration {
             eval_ project_frp.editing_committed (invalidate.trigger.emit(()));
             eval_ project_frp.editing_aborted   (invalidate.trigger.emit(()));
             eval_ project_frp.save_module       (model.module_saved_in_ui());
+            eval_ project_frp.undo              (model.undo_in_ui());
+            eval_ project_frp.redo              (model.redo_in_ui());
         }
 
         frp::extend! { network
@@ -595,9 +597,9 @@ impl Model {
         if info.metadata.as_ref().and_then(|md| md.position).is_none() {
             self.view.graph().frp.input.set_node_position.emit(&(displayed_id, default_pos));
             // If position wasn't present in metadata, we initialize it.
-            if let Err(err) = self.set_node_metadata_position(id,default_pos) {
-                debug!(self.logger, "Failed to set default position information IDs: {id:?} because \
-                of error {err:?}");
+            if let Err(err) = self.graph.graph().set_node_position(id,default_pos) {
+                debug!(self.logger, "Failed to set default position information IDs: {id:?} \
+                because of the error: {err:?}");
             }
         }
         self.node_views.borrow_mut().insert(id, displayed_id);
@@ -761,13 +763,6 @@ impl Model {
     (&self, trace:&[ExpressionId]) -> Option<graph_editor::NodeId> {
         let node_view_by_expression = self.node_view_by_expression.borrow();
         trace.iter().find_map(|expr_id| node_view_by_expression.get(&expr_id).copied())
-    }
-
-    /// Set the position in the node's metadata.
-    fn set_node_metadata_position(&self, node_id:ast::Id,pos:Vector2) -> FallibleResult {
-        self.graph.graph().module.with_node_metadata(node_id, Box::new(|md| {
-            md.position = Some(model::module::Position::new(pos.x,pos.y));
-        }))
     }
 
     fn refresh_connection_views
@@ -969,7 +964,7 @@ impl Model {
     (&self, (displayed_id,pos):&(graph_editor::NodeId,Vector2)) -> FallibleResult {
         debug!(self.logger, "Moving node.");
         if let Ok(id) = self.get_controller_node_id(*displayed_id) {
-           self.set_node_metadata_position(id,*pos)?;
+            self.graph.graph().set_node_position(id,*pos)?
         }
         Ok(())
     }
@@ -1201,6 +1196,20 @@ impl Model {
                 error!(logger, "Error while saving file: {err:?}");
             }
         });
+    }
+
+    fn undo_in_ui(&self) {
+        debug!(self.logger, "Undo triggered in UI.");
+        if let Err(e) = self.project.urm().undo() {
+            error!(self.logger, "Undo failed: {e}");
+        }
+    }
+
+    fn redo_in_ui(&self) {
+        debug!(self.logger, "Redo triggered in UI.");
+        if let Err(e) = self.project.urm().redo() {
+            error!(self.logger, "Redo failed: {e}");
+        }
     }
 
     fn resolve_visualization_context

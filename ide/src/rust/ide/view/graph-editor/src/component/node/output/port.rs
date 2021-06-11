@@ -58,7 +58,7 @@ const SHOW_TYPE_AS_LABEL   : bool = true;
 /// base shape for all port drawing. In case of a multi-port output, the shape is cropped from both
 /// sides for each port separately. The shape looks roughly like this:
 
-/// ```ignore
+/// ```text
 ///  ╭╮                            ╭╮
 ///  │╰────────────────────────────╯│ ▲ height
 ///  ╰──────────────────────────────╯ ▼ (node_size / 2) + PORT_SIZE

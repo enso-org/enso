@@ -522,7 +522,7 @@ impl std::borrow::Borrow<LayerModel> for Layer {
 /// For example, you can create a layer which displays the same symbols as another layer, but from a
 /// different camera to create a "mini-map view" of a graph editor.
 ///
-/// ```ignore
+/// ```text
 /// +------+.
 /// |`.    | `.  Layer 1 (top)
 /// |  `+--+---+ (Camera 1 and symbols [1,2,3])

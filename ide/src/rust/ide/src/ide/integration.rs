@@ -5,9 +5,9 @@ pub mod project;
 use crate::prelude::*;
 
 use crate::controller::ide::StatusNotification;
+use crate::model::undo_redo::Aware;
 
 use ide_view::graph_editor::SharedHashMap;
-
 
 
 // =======================
@@ -45,7 +45,10 @@ impl Model {
                     let graph   = result.main_graph;
                     let ide     = self.controller.clone_ref();
                     let project = project.model;
-                    *self.project_integration.borrow_mut() = Some(project::Integration::new(view,graph,text,ide,project));
+                    let integration = project::Integration::new(view,graph,text,ide,project);
+                    // We don't want any initialization-related changes to appear on undo stack.
+                    integration.graph_controller().undo_redo_repository().clear_all();
+                    *self.project_integration.borrow_mut() = Some(integration);
                 }
                 Err(err) => {
                     let err_msg = format!("Failed to initialize project: {}", err);

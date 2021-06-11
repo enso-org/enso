@@ -16,6 +16,7 @@ use crate::double_representation::module;
 use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
 use crate::model::module::NodeMetadata;
+use crate::model::traits::*;
 
 use ast::crumbs::InfixCrumb;
 use enso_protocol::language_server;
@@ -88,9 +89,22 @@ pub struct Node {
 }
 
 impl Node {
+    /// Get the node's position.
+    pub fn position(&self) -> Option<model::module::Position> {
+        self.metadata.as_ref().and_then(|m| m.position)
+    }
+
 	/// Check if node has a specific position set in metadata.
     pub fn has_position(&self) -> bool {
         self.metadata.as_ref().map_or(false, |m| m.position.is_some())
+    }
+}
+
+impl Deref for Node {
+    type Target = NodeInfo;
+
+    fn deref(&self) -> &Self::Target {
+        &self.info
     }
 }
 
@@ -179,7 +193,7 @@ pub struct Connection {
 
 // === NodeTrees ===
 
-/// Stores node's span trees: one for inputs (expression) and optionally another one for inputs
+/// Stores node's span trees: one for inputs (expression) and optionally another one for outputs
 /// (pattern).
 #[derive(Clone,Debug,Default)]
 pub struct NodeTrees {
@@ -202,7 +216,7 @@ impl NodeTrees {
     }
 
     /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
-    /// appriopriate span-tree node reference.
+    /// appropriate span-tree node reference.
     pub fn get_span_tree_node<'a,'b>(&'a self, ast_crumbs:&'b [ast::Crumb])
     -> Option<span_tree::node::NodeFoundByAstCrumbs<'a,'b>> {
         if let Some(outputs) = self.outputs.as_ref() {
@@ -649,6 +663,7 @@ impl Handle {
     /// Create connection in graph.
     pub fn connect
     (&self, connection:&Connection, context:&impl SpanTreeContext) -> FallibleResult {
+        let _transaction_guard = self.get_or_open_transaction("Connect");
         if connection.source.port.is_empty() {
             // If we create connection from node's expression root, we are able to introduce missing
             // pattern with a new variable.
@@ -670,6 +685,7 @@ impl Handle {
     /// Remove the connections from the graph.
     pub fn disconnect
     (&self, connection:&Connection, context:&impl SpanTreeContext) -> FallibleResult {
+        let _transaction_guard = self.get_or_open_transaction("Disconnect");
         let info = self.destination_info(connection,context)?;
 
         let updated_expression = if connection.destination.var_crumbs.is_empty() {
@@ -777,12 +793,21 @@ impl Handle {
         Ok(())
     }
 
+    /// Set node's position.
+    pub fn set_node_position(&self, node_id:ast::Id, position:impl Into<model::module::Position>) -> FallibleResult {
+        let _transaction_guard = self.get_or_open_transaction("Set node position");
+        self.module.with_node_metadata(node_id, Box::new(|md| {
+            md.position = Some(position.into());
+        }))
+    }
+
     /// Collapses the selected nodes.
     ///
     /// Lines corresponding to the selection will be extracted to a new method definition.
     pub fn collapse
     (&self, nodes:impl IntoIterator<Item=node::Id>, new_method_name_base:&str)
     -> FallibleResult<node::Id> {
+        let _transaction_guard = self.get_or_open_transaction("Collapse nodes");
         analytics::remote_log_event("graph::collapse");
         use double_representation::refactorings::collapse::collapse;
         use double_representation::refactorings::collapse::Collapsed;
@@ -867,6 +892,12 @@ impl span_tree::generate::Context for Handle {
     }
 }
 
+impl model::undo_redo::Aware for Handle {
+    fn undo_redo_repository(&self) -> Rc<model::undo_redo::Repository> {
+        self.module.undo_redo_repository()
+    }
+}
+
 
 
 // ============
@@ -943,11 +974,12 @@ pub mod tests {
 
         /// Create a graph controller from the current mock data.
         pub fn graph(&self) -> Handle {
-            let logger      = Logger::new("Test");
-            let parser      = Parser::new().unwrap();
-            let module      = self.module_data().plain(&parser);
-            let id          = self.graph_id.clone();
-            let db          = self.suggestion_db();
+            let logger = Logger::new("Test");
+            let parser = Parser::new().unwrap();
+            let urm    = Rc::new(model::undo_redo::Repository::new(&logger));
+            let module = self.module_data().plain(&parser,urm);
+            let id     = self.graph_id.clone();
+            let db     = self.suggestion_db();
             Handle::new(logger,module,db,parser,id).unwrap()
         }
 

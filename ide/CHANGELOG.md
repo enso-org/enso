@@ -13,6 +13,10 @@
   operating system about being untrusted.
 - [Opening projects in application graphical interface][1587]. Press `cmd`+`o`
   to bring the list of projects. Select a project on the list to open it.
+- [Initial support for undo-redo][1602]. Press <kbd>cmd</kbd>+<kbd>z</kbd> to
+  undo last action and <kbd>cmd</kbd>+<kbd>z</kbd> to redo last undone action.
+  This version of undo redo does not have proper support for text editor and
+  undoing UI changes (like selecting nodes).
 
 #### EnsoGL (rendering engine)
 
@@ -28,6 +32,7 @@
 [1577]: https://github.com/enso-org/ide/pull/1577
 [1587]: https://github.com/enso-org/ide/pull/1587
 [1366]: https://github.com/enso-org/ide/pull/1366
+[1602]: https://github.com/enso-org/ide/pull/1602
 
 # Enso 2.0.0-alpha.5 (2021-05-14)
 

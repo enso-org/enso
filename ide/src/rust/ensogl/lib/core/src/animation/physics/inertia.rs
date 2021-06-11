@@ -211,7 +211,7 @@ impl Thresholds {
 /// function.
 ///
 /// The equations used here are:
-/// ```ignore
+/// ```text
 ///     spring_force = spring_stretch * self.spring;
 ///     drag_force   = - velocity * self.drag;
 ///     force        = spring_force + drag_force;

@@ -314,9 +314,9 @@ impl Crumbs {
     }
 }
 
-impl From<Vec<Crumb>> for Crumbs {
-    fn from(crumbs:Vec<usize>) -> Self {
-        Self::new(crumbs)
+impl<T:IntoIterator<Item=Crumb>> From<T> for Crumbs {
+    fn from(crumbs:T) -> Self {
+        Self::new(crumbs.into_iter().collect())
     }
 }
 

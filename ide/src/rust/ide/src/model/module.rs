@@ -400,6 +400,12 @@ where f32 : Div<T,Output=f32>,
     }
 }
 
+impl From<Vector2<f32>> for Position {
+    fn from(value:Vector2) -> Self {
+        Position::new(value.x, value.y)
+    }
+}
+
 /// A structure identifying a method.
 ///
 /// It is very similar to MethodPointer from language_server API, however it may point to the method
@@ -422,7 +428,7 @@ pub struct MethodId {
 pub type Content = ParsedSourceFile<Metadata>;
 
 /// Module model API.
-pub trait API:Debug {
+pub trait API:Debug+model::undo_redo::Aware {
     /// Subscribe for notifications about text representation changes.
     fn subscribe(&self) -> Subscriber<Notification>;
 
@@ -544,18 +550,20 @@ pub mod test {
     }
 
     impl MockData {
-        pub fn plain(&self, parser:&Parser) -> Module {
+        pub fn plain(&self, parser:&Parser, repository:Rc<model::undo_redo::Repository>) -> Module {
             let ast    = parser.parse_module(self.code.clone(),self.id_map.clone()).unwrap();
-            let module = Plain::new(self.path.clone(),ast,self.metadata.clone());
+            let logger = Logger::new("MockModule");
+            let module = Plain::new(logger,self.path.clone(),ast,self.metadata.clone(),repository);
             Rc::new(module)
         }
     }
 
     pub fn plain_from_code(code:impl Into<String>) -> Module {
+        let urm = default();
         MockData {
             code : code.into(),
             ..default()
-        }.plain(&parser::Parser::new_or_panic())
+        }.plain(&parser::Parser::new_or_panic(),urm)
     }
 
     #[test]

@@ -295,7 +295,7 @@ ensogl::define_endpoints! {
 /// than origin placed in other possible places, including the upper-left corner of its bounding
 /// box. The `x` symbolises the origin on the following drawing:
 ///
-/// ```ignore
+/// ```text
 ///   ╭─────────────────╮
 ///  x│                 │
 ///   ╰─────────────────╯

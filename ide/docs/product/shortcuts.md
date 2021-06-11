@@ -35,6 +35,8 @@ further investigation.
 | <kbd>ctrl</kbd>+<kbd>`</kbd>                                | Show Code Editor. Please note that the Code Editor implementation is in a very early stage and you should not use it. Even just openning it can cause errors in the IDE. Do not try using the graph editor while having the code editor tab openned. |
 | <kbd>cmd</kbd>+<kbd>o</kbd>                                 | Open project |
 | <kbd>meta</kbd>+<kbd>s</kbd>                                | Save module |
+| <kbd>cmd</kbd>+<kbd>z</kbd>                                 | Undo last action |
+| <kbd>cmd</kbd>+<kbd>y</kbd>                                 | Redo last undone action |
 | <kbd>cmd</kbd>+<kbd>q</kbd>                                 | Close the application (MacOS) |
 | <kbd>ctrl</kbd>+<kbd>q</kbd>                                | Close the application (Linux) |
 | <kbd>alt</kbd>+<kbd>F4</kbd>                                | Close the application (MacOS, Windows, Linux) |

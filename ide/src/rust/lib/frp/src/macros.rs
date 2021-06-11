@@ -44,7 +44,7 @@
 ///   ```
 ///   Desugars to:
 ///   ```compile_fail
-///   def _eval = node_selected.map(f!((id) model.select(id));
+///   def _eval = node_selected.map(f!((id) model.select(id)));
 ///   ```
 ///
 ///

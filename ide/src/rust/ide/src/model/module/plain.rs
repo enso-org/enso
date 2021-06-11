@@ -26,18 +26,28 @@ use parser::api::SourceFile;
 /// (text and graph).
 #[derive(Debug)]
 pub struct Module {
+    logger        : Logger,
     path          : Path,
     content       : RefCell<Content>,
     notifications : notification::Publisher<Notification>,
+    repository    : Rc<model::undo_redo::Repository>,
 }
 
 impl Module {
     /// Create state with given content.
-    pub fn new(path:Path, ast:ast::known::Module, metadata:Metadata) -> Self {
+    pub fn new
+    ( parent     : impl AnyLogger
+    , path       : Path
+    , ast        : ast::known::Module
+    , metadata   : Metadata
+    , repository : Rc<model::undo_redo::Repository>
+    ) -> Self {
         Module {
-            path,
+            logger        : Logger::sub(parent, path.to_string()),
             content       : RefCell::new(ParsedSourceFile{ast,metadata}),
             notifications : default(),
+            path,
+            repository,
         }
     }
 
@@ -47,6 +57,13 @@ impl Module {
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
     fn set_content(&self, new_content:Content, kind:NotificationKind) -> FallibleResult {
+        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
+        if new_content == *self.content.borrow() {
+            return Ok(())
+        }
+        let transaction = self.repository.transaction("Setting module's content");
+        transaction.fill_content(self.id(),self.content.borrow().clone());
+
         // We want the line below to fail before changing state.
         let new_file     = new_content.serialize()?;
         let notification = Notification {new_file,kind};
@@ -84,6 +101,11 @@ impl Module {
         let ret         = f(&mut content)?;
         self.set_content(content,kind)?;
         Ok(ret)
+    }
+
+    /// Get the module's ID.
+    pub fn id(&self) -> model::module::Id {
+        self.path.id()
     }
 }
 
@@ -154,6 +176,12 @@ impl model::module::API for Module {
             fun(&mut data);
             content.metadata.ide.node.insert(id, data);
         })
+    }
+}
+
+impl model::undo_redo::Aware for Module {
+    fn undo_redo_repository(&self) -> Rc<model::undo_redo::Repository> {
+        self.repository.clone()
     }
 }
 
