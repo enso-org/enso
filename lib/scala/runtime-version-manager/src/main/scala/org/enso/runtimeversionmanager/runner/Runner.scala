@@ -80,7 +80,7 @@ class Runner(
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
-    val version     = resolveVersion(versionOverride, project)
+    val version     = resolveVersion(versionOverride, Some(project))
     val projectPath = project.path.toAbsolutePath.normalize.toString
     startLanguageServer(
       options,
@@ -232,16 +232,28 @@ class Runner(
     }
   }
 
+  /** Resolves the engine version that should be used.
+    *
+    * If `versionOverride` is defined it has the highest priority and its
+    * version is returned. Otherwise if the project is defined, the version from
+    * the project configuration (which may also fall back to default) is chosen.
+    * Otherwise, the default version is selected.
+    */
   protected def resolveVersion(
     versionOverride: Option[SemVer],
-    project: Project
+    project: Option[Project]
   ): SemVer = versionOverride.getOrElse {
-    val edition = project.edition
-    val version = editionManager.resolveEngineVersion(edition).get
-    version match {
-      case DefaultEnsoVersion =>
+    project match {
+      case Some(project) =>
+        val edition = project.edition
+        val version = editionManager.resolveEngineVersion(edition).get
+        version match {
+          case DefaultEnsoVersion =>
+            globalConfigurationManager.defaultVersion
+          case SemVerEnsoVersion(version) => version
+        }
+      case None =>
         globalConfigurationManager.defaultVersion
-      case SemVerEnsoVersion(version) => version
     }
   }
 }
