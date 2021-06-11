@@ -238,12 +238,11 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
-          val tenMb        = 1 * 1024 * 1024 * 10
           var currentBytes = stream.readNBytes(fileChunkSize)
 
           while (currentBytes.nonEmpty) {
             messageDigest.update(currentBytes)
-            currentBytes = stream.readNBytes(tenMb)
+            currentBytes = stream.readNBytes(fileChunkSize)
           }
 
           SHA3_224(messageDigest.digest())
