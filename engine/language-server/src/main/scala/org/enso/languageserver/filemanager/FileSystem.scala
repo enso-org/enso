@@ -273,6 +273,14 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         Using.resource(
           Files.newInputStream(path.toPath, StandardOpenOption.READ)
         ) { stream =>
+          val fileLength = Files.size(path.toPath)
+          val lastByteIndex = fileLength - 1
+          val lastSegIndex = segment.byteOffset + segment.length
+
+          if (segment.byteOffset > lastByteIndex || lastSegIndex > lastByteIndex) {
+            throw FileSystem.ReadOutOfBounds(fileLength)
+          }
+
           var bytePosition = stream.skip(segment.byteOffset)
           var bytesToRead  = segment.length
 
@@ -281,10 +289,6 @@ class FileSystem extends FileSystemApi[BlockingIO] {
             val bytes    = stream.readNBytes(readSize)
 
             bytePosition += bytes.length
-
-            if (bytes.isEmpty || bytes.length != bytesToRead) {
-              throw FileSystem.ReadOutOfBounds(bytePosition)
-            }
 
             bytesToRead -= bytes.length
 
