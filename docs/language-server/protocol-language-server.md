@@ -1644,8 +1644,12 @@ This method will create a file if no file is present at `path`.
   length of the file.
 - The `byteOffset` property is zero-indexed. To append to the file you begin
   writing at index `file.length`.
+- If `byteOffset` is less than the length of the file and `overwriteExisting` is
+  set, it will truncate the file to length `byteOffset + bytes.length`.
 - If `byteOffset > file.length`, the bytes in the range
-  `[file.length, byteOffset)` will be filled with null bytes.
+  `[file.length, byteOffset)` will be filled with null bytes. Please note that,
+  in this case, the checksum in the response will also be calculated on the null
+  bytes.
 
 #### Parameters
 
@@ -4055,7 +4059,7 @@ Signals that the requested file read was out of bounds for the file's size.
   "code" : 1009
   "message" : "Read is out of bounds for the file"
   "data" : {
-    fileLength : 0
+    "fileLength" : 0
   }
 }
 ```
