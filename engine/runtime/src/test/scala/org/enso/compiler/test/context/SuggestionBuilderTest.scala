@@ -82,10 +82,12 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = SuggestionBuilder.Any,
-              documentation     = Some(" The foo"),
-              documentationHtml = Some("<p>The foo</p>")
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              documentation = Some(" The foo"),
+              documentationHtml = Some(
+                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>The foo</p></div></div></div></body></html>"
+              )
             ),
             Vector()
           )
@@ -113,10 +115,12 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType          = "Unnamed.Test",
-              returnType        = "Number",
-              documentation     = Some(" The foo"),
-              documentationHtml = Some("<p>The foo</p>")
+              selfType      = "Unnamed.Test",
+              returnType    = "Number",
+              documentation = Some(" The foo"),
+              documentationHtml = Some(
+                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>The foo</p></div></div></div></body></html>"
+              )
             ),
             Vector()
           )
@@ -444,10 +448,12 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("a", "Number", false, false, None),
                 Suggestion.Argument("b", "Number", false, false, None)
               ),
-              selfType          = "Unnamed.Test.MyAtom",
-              returnType        = "Number",
-              documentation     = Some(" My bar"),
-              documentationHtml = Some("<p> My bar</p>")
+              selfType      = "Unnamed.Test.MyAtom",
+              returnType    = "Number",
+              documentation = Some(" My bar"),
+              documentationHtml = Some(
+                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>My bar</p></div></div></div></body></html>"
+              )
             ),
             Vector()
           )
