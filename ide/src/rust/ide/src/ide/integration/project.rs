@@ -1399,7 +1399,7 @@ impl Model {
 
     fn setup_searcher_controller
     (&self, weak_self:&Weak<Self>, mode:controller::searcher::Mode) -> FallibleResult {
-        let selected_nodes = self.view.graph().model.selected_nodes().iter().filter_map(|id| {
+        let selected_nodes = self.view.graph().model.nodes.all_selected().iter().filter_map(|id| {
             self.get_controller_node_id(*id).ok()
         }).collect_vec();
         let controller = self.graph.clone_ref();

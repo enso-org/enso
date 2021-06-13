@@ -41,6 +41,8 @@ use ensogl_theme;
 use std::f32::EPSILON;
 
 use super::edge;
+use crate::selection::BoundingBox;
+
 
 
 // =================
@@ -269,6 +271,8 @@ ensogl::define_endpoints! {
         set_profiling_min_global_duration (f32),
         set_profiling_max_global_duration (f32),
         set_profiling_status              (profiling::Status),
+        /// Indicate whether on hover the quick action icons should appear.
+        show_quick_action_bar_on_hover    (bool)
     }
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
@@ -281,6 +285,7 @@ ensogl::define_endpoints! {
         error                 (Option<Error>),
         visualization_enabled (bool),
         tooltip               (tooltip::Style),
+        bounding_box          (BoundingBox)
     }
 }
 
@@ -546,6 +551,13 @@ impl Node {
         let style_frp        = &model.style;
         let action_bar       = &model.action_bar.frp;
 
+        // Hook up the display object position updates to the node's FRP. Required to calculate the
+        // bounding box.
+        frp::extend! { network
+            position <- source::<Vector2>();
+        }
+        model.display_object.set_on_updated(f!((p) position.emit(p.position().xy())));
+
         frp::extend! { network
 
             // === Hover ===
@@ -594,12 +606,21 @@ impl Node {
             eval new_size ((t) model.output.frp.set_size.emit(t));
 
 
+            // === Bounding Box ===
+            bounding_box_input <- all2(&new_size,&position);
+            out.source.bounding_box <+ bounding_box_input.map(|(size,position)| {
+                let position = position - Vector2::new(0.0,size.y / 2.0);
+                BoundingBox::from_position_and_size(position,*size)
+            });
+
+
             // === Action Bar ===
 
             let visualization_enabled = action_bar.action_visibility.clone_ref();
             out.source.skip   <+ action_bar.action_skip;
             out.source.freeze <+ action_bar.action_freeze;
-            eval out.hover ((t) action_bar.set_visibility(t));
+            show_action_bar   <- out.hover  && frp.show_quick_action_bar_on_hover;
+            eval show_action_bar ((t) action_bar.set_visibility(t));
 
 
             // === View Mode ===
@@ -766,9 +787,12 @@ impl Node {
             model.vcs_indicator.frp.set_status <+ frp.set_vcs_status;
         }
 
+        // Init defaults.
         model.error_visualization.set_layer(visualization::Layer::Front);
         frp.set_error.emit(None);
         frp.set_disabled.emit(false);
+        frp.show_quick_action_bar_on_hover.emit(true);
+
         Self {model,frp}
     }
 

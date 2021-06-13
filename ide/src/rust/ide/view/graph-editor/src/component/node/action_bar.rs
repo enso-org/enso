@@ -57,6 +57,7 @@ ensogl::define_endpoints! {
         set_size                    (Vector2),
         set_visibility              (bool),
         set_action_visibility_state (bool),
+        show_on_hover               (bool),
     }
 
     Output {
@@ -279,6 +280,7 @@ impl ActionBar {
             visibility_init  <- source::<bool>();
             visibility_mouse <- bool(&model.shapes.mouse_out,&model.shapes.mouse_over);
             visibility       <- any(&visibility_init,&visibility_mouse);
+            visibility       <-  visibility && frp.show_on_hover;
             eval visibility ((t) model.icons.set_visibility(*t));
 
 
