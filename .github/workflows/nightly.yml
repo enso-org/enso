@@ -162,7 +162,16 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt --no-colors launcher/buildNativeImage
+          sbt --no-colors "launcher/assembly"
+          sbt --no-colors -J-Xmx1536M -J-Xss16M "launcher/buildNativeImage"
+
+      - name: Build the PM Native Image
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "project-manager/assembly"
+          sbt --no-colors -J-Xmx1536M -J-Xss16M "project-manager/buildNativeImage"
 
       - name: Prepare Distribution Version (Unix)
         working-directory: repo

@@ -111,7 +111,8 @@ jobs:
       - name: Build the Launcher
         run: |
           sleep 1
-          sbt --no-colors "launcher/buildNativeImage"
+          sbt --no-colors "launcher/assembly"
+          sbt --no-colors -J-Xmx1536M -J-Xss16M "launcher/buildNativeImage"
       - name: Build the Runner & Runtime Uberjars
         run: |
           sleep 1
@@ -138,7 +139,8 @@ jobs:
       - name: Build the Project Manager Native Image
         run: |
           sleep 1
-          sbt --no-colors project-manager/buildNativeImage
+          sbt --no-colors project-manager/assembly
+          sbt --no-colors -J-Xmx1536M -J-Xss16M "launcher/buildNativeImage"
       - name: Build the Parser JS Bundle
         # The builds are run on 3 platforms, but
         # Flatbuffer schemas are platform agnostic, so they just need to be
