@@ -29,21 +29,21 @@ object EditionSerialization {
 
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {
-      parent        <- json.get[Option[EditionName]](Fields.Parent)
-      engineVersion <- json.get[Option[EnsoVersion]](Fields.EngineVersion)
+      parent        <- json.get[Option[EditionName]](Fields.parent)
+      engineVersion <- json.get[Option[EnsoVersion]](Fields.engineVersion)
       _ <-
         if (parent.isEmpty && engineVersion.isEmpty)
           Left(
             DecodingFailure(
               s"The edition must specify at least one of " +
-              s"${Fields.EngineVersion} or ${Fields.Parent}.",
+              s"${Fields.engineVersion} or ${Fields.parent}.",
               json.history
             )
           )
         else Right(())
       repositories <-
-        json.getOrElse[Seq[Repository]](Fields.Repositories)(Seq())
-      libraries <- json.getOrElse[Seq[Raw.Library]](Fields.Libraries)(Seq())
+        json.getOrElse[Seq[Repository]](Fields.repositories)(Seq())
+      libraries <- json.getOrElse[Seq[Raw.Library]](Fields.libraries)(Seq())
       res <- {
         val repositoryMap = Map.from(repositories.map(r => (r.name, r)))
         val libraryMap    = Map.from(libraries.map(l => (l.qualifiedName, l)))
@@ -51,14 +51,14 @@ object EditionSerialization {
           Left(
             DecodingFailure(
               "Names of libraries defined within a single edition file must be unique.",
-              json.downField(Fields.Libraries).history
+              json.downField(Fields.libraries).history
             )
           )
         else if (repositoryMap.size != repositories.size)
           Left(
             DecodingFailure(
               "Names of repositories defined within a single edition file must be unique.",
-              json.downField(Fields.Libraries).history
+              json.downField(Fields.libraries).history
             )
           )
         else
@@ -75,9 +75,9 @@ object EditionSerialization {
   }
 
   implicit val editionEncoder: Encoder[Raw.Edition] = { edition =>
-    val parent = edition.parent.map { parent => Fields.Parent -> parent.asJson }
+    val parent = edition.parent.map { parent => Fields.parent -> parent.asJson }
     val engineVersion = edition.engineVersion.map { version =>
-      Fields.EngineVersion -> version.asJson
+      Fields.engineVersion -> version.asJson
     }
 
     if (parent.isEmpty && engineVersion.isEmpty) {
@@ -88,25 +88,25 @@ object EditionSerialization {
 
     val repositories =
       if (edition.repositories.isEmpty) None
-      else Some(Fields.Repositories -> edition.repositories.values.asJson)
+      else Some(Fields.repositories -> edition.repositories.values.asJson)
     val libraries =
       if (edition.libraries.isEmpty) None
-      else Some(Fields.Libraries -> edition.libraries.values.asJson)
+      else Some(Fields.libraries -> edition.libraries.values.asJson)
     Json.obj(
       parent.toSeq ++ engineVersion.toSeq ++ repositories.toSeq ++ libraries.toSeq: _*
     )
   }
 
   object Fields {
-    val Name                = "name"
-    val Version             = "version"
-    val Repository          = "repository"
-    val Url                 = "url"
-    val Parent              = "extends"
-    val EngineVersion       = "engine-version"
-    val Repositories        = "repositories"
-    val Libraries           = "libraries"
-    val LocalRepositoryName = "local"
+    val name                = "name"
+    val version             = "version"
+    val repository          = "repository"
+    val url                 = "url"
+    val parent              = "extends"
+    val engineVersion       = "engine-version"
+    val repositories        = "repositories"
+    val libraries           = "libraries"
+    val localRepositoryName = "local"
   }
 
   case class EditionName(name: String)
@@ -121,7 +121,7 @@ object EditionSerialization {
 
   implicit private val libraryDecoder: Decoder[Raw.Library] = { json =>
     def makeLibrary(name: String, repository: String, version: Option[SemVer]) =
-      if (repository == Fields.LocalRepositoryName)
+      if (repository == Fields.localRepositoryName)
         if (version.isDefined)
           Left(
             DecodingFailure(
@@ -144,9 +144,9 @@ object EditionSerialization {
         }
       }
     for {
-      name       <- json.get[String](Fields.Name)
-      repository <- json.get[String](Fields.Repository)
-      version    <- json.get[Option[SemVer]](Fields.Version)
+      name       <- json.get[String](Fields.name)
+      repository <- json.get[String](Fields.repository)
+      version    <- json.get[Option[SemVer]](Fields.version)
       res        <- makeLibrary(name, repository, version)
     } yield res
   }
@@ -154,14 +154,14 @@ object EditionSerialization {
   implicit private val libraryEncoder: Encoder[Raw.Library] = {
     case Raw.LocalLibrary(name) =>
       Json.obj(
-        Fields.Name       -> name.asJson,
-        Fields.Repository -> Fields.LocalRepositoryName.asJson
+        Fields.name       -> name.asJson,
+        Fields.repository -> Fields.localRepositoryName.asJson
       )
     case Raw.PublishedLibrary(name, version, repository) =>
       Json.obj(
-        Fields.Name       -> name.asJson,
-        Fields.Version    -> version.asJson,
-        Fields.Repository -> repository.asJson
+        Fields.name       -> name.asJson,
+        Fields.version    -> version.asJson,
+        Fields.repository -> repository.asJson
       )
   }
 
@@ -180,22 +180,22 @@ object EditionSerialization {
 
   implicit private val repositoryEncoder: Encoder[Repository] = { repo =>
     Json.obj(
-      Fields.Name -> repo.name.asJson,
-      Fields.Url  -> repo.url.asJson
+      Fields.name -> repo.name.asJson,
+      Fields.url  -> repo.url.asJson
     )
   }
 
   implicit private val repositoryDecoder: Decoder[Repository] = { json =>
-    val nameField = json.downField(Fields.Name)
+    val nameField = json.downField(Fields.name)
     for {
       name <- nameField.as[String]
-      url  <- json.get[URL](Fields.Url)
+      url  <- json.get[URL](Fields.url)
       res <-
-        if (name == Fields.LocalRepositoryName)
+        if (name == Fields.localRepositoryName)
           Left(
             DecodingFailure(
               s"A defined repository cannot be called " +
-              s"`${Fields.LocalRepositoryName}` which is a reserved keyword.",
+              s"`${Fields.localRepositoryName}` which is a reserved keyword.",
               nameField.history
             )
           )

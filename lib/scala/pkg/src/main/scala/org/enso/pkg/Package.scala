@@ -201,13 +201,15 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     authors: List[Contact]     = List(),
     maintainers: List[Contact] = List()
   ): Package[F] = {
+    val edition = Config.makeCompatibilityEditionFromVersion(ensoVersion)
     val config = Config(
-      name        = NameValidation.normalizeName(name),
-      version     = version,
-      license     = "",
-      authors     = authors,
-      edition     = Config.makeCompatibilityEditionFromVersion(ensoVersion),
-      maintainers = maintainers
+      name                 = NameValidation.normalizeName(name),
+      version              = version,
+      license              = "",
+      authors              = authors,
+      edition              = edition,
+      preferLocalLibraries = true,
+      maintainers          = maintainers
     )
     create(root, config)
   }

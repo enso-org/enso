@@ -79,6 +79,9 @@ object Contact {
   *                   maintainer(s)
   * @param edition the Edition associated with the project; it implies the
   *                engine version and dependency configuration to be used
+  * @param preferLocalLibraries specifies if library resolution should prefer
+  *                             local libraries over what is defined in the
+  *                             edition
   * @param originalJson a Json object holding the original values that this
   *                     Config was created from, used to preserve configuration
   *                     keys that are not known
@@ -90,6 +93,7 @@ case class Config(
   authors: List[Contact],
   maintainers: List[Contact],
   edition: Editions.RawEdition,
+  preferLocalLibraries: Boolean,
   originalJson: JsonObject = JsonObject()
 ) {
 
@@ -101,13 +105,14 @@ case class Config(
 
 object Config {
   private object JsonFields {
-    val name: String        = "name"
-    val version: String     = "version"
-    val ensoVersion: String = "enso-version"
-    val license: String     = "license"
-    val author: String      = "authors"
-    val maintainer: String  = "maintainers"
-    val edition: String     = "edition"
+    val name: String         = "name"
+    val version: String      = "version"
+    val ensoVersion: String  = "enso-version"
+    val license: String      = "license"
+    val author: String       = "authors"
+    val maintainer: String   = "maintainers"
+    val edition: String      = "edition"
+    val preferLocalLibraries = "prefer-local-libraries"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -119,25 +124,28 @@ object Config {
       license     <- json.getOrElse(JsonFields.license)("")
       author      <- json.getOrElse[List[Contact]](JsonFields.author)(List())
       maintainer  <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
+      preferLocal <-
+        json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(false)
       finalEdition <-
         editionOrVersionBackwardsCompatibility(edition, ensoVersion).left.map {
           error => DecodingFailure(error, json.history)
         }
       originals <- json.as[JsonObject]
     } yield Config(
-      name         = name,
-      version      = version,
-      license      = license,
-      authors      = author,
-      maintainers  = maintainer,
-      edition      = finalEdition,
-      originalJson = originals
+      name                 = name,
+      version              = version,
+      license              = license,
+      authors              = author,
+      maintainers          = maintainer,
+      edition              = finalEdition,
+      preferLocalLibraries = preferLocal,
+      originalJson         = originals
     )
   }
 
   implicit val encoder: Encoder[Config] = { config =>
     val originals = config.originalJson
-    val overrides = JsonObject(
+    val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
       JsonFields.version    -> config.version.asJson,
       JsonFields.edition    -> config.edition.asJson,
@@ -145,7 +153,14 @@ object Config {
       JsonFields.author     -> config.authors.asJson,
       JsonFields.maintainer -> config.maintainers.asJson
     )
-    originals.remove(JsonFields.ensoVersion).deepMerge(overrides).asJson
+    val preferLocalOverride =
+      if (config.preferLocalLibraries)
+        Seq(JsonFields.preferLocalLibraries -> true.asJson)
+      else Seq()
+    val overridesObject = JsonObject(
+      overrides ++ preferLocalOverride: _*
+    )
+    originals.remove(JsonFields.ensoVersion).deepMerge(overridesObject).asJson
   }
 
   /** Tries to parse the [[Config]] from a YAML string.
@@ -157,11 +172,10 @@ object Config {
   def makeCompatibilityEditionFromVersion(
     ensoVersion: EnsoVersion
   ): Editions.RawEdition = Editions.Raw.Edition(
-    parent               = None,
-    engineVersion        = Some(ensoVersion),
-    preferLocalLibraries = None,
-    repositories         = Map(),
-    libraries            = Map()
+    parent        = None,
+    engineVersion = Some(ensoVersion),
+    repositories  = Map(),
+    libraries     = Map()
   )
 
   private def editionOrVersionBackwardsCompatibility(

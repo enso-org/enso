@@ -16,24 +16,39 @@ case class LibraryManager(distributionManager: DistributionManager) {
 
   def findLibrary(
     libraryName: LibraryName,
-    edition: Editions.ResolvedEdition
+    edition: Editions.ResolvedEdition,
+    preferLocalLibraries: Boolean
   ): LibraryResolutionResult = {
-    resolver.resolveLibraryVersion(libraryName, edition) match {
+    val resolvedVersion = resolver
+      .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
+    resolvedVersion match {
       case Left(error) =>
         LibraryResolutionResult.ResolutionFailure(error)
-      case Right(LocalVersion(path)) =>
-        LibraryResolutionResult.ResolvedImmediately(path)
-      case Right(PublishedVersion(version, recommendedRepository)) =>
+      case Right(LibraryVersion.Local) =>
+        localLibraryProvider
+          .findLibrary(libraryName)
+          .map(LibraryResolutionResult.ResolvedImmediately)
+          .getOrElse {
+            LibraryResolutionResult.ResolutionFailure(
+              LibraryResolutionError(
+                s"Edition configuration forces to use the local version, but " +
+                s"the `$libraryName` library is not present among local " +
+                s"libraries."
+              )
+            )
+          }
+      case Right(LibraryVersion.Published(version, repository)) =>
         val dependencyResolver = { name: LibraryName =>
-          resolver.resolveLibraryVersion(name, edition).toOption
+          resolver
+            .resolveLibraryVersion(name, edition, preferLocalLibraries)
+            .toOption
         }
         publishedLibraryProvider.findLibrary(
           libraryName,
           version,
-          recommendedRepository,
+          repository,
           dependencyResolver
         )
     }
-
   }
 }

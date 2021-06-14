@@ -42,7 +42,8 @@ class ConfigSpec
           Contact(Some("A"), Some("a@example.com")),
           Contact(Some("B"), None),
           Contact(None, Some("c@example.com"))
-        )
+        ),
+        preferLocalLibraries = true
       )
       val deserialized = Config.fromYaml(config.toYaml).get
       val withoutJson  = deserialized.copy(originalJson = JsonObject())
