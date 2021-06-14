@@ -78,13 +78,28 @@ jobs:
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH      
+          
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
 
       # Compile
       - name: Bootstrap Enso project
         run: |
           sleep 1
           sbt --no-colors bootstrap
+      - name: Build Enso
+        run: |
+          sleep 1
+          sbt --no-colors compile
 
       # Tests
       - name: Setup Tests on Windows
