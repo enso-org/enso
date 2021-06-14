@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.5.0
+        uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Setup Go
         uses: actions/setup-go@v2
       - name: Disable TCP/UDP Offloading (macOS)
@@ -85,10 +85,6 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
-      - name: Build Enso
-        run: |
-          sleep 1
-          sbt --no-colors compile
 
       # Tests
       - name: Setup Tests on Windows
