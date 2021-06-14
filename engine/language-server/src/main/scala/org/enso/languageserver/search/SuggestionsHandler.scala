@@ -113,7 +113,7 @@ final class SuggestionsHandler(
 
     config.contentRoots.foreach { case (_, contentRoot) =>
       PackageManager.Default
-        .fromDirectory(contentRoot)
+        .fromDirectory(contentRoot.file)
         .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
     }
   }
@@ -539,10 +539,10 @@ final class SuggestionsHandler(
     path: Path
   ): Either[SearchFailure, String] =
     for {
-      rootFile <- config.findContentRoot(path.rootId).left.map(FileSystemError)
+      root <- config.findContentRoot(path.rootId).left.map(FileSystemError)
       module <-
         ModuleNameBuilder
-          .build(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
+          .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
           .toRight(ModuleNameNotResolvedError(path))
     } yield module
 

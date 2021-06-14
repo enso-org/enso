@@ -1,7 +1,7 @@
 package org.enso.languageserver.boot.resource
 
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.data.DirectoriesConfig
+import org.enso.languageserver.data.ProjectDirectoriesConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -9,8 +9,8 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param directoriesConfig the directories config
   */
-class DirectoriesInitialization(directoriesConfig: DirectoriesConfig)(implicit
-  ec: ExecutionContext
+class DirectoriesInitialization(directoriesConfig: ProjectDirectoriesConfig)(implicit
+                                                                             ec: ExecutionContext
 ) extends InitializationComponent
     with LazyLogging {
 

@@ -74,7 +74,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
       client2.expectJson(jsonrpc.ok(1))
 
       // create file
-      val path = Paths.get(testContentRoot.toString, "oneone.txt")
+      val path = Paths.get(testContentRoot.file.toString, "oneone.txt")
       Files.createFile(path)
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
