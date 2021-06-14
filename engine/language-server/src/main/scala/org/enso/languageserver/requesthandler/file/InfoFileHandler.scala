@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor._
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
@@ -20,7 +21,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -41,7 +42,7 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(
+      logger.error(
         "Failure during [{}] operation: {}",
         InfoFile,
         MaskedString(ex.getMessage)
@@ -51,7 +52,7 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request [{}] timed out.", id)
+      logger.error("Request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

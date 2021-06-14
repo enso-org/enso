@@ -1,6 +1,7 @@
 package org.enso.languageserver.requesthandler.session
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerProtocol
 import org.enso.languageserver.filemanager.FileManagerProtocol.ContentRootsResult
@@ -19,7 +20,7 @@ class InitProtocolConnectionHandler(
   fileManager: ActorRef,
   timeout: FiniteDuration
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -40,7 +41,7 @@ class InitProtocolConnectionHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error("Getting content roots request [{}] timed out.", id)
+      logger.error("Getting content roots request [{}] timed out.", id)
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

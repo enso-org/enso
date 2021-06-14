@@ -2,7 +2,8 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.{ClientId, Config}
 import org.enso.languageserver.event.{
   ExecutionContextCreated,
@@ -62,7 +63,7 @@ final class ContextRegistry(
   runtime: ActorRef,
   sessionRouter: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with ActorMessageLogging
     with UnhandledLogging {
 

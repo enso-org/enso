@@ -1,7 +1,7 @@
 package org.enso.languageserver.boot.resource
 
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.DirectoriesConfig
-import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -11,15 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class DirectoriesInitialization(directoriesConfig: DirectoriesConfig)(implicit
   ec: ExecutionContext
-) extends InitializationComponent {
-
-  private val log = LoggerFactory.getLogger(this.getClass)
+) extends InitializationComponent
+    with LazyLogging {
 
   /** @inheritdoc */
   override def init(): Future[InitializationComponent.Initialized.type] =
     Future {
       directoriesConfig.createDirectories()
-      log.info("Initialized directories.")
+      logger.info("Initialized directories.")
       InitializationComponent.Initialized
     }
 }

@@ -1,8 +1,10 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
 import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
@@ -21,7 +23,7 @@ class FileManager(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -193,6 +195,50 @@ class FileManager(
         .map(FileManagerProtocol.InfoFileResult)
         .pipeTo(sender())
       ()
+
+    case FileManagerProtocol.ChecksumFileRequest(path) =>
+      val getChecksum = for {
+        rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+        checksum <- fs.digest(path.toFile(rootPath))
+      } yield checksum
+      exec
+        .execTimed(config.fileManager.timeout, getChecksum)
+        .map(x =>
+          FileManagerProtocol.ChecksumFileResponse(
+            x.map(digest => Hex.toHexString(digest.bytes))
+          )
+        )
+        .pipeTo(sender())
+
+    case FileManagerProtocol.ChecksumBytesRequest(segment) =>
+      val getChecksum = for {
+        rootPath <- IO.fromEither(config.findContentRoot(segment.path.rootId))
+        checksum <- fs.digestBytes(segment.toApiSegment(rootPath))
+      } yield checksum
+      exec
+        .execTimed(config.fileManager.timeout, getChecksum)
+        .map(x => FileManagerProtocol.ChecksumBytesResponse(x.map(_.bytes)))
+        .pipeTo(sender())
+
+    case FileManagerProtocol.WriteBytesRequest(path, off, overwrite, bytes) =>
+      val doWrite = for {
+        rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+        response <- fs.writeBytes(path.toFile(rootPath), off, overwrite, bytes)
+      } yield response
+      exec
+        .execTimed(config.fileManager.timeout, doWrite)
+        .map(x => FileManagerProtocol.WriteBytesResponse(x.map(_.bytes)))
+        .pipeTo(sender())
+
+    case FileManagerProtocol.ReadBytesRequest(segment) =>
+      val doRead = for {
+        rootPath <- IO.fromEither(config.findContentRoot(segment.path.rootId))
+        response <- fs.readBytes(segment.toApiSegment(rootPath))
+      } yield response
+      exec
+        .execTimed(config.fileManager.timeout, doRead)
+        .map(FileManagerProtocol.ReadBytesResponse)
+        .pipeTo(sender())
   }
 }
 

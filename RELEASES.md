@@ -1,5 +1,8 @@
 # Enso Next
 
+- Implemented Standard Library methods for controlling default visualizations in
+  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
+
 ## Interpreter/Runtime
 
 - Upgraded the underlying runtime to
@@ -28,6 +31,14 @@
   ([#1759](https://github.com/enso-org/enso/pull/1759)). This allows the IDE to
   get information about the running project in contexts where the project
   manager isn't available or works differently.
+- Added the `file/checksum` endpoint to the language server
+  ([#1787](https://github.com/enso-org/enso/pull/1787)). This allows the IDE to
+  verify the integrity of files that it has transferred. The checksum is
+  calculated in a streaming fashion so the checksummed file need not be resident
+  in memory all at once.
+- Added support for reading and writing byte ranges in files remotely
+  ([#1795](https://github.com/enso-org/enso/pull/1795)). This allows the IDE to
+  transfer files to a remote back-end in a streaming fashion.
 
 ## Libraries
 

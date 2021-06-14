@@ -2,9 +2,10 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import cats.implicits._
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
   CapabilityAcquisitionFileSystemFailure,
@@ -35,7 +36,7 @@ final class PathWatcher(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher, PathWatcherProtocol._
@@ -57,7 +58,7 @@ final class PathWatcher(
   private def uninitializedStage: Receive = { case WatchPath(path, clients) =>
     val pathToWatchResult = config
       .findContentRoot(path.rootId)
-      .map(path.toFile(_))
+      .map(path.toFile)
     val result: BlockingIO[FileSystemFailure, Unit] =
       for {
         pathToWatch <- IO.fromEither(pathToWatchResult)
@@ -108,14 +109,14 @@ final class PathWatcher(
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
-        log.error(s"Restart on error#${restartCounter.count}", e)
+        logger.error(s"Restart on error#${restartCounter.count}", e)
         context.system.scheduler.scheduleOnce(
           config.pathWatcher.restartTimeout,
           self,
           WatchPath(base, clients)
         )
       } else {
-        log.error("Hit maximum number of restarts", e)
+        logger.error("Hit maximum number of restarts", e)
         clients.foreach { client =>
           client ! CapabilityForceReleased(
             CapabilityRegistration(ReceivesTreeUpdates(base))

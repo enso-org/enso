@@ -1,8 +1,9 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
 import akka.pattern.pipe
 import cats.implicits._
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, ClientId}
 import org.enso.languageserver.event.{
@@ -53,7 +54,7 @@ class CollaborativeBuffer(
   versionCalculator: ContentBasedVersioning
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -67,7 +68,11 @@ class CollaborativeBuffer(
 
   private def uninitialized: Receive = { case OpenFile(client, path) =>
     context.system.eventStream.publish(BufferOpened(path))
-    log.info("Buffer opened for [path:{}, client:{}].", path, client.clientId)
+    logger.info(
+      "Buffer opened for [path:{}, client:{}].",
+      path,
+      client.clientId
+    )
     readFile(client, path)
   }
 
