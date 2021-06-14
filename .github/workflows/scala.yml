@@ -78,8 +78,8 @@ jobs:
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
-          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH      
-          
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
       # Caches
       - name: Cache SBT
         uses: actions/cache@v2
