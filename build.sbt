@@ -886,6 +886,7 @@ lazy val `polyglot-api` = project
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
+  .dependsOn(testkit % Test)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
@@ -1232,6 +1233,7 @@ lazy val `library-manager` = project
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
+  .dependsOn(testkit % Test)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))

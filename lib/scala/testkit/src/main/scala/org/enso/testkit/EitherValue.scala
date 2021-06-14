@@ -1,7 +1,7 @@
-package org.enso.polyglot.debugger
+package org.enso.testkit
 
-import org.scalatest.exceptions.{StackDepthException, TestFailedException}
 import org.scalactic.source
+import org.scalatest.exceptions.{StackDepthException, TestFailedException}
 
 trait EitherValue {
   implicit def convertEitherToRightValueHelper[A, B](
