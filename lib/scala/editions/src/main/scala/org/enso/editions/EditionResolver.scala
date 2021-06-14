@@ -22,18 +22,16 @@ case class EditionResolver(provider: EditionProvider) {
   ): Either[EditionResolutionError, ResolvedEdition] =
     for {
       parent <- resolveParent(edition.parent, visitedEditions)
-      preferLocalLibraries = edition.preferLocalLibraries.getOrElse(false)
       libraries <- resolveLibraries(
         edition.libraries,
         edition.repositories,
         parent
       )
     } yield Editions.Resolved.Edition(
-      parent               = parent,
-      engineVersion        = edition.engineVersion,
-      preferLocalLibraries = preferLocalLibraries,
-      repositories         = edition.repositories,
-      libraries            = libraries
+      parent        = parent,
+      engineVersion = edition.engineVersion,
+      repositories  = edition.repositories,
+      libraries     = libraries
     )
 
   private def resolveLibraries(

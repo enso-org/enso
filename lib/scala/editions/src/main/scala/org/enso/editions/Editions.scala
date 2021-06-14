@@ -8,7 +8,6 @@ import scala.util.Try
 trait Editions {
   type NestedEditionType
   type LibraryRepositoryType
-  type PreferLocalLibrariesSettingType
 
   sealed trait Library {
     def qualifiedName: String
@@ -23,7 +22,6 @@ trait Editions {
   case class Edition(
     parent: Option[NestedEditionType],
     engineVersion: Option[EnsoVersion],
-    preferLocalLibraries: PreferLocalLibrariesSettingType,
     repositories: Map[String, Editions.Repository],
     libraries: Map[String, Library]
   )
@@ -39,15 +37,13 @@ object Editions {
   }
 
   object Raw extends Editions {
-    override type NestedEditionType               = String
-    override type LibraryRepositoryType           = String
-    override type PreferLocalLibrariesSettingType = Option[Boolean]
+    override type NestedEditionType     = String
+    override type LibraryRepositoryType = String
   }
 
   object Resolved extends Editions {
-    override type NestedEditionType               = this.Edition
-    override type LibraryRepositoryType           = Repository
-    override type PreferLocalLibrariesSettingType = Boolean
+    override type NestedEditionType     = this.Edition
+    override type LibraryRepositoryType = Repository
   }
 
   type RawEdition      = Raw.Edition

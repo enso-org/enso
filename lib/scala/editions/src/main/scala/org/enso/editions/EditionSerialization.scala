@@ -41,9 +41,6 @@ object EditionSerialization {
             )
           )
         else Right(())
-      preferLocalLibraries <- json.get[Option[Boolean]](
-        Fields.PreferLocalLibraries
-      )
       repositories <-
         json.getOrElse[Seq[Repository]](Fields.Repositories)(Seq())
       libraries <- json.getOrElse[Seq[Raw.Library]](Fields.Libraries)(Seq())
@@ -67,11 +64,10 @@ object EditionSerialization {
         else
           Right(
             Raw.Edition(
-              parent               = parent.map(_.name),
-              engineVersion        = engineVersion,
-              preferLocalLibraries = preferLocalLibraries,
-              repositories         = repositoryMap,
-              libraries            = libraryMap
+              parent        = parent.map(_.name),
+              engineVersion = engineVersion,
+              repositories  = repositoryMap,
+              libraries     = libraryMap
             )
           )
       }
@@ -102,16 +98,15 @@ object EditionSerialization {
   }
 
   object Fields {
-    val Name                 = "name"
-    val Version              = "version"
-    val Repository           = "repository"
-    val Url                  = "url"
-    val Parent               = "extends"
-    val EngineVersion        = "engine-version"
-    val Repositories         = "repositories"
-    val Libraries            = "libraries"
-    val LocalRepositoryName  = "local"
-    val PreferLocalLibraries = "prefer-local-libraries"
+    val Name                = "name"
+    val Version             = "version"
+    val Repository          = "repository"
+    val Url                 = "url"
+    val Parent              = "extends"
+    val EngineVersion       = "engine-version"
+    val Repositories        = "repositories"
+    val Libraries           = "libraries"
+    val LocalRepositoryName = "local"
   }
 
   case class EditionName(name: String)
@@ -199,7 +194,8 @@ object EditionSerialization {
         if (name == Fields.LocalRepositoryName)
           Left(
             DecodingFailure(
-              s"A defined repository cannot be called `${Fields.LocalRepositoryName}` which is a reserved keyword.",
+              s"A defined repository cannot be called " +
+              s"`${Fields.LocalRepositoryName}` which is a reserved keyword.",
               nameField.history
             )
           )

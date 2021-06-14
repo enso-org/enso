@@ -18,7 +18,6 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
         edition.parent should contain("2021.4")
         edition.repositories should be(empty)
         edition.libraries should be(empty)
-        edition.preferLocalLibraries should be(empty)
         edition.engineVersion should be(empty)
       }
     }
@@ -40,7 +39,6 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           | - name: A.B
           |   repository: bar
           |   version: 1.0.1
-          |prefer-local-libraries: true
           |""".stripMargin
       )
       inside(parsed) { case Success(edition) =>
@@ -62,7 +60,6 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
           Editions.Raw.PublishedLibrary("Bar.Baz", SemVer(0, 0, 0), "example"),
           Editions.Raw.PublishedLibrary("A.B", SemVer(1, 0, 1), "bar")
         )
-        edition.preferLocalLibraries should contain(true)
         edition.engineVersion should contain(
           SemVerEnsoVersion(SemVer(1, 2, 3, Some("SNAPSHOT")))
         )

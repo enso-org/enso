@@ -19,9 +19,8 @@ class EditionResolverSpec
     val mainRepo = Repository.make("main", "https://example.com/main").get
     val editions: Map[String, Editions.RawEdition] = Map(
       "2021.0" -> Editions.Raw.Edition(
-        parent               = None,
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
+        parent        = None,
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
         repositories = Map(
           "main" -> mainRepo
         ),
@@ -31,18 +30,16 @@ class EditionResolverSpec
         )
       ),
       "cycleA" -> Editions.Raw.Edition(
-        parent               = Some("cycleB"),
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
-        repositories         = Map(),
-        libraries            = Map()
+        parent        = Some("cycleB"),
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        repositories  = Map(),
+        libraries     = Map()
       ),
       "cycleB" -> Editions.Raw.Edition(
-        parent               = Some("cycleA"),
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
-        repositories         = Map(),
-        libraries            = Map()
+        parent        = Some("cycleA"),
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        repositories  = Map(),
+        libraries     = Map()
       )
     )
 
@@ -61,10 +58,9 @@ class EditionResolverSpec
     "resolve a simple edition" in {
       val repo = Repository.make("foo", "http://example.com").get
       val edition = Editions.Raw.Edition(
-        parent               = None,
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
-        repositories         = Map("foo" -> repo),
+        parent        = None,
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        repositories  = Map("foo" -> repo),
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
           "foo.bar" -> Editions.Raw
@@ -75,7 +71,6 @@ class EditionResolverSpec
       inside(resolver.resolve(edition)) { case Right(resolved) =>
         resolved.engineVersion shouldEqual edition.engineVersion
         resolved.parent should be(empty)
-        resolved.preferLocalLibraries shouldEqual false
         resolved.repositories shouldEqual edition.repositories
         resolved.libraries should have size 2
         resolved.libraries("bar.baz") shouldEqual Editions.Resolved
@@ -87,10 +82,9 @@ class EditionResolverSpec
 
     "resolve a nested edition" in {
       val edition = Editions.Raw.Edition(
-        parent               = Some("2021.0"),
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
-        repositories         = Map(),
+        parent        = Some("2021.0"),
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        repositories  = Map(),
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
           "foo.bar" -> Editions.Raw
@@ -118,10 +112,9 @@ class EditionResolverSpec
       localRepo should not equal FakeEditionProvider.mainRepo
 
       val edition = Editions.Raw.Edition(
-        parent               = Some("2021.0"),
-        engineVersion        = None,
-        preferLocalLibraries = None,
-        repositories         = Map("main" -> localRepo),
+        parent        = Some("2021.0"),
+        engineVersion = None,
+        repositories  = Map("main" -> localRepo),
         libraries = Map(
           "foo.bar" -> Editions.Raw
             .PublishedLibrary("foo.bar", SemVer(1, 2, 3), "main")
@@ -149,11 +142,10 @@ class EditionResolverSpec
 
     "avoid cycles in the resolution" in {
       val edition = Editions.Raw.Edition(
-        parent               = Some("cycleA"),
-        engineVersion        = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
-        preferLocalLibraries = None,
-        repositories         = Map(),
-        libraries            = Map()
+        parent        = Some("cycleA"),
+        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        repositories  = Map(),
+        libraries     = Map()
       )
 
       val failure = resolver.resolve(edition)
