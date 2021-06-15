@@ -140,7 +140,7 @@ class DistributionManager(val env: Environment) {
     * projects, libraries and other custom artifacts.
     */
   protected def detectEnsoHome(): Path =
-    env.getEnvPath(ENSO_HOME).getOrElse(env.getHome / "enso")
+    env.getEnvPath(ENSO_HOME).getOrElse(env.getUserProfile / "enso")
 
   /** Finds the paths to look for custom editions, which may be overridden by
     * setting the ENSO_EDITION_PATH environment variable.

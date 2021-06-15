@@ -69,8 +69,7 @@ trait Environment {
     result
   }
 
-  /** Returns the system PATH, if available.
-    */
+  /** Returns the system PATH, if available. */
   def getSystemPath: Seq[Path] =
     getEnvVar("PATH")
       .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
@@ -96,6 +95,33 @@ trait Environment {
       }
     }
   }
+
+  /** Returns the location of the user profile directory (`%UserProfile%`) on
+    * Windows.
+    */
+  def getWindowsUserProfile: Path = {
+    if (!OS.isWindows)
+      throw new IllegalStateException(
+        "fatal error: USERPROFILE should be queried only on Windows."
+      )
+    else {
+      getEnvVar("USERPROFILE").flatMap(safeParsePath) match {
+        case Some(path) => path
+        case None =>
+          throw new RuntimeException(
+            "fatal error: %USERPROFILE% environment variable is not defined."
+          )
+      }
+    }
+  }
+
+  /** Returns a path to the user's home directory, as defined on their
+    * particular Operating System.
+    *
+    * On UNIX, this is $HOME and on Windows it is %UserProfile%.
+    */
+  def getUserProfile: Path =
+    if (OS.isWindows) getWindowsUserProfile else getHome
 
   /** Returns the location of the local application data directory
     * (`%LocalAppData%`) on Windows.
