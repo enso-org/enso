@@ -1,8 +1,5 @@
 # Enso Next
 
-- Implemented Standard Library methods for controlling default visualizations in
-  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
-
 ## Interpreter/Runtime
 
 - Upgraded the underlying runtime to
@@ -59,6 +56,8 @@
   Scala ([#1729](https://github.com/enso-org/enso/pull/1729)). This has greatly
   improved the performance, enabling us to generate the documentation structure
   for the entire standard library 8-10 times faster than before.
+- Implemented Standard Library methods for controlling default visualizations in
+  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
 
 ## Miscellaneous
 
