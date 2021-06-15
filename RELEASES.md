@@ -39,6 +39,11 @@
 - Added support for multiple content roots in the language server
   ([#1800](https://github.com/enso-org/enso/pull/1800/)). It is not yet exposed
   to the IDE, as this will be done as part of future work.
+- Modified the `package.yaml` format in preparation for the library ecosystem
+  ([#1797](https://github.com/enso-org/enso/pull/1797)). The `engine-version`
+  field has been deprecated in favour of an `edition` field that allows to set
+  up the engine version and dependency resolution using the upcoming Edition
+  system.
 
 ## Libraries
 
