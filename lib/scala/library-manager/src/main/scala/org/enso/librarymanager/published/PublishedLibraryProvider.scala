@@ -5,19 +5,18 @@ import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.{LibraryResolutionResult, LibraryVersion}
 
-trait LibraryProvider {
+/** A provider of published libraries.
+  *
+  * It usually should use some kind of a cache to keep already downloaded
+  * libraries and download new libraries on demand.
+  */
+trait PublishedLibraryProvider {
 
   /** Tries to locate the requested library at a specific version.
     *
     * If the library is not present, a download may be attempted - this is where
-    * the recommendedRepository is used to guide which repository should be used
-    * for the download.
-    *
-    * If the library is available immediately, Right should be returned to
-    * indicate that. Otherwise a Left containing a TaskProgress is returned
-    * which will track the progress of the download (as it may take a
-    * significant amount of time, especially because other dependencies may also
-    * be pre-downloaded).
+    * the `recommendedRepository` is used to guide which repository should be
+    * used for the download.
     */
   def findLibrary(
     libraryName: LibraryName,

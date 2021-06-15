@@ -4,16 +4,23 @@ import org.enso.distribution.DistributionManager
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.librarymanager.published.{
-  DefaultLibraryProvider,
-  LibraryProvider
+  DefaultPublishedLibraryProvider,
+  PublishedLibraryProvider
 }
 
-case class LibraryManager(distributionManager: DistributionManager) {
-  val localLibraryProvider = LocalLibraryProvider.make(distributionManager)
-  val resolver             = LibraryResolver(localLibraryProvider)
-  val publishedLibraryProvider: LibraryProvider =
-    new DefaultLibraryProvider(distributionManager)
+/** A helper class for loading libraries. */
+case class LibraryLoader(distributionManager: DistributionManager) {
+  private val localLibraryProvider =
+    LocalLibraryProvider.make(distributionManager)
+  private val resolver = LibraryResolver(localLibraryProvider)
+  private val publishedLibraryProvider: PublishedLibraryProvider =
+    new DefaultPublishedLibraryProvider(distributionManager)
 
+  /** Resolves the library version that should be used based on the
+    * configuration and returns its location on the filesystem.
+    *
+    * If the library is not available, this operation may download it.
+    */
   def findLibrary(
     libraryName: LibraryName,
     edition: Editions.ResolvedEdition,

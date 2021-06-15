@@ -7,15 +7,22 @@ import org.enso.librarymanager.{LibraryResolutionResult, LibraryVersion}
 
 import scala.annotation.nowarn
 
-class DefaultLibraryProvider(
+/** A default implementation of [[PublishedLibraryProvider]]. */
+class DefaultPublishedLibraryProvider(
   @nowarn("msg=never used") distributionManager: DistributionManager
-) extends LibraryProvider {
+) extends PublishedLibraryProvider {
+
+  // TODO [RW] This is just a stub and will be properly implemented in #1772.
+
+  /** @inheritdoc */
   override def findLibrary(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): LibraryResolutionResult = throw new NotImplementedError(
-    "TODO library management is not yet implemented"
+  ): LibraryResolutionResult = LibraryResolutionResult.ResolutionFailure(
+    new NotImplementedError(
+      "TODO library management is not yet implemented"
+    )
   )
 }
