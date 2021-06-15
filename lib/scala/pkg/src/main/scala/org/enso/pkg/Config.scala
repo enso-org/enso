@@ -21,8 +21,7 @@ case class Contact(name: Option[String], email: Option[String]) {
       "At least one of fields `name` or `email` must be defined."
     )
 
-  /** @inheritdoc
-    */
+  /** @inheritdoc */
   override def toString: String = {
     val space = if (name.isDefined && email.isDefined) " " else ""
     name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
@@ -30,15 +29,13 @@ case class Contact(name: Option[String], email: Option[String]) {
 }
 object Contact {
 
-  /** Fields for use when serializing the [[Contact]].
-    */
+  /** Fields for use when serializing the [[Contact]]. */
   object Fields {
     val Name  = "name"
     val Email = "email"
   }
 
-  /** [[Encoder]] instance for the [[Contact]].
-    */
+  /** [[Encoder]] instance for the [[Contact]]. */
   implicit val encoder: Encoder[Contact] = { contact =>
     val name  = contact.name.map(Fields.Name -> _.asJson)
     val email = contact.email.map(Fields.Email -> _.asJson)
@@ -97,8 +94,7 @@ case class Config(
   originalJson: JsonObject = JsonObject()
 ) {
 
-  /** Converts the configuration into a YAML representation.
-    */
+  /** Converts the configuration into a YAML representation. */
   def toYaml: String =
     Printer.spaces2.copy(preserveOrder = true).pretty(Config.encoder(this))
 }
@@ -163,12 +159,23 @@ object Config {
     originals.remove(JsonFields.ensoVersion).deepMerge(overridesObject).asJson
   }
 
-  /** Tries to parse the [[Config]] from a YAML string.
-    */
+  /** Tries to parse the [[Config]] from a YAML string. */
   def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
   }
 
+  /** Creates a simple edition that just defines the provided engine version.
+    *
+    * A compatibility layer for migrating from just specifying the engine
+    * version to the edition system.
+    *
+    * TODO [RW] once the edition is actually used for loading libraries, this
+    * may need to be revisited, because an edition created in this way will not
+    * have any libraries present which is highly undesirable. We may either
+    * remove the compatibility layer and return errors for the old format or
+    * need to use the latest/default edition or some hardcoded edition for
+    * compatibility.
+    */
   def makeCompatibilityEditionFromVersion(
     ensoVersion: EnsoVersion
   ): Editions.RawEdition = Editions.Raw.Edition(
@@ -178,6 +185,17 @@ object Config {
     libraries     = Map()
   )
 
+  /** A helper method that reconciles the old and new fields of the config
+    * related to the edition.
+    *
+    * If an edition is present, it is just returned as-is. If the engine version
+    * is specified, a special edition is created that specifies this particular
+    * engine version and nothing else.
+    *
+    * If both fields are defined, an error is raised as the configuration may be
+    * inconsistent - the `engine-version` field should only be present in old
+    * configs and after migration to the edition format it should be removed.
+    */
   private def editionOrVersionBackwardsCompatibility(
     edition: Option[Editions.RawEdition],
     ensoVersion: Option[EnsoVersion]

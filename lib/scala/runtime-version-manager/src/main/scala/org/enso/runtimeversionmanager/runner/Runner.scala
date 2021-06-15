@@ -232,7 +232,7 @@ class Runner(
     }
   }
 
-  /** Resolves the engine version that should be used.
+  /** Resolves the engine version that should be used for the run.
     *
     * If `versionOverride` is defined it has the highest priority and its
     * version is returned. Otherwise if the project is defined, the version from

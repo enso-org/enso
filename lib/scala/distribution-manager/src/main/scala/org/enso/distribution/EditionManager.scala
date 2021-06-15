@@ -1,8 +1,8 @@
 package org.enso.distribution
 
+import org.enso.editions
 import org.enso.editions.provider.FileSystemEditionProvider
 import org.enso.editions.{EditionResolver, Editions, EnsoVersion}
-import org.enso.pkg.EngineVersionResolver
 
 import scala.util.Try
 
@@ -14,8 +14,9 @@ case class EditionManager(distributionManager: DistributionManager) {
     distributionManager.paths.editionSearchPaths.toList
   )
 
-  private val editionResolver       = EditionResolver(editionProvider)
-  private val engineVersionResolver = EngineVersionResolver(editionProvider)
+  private val editionResolver = EditionResolver(editionProvider)
+  private val engineVersionResolver =
+    editions.EngineVersionResolver(editionProvider)
 
   /** Resolves a raw edition, loading its parents from the edition search path.
     * @param edition the edition to resolve
