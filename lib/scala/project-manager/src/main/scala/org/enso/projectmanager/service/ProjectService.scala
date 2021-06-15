@@ -286,7 +286,7 @@ class ProjectService[
       }
       .mapRuntimeManagerErrors(th =>
         ProjectOpenFailed(
-          s"Cannot install the required engine. ${th.getMessage}"
+          s"Cannot install the required engine. $th"
         )
       )
 
