@@ -36,6 +36,9 @@
 - Added support for reading and writing byte ranges in files remotely
   ([#1795](https://github.com/enso-org/enso/pull/1795)). This allows the IDE to
   transfer files to a remote back-end in a streaming fashion.
+- Added support for multiple content roots in the language server
+  ([#1800](https://github.com/enso-org/enso/pull/1800/)). It is not yet exposed
+  to the IDE, as this will be done as part of future work.
 
 ## Libraries
 
