@@ -10,15 +10,21 @@ import org.enso.editions.SemVerJson._
 import java.io.FileReader
 import java.net.URL
 import java.nio.file.Path
-import scala.util.{Try, Using}
+import scala.util.{Failure, Try, Using}
 
+/** Gathers methods for decoding and encoding of Raw editions. */
 object EditionSerialization {
+
+  /** Tries to parse an edition definition from a string in the YAML format. */
   def parseYamlString(yamlString: String): Try[Raw.Edition] =
     yaml.parser
       .parse(yamlString)
       .flatMap(_.as[Raw.Edition])
+      .left
+      .map(EditionResolutionError.wrapDecodingError)
       .toTry
 
+  /** Tries to load an edition definition from a YAML file. */
   def loadEdition(path: Path): Try[Raw.Edition] =
     Using(new FileReader(path.toFile)) { reader =>
       yaml.parser
@@ -26,7 +32,20 @@ object EditionSerialization {
         .flatMap(_.as[Raw.Edition])
         .toTry
     }.flatten
+      .recoverWith { error =>
+        Failure(
+          EditionResolutionError.wrapLoadingError(
+            path.getFileName.toString,
+            error
+          )
+        )
+      }
 
+  /** A [[Decoder]] instance for [[Raw.Edition]].
+    *
+    * It can be used to decode nested editions in other kinds of configurations
+    * files, for example in `package.yaml`.
+    */
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {
       parent        <- json.get[Option[EditionName]](Fields.parent)
@@ -74,6 +93,7 @@ object EditionSerialization {
     } yield res
   }
 
+  /** An [[Encoder]] instance for [[Raw.Edition]]. */
   implicit val editionEncoder: Encoder[Raw.Edition] = { edition =>
     val parent = edition.parent.map { parent => Fields.parent -> parent.asJson }
     val engineVersion = edition.engineVersion.map { version =>
@@ -109,7 +129,41 @@ object EditionSerialization {
     val localRepositoryName = "local"
   }
 
-  case class EditionName(name: String)
+  case class EditionLoadingError(message: String, cause: Throwable)
+      extends RuntimeException(message, cause) {
+
+    /** @inheritdoc */
+    override def toString: String = message
+  }
+
+  object EditionLoadingError {
+
+    /** Creates a [[EditionLoadingError]] by wrapping another [[Throwable]].
+      *
+      * Special logic is used for [[io.circe.Error]] to display the error
+      * summary in a human-readable way.
+      */
+    def fromThrowable(throwable: Throwable): EditionLoadingError =
+      throwable match {
+        case decodingError: io.circe.Error =>
+          val errorMessage =
+            implicitly[Show[io.circe.Error]].show(decodingError)
+          EditionLoadingError(
+            s"Could not parse the edition file: $errorMessage",
+            decodingError
+          )
+        case other =>
+          EditionLoadingError(s"Could not load the edition file: $other", other)
+      }
+  }
+
+  /** A helper opaque type to handle special parsing logic of edition names.
+    *
+    * The issue is that if an edition is called `2021.4` and it is written
+    * unquoted inside of a YAML file, that is treated as a floating point
+    * number, so special care must be taken to correctly parse it.
+    */
+  private case class EditionName(name: String)
 
   implicit private val editionNameDecoder: Decoder[EditionName] = { json =>
     json
@@ -201,33 +255,5 @@ object EditionSerialization {
           )
         else Right(Repository(name, url))
     } yield res
-  }
-
-  case class EditionLoadingError(message: String, cause: Throwable)
-      extends RuntimeException(message, cause) {
-
-    /** @inheritdoc */
-    override def toString: String = message
-  }
-
-  object EditionLoadingError {
-
-    /** Creates a [[EditionLoadingError]] by wrapping another [[Throwable]].
-      *
-      * Special logic is used for [[io.circe.Error]] to display the error
-      * summary in a human-readable way.
-      */
-    def fromThrowable(throwable: Throwable): EditionLoadingError =
-      throwable match {
-        case decodingError: io.circe.Error =>
-          val errorMessage =
-            implicitly[Show[io.circe.Error]].show(decodingError)
-          EditionLoadingError(
-            s"Could not parse the edition file: $errorMessage",
-            decodingError
-          )
-        case other =>
-          EditionLoadingError(s"Could not load the edition file: $other", other)
-      }
   }
 }

@@ -26,8 +26,8 @@ import scala.util.control.NonFatal
   *                                 be used directly, see
   *                                 [[TemporaryDirectoryManager]]
   * @param customEditions the search paths for editions
-  *  @param localLibrariesSearchPaths a sequence of paths to search for local
-  *                                   libraries, in order of precedence
+  * @param localLibrariesSearchPaths a sequence of paths to search for local
+  *                                  libraries, in order of precedence
   * @param ensoHome the home directory for user's projects etc.
   */
 case class DistributionPaths(
@@ -142,6 +142,9 @@ class DistributionManager(val env: Environment) {
   protected def detectEnsoHome(): Path =
     env.getEnvPath(ENSO_HOME).getOrElse(env.getHome / "enso")
 
+  /** Finds the paths to look for custom editions, which may be overridden by
+    * setting the ENSO_EDITION_PATH environment variable.
+    */
   protected def detectCustomEditionPaths(ensoHome: Path): Seq[Path] =
     env
       .getEnvPaths(ENSO_EDITION_PATH)
@@ -149,6 +152,9 @@ class DistributionManager(val env: Environment) {
         Seq(ensoHome / DistributionManager.Home.EDITIONS_DIRECTORY)
       }
 
+  /** Finds the paths to look for local libraries, which may be overridden by
+    * setting the ENSO_LIBRARY_PATH environment variable.
+    */
   protected def detectLocalLibraryPaths(ensoHome: Path): Seq[Path] =
     env
       .getEnvPaths(ENSO_LIBRARY_PATH)
@@ -355,6 +361,9 @@ class DistributionManager(val env: Environment) {
   }
 }
 
+/** A helper object that contains constants defining names of various
+  * directories used by Enso components.
+  */
 object DistributionManager {
   val ENGINES_DIRECTORY   = "dist"
   val RUNTIMES_DIRECTORY  = "runtime"
@@ -366,6 +375,7 @@ object DistributionManager {
   val EDITIONS_DIRECTORY  = "editions"
   val LIBRARIES_DIRECTORY = "lib"
 
+  /** Defines paths inside of the ENSO_HOME directory. */
   object Home {
     val EDITIONS_DIRECTORY  = "editions"
     val LIBRARIES_DIRECTORY = "libraries"

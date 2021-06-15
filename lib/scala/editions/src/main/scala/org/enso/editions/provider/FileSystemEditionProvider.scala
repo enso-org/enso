@@ -7,8 +7,13 @@ import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 import scala.util.{Failure, Success, Try}
 
+/** An implementation of [[EditionProvider]] that looks for the edition files in
+  *  a list of filesystem paths.
+  */
 case class FileSystemEditionProvider(searchPaths: List[Path])
     extends EditionProvider {
+
+  /** @inheritdoc */
   override def findEditionForName(name: String): Try[Editions.Raw.Edition] = {
     val result = findEdition(name, searchPaths)
     result match {
@@ -40,6 +45,7 @@ case class FileSystemEditionProvider(searchPaths: List[Path])
   private case object EditionNotFound extends EditionLoadingError
   private case class EditionReadError(error: Throwable)
       extends EditionLoadingError
+
   private def loadEdition(
     name: String,
     path: Path

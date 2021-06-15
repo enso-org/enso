@@ -1,7 +1,6 @@
 package org.enso.distribution.locking
 
-/** Represents a resource that can be locked.
-  */
+/** Represents a resource that can be locked. */
 trait Resource {
 
   /** Name of the resource.

@@ -10,12 +10,28 @@ import org.enso.editions.provider.EditionProvider
 
 import scala.annotation.tailrec
 
+/** A helper class that allows to resolve a [[RawEdition]] into a
+  * [[ResolvedEdition]] by loading its parents and resolving the repository
+  * references.
+  *
+  * @param provider an [[EditionProvider]] that is used for loading the
+  *                 referenced parent editions
+  */
 case class EditionResolver(provider: EditionProvider) {
+
+  /** Runs the edition resolution.
+    *
+    * @param edition the raw edition to resolve
+    * @return either a resolution error or the resolved edition
+    */
   def resolve(
     edition: RawEdition
   ): Either[EditionResolutionError, ResolvedEdition] =
     resolveEdition(edition, Nil)
 
+  /** A helper method that resolves an edition and keeps a list of already
+    * visited edition names to avoid cycles.
+    */
   private def resolveEdition(
     edition: RawEdition,
     visitedEditions: List[String]
@@ -34,6 +50,17 @@ case class EditionResolver(provider: EditionProvider) {
       libraries     = libraries
     )
 
+  /** A helper method for resolving libraries.
+    *
+    * @param libraries the raw mapping of libraries
+    * @param currentRepositories the mapping of repositories defined in the
+    *                            current edition
+    * @param parent an optional reference to an (already resolved) parent
+    *               edition, which is used if the library references a
+    *               repository that was not defined in `currentRepositories`
+    * @return either an error indicating a reference to an unknown repository or
+    *         a mapping of resolved libraries
+    */
   private def resolveLibraries(
     libraries: Map[String, Editions.Raw.Library],
     currentRepositories: Map[String, Editions.Repository],
@@ -54,6 +81,16 @@ case class EditionResolver(provider: EditionProvider) {
     resolvedPairs.map(Map.from)
   }
 
+  /** A helper method to resolve a single library.
+    *
+    * @param library the library to resolve
+    * @param currentRepositories the mapping of repositories defined in the
+    *                            current edition
+    * @param parent an optional reference to an (already resolved) parent
+    *               edition, which is used if the library references a
+    *               repository that was not defined in `currentRepositories`
+    * @return either an error or the resolved library
+    */
   @tailrec
   private def resolveLibrary(
     library: Editions.Raw.Library,
@@ -92,6 +129,10 @@ case class EditionResolver(provider: EditionProvider) {
       }
   }
 
+  /** A helper function that takes an optional parent name and list of already
+    *  seen editions and tries to load the parent (if present), but avoiding
+    *  cycles (returning an error if a cycle was encountered).
+    */
   private def resolveParent(
     parent: Option[String],
     visitedEditions: List[String]
@@ -106,7 +147,7 @@ case class EditionResolver(provider: EditionProvider) {
             .findEditionForName(parentName)
             .toEither
             .left
-            .map(EditionResolutionError.CannotLoadParentEdition)
+            .map(EditionResolutionError.CannotLoadEdition(parentName, _))
           res <- resolveEdition(rawParent, parentName :: visitedEditions)
         } yield Some(res)
     case None => Right(None)
