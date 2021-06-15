@@ -57,13 +57,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     logLevel
   )
 
+  val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
     serverConfig.contentRootUuid,
     ContentRootType.Project,
     "Project",
     new File(serverConfig.contentRootPath)
   )
-  val directoriesConfig = ProjectDirectoriesConfig(contentRoot)
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> contentRoot),
     FileManagerConfig(timeout = 3.seconds),

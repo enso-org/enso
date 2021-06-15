@@ -805,7 +805,7 @@ class SuggestionsHandlerSpec
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 

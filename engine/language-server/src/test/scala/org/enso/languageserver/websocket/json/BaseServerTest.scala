@@ -73,7 +73,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      ProjectDirectoriesConfig(testContentRoot)
+      ProjectDirectoriesConfig(testContentRoot.file)
     )
 
   override def protocol: Protocol = JsonRpc.protocol

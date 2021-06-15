@@ -213,7 +213,7 @@ class RepoInitializationSpec
       FileManagerConfig(timeout = 3.seconds.dilated),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
-      ProjectDirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 

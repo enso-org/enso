@@ -44,7 +44,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
-    ProjectDirectoriesConfig.initialize(testContentRoot)
+    ProjectDirectoriesConfig.initialize(testContentRoot.file)
   )
 
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))

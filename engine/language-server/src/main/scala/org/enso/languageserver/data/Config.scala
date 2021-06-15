@@ -76,12 +76,9 @@ object ExecutionContextConfig {
 
 /** Configuration of directories for storing internal files.
   *
-  * @param projectRoot the content root for the root of the current project
+  * @param root the root directory path
   */
-case class ProjectDirectoriesConfig(projectRoot: ContentRootWithFile)
-    extends ToLogString {
-
-  val root: File = projectRoot.file
+case class ProjectDirectoriesConfig(root: File) extends ToLogString {
 
   /** The data directory path. */
   val dataDirectory: File =
@@ -109,12 +106,15 @@ object ProjectDirectoriesConfig {
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
+  def apply(root: String): ProjectDirectoriesConfig =
+    new ProjectDirectoriesConfig(new File(root))
+
   /** Create default data directory config, creating directories if not exist.
     *
-    * @param root the root directory content root
+    * @param root the root directory path
     * @return data directory config
     */
-  def initialize(root: ContentRootWithFile): ProjectDirectoriesConfig = {
+  def initialize(root: File): ProjectDirectoriesConfig = {
     val config = new ProjectDirectoriesConfig(root)
     config.createDirectories()
     config

@@ -1,6 +1,8 @@
 ---
-layout: developer-doc title: Enso Protocol Language Server Message Specification category:
-language-server tags: [language-server, protocol, specification]
+layout: developer-doc
+title: Enso Protocol Language Server Message Specification
+category: language-server
+tags: [language-server, protocol, specification]
 order: 4
 ---
 
@@ -55,8 +57,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`WorkspaceEdit`](#workspaceedit)
   - [`EnsoDigest`](#ensodigest)
   - [`FileSegment`](#filesegment)
-  - [`ContentRoot`](#contentroot)
-  - [`ContentRootType`](#contentroottype)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -991,8 +991,7 @@ structure on the binary connection please see [`EnsoDigest`](#ensodigest)
 #### Format
 
 ```typescript
-type SHA3
--224 = String;
+type SHA3-224 = String;
 ```
 
 ### `FileEdit`
@@ -1024,12 +1023,8 @@ applyEdits buffer (first : rest) = applyEdits (applyTextEdit buffer first) rest
 interface FileEdit {
   path: Path;
   edits: [TextEdit];
-  oldVersion: SHA3
-  -
-  224;
-  newVersion: SHA3
-  -
-  224;
+  oldVersion: SHA3-224;
+  newVersion: SHA3-224;
 }
 ```
 
@@ -1044,7 +1039,7 @@ interface FileContents<T> {
   contents: T;
 }
 
-class TextFileContents extends FileContents[String] {}
+class TextFileContents extends FileContents<String> {}
 ```
 
 ### `FileSystemObject`
@@ -1162,10 +1157,9 @@ VFS.
 interface ContentRoot {
   // A unique identifier for the content root.
   id: UUID;
-
   // The type of content root.
   type: ContentRootType;
-  
+
   // The name of the content root.
   name: String;
 }
@@ -1182,11 +1176,11 @@ type ContentRootType = Project | Root | Home | Library | Custom;
 These represent:
 
 - `Project`: This content root points to the project home.
-- `Root`: This content root points to the system root (`/`) on unix systems,
-  or to a drive root on Windows. In Windows' case, there may be multiple
-  `Root` entries corresponding to the various drives.
+- `Root`: This content root points to the system root (`/`) on unix systems, or
+  to a drive root on Windows. In Windows' case, there may be multiple `Root`
+  entries corresponding to the various drives.
 - `Home`: The user's home directory.
-- `Library`: An Enso library location.  
+- `Library`: An Enso library location.
 - `Custom`: A content root that has been added by the IDE (unused for now).
 
 ## Connection Management
@@ -1217,7 +1211,7 @@ be correlated between the textual and data connections.
 
 ```typescript
 {
-  contentRoots: [ContentRoot];
+  contentRoots: [UUID];
 }
 ```
 
@@ -1289,7 +1283,7 @@ client.
 ```typescript
 {
   method: String;
-  registerOptions ? : any;
+  registerOptions?: any;
 }
 ```
 
@@ -1511,7 +1505,7 @@ must fail.
 ```typescript
 {
   path: Path;
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 
@@ -1555,7 +1549,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ```typescript
 {
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 
@@ -1968,7 +1962,7 @@ directory tree starting at a given path.
 ```typescript
 {
   path: Path;
-  depth ? : Number;
+  depth?: Number;
 }
 ```
 
@@ -2083,9 +2077,7 @@ interface ChecksumRequest {
 ```typescript
 interface ChecksumResponse {
   // The checksum of the file at `path`.
-  checksum: SHA3
-  -
-  224;
+  checksum : SHA3-224;
 }
 ```
 
@@ -2301,9 +2293,9 @@ client that sent the `text/openFile` message.
 
 ```typescript
 {
-  writeCapability ? : CapabilityRegistration;
+  writeCapability?: CapabilityRegistration;
   content: String;
-  currentVersion: SHA3 - 224;
+  currentVersion: SHA3-224;
 }
 ```
 
@@ -2512,7 +2504,7 @@ server undoing that same action for all clients in the workspace.
 
 ```typescript
 {
-  requestID ? : UUID; // If not specified, it undoes the latest request
+  requestID?: UUID; // If not specified, it undoes the latest request
 }
 ```
 
@@ -2543,7 +2535,7 @@ server redoing that same action for all clients in the workspace.
 
 ```typescript
 {
-  requestID ? : UUID; // If not specified, it redoes the latest request
+  requestID?: UUID; // If not specified, it redoes the latest request
 }
 ```
 
@@ -3034,7 +3026,7 @@ May include a list of expressions for which caches should be invalidated.
 ```typescript
 {
   contextId: ContextId;
-  invalidatedExpressions ? : "all" | [ExpressionId]
+  invalidatedExpressions?: "all" | [ExpressionId]
 }
 ```
 
@@ -3110,7 +3102,7 @@ stack, an error location a method or a module when issuing a
   /**
    * The location of a file producing the error.
    */
-  path ? : Path;
+  path?: Path;
 }
 ```
 
@@ -3685,11 +3677,11 @@ Sent from client to the server to receive the autocomplete suggestion.
   // The cursor position
   position: Position;
   // Filter by methods with the provided self type
-  selfType ? : string;
+  selfType?: string;
   // Filter by the return type
-  returnType ? : string;
+  returnType?: string;
   // Filter by the suggestion types
-  tags ? : [SuggestionEntryType];
+  tags?: [SuggestionEntryType];
 }
 ```
 
@@ -3999,15 +3991,9 @@ Note:
 It signals that a user doesn't have access to a resource.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  100,
-      "message"
-:
-  "Access denied"
+"error" : {
+  "code" : 100,
+  "message" : "Access denied"
 }
 ```
 
@@ -4016,15 +4002,9 @@ It signals that a user doesn't have access to a resource.
 This error signals generic file system errors.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1000,
-      "message"
-:
-  String
+"error" : {
+  "code" : 1000,
+  "message" : String
 }
 ```
 
@@ -4033,15 +4013,9 @@ This error signals generic file system errors.
 The error informs that the requested content root cannot be found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1001,
-      "message"
-:
-  "Content root not found"
+"error" : {
+  "code" : 1001,
+  "message" : "Content root not found"
 }
 ```
 
@@ -4050,15 +4024,9 @@ The error informs that the requested content root cannot be found.
 It signals that requested file doesn't exist.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1003,
-      "message"
-:
-  "File not found"
+"error" : {
+  "code" : 1003,
+  "message" : "File not found"
 }
 ```
 
@@ -4067,15 +4035,9 @@ It signals that requested file doesn't exist.
 It signals that file already exists.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1004,
-      "message"
-:
-  "File already exists"
+"error" : {
+  "code" : 1004,
+  "message" : "File already exists"
 }
 ```
 
@@ -4084,15 +4046,9 @@ It signals that file already exists.
 It signals that IO operation timed out.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1005,
-      "message"
-:
-  "IO operation timeout"
+"error" : {
+  "code" : 1005,
+  "message" : "IO operation timeout"
 }
 ```
 
@@ -4101,15 +4057,9 @@ It signals that IO operation timed out.
 It signals that provided path is not a directory.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1006,
-      "message"
-:
-  "Path is not a directory"
+"error" : {
+  "code" : 1006,
+  "message" : "Path is not a directory"
 }
 ```
 
@@ -4118,15 +4068,9 @@ It signals that provided path is not a directory.
 It signals that the provided path is not a file.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1007,
-      "message"
-:
-  "Path is not a file"
+"error" : {
+  "code" : 1007,
+  "message" : "Path is not a file"
 }
 ```
 
@@ -4136,15 +4080,9 @@ Signals that a streaming file write cannot overwrite a portion of the requested
 file.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1008,
-      "message"
-:
-  "Cannot overwrite the file without `overwriteExisting` set"
+"error" : {
+  "code" : 1008,
+  "message" : "Cannot overwrite the file without `overwriteExisting` set"
 }
 ```
 
@@ -4153,21 +4091,11 @@ file.
 Signals that the requested file read was out of bounds for the file's size.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1009
-  "message"
-:
-  "Read is out of bounds for the file"
-  "data"
-:
-  {
-    "fileLength"
-  :
-    0
+"error" : {
+  "code" : 1009
+  "message" : "Read is out of bounds for the file"
+  "data" : {
+    "fileLength" : 0
   }
 }
 ```
@@ -4177,15 +4105,9 @@ Signals that the requested file read was out of bounds for the file's size.
 Signals that the project configuration cannot be decoded.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  1010
-  "message"
-:
-  "Cannot decode the project configuration"
+"error" : {
+  "code" : 1010
+  "message" : "Cannot decode the project configuration"
 }
 ```
 
@@ -4203,15 +4125,9 @@ table ReadOutOfBoundsError {
 It signals that provided stack item was not found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2001,
-      "message"
-:
-  "Stack item not found"
+"error" : {
+  "code" : 2001,
+  "message" : "Stack item not found"
 }
 
 ```
@@ -4221,15 +4137,9 @@ It signals that provided stack item was not found.
 It signals that provided context was not found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2002,
-      "message"
-:
-  "Context not found"
+"error" : {
+  "code" : 2002,
+  "message" : "Context not found"
 }
 ```
 
@@ -4238,15 +4148,9 @@ It signals that provided context was not found.
 It signals that stack is empty.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2003,
-      "message"
-:
-  "Stack is empty"
+"error" : {
+  "code" : 2003,
+  "message" : "Stack is empty"
 }
 ```
 
@@ -4255,15 +4159,9 @@ It signals that stack is empty.
 It signals that stack is invalid in this context.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2004,
-      "message"
-:
-  "Invalid stack item"
+"error" : {
+  "code" : 2004,
+  "message" : "Invalid stack item"
 }
 ```
 
@@ -4272,15 +4170,9 @@ It signals that stack is invalid in this context.
 It signals that the given module cannot be found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2005,
-      "message"
-:
-  "Module not found [Foo.Bar.Baz]"
+"error" : {
+  "code" : 2005,
+  "message" : "Module not found [Foo.Bar.Baz]"
 }
 ```
 
@@ -4289,15 +4181,9 @@ It signals that the given module cannot be found.
 It signals that the visualisation cannot be found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2006,
-      "message"
-:
-  "Visualisation not found"
+"error" : {
+  "code" : 2006,
+  "message" : "Visualisation not found"
 }
 ```
 
@@ -4308,59 +4194,25 @@ cannot be evaluated. The error contains an optional `data` field of type
 [`Diagnostic`](#diagnostic) providing error details.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  2007,
-      "message"
-:
-  "Evaluation of the visualisation expression failed [i is not defined]"
-  "data"
-:
-  {
-    "kind"
-  :
-    "Error",
-        "message"
-  :
-    "i is not defined",
-        "path"
-  :
-    null,
-        "location"
-  :
-    {
-      "start"
-    :
-      {
-        "line"
-      :
-        0,
-            "character"
-      :
-        8
+"error" : {
+  "code" : 2007,
+  "message" : "Evaluation of the visualisation expression failed [i is not defined]"
+  "data" : {
+    "kind" : "Error",
+    "message" : "i is not defined",
+    "path" : null,
+    "location" : {
+      "start" : {
+        "line" : 0,
+        "character" : 8
+      },
+      "end" : {
+        "line" : 0,
+        "character" : 9
       }
-    ,
-      "end"
-    :
-      {
-        "line"
-      :
-        0,
-            "character"
-      :
-        9
-      }
-    }
-  ,
-    "expressionId"
-  :
-    "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
-        "stack"
-  :
-    []
+    },
+    "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
+    "stack" : []
   }
 }
 ```
@@ -4370,15 +4222,9 @@ cannot be evaluated. The error contains an optional `data` field of type
 Signals that a file wasn't opened.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  3001,
-      "message"
-:
-  "File not opened"
+"error" : {
+  "code" : 3001,
+  "message" : "File not opened"
 }
 ```
 
@@ -4387,15 +4233,9 @@ Signals that a file wasn't opened.
 Signals that validation has failed for a series of edits.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  3002,
-      "message"
-:
-  "The start position is after the end position"
+"error" : {
+  "code" : 3002,
+  "message" : "The start position is after the end position"
 }
 ```
 
@@ -4405,15 +4245,9 @@ Signals that version provided by a client doesn't match to the version computed
 by the server.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  3003,
-      "message"
-:
-  "Invalid version [client version: ade2967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]"
+"error" : {
+  "code" : 3003,
+  "message" : "Invalid version [client version: ade2967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]"
 }
 ```
 
@@ -4422,15 +4256,9 @@ by the server.
 Signals that the client doesn't hold write lock to the buffer.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  3004,
-      "message"
-:
-  "Write denied"
+"error" : {
+  "code" : 3004,
+  "message" : "Write denied"
 }
 ```
 
@@ -4439,15 +4267,9 @@ Signals that the client doesn't hold write lock to the buffer.
 Signals that requested capability is not acquired.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  5001,
-      "message"
-:
-  "Capability not acquired"
+"error" : {
+  "code" : 5001,
+  "message" : "Capability not acquired"
 }
 ```
 
@@ -4456,15 +4278,9 @@ Signals that requested capability is not acquired.
 Signals that requested cannot be proccessed, beacuse session is not initialised.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  6001,
-      "message"
-:
-  "Session not initialised"
+"error" : {
+  "code" : 6001,
+  "message" : "Session not initialised"
 }
 ```
 
@@ -4473,15 +4289,9 @@ Signals that requested cannot be proccessed, beacuse session is not initialised.
 Signals that session is already initialised.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  6002,
-      "message"
-:
-  "Session already initialised"
+"error" : {
+  "code" : 6002,
+  "message" : "Session already initialised"
 }
 ```
 
@@ -4490,15 +4300,9 @@ Signals that session is already initialised.
 Signals about the failure in the Language Server initialization process.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  6003,
-      "message"
-:
-  "Failed to initialize the Language Server resources"
+"error" : {
+  "code" : 6003,
+  "message" : "Failed to initialize the Language Server resources"
 }
 ```
 
@@ -4507,15 +4311,9 @@ Signals about the failure in the Language Server initialization process.
 Signals about an error accessing the suggestions database.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  7001,
-      "message"
-:
-  "Suggestions database error"
+"error" : {
+  "code" : 7001,
+  "message" : "Suggestions database error"
 }
 ```
 
@@ -4524,15 +4322,9 @@ Signals about an error accessing the suggestions database.
 Signals that the project not found in the root directory.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  7002,
-      "message"
-:
-  "Project not found in the root directory"
+"error" : {
+  "code" : 7002,
+  "message" : "Project not found in the root directory"
 }
 ```
 
@@ -4541,15 +4333,9 @@ Signals that the project not found in the root directory.
 Signals that the module name can not be resolved for the given file.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  7003,
-      "message"
-:
-  "Module name can't be resolved for the given file"
+"error" : {
+  "code" : 7003,
+  "message" : "Module name can't be resolved for the given file"
 }
 ```
 
@@ -4558,14 +4344,8 @@ Signals that the module name can not be resolved for the given file.
 Signals that the requested suggestion was not found.
 
 ```typescript
-"error"
-:
-{
-  "code"
-:
-  7004,
-      "message"
-:
-  "Requested suggestion was not found"
+"error" : {
+  "code" : 7004,
+  "message" : "Requested suggestion was not found"
 }
 ```
