@@ -1,6 +1,5 @@
 package org.enso.searcher.sql
 
-import java.io.File
 import java.util.UUID
 
 import org.enso.polyglot.Suggestion
@@ -1100,24 +1099,4 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       l <- least
       m <- most
     } yield new UUID(m, l)
-}
-
-object SqlSuggestionsRepo {
-
-  /** Create the suggestions repo.
-    *
-    * @return the suggestions repo backed up by SQL database.
-    */
-  def apply()(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
-    new SqlSuggestionsRepo(new SqlDatabase())
-  }
-
-  /** Create the suggestions repo.
-    *
-    * @param path the path to the database file.
-    * @return the suggestions repo backed up by SQL database.
-    */
-  def apply(path: File)(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
-    new SqlSuggestionsRepo(SqlDatabase(path.toString))
-  }
 }
