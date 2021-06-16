@@ -387,6 +387,12 @@ impl NodeModel {
     pub fn new(app:&Application, registry:visualization::Registry) -> Self {
         ensogl::shapes_order_dependencies! {
             app.display.scene() => {
+                //TODO[ao] The two lines below should not be needed - the ordering should be
+                //    transitive. But removing them causes a visual glitches described in
+                //    https://github.com/enso-org/ide/issues/1624
+                //    The matter should be further investigated.
+                edge::back::corner        -> backdrop;
+                edge::back::line          -> backdrop;
                 edge::back::corner        -> error_shape;
                 edge::back::line          -> error_shape;
                 error_shape               -> backdrop;
