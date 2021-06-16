@@ -1,0 +1,16 @@
+{
+  "name": "simple-library-server",
+  "version": "1.0.0",
+  "description": "A simple server for hosting Enso libraries and Editions.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "enso",
+    "libraries",
+    "server"
+  ],
+  "author": "Enso Team",
+  "license": "Apache-2.0"
+}

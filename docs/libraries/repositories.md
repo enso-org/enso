@@ -76,6 +76,22 @@ root
 
 ### The Manifest File
 
+The manifest file is a YAML file with the following fields:
+
+- `archives` - a list of archive names that are available for the given library;
+  at least one archive must be present (as otherwise the package would be
+  completely empty);
+- `dependencies` - a list of dependencies, as described below;
+- `description` - an optional description of the library that is displayed in
+  the `info` and `search` command results;
+- `deprecated` - an optional boolean flag describing if the library is
+  deprecated; if the library is marked as deprecated it will not show up in the
+  search results and it will be marked as such by the `info` command; the
+  Marketplace should not show the library as available to be installed, but if
+  the library was already added to a project, it will be downloaded nonetheless;
+- `tag-line` - an optional tagline that will be displayed in the marketplace
+  interface.
+
 As the protocol does not define a common way of listing directories, the primary
 purpose of the manifest file is to list the available archive packages, so that
 the downloader can know what archives it should try downloading.
@@ -102,13 +118,6 @@ edition that is used in a given project.
 
 > The upload tool will automatically parse the imports and generate the manifest
 > containing the dependencies.
-
-The manifest file is a YAML file with the following fields:
-
-- `archives` - a list of archive names that are available for the given library;
-  at least one archive must be present (as otherwise the package would be
-  completely empty);
-- `dependencies` - a list of dependencies, as described above.
 
 #### Example
 
@@ -286,3 +295,14 @@ root
 ├── foo.yaml
 └── bar.yaml
 ```
+
+## The Simple Library Server
+
+We provide a simple webserver for hosting custom library and edition
+repositories.
+
+Currently it relies on Node.js, but that may change with future updates.
+
+See
+[`tools/simple-library-server/README.md`](../../tools/simple-library-server/README.md)
+for more details.
