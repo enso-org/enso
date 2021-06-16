@@ -10,7 +10,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    x = Panic.recover ()
@@ -25,7 +25,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface parsing errors in the language" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    x = Panic.recover @
@@ -36,7 +36,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface redefinition errors in the language" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |foo =
           |    x = 1
@@ -49,7 +49,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
 
     "surface non-existent variable errors in the language" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |foo =
           |    my_var = 10

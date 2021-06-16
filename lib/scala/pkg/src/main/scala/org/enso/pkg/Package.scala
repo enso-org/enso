@@ -123,6 +123,8 @@ case class Package[F](
     */
   def name: String = config.name
 
+  def namespace: String = config.namespace
+
   /** Parses a file path into a qualified module name belonging to this
     * package.
     *
@@ -133,7 +135,7 @@ case class Package[F](
     val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(name :: dirSegments, fileNameWithoutExtension)
+    QualifiedName(namespace :: name :: dirSegments, fileNameWithoutExtension)
   }
 
   /** Lists the source files in this package.
@@ -197,6 +199,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
+    namespace: String          = "local",
     version: String            = "0.0.1",
     ensoVersion: EnsoVersion   = DefaultEnsoVersion,
     authors: List[Contact]     = List(),
@@ -204,6 +207,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   ): Package[F] = {
     val config = Config(
       name         = NameValidation.normalizeName(name),
+      namespace    = namespace,
       version      = version,
       ensoVersion  = ensoVersion,
       license      = "",

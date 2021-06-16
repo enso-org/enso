@@ -8,7 +8,8 @@ import io.circe.yaml.Printer
 import scala.util.Try
 
 /** An extra project dependency.
-  * @param name name of the package
+  *
+  * @param name    name of the package
   * @param version package version
   */
 case class Dependency(name: String, version: String)
@@ -17,7 +18,8 @@ case class Dependency(name: String, version: String)
   *
   * Used for defining authors and maintainers.
   * At least one of the fields must not be None.
-  * @param name contact name
+  *
+  * @param name  contact name
   * @param email contact email
   */
 case class Contact(name: Option[String], email: Option[String]) {
@@ -33,6 +35,7 @@ case class Contact(name: Option[String], email: Option[String]) {
     name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
   }
 }
+
 object Contact {
 
   /** Fields for use when serializing the [[Contact]].
@@ -76,15 +79,18 @@ object Contact {
 
 /** Represents a package configuration stored in the `package.yaml` file.
   *
-  * @param name package name
-  * @param version package version
-  * @param ensoVersion version of the Enso engine associated with the package,
-  *                    can be set to `default` which defaults to the locally
-  *                    installed version
-  * @param license package license
-  * @param authors name and contact information of the package author(s)
-  * @param maintainers name and contact information of current package
-  *                   maintainer(s)
+  * @param name         package name
+  * @param namespace    package namespace. This field is a temporary workaround
+  *                     and will be removed with further improvements to the
+  *                     libraries system. The default value is `local`.
+  * @param version      package version
+  * @param ensoVersion  version of the Enso engine associated with the package,
+  *                     can be set to `default` which defaults to the locally
+  *                     installed version
+  * @param license      package license
+  * @param authors      name and contact information of the package author(s)
+  * @param maintainers  name and contact information of current package
+  *                     maintainer(s)
   * @param dependencies a list of package dependencies
   * @param originalJson a Json object holding the original values that this
   *                     Config was created from, used to preserve configuration
@@ -92,6 +98,7 @@ object Contact {
   */
 case class Config(
   name: String,
+  namespace: String,
   version: String,
   ensoVersion: EnsoVersion,
   license: String,
@@ -108,20 +115,23 @@ case class Config(
 }
 
 object Config {
+
   private object JsonFields {
     val name: String         = "name"
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
     val license: String      = "license"
     val author: String       = "authors"
+    val namespace: String    = "namespace"
     val maintainer: String   = "maintainers"
     val dependencies: String = "dependencies"
   }
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name    <- json.get[String](JsonFields.name)
-      version <- json.getOrElse[String](JsonFields.version)("dev")
+      name      <- json.get[String](JsonFields.name)
+      namespace <- json.getOrElse[String](JsonFields.namespace)("local")
+      version   <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <-
         json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
       license    <- json.getOrElse(JsonFields.license)("")
@@ -132,6 +142,7 @@ object Config {
       )
     } yield Config(
       name,
+      namespace,
       version,
       ensoVersion,
       license,
@@ -146,6 +157,7 @@ object Config {
     val originals = config.originalJson
     val overrides = Json.obj(
       JsonFields.name        -> config.name.asJson,
+      JsonFields.namespace   -> config.namespace.asJson,
       JsonFields.version     -> config.version.asJson,
       JsonFields.ensoVersion -> config.ensoVersion.asJson,
       JsonFields.license     -> config.license.asJson,

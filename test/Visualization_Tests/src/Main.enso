@@ -2,14 +2,14 @@ from Standard.Base import all
 
 import Standard.Test
 
-import Visualization_Tests.Geo_Map_Spec
-import Visualization_Tests.Helpers_Spec
-import Visualization_Tests.Histogram_Spec
-import Visualization_Tests.Id_Spec
-import Visualization_Tests.Scatter_Plot_Spec
-import Visualization_Tests.Sql_Spec
-import Visualization_Tests.Table_Spec
-import Visualization_Tests.Visualization_Spec
+import project.Geo_Map_Spec
+import project.Helpers_Spec
+import project.Histogram_Spec
+import project.Id_Spec
+import project.Scatter_Plot_Spec
+import project.Sql_Spec
+import project.Table_Spec
+import project.Visualization_Spec
 
 main = Test.Suite.run_main <|
     Geo_Map_Spec.spec

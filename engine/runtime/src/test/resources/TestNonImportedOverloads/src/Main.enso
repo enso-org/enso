@@ -1,5 +1,5 @@
-from Builtins import all
-from TestNonImportedOverloads.Util import all
+from Standard.Builtins import all
+from local.TestNonImportedOverloads.Util import all
 
 X.method = 10
 

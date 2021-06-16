@@ -284,9 +284,9 @@ fn imports_exports() {
     let input = make_unix_line_endings(
 r#"import Base.List
 import Base.Number.Extensions
-from Builtins import Unit, Number, Integer, Any, True, False
+from Standard.Builtins import Unit, Number, Integer, Any, True, False
 
-from Builtins export all
+from Standard.Builtins export all
 
 from Base.List export Nil, Cons
 from Base.Number.Extensions export all hiding Math

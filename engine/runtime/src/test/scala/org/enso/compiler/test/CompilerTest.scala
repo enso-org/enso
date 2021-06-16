@@ -243,7 +243,7 @@ trait CompilerRunner {
     compilerConfig: CompilerConfig               = defaultConfig
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName),
+      module            = Module.empty(moduleName, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       compilerConfig    = compilerConfig
@@ -266,7 +266,7 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"))
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
     mod.unsafeBuildIrStub()
     InlineContext(
       module            = mod,

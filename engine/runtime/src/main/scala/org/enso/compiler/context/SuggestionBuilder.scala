@@ -3,11 +3,8 @@ package org.enso.compiler.context
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  MethodDefinitions,
-  TypeSignatures
-}
+import org.enso.compiler.pass.resolve.{DocumentationComments, MethodDefinitions, TypeSignatures}
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
@@ -595,6 +592,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: String = "Builtins.Main.Any"
+  val Any: String = Constants.ANY
 
 }

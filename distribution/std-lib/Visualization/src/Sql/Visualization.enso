@@ -1,0 +1,47 @@
+from Standard.Base import all
+
+import Standard.Visualization.Helpers
+
+## PRIVATE
+
+   Prepares the query for visualization.
+
+   Arguments:
+   - x: The query to prepare for visualisation.
+
+   For each interpolation it provides its value, its actual type name, its
+   expected SQL type name and if it was possible to infer it, its expected Enso
+   typename.
+
+   Expected Enso types are inferred based on known SQL types and their mapping
+   to Enso types.
+prepare_visualization : Table.IR.Query -> Json
+prepare_visualization x = Helpers.recover_errors <|
+    prepared = x.to_sql.prepare
+    code = prepared.first
+    interpolations = prepared.second
+    mapped = interpolations.map e->
+        value = e.first
+        actual_type = Meta.get_qualified_type_name value
+        expected_sql_type = e.second.name
+        expected_enso_type = here.find_expected_enso_type_for_sql e.second
+        Json.from_pairs [["value", value], ["actual_type", actual_type], ["expected_sql_type", expected_sql_type], ["expected_enso_type", expected_enso_type]]
+    dialect = x.connection.dialect.name
+    Json.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text
+
+## PRIVATE
+
+   Return an expected Enso type for an SQL type.
+
+   Arguments:
+   - sql_type: The SQL type to convert to an Enso type.
+
+   Expected Enso types are only inferred for some known SQL types. For unknown
+   types it will return `Nothing`.
+find_expected_enso_type_for_sql : Sql_Type -> Text
+find_expected_enso_type_for_sql sql_type =
+    if sql_type.is_definitely_integer then "Standard.Builtins.Main.Integer" else
+        if sql_type.is_definitely_double then "Standard.Builtins.Main.Decimal" else
+            if sql_type.is_definitely_text then "Standard.Builtins.Main.Text" else
+                if sql_type.is_definitely_boolean then "Standard.Builtins.Main.Boolean" else
+                    Nothing

@@ -2586,6 +2586,7 @@ name in an interpreter runtime.
 
 ```typescript
 {
+  namespace: String;
   oldName: String;
   newName: String;
 }

@@ -42,7 +42,7 @@ class PassesTest extends CompilerTest {
         List(
           ModuleAnnotations,
           DocumentationComments,
-          MainImportAndExport,
+          Imports,
           ComplexType,
           FunctionBinding,
           GenerateMethodBodies,

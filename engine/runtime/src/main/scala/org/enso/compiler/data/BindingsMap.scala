@@ -443,7 +443,7 @@ object BindingsMap {
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,
-    exports: Option[IR.Module.Scope.Export],
+    exports: Option[IR.Module.Scope.Export.Module],
     module: Module
   )
 

@@ -2,6 +2,9 @@
 
 - Implemented Standard Library methods for controlling default visualizations in
   the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
+- Implemented changes to the import and export syntax, requiring to provide the
+  project namespace, or use the new `project` keyword to import from the current
+  project.
 
 ## Interpreter/Runtime
 

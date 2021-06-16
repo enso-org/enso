@@ -4,7 +4,7 @@ import Standard.Base.System.Environment
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
 import Standard.Test
-import Database_Tests.Common_Spec
+import project.Common_Spec
 
 postgres_specific_spec connection pending =
     Test.group "[PostgreSQL] Info" pending=pending <|
