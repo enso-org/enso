@@ -26,9 +26,9 @@ This document describes the concept of Editions.
 
 ## What Is An Edition
 
-An Edition is in principle a list of library versions that should be compatible
-with each other. An Edition specifies the engine version and a set of library
-versions that can be used together.
+An Edition, is in principle, a list of library versions that should be
+compatible with each other. An Edition specifies the engine version and a set of
+library versions that can be used together.
 
 If a library included in an Edition depends on another library, that other
 library must also be included in that Edition and the version at which it is
@@ -57,9 +57,9 @@ The Edition file is a YAML file that can contain the following fields:
   [Library Resolution](#library-resolution) for details); if it is not set, it
   defaults to false.
 
-Every field is optional, but an Edition file to be valid must specify at least
-the engine version to be used (either by specifying it directly or extending
-another edition that specifies it).
+Every field is optional, but for an Edition file to be valid it must specify at
+least the engine version to be used (either by specifying it directly or
+extending another edition that specifies it).
 
 ### Repositories
 

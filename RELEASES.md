@@ -43,7 +43,14 @@
   ([#1797](https://github.com/enso-org/enso/pull/1797)). The `engine-version`
   field has been deprecated in favour of an `edition` field that allows to set
   up the engine version and dependency resolution using the upcoming Edition
-  system.
+  system. New tools will still be able to read the old format, but upon
+  modification, they will save changes in the new format. As the `edition` file
+  did not exist in the older version, old tools will actually correctly load the
+  migrated package file (as we allow for unknown fields), but they will not know
+  how to interpret the new `edition` field and so will fall back to using the
+  `default` engine version, which may be unexpected. Ideally, after migration,
+  the project should be used only with the new tools. The affected tools are the
+  Launcher and the Project Manager.
 
 ## Libraries
 
