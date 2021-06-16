@@ -15,6 +15,8 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  ContentRootWithFile,
   FileManager,
   FileSystem,
   ReceivesTreeUpdatesHandler
@@ -45,8 +47,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   val timeout: FiniteDuration = 10.seconds
 
-  val testContentRoot       = Files.createTempDirectory(null).toRealPath()
-  val testContentRootId     = UUID.randomUUID()
+  val testContentRootId = UUID.randomUUID()
+  val testContentRoot = ContentRootWithFile(
+    testContentRootId,
+    ContentRootType.Project,
+    "Project",
+    Files.createTempDirectory(null).toRealPath().toFile
+  )
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
@@ -58,15 +65,15 @@ class BaseServerTest extends JsonRpcServerTestKit {
     graph
   }
 
-  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
+  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
 
   def mkConfig: Config =
     Config(
-      Map(testContentRootId -> testContentRoot.toFile),
+      Map(testContentRootId -> testContentRoot),
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig(testContentRoot.toFile)
+      ProjectDirectoriesConfig(testContentRoot.file)
     )
 
   override def protocol: Protocol = JsonRpc.protocol
@@ -211,7 +218,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
             { "jsonrpc":"2.0",
               "id":1,
               "result":{
-                "contentRoots":[ $testContentRootId ]
+                "contentRoots" : [
+                  {
+                    "id" : $testContentRootId,
+                    "type" : "Project",
+                    "name" : "Project"
+                  }
+                ]
               }
             }
               """)

@@ -1035,11 +1035,11 @@ A representation of the contents of a file.
 #### Format
 
 ```typescript
-interface FileContents[T] {
+interface FileContents<T> {
   contents: T;
 }
 
-class TextFileContents extends FileContents[String];
+class TextFileContents extends FileContents<String> {}
 ```
 
 ### `FileSystemObject`
@@ -1146,6 +1146,42 @@ table FileSegment {
 
 The `byteOffset` property is zero-indexed, so the last byte in the file is at
 index `file.length - 1`.
+
+### `ContentRoot`
+
+A representation of a content root for use in the IDE. A content root represents
+a location on a real file-system that has been virtualised for use in the Enso
+VFS.
+
+```typescript
+interface ContentRoot {
+  // A unique identifier for the content root.
+  id: UUID;
+  // The type of content root.
+  type: ContentRootType;
+
+  // The name of the content root.
+  name: String;
+}
+```
+
+### `ContentRootType`
+
+The type of the annotated content root.
+
+```typescript
+type ContentRootType = Project | Root | Home | Library | Custom;
+```
+
+These represent:
+
+- `Project`: This content root points to the project home.
+- `Root`: This content root points to the system root (`/`) on unix systems, or
+  to a drive root on Windows. In Windows' case, there may be multiple `Root`
+  entries corresponding to the various drives.
+- `Home`: The user's home directory.
+- `Library`: An Enso library location.
+- `Custom`: A content root that has been added by the IDE (unused for now).
 
 ## Connection Management
 
@@ -1469,7 +1505,7 @@ must fail.
 ```typescript
 {
   path: Path;
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 
@@ -1513,7 +1549,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ```typescript
 {
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 

@@ -18,11 +18,11 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
-      Map(testContentRootId -> testContentRoot.toFile),
+      Map(testContentRootId -> testContentRoot),
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig.initialize(directoriesDir.toFile)
+      ProjectDirectoriesConfig.initialize(testContentRoot.file)
     )
   }
 
@@ -49,7 +49,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
+      val path =
+        Paths.get(testContentRoot.file.toString, "foo", "bar", "baz.txt")
       Files.readAllLines(path).get(0) shouldBe "123456789"
     }
 
@@ -83,8 +84,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
   "Reading files" must {
     "read a file content" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
             "id": 4,
@@ -97,15 +97,13 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 4,
             "result": null
           }
           """)
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
             "id": 5,
@@ -117,8 +115,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 5,
             "result": { "contents": "123456789" }
@@ -128,8 +125,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFoundError if a file doesn't exist" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
             "id": 6,
@@ -141,8 +137,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 6,
             "error" : {
@@ -157,8 +152,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
   "Creating file-system entities" must {
     "create a file" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 7,
@@ -174,22 +168,21 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 7,
             "result": null
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe true
     }
 
     "create a directory" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 7,
@@ -205,15 +198,14 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 7,
             "result": null
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe true
     }
   }
@@ -222,8 +214,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "delete a file" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 8,
@@ -239,20 +230,19 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 8,
             "result": null
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe true
 
       // delete a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
             "id": 9,
@@ -264,8 +254,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 9,
             "result": null
@@ -279,8 +268,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "delete a directory" in {
       val client = getInitialisedWsClient()
       // create a directory
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 10,
@@ -296,20 +284,18 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 10,
             "result": null
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe true
 
       // delete a directory
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
             "id": 11,
@@ -321,8 +307,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 11,
             "result": null
@@ -335,10 +320,10 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when deleting nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe false
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
             "id": 12,
@@ -350,8 +335,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 12,
             "error": {
@@ -367,10 +351,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when deleting nonexistent directory" in {
       val client = getInitialisedWsClient()
-      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file   = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe false
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
             "id": 13,
@@ -382,8 +365,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 13,
             "error": {
@@ -400,8 +382,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "copy a file" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 14,
@@ -417,19 +398,17 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 14,
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "a", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "a", "test.txt")
       from.toFile.isFile shouldBe true
 
       // copy a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
             "id": 15,
@@ -445,23 +424,21 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 15,
             "result": null
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "a", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "a", "test1.txt")
       to.toFile.isFile shouldBe true
     }
 
     "copy a directory" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 16,
@@ -477,19 +454,17 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 16,
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "b", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "b", "test.txt")
       from.toFile.isFile shouldBe true
 
       // copy a directory
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
             "id": 17,
@@ -505,22 +480,20 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 17,
             "result": null
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "c", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "c", "test.txt")
       to.toFile.isFile shouldBe true
     }
 
     "return failure when copying nonexistent file" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
             "id": 18,
@@ -536,8 +509,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 18,
             "error": {
@@ -547,15 +519,14 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "some", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "some", "test.txt")
       to.toFile.isFile shouldBe false
     }
 
     "move a file" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 19,
@@ -571,19 +542,17 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 19,
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       from.toFile.isFile shouldBe true
 
       // move a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/move",
             "id": 20,
@@ -599,15 +568,14 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 20,
             "result": null
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "move", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move", "test1.txt")
       to.toFile.isFile shouldBe true
       from.toFile.exists shouldBe false
     }
@@ -615,8 +583,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "move a directory" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 21,
@@ -632,22 +599,20 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 21,
             "result": null
           }
           """)
 
-      val path = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val path = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       path.toFile.isFile shouldBe true
-      val from = path.getParent()
+      val from = path.getParent
       from.toFile.isDirectory shouldBe true
 
       // move a directory
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/move",
             "id": 22,
@@ -663,23 +628,21 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 22,
             "result": null
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "move_to", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move_to", "test1.txt")
       to.toFile.isFile shouldBe true
       from.toFile.exists shouldBe false
     }
 
     "return failure when moving nonexistent file" in {
       val client = getInitialisedWsClient()
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/move",
             "id": 23,
@@ -695,8 +658,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 23,
             "error": {
@@ -706,15 +668,14 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "some", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "some", "test.txt")
       to.toFile.exists shouldBe false
     }
 
     "return failure when target file exists" in {
       val client = getInitialisedWsClient()
       // create a source file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 24,
@@ -730,19 +691,17 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 24,
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       from.toFile.isFile shouldBe true
 
       // create a destination file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 25,
@@ -758,19 +717,17 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 25,
             "result": null
           }
           """)
-      val to = Paths.get(testContentRoot.toString, "move", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move", "test1.txt")
       to.toFile.isFile shouldBe true
 
       // move to existing file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/move",
             "id": 26,
@@ -786,8 +743,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 26,
             "error": {
@@ -803,11 +759,10 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "check file existence" in {
       val client = getInitialisedWsClient()
-      val path = Paths.get(testContentRoot.toString, "nonexistent.txt")
+      val path   = Paths.get(testContentRoot.file.toString, "nonexistent.txt")
       path.toFile.exists shouldBe false
       // check file exists
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/exists",
             "id": 27,
@@ -819,8 +774,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 27,
             "result": {
@@ -843,8 +797,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     └── b.txt
 
       // create base/a.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 28,
@@ -860,8 +813,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 28,
             "result": null
@@ -869,8 +821,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create base/subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 29,
@@ -886,8 +837,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 29,
             "result": null
@@ -895,8 +845,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // get a tree of a root
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 30,
@@ -915,8 +864,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     ├── a.txt
       //     └── subdir
       //         └── b.txt
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 30,
             "result": {
@@ -927,10 +875,31 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
                     ".."
                   ]
                 },
-                "name": ${testContentRoot.getFileName.toString},
+                "name": ${testContentRoot.file.getName},
                 "files": [
                 ],
-                "directories": [
+                "directories": [{
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                      ]
+                    },
+                    "name" : ".enso",
+                    "files" : [
+                      {
+                        "type" : "File",
+                        "name" : "suggestions.db",
+                        "path" : {
+                          "rootId" : $testContentRootId,
+                          "segments" : [
+                            ".enso"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories" : [
+                    ]
+                  },
                   {
                     "path": {
                       "rootId": $testContentRootId,
@@ -994,8 +963,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     └── b.txt
 
       // create base/a.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 31,
@@ -1011,8 +979,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 31,
             "result": null
@@ -1020,8 +987,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create base/subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 32,
@@ -1037,8 +1003,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 32,
             "result": null
@@ -1046,8 +1011,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // get a tree of 'base'
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 33,
@@ -1065,8 +1029,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       // ├── a.txt
       // └── subdir
       //     └── b.txt
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 33,
             "result": {
@@ -1131,8 +1094,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     └── b.txt
 
       // create base/a.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 34,
@@ -1148,8 +1110,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 34,
             "result": null
@@ -1157,8 +1118,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create base/subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 35,
@@ -1174,8 +1134,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 35,
             "result": null
@@ -1183,8 +1142,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // get a tree of 'base'
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 36,
@@ -1202,8 +1160,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       // base
       // ├── a.txt
       // └── subdir
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 36,
             "result": {
@@ -1247,8 +1204,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "get a subdirectory tree" in {
       val client = getInitialisedWsClient()
       // create base/a.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 37,
@@ -1264,8 +1220,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 37,
             "result": null
@@ -1273,8 +1228,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create base/subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 38,
@@ -1290,8 +1244,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 38,
             "result": null
@@ -1299,8 +1252,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // get a tree of 'base/subdir'
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 39,
@@ -1316,8 +1268,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //
       // subdir
       // └── b.txt
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 39,
             "result": {
@@ -1360,8 +1311,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     └── b.txt
 
       // create base2/subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 40,
@@ -1377,8 +1327,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 40,
             "result": null
@@ -1386,14 +1335,13 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create symlink base/link -> base/subdir
-      val symlink = Paths.get(testContentRoot.toString, "base2", "link")
-      val subdir = Paths.get(testContentRoot.toString, "base2", "subdir")
+      val symlink = Paths.get(testContentRoot.file.toString, "base2", "link")
+      val subdir  = Paths.get(testContentRoot.file.toString, "base2", "subdir")
       Files.createSymbolicLink(symlink, subdir)
       Files.isSymbolicLink(symlink) shouldBe true
 
       // get a tree of 'base'
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 41,
@@ -1412,8 +1360,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //     └── b.txt
       // └── subdir
       //     └── b.txt
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 41,
             "result": {
@@ -1485,8 +1432,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "get a directory tree with symlink outside of root" in {
       val client = getInitialisedWsClient()
       // create base3
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 42,
@@ -1502,8 +1448,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 42,
             "result": null
@@ -1513,13 +1458,12 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       // create symlink base3/link -> $testOtherRoot
       val testOtherRoot = Files.createTempDirectory(null)
       sys.addShutdownHook(FileUtils.deleteQuietly(testOtherRoot.toFile))
-      val symlink = Paths.get(testContentRoot.toString, "base3", "link")
+      val symlink = Paths.get(testContentRoot.file.toString, "base3", "link")
       Files.createSymbolicLink(symlink, testOtherRoot)
       Files.isSymbolicLink(symlink) shouldBe true
 
       // get a tree of 'base3'
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
             "id": 43,
@@ -1535,8 +1479,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //
       // base3
       // └── link
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 43,
             "result": {
@@ -1580,8 +1523,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       //  └── b.txt
 
       // create subdir/b.txt
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 44,
@@ -1597,8 +1539,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 44,
             "result": null
@@ -1606,8 +1547,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // get a tree of subdir
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/list",
             "id": 45,
@@ -1620,8 +1560,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
       """)
       // expect: b.txt
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 45,
             "result" : {
@@ -1647,8 +1586,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "get file info" in {
       val client = getInitialisedWsClient()
       // create a file
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
             "id": 46,
@@ -1664,20 +1602,18 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 46,
             "result": null
           }
           """)
-      val path = Paths.get(testContentRoot.toString, "info", "test.txt")
+      val path = Paths.get(testContentRoot.file.toString, "info", "test.txt")
       path.toFile.isFile shouldBe true
       val attrs = Files.readAttributes(path, classOf[BasicFileAttributes])
 
       // get file info
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/info",
             "id": 47,
@@ -1689,8 +1625,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 47,
             "result" : {
@@ -1717,10 +1652,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when getting info of nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file = Paths.get(testContentRoot.toString, "nonexistent.txt").toFile
+      val file   = Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
-      client.send(
-        json"""
+      client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/info",
             "id": 48,
@@ -1732,8 +1666,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
       """)
-      client.expectJson(
-        json"""
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 48,
             "error": {
@@ -1771,7 +1704,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val path = Paths.get(testContentRoot.toString, "info", "test.txt")
+      val path = Paths.get(testContentRoot.file.toString, "info", "test.txt")
       path.toFile.isFile shouldBe true
       val sum = Hex.toHexString(
         MessageDigest.getInstance("SHA3-224").digest(Files.readAllBytes(path))
@@ -1851,7 +1784,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
   }
 
   def withCleanRoot[T](test: => T): T = {
-    FileUtils.cleanDirectory(testContentRoot.toFile)
+    FileUtils.cleanDirectory(testContentRoot.file)
     test
   }
 }

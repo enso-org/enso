@@ -108,11 +108,15 @@ jobs:
         run: |
           echo "CI_TEST_TIMEFACTOR=2" >> $GITHUB_ENV
           echo "CI_TEST_FLAKY_ENABLE=true" >> $GITHUB_ENV
-      - name: Build the Launcher
+
+      - name: Build the Launcher Native Image
         run: |
-          sleep 1
           sbt --no-colors "launcher/assembly"
           sbt --no-colors --mem 1536 "launcher/buildNativeImage"
+      - name: Build the PM Native Image
+        run: |
+          sbt --no-colors "project-manager/assembly"
+          sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
 
       - name: Build the Runner & Runtime Uberjars
         run: |
