@@ -1,8 +1,9 @@
 package org.enso.languageserver.session
 
-import java.util.UUID
-
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method}
+import org.enso.languageserver.filemanager.ContentRoot
+
+import java.util.UUID
 
 /** The connection management JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/protocol-language-server.md#connection-management]]
@@ -15,7 +16,7 @@ object SessionApi {
 
     case class Params(clientId: UUID)
 
-    case class Result(contentRoots: Set[UUID])
+    case class Result(contentRoots: Set[ContentRoot])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = InitProtocolConnection.Params

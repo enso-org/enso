@@ -9,7 +9,7 @@ import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 class FileNotificationsTest extends BaseServerTest with FlakySpec {
 
-  def file(name: String): File = new File(testContentRoot.toFile, name)
+  def file(name: String): File = new File(testContentRoot.file, name)
 
   "text operations" should {
 
