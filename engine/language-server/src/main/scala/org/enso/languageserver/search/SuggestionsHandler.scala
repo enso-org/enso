@@ -1,6 +1,7 @@
 package org.enso.languageserver.search
 
 import java.util.UUID
+
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
@@ -113,14 +114,6 @@ final class SuggestionsHandler(
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
-
-    config.contentRoots.foreach {
-      case (_, root) if root.`type` == ContentRootType.Project =>
-        PackageManager.Default
-          .fromDirectory(root.file)
-          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
-      case _ =>
-    }
   }
 
   override def receive: Receive =
@@ -153,6 +146,22 @@ final class SuggestionsHandler(
 
     case InitializedEvent.TruffleContextInitialized =>
       logger.info("Initializing: Truffle context initialized.")
+      config.contentRoots.foreach {
+        case (_, root) if root.`type` == ContentRootType.Project =>
+          PackageManager.Default
+            .loadPackage(root.file)
+            .fold(
+              t =>
+                logger.error(
+                  "Failed to read the package definition from [{}]. {} {}",
+                  MaskedPath(root.file.toPath),
+                  t.getClass.getName,
+                  t.getMessage
+                ),
+              pkg => self ! ProjectNameUpdated(pkg.config.name)
+            )
+        case _ =>
+      }
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
