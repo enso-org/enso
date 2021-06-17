@@ -621,13 +621,13 @@ sbt buildProjectManagerDistribution
 sbt.bat buildProjectManagerDistribution
 ```
 
-When the command is completed, development version of the project manager
-appears in the `built-distribution` directory.
+When the command is completed, a development version of the project manager will
+have appeared in the `built-distribution` directory.
 
-IDE will connect to the running project manager to look up the project and start
-the language server. The required version of the language server is specified in
-the `enso-version` field of the `project.yaml` project description (Enso
-projects are located in the `~/enso` directory).
+The IDE will connect to the running project manager to look up the project and
+start the language server. The required version of the language server is
+specified in the `enso-version` field of the `project.yaml` project description
+(Enso projects are located in the `~/enso` directory).
 
 ```bash
 cat ~/enso/projects/Unnamed/package.yaml
@@ -643,11 +643,11 @@ maintainers: []
 ```
 
 We need to set `enso-version` to a value that will represent the development
-version. It should be different from Enso versions that were already released.
-In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will look for
-the appropriate subdirectory in the _engines_ directory of the distribution
-folder. Distribution paths are printed when you run project manager with `-v`
-verbose logging.
+version. It should be different from any Enso versions that have already been
+released. In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will
+look for the appropriate subdirectory in the _engines_ directory of the
+distribution folder. Distribution paths are printed when you run project manager
+with `-v` verbose logging.
 
 ```bash
 $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
@@ -665,7 +665,8 @@ $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin
 
 On Linux it looks for the `~/.local/share/enso/dist/0.0.0-SNAPSHOT/` directory.
 
-We can build an engine distribution using SBT `buildEngineDistribution` command.
+We can build an engine distribution using the `buildEngineDistribution` command
+in SBT.
 
 ##### Bash
 
@@ -702,12 +703,12 @@ To summarize, these are the steps required to run IDE with the development
 version of the language server.
 
 1. Run the project manager process.
-2. Copy or symlink the development version of the engine created with SBT
-   `buildEnginedistribution` command to the engines directory of Enso
+2. Copy or symlink the development version of the engine created with SBT's
+   `buildEnginedistribution` command to the engines directory of the Enso
    distribution folder.
 3. Set the `enso-version` field of the `project.yaml` project definition to the
    version that you created in the previous step.
-4. Run IDE with `--no-backend` flag.
+4. Run the IDE with `--no-backend` flag.
 
 #### Language Server Mode
 
