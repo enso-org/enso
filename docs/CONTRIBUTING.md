@@ -602,12 +602,12 @@ Hello, World!
 
 #### Running IDE
 
-You can start [IDE](https://github.com/enso-org/ide) with the development
-version of the language server. IDE executable has `--no-backend` flag that
-switches off the bundled backend. That requires you to run the project manager
-process yourself. You can either get a project manager from one of the latest
-releases on [GitHub](https://github.com/enso-org/enso/releases), or build one
-using SBT `buildProjectManagerDistribution` command.
+You can start [IDE](https://github.com/enso-org/ide) with a development version
+of the language server. IDE executable has `--no-backend` flag that switches off
+the bundled backend. That requires you to run the project manager process
+yourself. You can either get a project manager from one of the latest releases
+on [GitHub](https://github.com/enso-org/enso/releases), or build one using SBT
+`buildProjectManagerDistribution` command.
 
 ##### Bash
 
@@ -624,10 +624,10 @@ sbt.bat buildProjectManagerDistribution
 When the command is completed, development version of the project manager
 appears in the `built-distribution` directory.
 
-IDE will connect to the running project manager to look up the projects and
-start the language server. The required version of the language server is
-specified in the `enso-version` field of the `project.yaml` project description
-(Enso projects are located in the `~/enso` directory).
+IDE will connect to the running project manager to look up the project and start
+the language server. The required version of the language server is specified in
+the `enso-version` field of the `project.yaml` project description (Enso
+projects are located in the `~/enso` directory).
 
 ```bash
 cat ~/enso/projects/Unnamed/package.yaml
@@ -645,7 +645,7 @@ maintainers: []
 We need to set `enso-version` to a value that will represent the development
 version. It should be different from Enso versions that were already released.
 In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will look for
-the appropriate subdirectory in the engines directory of the distribution
+the appropriate subdirectory in the _engines_ directory of the distribution
 folder. Distribution paths are printed when you run project manager with `-v`
 verbose logging.
 
