@@ -602,12 +602,12 @@ Hello, World!
 
 #### Running IDE
 
-You can run [IDE](https://github.com/enso-org/ide) with the development version
-of language server. IDE has `--no-backend` flag that switches off the bundled
-backend. That requires you to run your own project manager process. You can
-either get project manager from one of the latest releases on
-[GitHub](https://github.com/enso-org/enso/releases), or build your own one using
-SBT `buildProjectManagerDistribution` command.
+You can start [IDE](https://github.com/enso-org/ide) with the development
+version of the language server. IDE executable has `--no-backend` flag that
+switches off the bundled backend. That requires you to run the project manager
+process yourself. You can either get a project manager from one of the latest
+releases on [GitHub](https://github.com/enso-org/enso/releases), or build one
+using SBT `buildProjectManagerDistribution` command.
 
 ##### Bash
 
@@ -621,11 +621,11 @@ sbt buildProjectManagerDistribution
 sbt.bat buildProjectManagerDistribution
 ```
 
-When the command is completed, developement version of the project manager
+When the command is completed, development version of the project manager
 appears in the `built-distribution` directory.
 
-IDE will connect to the running project manager to lookup the projects and start
-the the language server. The required version of the language server is
+IDE will connect to the running project manager to look up the projects and
+start the language server. The required version of the language server is
 specified in the `enso-version` field of the `project.yaml` project description
 (Enso projects are located in the `~/enso` directory).
 
@@ -643,11 +643,11 @@ maintainers: []
 ```
 
 We need to set `enso-version` to a value that will represent the development
-version. It should be different from enso versions that were already released.
+version. It should be different from Enso versions that were already released.
 In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will look for
-the appropriate subdirectory in the engines directory of the distribution.
-Distribution paths are printed when you run project manager with `-v` verbose
-logging.
+the appropriate subdirectory in the engines directory of the distribution
+folder. Distribution paths are printed when you run project manager with `-v`
+verbose logging.
 
 ```bash
 $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
@@ -665,8 +665,7 @@ $ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin
 
 On Linux it looks for the `~/.local/share/enso/dist/0.0.0-SNAPSHOT/` directory.
 
-You need to build the engine distribution using SBT `buildEngineDistribution`
-command.
+We can build an engine distribution using SBT `buildEngineDistribution` command.
 
 ##### Bash
 
@@ -695,9 +694,20 @@ cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNA
 cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
 ```
 
-Now, when the project manager is running, and engines directory contains the
-required engine version, you can start IDE with the `--no-backend` flag, and it
-will pick up the development version of the language server you just prepared.
+Now, when the project manager is running and the engines directory contains the
+required engine version, you can start IDE with the `--no-backend` flag. It will
+pick up the development version of the language server we just prepared.
+
+To summarize, these are the steps required to run IDE with the development
+version of the language server.
+
+1. Run the project manager process.
+2. Copy or symlink the development version of the engine created with SBT
+   `buildEnginedistribution` command to the engines directory of Enso
+   distribution folder.
+3. Set the `enso-version` field of the `project.yaml` project definition to the
+   version that you created in the previous step.
+4. Run IDE with `--no-backend` flag.
 
 #### Language Server Mode
 
