@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const express = require("express");
+const compression = require('compression');
 const yargs = require("yargs");
 
 const argv = yargs
@@ -26,5 +27,14 @@ console.log(
 );
 
 const app = express();
+app.use(compression({ filter: shouldCompress }));
 app.use(express.static(argv.root));
 app.listen(argv.port);
+
+function shouldCompress (req, res) {
+  if (req.path.endsWith(".yaml")) {
+    return true;
+  }
+
+  return compression.filter(req, res);
+}
