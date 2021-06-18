@@ -75,7 +75,6 @@ extraction-location
 │                   ├── Number.enso
 │                   └── Text.enso
 ├── editions                # Contains Edition specifications.
-│   ├── sources.txt         # Contains a list of Edition sources.
 │   ├── 2021.4.yaml
 │   └── nightly-2021-06-31.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
@@ -106,7 +105,6 @@ ENSO_DATA_DIRECTORY
 │                   ├── Number.enso
 │                   └── Text.enso
 └── editions                # Contains Edition specifications.
-    ├── sources.txt         # Contains a list of Edition sources.
     ├── 2021.4.yaml
     └── nightly-2021-06-31.yaml
 

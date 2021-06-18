@@ -171,9 +171,7 @@ the directories.
 
 ### Updating the Editions
 
-The file `$ENSO_DATA_DIRECTORY/editions/sources.txt` should contain a list of
-edition provides. Each new line should consist of a single URL which should
-return a list of editions that it provides.
+The global user configuration file should contain a list of URLs specifying edition providers that should be used. By default (if the field is missing), it will default to our official edition provider, but users may add other providers or remove the official one.
 
 When `enso update-editions` is called or when requested by the IDE, these
 providers are queried and any new edition files are downloaded to the
