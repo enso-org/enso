@@ -14,8 +14,6 @@ case class LibraryResolver(
   localLibraryProvider: LocalLibraryProvider
 ) {
 
-  // FIXME [RW] should we always fall back to local libraries if they are available?
-
   /** Resolves the library version that entails from the provided configuration.
     *
     * The configuration consists of the edition and the flag specifying if local

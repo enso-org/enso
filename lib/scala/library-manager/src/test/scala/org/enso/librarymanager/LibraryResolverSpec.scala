@@ -5,12 +5,17 @@ import org.enso.editions.Editions.Repository
 import org.enso.editions.{DefaultEnsoVersion, Editions, LibraryName}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.testkit.EitherValue
+import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.nio.file.Path
 
-class LibraryResolverSpec extends AnyWordSpec with Matchers with EitherValue {
+class LibraryResolverSpec
+    extends AnyWordSpec
+    with Matchers
+    with EitherValue
+    with Inside {
   "LibraryResolver" should {
     val mainRepo = Repository.make("main", "https://example.com/main").get
     val parentEdition = Editions.Resolved.Edition(
@@ -124,6 +129,18 @@ class LibraryResolverSpec extends AnyWordSpec with Matchers with EitherValue {
         )
         .rightValue shouldEqual
       LibraryVersion.Local
+    }
+
+    "not fall back to a local library if it was not defined as such " +
+    "explicitly nor `prefer-local-libraries` is set" in {
+      val result = resolver.resolveLibraryVersion(
+        libraryName          = LibraryName("Foo", "Local"),
+        edition              = parentEdition,
+        preferLocalLibraries = false
+      )
+      inside(result) { case Left(error) =>
+        error.getMessage should include("not defined")
+      }
     }
   }
 }

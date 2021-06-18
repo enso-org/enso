@@ -51,11 +51,7 @@ The Edition file is a YAML file that can contain the following fields:
 - `extends` which can contain a name of another Edition that this Edition
   extends,
 - `libraries` which defines the libraries that this Edition should include, its
-  format is [described below](#libraries),
-- `prefer-local-libraries` is a flag that tells to prefer local library versions
-  over the version specified in any parent editions (see
-  [Library Resolution](#library-resolution) for details); if it is not set, it
-  defaults to false.
+  format is [described below](#libraries).
 
 Every field is optional, but for an Edition file to be valid it must specify at
 least the engine version to be used (either by specifying it directly or
@@ -171,7 +167,10 @@ the directories.
 
 ### Updating the Editions
 
-The global user configuration file should contain a list of URLs specifying edition providers that should be used. By default (if the field is missing), it will default to our official edition provider, but users may add other providers or remove the official one.
+The global user configuration file should contain a list of URLs specifying
+edition providers that should be used. By default (if the field is missing), it
+will default to our official edition provider, but users may add other providers
+or remove the official one.
 
 When `enso update-editions` is called or when requested by the IDE, these
 providers are queried and any new edition files are downloaded to the
@@ -183,13 +182,13 @@ so edition files that already exist on disk are not redownloaded.
 Below are listed the steps that are taken when resolving an import of library
 `Foo.Bar`:
 
-1. If and only if the project has `prefer-local-libraries` set to true and if
+1. If and only if the project has `prefer-local-libraries` set to `true` and if
    any directory on the library path contains `Foo/Bar`, that local instance is
    chosen as the library that should be used, regardless of the version that is
    there;
 2. Otherwise, the list of libraries defined directly in the `edition` section of
    `package.yaml` of the current project is checked, and if the library is
-   defined ther, it is selected.
+   defined there, it is selected.
 3. Otherwise, any parent editions are consulted; if they too do not contain the
    library that we are searching for, an error is reported.
 4. Once we know the library version to be used:
@@ -209,3 +208,10 @@ By default, the library path is `<ENSO_HOME>/libraries/` but it can be
 overridden by setting the `ENSO_LIBRARY_PATH` environment variable. It may
 include a list of directories (separated by the system specific path separator);
 the first directory on the list has the highest precedence.
+
+In particular, if `prefer-local-libraries` is `false`, and the edition does not
+define a library at all, when trying to resolve such a library, it is reported
+as not found even if a local version of it exists. That is because
+auto-discovery of local libraries is only done with `prefer-local-libraries` set
+to `true`. In all other cases, the `local` repository overrides should be set
+explicitly.

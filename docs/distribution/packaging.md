@@ -109,6 +109,7 @@ edition:
     - name: Foo.Bar
       version: 1.2.3
       repository: main
+prefer-local-libraries: false
 authors:
   - name: John Doe
     email: john.doe@example.com
@@ -187,6 +188,19 @@ present.
 
 **Optional** _List of contacts_: The name(s) and contact info(s) of the current
 maintainer(s) of this library, in the same format as `authors` above.
+
+#### prefer-local-libraries
+
+**Optional** _Boolean_: A flag that tells the library resolver to prefer local
+library versions over the ones specified by the edition configuration. This is
+useful to make all local libraries easily accessible, but in more sophisticated
+scenarios individual `local` repository overrides should be used instead of
+that. See [Library Resolution](../libraries/editions.md#library-resolution) for
+more details.
+
+If the flag is not specified, it defaults to `false`, delegating all library
+resolution to the edition configuration. However, newly created projects will
+have it set to `true`.
 
 ### The `visualization` Directory
 
