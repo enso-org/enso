@@ -50,7 +50,8 @@ root
 ```
 
 Then to add this repository as an edition provider you can append
-`http://hostname:port/editions` to the `sources.txt`.
+`http://hostname:port/editions` to the `edition-providers` field in
+`global-config.yaml`.
 
 To use libraries from this repository, the editions should define the repository
 with URL `http://hostname:port/libraries`.

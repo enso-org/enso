@@ -259,15 +259,15 @@ downloaded, it is cached and will never be downloaded again (unless the user
 manually deletes its file in the cache).
 
 The edition names should be kept unique, because if multiple repositories
-(listed in [`sources.txt`](./editions.md#updating-the-editions)) provide
-editions with the same name, the edition file from the first repository on that
-list providing it will take precedence when the editions are being updated, but
-once the editions are cached, modifying the list order will not cause a
-re-download.
+(listed in [the global configuration](./editions.md#updating-the-editions))
+provide editions with the same name, the edition file from the first repository
+on that list providing it will take precedence when the editions are being
+updated, but once the editions are cached, modifying the list order will not
+cause a re-download.
 
 Each organization should try to make sure that their users will not encounter
 edition names conflicts when using their custom edition repository. In
-particular it is recommended that custom published editions are prefixed with
+particular, it is recommended that custom published editions are prefixed with
 organization name.
 
 Official editions will use the following sets of names:
