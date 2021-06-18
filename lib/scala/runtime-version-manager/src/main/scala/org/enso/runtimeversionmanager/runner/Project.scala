@@ -1,35 +1,21 @@
 package org.enso.runtimeversionmanager.runner
 
+import org.enso.editions.Editions
+import org.enso.pkg.{Config, Package}
+
 import java.io.File
 import java.nio.file.Path
-
-import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.pkg.{Config, DefaultEnsoVersion, Package, SemVerEnsoVersion}
 
 /** Represents an Enso project.
   *
   * @param pkg the package associated with the project
-  * @param globalConfigurationManager the configuration manager that is
-  *                                   necessary when the project version is set
-  *                                   to `default`
   */
 class Project(
-  pkg: Package[File],
-  globalConfigurationManager: GlobalConfigurationManager
+  pkg: Package[File]
 ) {
 
-  /** The Enso engine version associated with the project.
-    *
-    * If the version in the configuration is set to `default`, the locally
-    * default Enso version is used.
-    */
-  def version: SemVer =
-    pkg.config.ensoVersion match {
-      case DefaultEnsoVersion =>
-        globalConfigurationManager.defaultVersion
-      case SemVerEnsoVersion(version) => version
-    }
+  /** The edition associated with the project. */
+  def edition: Editions.RawEdition = pkg.config.edition
 
   /** The package name of the project. */
   def name: String = pkg.name

@@ -1,9 +1,8 @@
 package org.enso.runtimeversionmanager.releases.testing
 
+import org.enso.distribution.{FileSystem, OS}
+
 import java.nio.file.Path
-
-import org.enso.runtimeversionmanager.{FileSystem, OS}
-
 import scala.sys.process.Process
 
 /** A helper that allows to create a package from a directory.

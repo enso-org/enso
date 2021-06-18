@@ -583,11 +583,11 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
       "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
-      "nl.gn0s1s"     %% "bump"       % bumpVersion,
       "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
       "commons-io"     % "commons-io" % commonsIoVersion
     )
   )
+  .dependsOn(editions)
 
 lazy val `akka-native` = project
   .in(file("lib/scala/akka-native"))
@@ -728,9 +728,12 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   )
   .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
-  .dependsOn(pkg)
+  .dependsOn(editions)
+  .dependsOn(cli)
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
+  .dependsOn(`library-manager`)
+  .dependsOn(pkg)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(testkit % Test)
@@ -883,6 +886,7 @@ lazy val `polyglot-api` = project
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
   .dependsOn(`logging-utils`)
+  .dependsOn(testkit % Test)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
@@ -1184,7 +1188,52 @@ lazy val launcher = project
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`logging-service`)
+  .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
+
+lazy val `distribution-manager` = project
+  .in(file("lib/scala/distribution-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "commons-io"                  % "commons-io"    % commonsIoVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(editions)
+  .dependsOn(pkg)
+  .dependsOn(`logging-utils`)
+
+lazy val editions = project
+  .in(file("lib/scala/editions"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "nl.gn0s1s"                  %% "bump"          % bumpVersion,
+      "io.circe"                   %% "circe-yaml"    % circeYamlVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+
+lazy val `library-manager` = project
+  .in(file("lib/scala/library-manager"))
+  .configs(Test)
+  .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(editions)
+  .dependsOn(cli)
+  .dependsOn(`distribution-manager`)
+  .dependsOn(testkit % Test)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
@@ -1204,6 +1253,7 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
+  .dependsOn(`distribution-manager`)
 
 lazy val `runtime-version-manager-test` = project
   .in(file("lib/scala/runtime-version-manager-test"))
@@ -1224,6 +1274,8 @@ lazy val `runtime-version-manager-test` = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(testkit)
+  .dependsOn(cli)
+  .dependsOn(`distribution-manager`)
 
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))

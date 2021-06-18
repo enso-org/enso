@@ -15,12 +15,15 @@ import org.enso.pkg.Contact
   *                   projects
   * @param authorEmail default author (and maintainer) email for newly created
   *                    projects
+  * @param editionProviders a sequence of edition provider URLs that are used
+  *                         for downloading editions
   * @param original original mapping that may contain unknown keys
   */
 case class GlobalConfig(
   defaultVersion: DefaultVersion,
   authorName: Option[String],
   authorEmail: Option[String],
+  editionProviders: Seq[String],
   original: JsonObject
 ) {
 
@@ -35,23 +38,27 @@ case class GlobalConfig(
 }
 
 object GlobalConfig {
+  // TODO [RW] this should include the default provider once it is set up
+  private val defaultEditionProviders: Seq[String] = Seq()
 
   /** The default configuration used when the configuration file does not exist.
     */
   val Default: GlobalConfig =
     GlobalConfig(
-      defaultVersion = DefaultVersion.LatestInstalled,
-      authorName     = None,
-      authorEmail    = None,
-      original       = JsonObject()
+      defaultVersion   = DefaultVersion.LatestInstalled,
+      authorName       = None,
+      authorEmail      = None,
+      editionProviders = defaultEditionProviders,
+      original         = JsonObject()
     )
 
   /** Field names used when serializing the configuration.
     */
   object Fields {
-    val DefaultVersion = "default.enso-version"
-    val AuthorName     = "author.name"
-    val AuthorEmail    = "author.email"
+    val DefaultVersion   = "default.enso-version"
+    val AuthorName       = "author.name"
+    val AuthorEmail      = "author.email"
+    val EditionProviders = "edition-providers"
   }
 
   /** [[Decoder]] instance for [[GlobalConfig]].
@@ -63,12 +70,16 @@ object GlobalConfig {
       )
       authorName  <- json.getOrElse[Option[String]](Fields.AuthorName)(None)
       authorEmail <- json.getOrElse[Option[String]](Fields.AuthorEmail)(None)
-      original    <- json.as[JsonObject]
+      editionProviders <- json.getOrElse[Seq[String]](Fields.EditionProviders)(
+        defaultEditionProviders
+      )
+      original <- json.as[JsonObject]
     } yield GlobalConfig(
-      defaultVersion = defaultVersion,
-      authorName     = authorName,
-      authorEmail    = authorEmail,
-      original       = original
+      defaultVersion   = defaultVersion,
+      authorName       = authorName,
+      authorEmail      = authorEmail,
+      editionProviders = editionProviders,
+      original         = original
     )
   }
 
