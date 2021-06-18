@@ -2,7 +2,6 @@ package org.enso.runtimeversionmanager.archive
 
 import java.io.BufferedInputStream
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.{
   ArchiveInputStream,
@@ -23,7 +22,7 @@ import org.enso.cli.task.{
   TaskProgress,
   TaskProgressImplementation
 }
-import org.enso.runtimeversionmanager.OS
+import org.enso.distribution.OS
 import org.enso.runtimeversionmanager.archive.internal.{
   ArchiveIterator,
   BaseRenamer

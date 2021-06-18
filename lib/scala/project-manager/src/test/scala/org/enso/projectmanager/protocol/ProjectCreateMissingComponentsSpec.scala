@@ -6,7 +6,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 
 class ProjectCreateMissingComponentsSpec
     extends BaseServerSpec

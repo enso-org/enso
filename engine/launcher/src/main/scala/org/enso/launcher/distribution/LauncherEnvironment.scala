@@ -1,9 +1,8 @@
 package org.enso.launcher.distribution
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.Logger
-import org.enso.runtimeversionmanager.Environment
+import org.enso.distribution.Environment
 
 /** Default [[Environment]] to use in the launcher.
   *

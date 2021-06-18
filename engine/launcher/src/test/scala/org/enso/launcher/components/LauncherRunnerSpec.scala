@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.EditionManager
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
@@ -30,13 +31,15 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       new GlobalConfigurationManager(componentsManager, distributionManager) {
         override def defaultVersion: SemVer = defaultEngineVersion
       }
-    val projectManager = new ProjectManager(configurationManager)
+    val editionManager = EditionManager(distributionManager)
+    val projectManager = new ProjectManager()
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
       new LauncherRunner(
         projectManager,
         configurationManager,
         componentsManager,
+        editionManager,
         env,
         Future.successful(Some(fakeUri))
       ) {

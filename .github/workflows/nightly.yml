@@ -65,6 +65,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: repo
+      - name: Configure Pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Disable TCP/UDP Offloading (macOS)

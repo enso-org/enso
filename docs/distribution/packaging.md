@@ -102,19 +102,20 @@ The following is an example of this manifest file.
 license: MIT
 name: My_Package
 version: 1.0.1
-enso-version: 0.2.0
+edition:
+  extends: 2021.3
+  enso-version: 0.2.12
+  libraries:
+    - name: Foo.Bar
+      version: 1.2.3
+      repository: main
+prefer-local-libraries: false
 authors:
   - name: John Doe
     email: john.doe@example.com
 maintainers:
   - name: Jane Doe
     email: jane.doe@example.com
-resolver: lts-1.2.0
-extra-dependencies:
-  - name: Base
-    version: "1.2.0"
-  - name: Http
-    version: "4.5.3"
 ```
 
 The following is the specification of the manifest fields. Fields marked as
@@ -129,12 +130,37 @@ fields cannot be published.
 package. Defaults to `None`, meaning the package is not safe for use by third
 parties.
 
+#### edition
+
+**Optional (required for publishing)** _Edition_: Defines the Edition settings
+of the package that determine the engine version and library resolution
+settings. It is a sub-setting that can consist of multiple fields, see
+[the Edition documentation](../libraries/editions.md#the-edition-file) for the
+format description.
+
+The field was added in version 0.2.12 as a replacement for `enso-version` as it
+supersedes its functionality.
+
+If the `edition` field is not specified, a default edition is used.
+
 #### enso-version
 
-**Optional (required for publishing)** _String_: Specifies the Enso version that
-should be used for this project. If not set or set to `default`, the default
-locally installed Enso version will be used. The version should not be `default`
-if the package is to be published.
+**Deprecated** _String_: Specifies the Enso version that should be used for this
+project. If not set or set to `default`, the default locally installed Enso
+version will be used.
+
+The field was deprecated in version 0.2.12. Currently it is still supported, but
+the newer tools will migrate it to the `edition` format when the config is
+modified.
+
+If old tools see a config file that includes an `edition` setting but does not
+include the `engine-version` (for example after the migration), they will fall
+back to using the default engine version - that is because old tools were not
+aware of the `edition` field, so they will simply ignore it.
+
+If a config defines the `edition` field it should not define the
+`engine-version` field anymore, as that could lead to inconsistent engine
+version settings.
 
 #### version
 
@@ -163,32 +189,18 @@ present.
 **Optional** _List of contacts_: The name(s) and contact info(s) of the current
 maintainer(s) of this library, in the same format as `authors` above.
 
-#### resolver
+#### prefer-local-libraries
 
-**Note** This field is not currently implemented. **Optional (required for
-publishing)** _String_: The resolver name, used to choose compiler version and
-basic libraries set. If not set, the system-default resolver will be used.
+**Optional** _Boolean_: A flag that tells the library resolver to prefer local
+library versions over the ones specified by the edition configuration. This is
+useful to make all local libraries easily accessible, but in more sophisticated
+scenarios individual `local` repository overrides should be used instead of
+that. See [Library Resolution](../libraries/editions.md#library-resolution) for
+more details.
 
-> The actionables for this section are:
->
-> - Extend the compiler version to handle version bounds.
-
-#### extra-dependencies
-
-**Note** This field is not currently implemented. **Optional** _List of Library
-objects_: The list of libraries this package requires to function properly and
-that are not included in the resolver. Defaults to an empty list.
-
-A library object is of the form:
-
-```yaml
-name: <name of the library>
-version: <semver string of the required library version>
-```
-
-> The actionables for this section are:
->
-> - Extend the library version field to handle version bounds.
+If the flag is not specified, it defaults to `false`, delegating all library
+resolution to the edition configuration. However, newly created projects will
+have it set to `true`.
 
 ### The `visualization` Directory
 

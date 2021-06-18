@@ -1,11 +1,9 @@
 package org.enso.launcher.project
 
-import java.nio.file.Path
-
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.runner.Project
 import org.enso.pkg.PackageManager
+import org.enso.runtimeversionmanager.runner.Project
 
+import java.nio.file.Path
 import scala.util.{Failure, Try}
 
 /** A helper class for project management.
@@ -13,7 +11,7 @@ import scala.util.{Failure, Try}
   * It allows to create new project, open existing ones or traverse the
   * directory tree to find a project based on a path inside it.
   */
-class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
+class ProjectManager {
 
   private val packageManager = PackageManager.Default
 
@@ -22,7 +20,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   def loadProject(path: Path): Try[Project] =
     packageManager
       .loadPackage(path.toFile)
-      .map(new Project(_, globalConfigurationManager))
+      .map(new Project(_))
       .recoverWith(error => Failure(ProjectLoadingError(path, error)))
 
   /** Traverses the directory tree looking for a project in one of the ancestors
@@ -40,7 +38,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   private def tryFindingProject(root: Path): Try[Project] =
     packageManager
       .loadPackage(root.toFile)
-      .map(new Project(_, globalConfigurationManager))
+      .map(new Project(_))
       .recoverWith {
         case PackageManager.PackageNotFound() if root.getParent != null =>
           tryFindingProject(root.getParent)

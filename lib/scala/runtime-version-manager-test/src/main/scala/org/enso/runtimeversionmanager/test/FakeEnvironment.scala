@@ -1,8 +1,8 @@
 package org.enso.runtimeversionmanager.test
 
-import java.nio.file.{Files, Path}
+import org.enso.distribution.{Environment, FileSystem}
 
-import org.enso.runtimeversionmanager.{Environment, FileSystem}
+import java.nio.file.{Files, Path}
 
 /** A test-suite mixin that adds helper functions that create a fake environment
   * which points to an Enso installation inside the temporary directory

@@ -1,10 +1,9 @@
 package org.enso.launcher.cli
 
 import java.nio.file.{Files, Path}
-
 import org.enso.cli.arguments
 import org.enso.cli.arguments.CommandHelp
-import org.enso.runtimeversionmanager.{Environment, FileSystem}
+import org.enso.distribution.{Environment, FileSystem}
 import org.enso.launcher.distribution.LauncherEnvironment
 
 import scala.sys.process._
