@@ -84,11 +84,6 @@ The manifest file is a YAML file with the following fields:
 - `dependencies` - a list of dependencies, as described below;
 - `description` - an optional description of the library that is displayed in
   the `info` and `search` command results;
-- `deprecated` - an optional boolean flag describing if the library is
-  deprecated; if the library is marked as deprecated it will not show up in the
-  search results and it will be marked as such by the `info` command; the
-  Marketplace should not show the library as available to be installed, but if
-  the library was already added to a project, it will be downloaded nonetheless;
 - `tag-line` - an optional tagline that will be displayed in the marketplace
   interface.
 
