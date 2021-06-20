@@ -65,8 +65,15 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: repo
+      - name: Configure Pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
       - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.5.0
+        uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Disable TCP/UDP Offloading (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -162,7 +169,16 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt --no-colors launcher/buildNativeImage
+          sbt --no-colors "launcher/assembly"
+          sbt --no-colors --mem 1536 "launcher/buildNativeImage"
+
+      - name: Build the PM Native Image
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "project-manager/assembly"
+          sbt --no-colors --mem 1536 "project-manager/buildNativeImage"
 
       - name: Prepare Distribution Version (Unix)
         working-directory: repo

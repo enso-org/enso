@@ -2,16 +2,16 @@ package org.enso.runtimeversionmanager.components
 
 import java.io.FileReader
 import java.nio.file.Path
-
 import cats.Show
 import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.SemVerJson._
+import org.enso.distribution.OS
+import org.enso.editions.SemVerJson._
 import org.enso.runtimeversionmanager.components.Manifest.{
   JVMOption,
   RequiredInstallerVersions
 }
-import org.enso.runtimeversionmanager.{components, OS}
+import org.enso.runtimeversionmanager.components
 
 import scala.util.{Failure, Try, Using}
 

@@ -1,8 +1,8 @@
 package org.enso.projectmanager.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Stash, Status}
+import akka.actor.{Actor, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{LazyLogging, Logger}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{
   HasParams,
@@ -46,7 +46,7 @@ abstract class RequestHandler[
   @unused evParams: HasParams.Aux[M, Params],
   @unused evResult: HasResult.Aux[M, Result]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with Stash
     with UnhandledLogging {
   override def receive: Receive = requestStage
@@ -90,18 +90,18 @@ abstract class RequestHandler[
     timeoutCancellable: Option[Cancellable]
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "Failure during {} operation.", method)
+      logger.error(s"Failure during $method operation.", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
       timeoutCancellable.foreach(_.cancel())
       context.stop(self)
 
     case RequestTimeout =>
-      log.error("Request {} with {} timed out.", method, id)
+      logger.error("Request {} with {} timed out.", method, id)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
     case Left(failure: FailureType) =>
-      log.error("Request {} with {} failed due to {}.", method, id, failure)
+      logger.error("Request {} with {} failed due to {}.", method, id, failure)
       val error = implicitly[FailureMapper[FailureType]].mapFailure(failure)
       replyTo ! ResponseError(Some(id), error)
       timeoutCancellable.foreach(_.cancel())

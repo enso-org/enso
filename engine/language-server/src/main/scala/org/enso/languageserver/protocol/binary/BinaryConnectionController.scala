@@ -1,11 +1,9 @@
 package org.enso.languageserver.protocol.binary
 
-import java.nio.ByteBuffer
-import java.util.UUID
-
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.event.{
   BinarySessionInitialized,
   BinarySessionTerminated
@@ -16,21 +14,14 @@ import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   OutboundStreamEstablished
 }
 import org.enso.languageserver.protocol.binary.BinaryConnectionController.InboundPayloadType
-import org.enso.languageserver.protocol.binary.InboundPayload.{
-  INIT_SESSION_CMD,
-  READ_FILE_CMD,
-  WRITE_FILE_CMD
-}
+import org.enso.languageserver.protocol.binary.InboundPayload._
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SuccessReplyFactory,
   VisualisationUpdateFactory
 }
-import org.enso.languageserver.requesthandler.file.{
-  ReadBinaryFileHandler,
-  WriteBinaryFileHandler
-}
+import org.enso.languageserver.requesthandler.file._
 import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
@@ -41,6 +32,8 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
   GenericDecodingFailure
 }
 
+import java.nio.ByteBuffer
+import java.util.UUID
 import scala.annotation.unused
 import scala.concurrent.duration._
 
@@ -56,7 +49,7 @@ class BinaryConnectionController(
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   override def receive: Receive =
@@ -87,7 +80,7 @@ class BinaryConnectionController(
       outboundChannel ! responsePacket
       val session = BinarySession(clientId, self)
       context.system.eventStream.publish(BinarySessionInitialized(session))
-      log.info(
+      logger.info(
         "Data session initialized for client: {} [{}].",
         clientId,
         clientIp
@@ -114,7 +107,7 @@ class BinaryConnectionController(
         val handler = context.actorOf(handlers(msg.payloadType()))
         handler.forward(msg)
       } else {
-        log.error(
+        logger.error(
           "Received InboundMessage with unknown payload type [{}].",
           msg.payloadType()
         )
@@ -129,17 +122,17 @@ class BinaryConnectionController(
     maybeDataSession: Option[BinarySession] = None
   ): Receive = {
     case ConnectionClosed =>
-      log.info("Connection closed [{}].", clientIp)
+      logger.info("Connection closed [{}].", clientIp)
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
       )
       context.stop(self)
 
     case ConnectionFailed(th) =>
-      log.error(
-        th,
-        "An error occurred during processing web socket connection [{}].",
-        clientIp
+      logger.error(
+        "An error occurred during processing web socket connection [{}]. {}",
+        clientIp,
+        th.getMessage
       )
       maybeDataSession.foreach(session =>
         context.system.eventStream.publish(BinarySessionTerminated(session))
@@ -160,7 +153,7 @@ class BinaryConnectionController(
       case EmptyPayload  => ErrorFactory.createReceivedEmptyPayloadError()
       case DataCorrupted => ErrorFactory.createReceivedCorruptedDataError()
       case GenericDecodingFailure(th) =>
-        log.error(th, "Unrecognized error occurred in binary protocol.")
+        logger.error("Unrecognized error occurred in binary protocol.", th)
         ErrorFactory.createServiceError()
     }
 
@@ -203,6 +196,12 @@ class BinaryConnectionController(
       WRITE_FILE_CMD -> WriteBinaryFileHandler
         .props(requestTimeout, fileManager, outboundChannel),
       READ_FILE_CMD -> ReadBinaryFileHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      CHECKSUM_BYTES_CMD -> ChecksumBytesHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      WRITE_BYTES_CMD -> WriteBytesHandler
+        .props(requestTimeout, fileManager, outboundChannel),
+      READ_BYTES_CMD -> ReadBytesHandler
         .props(requestTimeout, fileManager, outboundChannel)
     )
   }

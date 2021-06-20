@@ -1,9 +1,9 @@
 package org.enso.languageserver.search
 
 import java.util.UUID
-
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
@@ -17,7 +17,11 @@ import org.enso.languageserver.data.{
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
+import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  FileDeletedEvent,
+  Path
+}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.search.handler.{
@@ -84,7 +88,7 @@ final class SuggestionsHandler(
   runtimeConnector: ActorRef
 ) extends Actor
     with Stash
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import SuggestionsHandler.ProjectNameUpdated
@@ -93,7 +97,7 @@ final class SuggestionsHandler(
   private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
-    log.info(
+    logger.info(
       "Starting suggestions handler from [{}, {}, {}].",
       config,
       suggestionsRepo,
@@ -110,10 +114,12 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
-    config.contentRoots.foreach { case (_, contentRoot) =>
-      PackageManager.Default
-        .fromDirectory(contentRoot)
-        .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
+    config.contentRoots.foreach {
+      case (_, root) if root.`type` == ContentRootType.Project =>
+        PackageManager.Default
+          .fromDirectory(root.file)
+          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
+      case _ =>
     }
   }
 
@@ -122,7 +128,7 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
-      log.info(
+      logger.info(
         "Initializing: project name changed from [{}] to [{}].",
         oldName,
         newName
@@ -133,12 +139,12 @@ final class SuggestionsHandler(
         .pipeTo(self)
 
     case ProjectNameUpdated(name, updates) =>
-      log.info("Initializing: project name is updated to [{}].", name)
+      logger.info("Initializing: project name is updated to [{}].", name)
       updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
-      log.info("Initializing: suggestions repo initialized.")
+      logger.info("Initializing: suggestions repo initialized.")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -146,14 +152,14 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
-      log.info("Initializing: Truffle context initialized.")
+      logger.info("Initializing: Truffle context initialized.")
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
         .pipeTo(self)
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
-      log.info("Initializing: got type graph response.")
+      logger.info("Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case _ => stash()
@@ -164,14 +170,14 @@ final class SuggestionsHandler(
     graph: TypeGraph
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
-      log.info("Verifying: got verification response.")
+      logger.info("Verifying: got verification response.")
       suggestionsRepo
         .removeModules(toRemove)
         .map(_ => SuggestionsHandler.Verified)
         .pipeTo(self)
 
     case SuggestionsHandler.Verified =>
-      log.info("Verified.")
+      logger.info("Verified.")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
 
@@ -218,8 +224,7 @@ final class SuggestionsHandler(
             }
           case Success(None) =>
           case Failure(ex) =>
-            log.error(
-              ex,
+            logger.error(
               "Error applying suggestion database updates [{}, {}]. {}",
               MaskedPath(msg.file.toPath),
               msg.version,
@@ -228,7 +233,7 @@ final class SuggestionsHandler(
         }
 
     case Api.ExpressionUpdates(_, updates) =>
-      log.debug(
+      logger.debug(
         "Received expression updates [{}].",
         updates.map(u => (u.expressionId, u.expressionType))
       )
@@ -254,8 +259,7 @@ final class SuggestionsHandler(
               }
             }
           case Failure(ex) =>
-            log.error(
-              ex,
+            logger.error(
               "Error applying changes from computed values [{}]. {}",
               updates.map(_.expressionId),
               ex.getMessage
@@ -330,13 +334,12 @@ final class SuggestionsHandler(
               }
             }
           case Success(Left(err)) =>
-            log.error(
+            logger.error(
               s"Error cleaning the index after file delete event [{}].",
               err
             )
           case Failure(ex) =>
-            log.error(
-              ex,
+            logger.error(
               "Error cleaning the index after file delete event. {}",
               ex.getMessage
             )
@@ -415,7 +418,7 @@ final class SuggestionsHandler(
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) {
       case (name, graph) =>
-        log.debug("Initialized with state [{}].", state)
+        logger.debug("Initialized with state [{}].", state)
         val requestId = UUID.randomUUID()
         suggestionsRepo.getAllModules
           .flatMap { modules =>
@@ -455,11 +458,11 @@ final class SuggestionsHandler(
           action match {
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty)
-                log.error("Failed to {} [{}].", verb, suggestion)
+                logger.error("Failed to {} [{}].", verb, suggestion)
               ids.map(id => SuggestionsDatabaseUpdate.Add(id, suggestion))
             case Api.SuggestionAction.Remove() =>
               if (ids.isEmpty)
-                log.error(s"Failed to {} [{}].", verb, suggestion)
+                logger.error(s"Failed to {} [{}].", verb, suggestion)
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
               ids.map { id =>
@@ -541,10 +544,10 @@ final class SuggestionsHandler(
     path: Path
   ): Either[SearchFailure, String] =
     for {
-      rootFile <- config.findContentRoot(path.rootId).left.map(FileSystemError)
+      root <- config.findContentRoot(path.rootId).left.map(FileSystemError)
       module <-
         ModuleNameBuilder
-          .build(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
+          .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
           .toRight(ModuleNameNotResolvedError(path))
     } yield module
 

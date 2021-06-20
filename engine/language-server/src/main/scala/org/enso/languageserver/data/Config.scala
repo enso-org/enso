@@ -3,9 +3,9 @@ package org.enso.languageserver.data
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-
 import org.enso.languageserver.filemanager.{
   ContentRootNotFound,
+  ContentRootWithFile,
   FileSystemFailure,
   Path
 }
@@ -78,15 +78,15 @@ object ExecutionContextConfig {
   *
   * @param root the root directory path
   */
-case class DirectoriesConfig(root: File) extends ToLogString {
+case class ProjectDirectoriesConfig(root: File) extends ToLogString {
 
   /** The data directory path. */
   val dataDirectory: File =
-    new File(root, DirectoriesConfig.DataDirectory)
+    new File(root, ProjectDirectoriesConfig.DataDirectory)
 
   /** The suggestions database file path. */
   val suggestionsDatabaseFile: File =
-    new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
+    new File(dataDirectory, ProjectDirectoriesConfig.SuggestionsDatabaseFile)
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
@@ -101,21 +101,21 @@ case class DirectoriesConfig(root: File) extends ToLogString {
     Files.createDirectories(dataDirectory.toPath)
 }
 
-object DirectoriesConfig {
+object ProjectDirectoriesConfig {
 
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
-  def apply(root: String): DirectoriesConfig =
-    new DirectoriesConfig(new File(root))
+  def apply(root: String): ProjectDirectoriesConfig =
+    new ProjectDirectoriesConfig(new File(root))
 
   /** Create default data directory config, creating directories if not exist.
     *
     * @param root the root directory path
     * @return data directory config
     */
-  def initialize(root: File): DirectoriesConfig = {
-    val config = new DirectoriesConfig(root)
+  def initialize(root: File): ProjectDirectoriesConfig = {
+    val config = new ProjectDirectoriesConfig(root)
     config.createDirectories()
     config
   }
@@ -131,11 +131,11 @@ object DirectoriesConfig {
   * @param directories the configuration of internal directories
   */
 case class Config(
-  contentRoots: Map[UUID, File],
+  contentRoots: Map[UUID, ContentRootWithFile],
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
-  directories: DirectoriesConfig
+  directories: ProjectDirectoriesConfig
 ) extends ToLogString {
 
   /** @inheritdoc */
@@ -144,7 +144,7 @@ case class Config(
       if (shouldMask) {
         contentRoots
           .map { case (k, v) =>
-            k -> MaskingUtils.toMaskedPath(v.toPath)
+            k -> MaskingUtils.toMaskedPath(v.file.toPath)
           }
       } else {
         contentRoots
@@ -158,15 +158,17 @@ case class Config(
     s")"
   }
 
-  def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
+  def findContentRoot(
+    rootId: UUID
+  ): Either[FileSystemFailure, ContentRootWithFile] =
     contentRoots
       .get(rootId)
       .toRight(ContentRootNotFound)
 
   def findRelativePath(path: File): Option[Path] =
     contentRoots.view.flatMap { case (id, root) =>
-      if (path.toPath.startsWith(root.toPath)) {
-        Some(Path(id, root.toPath.relativize(path.toPath)))
+      if (path.toPath.startsWith(root.file.toPath)) {
+        Some(Path(id, root.file.toPath.relativize(path.toPath)))
       } else {
         None
       }

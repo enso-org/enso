@@ -1,5 +1,7 @@
 package org.enso.languageserver.filemanager
 
+import io.circe.Json
+import io.circe.literal.JsonStringContext
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /** The file manager JSON RPC API provided by the language server.
@@ -138,6 +140,18 @@ object FileManagerApi {
     }
   }
 
+  case object ChecksumFile extends Method("file/checksum") {
+    case class Params(path: Path)
+    case class Result(checksum: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ChecksumFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ChecksumFile.Result
+    }
+  }
+
   case object EventFile extends Method("file/event") {
 
     case class Params(path: Path, kind: FileEventKind)
@@ -162,6 +176,21 @@ object FileManagerApi {
   case object OperationTimeoutError extends Error(1005, "IO operation timeout")
 
   case object NotDirectoryError extends Error(1006, "Path is not a directory")
+
+  case object NotFileError extends Error(1007, "Path is not a file")
+
+  case object CannotOverwriteError
+      extends Error(
+        1008,
+        "Cannot overwrite the file without `overwriteExisting` set"
+      )
+
+  case class ReadOutOfBoundsError(length: Long)
+      extends Error(1009, "Read is out of bounds for the file") {
+    override def payload: Option[Json] = Some(
+      json""" { "fileLength" : $length }"""
+    )
+  }
 
   case object CannotDecodeError
       extends Error(1010, "Cannot decode the project configuration")

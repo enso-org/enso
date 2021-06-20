@@ -19,3 +19,12 @@ Builtins.Project_Description.root = File.File this.prim_root_file
          Enso_Project.data
 Builtins.Project_Description.data : File.File
 Builtins.Project_Description.data = this.root / "data"
+
+## Returns the name of the project.
+
+   > Example
+     Get the name of the current project.
+
+         Enso_Project.name
+Builtins.Project_Description.name : Text
+Builtins.Project_Description.name = this.prim_config.name

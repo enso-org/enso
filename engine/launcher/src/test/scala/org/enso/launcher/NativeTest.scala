@@ -1,8 +1,8 @@
 package org.enso.launcher
 
-import java.nio.file.{Files, Path}
+import org.enso.distribution.OS
 
-import org.enso.runtimeversionmanager.OS
+import java.nio.file.{Files, Path}
 import org.enso.runtimeversionmanager.test.NativeTestHelper
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers

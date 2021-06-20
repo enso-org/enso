@@ -196,7 +196,7 @@ table ChecksumBytesCommand {
 // The checksum of the specified bytes.
 table ChecksumBytesReply {
   // The segment in a file to checksum.
-  checksum : EnsoDigest;
+  checksum : EnsoDigest (required);
 }
 
 // A SHA3-224 digest.

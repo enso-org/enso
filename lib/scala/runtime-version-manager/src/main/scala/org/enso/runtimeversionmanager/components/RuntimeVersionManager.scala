@@ -1,21 +1,15 @@
 package org.enso.runtimeversionmanager.components
 
 import java.nio.file.{Files, Path, StandardOpenOption}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.{DistributionManager, FileSystem, OS}
+import org.enso.distribution.locking.{LockType, ResourceManager}
+import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.archive.Archive
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  TemporaryDirectoryManager
-}
-import org.enso.runtimeversionmanager.locking.{
-  LockType,
-  Resource,
-  ResourceManager
-}
+import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
+import org.enso.runtimeversionmanager.locking.Resources
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.EngineRelease
 import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
@@ -105,7 +99,7 @@ class RuntimeVersionManager(
     val engine = findOrInstallEngine(version = engineVersion)
     resourceManager.withResources(
       userInterface,
-      Resource.Engine(engineVersion) -> LockType.Shared
+      Resources.Engine(engineVersion) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -139,8 +133,8 @@ class RuntimeVersionManager(
     val runtime = findOrInstallGraalRuntime(engine)
     resourceManager.withResources(
       userInterface,
-      Resource.Engine(engineVersion)    -> LockType.Shared,
-      Resource.Runtime(runtime.version) -> LockType.Shared
+      Resources.Engine(engineVersion)    -> LockType.Shared,
+      Resources.Runtime(runtime.version) -> LockType.Shared
     ) {
       engine
         .ensureValid()
@@ -185,8 +179,8 @@ class RuntimeVersionManager(
         if (userInterface.shouldInstallMissingRuntime(version)) {
           resourceManager.withResources(
             userInterface,
-            Resource.AddOrRemoveComponents -> LockType.Shared,
-            Resource.Runtime(version)      -> LockType.Exclusive
+            Resources.AddOrRemoveComponents -> LockType.Shared,
+            Resources.Runtime(version)      -> LockType.Exclusive
           ) {
             installGraalRuntime(version)
           }
@@ -264,8 +258,8 @@ class RuntimeVersionManager(
         if (userInterface.shouldInstallMissingEngine(version)) {
           resourceManager.withResources(
             userInterface,
-            Resource.AddOrRemoveComponents -> LockType.Shared,
-            Resource.Engine(version)       -> LockType.Exclusive
+            Resources.AddOrRemoveComponents -> LockType.Shared,
+            Resources.Engine(version)       -> LockType.Exclusive
           ) {
             findEngine(version) match {
               case Some(engine) =>
@@ -360,8 +354,8 @@ class RuntimeVersionManager(
   def uninstallEngine(version: SemVer): Unit =
     resourceManager.withResources(
       userInterface,
-      Resource.AddOrRemoveComponents -> LockType.Exclusive,
-      Resource.Engine(version)       -> LockType.Exclusive
+      Resources.AddOrRemoveComponents -> LockType.Exclusive,
+      Resources.Engine(version)       -> LockType.Exclusive
     ) {
       val engine = getEngine(version).getOrElse {
         logger.warn("Enso Engine [{}] is not installed.", version)
@@ -388,7 +382,7 @@ class RuntimeVersionManager(
   def cleanupRuntimes(): Unit = {
     resourceManager.withResources(
       userInterface,
-      Resource.AddOrRemoveComponents -> LockType.Exclusive
+      Resources.AddOrRemoveComponents -> LockType.Exclusive
     ) {
       internalCleanupGraalRuntimes()
     }
@@ -412,9 +406,9 @@ class RuntimeVersionManager(
     * directory (to ensure that they are on the same filesystem) and is moved to
     * the actual directory after doing simple sanity checks.
     *
-    * The caller should hold a shared lock on [[Resource.AddOrRemoveComponents]]
-    * and an exclusive lock on [[Resource.Engine]]. The function itself acquires
-    * [[Resource.Runtime]], but it is released before it returns.
+    * The caller should hold a shared lock on [[Resources.AddOrRemoveComponents]]
+    * and an exclusive lock on [[Resources.Engine]]. The function itself acquires
+    * [[Resources.Runtime]], but it is released before it returns.
     */
   private def installEngine(version: SemVer): Engine = {
     logger.info("Installing the engine [{}].", version)
@@ -547,7 +541,7 @@ class RuntimeVersionManager(
         def getEngineIfRuntimeIsInstalled: Option[Engine] =
           resourceManager.withResource(
             userInterface,
-            Resource.Runtime(runtimeVersion),
+            Resources.Runtime(runtimeVersion),
             LockType.Shared
           ) {
             findGraalRuntime(runtimeVersion).map { runtime =>
@@ -562,7 +556,7 @@ class RuntimeVersionManager(
         def getEngineOtherwise: Engine =
           resourceManager.withResource(
             userInterface,
-            Resource.Runtime(runtimeVersion),
+            Resources.Runtime(runtimeVersion),
             LockType.Exclusive
           ) {
             val (runtime, wasJustInstalled) = findGraalRuntime(runtimeVersion)
@@ -679,8 +673,8 @@ class RuntimeVersionManager(
     * the actual directory after doing simple sanity checks.
     *
     * The caller should hold a shared lock for
-    * [[Resource.AddOrRemoveComponents]] and an exclusive lock for
-    * [[Resource.Runtime]].
+    * [[Resources.AddOrRemoveComponents]] and an exclusive lock for
+    * [[Resources.Runtime]].
     */
   private def installGraalRuntime(
     runtimeVersion: GraalVMVersion
@@ -804,7 +798,7 @@ class RuntimeVersionManager(
 
   /** Removes runtimes that are not used by any installed engines.
     *
-    * The caller must hold [[Resource.AddOrRemoveComponents]] exclusively.
+    * The caller must hold [[Resources.AddOrRemoveComponents]] exclusively.
     */
   private def internalCleanupGraalRuntimes(): Unit = {
     for (runtime <- listInstalledGraalRuntimes()) {
@@ -838,7 +832,7 @@ class RuntimeVersionManager(
     * installation-related operations.
     *
     * The caller should hold an exclusive lock for
-    * [[Resource.AddOrRemoveComponents]] or otherwise guarantee that this
+    * [[Resources.AddOrRemoveComponents]] or otherwise guarantee that this
     * component can be safely removed. The latter is an exception that only
     * happens when uninstalling a just-installed runtime when an engine
     * installation failed. In that case the installer has an exclusive lock on

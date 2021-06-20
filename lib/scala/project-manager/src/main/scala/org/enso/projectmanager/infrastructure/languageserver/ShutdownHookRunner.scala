@@ -2,8 +2,9 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Props, Status}
+import akka.actor.{Actor, Props, Status}
 import akka.pattern.pipe
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.Exec
@@ -20,7 +21,7 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
   projectId: UUID,
   hooks: List[ShutdownHook[F]]
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher
@@ -30,22 +31,21 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
   }
 
   override def receive: Receive = { case Run =>
-    log.info("Firing shutdown hooks for project [{}].", projectId)
+    logger.info("Firing shutdown hooks for project [{}].", projectId)
     Exec[F].exec { traverse(hooks) { _.execute() } } pipeTo self
     context.become(running)
   }
 
   private def running: Receive = {
     case Status.Failure(th) =>
-      log.error(
-        th,
-        "An error occurred during running shutdown hooks for project [{}].",
-        projectId
+      logger.error(
+        s"An error occurred during running shutdown hooks for project [$projectId].",
+        th
       )
       context.stop(self)
 
     case Right(_) =>
-      log.info("All shutdown hooks fired for project [{}].", projectId)
+      logger.info("All shutdown hooks fired for project [{}].", projectId)
       context.stop(self)
   }
 

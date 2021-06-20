@@ -1,13 +1,14 @@
 package org.enso.languageserver.requesthandler.monitoring
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult, Unused}
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.monitoring.MonitoringApi
 
 /** A request handler for `heartbeat/init` commands. */
-class InitialPingHandler extends Actor with ActorLogging {
+class InitialPingHandler extends Actor with LazyLogging {
 
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[InitializedEvent])

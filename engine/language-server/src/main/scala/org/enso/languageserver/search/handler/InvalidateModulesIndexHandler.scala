@@ -2,7 +2,8 @@ package org.enso.languageserver.search.handler
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.RuntimeFailureMapper
@@ -23,7 +24,7 @@ final class InvalidateModulesIndexHandler(
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
-    with ActorLogging
+    with LazyLogging
     with UnhandledLogging {
 
   import context.dispatcher

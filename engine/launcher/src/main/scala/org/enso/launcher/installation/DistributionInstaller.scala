@@ -1,14 +1,17 @@
 package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.CLIOutput
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.{
+  DistributionManager,
+  FileSystem,
+  OS,
+  PortableDistributionManager
+}
+import org.enso.distribution.locking.ResourceManager
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.distribution.PortableDistributionManager
-import org.enso.runtimeversionmanager.locking.ResourceManager
-import org.enso.runtimeversionmanager.{FileSystem, OS}
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.distribution.DefaultManagers
@@ -54,9 +57,9 @@ class DistributionInstaller(
   private val nonEssentialDirectories = Seq("THIRD-PARTY")
 
   private val enginesDirectory =
-    installed.dataDirectory / manager.ENGINES_DIRECTORY
+    installed.dataDirectory / DistributionManager.ENGINES_DIRECTORY
   private val runtimesDirectory =
-    installed.dataDirectory / manager.RUNTIMES_DIRECTORY
+    installed.dataDirectory / DistributionManager.RUNTIMES_DIRECTORY
 
   /** Installs the distribution under configured location.
     *

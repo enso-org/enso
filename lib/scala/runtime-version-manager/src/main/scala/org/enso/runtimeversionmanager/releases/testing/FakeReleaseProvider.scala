@@ -2,8 +2,8 @@ package org.enso.runtimeversionmanager.releases.testing
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 import org.enso.cli.task.{ProgressListener, TaskProgress}
-import org.enso.runtimeversionmanager.FileSystem
-import org.enso.runtimeversionmanager.locking.{LockManager, LockType}
+import org.enso.distribution.FileSystem
+import org.enso.distribution.locking.{LockManager, LockType}
 import org.enso.runtimeversionmanager.releases.{
   Asset,
   Release,

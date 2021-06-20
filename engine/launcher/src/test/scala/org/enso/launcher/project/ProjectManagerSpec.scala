@@ -1,8 +1,8 @@
 package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.DistributionManager
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.distribution.DistributionManager
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
@@ -19,7 +19,7 @@ class ProjectManagerSpec
       new GlobalConfigurationManager(null, distributionManager) {
         override def defaultVersion: SemVer = defaultEnsoVersion
       }
-    (fakeConfigurationManager, new ProjectManager(fakeConfigurationManager))
+    (fakeConfigurationManager, new ProjectManager())
   }
 
   "ProjectManager" should {
@@ -43,7 +43,8 @@ class ProjectManagerSpec
       projectDir.resolve("src").resolve("Main.enso").toFile should exist
 
       val project = projectManager.loadProject(projectDir).get
-      project.version shouldEqual defaultEnsoVersion
+      // TODO [RW] this test may change once we switch to deriving a particular edition by default
+      project.edition.engineVersion should contain(defaultEnsoVersion)
       project.config.authors.headOption.value shouldEqual author
       project.config.maintainers.headOption.value shouldEqual author
     }
