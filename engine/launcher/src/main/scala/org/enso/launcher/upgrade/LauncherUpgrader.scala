@@ -1,25 +1,24 @@
 package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path}
-
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
-import org.enso.runtimeversionmanager.{CurrentVersion, FileSystem, OS}
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.archive.Archive
-import org.enso.runtimeversionmanager.components.UpgradeRequiredError
-import org.enso.runtimeversionmanager.distribution.DistributionManager
-import org.enso.launcher.cli.{
-  CLIProgressReporter,
-  GlobalCLIOptions,
-  InternalOpts
-}
-import org.enso.runtimeversionmanager.locking.{
+import org.enso.distribution.{DistributionManager, FileSystem, OS}
+import org.enso.distribution.locking.{
   LockType,
   LockUserInterface,
   Resource,
   ResourceManager
+}
+import org.enso.runtimeversionmanager.CurrentVersion
+import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.runtimeversionmanager.archive.Archive
+import org.enso.runtimeversionmanager.components.UpgradeRequiredError
+import org.enso.launcher.cli.{
+  CLIProgressReporter,
+  GlobalCLIOptions,
+  InternalOpts
 }
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
@@ -27,6 +26,7 @@ import org.enso.launcher.releases.LauncherRepository
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.distribution.DefaultManagers
 import org.enso.logger.LoggerSyntax
+import org.enso.runtimeversionmanager.locking.Resources
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -66,7 +66,7 @@ class LauncherUpgrader(
     }
     resourceManager.withResource(
       failIfAnotherUpgradeIsRunning,
-      Resource.LauncherExecutable,
+      Resources.LauncherExecutable,
       LockType.Exclusive
     ) {
       runCleanup(isStartup = true)

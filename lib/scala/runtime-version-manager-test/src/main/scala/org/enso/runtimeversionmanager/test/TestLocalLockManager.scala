@@ -1,13 +1,13 @@
 package org.enso.runtimeversionmanager.test
 
+import org.enso.distribution.locking.{Lock, LockManager, LockType}
+
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.{
   ReadWriteLock,
   ReentrantReadWriteLock,
   Lock => JLock
 }
-
-import org.enso.runtimeversionmanager.locking.{Lock, LockManager, LockType}
 
 /** A [[LockManager]] that creates process-local locks.
   *

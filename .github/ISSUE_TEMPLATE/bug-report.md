@@ -22,7 +22,7 @@ the bug! It may have been fixed since.
 <!--
 Please list the reproduction steps for your bug. For example:
 
-1. Launch the enso interpreter in server mode `enso --server --socket:8080`.
+1. Launch the enso interpreter in server mode `enso --server --socket=8080`.
 2. Send it a message as follows, where `path/to/project` doesn't exist.
 
 ```json

@@ -4,7 +4,7 @@ import org.enso.polyglot.debugger.protocol.{
   ExceptionRepresentation,
   ObjectRepresentation
 }
-
+import org.enso.testkit.EitherValue
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

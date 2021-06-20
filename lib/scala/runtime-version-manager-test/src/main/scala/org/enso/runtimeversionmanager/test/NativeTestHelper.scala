@@ -1,5 +1,7 @@
 package org.enso.runtimeversionmanager.test
 
+import org.enso.distribution.OS
+
 import java.io.{
   BufferedReader,
   IOException,
@@ -9,9 +11,6 @@ import java.io.{
 }
 import java.util.concurrent.{Semaphore, TimeUnit}
 import java.lang.{ProcessBuilder => JProcessBuilder}
-
-import org.enso.runtimeversionmanager.OS
-
 import scala.collection.Factory
 import scala.concurrent.TimeoutException
 import scala.jdk.CollectionConverters._

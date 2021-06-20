@@ -47,3 +47,4 @@ It is broken up into categories as follows:
 - [**Parser:**](./parser) Design and specification of the Enso parser.
 - [**Infrastructure:**](./infrastructure) Description of the infrastructure for
   building Enso.
+- [**Libraries:**](./libraries) Description of Enso's Library Ecosystem.

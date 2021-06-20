@@ -3,13 +3,13 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.io.PrintWriter
 import java.lang.ProcessBuilder.Redirect
 import java.util.concurrent.Executors
-
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
 import scala.util.Using
@@ -80,11 +80,16 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       rpcPort   = rpcPort,
       dataPort  = dataPort
     )
-
-    val runner = new Runner(
+    val configurationManager = new GlobalConfigurationManager(
       versionManager,
-      distributionConfiguration.environment,
-      descriptor.deferredLoggingServiceEndpoint
+      distributionConfiguration.distributionManager
+    )
+    val runner = new Runner(
+      runtimeVersionManager      = versionManager,
+      globalConfigurationManager = configurationManager,
+      editionManager             = distributionConfiguration.editionManager,
+      environment                = distributionConfiguration.environment,
+      loggerConnection           = descriptor.deferredLoggingServiceEndpoint
     )
     val runSettings = runner
       .startLanguageServer(

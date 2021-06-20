@@ -1,10 +1,10 @@
 package org.enso.projectmanager.model
 
+import org.enso.editions.Editions
+
 import java.nio.file.attribute.FileTime
 import java.time.OffsetDateTime
 import java.util.UUID
-
-import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
 
 /** Project entity.
   *
@@ -12,7 +12,7 @@ import org.enso.pkg.{DefaultEnsoVersion, EnsoVersion}
   * @param name a project name
   * @param kind a project kind
   * @param created a project creation time
-  * @param engineVersion version of the engine associated with the project
+  * @param edition the edition configuration associated with the project
   * @param lastOpened a project last open time
   * @param path a path to the project structure
   */
@@ -21,7 +21,7 @@ case class Project(
   name: String,
   kind: ProjectKind,
   created: OffsetDateTime,
-  engineVersion: EnsoVersion              = DefaultEnsoVersion,
+  edition: Editions.RawEdition,
   lastOpened: Option[OffsetDateTime]      = None,
   path: Option[String]                    = None,
   directoryCreationTime: Option[FileTime] = None

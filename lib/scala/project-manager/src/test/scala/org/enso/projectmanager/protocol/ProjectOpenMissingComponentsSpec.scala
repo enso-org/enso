@@ -2,12 +2,11 @@ package org.enso.projectmanager.protocol
 
 import java.io.File
 import java.util.UUID
-
 import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.SemVerEnsoVersion
+import org.enso.editions.SemVerEnsoVersion
 import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
@@ -49,8 +48,11 @@ class ProjectOpenMissingComponentsSpec
     val pkgManager = org.enso.pkg.PackageManager.Default
     val pkg        = pkgManager.loadPackage(projectDir).get
     pkg.updateConfig(config =>
-      config.copy(ensoVersion =
-        SemVerEnsoVersion(SemVer(0, 999, 0, Some("broken")))
+      config.copy(edition =
+        config.edition.copy(
+          engineVersion =
+            Some(SemVerEnsoVersion(SemVer(0, 999, 0, Some("broken"))))
+        )
       )
     )
 

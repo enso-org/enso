@@ -2,20 +2,24 @@ package org.enso.languageserver.websocket.binary
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.{
   Config,
-  DirectoriesConfig,
+  ProjectDirectoriesConfig,
   ExecutionContextConfig,
   FileManagerConfig,
   PathWatcherConfig
 }
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.filemanager.{FileManager, FileSystem}
+import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  ContentRootWithFile,
+  FileManager,
+  FileSystem
+}
 import org.enso.languageserver.http.server.ConnectionControllerFactory
 import org.enso.languageserver.protocol.binary.BinaryConnectionController
 import org.enso.languageserver.protocol.binary.InboundPayload
@@ -28,17 +32,22 @@ import scala.concurrent.duration._
 
 class BaseBinaryServerTest extends BinaryServerTestKit {
 
-  val testContentRoot   = Files.createTempDirectory(null).toRealPath()
   val testContentRootId = UUID.randomUUID()
+  val testContentRoot = ContentRootWithFile(
+    testContentRootId,
+    ContentRootType.Project,
+    "Project",
+    Files.createTempDirectory(null).toRealPath().toFile
+  )
   val config = Config(
-    Map(testContentRootId -> testContentRoot.toFile),
+    Map(testContentRootId -> testContentRoot),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
-    DirectoriesConfig.initialize(testContentRoot.toFile)
+    ProjectDirectoriesConfig.initialize(testContentRoot.file)
   )
 
-  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
+  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
 
   @volatile
   protected var lastConnectionController: ActorRef = _

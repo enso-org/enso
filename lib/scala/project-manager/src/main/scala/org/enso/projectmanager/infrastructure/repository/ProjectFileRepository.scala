@@ -108,7 +108,7 @@ class ProjectFileRepository[
         name                  = pkg.name,
         kind                  = meta.kind,
         created               = meta.created,
-        engineVersion         = pkg.config.ensoVersion,
+        edition               = pkg.config.edition,
         lastOpened            = meta.lastOpened,
         path                  = Some(directory.toString),
         directoryCreationTime = directoryCreationTime

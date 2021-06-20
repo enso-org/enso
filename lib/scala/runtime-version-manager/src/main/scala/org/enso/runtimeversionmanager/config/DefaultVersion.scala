@@ -5,7 +5,7 @@ import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Argument
 import org.enso.runtimeversionmanager.cli.Arguments._
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 
 /** Default version that is used when launching Enso outside of projects and
   * when creating new projects.

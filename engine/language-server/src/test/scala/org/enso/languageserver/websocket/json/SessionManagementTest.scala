@@ -24,7 +24,13 @@ class SessionManagementTest extends BaseServerTest {
             { "jsonrpc":"2.0",
               "id":1,
               "result":{
-                "contentRoots":[ $testContentRootId ]
+                "contentRoots": [
+                  {
+                    "id": $testContentRootId,
+                    "type": "Project",
+                    "name": "Project"
+                  }
+                ]
               }
             }
               """)
