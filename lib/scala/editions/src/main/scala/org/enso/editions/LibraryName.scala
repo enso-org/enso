@@ -23,16 +23,20 @@ object LibraryName {
   implicit val decoder: Decoder[LibraryName] = { json =>
     for {
       str <- json.as[String]
-      name <- parseLibraryName(str).left.map { errorMessage =>
+      name <- fromString(str).left.map { errorMessage =>
         DecodingFailure(errorMessage, json.history)
       }
     } yield name
   }
 
-  private def parseLibraryName(str: String): Either[String, LibraryName] = {
-    str.split(".") match {
+  /** Creates a [[LibraryName]] from its string representation.
+    *
+    * Returns an error message on failure.
+    */
+  def fromString(str: String): Either[String, LibraryName] = {
+    str.split('.') match {
       case Array(prefix, name) => Right(LibraryName(prefix, name))
-      case _                   => Left(s"`$str` is not a valid library name")
+      case _                   => Left(s"`$str` is not a valid library name.")
     }
   }
 }
