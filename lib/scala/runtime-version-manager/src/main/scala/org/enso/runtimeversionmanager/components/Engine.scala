@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.logger.masking.MaskedPath
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.runtimeversionmanager.components.Manifest.JVMOption
 
 import scala.util.{Failure, Success, Try}

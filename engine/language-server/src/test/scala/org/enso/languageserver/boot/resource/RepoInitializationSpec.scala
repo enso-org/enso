@@ -1,14 +1,14 @@
 package org.enso.languageserver.boot.resource
 
-import java.io.File
-import java.nio.file.{Files, StandardOpenOption}
-import java.util.UUID
-
 import akka.actor.ActorSystem
 import akka.testkit._
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  ContentRootWithFile
+}
 import org.enso.searcher.sql.{
   SchemaVersion,
   SqlDatabase,
@@ -21,6 +21,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.sqlite.SQLiteException
 
+import java.nio.file.{Files, StandardOpenOption}
+import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -205,20 +207,27 @@ class RepoInitializationSpec
 
   }
 
-  def newConfig(root: File): Config = {
+  def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(UUID.randomUUID() -> root),
+      Map(root.id -> root),
       FileManagerConfig(timeout = 3.seconds.dilated),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
-      DirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 
   def withConfig(test: Config => Any): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config = newConfig(testContentRoot.toFile)
+    val config = newConfig(
+      ContentRootWithFile(
+        UUID.randomUUID(),
+        ContentRootType.Project,
+        "Project",
+        testContentRoot.toFile
+      )
+    )
 
     test(config)
   }

@@ -4,13 +4,13 @@ import java.io.File
 import java.nio.file.{Files, Path}
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
-
 import akka.testkit.TestActors.blackholeProps
 import akka.testkit._
 import io.circe.Json
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
+import org.enso.distribution.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.loggingservice.printers.StderrPrinterWithColors
@@ -39,7 +39,6 @@ import org.enso.projectmanager.service.{
   ProjectService
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
-import org.enso.runtimeversionmanager.OS
 import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource

@@ -1,17 +1,16 @@
 package org.enso.projectmanager.service.versionmanagement
 
 import java.util.UUID
-
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.{ProgressListener, TaskProgress}
+import org.enso.distribution.locking.Resource
 import org.enso.projectmanager.data.ProgressUnit
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
-import org.enso.runtimeversionmanager.locking.Resource
 
 import scala.util.{Failure, Success, Try}
 

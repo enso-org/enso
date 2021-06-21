@@ -1,22 +1,15 @@
 package org.enso.launcher.components
 
-import java.nio.file.{Files, Path}
-
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.Environment
-import org.enso.runtimeversionmanager.components.RuntimeVersionManager
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
-import org.enso.runtimeversionmanager.runner.{
-  LanguageServerOptions,
-  RunSettings,
-  Runner,
-  RunnerError,
-  WhichEngine
-}
+import org.enso.distribution.{EditionManager, Environment}
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
+import org.enso.runtimeversionmanager.components.RuntimeVersionManager
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.runner._
 
+import java.nio.file.{Files, Path}
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -26,10 +19,13 @@ class LauncherRunner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
   componentsManager: RuntimeVersionManager,
+  editionManager: EditionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) extends Runner(
       componentsManager,
+      configurationManager,
+      editionManager,
       environment,
       loggerConnection
     ) {
@@ -53,12 +49,7 @@ class LauncherRunner(
           projectManager.findProject(currentWorkingDirectory).get
       }
 
-      val version =
-        versionOverride.getOrElse {
-          inProject
-            .map(_.version)
-            .getOrElse(configurationManager.defaultVersion)
-        }
+      val version = resolveVersion(versionOverride, inProject)
       val arguments = inProject match {
         case Some(project) =>
           val projectPackagePath =
@@ -110,9 +101,7 @@ class LauncherRunner(
       val project =
         if (projectMode) Some(projectManager.loadProject(actualPath).get)
         else projectManager.findProject(actualPath).get
-      val version = versionOverride
-        .orElse(project.map(_.version))
-        .getOrElse(configurationManager.defaultVersion)
+      val version = resolveVersion(versionOverride, project)
 
       val arguments =
         if (projectMode) Seq("--run", actualPath.toString)
@@ -184,8 +173,7 @@ class LauncherRunner(
     for {
       project <- projectManager.findProject(currentWorkingDirectory)
     } yield {
-      val version =
-        project.map(_.version).getOrElse(configurationManager.defaultVersion)
+      val version = resolveVersion(None, project)
       val arguments =
         Seq("--version") ++ (if (useJSON) Seq("--json") else Seq())
 

@@ -8,7 +8,7 @@ import org.enso.projectmanager.protocol.ProjectManagementApi._
   *
   * Do not remove this import.
   */
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 
 object JsonRpc {
 

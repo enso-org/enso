@@ -2,7 +2,6 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
-
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
@@ -10,6 +9,8 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  ContentRootWithFile,
   FileManager,
   FileSystem,
   ReceivesTreeUpdatesHandler
@@ -56,9 +57,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     logLevel
   )
 
-  val directoriesConfig = DirectoriesConfig(serverConfig.contentRootPath)
+  val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
+  private val contentRoot = ContentRootWithFile(
+    serverConfig.contentRootUuid,
+    ContentRootType.Project,
+    "Project",
+    new File(serverConfig.contentRootPath)
+  )
   val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
+    Map(serverConfig.contentRootUuid -> contentRoot),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
