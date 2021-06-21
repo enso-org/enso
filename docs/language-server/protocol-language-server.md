@@ -1211,7 +1211,7 @@ be correlated between the textual and data connections.
 
 ```typescript
 {
-  contentRoots: [UUID];
+  contentRoots: [ContentRoot];
 }
 ```
 
