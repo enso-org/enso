@@ -1028,4 +1028,22 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Error]
     }
   }
+
+  ".from conversions" should {
+    "have their definitions recognised at the top level" in {
+      pending
+    }
+
+    "have their definitions recognised inside complex types" in {
+      pending
+    }
+
+    "have their definitions be validated syntactically" in {
+      pending
+    }
+
+    "have their usages be recognised" in {
+      pending
+    }
+  }
 }
