@@ -381,6 +381,28 @@ object AstView {
       MaybeManyParensed.unapply(ast).flatMap(BasicAssignment.unapply)
   }
 
+  object AscribedArgument {
+
+    /** Matches on the structure of an 'ascribed argument'.
+      *
+      * Such an argument has the structure
+      * `[~]<var> : <expression> [= <expression]`, where `<var>` must be a valid
+      * variable name, and both `<expression>`s are arbitrary Enso expressions.
+      * The `~` to mark laziness is optional.
+      *
+      * @param ast the structure to try and match on
+      * @return the variable name, the type being ascribed to it, the value
+      *         being bound to it, and whether or not it was marked as lazy
+      */
+    def unapply(ast: AST): Option[(AST.Ident, AST, AST, Boolean)] = {
+      MaybeManyParensed.unapply(ast).flatMap(matchBareArg)
+    }
+
+    def matchBareArg(ast: AST): Option[(AST.Ident, AST.Ident, AST, Boolean)] = {
+      ???
+    }
+  }
+
   object LazyAssignedArgumentDefinition {
 
     /** Matches on the definition of a lazy argument for a function that also
@@ -906,48 +928,47 @@ object AstView {
       }
   }
 
-  object ConversionDefinition {
-    val methodName: String = "from"
-
-    /** Matches a top-level definition of a conversion method `.from`.
-      *
-      * {{{
-      *   Target_Type.from (var_name : Source_Type) args... = ...
-      * }}}
-      *
-      * @param ast the structure to try and match on
-      * @return the path segments of the type reference, the name and type of
-      *         the first non-`this` argument, the list of argument names, and
-      *         the bound expression
-      */
-    def unapply(
-      ast: AST
-    ): Option[(List[AST], (AST, Option[AST]), List[AST], AST)] = {
-      ast match {
-        case Binding(lhs, rhs) =>
-          lhs match {
-            case SpacedList(MethodReference(path, name) :: firstArg :: args) =>
-              name match {
-                case AST.Ident.Var(v) if v == methodName =>
-                  firstArg match {
-                    case TypeAscription(expr, typ) =>
-                      Some((path, (expr, Some(typ)), args, rhs))
-                    case _ => None
-                  }
-                case _ => None
-              }
-            case SpacedList(AST.Ident.Var(v) :: firstArg :: args)
-                if v == methodName =>
-              firstArg match {
-                case TypeAscription(expr, typ) =>
-                  Some((List(), (expr, Some(typ)), args, rhs))
-                case _ => None
-              }
-            case _ => None
-          }
-        case _ => None
-      }
-    }
-
-  }
+//  object ConversionDefinition {
+//    val methodName: String = "from"
+//
+//    /** Matches a top-level definition of a conversion method `.from`.
+//      *
+//      * {{{
+//      *   Target_Type.from (var_name : Source_Type) args... = ...
+//      * }}}
+//      *
+//      * @param ast the structure to try and match on
+//      * @return the path segments of the type reference, the name and type of
+//      *         the first non-`this` argument, the list of argument names, and
+//      *         the bound expression
+//      */
+//    def unapply(
+//      ast: AST
+//    ): Option[(List[AST], (AST, Option[AST]), List[AST], AST)] = {
+//      ast match {
+//        case Binding(lhs, rhs) =>
+//          lhs match {
+//            case SpacedList(MethodReference(path, name) :: firstArg :: args) =>
+//              name match {
+//                case AST.Ident.Var(v) if v == methodName =>
+//                  firstArg match {
+//                    case TypeAscription(expr, typ) =>
+//                      Some((path, (expr, Some(typ)), args, rhs))
+//                    case _ => None
+//                  }
+//                case _ => None
+//              }
+//            case SpacedList(AST.Ident.Var(v) :: firstArg :: args)
+//                if v == methodName =>
+//              firstArg match {
+//                case TypeAscription(expr, typ) =>
+//                  Some((List(), (expr, Some(typ)), args, rhs))
+//                case _ => None
+//              }
+//            case _ => None
+//          }
+//        case _ => None
+//      }
+//    }
+//  }
 }

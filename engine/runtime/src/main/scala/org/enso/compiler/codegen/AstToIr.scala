@@ -164,8 +164,6 @@ object AstToIr {
         } else {
           Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
-      case AstView.ConversionDefinition(_, _, _, _) =>
-        ???
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name
@@ -731,6 +729,7 @@ object AstToIr {
           case name: IR.Name =>
             DefinitionArgument.Specified(
               name,
+              None,
               Some(translateExpression(value)),
               suspended = true,
               getIdentifiedLocation(arg)
@@ -746,6 +745,7 @@ object AstToIr {
             DefinitionArgument.Specified(
               name,
               None,
+              None,
               isSuspended,
               getIdentifiedLocation(arg)
             )
@@ -757,6 +757,7 @@ object AstToIr {
           case name: IR.Name =>
             DefinitionArgument.Specified(
               name,
+              None,
               Some(translateExpression(value)),
               isSuspended,
               getIdentifiedLocation(arg)

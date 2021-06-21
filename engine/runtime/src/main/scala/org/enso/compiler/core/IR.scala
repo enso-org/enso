@@ -1289,8 +1289,6 @@ object IR {
             }
           }
         }
-
-
       }
     }
   }
@@ -3481,6 +3479,9 @@ object IR {
     /** The name of the argument. */
     val name: IR.Name
 
+    /** The type of the argument */
+    val `type`: Option[Expression]
+
     /** The default value of the argument. */
     val defaultValue: Option[Expression]
 
@@ -3510,6 +3511,7 @@ object IR {
       * [[IR.Name.Blank]].
       *
       * @param name the name of the argument
+      * @param `type` the explicitly ascribed type of the argument, if present
       * @param defaultValue the default value of the argument, if present
       * @param suspended whether or not the argument has its execution suspended
       * @param location the source location that the node corresponds to
@@ -3518,6 +3520,7 @@ object IR {
       */
     sealed case class Specified(
       override val name: IR.Name,
+      override val `type`: Option[Expression],
       override val defaultValue: Option[Expression],
       override val suspended: Boolean,
       override val location: Option[IdentifiedLocation],
@@ -3530,6 +3533,7 @@ object IR {
       /** Creates a copy of `this`.
         *
         * @param name the name of the argument
+        * @param `type` the explicitly ascribed type of the argument, if present
         * @param defaultValue the default value of the argument, if present
         * @param suspended whether or not the argument has its execution suspended
         * @param location the source location that the node corresponds to
@@ -3540,6 +3544,7 @@ object IR {
         */
       def copy(
         name: IR.Name                        = name,
+        `type`: Option[Expression]           = `type`,
         defaultValue: Option[Expression]     = defaultValue,
         suspended: Boolean                   = suspended,
         location: Option[IdentifiedLocation] = location,
@@ -3549,6 +3554,7 @@ object IR {
       ): Specified = {
         val res = Specified(
           name,
+          `type`,
           defaultValue,
           suspended,
           location,
@@ -3566,6 +3572,9 @@ object IR {
       ): Specified =
         copy(
           name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          `type` = `type`.map(
+            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          ),
           defaultValue = defaultValue.map(
             _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
           ),
@@ -3592,6 +3601,7 @@ object IR {
         s"""
         |IR.DefinitionArgument.Specified(
         |name = $name,
+        |type = ${`type`},
         |defaultValue = $defaultValue,
         |suspended = $suspended,
         |location = $location,
@@ -3603,12 +3613,30 @@ object IR {
 
       override def children: List[IR] = name :: defaultValue.toList
 
-      override def showCode(indent: Int): String =
-        if (defaultValue.isDefined) {
-          s"(${name.showCode(indent)} = ${defaultValue.get.showCode(indent)})"
+      override def showCode(indent: Int): String = {
+        val withoutLazy = if (defaultValue.isDefined && `type`.isDefined) {
+          val name        = this.name.showCode(indent)
+          val typeExpr    = this.`type`.get.showCode(indent)
+          val defaultExpr = this.defaultValue.get.showCode(indent)
+          s"($name : ($typeExpr) = ($defaultExpr))"
+        } else if (defaultValue.isDefined) {
+          val name        = this.name.showCode(indent)
+          val defaultExpr = this.defaultValue.get.showCode(indent)
+          s"($name = $defaultExpr)"
+        } else if (`type`.isDefined) {
+          val name     = this.name.showCode(indent)
+          val typeExpr = this.`type`.get.showCode(indent)
+          s"($name : $typeExpr)"
         } else {
           s"${name.showCode(indent)}"
         }
+
+        if (suspended) {
+          s"~$withoutLazy"
+        } else {
+          withoutLazy
+        }
+      }
     }
   }
 
