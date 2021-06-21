@@ -566,11 +566,9 @@ object AstView {
             case AST.App.Section.Right(opr, arg) =>
               Some((List(), opr, List(arg), rhs))
             case AST.Ident.Var.any(name) => Some((List(), name, List(), rhs))
-            case _ =>
-              None
+            case _                       => None
           }
-        case _ =>
-          None
+        case _ => None
       }
     }
   }
@@ -906,5 +904,36 @@ object AstView {
           Some((typed, sig))
         case _ => None
       }
+  }
+
+  object ConversionDefinition {
+    val methodName: String = "from"
+
+    /** Matches a top-level definition of a conversion method `.from`.
+      *
+      * {{{
+      *   Target_Type.from (var_name : Source_Type) args... = ...
+      * }}}
+      *
+      * @param ast the structure to try and match on
+      * @return the path segments of the type reference, the type of the first
+      *         non-`this` argument, the list of argument names, and the bound
+      *         expression
+      */
+    def unapply(ast: AST): Option[(List[AST], AST, List[AST], AST)] = {
+      ast match {
+        case Binding(lhs, _) =>
+          lhs match {
+            case SpacedList(MethodReference(path, name) :: firstArg :: args) =>
+              firstArg match {
+                case AST.App.Infix(name, AST.Ident.Opr(opName), typ) => ???
+              }
+              None
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+
   }
 }

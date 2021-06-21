@@ -164,6 +164,8 @@ object AstToIr {
         } else {
           Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
+      case AstView.ConversionDefinition(_, _, _, _) =>
+        ???
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val nameId: AST.Ident = name match {
           case AST.Ident.Var.any(name) => name

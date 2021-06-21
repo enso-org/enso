@@ -5,6 +5,8 @@ import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
+import scala.annotation.unused
+
 class AstToIrTest extends CompilerTest with Inside {
 
   "AST translation of lambda definitions" should {
@@ -1031,10 +1033,16 @@ class AstToIrTest extends CompilerTest with Inside {
 
   ".from conversions" should {
     "have their definitions recognised at the top level" in {
-      pending
+      @unused val ir =
+        """My_Type.from (value : Other_Type) = value
+          |""".stripMargin.toIrModule
     }
 
     "have their definitions recognised inside complex types" in {
+      pending
+    }
+
+    "be able to be defined with multiple types of arguments" in {
       pending
     }
 
