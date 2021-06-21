@@ -142,6 +142,7 @@ case object GenerateMethodBodies extends IRPass {
     IR.DefinitionArgument.Specified(
       IR.Name.This(None),
       None,
+      None,
       suspended = false,
       None
     )

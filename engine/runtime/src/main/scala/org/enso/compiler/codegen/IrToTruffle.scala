@@ -778,6 +778,7 @@ class IrToTruffle(
       IR.DefinitionArgument.Specified(
         name.name,
         None,
+        None,
         suspended = false,
         name.location,
         passData    = name.name.passData,

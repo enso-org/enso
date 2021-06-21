@@ -318,7 +318,7 @@ case object DemandAnalysis extends IRPass {
     arg: IR.DefinitionArgument
   ): IR.DefinitionArgument = {
     arg match {
-      case spec @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         spec.copy(
           defaultValue = default.map(x =>
             analyseExpression(

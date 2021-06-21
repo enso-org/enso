@@ -169,7 +169,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): IR.DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, defValue, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(this -->> weights)

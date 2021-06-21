@@ -620,7 +620,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, defValue, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         val specDep = asStatic(spec)
         defValue.foreach(expr => {
           val exprDep = asStatic(expr)

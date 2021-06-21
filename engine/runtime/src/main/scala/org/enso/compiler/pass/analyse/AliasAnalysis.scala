@@ -339,7 +339,7 @@ case object AliasAnalysis extends IRPass {
     scope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
-      case arg @ IR.DefinitionArgument.Specified(name, value, susp, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(name, _, value, susp, _, _, _) =>
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {

@@ -414,7 +414,7 @@ object AutomaticParallelism extends IRPass {
   ): IR.Expression = function match {
     case fn @ IR.Function.Lambda(arguments, body, _, _, _, _) => {
       val processedArguments = arguments.map {
-        case arg @ DefinitionArgument.Specified(_, default, _, _, _, _) =>
+        case arg @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
           val newDefault =
             default.map(processExpression(_, passData, scopedData))
           val result = arg.copy(defaultValue = newDefault)

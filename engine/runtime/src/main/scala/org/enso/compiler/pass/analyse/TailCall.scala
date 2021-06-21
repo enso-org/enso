@@ -426,7 +426,7 @@ case object TailCall extends IRPass {
     */
   def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
     arg match {
-      case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>

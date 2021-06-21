@@ -197,6 +197,7 @@ case object IgnoredBindings extends IRPass {
             _,
             _,
             _,
+            _,
             _
           ) =>
         // Note [Ignored `this` Argument]
@@ -240,7 +241,7 @@ case object IgnoredBindings extends IRPass {
     */
   def isIgnoreArg(ir: IR.DefinitionArgument): Boolean = {
     ir match {
-      case IR.DefinitionArgument.Specified(name, _, _, _, _, _) =>
+      case IR.DefinitionArgument.Specified(name, _, _, _, _, _, _) =>
         isIgnore(name)
     }
   }

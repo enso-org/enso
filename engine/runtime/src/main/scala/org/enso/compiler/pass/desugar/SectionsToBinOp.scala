@@ -101,6 +101,7 @@ case object SectionsToBinOp extends IRPass {
         val rightDefArg = IR.DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
+          None,
           suspended = false,
           None
         )
@@ -111,6 +112,7 @@ case object SectionsToBinOp extends IRPass {
             IR.CallArgument.Specified(None, leftArgName, None, None)
           val leftDefArg = IR.DefinitionArgument.Specified(
             leftArgName.duplicate(),
+            None,
             None,
             suspended = false,
             None
@@ -159,6 +161,7 @@ case object SectionsToBinOp extends IRPass {
         val leftDefArg = IR.DefinitionArgument.Specified(
           leftArgName.duplicate(),
           None,
+          None,
           suspended = false,
           None
         )
@@ -168,6 +171,7 @@ case object SectionsToBinOp extends IRPass {
           IR.CallArgument.Specified(None, rightArgName, None, None)
         val rightDefArg = IR.DefinitionArgument.Specified(
           rightArgName.duplicate(),
+          None,
           None,
           suspended = false,
           None
@@ -221,6 +225,7 @@ case object SectionsToBinOp extends IRPass {
           IR.DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
+            None,
             suspended = false,
             None
           )
@@ -232,6 +237,7 @@ case object SectionsToBinOp extends IRPass {
             IR.CallArgument.Specified(None, rightArgName, None, None)
           val rightDefArg = IR.DefinitionArgument.Specified(
             rightArgName.duplicate(),
+            None,
             None,
             suspended = false,
             None
