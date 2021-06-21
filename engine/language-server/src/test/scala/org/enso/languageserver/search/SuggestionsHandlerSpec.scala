@@ -3,7 +3,6 @@ package org.enso.languageserver.search
 import java.io.File
 import java.nio.file.Files
 import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -13,7 +12,11 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  ContentRootWithFile,
+  Path
+}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
@@ -796,13 +799,13 @@ class SuggestionsHandlerSpec
     graph
   }
 
-  def newConfig(root: File): Config = {
+  def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(UUID.randomUUID() -> root),
+      Map(root.id -> root),
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 
@@ -825,7 +828,14 @@ class SuggestionsHandlerSpec
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config    = newConfig(testContentRoot.toFile)
+    val config = newConfig(
+      ContentRootWithFile(
+        UUID.randomUUID(),
+        ContentRootType.Project,
+        "Project",
+        testContentRoot.toFile
+      )
+    )
     val router    = TestProbe("session-router")
     val connector = TestProbe("runtime-connector")
     val sqlDatabase = SqlDatabase(

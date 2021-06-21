@@ -6,7 +6,7 @@ import java.nio.file.{FileSystemException, Files, NoSuchFileException}
 import akka.event.EventStream
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.data.DirectoriesConfig
+import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.logger.masking.MaskedPath
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -23,10 +23,10 @@ import scala.util.{Failure, Success}
   * @param versionsRepo the versions repo
   */
 class RepoInitialization(
-  directoriesConfig: DirectoriesConfig,
-  eventStream: EventStream,
-  suggestionsRepo: SqlSuggestionsRepo,
-  versionsRepo: SqlVersionsRepo
+                          directoriesConfig: ProjectDirectoriesConfig,
+                          eventStream: EventStream,
+                          suggestionsRepo: SqlSuggestionsRepo,
+                          versionsRepo: SqlVersionsRepo
 )(implicit ec: ExecutionContext)
     extends InitializationComponent
     with LazyLogging {

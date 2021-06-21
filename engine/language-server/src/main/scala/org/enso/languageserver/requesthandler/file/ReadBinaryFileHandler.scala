@@ -75,7 +75,7 @@ class ReadBinaryFileHandler(
       val packet = ErrorFactory.createGenericError(
         error.code,
         error.message,
-        Some(requestId)
+        maybeCorrelationId = Some(requestId)
       )
       replyTo ! packet
       cancellable.cancel()

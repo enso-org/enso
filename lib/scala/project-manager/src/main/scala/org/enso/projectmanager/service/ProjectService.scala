@@ -1,16 +1,16 @@
 package org.enso.projectmanager.service
 
-import java.util.UUID
-
 import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
+import org.enso.editions.{DefaultEnsoVersion, EnsoVersion}
+import org.enso.pkg.Config
+import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
   Traverse
 }
-import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
@@ -47,6 +47,8 @@ import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.Configu
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+
+import java.util.UUID
 
 /** Implementation of business logic for project management.
   *
@@ -87,7 +89,16 @@ class ProjectService[
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
-    project = Project(projectId, name, UserProject, creationTime)
+    defaultEdition = Config.makeCompatibilityEditionFromVersion(
+      DefaultEnsoVersion
+    )
+    project = Project(
+      id      = projectId,
+      name    = name,
+      kind    = UserProject,
+      created = creationTime,
+      edition = defaultEdition
+    )
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
       "Found a path [{}] for a new project [{}, {}].",
@@ -275,7 +286,7 @@ class ProjectService[
       }
       .mapRuntimeManagerErrors(th =>
         ProjectOpenFailed(
-          s"Cannot install the required engine. ${th.getMessage}"
+          s"Cannot install the required engine. $th"
         )
       )
 
@@ -285,8 +296,9 @@ class ProjectService[
     project: Project,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
+    version <- resolveProjectVersion(project)
     version <- configurationService
-      .resolveEnsoVersion(project.engineVersion)
+      .resolveEnsoVersion(version)
       .mapError { case ConfigurationFileAccessFailure(message) =>
         ProjectOpenFailed(
           "Could not deduce the default version to use for the project: " +
@@ -345,15 +357,17 @@ class ProjectService[
   private def resolveProjectMetadata(
     project: Project
   ): F[ProjectServiceFailure, ProjectMetadata] =
-    configurationService
-      .resolveEnsoVersion(project.engineVersion)
-      .mapError { case ConfigurationFileAccessFailure(message) =>
-        GlobalConfigurationAccessFailure(
-          "Could not deduce the default version to use for the project: " +
-          message
-        )
-      }
-      .map(toProjectMetadata(_, project))
+    for {
+      version <- resolveProjectVersion(project)
+      version <- configurationService
+        .resolveEnsoVersion(version)
+        .mapError { case ConfigurationFileAccessFailure(message) =>
+          GlobalConfigurationAccessFailure(
+            "Could not deduce the default version to use for the project: " +
+            message
+          )
+        }
+    } yield toProjectMetadata(version, project)
 
   private def toProjectMetadata(
     engineVersion: SemVer,
@@ -437,6 +451,21 @@ class ProjectService[
       }
       .flatMap { _ =>
         log.debug("Project name [{}] validated by [{}].", name, validator)
+      }
+
+  private def resolveProjectVersion(
+    project: Project
+  ): F[ProjectServiceFailure, EnsoVersion] =
+    Sync[F]
+      .blockingOp {
+        distributionConfiguration.editionManager
+          .resolveEngineVersion(project.edition)
+          .get
+      }
+      .mapError { error =>
+        ProjectServiceFailure.GlobalConfigurationAccessFailure(
+          s"Could not resolve project engine version: ${error.getMessage}"
+        )
       }
 
 }

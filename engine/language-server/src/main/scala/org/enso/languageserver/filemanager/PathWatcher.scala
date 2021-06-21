@@ -58,7 +58,7 @@ final class PathWatcher(
   private def uninitializedStage: Receive = { case WatchPath(path, clients) =>
     val pathToWatchResult = config
       .findContentRoot(path.rootId)
-      .map(path.toFile)
+      .map(x => path.toFile(x.file))
     val result: BlockingIO[FileSystemFailure, Unit] =
       for {
         pathToWatch <- IO.fromEither(pathToWatchResult)

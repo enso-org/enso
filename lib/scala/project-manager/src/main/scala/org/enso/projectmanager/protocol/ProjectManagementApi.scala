@@ -1,12 +1,11 @@
 package org.enso.projectmanager.protocol
 
 import java.util.UUID
-
 import io.circe.Json
 import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
+import org.enso.editions.EnsoVersion
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
-import org.enso.pkg.EnsoVersion
 import org.enso.projectmanager.data.{
   EngineVersion,
   MissingComponentAction,

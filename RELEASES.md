@@ -1,7 +1,5 @@
 # Enso Next
 
-- Implemented Standard Library methods for controlling default visualizations in
-  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
 - Implemented changes to the import and export syntax, requiring to provide the
   project namespace, or use the new `project` keyword to import from the current
   project.
@@ -34,6 +32,29 @@
   ([#1759](https://github.com/enso-org/enso/pull/1759)). This allows the IDE to
   get information about the running project in contexts where the project
   manager isn't available or works differently.
+- Added the `file/checksum` endpoint to the language server
+  ([#1787](https://github.com/enso-org/enso/pull/1787)). This allows the IDE to
+  verify the integrity of files that it has transferred. The checksum is
+  calculated in a streaming fashion so the checksummed file need not be resident
+  in memory all at once.
+- Added support for reading and writing byte ranges in files remotely
+  ([#1795](https://github.com/enso-org/enso/pull/1795)). This allows the IDE to
+  transfer files to a remote back-end in a streaming fashion.
+- Added support for multiple content roots in the language server
+  ([#1800](https://github.com/enso-org/enso/pull/1800/)). It is not yet exposed
+  to the IDE, as this will be done as part of future work.
+- Modified the `package.yaml` format in preparation for the library ecosystem
+  ([#1797](https://github.com/enso-org/enso/pull/1797)). The `engine-version`
+  field has been deprecated in favour of an `edition` field that allows to set
+  up the engine version and dependency resolution using the upcoming Edition
+  system. New tools will still be able to read the old format, but upon
+  modification, they will save changes in the new format. As the `edition` file
+  did not exist in the older version, old tools will actually correctly load the
+  migrated package file (as we allow for unknown fields), but they will not know
+  how to interpret the new `edition` field and so will fall back to using the
+  `default` engine version, which may be unexpected. Ideally, after migration,
+  the project should be used only with the new tools. The affected tools are the
+  Launcher and the Project Manager.
 
 ## Libraries
 
@@ -54,6 +75,8 @@
   Scala ([#1729](https://github.com/enso-org/enso/pull/1729)). This has greatly
   improved the performance, enabling us to generate the documentation structure
   for the entire standard library 8-10 times faster than before.
+- Implemented Standard Library methods for controlling default visualizations in
+  the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
 
 ## Miscellaneous
 

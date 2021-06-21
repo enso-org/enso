@@ -1035,11 +1035,11 @@ A representation of the contents of a file.
 #### Format
 
 ```typescript
-interface FileContents[T] {
+interface FileContents<T> {
   contents: T;
 }
 
-class TextFileContents extends FileContents[String];
+class TextFileContents extends FileContents<String> {}
 ```
 
 ### `FileSystemObject`
@@ -1147,6 +1147,42 @@ table FileSegment {
 The `byteOffset` property is zero-indexed, so the last byte in the file is at
 index `file.length - 1`.
 
+### `ContentRoot`
+
+A representation of a content root for use in the IDE. A content root represents
+a location on a real file-system that has been virtualised for use in the Enso
+VFS.
+
+```typescript
+interface ContentRoot {
+  // A unique identifier for the content root.
+  id: UUID;
+  // The type of content root.
+  type: ContentRootType;
+
+  // The name of the content root.
+  name: String;
+}
+```
+
+### `ContentRootType`
+
+The type of the annotated content root.
+
+```typescript
+type ContentRootType = Project | Root | Home | Library | Custom;
+```
+
+These represent:
+
+- `Project`: This content root points to the project home.
+- `Root`: This content root points to the system root (`/`) on unix systems, or
+  to a drive root on Windows. In Windows' case, there may be multiple `Root`
+  entries corresponding to the various drives.
+- `Home`: The user's home directory.
+- `Library`: An Enso library location.
+- `Custom`: A content root that has been added by the IDE (unused for now).
+
 ## Connection Management
 
 In order to properly set-up and tear-down the language server connection, we
@@ -1175,7 +1211,7 @@ be correlated between the textual and data connections.
 
 ```typescript
 {
-  contentRoots: [UUID];
+  contentRoots: [ContentRoot];
 }
 ```
 
@@ -1469,7 +1505,7 @@ must fail.
 ```typescript
 {
   path: Path;
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 
@@ -1513,7 +1549,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ```typescript
 {
-  contents: FileContents[T];
+  contents: FileContents<T>;
 }
 ```
 
@@ -1644,8 +1680,12 @@ This method will create a file if no file is present at `path`.
   length of the file.
 - The `byteOffset` property is zero-indexed. To append to the file you begin
   writing at index `file.length`.
+- If `byteOffset` is less than the length of the file and `overwriteExisting` is
+  set, it will truncate the file to length `byteOffset + bytes.length`.
 - If `byteOffset > file.length`, the bytes in the range
-  `[file.length, byteOffset)` will be filled with null bytes.
+  `[file.length, byteOffset)` will be filled with null bytes. Please note that,
+  in this case, the checksum in the response will also be calculated on the null
+  bytes.
 
 #### Parameters
 
@@ -4056,7 +4096,7 @@ Signals that the requested file read was out of bounds for the file's size.
   "code" : 1009
   "message" : "Read is out of bounds for the file"
   "data" : {
-    fileLength : 0
+    "fileLength" : 0
   }
 }
 ```

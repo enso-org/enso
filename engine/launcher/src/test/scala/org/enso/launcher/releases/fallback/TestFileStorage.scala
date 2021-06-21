@@ -1,9 +1,8 @@
 package org.enso.launcher.releases.fallback
 
 import java.nio.file.Path
-
 import org.enso.cli.task.{TaskProgress, TaskProgressImplementation}
-import org.enso.runtimeversionmanager.FileSystem
+import org.enso.distribution.FileSystem
 import org.enso.launcher.TestHelpers
 import org.enso.launcher.releases.fallback.staticwebsite.FileStorage
 

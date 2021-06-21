@@ -1,7 +1,5 @@
 package org.enso.projectmanager.service
 
-import java.nio.file.Path
-
 import akka.actor.ActorRef
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.control.core.CovariantFlatMap
@@ -12,7 +10,10 @@ import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner.Runner
+
+import java.nio.file.Path
 
 /** A service for creating new project structures using the runner of the
   * specific engine version selected for the project.
@@ -36,11 +37,17 @@ class ProjectCreationService[
       val versionManager = RuntimeVersionManagerFactory(
         distributionConfiguration
       ).makeRuntimeVersionManager(progressTracker, missingComponentAction)
+      val configurationManager = new GlobalConfigurationManager(
+        versionManager,
+        distributionConfiguration.distributionManager
+      )
       val runner =
         new Runner(
-          versionManager,
-          distributionConfiguration.environment,
-          loggingServiceDescriptor.getEndpoint
+          runtimeVersionManager      = versionManager,
+          globalConfigurationManager = configurationManager,
+          editionManager             = distributionConfiguration.editionManager,
+          environment                = distributionConfiguration.environment,
+          loggerConnection           = loggingServiceDescriptor.getEndpoint
         )
 
       val settings =

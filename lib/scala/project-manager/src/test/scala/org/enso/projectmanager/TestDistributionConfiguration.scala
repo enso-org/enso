@@ -1,7 +1,9 @@
 package org.enso.projectmanager
 
-import java.nio.file.Path
+import org.enso.distribution.{DistributionManager, EditionManager}
+import org.enso.distribution.locking.ResourceManager
 
+import java.nio.file.Path
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
@@ -9,11 +11,7 @@ import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  TemporaryDirectoryManager
-}
-import org.enso.runtimeversionmanager.locking.ResourceManager
+import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider
@@ -65,6 +63,8 @@ class TestDistributionConfiguration(
   lazy val lockManager = new TestLocalLockManager
 
   lazy val resourceManager = new ResourceManager(lockManager)
+
+  lazy val editionManager: EditionManager = EditionManager(distributionManager)
 
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)

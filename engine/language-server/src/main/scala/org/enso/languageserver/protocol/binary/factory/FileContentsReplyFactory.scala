@@ -15,7 +15,7 @@ object FileContentsReplyFactory {
     * @param contents the binary contents of a file
     * @param correlationId correlation id used to correlate a response with a
     *                      request
-    * @return an FlatBuffer representation of the created error
+    * @return an FlatBuffer representation of the reply
     */
   def createPacket(
     contents: Array[Byte],

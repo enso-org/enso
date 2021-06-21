@@ -3,12 +3,13 @@ package org.enso.languageserver.websocket.json
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
+import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data._
 import org.enso.testkit.RetrySpec
 
+import java.security.MessageDigest
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -17,16 +18,15 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
-      Map(testContentRootId -> testContentRoot.toFile),
+      Map(testContentRootId -> testContentRoot),
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig.initialize(directoriesDir.toFile)
+      ProjectDirectoriesConfig.initialize(testContentRoot.file)
     )
   }
 
-  "File Server" must {
-
+  "Writing files" must {
     "write textual content to a file" taggedAs Retry in {
       val client = getInitialisedWsClient()
       client.send(json"""
@@ -49,7 +49,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
+      val path =
+        Paths.get(testContentRoot.file.toString, "foo", "bar", "baz.txt")
       Files.readAllLines(path).get(0) shouldBe "123456789"
     }
 
@@ -78,7 +79,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "Reading files" must {
     "read a file content" in {
       val client = getInitialisedWsClient()
       client.send(json"""
@@ -144,7 +147,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "Creating file-system entities" must {
     "create a file" in {
       val client = getInitialisedWsClient()
       client.send(json"""
@@ -170,7 +175,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe true
     }
 
@@ -199,10 +205,12 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe true
     }
+  }
 
+  "File management" must {
     "delete a file" in {
       val client = getInitialisedWsClient()
       // create a file
@@ -229,7 +237,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe true
 
       // delete a file
@@ -282,7 +291,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val file = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe true
 
       // delete a directory
@@ -311,7 +320,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when deleting nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -341,7 +351,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when deleting nonexistent directory" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
+      val file   = Paths.get(testContentRoot.file.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -394,7 +404,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "a", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "a", "test.txt")
       from.toFile.isFile shouldBe true
 
       // copy a file
@@ -421,7 +431,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "a", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "a", "test1.txt")
       to.toFile.isFile shouldBe true
     }
 
@@ -450,7 +460,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "b", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "b", "test.txt")
       from.toFile.isFile shouldBe true
 
       // copy a directory
@@ -477,7 +487,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "c", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "c", "test.txt")
       to.toFile.isFile shouldBe true
     }
 
@@ -509,7 +519,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "some", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "some", "test.txt")
       to.toFile.isFile shouldBe false
     }
 
@@ -538,7 +548,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       from.toFile.isFile shouldBe true
 
       // move a file
@@ -565,7 +575,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "move", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move", "test1.txt")
       to.toFile.isFile shouldBe true
       from.toFile.exists shouldBe false
     }
@@ -596,9 +606,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val path = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val path = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       path.toFile.isFile shouldBe true
-      val from = path.getParent()
+      val from = path.getParent
       from.toFile.isDirectory shouldBe true
 
       // move a directory
@@ -625,7 +635,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "move_to", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move_to", "test1.txt")
       to.toFile.isFile shouldBe true
       from.toFile.exists shouldBe false
     }
@@ -658,7 +668,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
 
-      val to = Paths.get(testContentRoot.toString, "some", "test.txt")
+      val to = Paths.get(testContentRoot.file.toString, "some", "test.txt")
       to.toFile.exists shouldBe false
     }
 
@@ -687,7 +697,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val from = Paths.get(testContentRoot.toString, "move", "test.txt")
+      val from = Paths.get(testContentRoot.file.toString, "move", "test.txt")
       from.toFile.isFile shouldBe true
 
       // create a destination file
@@ -713,7 +723,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val to = Paths.get(testContentRoot.toString, "move", "test1.txt")
+      val to = Paths.get(testContentRoot.file.toString, "move", "test1.txt")
       to.toFile.isFile shouldBe true
 
       // move to existing file
@@ -749,7 +759,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "check file existence" in {
       val client = getInitialisedWsClient()
-      val path   = Paths.get(testContentRoot.toString, "nonexistent.txt")
+      val path   = Paths.get(testContentRoot.file.toString, "nonexistent.txt")
       path.toFile.exists shouldBe false
       // check file exists
       client.send(json"""
@@ -773,7 +783,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "Treeing files" must {
     "get a root tree" in withCleanRoot {
       val client = getInitialisedWsClient()
 
@@ -863,10 +875,31 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
                     ".."
                   ]
                 },
-                "name": ${testContentRoot.getFileName.toString},
+                "name": ${testContentRoot.file.getName},
                 "files": [
                 ],
-                "directories": [
+                "directories": [{
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                      ]
+                    },
+                    "name" : ".enso",
+                    "files" : [
+                      {
+                        "type" : "File",
+                        "name" : "suggestions.db",
+                        "path" : {
+                          "rootId" : $testContentRootId,
+                          "segments" : [
+                            ".enso"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories" : [
+                    ]
+                  },
                   {
                     "path": {
                       "rootId": $testContentRootId,
@@ -1302,8 +1335,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           """)
 
       // create symlink base/link -> base/subdir
-      val symlink = Paths.get(testContentRoot.toString, "base2", "link")
-      val subdir  = Paths.get(testContentRoot.toString, "base2", "subdir")
+      val symlink = Paths.get(testContentRoot.file.toString, "base2", "link")
+      val subdir  = Paths.get(testContentRoot.file.toString, "base2", "subdir")
       Files.createSymbolicLink(symlink, subdir)
       Files.isSymbolicLink(symlink) shouldBe true
 
@@ -1425,7 +1458,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       // create symlink base3/link -> $testOtherRoot
       val testOtherRoot = Files.createTempDirectory(null)
       sys.addShutdownHook(FileUtils.deleteQuietly(testOtherRoot.toFile))
-      val symlink = Paths.get(testContentRoot.toString, "base3", "link")
+      val symlink = Paths.get(testContentRoot.file.toString, "base3", "link")
       Files.createSymbolicLink(symlink, testOtherRoot)
       Files.isSymbolicLink(symlink) shouldBe true
 
@@ -1479,7 +1512,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "Listing directories" must {
     "list a subdirectory" in {
       val client = getInitialisedWsClient()
       // create:
@@ -1545,7 +1580,9 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "Getting file information" must {
     "get file info" in {
       val client = getInitialisedWsClient()
       // create a file
@@ -1571,7 +1608,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             "result": null
           }
           """)
-      val path = Paths.get(testContentRoot.toString, "info", "test.txt")
+      val path = Paths.get(testContentRoot.file.toString, "info", "test.txt")
       path.toFile.isFile shouldBe true
       val attrs = Files.readAttributes(path, classOf[BasicFileAttributes])
 
@@ -1615,7 +1652,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when getting info of nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.toString, "nonexistent.txt").toFile
+      val file   = Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1639,12 +1676,115 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
     }
+  }
 
+  "file/checksum" must {
+    "get file checksum" in {
+      val client = getInitialisedWsClient()
+      // create a file
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 46,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "test.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "info" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 46,
+            "result": null
+          }
+          """)
+      val path = Paths.get(testContentRoot.file.toString, "info", "test.txt")
+      path.toFile.isFile shouldBe true
+      val sum = Hex.toHexString(
+        MessageDigest.getInstance("SHA3-224").digest(Files.readAllBytes(path))
+      )
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info", "test.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "result" : {
+              "checksum" : $sum
+            }
+          }
+            """)
+    }
+
+    "return a NotFile error when the provided path is not a file" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "error": {
+              "code": 1007,
+              "message": "Path is not a file"
+            }
+          }
+          """)
+    }
+
+    "return a FileNotFound error when the provided path is not found" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/checksum",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info", "nonexistent.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "error": {
+              "code": 1003,
+              "message": "File not found"
+            }
+          }
+          """)
+    }
   }
 
   def withCleanRoot[T](test: => T): T = {
-    FileUtils.cleanDirectory(testContentRoot.toFile)
+    FileUtils.cleanDirectory(testContentRoot.file)
     test
   }
-
 }

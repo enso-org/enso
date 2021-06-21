@@ -600,44 +600,115 @@ distribution/bin/enso.bat --run ~/Hello
 Hello, World!
 ```
 
-#### Project Manager
+#### Running IDE
 
-Project manager is required to run the
-[Enso IDE](https://github.com/enso-org/ide). It is started with the
-`distribution/bin/project-manager` script and requires `runtime.jar` and
-`project-manager.jar` (see
-[Building the Project Manager Fat Jar](#building-the-project-manager-fat-jar))
-to be built and copied (or linked) to the `distribution/component` directory.
+You can start [IDE](https://github.com/enso-org/ide) with a development version
+of the language server. IDE executable has `--no-backend` flag that switches off
+the bundled backend. That requires you to run the project manager process
+yourself. You can either get a project manager from one of the latest releases
+on [GitHub](https://github.com/enso-org/enso/releases), or build one using SBT
+`buildProjectManagerDistribution` command.
 
 ##### Bash
 
 ```bash
-# build project-manager.jar and runtime.jar
-sbt project-manager/assembly
-# link or copy jars to the distribution
-mkdir -p distribution/component
-cd distribution/component
-ln -s ../../runtime.jar .
-ln -s ../../project-manager.jar .
+sbt buildProjectManagerDistribution
 ```
 
 ##### PowerShell
 
 ```powershell
-# build project-manager.jar and runtime.jar
-sbt.bat project-manager/assembly
-# copy jars to the distribution
-mkdir -p .\distribution\component
-cp .\runtime.jar .\distribution\component\
-cp .\project-manager.jar .\distribution\component\
+sbt.bat buildProjectManagerDistribution
 ```
 
-Detailed information on the flags it supports is shown by the `--help` flag. To
-run the Project Manager, execute the following script:
+When the command is completed, a development version of the project manager will
+have appeared in the `built-distribution` directory.
+
+The IDE will connect to the running project manager to look up the project and
+start the language server. The required version of the language server is
+specified in the `enso-version` field of the `project.yaml` project description
+(Enso projects are located in the `~/enso` directory).
 
 ```bash
-distribution/bin/project-manager
+cat ~/enso/projects/Unnamed/package.yaml
 ```
+
+```yaml
+name: Unnamed
+version: 0.0.1
+enso-version: 0.0.0-SNAPSHOT
+license: ""
+authors: []
+maintainers: []
+```
+
+We need to set `enso-version` to a value that will represent the development
+version. It should be different from any Enso versions that have already been
+released. In this case, we chose the `0.0.0-SNAPSHOT`. The project manager will
+look for the appropriate subdirectory in the _engines_ directory of the
+distribution folder. Distribution paths are printed when you run project manager
+with `-v` verbose logging.
+
+```bash
+$ ./built-distribution/enso-project-manager-0.2.12-SNAPSHOT-linux-amd64/enso/bin/project-manager -v
+[info] [2021-06-16T11:49:33.639Z] [org.enso.projectmanager.boot.ProjectManager$] Starting Project Manager...
+[debug] [2021-06-16T11:49:33.639Z] [org.enso.runtimeversionmanager.distribution.DistributionManager] Detected paths: DistributionPaths(
+  dataRoot = /home/dbv/.local/share/enso,
+  runtimes = /home/dbv/.local/share/enso/runtime,
+  engines  = /home/dbv/.local/share/enso/dist,
+  bundle   = None,
+  config   = /home/dbv/.config/enso,
+  locks    = /run/user/1000/enso/lock,
+  tmp      = /home/dbv/.local/share/enso/tmp
+)
+```
+
+On Linux it looks for the `~/.local/share/enso/dist/0.0.0-SNAPSHOT/` directory.
+
+We can build an engine distribution using the `buildEngineDistribution` command
+in SBT.
+
+##### Bash
+
+```bash
+sbt buildEngineDistribution
+```
+
+##### PowerShell
+
+```powershell
+sbt.bat buildEngineDistribution
+```
+
+And copy the result to the `0.0.0-SNAPSHOT` engines directory of the
+distribution folder.
+
+##### Bash
+
+```bash
+cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+```
+
+##### PowerShell
+
+```powershell
+cp -r built-distribution/enso-engine-0.2.12-SNAPSHOT-linux-amd64/enso-0.2.12-SNAPSHOT ~/.local/share/enso/dist/0.0.0-SNAPSHOT
+```
+
+Now, when the project manager is running and the engines directory contains the
+required engine version, you can start IDE with the `--no-backend` flag. It will
+pick up the development version of the language server we just prepared.
+
+To summarize, these are the steps required to run IDE with the development
+version of the language server.
+
+1. Run the project manager process.
+2. Copy or symlink the development version of the engine created with SBT's
+   `buildEnginedistribution` command to the engines directory of the Enso
+   distribution folder.
+3. Set the `enso-version` field of the `project.yaml` project definition to the
+   version that you created in the previous step.
+4. Run the IDE with `--no-backend` flag.
 
 #### Language Server Mode
 

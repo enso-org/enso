@@ -1,7 +1,6 @@
 package org.enso.languageserver.search
 
 import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
@@ -18,7 +17,11 @@ import org.enso.languageserver.data.{
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
+import org.enso.languageserver.filemanager.{
+  ContentRootType,
+  FileDeletedEvent,
+  Path
+}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.search.handler.{
@@ -111,10 +114,12 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
-    config.contentRoots.foreach { case (_, contentRoot) =>
-      PackageManager.Default
-        .fromDirectory(contentRoot)
-        .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
+    config.contentRoots.foreach {
+      case (_, root) if root.`type` == ContentRootType.Project =>
+        PackageManager.Default
+          .fromDirectory(root.file)
+          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
+      case _ =>
     }
   }
 
@@ -539,10 +544,10 @@ final class SuggestionsHandler(
     path: Path
   ): Either[SearchFailure, String] =
     for {
-      rootFile <- config.findContentRoot(path.rootId).left.map(FileSystemError)
+      root <- config.findContentRoot(path.rootId).left.map(FileSystemError)
       module <-
         ModuleNameBuilder
-          .build(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
+          .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
           .toRight(ModuleNameNotResolvedError(path))
     } yield module
 

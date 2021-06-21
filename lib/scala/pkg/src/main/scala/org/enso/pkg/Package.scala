@@ -1,14 +1,13 @@
 package org.enso.pkg
 
-import java.io.File
-
 import cats.Show
-
-import scala.jdk.CollectionConverters._
+import org.enso.editions.{DefaultEnsoVersion, EnsoVersion}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
 
+import java.io.File
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
 
 object CouldNotCreateDirectory extends Exception
@@ -205,15 +204,16 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     authors: List[Contact]     = List(),
     maintainers: List[Contact] = List()
   ): Package[F] = {
+    val edition = Config.makeCompatibilityEditionFromVersion(ensoVersion)
     val config = Config(
-      name         = NameValidation.normalizeName(name),
-      namespace    = namespace,
-      version      = version,
-      ensoVersion  = ensoVersion,
-      license      = "",
-      authors      = authors,
-      maintainers  = maintainers,
-      dependencies = List()
+      name                 = NameValidation.normalizeName(name),
+      namespace            = namespace,
+      version              = version,
+      license              = "",
+      authors              = authors,
+      edition              = edition,
+      preferLocalLibraries = true,
+      maintainers          = maintainers
     )
     create(root, config)
   }
