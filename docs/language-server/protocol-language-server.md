@@ -2155,76 +2155,10 @@ of the (possibly multiple) content roots.
 
 None
 
-### `file/addRoot`
-
-This request adds a content root to the active project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-When a content root is added, the language server must notify clients other than
-the one that added the root by sending a `file/rootAdded`. Additionally, all
-clients must be notified with a `file/event` about the addition of the new root.
-The IDE is responsible for calling `file/tree` on that root to discover its
-structure.
-
-#### Parameters
-
-```typescript
-{
-  absolutePath: [String];
-  id: UUID; // The ID of the content root
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
-### `file/removeRoot`
-
-This request removes a content root from the active project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-When a content root is removed, the language server must notify clients other
-than the one that added the root by sending a `file/rootRemoved`. Additionally,
-the server must send a `file/event` making the root of the new tree visible. The
-IDE is responsible for any additional discovery.
-
-#### Parameters
-
-```typescript
-{
-  id: UUID; // The content root ID
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
 ### `file/rootAdded`
 
-This is a notification sent to all clients other than the one performing the
-addition of the root in order to inform them of the content root's ID.
+This is a notification sent to all clients to inform them that a content root
+has been added.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -2235,8 +2169,7 @@ addition of the root in order to inform them of the content root's ID.
 
 ```typescript
 {
-  id: UUID; // The content root ID
-  absolutePath: [String];
+  root: ContentRoot
 }
 ```
 
