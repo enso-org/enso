@@ -347,7 +347,9 @@ polyglot java import org.enso.base.Text_Utils
                 Token::line(
                     vec![
                         Token::variable("from", 0),
-                        Token::referent("Builtins", 1),
+                        Token::referent("Standard", 1),
+                        Token::operator(".", 0),
+                        Token::referent("Builtins", 0),
                         Token::variable("export", 1),
                         Token::variable("all", 1),
                     ],
