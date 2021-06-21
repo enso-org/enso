@@ -909,11 +909,11 @@ class AstToIrTest extends CompilerTest with Inside {
     "properly support different kinds of exports" in {
       val exports = List(
         "export Username.Bar as Baz",
-        "export Username.Bar",
+        "export project.Bar",
         "from Username.Bar export Baz",
-        "from Username.Bar export baz, Spam",
-        "from Username.Bar export all",
-        "from Username.Bar as Eggs export all hiding Spam",
+        "from username.Bar export baz, Spam",
+        "from project.Bar export all",
+        "from username.Bar as Eggs export all hiding Spam",
         "from Username.Bar export all hiding Spam, eggs"
       )
       exports

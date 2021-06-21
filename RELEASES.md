@@ -1,9 +1,5 @@
 # Enso Next
 
-- Implemented changes to the import and export syntax, requiring to provide the
-  project namespace, or use the new `project` keyword to import from the current
-  project.
-
 ## Interpreter/Runtime
 
 - Upgraded the underlying runtime to
@@ -14,6 +10,9 @@
   pass ([#1748](https://github.com/enso-org/enso/pull/1748)). This will allow
   the interpreter to perform more detailed analyses in the future to enable
   optimisations and new features.
+- Implemented changes to the import and export syntax, requiring to provide the
+  project namespace, or use the new `project` keyword to import from the current
+  project ([#17806](https://github.com/enso-org/enso/pull/1748)).
 
 ## Tooling
 
