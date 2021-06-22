@@ -31,8 +31,9 @@ class ConfigSpec
 
     "deserialize the serialized representation to the original value" in {
       val config = Config(
-        name    = "placeholder",
-        version = "dev",
+        name      = "placeholder",
+        version   = "dev",
+        namespace = "local",
         edition = Config.makeCompatibilityEditionFromVersion(
           SemVerEnsoVersion(SemVer(4, 5, 6))
         ),
