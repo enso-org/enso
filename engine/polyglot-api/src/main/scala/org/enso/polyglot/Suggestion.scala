@@ -132,7 +132,8 @@ object Suggestion {
     name: String,
     arguments: Seq[Argument],
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    documentationHtml: Option[String]
   ) extends Suggestion
       with ToLogString {
 
@@ -143,9 +144,11 @@ object Suggestion {
       s"module=$module," +
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
-      ")"
+      s"returnType=$returnType" +
+      s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                            else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) + ")"
   }
 
   /** A function defined on a type or a module.
@@ -165,7 +168,8 @@ object Suggestion {
     arguments: Seq[Argument],
     selfType: String,
     returnType: String,
-    documentation: Option[String]
+    documentation: Option[String],
+    documentationHtml: Option[String]
   ) extends Suggestion
       with ToLogString {
 
@@ -176,8 +180,11 @@ object Suggestion {
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      s"returnType=$returnType," +
+      s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                           else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) +
       ")"
   }
 

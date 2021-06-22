@@ -416,6 +416,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -440,6 +441,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           (v2, id2) <- repo.update(
             suggestion.function,
             Some(None),
+            None,
             None,
             None,
             None,
@@ -470,6 +472,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           Some(newReturnType),
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -497,6 +500,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           Some(Some(newDoc)),
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -524,6 +528,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             None,
             Some(None),
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -550,6 +555,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
         (v2, id2) <- repo.update(
           suggestion.local,
+          None,
           None,
           None,
           None,
@@ -583,6 +589,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Some(newArgs),
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -613,6 +620,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           suggestion.atom,
           None,
           Some(newArgs),
+          None,
           None,
           None,
           None
@@ -655,6 +663,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Some(newArgs),
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -682,6 +691,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
         (v2, id2) <- repo.update(
           suggestion.method,
+          None,
           None,
           None,
           None,
@@ -1227,19 +1237,21 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType    = "Pair",
-        documentation = Some("Awesome")
+        returnType        = "Pair",
+        documentation     = Some("Awesome"),
+        documentationHtml = Some("")
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId    = Some(UUID.randomUUID()),
-        module        = "Test.Main",
-        name          = "main",
-        arguments     = Seq(),
-        selfType      = "Test.Main",
-        returnType    = "IO",
-        documentation = None
+        externalId        = Some(UUID.randomUUID()),
+        module            = "Test.Main",
+        name              = "main",
+        arguments         = Seq(),
+        selfType          = "Test.Main",
+        returnType        = "IO",
+        documentation     = None,
+        documentationHtml = None
       )
 
     val function: Suggestion.Function =
