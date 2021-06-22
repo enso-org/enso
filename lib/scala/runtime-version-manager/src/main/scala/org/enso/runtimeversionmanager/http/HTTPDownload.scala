@@ -157,6 +157,8 @@ object HTTPDownload {
     sink: Sink[ByteString, Future[A]],
     resultMapping: (HttpResponse, A) => B
   ): TaskProgress[B] = {
+    // TODO [RW] Add optional stream encoding allowing for compression -
+    //  add headers and decode the stream if necessary (#1805).
     val taskProgress = new TaskProgressImplementation[B](ProgressUnit.Bytes)
     val total        = new java.util.concurrent.atomic.AtomicLong(0)
     import actorSystem.dispatcher
