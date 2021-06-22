@@ -819,7 +819,7 @@ class SuggestionsHandlerSpec
   }
 
   def mkModulePath(config: Config, segments: String*): Path = {
-    val (rootId, _) = config.contentRoots.head
+    val rootId = config.projectContentRoot.id
     Path(rootId, "src" +: segments.toVector)
   }
 

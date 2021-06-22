@@ -146,8 +146,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val receivesTreeUpdatesHandler =
     system.actorOf(
-      ReceivesTreeUpdatesHandler
-        .props(languageServerConfig, fileSystem, zioExec),
+      ReceivesTreeUpdatesHandler.props(
+        languageServerConfig,
+        contentRootManagerWrapper,
+        fileSystem,
+        zioExec
+      ),
       "file-event-registry"
     )
 

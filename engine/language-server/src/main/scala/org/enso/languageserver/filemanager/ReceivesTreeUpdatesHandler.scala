@@ -47,11 +47,13 @@ import org.enso.languageserver.util.UnhandledLogging
   * }}}
   *
   * @param config configuration
+  * @param contentRootManager the content root manager
   * @param fs file system
   * @param exec executor of file system events
   */
 final class ReceivesTreeUpdatesHandler(
   config: Config,
+  contentRootManager: ContentRootManager,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
@@ -74,7 +76,14 @@ final class ReceivesTreeUpdatesHandler(
           )
         case None =>
           val watcher =
-            context.actorOf(PathWatcher.props(config, fs, exec))
+            context.actorOf(
+              PathWatcher.props(
+                config.pathWatcher,
+                contentRootManager,
+                fs,
+                exec
+              )
+            )
           context.watch(watcher)
           watcher.forward(
             PathWatcherProtocol.WatchPath(path, client.rpcController)
@@ -142,13 +151,15 @@ object ReceivesTreeUpdatesHandler {
     * [[ReceivesTreeUpdatesHandler]].
     *
     * @param config configuration
+    * @param contentRootManager the content root manager
     * @param fs file system
     * @param exec executor of file system events
     */
   def props(
     config: Config,
+    contentRootManager: ContentRootManager,
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new ReceivesTreeUpdatesHandler(config, fs, exec))
+    Props(new ReceivesTreeUpdatesHandler(config, contentRootManager, fs, exec))
 }

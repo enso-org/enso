@@ -1,16 +1,15 @@
 package org.enso.languageserver.data
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
 import org.enso.languageserver.filemanager.{
   ContentRootNotFound,
   ContentRootWithFile,
-  FileSystemFailure,
-  Path
+  FileSystemFailure
 }
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
+import java.io.File
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -138,10 +137,6 @@ case class Config(
   directories: ProjectDirectoriesConfig
 ) extends ToLogString {
 
-  // TODO [RW] remove this scaffolding
-  def contentRoots: Map[UUID, ContentRootWithFile] =
-    Map(projectContentRoot.id -> projectContentRoot)
-
   // TODO [RW] should we modify the list of roots in the FileManager or in the Config?
   // but that would make the Config mutable which is not great
   // but stuff like error reporting needs to know library roots that are added lazily to correctly relativize paths
@@ -165,19 +160,7 @@ case class Config(
 
   def findContentRoot(
     rootId: UUID
-  ): Either[FileSystemFailure, ContentRootWithFile] =
-    contentRoots
-      .get(rootId)
-      .toRight(ContentRootNotFound)
-
-  def findRelativePath(path: File): Option[Path] =
-    contentRoots.view.flatMap { case (id, root) =>
-      if (path.toPath.startsWith(root.file.toPath)) {
-        Some(Path(id, root.file.toPath.relativize(path.toPath)))
-      } else {
-        None
-      }
-    }.headOption
+  ): Either[FileSystemFailure, ContentRootWithFile] = ???
 
 }
 object Config {

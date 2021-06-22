@@ -145,10 +145,14 @@ class BaseServerTest extends JsonRpcServerTestKit {
           Sha3_224VersionCalculator
         )
       )
-    val fileEventRegistry =
-      system.actorOf(
-        ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
+    val fileEventRegistry = system.actorOf(
+      ReceivesTreeUpdatesHandler.props(
+        config,
+        contentRootManagerWrapper,
+        new FileSystem,
+        zioExec
       )
+    )
 
     val contextRegistry =
       system.actorOf(

@@ -17,6 +17,7 @@ import org.enso.languageserver.data.{
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
+import org.enso.languageserver.filemanager.ContentRootManager.ContentRootNotFound
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
   ContentRootType,
@@ -118,13 +119,9 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
-    config.contentRoots.foreach {
-      case (_, root) if root.`type` == ContentRootType.Project =>
-        PackageManager.Default
-          .fromDirectory(root.file)
-          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
-      case _ =>
-    }
+    PackageManager.Default
+      .fromDirectory(config.projectContentRoot.file)
+      .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
   }
 
   override def receive: Receive =
@@ -558,9 +555,11 @@ final class SuggestionsHandler(
   private def getModuleName(
     projectName: String,
     path: Path
-  ): Either[SearchFailure, String] =
+  ): Future[String] =
     for {
-      root <- config.findContentRoot(path.rootId).left.map(FileSystemError)
+      root <- contentRootManager.findContentRoot(path.rootId).recoverWith { _ =>
+        Future.failed(ContentRootNotFound(path.rootId))
+      }
       module <-
         ModuleNameBuilder
           .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
