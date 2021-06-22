@@ -1,25 +1,30 @@
 package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, Props}
-import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
+import akka.routing.SmallestMailboxPool
 import com.typesafe.scalalogging.LazyLogging
 import org.bouncycastle.util.encoders.Hex
-import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
+import org.enso.languageserver.effect._
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
+
+import java.io.File
+import java.util.UUID
 
 /** Handles the [[FileManagerProtocol]] messages, executes the [[FileSystem]]
   * effects and forms the responses.
   *
   * @param config configuration
+  * @param contentRootManager the content root manager
   * @param fs an instance of a [[FileSystem]] that creates the effects
   * @param exec effects executor
   */
 class FileManager(
   config: Config,
+  contentRootManager: ContentRootManager,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
@@ -27,6 +32,15 @@ class FileManager(
     with UnhandledLogging {
 
   import context.dispatcher
+
+  private def findContentRoot(
+    id: UUID
+  ): IO[FileSystemFailure, ContentRootWithFile] =
+    IO.fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
+      .mapError { _ => ContentRootNotFound }
+
+  private def resolvePath(path: Path): IO[FileSystemFailure, File] =
+    findContentRoot(path.rootId).map { root => path.toFile(root.file) }
 
   override def receive: Receive = {
     case Ping =>
@@ -40,8 +54,8 @@ class FileManager(
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          _    <- fs.write(path.toFile(root.file), content)
+          file <- resolvePath(path)
+          _    <- fs.write(file, content)
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -52,8 +66,8 @@ class FileManager(
     case FileManagerProtocol.WriteBinaryFile(path, contents) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          _    <- fs.writeBinary(path.toFile(root.file), contents)
+          file <- resolvePath(path)
+          _    <- fs.writeBinary(file, contents)
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -63,8 +77,7 @@ class FileManager(
     case FileManagerProtocol.ReadFile(path) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          file = path.toFile(root.file)
+          file    <- resolvePath(path)
           content <- fs.read(file)
         } yield FileManagerProtocol.TextualFileContent(file, content)
       exec
@@ -75,8 +88,7 @@ class FileManager(
     case FileManagerProtocol.ReadBinaryFile(path) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          file = path.toFile(root.file)
+          file     <- resolvePath(path)
           contents <- fs.readBinary(file)
         } yield FileManagerProtocol.BinaryFileContent(file, contents)
       exec
@@ -87,8 +99,8 @@ class FileManager(
     case FileManagerProtocol.CreateFile(FileSystemObject.File(name, path)) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          _    <- fs.createFile(path.toFile(root.file, name))
+          root <- findContentRoot(path.rootId)
+          _    <- fs.createFile(path.toFileInsideThisDirectory(root.file, name))
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -101,8 +113,10 @@ class FileManager(
         ) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          _    <- fs.createDirectory(path.toFile(root.file, name))
+          root <- findContentRoot(path.rootId)
+          _ <- fs.createDirectory(
+            path.toFileInsideThisDirectory(root.file, name)
+          )
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -113,8 +127,8 @@ class FileManager(
     case FileManagerProtocol.DeleteFile(path) =>
       val result =
         for {
-          root <- IO.fromEither(config.findContentRoot(path.rootId))
-          _    <- fs.delete(path.toFile(root.file))
+          file <- resolvePath(path)
+          _    <- fs.delete(file)
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -125,9 +139,9 @@ class FileManager(
     case FileManagerProtocol.CopyFile(from, to) =>
       val result =
         for {
-          rootFrom <- IO.fromEither(config.findContentRoot(from.rootId))
-          rootTo   <- IO.fromEither(config.findContentRoot(to.rootId))
-          _        <- fs.copy(from.toFile(rootFrom.file), to.toFile(rootTo.file))
+          fileFrom <- resolvePath(from)
+          fileTo   <- resolvePath(to)
+          _        <- fs.copy(fileFrom, fileTo)
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -138,9 +152,9 @@ class FileManager(
     case FileManagerProtocol.MoveFile(from, to) =>
       val result =
         for {
-          rootFrom <- IO.fromEither(config.findContentRoot(from.rootId))
-          rootTo   <- IO.fromEither(config.findContentRoot(to.rootId))
-          _        <- fs.move(from.toFile(rootFrom.file), to.toFile(rootTo.file))
+          fileFrom <- resolvePath(from)
+          fileTo   <- resolvePath(to)
+          _        <- fs.move(fileFrom, fileTo)
         } yield ()
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -151,8 +165,8 @@ class FileManager(
     case FileManagerProtocol.ExistsFile(path) =>
       val result =
         for {
-          root   <- IO.fromEither(config.findContentRoot(path.rootId))
-          exists <- fs.exists(path.toFile(root.file))
+          file   <- resolvePath(path)
+          exists <- fs.exists(file)
         } yield exists
       exec
         .execTimed(config.fileManager.timeout, result)
@@ -163,7 +177,7 @@ class FileManager(
     case FileManagerProtocol.ListFile(path) =>
       val result =
         for {
-          root    <- IO.fromEither(config.findContentRoot(path.rootId))
+          root    <- findContentRoot(path.rootId)
           entries <- fs.list(path.toFile(root.file))
         } yield entries.map(FileSystemObject.fromEntry(root.file, path, _))
       exec
@@ -175,7 +189,7 @@ class FileManager(
     case FileManagerProtocol.TreeFile(path, depth) =>
       val result =
         for {
-          root      <- IO.fromEither(config.findContentRoot(path.rootId))
+          root      <- findContentRoot(path.rootId)
           directory <- fs.tree(path.toFile(root.file), depth)
         } yield DirectoryTree.fromDirectoryEntry(root.file, path, directory)
       exec
@@ -187,7 +201,7 @@ class FileManager(
     case FileManagerProtocol.InfoFile(path) =>
       val result =
         for {
-          root  <- IO.fromEither(config.findContentRoot(path.rootId))
+          root  <- findContentRoot(path.rootId)
           attrs <- fs.info(path.toFile(root.file))
         } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
@@ -198,8 +212,8 @@ class FileManager(
 
     case FileManagerProtocol.ChecksumFileRequest(path) =>
       val getChecksum = for {
-        root     <- IO.fromEither(config.findContentRoot(path.rootId))
-        checksum <- fs.digest(path.toFile(root.file))
+        file     <- resolvePath(path)
+        checksum <- fs.digest(file)
       } yield checksum
       exec
         .execTimed(config.fileManager.timeout, getChecksum)
@@ -212,7 +226,7 @@ class FileManager(
 
     case FileManagerProtocol.ChecksumBytesRequest(segment) =>
       val getChecksum = for {
-        root     <- IO.fromEither(config.findContentRoot(segment.path.rootId))
+        root     <- findContentRoot(segment.path.rootId)
         checksum <- fs.digestBytes(segment.toApiSegment(root.file))
       } yield checksum
       exec
@@ -222,8 +236,8 @@ class FileManager(
 
     case FileManagerProtocol.WriteBytesRequest(path, off, overwrite, bytes) =>
       val doWrite = for {
-        root     <- IO.fromEither(config.findContentRoot(path.rootId))
-        response <- fs.writeBytes(path.toFile(root.file), off, overwrite, bytes)
+        file     <- resolvePath(path)
+        response <- fs.writeBytes(file, off, overwrite, bytes)
       } yield response
       exec
         .execTimed(config.fileManager.timeout, doWrite)
@@ -232,7 +246,7 @@ class FileManager(
 
     case FileManagerProtocol.ReadBytesRequest(segment) =>
       val doRead = for {
-        root     <- IO.fromEither(config.findContentRoot(segment.path.rootId))
+        root     <- findContentRoot(segment.path.rootId)
         response <- fs.readBytes(segment.toApiSegment(root.file))
       } yield response
       exec
@@ -244,10 +258,20 @@ class FileManager(
 
 object FileManager {
 
-  def props(config: Config, fs: FileSystem, exec: Exec[BlockingIO]): Props =
-    Props(new FileManager(config, fs, exec))
+  def props(
+    config: Config,
+    contentRootManager: ContentRootManager,
+    fs: FileSystem,
+    exec: Exec[BlockingIO]
+  ): Props =
+    Props(new FileManager(config, contentRootManager, fs, exec))
 
-  def pool(config: Config, fs: FileSystem, exec: Exec[BlockingIO]): Props =
+  def pool(
+    config: Config,
+    contentRootManager: ContentRootManager,
+    fs: FileSystem,
+    exec: Exec[BlockingIO]
+  ): Props =
     SmallestMailboxPool(config.fileManager.parallelism)
-      .props(props(config, fs, exec))
+      .props(props(config, contentRootManager, fs, exec))
 }

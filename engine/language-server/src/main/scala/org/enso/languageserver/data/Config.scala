@@ -148,17 +148,14 @@ case class Config(
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
-    val maskedRoots =
+    val maskedRoot =
       if (shouldMask) {
-        contentRoots
-          .map { case (k, v) =>
-            k -> MaskingUtils.toMaskedPath(v.file.toPath)
-          }
+        MaskingUtils.toMaskedPath(projectContentRoot.file.toPath)
       } else {
-        contentRoots
+        projectContentRoot
       }
     s"Config(" +
-    s"contentRoots=$maskedRoots, " +
+    s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +

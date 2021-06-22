@@ -15,6 +15,9 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile,
   FileManager,
@@ -120,8 +123,18 @@ class BaseServerTest extends JsonRpcServerTestKit {
   )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val fileManager =
-      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
+    val fileManager = system.actorOf(
+      FileManager.props(
+        config,
+        contentRootManagerWrapper,
+        new FileSystem,
+        zioExec
+      )
+    )
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(

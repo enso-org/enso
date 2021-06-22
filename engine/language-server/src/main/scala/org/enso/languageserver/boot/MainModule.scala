@@ -9,6 +9,9 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile,
   FileManager,
@@ -116,8 +119,22 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  lazy val contentRootManagerActor =
+    system.actorOf(
+      ContentRootManagerActor.props(languageServerConfig),
+      "content-root-manager"
+    )
+
+  lazy val contentRootManagerWrapper: ContentRootManager =
+    new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
+
   lazy val fileManager = system.actorOf(
-    FileManager.pool(languageServerConfig, fileSystem, zioExec),
+    FileManager.pool(
+      languageServerConfig,
+      contentRootManagerWrapper,
+      fileSystem,
+      zioExec
+    ),
     "file-manager"
   )
 

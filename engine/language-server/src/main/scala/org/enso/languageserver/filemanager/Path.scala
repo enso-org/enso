@@ -16,7 +16,7 @@ case class Path(rootId: UUID, segments: Vector[String]) {
       new File(parent, child)
     }
 
-  def toFile(rootPath: File, fileName: String): File = {
+  def toFileInsideThisDirectory(rootPath: File, fileName: String): File = {
     val parentDir = toFile(rootPath)
     new File(parentDir, fileName)
   }
