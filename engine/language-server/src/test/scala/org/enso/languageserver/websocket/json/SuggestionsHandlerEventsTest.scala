@@ -7,13 +7,13 @@ import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.data.Tree
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.FlakySpec
 
-class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
+class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
   "SuggestionsHandlerEvents" must {
 
-    "send suggestions database notifications" taggedAs Retry in {
+    "send suggestions database notifications" taggedAs Flaky in {
       val client = getInitialisedWsClient()
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
@@ -126,7 +126,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
                 }
               }
             ],
@@ -307,6 +308,26 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
           "id" : 0,
           "result" : {
             "entries" : [
+            {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
+                  "module" : "Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
+                }
+              },
               {
                 "id" : 3,
                 "suggestion" : {
@@ -351,24 +372,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
                 }
               },
               {
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "atom",
-                  "module" : "Test.Main",
-                  "name" : "MyType",
-                  "arguments" : [
-                    {
-                      "name" : "a",
-                      "reprType" : "Any",
-                      "isSuspended" : false,
-                      "hasDefault" : false,
-                      "defaultValue" : null
-                    }
-                  ],
-                  "returnType" : "MyAtom"
-                }
-              },
-              {
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
@@ -393,27 +396,26 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with RetrySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
                 }
               },
               {
-                "id" : 4,
+                "id" : 1,
                 "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
+                  "type" : "atom",
                   "module" : "Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
+                  "name" : "MyType",
+                  "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
                     }
-                  }
+                  ],
+                  "returnType" : "MyAtom"
                 }
               }
             ],

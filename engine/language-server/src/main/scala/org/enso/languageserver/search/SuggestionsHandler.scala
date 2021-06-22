@@ -472,7 +472,9 @@ final class SuggestionsHandler(
                   arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
                   documentation = m.documentation.map(fieldUpdateOption),
-                  scope         = m.scope.map(fieldUpdate)
+                  documentationHtml =
+                    m.documentationHtml.map(fieldUpdateOption),
+                  scope = m.scope.map(fieldUpdate)
                 )
               }
           }
