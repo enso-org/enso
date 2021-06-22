@@ -53,6 +53,8 @@
   Launcher and the Project Manager.
 - Added documentation and a minimal tool for hosting custom library repositories
   ([#1804](https://github.com/enso-org/enso/pull/1804)).
+- Added `documentationHtml` field to Suggestions database entry
+  ([#1791](https://github.com/enso-org/enso/pull/1791))
 
 ## Libraries
 

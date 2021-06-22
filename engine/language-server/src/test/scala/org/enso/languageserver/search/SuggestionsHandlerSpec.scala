@@ -353,12 +353,13 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val moduleAtom = Suggestion.Atom(
-          externalId    = None,
-          module        = moduleName,
-          name          = "Foo",
-          arguments     = Vector(),
-          returnType    = moduleName,
-          documentation = None
+          externalId        = None,
+          module            = moduleName,
+          name              = "Foo",
+          arguments         = Vector(),
+          returnType        = moduleName,
+          documentation     = None,
+          documentationHtml = None
         )
         val fooAtom = moduleAtom.copy(returnType = "Test.Foo.Foo")
 
