@@ -33,6 +33,10 @@ class SuggestionBuilderTest extends CompilerTest {
     Vector()
   )
 
+  private def htmlDoc(inner: String): String = {
+    "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\">" + inner + "</div></div></div></body></html>"
+  }
+
   "SuggestionBuilder" should {
 
     "build method without explicit arguments" in {
@@ -82,12 +86,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = SuggestionBuilder.Any,
-              documentation = Some(" The foo"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>The foo</p></div></div></div></body></html>"
-              )
+              selfType          = "Unnamed.Test",
+              returnType        = SuggestionBuilder.Any,
+              documentation     = Some(" The foo"),
+              documentationHtml = Some(htmlDoc("<p>The foo</p>"))
             ),
             Vector()
           )
@@ -115,12 +117,10 @@ class SuggestionBuilderTest extends CompilerTest {
               arguments = Seq(
                 Suggestion.Argument("this", "Unnamed.Test", false, false, None)
               ),
-              selfType      = "Unnamed.Test",
-              returnType    = "Number",
-              documentation = Some(" The foo"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>The foo</p></div></div></div></body></html>"
-              )
+              selfType          = "Unnamed.Test",
+              returnType        = "Number",
+              documentation     = Some(" The foo"),
+              documentationHtml = Some(htmlDoc("<p>The foo</p>"))
             ),
             Vector()
           )
@@ -448,12 +448,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion.Argument("a", "Number", false, false, None),
                 Suggestion.Argument("b", "Number", false, false, None)
               ),
-              selfType      = "Unnamed.Test.MyAtom",
-              returnType    = "Number",
-              documentation = Some(" My bar"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>My bar</p></div></div></div></body></html>"
-              )
+              selfType          = "Unnamed.Test.MyAtom",
+              returnType        = "Number",
+              documentation     = Some(" My bar"),
+              documentationHtml = Some(htmlDoc("<p>My bar</p>"))
             ),
             Vector()
           )
@@ -1107,11 +1105,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("b", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.MyType",
-              documentation = Some(" My sweet type"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>My sweet type</p></div></div></div></body></html>"
-              )
+              returnType        = "Unnamed.Test.MyType",
+              documentation     = Some(" My sweet type"),
+              documentationHtml = Some(htmlDoc("<p>My sweet type</p>"))
             ),
             Vector()
           ),
@@ -1227,15 +1223,13 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nothing",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nothing",
-              documentation = Some(" Nothing here"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>Nothing here</p></div></div></div></body></html>"
-              )
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nothing",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nothing",
+              documentation     = Some(" Nothing here"),
+              documentationHtml = Some(htmlDoc("<p>Nothing here</p>"))
             ),
             Vector()
           ),
@@ -1248,11 +1242,9 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("a", SuggestionBuilder.Any, false, false, None)
               ),
-              returnType    = "Unnamed.Test.Just",
-              documentation = Some(" Something there"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>Something there</p></div></div></div></body></html>"
-              )
+              returnType        = "Unnamed.Test.Just",
+              documentation     = Some(" Something there"),
+              documentationHtml = Some(htmlDoc("<p>Something there</p>"))
             ),
             Vector()
           ),
@@ -1296,29 +1288,25 @@ class SuggestionBuilderTest extends CompilerTest {
           ModuleAtomNode,
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Cons",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Cons",
-              documentation = Some(" And more"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>And more</p></div></div></div></body></html>"
-              )
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Cons",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Cons",
+              documentation     = Some(" And more"),
+              documentationHtml = Some(htmlDoc("<p>And more</p>"))
             ),
             Vector()
           ),
           Tree.Node(
             Suggestion.Atom(
-              externalId    = None,
-              module        = "Unnamed.Test",
-              name          = "Nil",
-              arguments     = Seq(),
-              returnType    = "Unnamed.Test.Nil",
-              documentation = Some(" End"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>End</p></div></div></div></body></html>"
-              )
+              externalId        = None,
+              module            = "Unnamed.Test",
+              name              = "Nil",
+              arguments         = Seq(),
+              returnType        = "Unnamed.Test.Nil",
+              documentation     = Some(" End"),
+              documentationHtml = Some(htmlDoc("<p>End</p>"))
             ),
             Vector()
           ),
@@ -1331,12 +1319,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Cons", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Cons",
-              returnType    = "List",
-              documentation = Some(" a method"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>a method</p></div></div></div></body></html>"
-              )
+              selfType          = "Unnamed.Test.Cons",
+              returnType        = "List",
+              documentation     = Some(" a method"),
+              documentationHtml = Some(htmlDoc("<p>a method</p>"))
             ),
             Vector()
           ),
@@ -1349,12 +1335,10 @@ class SuggestionBuilderTest extends CompilerTest {
                 Suggestion
                   .Argument("this", "Unnamed.Test.Nil", false, false, None)
               ),
-              selfType      = "Unnamed.Test.Nil",
-              returnType    = "List",
-              documentation = Some(" a method"),
-              documentationHtml = Some(
-                "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><p>a method</p></div></div></div></body></html>"
-              )
+              selfType          = "Unnamed.Test.Nil",
+              returnType        = "List",
+              documentation     = Some(" a method"),
+              documentationHtml = Some(htmlDoc("<p>a method</p>"))
             ),
             Vector()
           )
