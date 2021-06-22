@@ -117,6 +117,8 @@ case object FunctionBinding extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case a @ Definition.Atom(_, arguments, _, _, _) =>
         a.copy(arguments = arguments.map(_.mapExpressions(desugarExpression)))
       case _: Method.Explicit =>

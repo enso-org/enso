@@ -3,15 +3,8 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.{
-  Application,
-  CallArgument,
-  Case,
-  DefinitionArgument,
-  Error,
-  Name,
-  Type
-}
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.IR.{Application, CallArgument, Case, DefinitionArgument, Error, Name, Type}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
@@ -100,6 +93,8 @@ object AutomaticParallelism extends IRPass {
     inlineContext: InlineContext
   ): Definition = {
     binding match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case method: Definition.Method.Explicit =>
         processMethod(method, inlineContext)
       case atom: Definition.Atom => atom

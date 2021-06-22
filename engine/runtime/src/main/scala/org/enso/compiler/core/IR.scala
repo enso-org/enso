@@ -1288,14 +1288,131 @@ object IR {
               s"${methodReference.showCode(indent)} $argsStr = $exprStr"
             }
           }
+
+          /** A method that represents a conversion from one type to another.
+            *
+            * @param methodReference a reference to the type on which the
+            *                        conversion is being defined
+            * @param sourceTypeName the type of the source value for this
+            *                       conversion
+            * @param body the body of the method
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            */
+          sealed case class Conversion(
+            override val methodReference: Name.MethodReference,
+            sourceTypeName: Expression,
+            override val body: Expression,
+            override val location: Option[IdentifiedLocation],
+            override val passData: MetadataStorage      = MetadataStorage(),
+            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+          ) extends Method
+              with IRKind.Primitive {
+            override protected var id: Identifier = randomId
+
+            /** Creates a copy of `this`.
+              *
+              * @param methodReference a reference to the type on which the
+              *                        conversion is being defined
+              * @param sourceTypeName the type of the source value for this
+              *                       conversion
+              * @param body the body of the method
+              * @param location the source location that the node corresponds to
+              * @param passData the pass metadata associated with this node
+              * @param diagnostics compiler diagnostics for this node
+              * @param id the identifier for the new node
+              * @return a copy of `this`, updated with the specified values
+              */
+            def copy(
+              methodReference: Name.MethodReference = methodReference,
+              sourceTypeName: Expression            = sourceTypeName,
+              body: Expression                      = body,
+              location: Option[IdentifiedLocation]  = location,
+              passData: MetadataStorage             = passData,
+              diagnostics: DiagnosticStorage        = diagnostics,
+              id: Identifier                        = id
+            ): Conversion = {
+              val res = Conversion(
+                methodReference,
+                sourceTypeName,
+                body,
+                location,
+                passData,
+                diagnostics
+              )
+              res.id = id
+              res
+            }
+
+            override def duplicate(
+              keepLocations: Boolean,
+              keepMetadata: Boolean,
+              keepDiagnostics: Boolean
+            ): Conversion = {
+              copy(
+                methodReference = methodReference
+                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                sourceTypeName = sourceTypeName
+                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                body =
+                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                location = if (keepLocations) location else None,
+                passData =
+                  if (keepMetadata) passData.duplicate else MetadataStorage(),
+                diagnostics =
+                  if (keepDiagnostics) diagnostics.copy
+                  else DiagnosticStorage(),
+                id = randomId
+              )
+            }
+
+            override def setLocation(
+              location: Option[IdentifiedLocation]
+            ): Conversion = copy(location = location)
+
+            override def mapExpressions(
+              fn: Expression => Expression
+            ): Conversion = {
+              copy(
+                methodReference = methodReference.mapExpressions(fn),
+                sourceTypeName  = sourceTypeName.mapExpressions(fn),
+                body            = fn(body)
+              )
+            }
+
+            override def toString: String =
+                s"""
+                 |IR.Module.Scope.Definition.Method.Conversion(
+                 |methodReference = $methodReference,
+                 |sourceTypeName = $sourceTypeName,
+                 |body = $body,
+                 |location = $location,
+                 |passData = ${this.showPassData},
+                 |diagnostics = $diagnostics,
+                 |id = $id
+                 |)
+                 |""".toSingleLine
+
+            override def children: List[IR] =
+              List(methodReference, sourceTypeName, body)
+
+            override def showCode(indent: Int): String = {
+              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
+                s"\n${body.showCode(indent)}"
+              } else {
+                s"${body.showCode(indent)}"
+              }
+
+              s"${methodReference.showCode(indent)} = $exprStr"
+            }
+          }
         }
       }
     }
   }
 
   // === Expression ===========================================================
-
-  /** Enso expressions. */
   sealed trait Expression extends IR {
 
     /** Performs a recursive traversal of the IR, potentially transforming it.
@@ -5759,7 +5876,8 @@ object IR {
       }
 
       case object SuspendedArgInAtom extends Reason {
-        override def explanation: String = "Atoms may not have suspended arguments."
+        override def explanation: String =
+          "Atoms may not have suspended arguments."
       }
 
       case class InvalidEscapeSequence(lit: String) extends Reason {

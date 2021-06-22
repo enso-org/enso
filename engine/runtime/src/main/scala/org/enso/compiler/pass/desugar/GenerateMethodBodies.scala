@@ -2,13 +2,10 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 
@@ -76,6 +73,8 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
     ir match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case ir: IR.Module.Scope.Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
