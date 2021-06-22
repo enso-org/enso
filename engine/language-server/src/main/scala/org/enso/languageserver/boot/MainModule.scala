@@ -156,6 +156,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       SuggestionsHandler
         .props(
           languageServerConfig,
+          contentRootManagerWrapper,
           suggestionsRepo,
           versionsRepo,
           sessionRouter,

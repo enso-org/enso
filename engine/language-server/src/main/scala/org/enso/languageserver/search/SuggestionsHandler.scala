@@ -18,11 +18,13 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
   ContentRootType,
   FileDeletedEvent,
   Path
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
+import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.search.handler.{
   ImportModuleHandler,
@@ -76,12 +78,14 @@ import scala.util.{Failure, Success}
   * }}
   *
   * @param config the server configuration
+  * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
   */
 final class SuggestionsHandler(
   config: Config,
+  contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
   fileVersionsRepo: FileVersionsRepo[Future],
   sessionRouter: ActorRef,
@@ -306,8 +310,14 @@ final class SuggestionsHandler(
         .map(SearchProtocol.ImportSuggestion)
         .getOrElse(SearchProtocol.SuggestionNotFoundError)
 
-      val handler = context.system
-        .actorOf(ImportModuleHandler.props(config, timeout, runtimeConnector))
+      val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
+      val handler = context.system.actorOf(
+        ImportModuleHandler.props(
+          runtimeFailureMapper,
+          timeout,
+          runtimeConnector
+        )
+      )
       action.pipeTo(handler)(sender())
 
     case FileDeletedEvent(path) =>
@@ -351,10 +361,14 @@ final class SuggestionsHandler(
         _ <- fileVersionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
-      val handler = context.system
-        .actorOf(
-          InvalidateModulesIndexHandler.props(config, timeout, runtimeConnector)
+      val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          runtimeFailureMapper,
+          timeout,
+          runtimeConnector
         )
+      )
       action.pipeTo(handler)(sender())
 
     case ProjectNameChangedEvent(oldName, newName) =>
@@ -610,6 +624,7 @@ object SuggestionsHandler {
   /** Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param config the server configuration
+    * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
     * @param fileVersionsRepo the file versions repo
     * @param sessionRouter the session router
@@ -617,6 +632,7 @@ object SuggestionsHandler {
     */
   def props(
     config: Config,
+    contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future],
     sessionRouter: ActorRef,
@@ -625,6 +641,7 @@ object SuggestionsHandler {
     Props(
       new SuggestionsHandler(
         config,
+        contentRootManager,
         suggestionsRepo,
         fileVersionsRepo,
         sessionRouter,

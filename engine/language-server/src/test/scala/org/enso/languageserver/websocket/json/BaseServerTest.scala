@@ -164,6 +164,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(
         SuggestionsHandler.props(
           config,
+          contentRootManagerWrapper,
           suggestionsRepo,
           versionsRepo,
           sessionRouter,

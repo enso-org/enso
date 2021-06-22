@@ -22,6 +22,7 @@ import org.enso.searcher.SuggestionsRepo
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import cats.implicits._
 
 /** EventListener listens event stream for the notifications from the runtime
   * and send updates to the client. The listener is created per context, and
@@ -50,7 +51,8 @@ final class ContextEventsListener(
   import ContextEventsListener.RunExpressionUpdates
   import context.dispatcher
 
-  private val failureMapper = RuntimeFailureMapper(config)
+  def foo                                         = config
+  private def failureMapper: RuntimeFailureMapper = ???
 
   override def preStart(): Unit = {
     if (updatesSendRate.length > 0) {
@@ -120,21 +122,29 @@ final class ContextEventsListener(
       )
 
     case Api.ExecutionFailed(`contextId`, error) =>
-      val payload =
-        ContextRegistryProtocol.ExecutionFailedNotification(
+      val message = for {
+        failure <- failureMapper.toProtocolFailure(error)
+        payload = ContextRegistryProtocol.ExecutionFailedNotification(
           contextId,
-          failureMapper.toProtocolFailure(error)
+          failure
         )
-      // TODO [RW] modify this to pipe pattern
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      message.pipeTo(sessionRouter)
 
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
-      val payload =
-        ContextRegistryProtocol.ExecutionDiagnosticNotification(
+      val message = for {
+        diagnostics <- diagnostics
+          .map(failureMapper.toProtocolDiagnostic)
+          .toList
+          .sequence
+        payload = ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
-          diagnostics.map(failureMapper.toProtocolDiagnostic)
+          diagnostics
         )
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      message.pipeTo(sessionRouter)
 
     case Api.VisualisationEvaluationFailed(
           `contextId`,
@@ -143,15 +153,21 @@ final class ContextEventsListener(
           message,
           diagnostic
         ) =>
-      val payload =
-        ContextRegistryProtocol.VisualisationEvaluationFailed(
-          contextId,
-          visualisationId,
-          expressionId,
-          message,
-          diagnostic.map(failureMapper.toProtocolDiagnostic)
-        )
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      val response = for {
+        diagnostic <- diagnostic
+          .map(failureMapper.toProtocolDiagnostic)
+          .sequence
+        payload =
+          ContextRegistryProtocol.VisualisationEvaluationFailed(
+            contextId,
+            visualisationId,
+            expressionId,
+            message,
+            diagnostic
+          )
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      response.pipeTo(sessionRouter)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       runExpressionUpdates(expressionUpdates)
