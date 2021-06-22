@@ -1382,7 +1382,7 @@ object IR {
             }
 
             override def toString: String =
-                s"""
+              s"""
                  |IR.Module.Scope.Definition.Method.Conversion(
                  |methodReference = $methodReference,
                  |sourceTypeName = $sourceTypeName,
@@ -5516,13 +5516,114 @@ object IR {
   }
   object Error {
 
+    /** An error resulting from processing conversion methods.
+      *
+      * @param storedIr the IR that contains the error
+      * @param reason the explanation for the error
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler dianostics for this node
+      */
+    sealed case class Conversion(
+      storedIr: IR,
+      reason: Conversion.Reason,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Error
+        with Diagnostic.Kind.Interactive
+        with IRKind.Primitive
+        with IR.Name {
+      override val name: String = "conversion_error"
+
+      override def isReferent: Boolean = false
+
+      override def mapExpressions(fn: Expression => Expression): Conversion =
+        this
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Conversion = {
+        copy(storedIr = storedIr.setLocation(location))
+      }
+
+      /** Create a copy of `this`.
+        *
+        * @param storedIr the IR that contains the error
+        * @param reason the explanation for the error
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler dianostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        storedIr: IR                   = storedIr,
+        reason: Conversion.Reason      = reason,
+        passData: MetadataStorage      = passData,
+        diagnostics: DiagnosticStorage = diagnostics,
+        id: Identifier                 = id
+      ): Conversion = {
+        val res = Conversion(storedIr, reason, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Conversion = {
+        copy(
+          storedIr =
+            storedIr.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+      }
+
+      override def children: List[IR] = List(storedIr)
+
+      override protected var id: Identifier = randomId
+
+      override def showCode(indent: Int): String =
+        s"(Error: ${storedIr.showCode(indent)})"
+
+      override def message: String = reason.explain
+
+      override val location: Option[IdentifiedLocation] = storedIr.location
+    }
+    object Conversion {
+
+      /** The reason for the error. */
+      sealed trait Reason {
+        def explain: String
+      }
+
+      case object MissingArgs extends Reason {
+        override def explain: String =
+          "A conversion definition must have at least one argument."
+      }
+
+      case class MissingSourceType(argName: String) extends Reason {
+        override def explain: String =
+          s"The argument `$argName` does not define a source type."
+      }
+
+      case class NonDefaultedArgument(argName: String) extends Reason {
+        override def explain: String =
+          s"Additional arguments in a conversion must have a default, but " +
+          s"`$argName` does not."
+      }
+
+    }
+
     /** A representation of an error resulting from name resolution.
       *
       * @param originalName the original name that could not be resolved
       * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
-      * @return a copy of `this`, updated with the specified values
       */
     sealed case class Resolution(
       originalName: IR.Name,

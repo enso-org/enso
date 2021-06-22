@@ -190,6 +190,7 @@ case object DemandAnalysis extends IRPass {
               "analysis runs."
             )
           case err: IR.Error.Resolution => err
+          case err: IR.Error.Conversion => err
           case _: IR.Name.Blank =>
             throw new CompilerError(
               "Blanks should not be present by the time demand analysis runs."

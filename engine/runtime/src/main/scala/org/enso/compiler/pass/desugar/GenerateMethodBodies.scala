@@ -73,8 +73,6 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
     ir match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
       case ir: IR.Module.Scope.Definition.Method.Explicit =>
         ir.copy(
           body = ir.body match {
@@ -82,6 +80,8 @@ case object GenerateMethodBodies extends IRPass {
             case expression       => processBodyExpression(expression)
           }
         )
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +

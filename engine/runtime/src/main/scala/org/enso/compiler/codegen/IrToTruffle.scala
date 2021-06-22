@@ -914,6 +914,7 @@ class IrToTruffle(
             "Qualified names should not be present at codegen time."
           )
         case err: IR.Error.Resolution => processError(err)
+        case err: IR.Error.Conversion => processError(err)
       }
 
       setLocation(nameExpr, name.location)
@@ -1003,6 +1004,11 @@ class IrToTruffle(
             .compileError()
             .newInstance(Text.create(err.message))
         case err: Error.Resolution =>
+          context.getBuiltins
+            .error()
+            .compileError()
+            .newInstance(Text.create(err.message))
+        case err: Error.Conversion =>
           context.getBuiltins
             .error()
             .compileError()
