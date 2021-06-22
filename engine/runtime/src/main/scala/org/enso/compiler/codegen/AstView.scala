@@ -5,8 +5,6 @@ import org.enso.data.List1
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident.{Opr, Var}
 
-import scala.annotation.unused
-
 /** This object contains view patterns that allow matching on the parser [[AST]]
   * for more sophisticated constructs.
   *
@@ -402,7 +400,7 @@ object AstView {
     }
 
     def matchBareArg(
-      @unused ast: AST
+      ast: AST
     ): Option[(AST.Ident, AST, Option[AST], Boolean)] = {
       ast match {
         case AST.App.Infix(maybeVarAndType, AST.Ident.Opr("="), exprVal) =>

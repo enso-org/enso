@@ -5758,6 +5758,10 @@ object IR {
         def explanation: String
       }
 
+      case object SuspendedArgInAtom extends Reason {
+        override def explanation: String = "Atoms may not have suspended arguments."
+      }
+
       case class InvalidEscapeSequence(lit: String) extends Reason {
         override def explanation: String = s"Invalid escape sequence $lit."
       }

@@ -137,12 +137,21 @@ object AstToIr {
       case AST.Ident.Annotation.any(annotation) =>
         IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
       case AstView.Atom(consName, args) =>
-        Module.Scope.Definition
-          .Atom(
+        val newArgs = args.map(translateArgumentDefinition(_))
+
+        if (newArgs.exists(_.suspended)) {
+          val ast = newArgs
+            .zip(args)
+            .collect { case (arg, ast) if arg.suspended => ast }
+            .head
+          Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
+        } else {
+          Module.Scope.Definition.Atom(
             buildName(consName),
-            args.map(translateArgumentDefinition(_)),
+            newArgs,
             getIdentifiedLocation(inputAst)
           )
+        }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
