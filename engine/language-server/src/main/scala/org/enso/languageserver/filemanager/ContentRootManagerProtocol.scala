@@ -4,7 +4,11 @@ import java.io.File
 import java.util.UUID
 
 object ContentRootManagerProtocol {
+
+  /** Gets all content roots. */
   case object GetContentRoots
+
+  /** Response containing all current content roots. */
   case class GetContentRootsResult(contentRoots: List[ContentRootWithFile])
 
   case class AddLibraryRoot(todo: Any) // TODO

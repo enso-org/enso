@@ -75,6 +75,7 @@ import scala.concurrent.duration._
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
+  * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
   * @param requestTimeout a request timeout
@@ -85,6 +86,7 @@ class JsonConnectionController(
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
+  val contentRootManager: ActorRef,
   val contextRegistry: ActorRef,
   val suggestionsHandler: ActorRef,
   val stdOutController: ActorRef,
@@ -158,7 +160,7 @@ class JsonConnectionController(
       context.system.eventStream.publish(JsonSessionInitialized(session))
       val requestHandlers = createRequestHandlers(session)
       val handler = context.actorOf(
-        InitProtocolConnectionHandler.props(fileManager, requestTimeout)
+        InitProtocolConnectionHandler.props(contentRootManager, requestTimeout)
       )
       handler.tell(request, receiver)
       unstashAll()
@@ -373,6 +375,7 @@ object JsonConnectionController {
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
+    * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
     * @param requestTimeout a request timeout
@@ -384,6 +387,7 @@ object JsonConnectionController {
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
+    contentRootManager: ActorRef,
     contextRegistry: ActorRef,
     suggestionsHandler: ActorRef,
     stdOutController: ActorRef,
@@ -400,6 +404,7 @@ object JsonConnectionController {
         bufferRegistry,
         capabilityRouter,
         fileManager,
+        contentRootManager,
         contextRegistry,
         suggestionsHandler,
         stdOutController,

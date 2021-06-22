@@ -66,7 +66,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
           new ContentRootManagerWrapper(config, contentRootManagerActor)
         val fileManager = system.actorOf(
           FileManager.props(
-            config,
+            config.fileManager,
             contentRootManagerWrapper,
             new FileSystem,
             zioExec

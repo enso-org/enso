@@ -130,7 +130,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val fileManager = system.actorOf(
     FileManager.pool(
-      languageServerConfig,
+      languageServerConfig.fileManager,
       contentRootManagerWrapper,
       fileSystem,
       zioExec
@@ -266,6 +266,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     bufferRegistry,
     capabilityRouter,
     fileManager,
+    contentRootManagerActor,
     contextRegistry,
     suggestionsHandler,
     stdOutController,

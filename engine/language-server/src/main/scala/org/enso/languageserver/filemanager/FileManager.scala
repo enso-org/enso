@@ -5,7 +5,7 @@ import akka.pattern.pipe
 import akka.routing.SmallestMailboxPool
 import com.typesafe.scalalogging.LazyLogging
 import org.bouncycastle.util.encoders.Hex
-import org.enso.languageserver.data.Config
+import org.enso.languageserver.data.FileManagerConfig
 import org.enso.languageserver.effect._
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
@@ -23,7 +23,7 @@ import java.util.UUID
   * @param exec effects executor
   */
 class FileManager(
-  config: Config,
+  config: FileManagerConfig,
   contentRootManager: ContentRootManager,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
@@ -46,11 +46,6 @@ class FileManager(
     case Ping =>
       sender() ! Pong
 
-    case FileManagerProtocol.GetContentRoots =>
-      sender() ! FileManagerProtocol.ContentRootsResult(
-        config.contentRoots.values.map(_.toContentRoot).toSet
-      )
-
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {
@@ -58,7 +53,7 @@ class FileManager(
           _    <- fs.write(file, content)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
       ()
@@ -70,7 +65,7 @@ class FileManager(
           _    <- fs.writeBinary(file, contents)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
 
@@ -81,7 +76,7 @@ class FileManager(
           content <- fs.read(file)
         } yield FileManagerProtocol.TextualFileContent(file, content)
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ReadTextualFileResult)
         .pipeTo(sender())
 
@@ -92,7 +87,7 @@ class FileManager(
           contents <- fs.readBinary(file)
         } yield FileManagerProtocol.BinaryFileContent(file, contents)
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ReadBinaryFileResult)
         .pipeTo(sender())
 
@@ -103,7 +98,7 @@ class FileManager(
           _    <- fs.createFile(path.toFileInsideThisDirectory(root.file, name))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
       ()
@@ -119,7 +114,7 @@ class FileManager(
           )
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
       ()
@@ -131,7 +126,7 @@ class FileManager(
           _    <- fs.delete(file)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.DeleteFileResult)
         .pipeTo(sender())
       ()
@@ -144,7 +139,7 @@ class FileManager(
           _        <- fs.copy(fileFrom, fileTo)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.CopyFileResult)
         .pipeTo(sender())
       ()
@@ -157,7 +152,7 @@ class FileManager(
           _        <- fs.move(fileFrom, fileTo)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.MoveFileResult)
         .pipeTo(sender())
       ()
@@ -169,7 +164,7 @@ class FileManager(
           exists <- fs.exists(file)
         } yield exists
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ExistsFileResult)
         .pipeTo(sender())
       ()
@@ -181,7 +176,7 @@ class FileManager(
           entries <- fs.list(path.toFile(root.file))
         } yield entries.map(FileSystemObject.fromEntry(root.file, path, _))
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.ListFileResult)
         .pipeTo(sender())
       ()
@@ -193,7 +188,7 @@ class FileManager(
           directory <- fs.tree(path.toFile(root.file), depth)
         } yield DirectoryTree.fromDirectoryEntry(root.file, path, directory)
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.TreeFileResult)
         .pipeTo(sender())
       ()
@@ -205,7 +200,7 @@ class FileManager(
           attrs <- fs.info(path.toFile(root.file))
         } yield FileAttributes.fromFileSystemAttributes(root.file, path, attrs)
       exec
-        .execTimed(config.fileManager.timeout, result)
+        .execTimed(config.timeout, result)
         .map(FileManagerProtocol.InfoFileResult)
         .pipeTo(sender())
       ()
@@ -216,7 +211,7 @@ class FileManager(
         checksum <- fs.digest(file)
       } yield checksum
       exec
-        .execTimed(config.fileManager.timeout, getChecksum)
+        .execTimed(config.timeout, getChecksum)
         .map(x =>
           FileManagerProtocol.ChecksumFileResponse(
             x.map(digest => Hex.toHexString(digest.bytes))
@@ -230,7 +225,7 @@ class FileManager(
         checksum <- fs.digestBytes(segment.toApiSegment(root.file))
       } yield checksum
       exec
-        .execTimed(config.fileManager.timeout, getChecksum)
+        .execTimed(config.timeout, getChecksum)
         .map(x => FileManagerProtocol.ChecksumBytesResponse(x.map(_.bytes)))
         .pipeTo(sender())
 
@@ -240,7 +235,7 @@ class FileManager(
         response <- fs.writeBytes(file, off, overwrite, bytes)
       } yield response
       exec
-        .execTimed(config.fileManager.timeout, doWrite)
+        .execTimed(config.timeout, doWrite)
         .map(x => FileManagerProtocol.WriteBytesResponse(x.map(_.bytes)))
         .pipeTo(sender())
 
@@ -250,7 +245,7 @@ class FileManager(
         response <- fs.readBytes(segment.toApiSegment(root.file))
       } yield response
       exec
-        .execTimed(config.fileManager.timeout, doRead)
+        .execTimed(config.timeout, doRead)
         .map(FileManagerProtocol.ReadBytesResponse)
         .pipeTo(sender())
   }
@@ -259,7 +254,7 @@ class FileManager(
 object FileManager {
 
   def props(
-    config: Config,
+    config: FileManagerConfig,
     contentRootManager: ContentRootManager,
     fs: FileSystem,
     exec: Exec[BlockingIO]
@@ -267,11 +262,11 @@ object FileManager {
     Props(new FileManager(config, contentRootManager, fs, exec))
 
   def pool(
-    config: Config,
+    config: FileManagerConfig,
     contentRootManager: ContentRootManager,
     fs: FileSystem,
     exec: Exec[BlockingIO]
   ): Props =
-    SmallestMailboxPool(config.fileManager.parallelism)
+    SmallestMailboxPool(config.parallelism)
       .props(props(config, contentRootManager, fs, exec))
 }

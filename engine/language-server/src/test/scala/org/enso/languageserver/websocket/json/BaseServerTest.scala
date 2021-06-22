@@ -129,7 +129,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       new ContentRootManagerWrapper(config, contentRootManagerActor)
     val fileManager = system.actorOf(
       FileManager.props(
-        config,
+        config.fileManager,
         contentRootManagerWrapper,
         new FileSystem,
         zioExec
@@ -200,6 +200,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       bufferRegistry,
       capabilityRouter,
       fileManager,
+      contentRootManagerActor,
       contextRegistry,
       suggestionsHandler,
       stdOutController,

@@ -2,9 +2,8 @@ package org.enso.languageserver.requesthandler.session
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
-import org.enso.languageserver.filemanager.FileManagerProtocol
-import org.enso.languageserver.filemanager.FileManagerProtocol.ContentRootsResult
+import org.enso.jsonrpc._
+import org.enso.languageserver.filemanager.ContentRootManagerProtocol
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.util.UnhandledLogging
@@ -13,11 +12,11 @@ import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `session/initProtocolConnection` commands.
   *
-  * @param fileManager a file manager reference
+  * @param contentRootManager a content root manager reference
   * @param timeout a request timeout
   */
 class InitProtocolConnectionHandler(
-  fileManager: ActorRef,
+  contentRootManager: ActorRef,
   timeout: FiniteDuration
 ) extends Actor
     with LazyLogging
@@ -29,7 +28,7 @@ class InitProtocolConnectionHandler(
 
   private def requestStage: Receive = {
     case Request(InitProtocolConnection, id, _) =>
-      fileManager ! FileManagerProtocol.GetContentRoots
+      contentRootManager ! ContentRootManagerProtocol.GetContentRoots
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -45,12 +44,15 @@ class InitProtocolConnectionHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case ContentRootsResult(contentRoots) =>
+    case ContentRootManagerProtocol.GetContentRootsResult(contentRoots) =>
       cancellable.cancel()
+
+      val roots = contentRoots.map(_.toContentRoot).toSet
+
       replyTo ! ResponseResult(
         InitProtocolConnection,
         id,
-        InitProtocolConnection.Result(contentRoots)
+        InitProtocolConnection.Result(roots)
       )
       context.stop(self)
   }
@@ -61,11 +63,11 @@ object InitProtocolConnectionHandler {
 
   /** Creates a configuration object used to create a [[InitProtocolConnectionHandler]]
     *
-    * @param fileManager a file manager reference
+    * @param contentRootManager a content root manager reference
     * @param timeout a request timeout
     * @return a configuration object
     */
-  def props(fileManager: ActorRef, timeout: FiniteDuration): Props =
-    Props(new InitProtocolConnectionHandler(fileManager, timeout))
+  def props(contentRootManager: ActorRef, timeout: FiniteDuration): Props =
+    Props(new InitProtocolConnectionHandler(contentRootManager, timeout))
 
 }
