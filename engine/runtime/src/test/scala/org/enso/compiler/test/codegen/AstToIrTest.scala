@@ -5,8 +5,6 @@ import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
-import scala.annotation.unused
-
 class AstToIrTest extends CompilerTest with Inside {
 
   "AST translation of lambda definitions" should {
@@ -33,6 +31,23 @@ class AstToIrTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body shouldBe an[IR.Function.Lambda]
+    }
+
+    "support ascribed argument definitions" in {
+      val ir =
+        """
+          |(~x : Type = Type.default) -> x.do_thing
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Lambda]
+      val args = ir.asInstanceOf[IR.Function.Lambda].arguments
+      args.length shouldEqual 1
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "x"
+      firstArg.ascribedType shouldBe defined
+      firstArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "Type"
+      firstArg.defaultValue shouldBe defined
+      firstArg.suspended shouldBe true
     }
   }
 
@@ -1028,30 +1043,6 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Error]
-    }
-  }
-
-  ".from conversions" should {
-    "have their definitions recognised at the top level" in {
-      @unused val ir =
-        """My_Type.from (value : Other_Type) = value
-          |""".stripMargin.toIrModule
-    }
-
-    "have their definitions recognised inside complex types" in {
-      pending
-    }
-
-    "be able to be defined with multiple types of arguments" in {
-      pending
-    }
-
-    "have their definitions be validated syntactically" in {
-      pending
-    }
-
-    "have their usages be recognised" in {
-      pending
     }
   }
 }

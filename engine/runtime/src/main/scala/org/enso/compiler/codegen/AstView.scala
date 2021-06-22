@@ -5,6 +5,8 @@ import org.enso.data.List1
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident.{Opr, Var}
 
+import scala.annotation.unused
+
 /** This object contains view patterns that allow matching on the parser [[AST]]
   * for more sophisticated constructs.
   *
@@ -216,6 +218,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[AST] =
       ast match {
+        case AscribedArgument(_, _, _, _)         => Some(ast)
         case LazyAssignedArgumentDefinition(_, _) => Some(ast)
         case AssignedArgument(_, _)               => Some(ast)
         case DefinitionArgument(_)                => Some(ast)
@@ -394,13 +397,40 @@ object AstView {
       * @return the variable name, the type being ascribed to it, the value
       *         being bound to it, and whether or not it was marked as lazy
       */
-    def unapply(ast: AST): Option[(AST.Ident, AST, AST, Boolean)] = {
+    def unapply(ast: AST): Option[(AST.Ident, AST, Option[AST], Boolean)] = {
       MaybeManyParensed.unapply(ast).flatMap(matchBareArg)
     }
 
-    def matchBareArg(ast: AST): Option[(AST.Ident, AST.Ident, AST, Boolean)] = {
-      ???
+    def matchBareArg(
+      @unused ast: AST
+    ): Option[(AST.Ident, AST, Option[AST], Boolean)] = {
+      ast match {
+        case AST.App.Infix(maybeVarAndType, AST.Ident.Opr("="), exprVal) =>
+          maybeVarAndType match {
+            case AST.App.Infix(varName, AST.Ident.Opr(":"), expr) =>
+              varName match {
+                case AST.Ident.Var.any(v) =>
+                  Some((v, expr, Some(exprVal), false))
+                case AST.App.Section
+                      .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+                  Some((v, expr, Some(exprVal), true))
+                case _ => None
+              }
+            case _ => None
+          }
+        case AST.App.Infix(varName, AST.Ident.Opr(":"), expr) =>
+          varName match {
+            case AST.Ident.Var.any(v) =>
+              Some((v, expr, None, false))
+            case AST.App.Section
+                  .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+              Some((v, expr, None, true))
+            case _ => None
+          }
+        case _ => None
+      }
     }
+
   }
 
   object LazyAssignedArgumentDefinition {

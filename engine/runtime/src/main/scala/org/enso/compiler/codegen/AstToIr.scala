@@ -724,6 +724,19 @@ object AstToIr {
     isSuspended: Boolean = false
   ): DefinitionArgument = {
     arg match {
+      case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(ascType)),
+              mValue.map(translateExpression(_)),
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
         translateIdent(name) match {
           case name: IR.Name =>
