@@ -1220,6 +1220,7 @@ lazy val editions = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .dependsOn(testkit % Test)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
