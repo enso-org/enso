@@ -1,6 +1,6 @@
 package org.enso.editions
 
-import cats.Show
+import org.enso.yaml.ParseError
 
 /** Indicates an error during resolution of a raw edition. */
 sealed class EditionResolutionError(message: String, cause: Throwable = null)
@@ -18,8 +18,11 @@ object EditionResolutionError {
       )
 
   /** Indicates that the edition cannot be parsed. */
-  case class EditionParseError(message: String, cause: Throwable)
-      extends EditionResolutionError(message, cause)
+  case class EditionParseError(cause: Throwable)
+      extends EditionResolutionError(
+        s"Cannot parse the edition: ${cause.getMessage}",
+        cause
+      )
 
   /** Indicates that a library defined in an edition references a repository
     * that is not defined in that edition or any of its parents, and so such a
@@ -41,16 +44,6 @@ object EditionResolutionError {
         s"Edition resolution encountered a cycle: ${editions.mkString(" -> ")}"
       )
 
-  /** Wraps a Circe's decoding error into a more user-friendly error. */
-  def wrapDecodingError(decodingError: io.circe.Error): EditionParseError = {
-    val errorMessage =
-      implicitly[Show[io.circe.Error]].show(decodingError)
-    EditionParseError(
-      s"Could not parse the edition: $errorMessage",
-      decodingError
-    )
-  }
-
   /** Wraps a general error thrown when loading a parsing an edition into a more
     * specific error type.
     */
@@ -59,7 +52,7 @@ object EditionResolutionError {
     throwable: Throwable
   ): EditionResolutionError =
     throwable match {
-      case decodingError: io.circe.Error => wrapDecodingError(decodingError)
-      case other                         => CannotLoadEdition(editionName, other)
+      case error: ParseError => EditionParseError(error)
+      case other             => CannotLoadEdition(editionName, other)
     }
 }

@@ -6,6 +6,7 @@ import io.circe._
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
 import org.enso.editions.SemVerJson._
+import org.enso.yaml.YamlHelper
 
 import java.io.FileReader
 import java.net.URL
@@ -17,11 +18,10 @@ object EditionSerialization {
 
   /** Tries to parse an edition definition from a string in the YAML format. */
   def parseYamlString(yamlString: String): Try[Raw.Edition] =
-    yaml.parser
-      .parse(yamlString)
-      .flatMap(_.as[Raw.Edition])
+    YamlHelper
+      .parseString[Raw.Edition](yamlString)
       .left
-      .map(EditionResolutionError.wrapDecodingError)
+      .map(EditionResolutionError.EditionParseError)
       .toTry
 
   /** Tries to load an edition definition from a YAML file. */
@@ -155,22 +155,6 @@ object EditionSerialization {
         case other =>
           EditionLoadingError(s"Could not load the edition file: $other", other)
       }
-  }
-
-  /** A helper opaque type to handle special parsing logic of edition names.
-    *
-    * The issue is that if an edition is called `2021.4` and it is written
-    * unquoted inside of a YAML file, that is treated as a floating point
-    * number, so special care must be taken to correctly parse it.
-    */
-  private case class EditionName(name: String)
-
-  implicit private val editionNameDecoder: Decoder[EditionName] = { json =>
-    json
-      .as[String]
-      .orElse(json.as[Int].map(_.toString))
-      .orElse(json.as[Float].map(_.toString))
-      .map(EditionName)
   }
 
   implicit private val libraryDecoder: Decoder[Raw.Library] = { json =>
