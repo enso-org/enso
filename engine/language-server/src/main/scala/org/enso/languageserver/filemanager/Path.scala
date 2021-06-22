@@ -2,7 +2,6 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio
-import java.nio.file.Paths
 import java.util.UUID
 
 /** A representation of a path relative to a specified content root.
@@ -21,9 +20,6 @@ case class Path(rootId: UUID, segments: Vector[String]) {
     val parentDir = toFile(rootPath)
     new File(parentDir, fileName)
   }
-
-  def toFile: File =
-    Paths.get("", segments: _*).toFile
 }
 
 object Path {

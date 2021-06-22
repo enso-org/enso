@@ -65,7 +65,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     new File(serverConfig.contentRootPath)
   )
   val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> contentRoot),
+    contentRoot,
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),

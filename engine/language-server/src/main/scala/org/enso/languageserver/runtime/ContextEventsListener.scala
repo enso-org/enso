@@ -125,6 +125,7 @@ final class ContextEventsListener(
           contextId,
           failureMapper.toProtocolFailure(error)
         )
+      // TODO [RW] modify this to pipe pattern
       sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
 
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>

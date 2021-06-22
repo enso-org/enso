@@ -131,12 +131,20 @@ object ProjectDirectoriesConfig {
   * @param directories the configuration of internal directories
   */
 case class Config(
-  contentRoots: Map[UUID, ContentRootWithFile],
+  projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig
 ) extends ToLogString {
+
+  // TODO [RW] remove this scaffolding
+  def contentRoots: Map[UUID, ContentRootWithFile] =
+    Map(projectContentRoot.id -> projectContentRoot)
+
+  // TODO [RW] should we modify the list of roots in the FileManager or in the Config?
+  // but that would make the Config mutable which is not great
+  // but stuff like error reporting needs to know library roots that are added lazily to correctly relativize paths
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {

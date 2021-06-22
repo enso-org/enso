@@ -18,7 +18,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
-      Map(testContentRootId -> testContentRoot),
+      testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -1652,7 +1652,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when getting info of nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",

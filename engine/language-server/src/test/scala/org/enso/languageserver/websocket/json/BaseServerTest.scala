@@ -69,7 +69,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   def mkConfig: Config =
     Config(
-      Map(testContentRootId -> testContentRoot),
+      testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),

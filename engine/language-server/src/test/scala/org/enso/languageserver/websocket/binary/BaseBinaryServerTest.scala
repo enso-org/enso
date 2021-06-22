@@ -8,10 +8,10 @@ import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.{
   Config,
-  ProjectDirectoriesConfig,
   ExecutionContextConfig,
   FileManagerConfig,
-  PathWatcherConfig
+  PathWatcherConfig,
+  ProjectDirectoriesConfig
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
@@ -40,7 +40,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     Files.createTempDirectory(null).toRealPath().toFile
   )
   val config = Config(
-    Map(testContentRootId -> testContentRoot),
+    testContentRoot,
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
