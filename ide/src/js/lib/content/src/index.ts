@@ -13,12 +13,6 @@ import cfg from '../../../config'
 // @ts-ignore
 import assert from 'assert'
 
-// =================
-// === Constants ===
-// =================
-
-const ALIVE_LOG_INTERVAL = 1000 * 60
-
 // ==================
 // === Global API ===
 // ==================
@@ -586,10 +580,6 @@ API.main = async function (inputConfig: any) {
     API[globalConfig.windowAppScopeConfigName] = config
 
     API.initLogging(config)
-
-    window.setInterval(() => {
-        API.remoteLog('alive')
-    }, ALIVE_LOG_INTERVAL)
 
     // Build data injected during the build process. See `webpack.config.js` for the source.
     // @ts-ignore
