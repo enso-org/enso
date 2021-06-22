@@ -181,6 +181,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         .props(
           suggestionsRepo,
           languageServerConfig,
+          RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter
         ),

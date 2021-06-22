@@ -54,12 +54,14 @@ import scala.concurrent.Future
   *
   * @param repo the suggestions repo
   * @param config configuration
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
   */
 final class ContextRegistry(
   repo: SuggestionsRepo[Future],
   config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
   sessionRouter: ActorRef
 ) extends Actor
@@ -70,9 +72,6 @@ final class ContextRegistry(
   import ContextRegistryProtocol._
 
   private val timeout = config.executionContext.requestTimeout
-
-  // FIXME [RW] provide it
-  def runtimeFailureMapper: RuntimeFailureMapper = ???
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -121,7 +120,7 @@ final class ContextRegistry(
         val listener =
           context.actorOf(
             ContextEventsListener.props(
-              config,
+              runtimeFailureMapper,
               repo,
               client,
               contextId,
@@ -371,14 +370,24 @@ object ContextRegistry {
     *
     * @param repo the suggestions repo
     * @param config language server configuration
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
     */
   def props(
     repo: SuggestionsRepo[Future],
     config: Config,
+    runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
     sessionRouter: ActorRef
   ): Props =
-    Props(new ContextRegistry(repo, config, runtime, sessionRouter))
+    Props(
+      new ContextRegistry(
+        repo,
+        config,
+        runtimeFailureMapper,
+        runtime,
+        sessionRouter
+      )
+    )
 }

@@ -30,7 +30,7 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.runtime.ContextRegistry
+import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -155,6 +155,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ContextRegistry.props(
           suggestionsRepo,
           config,
+          RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
           sessionRouter
         )

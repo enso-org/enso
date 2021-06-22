@@ -2,8 +2,8 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   DetachVisualisation,
   RegisterOneshotVisualisation,
@@ -22,7 +22,6 @@ import org.enso.searcher.SuggestionsRepo
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import cats.implicits._
 
 /** EventListener listens event stream for the notifications from the runtime
   * and send updates to the client. The listener is created per context, and
@@ -30,7 +29,7 @@ import cats.implicits._
   *
   * Expression updates are collected and sent to the user in a batch.
   *
-  * @param config the language server configuration
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
@@ -38,7 +37,7 @@ import cats.implicits._
   * @param updatesSendRate how often send the updates to the user
   */
 final class ContextEventsListener(
-  config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   repo: SuggestionsRepo[Future],
   rpcSession: JsonSession,
   contextId: ContextId,
@@ -50,9 +49,6 @@ final class ContextEventsListener(
 
   import ContextEventsListener.RunExpressionUpdates
   import context.dispatcher
-
-  def foo                                         = config
-  private def failureMapper: RuntimeFailureMapper = ???
 
   override def preStart(): Unit = {
     if (updatesSendRate.length > 0) {
@@ -123,7 +119,7 @@ final class ContextEventsListener(
 
     case Api.ExecutionFailed(`contextId`, error) =>
       val message = for {
-        failure <- failureMapper.toProtocolFailure(error)
+        failure <- runtimeFailureMapper.toProtocolFailure(error)
         payload = ContextRegistryProtocol.ExecutionFailedNotification(
           contextId,
           failure
@@ -135,7 +131,7 @@ final class ContextEventsListener(
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
       val message = for {
         diagnostics <- diagnostics
-          .map(failureMapper.toProtocolDiagnostic)
+          .map(runtimeFailureMapper.toProtocolDiagnostic)
           .toList
           .sequence
         payload = ContextRegistryProtocol.ExecutionDiagnosticNotification(
@@ -155,7 +151,7 @@ final class ContextEventsListener(
         ) =>
       val response = for {
         diagnostic <- diagnostic
-          .map(failureMapper.toProtocolDiagnostic)
+          .map(runtimeFailureMapper.toProtocolDiagnostic)
           .sequence
         payload =
           ContextRegistryProtocol.VisualisationEvaluationFailed(
@@ -273,7 +269,7 @@ object ContextEventsListener {
 
   /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
-    * @param config the language server configuration
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param repo the suggestions repo
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
@@ -281,7 +277,7 @@ object ContextEventsListener {
     * @param updatesSendRate how often send the updates to the user
     */
   def props(
-    config: Config,
+    runtimeFailureMapper: RuntimeFailureMapper,
     repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
@@ -290,7 +286,7 @@ object ContextEventsListener {
   ): Props =
     Props(
       new ContextEventsListener(
-        config,
+        runtimeFailureMapper,
         repo,
         rpcSession,
         contextId,
