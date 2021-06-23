@@ -955,48 +955,4 @@ object AstView {
         case _ => None
       }
   }
-
-//  object ConversionDefinition {
-//    val methodName: String = "from"
-//
-//    /** Matches a top-level definition of a conversion method `.from`.
-//      *
-//      * {{{
-//      *   Target_Type.from (var_name : Source_Type) args... = ...
-//      * }}}
-//      *
-//      * @param ast the structure to try and match on
-//      * @return the path segments of the type reference, the name and type of
-//      *         the first non-`this` argument, the list of argument names, and
-//      *         the bound expression
-//      */
-//    def unapply(
-//      ast: AST
-//    ): Option[(List[AST], (AST, Option[AST]), List[AST], AST)] = {
-//      ast match {
-//        case Binding(lhs, rhs) =>
-//          lhs match {
-//            case SpacedList(MethodReference(path, name) :: firstArg :: args) =>
-//              name match {
-//                case AST.Ident.Var(v) if v == methodName =>
-//                  firstArg match {
-//                    case TypeAscription(expr, typ) =>
-//                      Some((path, (expr, Some(typ)), args, rhs))
-//                    case _ => None
-//                  }
-//                case _ => None
-//              }
-//            case SpacedList(AST.Ident.Var(v) :: firstArg :: args)
-//                if v == methodName =>
-//              firstArg match {
-//                case TypeAscription(expr, typ) =>
-//                  Some((List(), (expr, Some(typ)), args, rhs))
-//                case _ => None
-//              }
-//            case _ => None
-//          }
-//        case _ => None
-//      }
-//    }
-//  }
 }
