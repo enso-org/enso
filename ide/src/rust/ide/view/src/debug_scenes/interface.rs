@@ -191,6 +191,7 @@ fn init(app:&Application) {
         }
     });
 
+    project_view.show_prompt();
 
     // let tgt_type = dummy_type_generator.get_dummy_type();
     let mut was_rendered = false;
