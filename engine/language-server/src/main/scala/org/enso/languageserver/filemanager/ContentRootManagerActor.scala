@@ -9,6 +9,10 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 
 import java.io.File
+import java.nio.file.{FileSystems, Path => JPath}
+import java.util.UUID
+import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.util.Try
 
 class ContentRootManagerActor(config: Config)
     extends Actor
@@ -69,7 +73,34 @@ object ContentRootManagerActor {
   }
 
   private def initializeRoots(config: Config): ContentRoots = {
-    // FIXME [RW] FS roots
-    ContentRoots(config.projectContentRoot, Nil, Nil, Nil)
+    val fsRoots = FileSystems.getDefault.getRootDirectories.asScala.map {
+      path =>
+        val absolutePath = path.toAbsolutePath.normalize
+        val name =
+          Option(absolutePath.getRoot).map(_.toString).getOrElse("<root>")
+        ContentRootWithFile(
+          id     = UUID.randomUUID(),
+          `type` = ContentRootType.Root,
+          name   = name,
+          file   = absolutePath.toFile
+        )
+    }
+
+    val homeRoot = for {
+      homeProp <- sys.props.get("user.home")
+      homePath <- Try(JPath.of(homeProp)).toOption
+    } yield ContentRootWithFile(
+      id     = UUID.randomUUID(),
+      `type` = ContentRootType.Home,
+      name   = "Home",
+      file   = homePath.toAbsolutePath.normalize.toFile
+    )
+
+    ContentRoots(
+      projectRoot     = config.projectContentRoot,
+      librariesRoots  = Nil,
+      homeRoots       = homeRoot.toList,
+      filesystemRoots = fsRoots.toList
+    )
   }
 }

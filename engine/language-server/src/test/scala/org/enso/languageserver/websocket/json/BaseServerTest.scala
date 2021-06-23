@@ -43,8 +43,15 @@ import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
+import org.enso.testkit.EitherValue
+import org.scalatest.OptionValues
 
-class BaseServerTest extends JsonRpcServerTestKit {
+class BaseServerTest
+    extends JsonRpcServerTestKit
+    with EitherValue
+    with OptionValues {
 
   import system.dispatcher
 
@@ -234,20 +241,19 @@ class BaseServerTest extends JsonRpcServerTestKit {
             }
           }
           """)
-    client.expectJson(json"""
-            { "jsonrpc":"2.0",
-              "id":1,
-              "result":{
-                "contentRoots" : [
-                  {
-                    "id" : $testContentRootId,
-                    "type" : "Project",
-                    "name" : "Project"
-                  }
-                ]
-              }
-            }
-              """)
+    val response = parse(client.expectMessage()).rightValue.asObject.value
+    response("jsonrpc") shouldEqual Some("2.0".asJson)
+    response("id") shouldEqual Some(1.asJson)
+    val result = response("result").value.asObject.value
+    result("contentRoots").value.asArray.value should contain(
+      json"""
+          {
+            "id" : $testContentRootId,
+            "type" : "Project",
+            "name" : "Project"
+          }
+          """
+    )
     clientId
   }
 
