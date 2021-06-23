@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
-import org.enso.compiler.pass.desugar.GenerateMethodBodies
+import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -120,6 +120,33 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have their bodies replaced by an error" in {
       method.body shouldBe an[IR.Error.Redefined.ThisArg]
+    }
+  }
+
+  "Conversion method definitions" should {
+    val from = FunctionBinding.conversionMethodName
+
+    "have the `this` argument added" in {
+      val ir =
+        s"""My_Type.$from (value : Other) = value.a
+           |""".stripMargin.preprocessModule.desugar
+
+      val conversion =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+      conversion.body shouldBe an[IR.Function.Lambda]
+      val body = conversion.body.asInstanceOf[IR.Function.Lambda]
+      body.arguments.length shouldEqual 2
+      body.arguments.head.name.name shouldEqual "this"
+    }
+
+    "have their bodies replaced by an error if they redefine `this`" in {
+      val ir =
+        s"""My_Type.$from (value : Other) this=1 = value.a
+           |""".stripMargin.preprocessModule.desugar
+
+      val conversion =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+      conversion.body shouldBe an [IR.Error.Redefined.ThisArg]
     }
   }
 }

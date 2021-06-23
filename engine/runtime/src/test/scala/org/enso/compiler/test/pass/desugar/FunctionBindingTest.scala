@@ -142,10 +142,12 @@ class FunctionBindingTest extends CompilerTest {
   "Conversion method definitions" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
+    val from: String = FunctionBinding.conversionMethodName
+
     "be turned into Method.Conversion IR entities" in {
       val ir =
-        """My_Type.from (value : Other) ~config=Nothing = My_Type value.a
-          |""".stripMargin.preprocessModule.desugar
+        s"""My_Type.$from (value : Other) ~config=Nothing = My_Type value.a
+           |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
       val conversion = ir.bindings.head
@@ -172,8 +174,8 @@ class FunctionBindingTest extends CompilerTest {
 
     "return an error if the conversion has no arguments" in {
       val ir =
-        """My_Type.from = a + b
-          |""".stripMargin.preprocessModule.desugar
+        s"""My_Type.$from = a + b
+           |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Error.Conversion]
       val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
@@ -182,8 +184,8 @@ class FunctionBindingTest extends CompilerTest {
 
     "return an error if the conversion does not have a source type" in {
       val ir =
-        """My_Type.from value = value + value
-          |""".stripMargin.preprocessModule.desugar
+        s"""My_Type.$from value = value + value
+           |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Error.Conversion]
       val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
@@ -192,8 +194,8 @@ class FunctionBindingTest extends CompilerTest {
 
     "return an error if the additional arguments don't have defaults" in {
       val ir =
-        """My_Type.from (value : Other) config = value + value
-          |""".stripMargin.preprocessModule.desugar
+        s"""My_Type.$from (value : Other) config = value + value
+           |""".stripMargin.preprocessModule.desugar
 
       ir.bindings.head shouldBe an[IR.Error.Conversion]
       val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
