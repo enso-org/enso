@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.ContentRootManagerActor.ContentRoots
@@ -19,21 +19,46 @@ class ContentRootManagerActor(config: Config)
     with LazyLogging
     with UnhandledLogging {
   override def receive: Receive = mainStage(
-    ContentRootManagerActor.initializeRoots(config)
+    ContentRootManagerActor.initializeRoots(config),
+    Set()
   )
 
-  private def mainStage(contentRoots: ContentRoots): Receive = {
+  private def mainStage(
+    contentRoots: ContentRoots,
+    subscribers: Set[ActorRef]
+  ): Receive = {
     val rootsMap = Map.from(contentRoots.toList.map(root => root.id -> root))
 
     {
       case Ping =>
         sender() ! Pong
+
       case GetContentRoots =>
         sender() ! GetContentRootsResult(contentRoots.toList)
-      case AddLibraryRoot(_) =>
-        ???
+
+      case SubscribeToNotifications =>
+        sender() ! ContentRootsAddedNotification(contentRoots.toList)
+        context.become(mainStage(contentRoots, subscribers + sender()))
+
+      case AddLibraryRoot(rootName, rootPath) =>
+        val libraryRoot = ContentRootWithFile(
+          id     = UUID.randomUUID(),
+          `type` = ContentRootType.Library,
+          name   = rootName,
+          file   = rootPath.getCanonicalFile
+        )
+
+        subscribers.foreach { subscriber =>
+          subscriber ! ContentRootsAddedNotification(List(libraryRoot))
+        }
+
+        context.become(
+          mainStage(contentRoots.addLibraryRoot(libraryRoot), subscribers)
+        )
+
       case FindContentRoot(id) =>
         sender() ! FindContentRootResult(rootsMap.get(id))
+
       case FindRelativePath(path) =>
         val relativized = contentRoots.findRelativePath(path)
         sender() ! FindRelativePathResult(relativized)
