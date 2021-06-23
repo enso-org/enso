@@ -844,6 +844,7 @@ impl Model {
 
     /// Handle notification received from controller about values having been computed.
     pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult {
+        self.view.show_prompt();
         self.refresh_computed_infos(&expressions)
     }
 

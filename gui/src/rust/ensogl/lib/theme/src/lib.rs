@@ -364,6 +364,17 @@ define_themes! { [light:0, dark:1]
                 chroma_factor    = 0.8 , 1.0;
             }
         }
+        prompt {
+            background = application::background, application::background;
+            background {
+                corner_radius = 14.0, 14.0;
+                padding       = 14.0, 14.0;
+            }
+            text       = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
+            text {
+                size = 20.0, 20.0;
+            }
+        }
     }
     widget {
         list_view {
