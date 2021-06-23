@@ -189,6 +189,7 @@ struct Model {
     code_view               : CloneRefCell<ensogl_text::Text>,
     visualizations          : SharedHashMap<graph_editor::NodeId,VisualizationId>,
     error_visualizations    : SharedHashMap<graph_editor::NodeId,VisualizationId>,
+    prompt_was_shown        : Cell<bool>,
 }
 
 
@@ -466,10 +467,11 @@ impl Model {
         let visualizations          = default();
         let error_visualizations    = default();
         let searcher                = default();
+        let prompt_was_shown        = default();
         let this                    = Model
             {logger,view,graph,text,ide,searcher,project,node_views,node_view_by_expression
             ,expression_views,expression_types,connection_views,code_view,visualizations
-            ,error_visualizations};
+            ,error_visualizations,prompt_was_shown};
 
         this.view.graph().frp.remove_all_nodes();
         this.view.status_bar().clear_all();
@@ -872,6 +874,10 @@ impl Model {
 
     /// Handle notification received from controller about values having been computed.
     pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult {
+        if !self.prompt_was_shown.get() {
+            self.view.show_prompt();
+            self.prompt_was_shown.set(true);
+        }
         self.refresh_computed_infos(&expressions)
     }
 

@@ -192,6 +192,7 @@ fn init(app:&Application) {
         }
     });
 
+    project_view.show_prompt();
 
     // === Profiling ===
 
