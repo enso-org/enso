@@ -53,6 +53,7 @@ case class SuggestionRow(
   selfType: String,
   returnType: String,
   documentation: Option[String],
+  documentationHtml: Option[String],
   scopeStartLine: Int,
   scopeStartOffset: Int,
   scopeEndLine: Int,
@@ -151,15 +152,16 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def externalIdLeast = column[Option[Long]]("external_id_least")
-  def externalIdMost  = column[Option[Long]]("external_id_most")
-  def kind            = column[Byte]("kind")
-  def module          = column[String]("module")
-  def name            = column[String]("name")
-  def selfType        = column[String]("self_type")
-  def returnType      = column[String]("return_type")
-  def documentation   = column[Option[String]]("documentation")
+  def id                = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast   = column[Option[Long]]("external_id_least")
+  def externalIdMost    = column[Option[Long]]("external_id_most")
+  def kind              = column[Byte]("kind")
+  def module            = column[String]("module")
+  def name              = column[String]("name")
+  def selfType          = column[String]("self_type")
+  def returnType        = column[String]("return_type")
+  def documentation     = column[Option[String]]("documentation")
+  def documentationHtml = column[Option[String]]("documentation_html")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -179,6 +181,7 @@ final class SuggestionsTable(tag: Tag)
       selfType,
       returnType,
       documentation,
+      documentationHtml,
       scopeStartLine,
       scopeStartOffset,
       scopeEndLine,
@@ -254,5 +257,5 @@ object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 1
+  val CurrentVersion: Long = 2
 }

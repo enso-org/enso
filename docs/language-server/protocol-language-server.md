@@ -416,6 +416,7 @@ interface SuggestionEntryAtom {
   arguments: SuggestionEntryArgument[];
   returnType: string;
   documentation?: string;
+  documentationHtml?: string;
 }
 
 interface SuggestionEntryMethod {
@@ -426,6 +427,7 @@ interface SuggestionEntryMethod {
   selfType: string;
   returnType: string;
   documentation?: string;
+  documentationHtml?: string;
 }
 
 interface SuggestionEntryFunction {
@@ -1211,7 +1213,7 @@ be correlated between the textual and data connections.
 
 ```typescript
 {
-  contentRoots: [UUID];
+  contentRoots: [ContentRoot];
 }
 ```
 

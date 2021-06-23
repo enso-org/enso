@@ -169,6 +169,7 @@ class RuntimeSuggestionUpdatesTest
                     "Main",
                     Seq(),
                     moduleName,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -187,6 +188,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -242,6 +244,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -319,6 +322,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -416,6 +420,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -523,6 +528,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify()
@@ -590,6 +596,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -651,6 +658,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Modify(
@@ -745,6 +753,7 @@ class RuntimeSuggestionUpdatesTest
                     "Main",
                     Seq(),
                     moduleName,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -763,6 +772,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     "Test.Main",
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -805,6 +815,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     Constants.TEXT,
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
@@ -830,6 +841,7 @@ class RuntimeSuggestionUpdatesTest
                     ),
                     Constants.NUMBER,
                     Constants.ANY,
+                    None,
                     None
                   ),
                   Api.SuggestionAction.Add()
