@@ -1,15 +1,10 @@
 package org.enso.languageserver.data
 
-import org.enso.languageserver.filemanager.{
-  ContentRootNotFound,
-  ContentRootWithFile,
-  FileSystemFailure
-}
+import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import java.io.File
 import java.nio.file.Files
-import java.util.UUID
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -122,8 +117,7 @@ object ProjectDirectoriesConfig {
 
 /** The config of the running Language Server instance.
   *
-  * @param contentRoots a mapping between content root id and absolute path to
-  * the content root
+  * @param projectContentRoot project's main content root
   * @param fileManager the file manager config
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
@@ -136,10 +130,6 @@ case class Config(
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig
 ) extends ToLogString {
-
-  // TODO [RW] should we modify the list of roots in the FileManager or in the Config?
-  // but that would make the Config mutable which is not great
-  // but stuff like error reporting needs to know library roots that are added lazily to correctly relativize paths
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
@@ -157,11 +147,6 @@ case class Config(
     s"directories=${directories.toLogString(shouldMask)}" +
     s")"
   }
-
-  def findContentRoot(
-    rootId: UUID
-  ): Either[FileSystemFailure, ContentRootWithFile] = ???
-
 }
 object Config {
   def ensoPackageConfigName: String = "package.yaml"

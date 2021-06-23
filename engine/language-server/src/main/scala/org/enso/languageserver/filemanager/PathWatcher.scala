@@ -22,7 +22,7 @@ import zio._
 
 import java.io.File
 import scala.concurrent.Await
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 /** Starts [[WatcherAdapter]], handles errors, converts and sends
   * events to the client.
@@ -61,13 +61,14 @@ final class PathWatcher(
   private def uninitializedStage: Receive = { case WatchPath(path, clients) =>
     val pathToWatchResult = contentRootManager
       .findContentRoot(path.rootId)
-      .map(root => path.toFile(root.file))
+      .map(result => result.map(root => path.toFile(root.file)))
 
     val result: BlockingIO[FileSystemFailure, Unit] =
       for {
         pathToWatch <- IO
           .fromFuture { _ => pathToWatchResult }
           .mapError { _ => ContentRootNotFound }
+          .absolve
         _       <- validatePath(pathToWatch)
         watcher <- IO.fromEither(buildWatcher(pathToWatch))
         _       <- IO.fromEither(startWatcher(watcher))
@@ -82,9 +83,9 @@ final class PathWatcher(
       .pipeTo(sender())
 
     pathToWatchResult.onComplete {
-      case Success(root) =>
+      case Success(Right(root)) =>
         context.become(initializedStage(root, path, clients))
-      case Failure(_) =>
+      case _ =>
         context.stop(self)
     }
   }

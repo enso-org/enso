@@ -38,6 +38,7 @@ class FileManager(
   ): IO[FileSystemFailure, ContentRootWithFile] =
     IO.fromFuture { ec => contentRootManager.findContentRoot(id)(ec) }
       .mapError { _ => ContentRootNotFound }
+      .absolve
 
   private def resolvePath(path: Path): IO[FileSystemFailure, File] =
     findContentRoot(path.rootId).map { root => path.toFile(root.file) }

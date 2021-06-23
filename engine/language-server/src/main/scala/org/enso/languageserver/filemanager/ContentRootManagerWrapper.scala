@@ -25,16 +25,19 @@ class ContentRootManagerWrapper(
       .mapTo[GetContentRootsResult]
       .map(_.contentRoots)
 
-  override def findContentRoot(
-    id: UUID
-  )(implicit ec: ExecutionContext): Future[ContentRootWithFile] =
+  override def findContentRoot(id: UUID)(implicit
+    ec: ExecutionContext
+  ): Future[Either[ContentRootNotFound.type, ContentRootWithFile]] =
     (contentRootManagerActor ? FindContentRoot(id))
       .mapTo[FindContentRootResult]
-      .flatMap {
+      .map {
         case FindContentRootResult(Some(root)) =>
-          Future.successful(root)
+          Right(root)
         case FindContentRootResult(None) =>
-          Future.failed(ContentRootManager.ContentRootNotFound(id))
+          Left(ContentRootNotFound)
+      }
+      .recoverWith { _ =>
+        Future.successful(Left(ContentRootNotFound))
       }
 
   override def findRelativePath(

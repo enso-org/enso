@@ -1,6 +1,5 @@
 package org.enso.languageserver.search
 
-import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
@@ -17,10 +16,8 @@ import org.enso.languageserver.data.{
   ReceivesSuggestionsDatabaseUpdates
 }
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.ContentRootManager.ContentRootNotFound
 import org.enso.languageserver.filemanager.{
   ContentRootManager,
-  ContentRootType,
   FileDeletedEvent,
   Path
 }
@@ -43,6 +40,7 @@ import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
@@ -285,19 +283,21 @@ final class SuggestionsHandler(
     case Completion(path, pos, selfType, returnType, tags) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       getModuleName(projectName, path)
-        .fold(
-          Future.successful,
-          module =>
-            suggestionsRepo
-              .search(
-                Some(module),
-                selfTypes,
-                returnType,
-                tags.map(_.map(SuggestionKind.toSuggestion)),
-                Some(toPosition(pos))
-              )
-              .map(CompletionResult.tupled)
-        )
+        .flatMap { either =>
+          either.fold(
+            Future.successful,
+            module =>
+              suggestionsRepo
+                .search(
+                  Some(module),
+                  selfTypes,
+                  returnType,
+                  tags.map(_.map(SuggestionKind.toSuggestion)),
+                  Some(toPosition(pos))
+                )
+                .map(CompletionResult.tupled)
+          )
+        }
         .pipeTo(sender())
 
     case Import(suggestionId) =>
@@ -319,20 +319,22 @@ final class SuggestionsHandler(
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
-        .fold(
-          err => Future.successful(Left(err)),
-          module =>
-            suggestionsRepo
-              .removeModules(Seq(module))
-              .map { case (version, ids) =>
-                Right(
-                  SuggestionsDatabaseUpdateNotification(
-                    version,
-                    ids.map(SuggestionsDatabaseUpdate.Remove)
+        .flatMap { either =>
+          either.fold(
+            err => Future.successful(Left(err)),
+            module =>
+              suggestionsRepo
+                .removeModules(Seq(module))
+                .map { case (version, ids) =>
+                  Right(
+                    SuggestionsDatabaseUpdateNotification(
+                      version,
+                      ids.map(SuggestionsDatabaseUpdate.Remove)
+                    )
                   )
-                )
-              }
-        )
+                }
+          )
+        }
         .onComplete {
           case Success(Right(notification)) =>
             if (notification.updates.nonEmpty) {
@@ -555,16 +557,16 @@ final class SuggestionsHandler(
   private def getModuleName(
     projectName: String,
     path: Path
-  ): Future[String] =
-    for {
-      root <- contentRootManager.findContentRoot(path.rootId).recoverWith { _ =>
-        Future.failed(ContentRootNotFound(path.rootId))
-      }
-      module <-
-        ModuleNameBuilder
-          .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
-          .toRight(ModuleNameNotResolvedError(path))
-    } yield module
+  ): Future[Either[SearchFailure, String]] =
+    contentRootManager.findContentRoot(path.rootId).map { rootOrError =>
+      for {
+        root <- rootOrError.left.map(FileSystemError)
+        module <-
+          ModuleNameBuilder
+            .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
+            .toRight(ModuleNameNotResolvedError(path))
+      } yield module
+    }
 
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)

@@ -10,13 +10,8 @@ trait ContentRootManager {
   ): Future[List[ContentRootWithFile]]
   def findContentRoot(id: UUID)(implicit
     ec: ExecutionContext
-  ): Future[ContentRootWithFile]
+  ): Future[Either[ContentRootNotFound.type, ContentRootWithFile]]
   def findRelativePath(path: File)(implicit
     ec: ExecutionContext
   ): Future[Option[Path]]
-}
-
-object ContentRootManager {
-  case class ContentRootNotFound(id: UUID)
-      extends RuntimeException(s"Content root $id could not be found.")
 }
