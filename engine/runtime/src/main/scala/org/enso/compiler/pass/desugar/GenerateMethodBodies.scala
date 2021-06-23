@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -83,6 +84,17 @@ case object GenerateMethodBodies extends IRPass {
             case expression       => processBodyExpression(expression)
           }
         )
+      case ir: Method.Conversion =>
+        ir.copy(
+          body = ir.body match {
+            case fun: IR.Function => processBodyFunction(fun)
+            case _ =>
+              throw new CompilerError(
+                "It should not be possible for a conversion method to have " +
+                "an arbitrary expression as a body."
+              )
+          }
+        )
       case _: IR.Module.Scope.Definition.Method.Binding =>
         throw new CompilerError(
           "Method definition sugar should not be present during method body " +
@@ -141,6 +153,7 @@ case object GenerateMethodBodies extends IRPass {
   def genThisArgument: IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
       IR.Name.This(None),
+      None,
       None,
       suspended = false,
       None

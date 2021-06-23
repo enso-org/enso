@@ -74,7 +74,7 @@ case object LambdaShorthandToLambda extends IRPass {
             InlineContext(
               moduleContext.module,
               freshNameSupply = moduleContext.freshNameSupply,
-              compilerConfig = moduleContext.compilerConfig
+              compilerConfig  = moduleContext.compilerConfig
             )
           )
         )
@@ -145,6 +145,7 @@ case object LambdaShorthandToLambda extends IRPass {
                 isMethod   = false,
                 None
               ),
+              ascribedType       = None,
               defaultValue = None,
               suspended    = false,
               location     = None
@@ -231,6 +232,7 @@ case object LambdaShorthandToLambda extends IRPass {
                     fn.location
                   ),
                 None,
+                None,
                 suspended = false,
                 None
               )
@@ -266,6 +268,7 @@ case object LambdaShorthandToLambda extends IRPass {
         bindings.foldLeft(newVec: IR.Expression) { (body, bindingName) =>
           val defArg = IR.DefinitionArgument.Specified(
             bindingName,
+            ascribedType       = None,
             defaultValue = None,
             suspended    = false,
             location     = None
@@ -357,6 +360,7 @@ case object LambdaShorthandToLambda extends IRPass {
             IR.DefinitionArgument.Specified(
               defArgName,
               None,
+              None,
               suspended = false,
               None,
               passData.duplicate,
@@ -404,6 +408,7 @@ case object LambdaShorthandToLambda extends IRPass {
 
         val lambdaArg = IR.DefinitionArgument.Specified(
           scrutineeName.copy(id = IR.randomId),
+          None,
           None,
           suspended = false,
           None

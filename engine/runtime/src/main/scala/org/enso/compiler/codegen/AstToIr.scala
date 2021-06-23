@@ -137,12 +137,21 @@ object AstToIr {
       case AST.Ident.Annotation.any(annotation) =>
         IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
       case AstView.Atom(consName, args) =>
-        Module.Scope.Definition
-          .Atom(
+        val newArgs = args.map(translateArgumentDefinition(_))
+
+        if (newArgs.exists(_.suspended)) {
+          val ast = newArgs
+            .zip(args)
+            .collect { case (arg, ast) if arg.suspended => ast }
+            .head
+          Error.Syntax(ast, Error.Syntax.SuspendedArgInAtom)
+        } else {
+          Module.Scope.Definition.Atom(
             buildName(consName),
-            args.map(translateArgumentDefinition(_)),
+            newArgs,
             getIdentifiedLocation(inputAst)
           )
+        }
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
@@ -724,11 +733,25 @@ object AstToIr {
     isSuspended: Boolean = false
   ): DefinitionArgument = {
     arg match {
+      case AstView.AscribedArgument(name, ascType, mValue, isSuspended) =>
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(ascType)),
+              mValue.map(translateExpression(_)),
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
         translateIdent(name) match {
           case name: IR.Name =>
             DefinitionArgument.Specified(
               name,
+              None,
               Some(translateExpression(value)),
               suspended = true,
               getIdentifiedLocation(arg)
@@ -744,6 +767,7 @@ object AstToIr {
             DefinitionArgument.Specified(
               name,
               None,
+              None,
               isSuspended,
               getIdentifiedLocation(arg)
             )
@@ -755,6 +779,7 @@ object AstToIr {
           case name: IR.Name =>
             DefinitionArgument.Specified(
               name,
+              None,
               Some(translateExpression(value)),
               isSuspended,
               getIdentifiedLocation(arg)

@@ -82,7 +82,7 @@ case object LambdaConsolidate extends IRPass {
         new InlineContext(
           moduleContext.module,
           freshNameSupply = moduleContext.freshNameSupply,
-          compilerConfig = moduleContext.compilerConfig
+          compilerConfig  = moduleContext.compilerConfig
         )
       )
     )
@@ -204,9 +204,9 @@ case object LambdaConsolidate extends IRPass {
       if (isShadowed) {
         val restArgs = args.drop(ix + 1)
         arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _, _) =>
             val mShadower = restArgs.collectFirst {
-              case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _)
+              case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _, _)
                   if sName.name == argName.name =>
                 s
             }
@@ -316,6 +316,7 @@ case object LambdaConsolidate extends IRPass {
         case ref: IR.Name.MethodReference   => ref
         case qual: IR.Name.Qualified        => qual
         case err: IR.Error.Resolution       => err
+        case err: IR.Error.Conversion       => err
         case annotation: IR.Name.Annotation => annotation
       }
     } else {
@@ -400,7 +401,7 @@ case object LambdaConsolidate extends IRPass {
   ): List[IR.DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-            spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _),
+            spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _, _),
             isShadowed
           ) =>
         val newName =
