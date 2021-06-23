@@ -158,6 +158,16 @@ class ProjectFileRepository[
     } yield projectPackage.config.name
   }
 
+  /** @inheritdoc */
+  def getPackageNamespace(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, String] = {
+    for {
+      project        <- getProject(projectId)
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.namespace
+  }
+
   private def loadPackage(
     projectPath: File
   ): F[ProjectRepositoryFailure, Option[Package[File]]] =

@@ -92,4 +92,10 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String]
 
+  /** Gets a package namespace for the specified project.
+    *
+    * @param projectId the project id
+    * @return either a failure or a package namespace
+    */
+  def getPackageNamespace(projectId: UUID): F[ProjectRepositoryFailure, String]
 }
