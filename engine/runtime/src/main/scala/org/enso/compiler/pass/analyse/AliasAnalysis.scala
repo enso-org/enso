@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
@@ -135,6 +136,8 @@ case object AliasAnalysis extends IRPass {
     val topLevelGraph = new Graph
 
     ir match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case m @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         body match {
@@ -339,7 +342,7 @@ case object AliasAnalysis extends IRPass {
     scope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
-      case arg @ IR.DefinitionArgument.Specified(name, value, susp, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(name, _, value, susp, _, _, _) =>
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {

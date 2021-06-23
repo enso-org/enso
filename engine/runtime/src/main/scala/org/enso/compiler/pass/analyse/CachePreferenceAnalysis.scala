@@ -1,20 +1,13 @@
 package org.enso.compiler.pass.analyse
 
 import java.util
-
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies,
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
-}
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -92,6 +85,8 @@ case object CachePreferenceAnalysis extends IRPass {
             arguments.map(analyseDefinitionArgument(_, weights))
           )
           .updateMetadata(this -->> weights)
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         method
@@ -169,7 +164,7 @@ case object CachePreferenceAnalysis extends IRPass {
     weights: WeightInfo
   ): IR.DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, defValue, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         spec
           .copy(defaultValue = defValue.map(analyseExpression(_, weights)))
           .updateMetadata(this -->> weights)

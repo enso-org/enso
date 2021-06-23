@@ -31,6 +31,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           .Specified(
             IR.Name.Literal("bar", isReferent = false, isMethod = false, None),
             None,
+            None,
             suspended = false,
             None
           )
@@ -89,7 +90,7 @@ class GatherDiagnosticsTest extends CompilerTest {
             typeName,
             List(
               IR.DefinitionArgument
-                .Specified(fooName, Some(error2), suspended = false, None)
+                .Specified(fooName, None, Some(error2), suspended = false, None)
             ),
             None
           ),

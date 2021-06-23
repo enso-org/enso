@@ -252,6 +252,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     arguments.map { argument =>
       val thisArg = IR.DefinitionArgument.Specified(
         name         = IR.Name.This(argument.name.location),
+        ascribedType = None,
         defaultValue = None,
         suspended    = false,
         location     = argument.location
@@ -389,6 +390,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         vargs match {
           case IR.DefinitionArgument.Specified(
                 name: IR.Name.This,
+                _,
                 defaultValue,
                 suspended,
                 _,

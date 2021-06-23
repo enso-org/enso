@@ -414,6 +414,33 @@ object Builtin {
       }
     }
 
+    val fromKeyword = {
+      Definition(Var("from") -> Pattern.Nothing()) { ctx =>
+        ctx.body match {
+          case List(_) => AST.Ident.Var("from")
+          case _       => internalError
+        }
+      }
+    }
+
+    val unsafeKeyword = {
+      Definition(Var("unsafe") -> Pattern.Nothing()) { ctx =>
+        ctx.body match {
+          case List(_) => AST.Ident.Var("unsafe")
+          case _       => internalError
+        }
+      }
+    }
+
+    val privateKeyword = {
+      Definition(Var("private") -> Pattern.Nothing()) { ctx =>
+        ctx.body match {
+          case List(_) => AST.Ident.Var("private")
+          case _       => internalError
+        }
+      }
+    }
+
     // TODO
     // We may want to better represent empty AST. Moreover, there should be a
     // way to generate multiple top-level entities from macros (like multiple
@@ -443,7 +470,10 @@ object Builtin {
       docComment,
       disableComment,
       skip,
-      freeze
+      freeze,
+      fromKeyword,
+      unsafeKeyword,
+      privateKeyword
     )
   }
 
