@@ -72,6 +72,25 @@ case object BindingAnalysis extends IRPass {
       }
       .flatten
       .map(BindingsMap.ModuleMethod)
+    val conversions = ir.bindings.collect {
+      case method: IR.Module.Scope.Definition.Method.Conversion =>
+        val ref = method.methodReference
+        ref.typePointer match {
+          case IR.Name.Qualified(List(), _, _, _) => Some(method.sourceTypeName)
+          case IR.Name.Qualified(List(n), _, _, _) =>
+            val shadowed = definedConstructors.exists(_.name == n.name)
+            if (!shadowed && n.name == moduleContext.module.getName.item)
+              Some(method.sourceTypeName)
+            else None
+          case IR.Name.Here(_, _, _) => Some(method.sourceTypeName)
+          case IR.Name.Literal(n, _, _, _, _, _) =>
+            val shadowed = definedConstructors.exists(_.name == n)
+            if (!shadowed && n == moduleContext.module.getName.item)
+              Some(method.sourceTypeName)
+            else None
+          case _ => None
+        }
+    }.flatten.map(BindingsMap.ModuleConversion)
     val methodsWithAutogen =
       BindingsMap.ModuleMethod(
         BindingsMap.Generated.ensoProjectMethodName
@@ -81,6 +100,7 @@ case object BindingAnalysis extends IRPass {
         definedConstructors,
         importedPolyglot,
         methodsWithAutogen,
+        conversions,
         moduleContext.module
       )
     )

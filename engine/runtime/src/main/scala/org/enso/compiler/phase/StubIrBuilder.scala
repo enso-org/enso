@@ -45,6 +45,7 @@ object StubIrBuilder {
       definedConstructors,
       polyglot,
       moduleMethods,
+      List(),
       module
     )
     meta.exportedSymbols = exportedBindings.toMap

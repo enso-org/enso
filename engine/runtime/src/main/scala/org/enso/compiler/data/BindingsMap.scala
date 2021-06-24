@@ -10,12 +10,14 @@ import org.enso.interpreter.runtime.Module
   * @param types the types defined in the current module
   * @param polyglotSymbols the polyglot symbols imported into the scope
   * @param moduleMethods the methods defined with current module as `this`
+  * @param moduleConversions the conversions defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
   types: List[BindingsMap.Cons],
   polyglotSymbols: List[BindingsMap.PolyglotSymbol],
   moduleMethods: List[BindingsMap.ModuleMethod],
+  moduleConversions: List[BindingsMap.ModuleConversion],
   currentModule: Module
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -465,6 +467,12 @@ object BindingsMap {
     * @param name the name of the method.
     */
   case class ModuleMethod(name: String)
+
+  /** A representation of a method defined on the current module.
+    *
+    * @param sourceType the source value type for the conversion
+    */
+  case class ModuleConversion(sourceType: IR.Expression)
 
   /** A result of successful name resolution.
     */
