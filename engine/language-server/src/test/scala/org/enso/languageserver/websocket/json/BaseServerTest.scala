@@ -129,9 +129,10 @@ class BaseServerTest
     )
   )
 
+  val contentRootManagerActor =
+    system.actorOf(ContentRootManagerActor.props(config))
+
   override def clientControllerFactory: ClientControllerFactory = {
-    val contentRootManagerActor =
-      system.actorOf(ContentRootManagerActor.props(config))
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
     val fileManager = system.actorOf(

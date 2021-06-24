@@ -4,11 +4,14 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import io.circe.literal._
+import io.circe.parser.parse
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data._
+import org.enso.languageserver.filemanager.ContentRootManagerProtocol
 import org.enso.testkit.RetrySpec
 
+import java.io.File
 import java.security.MessageDigest
 import scala.concurrent.duration._
 
@@ -1781,6 +1784,27 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
+    }
+  }
+
+  "Content root management" must {
+    "notify the IDE when a new root is added" in {
+      val client = getInitialisedWsClient()
+
+      val rootName = "Foo.Bar:1.2.3"
+      val rootPath = new File("foobar")
+      contentRootManagerActor ! ContentRootManagerProtocol.AddLibraryRoot(
+        rootName,
+        rootPath
+      )
+
+      val parsed = parse(client.expectMessage())
+      inside(parsed) { case Right(json) =>
+        val params = json.asObject.value("params").value.asObject.value
+        val root   = params("root").value.asObject.value
+        root("name").value.asString.value shouldEqual rootName
+        root("type").value.asString.value shouldEqual "Library"
+      }
     }
   }
 

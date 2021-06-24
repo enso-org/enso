@@ -2160,6 +2160,13 @@ None
 This is a notification sent to all clients to inform them that a content root
 has been added.
 
+At the beginning, a series of notifications is sent that lists all content roots
+that are present at the current moment. This message may contain the same
+content roots that were already present in the `session/initProtocolConnection`.
+That is done, because there is no guarantee that no root has been added between
+the init message and the time when notifications start being sent, and this
+ensures that no content root is missed.
+
 - **Type:** Notification
 - **Direction:** Server -> Client
 - **Connection:** Protocol
@@ -2169,7 +2176,7 @@ has been added.
 
 ```typescript
 {
-  root: ContentRoot
+  root: ContentRoot;
 }
 ```
 
