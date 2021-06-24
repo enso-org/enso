@@ -133,7 +133,10 @@ case object DocumentationComments extends IRPass {
   ): IR.Module.Scope.Definition =
     ir match {
       case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+        throw new CompilerError(
+          "Conversion methods should not be " +
+          "present at this point.."
+        )
       case method: IR.Module.Scope.Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
       case method: IR.Module.Scope.Definition.Method.Explicit =>
