@@ -9,6 +9,7 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.docs.generator.DocsGenerator
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
@@ -252,6 +253,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     arguments.map { argument =>
       val thisArg = IR.DefinitionArgument.Specified(
         name         = IR.Name.This(argument.name.location),
+        ascribedType = None,
         defaultValue = None,
         suspended    = false,
         location     = argument.location
@@ -389,6 +391,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         vargs match {
           case IR.DefinitionArgument.Specified(
                 name: IR.Name.This,
+                _,
                 defaultValue,
                 suspended,
                 _,
@@ -599,6 +602,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: String = "Builtins.Main.Any"
+  val Any: String = Constants.ANY
 
 }

@@ -1,10 +1,10 @@
 from Standard.Base import all
 
-import Tests.Data.Time.Duration_Spec
-import Tests.Data.Time.Time_Of_Day_Spec
-import Tests.Data.Time.Date_Spec
-import Tests.Data.Time.Time_Spec
-import Tests.Data.Time.Zone_Spec
+import project.Data.Time.Duration_Spec
+import project.Data.Time.Time_Of_Day_Spec
+import project.Data.Time.Date_Spec
+import project.Data.Time.Time_Spec
+import project.Data.Time.Zone_Spec
 
 spec =
     Date_Spec.spec

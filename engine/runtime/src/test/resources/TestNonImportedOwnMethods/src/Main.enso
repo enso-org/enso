@@ -1,5 +1,5 @@
-from Builtins import all
-import TestNonImportedOwnMethods.Util
+from Standard.Builtins import all
+import local.TestNonImportedOwnMethods.Util
 
 type X a
 

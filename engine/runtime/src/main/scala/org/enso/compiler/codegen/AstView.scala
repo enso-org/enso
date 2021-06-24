@@ -216,6 +216,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[AST] =
       ast match {
+        case AscribedArgument(_, _, _, _)         => Some(ast)
         case LazyAssignedArgumentDefinition(_, _) => Some(ast)
         case AssignedArgument(_, _)               => Some(ast)
         case DefinitionArgument(_)                => Some(ast)
@@ -379,6 +380,55 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST.Ident, AST)] =
       MaybeManyParensed.unapply(ast).flatMap(BasicAssignment.unapply)
+  }
+
+  object AscribedArgument {
+
+    /** Matches on the structure of an 'ascribed argument'.
+      *
+      * Such an argument has the structure
+      * `[~]<var> : <expression> [= <expression]`, where `<var>` must be a valid
+      * variable name, and both `<expression>`s are arbitrary Enso expressions.
+      * The `~` to mark laziness is optional.
+      *
+      * @param ast the structure to try and match on
+      * @return the variable name, the type being ascribed to it, the value
+      *         being bound to it, and whether or not it was marked as lazy
+      */
+    def unapply(ast: AST): Option[(AST.Ident, AST, Option[AST], Boolean)] = {
+      MaybeManyParensed.unapply(ast).flatMap(matchBareArg)
+    }
+
+    def matchBareArg(
+      ast: AST
+    ): Option[(AST.Ident, AST, Option[AST], Boolean)] = {
+      ast match {
+        case AST.App.Infix(maybeVarAndType, AST.Ident.Opr("="), exprVal) =>
+          maybeVarAndType match {
+            case AST.App.Infix(varName, AST.Ident.Opr(":"), expr) =>
+              varName match {
+                case AST.Ident.Var.any(v) =>
+                  Some((v, expr, Some(exprVal), false))
+                case AST.App.Section
+                      .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+                  Some((v, expr, Some(exprVal), true))
+                case _ => None
+              }
+            case _ => None
+          }
+        case AST.App.Infix(varName, AST.Ident.Opr(":"), expr) =>
+          varName match {
+            case AST.Ident.Var.any(v) =>
+              Some((v, expr, None, false))
+            case AST.App.Section
+                  .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+              Some((v, expr, None, true))
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+
   }
 
   object LazyAssignedArgumentDefinition {
@@ -566,11 +616,9 @@ object AstView {
             case AST.App.Section.Right(opr, arg) =>
               Some((List(), opr, List(arg), rhs))
             case AST.Ident.Var.any(name) => Some((List(), name, List(), rhs))
-            case _ =>
-              None
+            case _                       => None
           }
-        case _ =>
-          None
+        case _ => None
       }
     }
   }

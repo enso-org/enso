@@ -139,6 +139,70 @@ class FunctionBindingTest extends CompilerTest {
     }
   }
 
+  "Conversion method definitions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val from: String = FunctionBinding.conversionMethodName
+
+    "be turned into Method.Conversion IR entities" in {
+      val ir =
+        s"""My_Type.$from (value : Other) ~config=Nothing = My_Type value.a
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
+      val conversion = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+      conversion.sourceTypeName.asInstanceOf[IR.Name].name shouldEqual "Other"
+      val arguments = conversion.body.asInstanceOf[IR.Function.Lambda].arguments
+      arguments.length shouldEqual 1
+      arguments.head.name.name shouldEqual "value"
+      arguments.head.ascribedType shouldBe defined
+      arguments.head.defaultValue should not be defined
+      arguments.head.suspended shouldBe false
+
+      val subLambda = conversion.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+      val subArguments = subLambda.arguments
+      subArguments.length shouldEqual 1
+      subArguments.head.name.name shouldEqual "config"
+      subArguments.head.ascribedType should not be defined
+      subArguments.head.defaultValue shouldBe defined
+      subArguments.head.suspended shouldBe true
+    }
+
+    "return an error if the conversion has no arguments" in {
+      val ir =
+        s"""My_Type.$from = a + b
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Error.Conversion]
+      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
+      err.reason shouldBe an[IR.Error.Conversion.MissingArgs.type]
+    }
+
+    "return an error if the conversion does not have a source type" in {
+      val ir =
+        s"""My_Type.$from value = value + value
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Error.Conversion]
+      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
+      err.reason shouldBe an[IR.Error.Conversion.MissingSourceType]
+    }
+
+    "return an error if the additional arguments don't have defaults" in {
+      val ir =
+        s"""My_Type.$from (value : Other) config = value + value
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Error.Conversion]
+      val err = ir.bindings.head.asInstanceOf[IR.Error.Conversion]
+      err.reason shouldBe an[IR.Error.Conversion.NonDefaultedArgument]
+    }
+  }
+
   "Sugared function definitions" should {
     implicit val ctx: InlineContext = mkInlineContext
 

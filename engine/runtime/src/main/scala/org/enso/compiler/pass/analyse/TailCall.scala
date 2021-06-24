@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
@@ -82,6 +83,8 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         method
@@ -426,7 +429,7 @@ case object TailCall extends IRPass {
     */
   def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
     arg match {
-      case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>

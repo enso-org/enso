@@ -47,6 +47,7 @@ class ProjectRenameAction(
   socket: Socket,
   actionTimeout: FiniteDuration,
   socketCloseTimeout: FiniteDuration,
+  namespace: String,
   oldName: String,
   newName: String,
   scheduler: Scheduler
@@ -84,6 +85,7 @@ class ProjectRenameAction(
            |   "method": "refactoring/renameProject",
            |   "id": "$requestId",
            |   "params": {
+           |     "namespace": "$namespace",
            |     "oldName": "$oldName",
            |     "newName": "$newName"
            |   }
@@ -233,6 +235,7 @@ object ProjectRenameAction {
     socket: Socket,
     actionTimeout: FiniteDuration,
     socketCloseTimeout: FiniteDuration,
+    namespace: String,
     oldName: String,
     newName: String,
     scheduler: Scheduler
@@ -243,6 +246,7 @@ object ProjectRenameAction {
         socket,
         actionTimeout,
         socketCloseTimeout,
+        namespace,
         oldName,
         newName,
         scheduler

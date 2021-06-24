@@ -27,7 +27,7 @@ class Passes(
     List(
       ModuleAnnotations,
       DocumentationComments,
-      MainImportAndExport,
+      Imports,
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,

@@ -102,6 +102,8 @@ case object SuspendedArguments extends IRPass {
     binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     binding match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case explicit @ Method.Explicit(_, body, _, _, _) =>
         body match {
           case lam @ IR.Function.Lambda(args, lamBody, _, _, _, _) =>

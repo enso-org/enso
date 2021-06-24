@@ -54,12 +54,12 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in applications and method calls" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
           |""".stripMargin
-      instrumenter.assertNodeExists(33, 36, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(58, 8, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(42, 36, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(67, 8, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -68,18 +68,18 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main =
           |    x = 2 + 2 * 2
           |    y = x * x
           |    IO.println y
           |""".stripMargin
-      instrumenter.assertNodeExists(38, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(56, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(64, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(81, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(47, 13, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(65, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(69, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(73, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(90, 1, classOf[ReadLocalVariableNode])
       eval(code)
       ()
     }
@@ -88,7 +88,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |Nothing.method =
           |    foo = a -> b ->
@@ -100,10 +100,10 @@ class CodeLocationsTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin
 
-      instrumenter.assertNodeExists(109, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(127, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(123, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(135, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(118, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(136, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(132, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(144, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -112,7 +112,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main =
           |    x = Cons 1 2
@@ -129,10 +129,10 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |    foo x + foo y
           |""".stripMargin
-      instrumenter.assertNodeExists(106, 109, classOf[CaseNode])
-      instrumenter.assertNodeExists(152, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(172, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(209, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(115, 109, classOf[CaseNode])
+      instrumenter.assertNodeExists(161, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(181, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(218, 5, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -265,7 +265,7 @@ class CodeLocationsTest extends InterpreterTest {
       instrumenter =>
         val code =
           """
-            |from Builtins import all
+            |from Standard.Builtins import all
             |
             |type MyAtom
             |
@@ -276,9 +276,9 @@ class CodeLocationsTest extends InterpreterTest {
             |    f (Cons (Cons MyAtom Nil) Nil)
             |""".stripMargin
 
-        instrumenter.assertNodeExists(55, 67, classOf[CaseNode])
-        instrumenter.assertNodeExists(60, 1, classOf[ReadLocalVariableNode])
-        instrumenter.assertNodeExists(103, 3, classOf[IntegerLiteralNode])
+        instrumenter.assertNodeExists(64, 67, classOf[CaseNode])
+        instrumenter.assertNodeExists(69, 1, classOf[ReadLocalVariableNode])
+        instrumenter.assertNodeExists(112, 3, classOf[IntegerLiteralNode])
 
         eval(code) shouldEqual 100
     }

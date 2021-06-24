@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Test
 
-import Image_Tests.Codecs_Spec
-import Image_Tests.Data.Image_Spec
-import Image_Tests.Data.Matrix_Spec
+import project.Codecs_Spec
+import project.Data.Image_Spec
+import project.Data.Matrix_Spec
 
 main = Test.Suite.run_main <|
     Codecs_Spec.spec

@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Geo_Map
-import Visualization_Tests.Helpers
+import project.Helpers
 
 spec = 
     expect value expected_json_text = 

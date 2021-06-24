@@ -1,3 +1,3 @@
-import Test_Qualified_Error.Atom
+import local.Test_Qualified_Error.Atom
 
 main = (X 1).method

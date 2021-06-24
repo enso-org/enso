@@ -156,7 +156,7 @@ class IrToTruffle(
       case atom: IR.Module.Scope.Definition.Atom => atom
     }
     val methodDefs = module.bindings.collect {
-      case method: IR.Module.Scope.Definition.Method => method
+      case method: IR.Module.Scope.Definition.Method.Explicit => method
     }
 
     // Register the imports in scope
@@ -341,7 +341,7 @@ class IrToTruffle(
 
   private def generateEnsoProjectMethod(): Unit = {
     val name = BindingsMap.Generated.ensoProjectMethodName
-    val pkg  = context.getPackageOf(moduleScope.getModule)
+    val pkg  = context.getPackageOf(moduleScope.getModule.getSourceFile)
     val body = Truffle.getRuntime.createCallTarget(
       new EnsoProjectNode(language, context, pkg)
     )
@@ -778,6 +778,7 @@ class IrToTruffle(
       IR.DefinitionArgument.Specified(
         name.name,
         None,
+        None,
         suspended = false,
         name.location,
         passData    = name.name.passData,
@@ -913,6 +914,7 @@ class IrToTruffle(
             "Qualified names should not be present at codegen time."
           )
         case err: IR.Error.Resolution => processError(err)
+        case err: IR.Error.Conversion => processError(err)
       }
 
       setLocation(nameExpr, name.location)
@@ -1006,9 +1008,18 @@ class IrToTruffle(
             .error()
             .compileError()
             .newInstance(Text.create(err.message))
+        case err: Error.Conversion =>
+          context.getBuiltins
+            .error()
+            .compileError()
+            .newInstance(Text.create(err.message))
         case _: Error.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
+          )
+        case _: Error.ImportExport =>
+          throw new CompilerError(
+            "Impossible here, should be handled in import/export processing"
           )
       }
       setLocation(ErrorNode.build(payload), error.location)

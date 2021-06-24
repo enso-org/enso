@@ -50,7 +50,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with mixfix functions" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
@@ -66,7 +66,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    f = case _ of
@@ -142,7 +142,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used with dot notation" in {
       val code =
         """
-          |import Builtins
+          |import Standard.Builtins
           |
           |Builtins.Number.f = this + 10
           |
@@ -157,7 +157,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work properly when used inside the function of an application" in {
       val code =
         """
-          |import Builtins
+          |import Standard.Builtins
           |
           |main = (_ - 5) 0
           |""".stripMargin

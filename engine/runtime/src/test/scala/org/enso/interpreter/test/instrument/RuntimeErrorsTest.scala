@@ -45,7 +45,11 @@ class RuntimeErrorsTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(
+        tmpDir,
+        packageName,
+        namespace = "Enso_Test"
+      )
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -180,7 +184,7 @@ class RuntimeErrorsTest
   it should "return panic sentinels in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     // foo body id
     metadata.addItem(21, 5)
@@ -217,7 +221,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -270,7 +274,7 @@ class RuntimeErrorsTest
   it should "return panic sentinels in method calls" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val mainBodyId = metadata.addItem(28, 12)
 
@@ -301,7 +305,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -326,7 +330,7 @@ class RuntimeErrorsTest
       Update.panic(
         contextId,
         mainBodyId,
-        Api.MethodPointer("Test.Main", "Test.Main", "foo"),
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
         Api.ExpressionUpdate.Payload.Panic(
           "Compile error: Variable `x` is not defined.",
           Seq(mainBodyId)
@@ -339,16 +343,16 @@ class RuntimeErrorsTest
   it should "return dataflow errors in method body" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     // foo body id
-    metadata.addItem(61, 5)
-    val xId       = metadata.addItem(75, 19)
-    val yId       = metadata.addItem(103, 8)
-    val mainResId = metadata.addItem(116, 7)
+    metadata.addItem(70, 5)
+    val xId       = metadata.addItem(84, 19)
+    val yId       = metadata.addItem(112, 8)
+    val mainResId = metadata.addItem(125, 7)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError
         |
@@ -380,7 +384,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -411,14 +415,14 @@ class RuntimeErrorsTest
   it should "return panic sentinels continuing execution" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(41, 9)
-    val yId        = metadata.addItem(59, 2)
-    val mainResId  = metadata.addItem(66, 12)
+    val xId        = metadata.addItem(50, 9)
+    val yId        = metadata.addItem(68, 2)
+    val mainResId  = metadata.addItem(75, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = undefined
@@ -447,7 +451,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -492,14 +496,14 @@ class RuntimeErrorsTest
   it should "return dataflow errors continuing execution" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 2)
-    val mainResId  = metadata.addItem(90, 12)
+    val xId        = metadata.addItem(64, 19)
+    val yId        = metadata.addItem(92, 2)
+    val mainResId  = metadata.addItem(99, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError
         |
@@ -530,7 +534,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -566,14 +570,14 @@ class RuntimeErrorsTest
   it should "continue execution after dataflow errors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 5)
-    val mainResId  = metadata.addItem(93, 12)
+    val xId        = metadata.addItem(64, 19)
+    val yId        = metadata.addItem(92, 5)
+    val mainResId  = metadata.addItem(102, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError
         |
@@ -604,7 +608,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -705,14 +709,14 @@ class RuntimeErrorsTest
   it should "not send updates when dataflow error changes" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(70, 20)
-    val yId        = metadata.addItem(99, 5)
-    val mainResId  = metadata.addItem(109, 12)
+    val xId        = metadata.addItem(79, 20)
+    val yId        = metadata.addItem(108, 5)
+    val mainResId  = metadata.addItem(118, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError1
         |type MyError2
@@ -744,7 +748,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -791,14 +795,14 @@ class RuntimeErrorsTest
   it should "continue execution after thrown panics" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(55, 19)
-    val yId        = metadata.addItem(83, 5)
-    val mainResId  = metadata.addItem(93, 12)
+    val xId        = metadata.addItem(64, 19)
+    val yId        = metadata.addItem(92, 5)
+    val mainResId  = metadata.addItem(102, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError
         |
@@ -829,7 +833,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -892,14 +896,14 @@ class RuntimeErrorsTest
   it should "continue execution after panics in expressions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(41, 7)
-    val yId        = metadata.addItem(57, 5)
-    val mainResId  = metadata.addItem(67, 12)
+    val xId        = metadata.addItem(50, 7)
+    val yId        = metadata.addItem(66, 5)
+    val mainResId  = metadata.addItem(76, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 1 + foo
@@ -928,7 +932,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1005,14 +1009,14 @@ class RuntimeErrorsTest
   it should "send updates when panic changes" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(70, 20)
-    val yId        = metadata.addItem(99, 5)
-    val mainResId  = metadata.addItem(109, 12)
+    val xId        = metadata.addItem(79, 20)
+    val yId        = metadata.addItem(108, 5)
+    val mainResId  = metadata.addItem(118, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type MyError1
         |type MyError2
@@ -1044,7 +1048,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1128,14 +1132,14 @@ class RuntimeErrorsTest
   it should "not cache panics" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val newline    = System.lineSeparator()
 
     val metadata   = new Metadata
     val xId        = metadata.addItem(15, 20)
     val mainResId  = metadata.addItem(40, 1)
-    val x1Id       = metadata.addItem(41, 20)
-    val mainRes1Id = metadata.addItem(66, 1)
+    val x1Id       = metadata.addItem(50, 20)
+    val mainRes1Id = metadata.addItem(75, 1)
 
     val code =
       """main =
@@ -1164,7 +1168,7 @@ class RuntimeErrorsTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1214,7 +1218,7 @@ class RuntimeErrorsTest
           Seq(
             TextEdit(
               model.Range(model.Position(0, 0), model.Position(0, 0)),
-              s"from Builtins import all$newline$newline"
+              s"from Standard.Builtins import all$newline$newline"
             )
           )
         )

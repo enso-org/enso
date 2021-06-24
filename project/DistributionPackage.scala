@@ -154,7 +154,7 @@ object DistributionPackage {
       "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     downloadFileToLocation(
       exampleImageUrl,
-      distributionRoot / "std-lib/Standard/data/image.png"
+      distributionRoot / "std-lib/Examples/data/image.png"
     )
   }
 

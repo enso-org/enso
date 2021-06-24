@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Tests.Semantic.Names.Definitions import My_Type, Another_Constant
+from project.Semantic.Names.Definitions import My_Type, Another_Constant
 import Standard.Test
 
 Definitions.Foo.my_method = case this of

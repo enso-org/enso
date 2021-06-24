@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Case.Branch
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -131,6 +132,8 @@ case object DocumentationComments extends IRPass {
     ir: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition =
     ir match {
+      case _: Method.Conversion =>
+        throw new CompilerError("Conversion methods are not yet supported.")
       case method: IR.Module.Scope.Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
       case method: IR.Module.Scope.Definition.Method.Explicit =>
@@ -144,7 +147,7 @@ case object DocumentationComments extends IRPass {
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
-            "documentation comment resolution."
+          "documentation comment resolution."
         )
     }
 
@@ -165,14 +168,14 @@ case object DocumentationComments extends IRPass {
     */
   private def resolveIr(ir: IR): IR =
     ir match {
-      case module: IR.Module              => resolveModule(module)
-      case expr: IR.Expression            => resolveExpression(expr)
-      case df: IR.Module.Scope.Definition => resolveDefinition(df)
-      case imp: IR.Module.Scope.Import    => imp
-      case exp: IR.Module.Scope.Export    => exp
-      case arg: IR.CallArgument           => arg
-      case arg: IR.DefinitionArgument     => arg
-      case pat: IR.Pattern                => pat
+      case module: IR.Module                  => resolveModule(module)
+      case expr: IR.Expression                => resolveExpression(expr)
+      case df: IR.Module.Scope.Definition     => resolveDefinition(df)
+      case imp: IR.Module.Scope.Import        => imp
+      case exp: IR.Module.Scope.Export.Module => exp
+      case arg: IR.CallArgument               => arg
+      case arg: IR.DefinitionArgument         => arg
+      case pat: IR.Pattern                    => pat
     }
 
   // === Metadata =============================================================
