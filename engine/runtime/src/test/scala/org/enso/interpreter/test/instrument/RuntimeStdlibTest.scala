@@ -37,10 +37,10 @@ class RuntimeStdlibTest
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val stdlib: File =
-      Paths.get("../../distribution/std-lib/Standard").toFile.getAbsoluteFile
+      Paths.get("../../distribution/std-lib/Base").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -143,7 +143,7 @@ class RuntimeStdlibTest
   it should "import Base modules" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
 

@@ -11,7 +11,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with single-line literals" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main = IO.println "hello world!"
           |""".stripMargin
@@ -22,7 +22,7 @@ class TextTest extends InterpreterTest {
 
     "support text concatenation" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    h = "Hello, "
@@ -35,7 +35,7 @@ class TextTest extends InterpreterTest {
 
     "support converting arbitrary structures to text" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type My_Type a
           |
@@ -50,7 +50,7 @@ class TextTest extends InterpreterTest {
 
     "support text creation with raw block literals" in {
       val code =
-        s"""from Builtins import all
+        s"""from Standard.Builtins import all
            |
            |main =
            |    x = $rawTQ
@@ -67,7 +67,7 @@ class TextTest extends InterpreterTest {
 
     "support escape sequences in literals" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main = IO.println "\"Grzegorz Brzeczyszczykiewicz\""
           |""".stripMargin
@@ -78,7 +78,7 @@ class TextTest extends InterpreterTest {
 
     "support printing to standard error" in {
       val code =
-        s"""from Builtins import all
+        s"""from Standard.Builtins import all
            |
            |main = IO.print_err "My error string"
            |""".stripMargin
@@ -91,7 +91,7 @@ class TextTest extends InterpreterTest {
       val inputString = "foobarbaz"
 
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    IO.readln + " yay!"
@@ -105,7 +105,7 @@ class TextTest extends InterpreterTest {
     "support converting values to display texts" in {
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main =
           |    IO.println (Cons Nothing Nothing).to_display_text

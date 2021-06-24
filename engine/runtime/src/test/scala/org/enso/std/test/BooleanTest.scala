@@ -11,7 +11,7 @@ class BooleanTest extends InterpreterTest {
 
     "support if_then_else" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    if True then IO.println "true when true" else IO.println "false when true"
@@ -23,7 +23,7 @@ class BooleanTest extends InterpreterTest {
 
     "support overriding methods on boolean" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |Boolean.isTrue = this
           |
@@ -39,7 +39,7 @@ class BooleanTest extends InterpreterTest {
 
     "support pattern matching" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |to_num b = case b of
           |    True -> 1
@@ -54,7 +54,7 @@ class BooleanTest extends InterpreterTest {
 
     "support per-constructor method overloads" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |True.to_num = 1
           |False.to_num = 2
@@ -66,7 +66,7 @@ class BooleanTest extends InterpreterTest {
 
     "support per-single-constructor method overloads" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |Boolean.to_num = 2
           |True.to_num = 1
@@ -78,7 +78,7 @@ class BooleanTest extends InterpreterTest {
 
     "support logical AND and OR operators" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    IO.println True&&False
@@ -93,7 +93,7 @@ class BooleanTest extends InterpreterTest {
 
     "support negation" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    IO.println True.not

@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
@@ -79,6 +80,7 @@ public class Module implements TruffleObject {
   private TruffleFile sourceFile;
   private Rope literalSource;
   private Source cachedSource;
+  private final Package<TruffleFile> pkg;
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
   private IR.Module ir;
@@ -88,10 +90,13 @@ public class Module implements TruffleObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @param sourceFile the module's source file.
    */
-  public Module(QualifiedName name, TruffleFile sourceFile) {
+  public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     this.sourceFile = sourceFile;
+    this.pkg = pkg;
     this.name = name;
   }
 
@@ -99,10 +104,13 @@ public class Module implements TruffleObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @param literalSource the module's source.
    */
-  public Module(QualifiedName name, String literalSource) {
+  public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
     this.literalSource = Rope.apply(literalSource);
+    this.pkg = pkg;
     this.name = name;
   }
 
@@ -110,10 +118,13 @@ public class Module implements TruffleObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @param literalSource the module's source.
    */
-  public Module(QualifiedName name, Rope literalSource) {
+  public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
     this.literalSource = literalSource;
+    this.pkg = pkg;
     this.name = name;
   }
 
@@ -121,10 +132,13 @@ public class Module implements TruffleObject {
    * Creates a new module.
    *
    * @param name the qualified name of this module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    */
-  private Module(QualifiedName name) {
+  private Module(QualifiedName name, Package<TruffleFile> pkg) {
     this.name = name;
     this.scope = new ModuleScope(this);
+    this.pkg = pkg;
     this.compilationStage = CompilationStage.AFTER_CODEGEN;
   }
 
@@ -132,10 +146,12 @@ public class Module implements TruffleObject {
    * Creates an empty module.
    *
    * @param name the qualified name of the newly created module.
+   * @param pkg the package this module belongs to. May be {@code null}, if the module does not
+   *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name) {
-    return new Module(name);
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg) {
+    return new Module(name, pkg);
   }
 
   /** Clears any literal source set for this module. */
@@ -284,6 +300,10 @@ public class Module implements TruffleObject {
   /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
+  }
+
+  public Package<TruffleFile> getPackage() {
+    return pkg;
   }
 
   /**

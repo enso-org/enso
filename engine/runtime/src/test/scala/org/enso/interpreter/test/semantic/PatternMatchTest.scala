@@ -16,7 +16,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for simple patterns" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    f = case _ of
@@ -31,7 +31,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for anonymous catch-all patterns" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyAtom a
           |
@@ -77,7 +77,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for level one nested patterns" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyAtom
           |
@@ -94,7 +94,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for deeply nested patterns" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyAtom
           |
@@ -118,7 +118,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "correctly result in errors for incomplete matches" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyAtom
           |
@@ -135,7 +135,7 @@ class PatternMatchTest extends InterpreterTest {
 
     "work for pattern matches in pattern matches" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyAtom a
           |type One a

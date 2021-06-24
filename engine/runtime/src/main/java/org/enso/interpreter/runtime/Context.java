@@ -128,11 +128,11 @@ public class Context {
 
     Map<String, Module> knownFiles =
         packages.stream()
-            .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
-            .collect(
-                Collectors.toMap(
-                    srcFile -> srcFile.qualifiedName().toString(),
-                    srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
+            .flatMap(
+                p ->
+                    ScalaConversions.asJava(p.listSources()).stream()
+                        .map(srcFile -> new Module(srcFile.qualifiedName(), p, srcFile.file())))
+            .collect(Collectors.toMap(mod -> mod.getName().toString(), mod -> mod));
 
     topScope = new TopLevelScope(builtins, knownFiles);
   }
@@ -224,18 +224,20 @@ public class Context {
   /**
    * Renames project in packages and modules.
    *
+   * @param namespace the namespace the renamed project belongs to
    * @param oldName the old project name
    * @param newName the new project name
    */
-  public void renameProject(String oldName, String newName) {
-    renamePackages(oldName, newName);
-    topScope.renameProjectInModules(oldName, newName);
+  public void renameProject(String namespace, String oldName, String newName) {
+    renamePackages(namespace, oldName, newName);
+    topScope.renameProjectInModules(namespace, oldName, newName);
   }
 
-  private void renamePackages(String oldName, String newName) {
+  private void renamePackages(String namespace, String oldName, String newName) {
     List<Package<TruffleFile>> toChange =
         packages.stream()
-            .filter(p -> p.config().name().equals(oldName))
+            .filter(
+                p -> p.config().namespace().equals(namespace) && p.config().name().equals(oldName))
             .collect(Collectors.toList());
 
     packages.removeAll(toChange);
@@ -286,14 +288,12 @@ public class Context {
    * @param module the module to find the package of
    * @return {@code module}'s package, if exists
    */
-  public Optional<Package<TruffleFile>> getPackageOf(Module module) {
-    if (module.getSourceFile() == null) {
+  public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
+    if (file == null) {
       return Optional.empty();
     }
     return packages.stream()
-        .filter(
-            pkg ->
-                module.getSourceFile().getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
+        .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
 
@@ -304,8 +304,9 @@ public class Context {
    * @return the newly created module, if the file is a source file.
    */
   public Optional<Module> createModuleForFile(File path) {
+    TruffleFile f = getTruffleFile(path);
     return getModuleNameForFile(path)
-        .map(name -> getTopScope().createModule(name, getTruffleFile(path)));
+        .map(name -> getTopScope().createModule(name, getPackageOf(f).orElse(null), f));
   }
 
   /**

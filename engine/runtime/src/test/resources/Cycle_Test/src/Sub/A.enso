@@ -1,3 +1,3 @@
-import Cycle_Test.Sub.B
+import project.Sub.B
 
-export Cycle_Test.Sub.B
+export project.Sub.B

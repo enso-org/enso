@@ -4,7 +4,7 @@ import Standard.Table.Data.Column
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Histogram
-import Visualization_Tests
+import project
 
 spec =
     expect value expected_label expected_values =

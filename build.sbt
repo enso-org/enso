@@ -66,9 +66,24 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`project-manager`)
   ),
   Distribution(
-    "Standard",
-    file("distribution/std-lib/Standard/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-bits`)
+    "Base",
+    file("distribution/std-lib/Base/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-base`)
+  ),
+  Distribution(
+    "Table",
+    file("distribution/std-lib/Table/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-table`)
+  ),
+  Distribution(
+    "Database",
+    file("distribution/std-lib/Database/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-database`)
+  ),
+  Distribution(
+    "Image",
+    file("distribution/std-lib/Image/THIRD-PARTY"),
+    Distribution.sbtProjects(`std-image`)
   )
 )
 GatherLicenses.licenseConfigurations := Set("compile")
@@ -1028,7 +1043,10 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     (Runtime / compile) := (Runtime / compile)
-      .dependsOn(`std-bits` / Compile / packageBin)
+      .dependsOn(`std-base` / Compile / packageBin)
+      .dependsOn(`std-image` / Compile / packageBin)
+      .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-table` / Compile / packageBin)
       .value
   )
   .settings(
@@ -1288,26 +1306,93 @@ lazy val `locking-test-helper` = project
 
 val `std-lib-root`           = file("distribution/std-lib/")
 val `standard-polyglot-root` = `std-lib-root` / "Standard" / "polyglot" / "java"
+val `base-polyglot-root`     = `std-lib-root` / "Base" / "polyglot" / "java"
+val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
+val `image-polyglot-root`    = `std-lib-root` / "Image" / "polyglot" / "java"
+val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
 
-lazy val `std-bits` = project
-  .in(file("std-bits"))
+lazy val `std-base` = project
+  .in(file("std-bits") / "base")
   .settings(
     autoScalaLibrary := false,
     Compile / packageBin / artifactPath :=
-      `standard-polyglot-root` / "std-bits.jar",
+      `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "com.ibm.icu"    % "icu4j"             % icuVersion,
-      "com.univocity"  % "univocity-parsers" % "2.9.0",
-      "org.openpnp"    % "opencv"            % "4.5.1-0",
-      "org.xerial"     % "sqlite-jdbc"       % "3.34.0",
-      "org.postgresql" % "postgresql"        % "42.2.19"
+      "com.ibm.icu" % "icu4j" % icuVersion
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
         .copyDependencies(
-          `standard-polyglot-root`,
-          Some("std-bits.jar"),
+          `base-polyglot-root`,
+          Some("std-base.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val `std-table` = project
+  .in(file("std-bits") / "table")
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `table-polyglot-root` / "std-table.jar",
+    libraryDependencies ++= Seq(
+      "com.univocity" % "univocity-parsers" % "2.9.0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `table-polyglot-root`,
+          Some("std-table.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val `std-image` = project
+  .in(file("std-bits") / "image")
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `image-polyglot-root` / "std-image.jar",
+    libraryDependencies ++= Seq(
+      "org.openpnp" % "opencv" % "4.5.1-0"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `image-polyglot-root`,
+          Some("std-image.jar"),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+
+lazy val `std-database` = project
+  .in(file("std-bits") / "database")
+  .settings(
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      `database-polyglot-root` / "std-database.jar",
+    libraryDependencies ++= Seq(
+      "org.xerial"     % "sqlite-jdbc" % "3.34.0",
+      "org.postgresql" % "postgresql"  % "42.2.19"
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          `database-polyglot-root`,
+          Some("std-database.jar"),
           ignoreScalaLibrary = true
         )
         .value

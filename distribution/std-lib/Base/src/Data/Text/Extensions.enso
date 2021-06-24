@@ -1,0 +1,523 @@
+from Standard.Base import all
+from Standard.Builtins import Text, Prim_Text_Helpers
+
+import Standard.Base.Data.Text.Split_Kind
+import Standard.Base.Data.Locale
+import Standard.Base.Meta
+
+from Standard.Builtins export Text
+
+export Standard.Base.Data.Text.Split_Kind
+
+polyglot java import com.ibm.icu.lang.UCharacter
+polyglot java import com.ibm.icu.text.BreakIterator
+polyglot java import org.enso.base.Text_Utils
+
+## Computes the number of characters in the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Getting the length of the string "건반(Korean)".
+
+         "건반(Korean)".length
+Text.length : Integer
+Text.length =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    nxt = iterator.next
+
+    count accum iter = if iter == -1 then accum else
+        counter = accum + 1
+        next_nxt = iterator.next
+        @Tail_Call count counter next_nxt
+    count 0 nxt
+
+## Applies the provided `function` to each character in `this`.
+
+   Arguments:
+   - function: The operation to apply to each character in the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Print each character in the text "aaa".
+
+         "aaa".each IO.println
+Text.each : (Text -> Any) -> Nothing
+Text.each function =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+
+    fst = iterator.first
+    nxt = iterator.next
+
+    iterate prev nxt = if nxt == -1 then Nothing else
+        function (Text_Utils.substring this prev nxt)
+        next_nxt = iterator.next
+        @Tail_Call iterate nxt next_nxt
+    iterate fst nxt
+    Nothing
+
+## Returns a vector containing all characters in the given text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the individual characters in the text "건반(Korean)".
+
+         "건반(Korean)".characters
+Text.characters : Vector.Vector Text
+Text.characters =
+    bldr = Vector.new_builder
+    this.each bldr.append
+    bldr.to_vector
+
+## Takes a separator string and returns a vector resulting from splitting
+   `this` on each occurence of `separator`.
+
+   Arguments:
+   - separator: The separator to use to split the text.
+
+   > Example
+     Split the comma-separated text into a vector of items.
+
+         "ham,eggs,cheese,tomatoes".split ","
+
+   > Example
+     Split the string on whitespace into a vector of items.
+
+         "ham eggs cheese tomatoes".split Split_Kind.Whitespace
+Text.split : Split_Kind -> Vector.Vector Text
+Text.split (separator = Split_Kind.Whitespace) =
+    result = case separator of
+        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
+        Split_Kind.Lines -> Text_Utils.split_on_lines this
+        Split_Kind.Words -> this.words
+        Text -> Text_Utils.split_by_literal this separator
+    Vector.from_array result
+
+## Returns a vector containing all words in the given text.
+
+   Arguments:
+   - keep_whitespace: Whether or not the whitespace around the words should be
+     preserved. If set to `True`, the whitespace will be included as a "word" in
+     the output.
+
+   ! What is a Word?
+     A word is defined based on the definition of Word Boundaries in the Unicode
+     Standard Annex 29, supplemented by language-specific dictionaries for
+     Chinese, Japanese, Thai, and Khmer.
+
+   > Example
+     Getting the words in the sentence "I have not one, but two cats."
+
+        "I have not one, but two cats.".words
+Text.words : Boolean -> Vector.Vector Text
+Text.words keep_whitespace=False =
+    iterator = BreakIterator.getWordInstance
+    iterator.setText this
+    bldr = Vector.new_builder
+    fst = iterator.first
+    nxt = iterator.next
+
+    build prev nxt = if nxt == -1 then Nothing else
+        word = Text_Utils.substring this prev nxt
+        word_not_whitespace = (Text_Utils.is_whitespace word).not
+        if word_not_whitespace then bldr.append word else
+            if keep_whitespace then
+                bldr.append word
+
+        next_nxt = iterator.next
+        @Tail_Call build nxt next_nxt
+
+    build fst nxt
+
+    bldr.to_vector
+
+## Checks whether `this` is equal to `that`.
+
+   Arguments:
+   - that: The text to compare `this` for equality with.
+
+   ! Unicode Equality
+     The definition of equality includes Unicode canonicalization. I.e. two
+     texts are equal if they are identical after canonical decomposition. This
+     ensures that different ways of expressing the same character in the
+     underlying binary representation are considered equal.
+
+   > Example
+     The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
+     is canonically the same as the string 'e\u0301' (i.e. the letter `e`
+     followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
+
+         ('é' == 'e\u0301') == True
+Text.== : Any -> Boolean
+Text.== that = if Meta.is_same_object this Text then Meta.is_same_object that Text else
+    Text_Utils.equals this that
+
+## Checks whether `this` is equal to `that`, ignoring the case of the texts.
+
+   Arguments:
+   - that: The text to compare `this` for case-insensitive equality with.
+
+   Two texts are considered equal ignoring case if they are of the same length
+   and corresponding characters are equal ignoring case.
+
+   ! Unicode Equality
+     The definition of equality includes Unicode canonicalization. I.e. two
+     texts are equal if they are identical after canonical decomposition. This
+     ensures that different ways of expressing the same character in the
+     underlying binary representation are considered equal.
+
+   > Example
+     The string 'É' (i.e. the character U+00C9, LATIN CAPITAL LETTER E WITH
+     ACUTE) is equal ignore case to the string 'é' (i.e. the character U+00E9,
+     LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
+     string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
+     ACCENT). Therefore:
+
+         (('É' . equals_ignore_case 'é') && ('é' == 'e\u0301')) == True
+Text.equals_ignore_case : Text -> Boolean
+Text.equals_ignore_case that = Text_Utils.equals_ignore_case this that
+
+## Compare two texts to discover their ordering.
+
+   Arguments:
+   - that: The text to order `this` with respect to.
+
+   > Example
+     Checking how "a" orders in relation to "b".
+
+         "a".compare_to "b"
+Text.compare_to : Text -> Ordering
+Text.compare_to that = if this == that then Ordering.Equal else
+    if Text_Utils.lt this that then Ordering.Less else Ordering.Greater
+
+## Check if `this` is empty.
+
+   ! What is Empty?
+     Text is considered to be empty when its length is zero.
+
+   > Example
+     Check if the text "aaa" is empty.
+
+         "aaa".is_empty
+Text.is_empty : Boolean
+Text.is_empty = this == ""
+
+## Check if `this` is not empty.
+
+   ! What is Not Empty?
+     Text is considered to be not empty when its length is greater than zero.
+
+   > Example
+     Check if the text "aaa" is not empty.
+
+         "aaa".not_empty
+Text.not_empty : Boolean
+Text.not_empty = this.is_empty.not
+
+## Returns a vector containing bytes representing the UTF-8 encoding of the
+   input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Get the UTF-8 bytes of the text "Hello".
+
+         "Hello".utf_8
+Text.utf_8 : Vector.Vector Byte
+Text.utf_8 = Vector.from_array (Text_Utils.get_bytes this)
+
+## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
+
+   Arguments:
+   - bytes: The vector of UTF-8 bytes.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Decoding the bytes to get a text.
+
+         Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
+Text.from_utf_8 : Vector.Vector Byte -> Text
+Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
+
+## Returns a vector containing integers representing the Unicode codepoints of
+   the input text.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Get the codepoints of the text "Hello".
+
+         "Hello".codepoints
+Text.codepoints : Vector.Vector Integer
+Text.codepoints = Vector.from_array (Text_Utils.get_codepoints this)
+
+## Takes an array of numbers and returns the text resulting from interpreting it
+   as a sequence of Unicode codepoints.
+
+   This is useful for low-level operations, such as binary data encoding and
+   decoding.
+
+   > Example
+     Converting a vector of codepoints back into a text.
+         Text.from_codepoints [129318, 127996, 8205, 9794, 65039]
+Text.from_codepoints : Vector.Vector Integer -> Text
+Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
+
+## Checks whether `this` starts with `prefix`.
+
+   Arguments:
+   - prefix: The prefix to see if `this` starts with.
+
+   ! Unicode Equality
+     The definition of equality includes Unicode canonicalization. I.e. two
+     texts are equal if they are identical after canonical decomposition. This
+     ensures that different ways of expressing the same character in the
+     underlying binary representation are considered equal.
+
+   > Example
+     See if the text "Hello" starts with the prefix "hi".
+
+         "Hello".starts_with "hi"
+Text.starts_with : Text -> Boolean
+Text.starts_with prefix = Text_Utils.starts_with this prefix
+
+## Checks whether `this` ends with `suffix`.
+
+   Arguments:
+   - suffix: The suffix to see if `this` ends with.
+
+   ! Unicode Equality
+     The definition of equality includes Unicode canonicalization. I.e. two
+     texts are equal if they are identical after canonical decomposition. This
+     ensures that different ways of expressing the same character in the
+     underlying binary representation are considered equal.
+
+   > Example
+     See if the text "Hello" ends with the suffix "low".
+         "Hello".ends_with "low"
+Text.ends_with : Text -> Boolean
+Text.ends_with suffix = Text_Utils.ends_with this suffix
+
+## Checks whether `this` contains `sequence` as its substring.
+
+   Arguments:
+   - sequence: The text to see if it is contained in `this`.
+
+   ! Unicode Equality
+     The definition of equality includes Unicode canonicalization. I.e. two
+     texts are equal if they are identical after canonical decomposition. This
+     ensures that different ways of expressing the same character in the
+     underlying binary representation are considered equal.
+
+   > Example
+     See if the text "Hello" contains the text "ell".
+
+         "Hello".contains "ell"
+Text.contains : Text -> Boolean
+Text.contains sequence = Text_Utils.contains this sequence
+
+## Replaces each occurrences of `old_sequence` within `this` with `new_sequence`.
+
+   Arguments:
+   - old_sequence: The text to search for in `this`.
+   - new_sequence: The text to replace any occurrence of `old_sequence` with.
+
+   The replacement from the beginning of the text, as shown in the example below.
+
+   > Example
+     Replace letters in the text "aaa".
+
+         'aaa'.replace 'aa' 'b' == 'ba'
+Text.replace : Text -> Text -> Text
+Text.replace old_sequence new_sequence =
+    Text_Utils.replace this old_sequence new_sequence
+
+## Text to JSON conversion.
+
+   > Example
+     Convert the text "cześć" to JSON.
+
+         "cześć".to_json
+Text.to_json : Json.String
+Text.to_json = Json.String this
+
+## Takes a non-negative integer and returns a new text, consisting of `count`
+   concatenated copies of `this`.
+
+   Arguments:
+   - count: The number of times that the text `this` should be repeated to make
+     the new text.
+
+   > Example
+     Repeat the string "ABBA" five times.
+
+         "ABBA".repeat 5
+Text.repeat : Integer -> Text
+Text.repeat count =
+    0.up_to count . fold "" acc-> _-> acc + this
+
+## Creates a new text by removing the first `count` characters of `this`,
+   returning an empty text if `count` is greater than or equal to the length of
+   `this`.
+
+   Arguments:
+   - count: The number of characters to remove from the start of `this`.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Removing the first three characters from the text "ABBA".
+
+         "ABBA".drop_first 3
+Text.drop_first : Integer -> Text
+Text.drop_first count =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.first
+    boundary = iterator.next count
+    if boundary == -1 then '' else Text_Utils.drop_first this boundary
+
+## Creates a new text by removing the last `count` characters of `this`,
+   returning an empty text if `count` is greater than or equal to the length of
+   `this`.
+
+   Arguments:
+   - count: The number of characters to remove from the end of `this`.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Removing the last three characters from the text "ABBA".
+
+         "ABBA".drop_last 3
+Text.drop_last : Integer -> Text
+Text.drop_last count =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.last
+    boundary = iterator.next -count
+    if boundary == -1 then '' else Text_Utils.substring this 0 boundary
+
+## Creates a new text by selecting the first `count` characters of `this`,
+   returning `this` if `count` is greater than or equal to the length of `this`.
+
+   Arguments:
+   - count: The number of characters to take from the start of `this`.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Make a new text from the first two characters of "boo".
+
+         "boo".take_first 2
+Text.take_first : Integer -> Text
+Text.take_first count =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.first
+    boundary = iterator.next count
+    if boundary == -1 then this else Text_Utils.substring this 0 boundary
+
+## Creates a new text by selecting the last `count` characters of `this`,
+   returning `this` if `count` is greater than or equal to the length of `this`.
+
+   Arguments:
+   - count: The number of characters to take from the end of `this`.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Make a new text from the last two characters of "boo".
+
+         "boo".take_last 2
+Text.take_last : Integer -> Text
+Text.take_last count =
+    iterator = BreakIterator.getCharacterInstance
+    iterator.setText this
+    iterator.last
+    boundary = iterator.next -count
+    if boundary == -1 then this else Text_Utils.drop_first this boundary
+
+## Converts each character in `this` to lower case.
+
+   Arguments:
+   - locale: specifies the locale for charater case mapping. Defaults to the
+     `Locale.default` locale.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Converting a text to lower case in the default locale:
+
+         "My TeXt!".to_lower_case == "my text!"
+
+   > Example
+     Converting a text to lower case in a specified locale (here, Turkey):
+
+         from Standard.Base import all
+         import Standard.Base.Data.Locale
+
+         example_case_with_locale = "I".to_lower_case (Locale.new "tr") == "ı"
+Text.to_lower_case : Locale.Locale -> Text
+Text.to_lower_case locale=Locale.default =
+    UCharacter.toLowerCase locale.java_locale this
+
+## Converts each character in `this` to upper case.
+
+   Arguments:
+   - locale: specifies the locale for charater case mapping. Defaults to
+     `Locale.default`.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Converting a text to upper case in the default locale:
+
+         "My TeXt!".to_lower_case == "my text!"
+
+   > Example
+     Converting a text to upper case in a specified locale:
+
+         from Standard.Base import all
+         import Standard.Base.Data.Locale
+
+         example_case_with_locale = "i".to_upper_case (Locale.new "tr") == "İ"
+Text.to_upper_case : Locale.Locale -> Text
+Text.to_upper_case locale=Locale.default =
+    UCharacter.toUpperCase locale.java_locale this
+

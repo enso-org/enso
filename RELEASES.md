@@ -1,3 +1,11 @@
+# Enso Next
+
+## Interpreter/Runtime
+
+- Implemented changes to the import and export syntax, requiring to provide the
+  project namespace, or use the new `project` keyword to import from the current
+  project ([#1806](https://github.com/enso-org/enso/pull/1806)).
+
 # Enso 0.2.12 (2021-06-24)
 
 ## Interpreter/Runtime

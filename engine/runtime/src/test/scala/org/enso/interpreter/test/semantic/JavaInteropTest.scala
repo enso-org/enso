@@ -14,7 +14,7 @@ class JavaInteropTest extends InterpreterTest {
       val code =
         """
           |polyglot java import org.enso.example.TestClass
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main = TestClass.add 1 2
           |""".stripMargin
@@ -26,7 +26,7 @@ class JavaInteropTest extends InterpreterTest {
       val code =
         """
           |polyglot java import org.enso.example.TestClass
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main =
           |    instance = TestClass.new (x -> x * 2)

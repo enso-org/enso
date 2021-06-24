@@ -1044,13 +1044,14 @@ class AstToIrTest extends CompilerTest with Inside {
   "AST translation for imports and exports" should {
     "properly support different kinds of imports" in {
       val imports = List(
-        "import Foo.Bar as Baz",
-        "import Foo.Bar",
-        "from Foo.Bar import Baz",
-        "from Foo.Bar import Baz, Spam",
-        "from Foo.Bar import all",
-        "from Foo.Bar as Eggs import all hiding Spam",
-        "from Foo.Bar import all hiding Spam, Eggs"
+        "import username.Foo.Bar as Baz",
+        "import project.Foo.Bar",
+        "from project import all",
+        "from Username.Bar.Quux import Baz",
+        "from Username.Bar.Test import Baz, Spam",
+        "from username.Foo.Bar import all",
+        "from username.Foo.Bar as Eggs import all hiding Spam",
+        "from project.Foo.Bar import all hiding Spam, Eggs"
       )
       imports
         .mkString("\n")
@@ -1061,13 +1062,13 @@ class AstToIrTest extends CompilerTest with Inside {
 
     "properly support different kinds of exports" in {
       val exports = List(
-        "export Foo.Bar as Baz",
-        "export Foo.Bar",
-        "from Foo.Bar export Baz",
-        "from Foo.Bar export baz, Spam",
-        "from Foo.Bar export all",
-        "from Foo.Bar as Eggs export all hiding Spam",
-        "from Foo.Bar export all hiding Spam, eggs"
+        "export Username.Bar as Baz",
+        "export project.Bar",
+        "from Username.Bar export Baz",
+        "from username.Bar export baz, Spam",
+        "from project.Bar export all",
+        "from username.Bar as Eggs export all hiding Spam",
+        "from Username.Bar export all hiding Spam, eggs"
       )
       exports
         .mkString("\n")

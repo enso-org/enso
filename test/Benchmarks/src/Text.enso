@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test.Bench
 
-from Builtins import Prim_Text_Helper
+from Standard.Builtins import Prim_Text_Helper
 
 polyglot java import java.lang.StringBuilder
 

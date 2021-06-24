@@ -54,7 +54,9 @@ class ImportResolver(compiler: Compiler) {
             val importedModules = ir.imports.flatMap {
               case imp: IR.Module.Scope.Import.Module =>
                 val impName = imp.name.name
-                val exp     = ir.exports.find(_.name.name == impName)
+                val exp = ir.exports
+                  .collect { case ex: IR.Module.Scope.Export.Module => ex }
+                  .find(_.name.name == impName)
                 compiler
                   .getModule(impName)
                   .map(BindingsMap.ResolvedImport(imp, exp, _))

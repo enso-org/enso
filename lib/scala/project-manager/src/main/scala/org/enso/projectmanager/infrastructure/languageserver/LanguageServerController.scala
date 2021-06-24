@@ -211,7 +211,7 @@ class LanguageServerController(
           None
         )
 
-      case RenameProject(_, oldName, newName) =>
+      case RenameProject(_, namespace, oldName, newName) =>
         val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
         context.actorOf(
           ProjectRenameAction
@@ -220,6 +220,7 @@ class LanguageServerController(
               socket,
               timeoutConfig.requestTimeout,
               timeoutConfig.socketCloseTimeout,
+              namespace,
               oldName,
               newName,
               context.system.scheduler

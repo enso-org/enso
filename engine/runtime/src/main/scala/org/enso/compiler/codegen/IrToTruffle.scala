@@ -341,7 +341,7 @@ class IrToTruffle(
 
   private def generateEnsoProjectMethod(): Unit = {
     val name = BindingsMap.Generated.ensoProjectMethodName
-    val pkg  = context.getPackageOf(moduleScope.getModule)
+    val pkg  = context.getPackageOf(moduleScope.getModule.getSourceFile)
     val body = Truffle.getRuntime.createCallTarget(
       new EnsoProjectNode(language, context, pkg)
     )
@@ -1016,6 +1016,10 @@ class IrToTruffle(
         case _: Error.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."
+          )
+        case _: Error.ImportExport =>
+          throw new CompilerError(
+            "Impossible here, should be handled in import/export processing"
           )
       }
       setLocation(ErrorNode.build(payload), error.location)

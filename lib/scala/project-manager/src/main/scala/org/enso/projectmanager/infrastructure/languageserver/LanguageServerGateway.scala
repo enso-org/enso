@@ -65,6 +65,7 @@ trait LanguageServerGateway[F[+_, +_]] {
     */
   def renameProject(
     projectId: UUID,
+    namespace: String,
     oldName: String,
     newName: String
   ): F[ProjectRenameFailure, Unit]

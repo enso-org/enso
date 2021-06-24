@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
@@ -70,8 +71,8 @@ public class TopLevelScope implements TruffleObject {
    * @param sourceFile the module source file.
    * @return the newly created module.
    */
-  public Module createModule(QualifiedName name, TruffleFile sourceFile) {
-    Module module = new Module(name, sourceFile);
+  public Module createModule(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
+    Module module = new Module(name, pkg, sourceFile);
     modules.put(name.toString(), module);
     return module;
   }
@@ -82,11 +83,11 @@ public class TopLevelScope implements TruffleObject {
    * @param oldName the old project name
    * @param newName the new project name
    */
-  public void renameProjectInModules(String oldName, String newName) {
+  public void renameProjectInModules(String namespace, String oldName, String newName) {
     String separator = QualifiedName$.MODULE$.separator();
     List<String> keys =
         modules.keySet().stream()
-            .filter(name -> name.startsWith(oldName + separator))
+            .filter(name -> name.startsWith(namespace + separator + oldName + separator))
             .collect(Collectors.toList());
 
     keys.stream()
@@ -158,7 +159,7 @@ public class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return Module.empty(QualifiedName.simpleName(moduleName));
+      return Module.empty(QualifiedName.simpleName(moduleName), null);
     }
 
     private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
@@ -167,7 +168,7 @@ public class TopLevelScope implements TruffleObject {
           Types.extractArguments(arguments, String.class, String.class);
       QualifiedName qualName = QualifiedName.fromString(args.getFirst());
       File location = new File(args.getSecond());
-      Module module = new Module(qualName, context.getTruffleFile(location));
+      Module module = new Module(qualName, null, context.getTruffleFile(location));
       scope.modules.put(qualName.toString(), module);
       return module;
     }

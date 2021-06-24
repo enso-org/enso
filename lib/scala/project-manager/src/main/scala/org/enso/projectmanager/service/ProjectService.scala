@@ -163,10 +163,13 @@ class ProjectService[
       _          <- checkIfProjectExists(projectId)
       _          <- checkIfNameExists(newPackage)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
-      _          <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
-      _          <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
-      _          <- refactorProjectName(projectId, oldPackage, newPackage)
-      _          <- log.info("Project renamed [{}].", projectId)
+      namespace <- repo
+        .getPackageNamespace(projectId)
+        .mapError(toServiceFailure)
+      _ <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
+      _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
+      _ <- refactorProjectName(projectId, namespace, oldPackage, newPackage)
+      _ <- log.info("Project renamed [{}].", projectId)
     } yield ()
   }
 
@@ -200,12 +203,14 @@ class ProjectService[
 
   private def refactorProjectName(
     projectId: UUID,
+    namespace: String,
     oldPackage: String,
     newPackage: String
   ): F[ProjectServiceFailure, Unit] =
     languageServerGateway
       .renameProject(
         projectId,
+        namespace,
         oldPackage,
         newPackage
       )

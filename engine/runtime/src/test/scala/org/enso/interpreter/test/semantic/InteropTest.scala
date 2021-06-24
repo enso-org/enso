@@ -44,7 +44,7 @@ class InteropTest extends InterpreterTest {
 
     "work with oversaturated calls on unresolved methods returned from functions" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |Any.method = this
           |
@@ -57,7 +57,7 @@ class InteropTest extends InterpreterTest {
 
     "work with unresolved symbols" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |Number.add x = x + this
           |Text.add x = this + x
