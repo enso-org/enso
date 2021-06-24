@@ -3,7 +3,7 @@ from Standard.Base import all
 import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Helpers
-import Visualization_Tests.Helpers
+import project.Helpers
 
 spec = 
     Test.group "Table.all_columns" <|

@@ -259,20 +259,27 @@ object Builtin {
         case _ => internalError
       }
     }
+
     val (qualifiedImport, itemsImport, qualifiedExport, itemsExport) = {
-      val qualNamePat = Pattern.SepList(Pattern.Cons(), Opr("."))
-      val rename      = Var("as") :: Pattern.Cons()
+      val qualNamePat = (Pattern.fromAST(Var("project")) | ((Pattern
+        .Var() | Pattern.Cons()) :: Opr(".") :: Pattern.Cons())) :: (Opr(
+        "."
+      ) :: Pattern.SepList(Pattern.Cons(), Opr("."))).opt
+      val rename = Var("as") :: Pattern.Cons()
 
       def extractRename(
         matched: Pattern.Match
-      ): (List1[AST.Ident.Cons], Option[AST.Ident.Cons]) = {
+      ): (List1[AST.Ident], Option[AST.Ident.Cons]) = {
         val (nameMatch, renameMatch) =
           matched.asInstanceOf[Match.Seq[Shifted[AST]]].elem
-        val name: List1[AST.Ident.Cons] =
+        val name: List1[AST.Ident] =
           List1(
             nameMatch.toStream
               .map(_.wrapped)
-              .flatMap(AST.Ident.Cons.any.unapply)
+              .collect {
+                case AST.Ident.Cons.any(n) => n
+                case AST.Ident.Var.any(n)  => n
+              }
           ).get
         val rename: Option[AST.Ident.Cons] = {
           renameMatch.toStream.map(_.wrapped).collectFirst {
@@ -358,7 +365,7 @@ object Builtin {
       def qualifiedConstruct(
         constructName: String,
         constructFactory: (
-          List1[AST.Ident.Cons],
+          List1[AST.Ident],
           Option[AST.Ident.Cons],
           Boolean,
           Option[List1[AST.Ident.Cons]],
@@ -378,6 +385,7 @@ object Builtin {
           }
         }
       }
+
       (
         qualifiedConstruct("import", AST.Import.apply),
         itemsImport,

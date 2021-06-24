@@ -45,7 +45,7 @@ class RuntimeVisualisationsTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
@@ -129,16 +129,16 @@ class RuntimeVisualisationsTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(42, 1)
-      val idMainY = metadata.addItem(52, 7)
-      val idMainZ = metadata.addItem(68, 5)
-      val idFooY  = metadata.addItem(107, 8)
-      val idFooZ  = metadata.addItem(124, 5)
+      val idMainX = metadata.addItem(51, 1)
+      val idMainY = metadata.addItem(61, 7)
+      val idMainZ = metadata.addItem(77, 5)
+      val idFooY  = metadata.addItem(116, 8)
+      val idFooZ  = metadata.addItem(133, 5)
 
       def code =
         metadata.appendToCode(
           """
-            |from Builtins import all
+            |from Standard.Builtins import all
             |
             |main =
             |    x = 6
@@ -180,7 +180,7 @@ class RuntimeVisualisationsTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")),
+                  Some(Api.MethodPointer("Enso_Test.Test.Main", Constants.NUMBER, "foo")),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -262,10 +262,10 @@ class RuntimeVisualisationsTest
   }
 
   it should "emit visualisation update when expression is computed" in {
-    val idMain     = context.Main.metadata.addItem(78, 1)
+    val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -297,7 +297,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -322,7 +322,7 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -379,7 +379,7 @@ class RuntimeVisualisationsTest
   it should "emit visualisation update when expression is cached" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -435,7 +435,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -507,7 +507,7 @@ class RuntimeVisualisationsTest
 
   it should "emit visualisation update when expression is modified" in {
     val contents   = context.Main.code
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
@@ -540,7 +540,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -565,7 +565,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -630,7 +630,7 @@ class RuntimeVisualisationsTest
 
   it should "emit visualisation update when transitive expression is modified" in {
     val contents   = context.Main.code
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
@@ -663,7 +663,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -688,7 +688,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainZ,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "here.encode"
           )
         )
@@ -785,7 +785,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -809,7 +809,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -845,7 +845,7 @@ class RuntimeVisualisationsTest
           visualisationId,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.incAndEncode x"
           )
         )
@@ -913,7 +913,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -932,7 +932,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1009,7 +1009,7 @@ class RuntimeVisualisationsTest
 
   it should "not emit visualisation update when expression is not affected by the change" in {
     val contents   = context.Main.code
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val mainFile   = context.writeMain(contents)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
@@ -1042,7 +1042,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1067,7 +1067,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "here.encode"
           )
         )
@@ -1148,7 +1148,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1172,7 +1172,7 @@ class RuntimeVisualisationsTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -1208,7 +1208,7 @@ class RuntimeVisualisationsTest
           visualisationId,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "x -> here.incAndEncode x"
           )
         )
@@ -1249,10 +1249,10 @@ class RuntimeVisualisationsTest
   }
 
   it should "return ModuleNotFound error when attaching visualisation" in {
-    val idMain     = context.Main.metadata.addItem(78, 1)
+    val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -1272,7 +1272,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1309,10 +1309,10 @@ class RuntimeVisualisationsTest
   }
 
   it should "return VisualisationExpressionFailed error when attaching visualisation" in {
-    val idMain     = context.Main.metadata.addItem(78, 1)
+    val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -1332,7 +1332,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1357,7 +1357,7 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Main",
+            "Enso_Test.Test.Main",
             "here.does_not_exist"
           )
         )
@@ -1383,10 +1383,10 @@ class RuntimeVisualisationsTest
   }
 
   it should "return visualisation evaluation errors with diagnostic info" in {
-    val idMain     = context.Main.metadata.addItem(78, 1)
+    val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -1406,7 +1406,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1470,10 +1470,10 @@ class RuntimeVisualisationsTest
   }
 
   it should "return visualisation error with a stack trace" in {
-    val idMain     = context.Main.metadata.addItem(78, 1)
+    val idMain     = context.Main.metadata.addItem(87, 1)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(context.Main.code)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val visualisationCode =
       """
         |encode x = x.visualise_me
@@ -1512,7 +1512,7 @@ class RuntimeVisualisationsTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1537,7 +1537,7 @@ class RuntimeVisualisationsTest
           idMain,
           Api.VisualisationConfiguration(
             contextId,
-            "Test.Visualisation",
+            "Enso_Test.Test.Visualisation",
             "here.inc_and_encode"
           )
         )

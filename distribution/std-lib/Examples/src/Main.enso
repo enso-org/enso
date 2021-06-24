@@ -1,0 +1,256 @@
+from Standard.Base import all
+
+import Standard.Base.Data.Time
+import Standard.Base.Network.Http
+import Standard.Base.System.Platform
+import Standard.Image.Codecs
+import Standard.Table
+
+# Renamed to avoid clashing with an uppercase name resolution for the relevant
+# items in this file.
+import Standard.Base.Data.Json as Enso_Json
+import Standard.Base.Data.List as Enso_List
+import Standard.Base.Data.Map as Enso_Map
+import Standard.Base.Data.Time.Duration as Enso_Duration
+import Standard.Base.Network.Uri as Enso_Uri
+import Standard.Image as Enso_Image
+import Standard.Image.Data.Matrix as Enso_Matrix
+
+## An example error type used in a number of examples.
+
+   Arguments:
+   - message: The message contained in the error type.
+type Example_Error_Type message
+
+## The standard library data directory.
+data_dir : File
+data_dir = Enso_Project.data
+
+## An example CSV file for experimenting with Table and its APIs.
+csv : File
+csv = Enso_Project.data / "food_shop_inventory.csv"
+
+## The path to the CSV.
+csv_path : Text
+csv_path = here.csv.path
+
+## A file that is used for writing temporary data as part of tests.
+scratch_file : File
+scratch_file =
+    file = Enso_Project.data / "scratch_file"
+    if file.exists then file.delete else Nothing
+    file
+
+## An example duration for experimenting with duration APIs.
+duration : Duration
+duration = Enso_Duration.between (Time.new 2020 10 20) Time.now
+
+## An example amount of JSON as text.
+json_text : Text
+json_text = """
+    [
+      {
+        "title": "Lord of the Rings",
+        "author": {
+          "name": "J. R. R. Tolkien",
+          "year_of_birth": 1892
+        }
+      },
+      {
+        "title": "The Little Prince",
+        "author": {
+          "name": "Antoine de Saint-Exupéry",
+          "year_of_birth": 1900
+        }
+      },
+      {
+        "title": "And Then There Were None",
+        "author": {
+          "name": "Agatha Christie",
+          "year_of_birth": 1890
+        }
+      }
+    ]
+
+## Example JSON for working with.
+json : Enso_Json.Json
+json = Enso_Json.parse here.json_text
+
+## An example JSON object.
+json_object : Enso_Json.Object
+json_object = here.json.items.head
+
+## An example cons-list.
+list : Enso_List.List
+list = Cons 1 (Cons 2 (Cons 3 Nil))
+
+## A simple map that contains some numbers mapped to their word equivalents.
+map : Enso_Map.Map
+map = Enso_Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
+
+## A dummy type that is used for example purposes.
+type No_Methods
+
+## Returns a no_such_method_error as a value.
+no_such_method : No_Such_Method_Error
+no_such_method = Panic.recover No_Methods.frobnicate . catch
+
+## A simple error type for example purposes.
+type My_Error message
+
+## Throws an error.
+throw_error : Nothing ! My_Error
+throw_error = Error.throw <| My_Error "Example error."
+
+## Throws a panic.
+throw_panic : Nothing
+throw_panic = Panic.throw <| My_Error "Example panic."
+
+## A URL for open-source geographic data about the locations of bus-stop ads in
+   Los Angeles.
+geo_data_url : Text
+geo_data_url = "https://opendata.arcgis.com/datasets/0f77c86999a440178f2be3650d00f7f6_2.geojson"
+
+## Gets an HTTP response from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_response : Http.Response
+get_response = Http.get here.geo_data_url
+
+## Gets HTTP data from a network endpoint.
+
+   ! Makes a Network Request
+     Calling this method will cause Enso to make a network request to a data
+     endpoint.
+get_geo_data : Http.Response.Body
+get_geo_data = Http.fetch here.geo_data_url
+
+## A simple HTTP client for examples.
+http_client : Http
+http_client = Http.new (timeout = 30.seconds)
+
+## A basic URI for examples.
+uri : Uri
+uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
+
+## A file that contains an image.
+
+   ! Downloading
+     Calling this method will result in the image file being downloaded from
+     the internet if it is not already present on your disk. If you do not want
+     this to happen, please place the image in the `std-lib/Standard/data`
+     folder for your Enso distribution.
+image_file : File
+image_file =
+    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
+    file = Enso_Project.data / "image.png"
+    if file.exists.not then
+        Http.fetch url . to_file file
+    file
+
+## A PNG image.
+
+   ! Downloading
+     Calling this method will result in the image file being downloaded from
+     the internet if it is not already present on your disk. If you do not want
+     this to happen, please place the image in the `std-lib/Standard/data`
+     folder for your Enso distribution.
+image : Enso_Image.Image
+image = Enso_Image.read here.image_file [Codecs.Read_Alpha_Channel]
+
+## A matrix that corresponds to `here.image`.
+matrix : Enso_Matrix.Matrix
+matrix = here.image.to_matrix
+
+## A silly little function that adds one to the provided number.
+add_1_to : Number -> Number
+add_1_to n = n + 1
+
+## A function that just returns a constant boolean value.
+get_boolean : Boolean
+get_boolean = False
+
+## A simple small piece of JSON that can easily be converted into a table.
+simple_table_json : Enso_Json.Json
+simple_table_json =
+    row_1 = Enso_Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+    row_2 = Enso_Json.from_pairs [['bar', 'xyz'], ['baz', True]]
+    row_3 = Enso_Json.from_pairs [['baz', False], ['foo', 13]]
+    [row_1, row_2, row_3].to_json
+
+## The headers for the columns in the JSON table `here.simple_table_json`.
+simple_table_json_headers : Vector Text
+simple_Table_json_headers = ["foo", "bar", "baz"]
+
+## Some simple GeoJSON.
+geo_json : Enso_Json.Json
+geo_json = Enso_Json.parse <| '''
+    {
+      "type": "FeatureCollection",
+      "features": [
+        {
+            "type": "Feature",
+            "properties": { "foo": 1, "bar": "value2"},
+            "geometry": { "type": "Point", "coordinates": [ -118.58, 34.19 ] }
+        },
+        {
+            "type": "Feature",
+            "properties": { "foo": 2, "baz": 3},
+            "geometry": { "type": "Point", "coordinates": [ 10.11, 4.88, 19 ] }
+        }
+      ]
+    }
+
+## A small table column containing integers.
+integer_column : Table.Column.Column
+integer_column = Table.Column.from_vector "Integer" [1, 4, 8, 2, 5]
+
+## A small table column containing decimal numbers.
+decimal_column : Table.Column.Column
+decimal_column = Table.Column.from_vector "Decimal" [2.30, -2.1, Nothing, -10.1, 1.0]
+
+## A small table column containing booleans.
+bool_column_1 : Table.Column.Column
+bool_column_1 = Table.Column.from_vector "Bools" [True, True, False, True, False]
+
+## A small table column containing booleans.
+bool_column_2 : Table.Column.Column
+bool_column_2 = Table.Column.from_vector "Bools" [False, True, Nothing, True, True]
+
+## A small table column containing text.
+text_column_1 : Table.Column.Column
+text_column_1 = Table.Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
+
+## A small table column containing text.
+text_column_2 : Table.Column.Column
+text_column_2 = Table.Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
+
+## An aggregate column for the relevant examples.
+aggregate_column : Table.Column.Aggregate_Column
+aggregate_column = here.aggregate_table.at "transaction_id"
+
+## A simple table that contains basic shop inventory data for the food shop.
+inventory_table : Table.Table
+inventory_table = Table.from_csv here.csv . set_index "item_id"
+
+## A simple table that contains basic item popularity data for the food shop.
+popularity_table : Table.Table
+popularity_table =
+    table = Table.from_csv <| Enso_Project.data / "food_shop_popularity.csv"
+    table.set_index "item_id"
+
+## A simple tablethat contains basic transaction data for the food shop.
+transactions_table : Table.Table
+transactions_table =
+    Table.from_csv <| Enso_Project.data / "food_shop_transactions.csv"
+
+## An aggregate table for the relevant examples.
+aggregate_table : Table.Aggregate_Table
+aggregate_table =
+    transactions = here.transactions_table
+    item_names = here.inventory_table.at "item_name"
+    with_names = transactions.join item_names on="item_id"
+    with_names.group by="item_name"
+

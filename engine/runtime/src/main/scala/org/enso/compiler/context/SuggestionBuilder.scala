@@ -9,6 +9,7 @@ import org.enso.compiler.pass.resolve.{
   TypeSignatures
 }
 import org.enso.docs.generator.DocsGenerator
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
@@ -601,6 +602,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: String = "Builtins.Main.Any"
+  val Any: String = Constants.ANY
 
 }

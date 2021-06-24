@@ -1136,10 +1136,10 @@ object AstToIr {
     * @param exp the export to translate
     * @return the [[IR]] representation of `imp`
     */
-  def translateExport(exp: AST.Export): Module.Scope.Export = {
+  def translateExport(exp: AST.Export): Module.Scope.Export.Module = {
     exp match {
       case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
-        IR.Module.Scope.Export(
+        IR.Module.Scope.Export.Module(
           IR.Name.Qualified(path.map(buildName(_)).toList, None),
           rename.map(buildName(_)),
           isAll,

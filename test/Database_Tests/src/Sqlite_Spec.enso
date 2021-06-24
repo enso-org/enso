@@ -3,7 +3,7 @@ from Standard.Base import all
 from Standard.Database import all
 from Standard.Database.Connection.Connection import Sql_Error
 import Standard.Test
-import Database_Tests.Common_Spec
+import project.Common_Spec
 
 sqlite_specific_spec connection =
     Test.group "[SQLite] Error Handling" <|

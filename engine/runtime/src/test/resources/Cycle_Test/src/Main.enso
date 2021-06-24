@@ -1,3 +1,4 @@
-import Cycle_Test.Sub.Imp
+import project.Sub.Imp
+from Standard.Builtins import IO
 
 main = IO.println "Hello, World!"

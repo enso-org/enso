@@ -114,10 +114,11 @@ object LanguageServerProtocol {
   /** A command requesting for project renaming.
     *
     * @param projectId the project id
+    * @param namespace the project namespace
     * @param oldName the old project name
     * @param newName the new project name
     */
-  case class RenameProject(projectId: UUID, oldName: String, newName: String)
+  case class RenameProject(projectId: UUID, namespace: String, oldName: String, newName: String)
 
   /** Base trait for project rename results.
     */

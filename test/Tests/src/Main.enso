@@ -2,45 +2,45 @@ from Standard.Base import all
 
 import Standard.Test
 
-import Tests.Semantic.Any_Spec
-import Tests.Semantic.Case_Spec
-import Tests.Semantic.Deep_Export.Spec as Deep_Export_Spec
-import Tests.Semantic.Error_Spec
-import Tests.Semantic.Import_Loop.Spec as Import_Loop_Spec
-import Tests.Semantic.Meta_Spec
-import Tests.Semantic.Names_Spec
-import Tests.Semantic.Runtime_Spec
+import project.Semantic.Any_Spec
+import project.Semantic.Case_Spec
+import project.Semantic.Deep_Export.Spec as Deep_Export_Spec
+import project.Semantic.Error_Spec
+import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
+import project.Semantic.Meta_Spec
+import project.Semantic.Names_Spec
+import project.Semantic.Runtime_Spec
 
-import Tests.Semantic.Java_Interop_Spec
-import Tests.Semantic.Js_Interop_Spec
-import Tests.Semantic.Python_Interop_Spec
-import Tests.Semantic.R_Interop_Spec
+import project.Semantic.Java_Interop_Spec
+import project.Semantic.Js_Interop_Spec
+import project.Semantic.Python_Interop_Spec
+import project.Semantic.R_Interop_Spec
 
-import Tests.Data.Array_Spec
-import Tests.Data.Interval_Spec
-import Tests.Data.Json_Spec
-import Tests.Data.List_Spec
-import Tests.Data.Locale_Spec
-import Tests.Data.Map_Spec
-import Tests.Data.Maybe_Spec
-import Tests.Data.Noise.Generator_Spec as Noise_Generator_Spec
-import Tests.Data.Noise_Spec
-import Tests.Data.Numbers_Spec
-import Tests.Data.Ordering_Spec
-import Tests.Data.Range_Spec
-import Tests.Data.Text_Spec
-import Tests.Data.Time.Spec as Time_Spec
-import Tests.Data.Vector_Spec
+import project.Data.Array_Spec
+import project.Data.Interval_Spec
+import project.Data.Json_Spec
+import project.Data.List_Spec
+import project.Data.Locale_Spec
+import project.Data.Map_Spec
+import project.Data.Maybe_Spec
+import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
+import project.Data.Noise_Spec
+import project.Data.Numbers_Spec
+import project.Data.Ordering_Spec
+import project.Data.Range_Spec
+import project.Data.Text_Spec
+import project.Data.Time.Spec as Time_Spec
+import project.Data.Vector_Spec
 
-import Tests.Network.Http.Header_Spec as Http_Header_Spec
-import Tests.Network.Http.Request_Spec as Http_Request_Spec
-import Tests.Network.Http_Spec
-import Tests.Network.Uri_Spec
+import project.Network.Http.Header_Spec as Http_Header_Spec
+import project.Network.Http.Request_Spec as Http_Request_Spec
+import project.Network.Http_Spec
+import project.Network.Uri_Spec
 
-import Tests.System.File_Spec
-import Tests.System.Process_Spec
+import project.System.File_Spec
+import project.System.Process_Spec
 
-import Tests.Examples_Spec
+import project.Examples_Spec
 
 main = Test.Suite.run_main <|
     Any_Spec.spec

@@ -284,9 +284,9 @@ fn imports_exports() {
     let input = make_unix_line_endings(
 r#"import Base.List
 import Base.Number.Extensions
-from Builtins import Unit, Number, Integer, Any, True, False
+from Standard.Builtins import Unit, Number, Integer, Any, True, False
 
-from Builtins export all
+from Standard.Builtins export all
 
 from Base.List export Nil, Cons
 from Base.Number.Extensions export all hiding Math
@@ -324,7 +324,9 @@ polyglot java import org.enso.base.Text_Utils
                 Token::line(
                     vec![
                         Token::variable("from", 0),
-                        Token::referent("Builtins", 1),
+                        Token::referent("Standard", 1),
+                        Token::operator(".", 0),
+                        Token::referent("Builtins", 0),
                         Token::variable("import", 1),
                         Token::referent("Unit", 1),
                         Token::operator(",", 0),
@@ -345,7 +347,9 @@ polyglot java import org.enso.base.Text_Utils
                 Token::line(
                     vec![
                         Token::variable("from", 0),
-                        Token::referent("Builtins", 1),
+                        Token::referent("Standard", 1),
+                        Token::operator(".", 0),
+                        Token::referent("Builtins", 0),
                         Token::variable("export", 1),
                         Token::variable("all", 1),
                     ],

@@ -36,7 +36,7 @@ class RuntimeSuggestionUpdatesTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -116,10 +116,10 @@ class RuntimeSuggestionUpdatesTest
   it should "send suggestion updates after file modification" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = IO.println "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -145,7 +145,7 @@ class RuntimeSuggestionUpdatesTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -184,9 +184,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -222,7 +222,7 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file = mainFile,
           version = contentsVersion(
-            """from Builtins import all
+            """from Standard.Builtins import all
               |
               |main =
               |    x = 42
@@ -240,9 +240,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -299,7 +299,7 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file = mainFile,
           version = contentsVersion(
-            """from Builtins import all
+            """from Standard.Builtins import all
               |
               |main =
               |    x = 42
@@ -318,9 +318,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -396,7 +396,7 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file = mainFile,
           version = contentsVersion(
-            """from Builtins import all
+            """from Standard.Builtins import all
               |
               |main =
               |    x = 42
@@ -416,9 +416,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -502,7 +502,7 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file = mainFile,
           version = contentsVersion(
-            """from Builtins import all
+            """from Standard.Builtins import all
               |
               |foo x = x * 10
               |
@@ -524,9 +524,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -590,11 +590,11 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None),
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None),
                       Suggestion
                         .Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -630,7 +630,7 @@ class RuntimeSuggestionUpdatesTest
         Api.SuggestionsDatabaseModuleUpdateNotification(
           file = mainFile,
           version = contentsVersion(
-            """from Builtins import all
+            """from Standard.Builtins import all
               |
               |foo a b = a * b
               |
@@ -652,11 +652,11 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None),
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None),
                       Suggestion
                         .Argument("x", Constants.ANY, false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None
@@ -693,10 +693,10 @@ class RuntimeSuggestionUpdatesTest
   it should "index overloaded functions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val contents =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 15.overloaded 1
@@ -729,7 +729,7 @@ class RuntimeSuggestionUpdatesTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -768,9 +768,9 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     Seq(
                       Suggestion
-                        .Argument("this", "Test.Main", false, false, None)
+                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
                     ),
-                    "Test.Main",
+                    "Enso_Test.Test.Main",
                     Constants.ANY,
                     None,
                     None

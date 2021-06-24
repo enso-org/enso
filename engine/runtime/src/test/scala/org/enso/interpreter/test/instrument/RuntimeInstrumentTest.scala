@@ -43,7 +43,7 @@ class RuntimeInstrumentTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
@@ -131,7 +131,7 @@ class RuntimeInstrumentTest
   it should "instrument simple expression" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
     val mainBody = metadata.addItem(7, 2)
@@ -159,7 +159,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -176,13 +176,13 @@ class RuntimeInstrumentTest
   it should "instrument default hello world example" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val mainBody = metadata.addItem(33, 14)
+    val mainBody = metadata.addItem(42, 14)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = "Hello World!"
         |""".stripMargin.linesIterator.mkString("\n")
@@ -208,7 +208,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -225,17 +225,17 @@ class RuntimeInstrumentTest
   it should "instrument expressions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val mainBody    = metadata.addItem(32, 52)
-    val xExpr       = metadata.addItem(41, 2)
-    val yExpr       = metadata.addItem(52, 5)
-    val zExpr       = metadata.addItem(66, 1)
-    val mainResExpr = metadata.addItem(72, 12)
+    val mainBody    = metadata.addItem(41, 52)
+    val xExpr       = metadata.addItem(50, 2)
+    val yExpr       = metadata.addItem(61, 5)
+    val zExpr       = metadata.addItem(75, 1)
+    val mainResExpr = metadata.addItem(81, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 42
@@ -265,7 +265,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -286,17 +286,17 @@ class RuntimeInstrumentTest
   it should "instrument sub-expressions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata     = new Metadata
-    val mainBody     = metadata.addItem(32, 42)
-    val xExpr        = metadata.addItem(41, 2)
-    val yExpr        = metadata.addItem(52, 5)
-    val mainResExpr  = metadata.addItem(62, 12)
-    val mainRes1Expr = metadata.addItem(73, 1)
+    val mainBody     = metadata.addItem(41, 42)
+    val xExpr        = metadata.addItem(50, 2)
+    val yExpr        = metadata.addItem(61, 5)
+    val mainResExpr  = metadata.addItem(71, 12)
+    val mainRes1Expr = metadata.addItem(82, 1)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 42
@@ -325,7 +325,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -346,17 +346,17 @@ class RuntimeInstrumentTest
   it should "instrument binding of a lambda" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val mainBody = metadata.addItem(32, 28)
-    val fExpr    = metadata.addItem(41, 10)
+    val mainBody = metadata.addItem(41, 28)
+    val fExpr    = metadata.addItem(50, 10)
     // f body
-    metadata.addItem(46, 5)
-    val mainResExpr = metadata.addItem(56, 4)
+    metadata.addItem(55, 5)
+    val mainResExpr = metadata.addItem(65, 4)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    f = x -> x + 1
@@ -384,7 +384,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -404,15 +404,15 @@ class RuntimeInstrumentTest
     pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata    = new Metadata
-    val fExpr       = metadata.addItem(41, 5)
-    val xExpr       = metadata.addItem(55, 4)
-    val mainResExpr = metadata.addItem(64, 1)
+    val fExpr       = metadata.addItem(50, 5)
+    val xExpr       = metadata.addItem(64, 4)
+    val mainResExpr = metadata.addItem(73, 1)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    f = _ + 1
@@ -441,7 +441,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -460,17 +460,17 @@ class RuntimeInstrumentTest
   it should "not instrument the body of a method" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     // f expression
-    metadata.addItem(32, 5)
-    val xExpr    = metadata.addItem(54, 8)
-    val mainRes  = metadata.addItem(67, 1)
-    val mainExpr = metadata.addItem(45, 23)
+    metadata.addItem(41, 5)
+    val xExpr    = metadata.addItem(63, 8)
+    val mainRes  = metadata.addItem(76, 1)
+    val mainExpr = metadata.addItem(54, 23)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |f x = x + 1
         |
@@ -500,7 +500,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -514,7 +514,7 @@ class RuntimeInstrumentTest
           contextId,
           xExpr,
           Constants.INTEGER,
-          Api.MethodPointer("Test.Main", "Test.Main", "f")
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "f")
         ),
       TestMessages.update(contextId, mainRes, Constants.INTEGER),
       TestMessages.update(contextId, mainExpr, Constants.INTEGER),
@@ -525,18 +525,18 @@ class RuntimeInstrumentTest
   it should "not instrument the body of a function" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     // f expression
-    metadata.addItem(43, 5)
-    val aExpr    = metadata.addItem(57, 1)
-    val fApp     = metadata.addItem(75, 3)
-    val mainRes  = metadata.addItem(63, 16)
-    val mainExpr = metadata.addItem(32, 47)
+    metadata.addItem(52, 5)
+    val aExpr    = metadata.addItem(66, 1)
+    val fApp     = metadata.addItem(84, 3)
+    val mainRes  = metadata.addItem(72, 16)
+    val mainExpr = metadata.addItem(41, 47)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    f x = x + 1
@@ -565,7 +565,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -585,19 +585,19 @@ class RuntimeInstrumentTest
   it should "not instrument the body of a lambda" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val aExpr = metadata.addItem(41, 14)
+    val aExpr = metadata.addItem(50, 14)
     // lambda
-    metadata.addItem(42, 10)
+    metadata.addItem(51, 10)
     // lambda expression
-    metadata.addItem(47, 5)
-    val lamArg  = metadata.addItem(54, 1)
-    val mainRes = metadata.addItem(60, 12)
+    metadata.addItem(56, 5)
+    val lamArg  = metadata.addItem(63, 1)
+    val mainRes = metadata.addItem(69, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    a = (x -> x + 1) 1
@@ -625,7 +625,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -644,17 +644,17 @@ class RuntimeInstrumentTest
   it should "not instrument the body of a sugared lambda" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val aExpr = metadata.addItem(41, 9)
+    val aExpr = metadata.addItem(50, 9)
     // lambda
-    metadata.addItem(42, 5)
-    val lamArg  = metadata.addItem(49, 1)
-    val mainRes = metadata.addItem(55, 12)
+    metadata.addItem(51, 5)
+    val lamArg  = metadata.addItem(58, 1)
+    val mainRes = metadata.addItem(64, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    a = (_ + 1) 1
@@ -682,7 +682,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -703,18 +703,18 @@ class RuntimeInstrumentTest
     pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(40, 33)
+    val xExpr = metadata.addItem(49, 33)
     // function body
-    metadata.addItem(55, 5)
+    metadata.addItem(64, 5)
     // x result
-    metadata.addItem(69, 4)
-    val mainRes = metadata.addItem(78, 1)
+    metadata.addItem(78, 4)
+    val mainRes = metadata.addItem(87, 1)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x =
@@ -744,7 +744,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -763,20 +763,20 @@ class RuntimeInstrumentTest
     pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(40, 36)
+    val xExpr = metadata.addItem(49, 36)
     // lambda
-    metadata.addItem(53, 10)
+    metadata.addItem(62, 10)
     // lambda body
-    metadata.addItem(58, 5)
+    metadata.addItem(67, 5)
     // x result
-    metadata.addItem(72, 4)
-    val mainRes = metadata.addItem(81, 1)
+    metadata.addItem(81, 4)
+    val mainRes = metadata.addItem(90, 1)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x =
@@ -806,7 +806,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -825,18 +825,18 @@ class RuntimeInstrumentTest
     pending
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xExpr = metadata.addItem(40, 31)
+    val xExpr = metadata.addItem(49, 31)
     // lambda
-    metadata.addItem(53, 5)
+    metadata.addItem(62, 5)
     // x result
-    metadata.addItem(67, 4)
-    val mainRes = metadata.addItem(76, 1)
+    metadata.addItem(76, 4)
+    val mainRes = metadata.addItem(85, 1)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x =
@@ -866,7 +866,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -884,27 +884,27 @@ class RuntimeInstrumentTest
   it should "not instrument a lambda in argument" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     // body of id method
-    metadata.addItem(42, 1)
+    metadata.addItem(51, 1)
     // body of id1 function
-    metadata.addItem(78, 3)
+    metadata.addItem(87, 3)
     // default lambda argument a->a in id method
-    metadata.addItem(34, 4)
+    metadata.addItem(43, 4)
     // default lambda argument a->a in id1 function
-    metadata.addItem(70, 4)
+    metadata.addItem(79, 4)
     // first x->x argument
-    metadata.addItem(94, 4)
+    metadata.addItem(103, 4)
     // second x->x argument
-    metadata.addItem(148, 4)
-    val arg1 = metadata.addItem(90, 2)
-    val arg2 = metadata.addItem(101, 2)
-    val arg3 = metadata.addItem(133, 2)
+    metadata.addItem(157, 4)
+    val arg1 = metadata.addItem(99, 2)
+    val arg2 = metadata.addItem(110, 2)
+    val arg3 = metadata.addItem(142, 2)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |id (x = a->a) = x
         |
@@ -938,7 +938,7 @@ class RuntimeInstrumentTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )

@@ -103,7 +103,7 @@ class LanguageServerRegistry(
     case ServerShutDown(projectId) =>
       context.become(running(serverControllers - projectId))
 
-    case msg @ RenameProject(projectId, _, _) =>
+    case msg @ RenameProject(projectId, _, _, _) =>
       if (serverControllers.contains(projectId)) {
         serverControllers(projectId).forward(msg)
       } else {

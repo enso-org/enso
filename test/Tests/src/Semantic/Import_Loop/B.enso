@@ -1,4 +1,4 @@
-import Tests.Semantic.Import_Loop.A
+import project.Semantic.Import_Loop.A
 
 type My_Type
 

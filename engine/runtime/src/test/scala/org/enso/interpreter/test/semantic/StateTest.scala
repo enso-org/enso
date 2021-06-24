@@ -11,7 +11,7 @@ class StateTest extends InterpreterTest {
 
     "be accessible from functions" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |stateful =
           |    State.put Number 10
@@ -27,7 +27,7 @@ class StateTest extends InterpreterTest {
 
     "be implicitly threaded through function executions" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |inc_state =
           |  x = State.get Number
@@ -49,7 +49,7 @@ class StateTest extends InterpreterTest {
 
     "work well with recursive code" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    stateSum = n ->
@@ -64,7 +64,7 @@ class StateTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |run =
           |    matcher = x -> case x of
@@ -90,7 +90,7 @@ class StateTest extends InterpreterTest {
 
     "undo changes on Panics" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |panicker =
           |    State.put Number 400
@@ -108,7 +108,7 @@ class StateTest extends InterpreterTest {
 
     "localize properly with State.run when 1 key used" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |inner = State.put Number 0
           |
@@ -124,7 +124,7 @@ class StateTest extends InterpreterTest {
 
     "localize properly with State.run when 2 states used" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type S1
           |type S2
@@ -146,7 +146,7 @@ class StateTest extends InterpreterTest {
 
     "localize properly with State.run when multiple states used" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type S1
           |type S2
