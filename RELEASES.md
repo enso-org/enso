@@ -1,4 +1,4 @@
-# Enso Next
+# Enso 0.2.12 (2021-06-24)
 
 ## Interpreter/Runtime
 
@@ -87,6 +87,12 @@
   features, but they should not be relied on as they are not considered stable.
   Only the 3 latest nightly builds are kept, so the nightly versions become
   obsolete very quickly.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-06-24)
+  for issues opened before the release date.
 
 # Enso 0.2.11 (2021-04-28)
 
