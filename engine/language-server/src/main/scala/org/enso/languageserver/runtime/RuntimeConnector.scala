@@ -51,11 +51,9 @@ class RuntimeConnector
       }
     case Runtime.Api.Response(None, msg: Runtime.ApiNotification) =>
       context.system.eventStream.publish(msg)
-    case msg: Runtime.Api.Response =>
-      msg.correlationId.flatMap(senders.get).foreach(_ ! msg)
-      msg.correlationId.foreach { correlationId =>
-        context.become(initialized(engine, senders - correlationId))
-      }
+    case msg @ Runtime.Api.Response(Some(correlationId), _) =>
+      senders.get(correlationId).foreach(_ ! msg)
+      context.become(initialized(engine, senders - correlationId))
   }
 }
 

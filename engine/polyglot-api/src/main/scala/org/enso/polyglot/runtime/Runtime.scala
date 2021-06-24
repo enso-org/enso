@@ -206,6 +206,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphResponse],
         name  = "getTypeGraphResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LibraryLoaded],
+        name  = "libraryLoaded"
       )
     )
   )
@@ -1333,6 +1337,13 @@ object Runtime {
       * @param graph the graph.
       */
     case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
+
+    /** Signals that a new library has been imported, which means its content
+      * root should be registered.
+      *
+      * @param todo TODO [RW]
+      */
+    case class LibraryLoaded(todo: Any) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()
