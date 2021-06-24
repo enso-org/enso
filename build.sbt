@@ -14,7 +14,7 @@ val scalacVersion = "2.13.6"
 val rustVersion   = "1.54.0-nightly"
 val graalVersion  = "21.1.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.2.12" // Note [Engine And Launcher Version]
+val ensoVersion   = "0.2.13-SNAPSHOT" // Note [Engine And Launcher Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
