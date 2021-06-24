@@ -62,7 +62,7 @@ fn span_tree_args() {
     use span_tree::Node;
 
     let data    = Unified::new();
-    let fixture = data.fixture_customize(|_,json_client| {
+    let fixture = data.fixture_customize(|_,json_client,_| {
         // Additional completion request happens after picking completion.
         controller::searcher::test::expect_completion(json_client,&[1]);
     });

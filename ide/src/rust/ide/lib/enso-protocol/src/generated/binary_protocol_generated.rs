@@ -57,11 +57,14 @@ pub enum InboundPayload {
   INIT_SESSION_CMD = 1,
   WRITE_FILE_CMD = 2,
   READ_FILE_CMD = 3,
+  WRITE_BYTES_CMD = 4,
+  READ_BYTES_CMD = 5,
+  CHECKSUM_BYTES_CMD = 6,
 
 }
 
 pub const ENUM_MIN_INBOUND_PAYLOAD: u8 = 0;
-pub const ENUM_MAX_INBOUND_PAYLOAD: u8 = 3;
+pub const ENUM_MAX_INBOUND_PAYLOAD: u8 = 6;
 
 impl<'a> flatbuffers::Follow<'a> for InboundPayload {
   type Inner = Self;
@@ -95,19 +98,25 @@ impl flatbuffers::Push for InboundPayload {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_INBOUND_PAYLOAD:[InboundPayload; 4] = [
+pub const ENUM_VALUES_INBOUND_PAYLOAD:[InboundPayload; 7] = [
   InboundPayload::NONE,
   InboundPayload::INIT_SESSION_CMD,
   InboundPayload::WRITE_FILE_CMD,
-  InboundPayload::READ_FILE_CMD
+  InboundPayload::READ_FILE_CMD,
+  InboundPayload::WRITE_BYTES_CMD,
+  InboundPayload::READ_BYTES_CMD,
+  InboundPayload::CHECKSUM_BYTES_CMD
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_INBOUND_PAYLOAD:[&'static str; 4] = [
+pub const ENUM_NAMES_INBOUND_PAYLOAD:[&'static str; 7] = [
     "NONE",
     "INIT_SESSION_CMD",
     "WRITE_FILE_CMD",
-    "READ_FILE_CMD"
+    "READ_FILE_CMD",
+    "WRITE_BYTES_CMD",
+    "READ_BYTES_CMD",
+    "CHECKSUM_BYTES_CMD"
 ];
 
 pub fn enum_name_inbound_payload(e: InboundPayload) -> &'static str {
@@ -125,11 +134,14 @@ pub enum OutboundPayload {
   SUCCESS = 2,
   VISUALISATION_UPDATE = 3,
   FILE_CONTENTS_REPLY = 4,
+  WRITE_BYTES_REPLY = 5,
+  READ_BYTES_REPLY = 6,
+  CHECKSUM_BYTES_REPLY = 7,
 
 }
 
 pub const ENUM_MIN_OUTBOUND_PAYLOAD: u8 = 0;
-pub const ENUM_MAX_OUTBOUND_PAYLOAD: u8 = 4;
+pub const ENUM_MAX_OUTBOUND_PAYLOAD: u8 = 7;
 
 impl<'a> flatbuffers::Follow<'a> for OutboundPayload {
   type Inner = Self;
@@ -163,21 +175,27 @@ impl flatbuffers::Push for OutboundPayload {
 }
 
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_OUTBOUND_PAYLOAD:[OutboundPayload; 5] = [
+pub const ENUM_VALUES_OUTBOUND_PAYLOAD:[OutboundPayload; 8] = [
   OutboundPayload::NONE,
   OutboundPayload::ERROR,
   OutboundPayload::SUCCESS,
   OutboundPayload::VISUALISATION_UPDATE,
-  OutboundPayload::FILE_CONTENTS_REPLY
+  OutboundPayload::FILE_CONTENTS_REPLY,
+  OutboundPayload::WRITE_BYTES_REPLY,
+  OutboundPayload::READ_BYTES_REPLY,
+  OutboundPayload::CHECKSUM_BYTES_REPLY
 ];
 
 #[allow(non_camel_case_types)]
-pub const ENUM_NAMES_OUTBOUND_PAYLOAD:[&'static str; 5] = [
+pub const ENUM_NAMES_OUTBOUND_PAYLOAD:[&'static str; 8] = [
     "NONE",
     "ERROR",
     "SUCCESS",
     "VISUALISATION_UPDATE",
-    "FILE_CONTENTS_REPLY"
+    "FILE_CONTENTS_REPLY",
+    "WRITE_BYTES_REPLY",
+    "READ_BYTES_REPLY",
+    "CHECKSUM_BYTES_REPLY"
 ];
 
 pub fn enum_name_outbound_payload(e: OutboundPayload) -> &'static str {
@@ -186,6 +204,67 @@ pub fn enum_name_outbound_payload(e: OutboundPayload) -> &'static str {
 }
 
 pub struct OutboundPayloadUnionTableOffset {}
+#[allow(non_camel_case_types)]
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum ErrorPayload {
+  NONE = 0,
+  READ_OOB = 1,
+
+}
+
+pub const ENUM_MIN_ERROR_PAYLOAD: u8 = 0;
+pub const ENUM_MAX_ERROR_PAYLOAD: u8 = 1;
+
+impl<'a> flatbuffers::Follow<'a> for ErrorPayload {
+  type Inner = Self;
+  #[inline]
+  fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    flatbuffers::read_scalar_at::<Self>(buf, loc)
+  }
+}
+
+impl flatbuffers::EndianScalar for ErrorPayload {
+  #[inline]
+  fn to_little_endian(self) -> Self {
+    let n = u8::to_le(self as u8);
+    let p = &n as *const u8 as *const ErrorPayload;
+    unsafe { *p }
+  }
+  #[inline]
+  fn from_little_endian(self) -> Self {
+    let n = u8::from_le(self as u8);
+    let p = &n as *const u8 as *const ErrorPayload;
+    unsafe { *p }
+  }
+}
+
+impl flatbuffers::Push for ErrorPayload {
+    type Output = ErrorPayload;
+    #[inline]
+    fn push(&self, dst: &mut [u8], _rest: &[u8]) {
+        flatbuffers::emplace_scalar::<ErrorPayload>(dst, *self);
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub const ENUM_VALUES_ERROR_PAYLOAD:[ErrorPayload; 2] = [
+  ErrorPayload::NONE,
+  ErrorPayload::READ_OOB
+];
+
+#[allow(non_camel_case_types)]
+pub const ENUM_NAMES_ERROR_PAYLOAD:[&'static str; 2] = [
+    "NONE",
+    "READ_OOB"
+];
+
+pub fn enum_name_error_payload(e: ErrorPayload) -> &'static str {
+  let index = e as u8;
+  ENUM_NAMES_ERROR_PAYLOAD[index as usize]
+}
+
+pub struct ErrorPayloadUnionTableOffset {}
 // struct EnsoUUID, aligned to 8
 #[repr(C, align(8))]
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -332,6 +411,39 @@ impl<'a> InboundMessage<'a> {
     if self.payload_type() == InboundPayload::READ_FILE_CMD {
       let u = self.payload();
       Some(ReadFileCommand::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_write_bytes_cmd(&self) -> Option<WriteBytesCommand<'a>> {
+    if self.payload_type() == InboundPayload::WRITE_BYTES_CMD {
+      let u = self.payload();
+      Some(WriteBytesCommand::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_read_bytes_cmd(&self) -> Option<ReadBytesCommand<'a>> {
+    if self.payload_type() == InboundPayload::READ_BYTES_CMD {
+      let u = self.payload();
+      Some(ReadBytesCommand::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_checksum_bytes_cmd(&self) -> Option<ChecksumBytesCommand<'a>> {
+    if self.payload_type() == InboundPayload::CHECKSUM_BYTES_CMD {
+      let u = self.payload();
+      Some(ChecksumBytesCommand::init_from_table(u))
     } else {
       None
     }
@@ -495,6 +607,39 @@ impl<'a> OutboundMessage<'a> {
     }
   }
 
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_write_bytes_reply(&self) -> Option<WriteBytesReply<'a>> {
+    if self.payload_type() == OutboundPayload::WRITE_BYTES_REPLY {
+      let u = self.payload();
+      Some(WriteBytesReply::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_read_bytes_reply(&self) -> Option<ReadBytesReply<'a>> {
+    if self.payload_type() == OutboundPayload::READ_BYTES_REPLY {
+      let u = self.payload();
+      Some(ReadBytesReply::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_checksum_bytes_reply(&self) -> Option<ChecksumBytesReply<'a>> {
+    if self.payload_type() == OutboundPayload::CHECKSUM_BYTES_REPLY {
+      let u = self.payload();
+      Some(ChecksumBytesReply::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
 }
 
 pub struct OutboundMessageArgs<'a> {
@@ -581,34 +726,60 @@ impl<'a> Error<'a> {
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
         args: &'args ErrorArgs<'args>) -> flatbuffers::WIPOffset<Error<'bldr>> {
       let mut builder = ErrorBuilder::new(_fbb);
+      if let Some(x) = args.data { builder.add_data(x); }
       if let Some(x) = args.message { builder.add_message(x); }
       builder.add_code(args.code);
+      builder.add_data_type(args.data_type);
       builder.finish()
     }
 
     pub const VT_CODE: flatbuffers::VOffsetT = 4;
     pub const VT_MESSAGE: flatbuffers::VOffsetT = 6;
+    pub const VT_DATA_TYPE: flatbuffers::VOffsetT = 8;
+    pub const VT_DATA: flatbuffers::VOffsetT = 10;
 
   #[inline]
   pub fn code(&self) -> i32 {
     self._tab.get::<i32>(Error::VT_CODE, Some(0)).unwrap()
   }
   #[inline]
-  pub fn message(&self) -> Option<&'a str> {
-    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Error::VT_MESSAGE, None)
+  pub fn message(&self) -> &'a str {
+    self._tab.get::<flatbuffers::ForwardsUOffset<&str>>(Error::VT_MESSAGE, None).unwrap()
   }
+  #[inline]
+  pub fn data_type(&self) -> ErrorPayload {
+    self._tab.get::<ErrorPayload>(Error::VT_DATA_TYPE, Some(ErrorPayload::NONE)).unwrap()
+  }
+  #[inline]
+  pub fn data(&self) -> Option<flatbuffers::Table<'a>> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Table<'a>>>(Error::VT_DATA, None)
+  }
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn data_as_read_oob(&self) -> Option<ReadOutOfBoundsError<'a>> {
+    if self.data_type() == ErrorPayload::READ_OOB {
+      self.data().map(|u| ReadOutOfBoundsError::init_from_table(u))
+    } else {
+      None
+    }
+  }
+
 }
 
 pub struct ErrorArgs<'a> {
     pub code: i32,
     pub message: Option<flatbuffers::WIPOffset<&'a  str>>,
+    pub data_type: ErrorPayload,
+    pub data: Option<flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>>,
 }
 impl<'a> Default for ErrorArgs<'a> {
     #[inline]
     fn default() -> Self {
         ErrorArgs {
             code: 0,
-            message: None,
+            message: None, // required field
+            data_type: ErrorPayload::NONE,
+            data: None,
         }
     }
 }
@@ -626,6 +797,14 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
     self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Error::VT_MESSAGE, message);
   }
   #[inline]
+  pub fn add_data_type(&mut self, data_type: ErrorPayload) {
+    self.fbb_.push_slot::<ErrorPayload>(Error::VT_DATA_TYPE, data_type, ErrorPayload::NONE);
+  }
+  #[inline]
+  pub fn add_data(&mut self, data: flatbuffers::WIPOffset<flatbuffers::UnionWIPOffset>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Error::VT_DATA, data);
+  }
+  #[inline]
   pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ErrorBuilder<'a, 'b> {
     let start = _fbb.start_table();
     ErrorBuilder {
@@ -635,6 +814,83 @@ impl<'a: 'b, 'b> ErrorBuilder<'a, 'b> {
   }
   #[inline]
   pub fn finish(self) -> flatbuffers::WIPOffset<Error<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, Error::VT_MESSAGE,"message");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum ReadOutOfBoundsErrorOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ReadOutOfBoundsError<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ReadOutOfBoundsError<'a> {
+    type Inner = ReadOutOfBoundsError<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> ReadOutOfBoundsError<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ReadOutOfBoundsError {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ReadOutOfBoundsErrorArgs) -> flatbuffers::WIPOffset<ReadOutOfBoundsError<'bldr>> {
+      let mut builder = ReadOutOfBoundsErrorBuilder::new(_fbb);
+      builder.add_fileLength(args.fileLength);
+      builder.finish()
+    }
+
+    pub const VT_FILELENGTH: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn fileLength(&self) -> u64 {
+    self._tab.get::<u64>(ReadOutOfBoundsError::VT_FILELENGTH, Some(0)).unwrap()
+  }
+}
+
+pub struct ReadOutOfBoundsErrorArgs {
+    pub fileLength: u64,
+}
+impl<'a> Default for ReadOutOfBoundsErrorArgs {
+    #[inline]
+    fn default() -> Self {
+        ReadOutOfBoundsErrorArgs {
+            fileLength: 0,
+        }
+    }
+}
+pub struct ReadOutOfBoundsErrorBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ReadOutOfBoundsErrorBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_fileLength(&mut self, fileLength: u64) {
+    self.fbb_.push_slot::<u64>(ReadOutOfBoundsError::VT_FILELENGTH, fileLength, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ReadOutOfBoundsErrorBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ReadOutOfBoundsErrorBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ReadOutOfBoundsError<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
@@ -1297,6 +1553,696 @@ impl<'a: 'b, 'b> FileContentsReplyBuilder<'a, 'b> {
   #[inline]
   pub fn finish(self) -> flatbuffers::WIPOffset<FileContentsReply<'a>> {
     let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum WriteBytesCommandOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct WriteBytesCommand<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for WriteBytesCommand<'a> {
+    type Inner = WriteBytesCommand<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> WriteBytesCommand<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        WriteBytesCommand {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args WriteBytesCommandArgs<'args>) -> flatbuffers::WIPOffset<WriteBytesCommand<'bldr>> {
+      let mut builder = WriteBytesCommandBuilder::new(_fbb);
+      builder.add_byteOffset(args.byteOffset);
+      if let Some(x) = args.bytes { builder.add_bytes(x); }
+      if let Some(x) = args.path { builder.add_path(x); }
+      builder.add_overwriteExisting(args.overwriteExisting);
+      builder.finish()
+    }
+
+    pub const VT_PATH: flatbuffers::VOffsetT = 4;
+    pub const VT_BYTEOFFSET: flatbuffers::VOffsetT = 6;
+    pub const VT_OVERWRITEEXISTING: flatbuffers::VOffsetT = 8;
+    pub const VT_BYTES: flatbuffers::VOffsetT = 10;
+
+  #[inline]
+  pub fn path(&self) -> Path<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<Path<'a>>>(WriteBytesCommand::VT_PATH, None).unwrap()
+  }
+  #[inline]
+  pub fn byteOffset(&self) -> u64 {
+    self._tab.get::<u64>(WriteBytesCommand::VT_BYTEOFFSET, Some(0)).unwrap()
+  }
+  #[inline]
+  pub fn overwriteExisting(&self) -> bool {
+    self._tab.get::<bool>(WriteBytesCommand::VT_OVERWRITEEXISTING, Some(false)).unwrap()
+  }
+  #[inline]
+  pub fn bytes(&self) -> &'a [u8] {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(WriteBytesCommand::VT_BYTES, None).map(|v| v.safe_slice()).unwrap()
+  }
+}
+
+pub struct WriteBytesCommandArgs<'a> {
+    pub path: Option<flatbuffers::WIPOffset<Path<'a >>>,
+    pub byteOffset: u64,
+    pub overwriteExisting: bool,
+    pub bytes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
+}
+impl<'a> Default for WriteBytesCommandArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        WriteBytesCommandArgs {
+            path: None, // required field
+            byteOffset: 0,
+            overwriteExisting: false,
+            bytes: None, // required field
+        }
+    }
+}
+pub struct WriteBytesCommandBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> WriteBytesCommandBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_path(&mut self, path: flatbuffers::WIPOffset<Path<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Path>>(WriteBytesCommand::VT_PATH, path);
+  }
+  #[inline]
+  pub fn add_byteOffset(&mut self, byteOffset: u64) {
+    self.fbb_.push_slot::<u64>(WriteBytesCommand::VT_BYTEOFFSET, byteOffset, 0);
+  }
+  #[inline]
+  pub fn add_overwriteExisting(&mut self, overwriteExisting: bool) {
+    self.fbb_.push_slot::<bool>(WriteBytesCommand::VT_OVERWRITEEXISTING, overwriteExisting, false);
+  }
+  #[inline]
+  pub fn add_bytes(&mut self, bytes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(WriteBytesCommand::VT_BYTES, bytes);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> WriteBytesCommandBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    WriteBytesCommandBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<WriteBytesCommand<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, WriteBytesCommand::VT_PATH,"path");
+    self.fbb_.required(o, WriteBytesCommand::VT_BYTES,"bytes");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum WriteBytesReplyOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct WriteBytesReply<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for WriteBytesReply<'a> {
+    type Inner = WriteBytesReply<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> WriteBytesReply<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        WriteBytesReply {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args WriteBytesReplyArgs<'args>) -> flatbuffers::WIPOffset<WriteBytesReply<'bldr>> {
+      let mut builder = WriteBytesReplyBuilder::new(_fbb);
+      if let Some(x) = args.checksum { builder.add_checksum(x); }
+      builder.finish()
+    }
+
+    pub const VT_CHECKSUM: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn checksum(&self) -> EnsoDigest<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<EnsoDigest<'a>>>(WriteBytesReply::VT_CHECKSUM, None).unwrap()
+  }
+}
+
+pub struct WriteBytesReplyArgs<'a> {
+    pub checksum: Option<flatbuffers::WIPOffset<EnsoDigest<'a >>>,
+}
+impl<'a> Default for WriteBytesReplyArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        WriteBytesReplyArgs {
+            checksum: None, // required field
+        }
+    }
+}
+pub struct WriteBytesReplyBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> WriteBytesReplyBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_checksum(&mut self, checksum: flatbuffers::WIPOffset<EnsoDigest<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<EnsoDigest>>(WriteBytesReply::VT_CHECKSUM, checksum);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> WriteBytesReplyBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    WriteBytesReplyBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<WriteBytesReply<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, WriteBytesReply::VT_CHECKSUM,"checksum");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum ReadBytesCommandOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ReadBytesCommand<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ReadBytesCommand<'a> {
+    type Inner = ReadBytesCommand<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> ReadBytesCommand<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ReadBytesCommand {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ReadBytesCommandArgs<'args>) -> flatbuffers::WIPOffset<ReadBytesCommand<'bldr>> {
+      let mut builder = ReadBytesCommandBuilder::new(_fbb);
+      if let Some(x) = args.segment { builder.add_segment(x); }
+      builder.finish()
+    }
+
+    pub const VT_SEGMENT: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn segment(&self) -> FileSegment<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<FileSegment<'a>>>(ReadBytesCommand::VT_SEGMENT, None).unwrap()
+  }
+}
+
+pub struct ReadBytesCommandArgs<'a> {
+    pub segment: Option<flatbuffers::WIPOffset<FileSegment<'a >>>,
+}
+impl<'a> Default for ReadBytesCommandArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ReadBytesCommandArgs {
+            segment: None, // required field
+        }
+    }
+}
+pub struct ReadBytesCommandBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ReadBytesCommandBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_segment(&mut self, segment: flatbuffers::WIPOffset<FileSegment<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FileSegment>>(ReadBytesCommand::VT_SEGMENT, segment);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ReadBytesCommandBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ReadBytesCommandBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ReadBytesCommand<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, ReadBytesCommand::VT_SEGMENT,"segment");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum ReadBytesReplyOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ReadBytesReply<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ReadBytesReply<'a> {
+    type Inner = ReadBytesReply<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> ReadBytesReply<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ReadBytesReply {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ReadBytesReplyArgs<'args>) -> flatbuffers::WIPOffset<ReadBytesReply<'bldr>> {
+      let mut builder = ReadBytesReplyBuilder::new(_fbb);
+      if let Some(x) = args.bytes { builder.add_bytes(x); }
+      if let Some(x) = args.checksum { builder.add_checksum(x); }
+      builder.finish()
+    }
+
+    pub const VT_CHECKSUM: flatbuffers::VOffsetT = 4;
+    pub const VT_BYTES: flatbuffers::VOffsetT = 6;
+
+  #[inline]
+  pub fn checksum(&self) -> EnsoDigest<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<EnsoDigest<'a>>>(ReadBytesReply::VT_CHECKSUM, None).unwrap()
+  }
+  #[inline]
+  pub fn bytes(&self) -> &'a [u8] {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(ReadBytesReply::VT_BYTES, None).map(|v| v.safe_slice()).unwrap()
+  }
+}
+
+pub struct ReadBytesReplyArgs<'a> {
+    pub checksum: Option<flatbuffers::WIPOffset<EnsoDigest<'a >>>,
+    pub bytes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
+}
+impl<'a> Default for ReadBytesReplyArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ReadBytesReplyArgs {
+            checksum: None, // required field
+            bytes: None, // required field
+        }
+    }
+}
+pub struct ReadBytesReplyBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ReadBytesReplyBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_checksum(&mut self, checksum: flatbuffers::WIPOffset<EnsoDigest<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<EnsoDigest>>(ReadBytesReply::VT_CHECKSUM, checksum);
+  }
+  #[inline]
+  pub fn add_bytes(&mut self, bytes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ReadBytesReply::VT_BYTES, bytes);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ReadBytesReplyBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ReadBytesReplyBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ReadBytesReply<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, ReadBytesReply::VT_CHECKSUM,"checksum");
+    self.fbb_.required(o, ReadBytesReply::VT_BYTES,"bytes");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum ChecksumBytesCommandOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ChecksumBytesCommand<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ChecksumBytesCommand<'a> {
+    type Inner = ChecksumBytesCommand<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> ChecksumBytesCommand<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ChecksumBytesCommand {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ChecksumBytesCommandArgs<'args>) -> flatbuffers::WIPOffset<ChecksumBytesCommand<'bldr>> {
+      let mut builder = ChecksumBytesCommandBuilder::new(_fbb);
+      if let Some(x) = args.segment { builder.add_segment(x); }
+      builder.finish()
+    }
+
+    pub const VT_SEGMENT: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn segment(&self) -> FileSegment<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<FileSegment<'a>>>(ChecksumBytesCommand::VT_SEGMENT, None).unwrap()
+  }
+}
+
+pub struct ChecksumBytesCommandArgs<'a> {
+    pub segment: Option<flatbuffers::WIPOffset<FileSegment<'a >>>,
+}
+impl<'a> Default for ChecksumBytesCommandArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ChecksumBytesCommandArgs {
+            segment: None, // required field
+        }
+    }
+}
+pub struct ChecksumBytesCommandBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ChecksumBytesCommandBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_segment(&mut self, segment: flatbuffers::WIPOffset<FileSegment<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<FileSegment>>(ChecksumBytesCommand::VT_SEGMENT, segment);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ChecksumBytesCommandBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ChecksumBytesCommandBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ChecksumBytesCommand<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, ChecksumBytesCommand::VT_SEGMENT,"segment");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum ChecksumBytesReplyOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct ChecksumBytesReply<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for ChecksumBytesReply<'a> {
+    type Inner = ChecksumBytesReply<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> ChecksumBytesReply<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        ChecksumBytesReply {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args ChecksumBytesReplyArgs<'args>) -> flatbuffers::WIPOffset<ChecksumBytesReply<'bldr>> {
+      let mut builder = ChecksumBytesReplyBuilder::new(_fbb);
+      if let Some(x) = args.checksum { builder.add_checksum(x); }
+      builder.finish()
+    }
+
+    pub const VT_CHECKSUM: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn checksum(&self) -> EnsoDigest<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<EnsoDigest<'a>>>(ChecksumBytesReply::VT_CHECKSUM, None).unwrap()
+  }
+}
+
+pub struct ChecksumBytesReplyArgs<'a> {
+    pub checksum: Option<flatbuffers::WIPOffset<EnsoDigest<'a >>>,
+}
+impl<'a> Default for ChecksumBytesReplyArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        ChecksumBytesReplyArgs {
+            checksum: None, // required field
+        }
+    }
+}
+pub struct ChecksumBytesReplyBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ChecksumBytesReplyBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_checksum(&mut self, checksum: flatbuffers::WIPOffset<EnsoDigest<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<EnsoDigest>>(ChecksumBytesReply::VT_CHECKSUM, checksum);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ChecksumBytesReplyBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ChecksumBytesReplyBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<ChecksumBytesReply<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, ChecksumBytesReply::VT_CHECKSUM,"checksum");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum EnsoDigestOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct EnsoDigest<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for EnsoDigest<'a> {
+    type Inner = EnsoDigest<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> EnsoDigest<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        EnsoDigest {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args EnsoDigestArgs<'args>) -> flatbuffers::WIPOffset<EnsoDigest<'bldr>> {
+      let mut builder = EnsoDigestBuilder::new(_fbb);
+      if let Some(x) = args.bytes { builder.add_bytes(x); }
+      builder.finish()
+    }
+
+    pub const VT_BYTES: flatbuffers::VOffsetT = 4;
+
+  #[inline]
+  pub fn bytes(&self) -> &'a [u8] {
+    self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(EnsoDigest::VT_BYTES, None).map(|v| v.safe_slice()).unwrap()
+  }
+}
+
+pub struct EnsoDigestArgs<'a> {
+    pub bytes: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a ,  u8>>>,
+}
+impl<'a> Default for EnsoDigestArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        EnsoDigestArgs {
+            bytes: None, // required field
+        }
+    }
+}
+pub struct EnsoDigestBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> EnsoDigestBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_bytes(&mut self, bytes: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(EnsoDigest::VT_BYTES, bytes);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> EnsoDigestBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    EnsoDigestBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<EnsoDigest<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, EnsoDigest::VT_BYTES,"bytes");
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+pub enum FileSegmentOffset {}
+#[derive(Copy, Clone, Debug, PartialEq)]
+
+pub struct FileSegment<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for FileSegment<'a> {
+    type Inner = FileSegment<'a>;
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf: buf, loc: loc },
+        }
+    }
+}
+
+impl<'a> FileSegment<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        FileSegment {
+            _tab: table,
+        }
+    }
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        args: &'args FileSegmentArgs<'args>) -> flatbuffers::WIPOffset<FileSegment<'bldr>> {
+      let mut builder = FileSegmentBuilder::new(_fbb);
+      builder.add_length(args.length);
+      builder.add_byteOffset(args.byteOffset);
+      if let Some(x) = args.path { builder.add_path(x); }
+      builder.finish()
+    }
+
+    pub const VT_PATH: flatbuffers::VOffsetT = 4;
+    pub const VT_BYTEOFFSET: flatbuffers::VOffsetT = 6;
+    pub const VT_LENGTH: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub fn path(&self) -> Path<'a> {
+    self._tab.get::<flatbuffers::ForwardsUOffset<Path<'a>>>(FileSegment::VT_PATH, None).unwrap()
+  }
+  #[inline]
+  pub fn byteOffset(&self) -> u64 {
+    self._tab.get::<u64>(FileSegment::VT_BYTEOFFSET, Some(0)).unwrap()
+  }
+  #[inline]
+  pub fn length(&self) -> u64 {
+    self._tab.get::<u64>(FileSegment::VT_LENGTH, Some(0)).unwrap()
+  }
+}
+
+pub struct FileSegmentArgs<'a> {
+    pub path: Option<flatbuffers::WIPOffset<Path<'a >>>,
+    pub byteOffset: u64,
+    pub length: u64,
+}
+impl<'a> Default for FileSegmentArgs<'a> {
+    #[inline]
+    fn default() -> Self {
+        FileSegmentArgs {
+            path: None, // required field
+            byteOffset: 0,
+            length: 0,
+        }
+    }
+}
+pub struct FileSegmentBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> FileSegmentBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_path(&mut self, path: flatbuffers::WIPOffset<Path<'b >>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<Path>>(FileSegment::VT_PATH, path);
+  }
+  #[inline]
+  pub fn add_byteOffset(&mut self, byteOffset: u64) {
+    self.fbb_.push_slot::<u64>(FileSegment::VT_BYTEOFFSET, byteOffset, 0);
+  }
+  #[inline]
+  pub fn add_length(&mut self, length: u64) {
+    self.fbb_.push_slot::<u64>(FileSegment::VT_LENGTH, length, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> FileSegmentBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    FileSegmentBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<FileSegment<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    self.fbb_.required(o, FileSegment::VT_PATH,"path");
     flatbuffers::WIPOffset::new(o.value())
   }
 }

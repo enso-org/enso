@@ -21,7 +21,7 @@ const ZIP_CONTENT:&str = "fbs-upload/fbs-schema/";
 /// files. Run `cargo build` to do so, before creating a commit.
 ///
 /// Follow to `contribution.md` for more guidance about setting up the development environment.
-const COMMIT:&str = "7d82b1abee0f20b87b578c9ddd1a7f11330b9738";
+const COMMIT:&str = "0b363e3e85215aa0468f7ce8c17882f60f9284d9";
 
 /// Currently the flatc-generated files updating shall work purely on opt-in basis. This script
 /// should do nothing if the following environment variable has not been defined.

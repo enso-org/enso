@@ -26,9 +26,9 @@ mod tests {
 
     #[test]
     fn deserialize_or_default_attribute_test() {
-        #[derive(Debug,Deserialize,PartialEq,Serialize)]
         // Two structures - same except for `deserialize_or_default` atribute.
         // One fails to deserialize, second one goes through.
+        #[derive(Debug,Deserialize,PartialEq,Serialize)]
         struct Foo {
             blah : String,
             boom : Vec<i32>,
@@ -45,5 +45,22 @@ mod tests {
 
         let deserialized = serde_json::from_str::<Bar>(code).unwrap();
         assert_eq!(deserialized, Bar { blah: "".into(), boom: vec![1, 2, 3] });
+    }
+
+    #[test]
+    fn deserialize_or_default_attribute_for_optional_field() {
+        #[derive(Debug,Deserialize,PartialEq,Serialize)]
+        struct Foo {
+            #[serde(default,deserialize_with="deserialize_or_default")]
+            blah : Option<String>,
+            boom : Vec<i32>,
+        }
+        let code   = r#"{"blah" : "blah", "boom" : [1,2,3] }"#;
+        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
+        assert_eq!(deserialized, Foo { blah: Some("blah".to_owned()), boom: vec![1, 2, 3] });
+
+        let code   = r#"{"boom" : [1,2,3] }"#;
+        let deserialized = serde_json::from_str::<Foo>(code).unwrap();
+        assert_eq!(deserialized, Foo { blah: None, boom: vec![1, 2, 3] });
     }
 }

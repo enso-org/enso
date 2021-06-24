@@ -31,7 +31,7 @@ use wasm_bindgen_futures::JsFuture;
 pub struct File {
     pub name      : ImString,
     pub mime_type : ImString,
-    pub size      : usize,
+    pub size      : u64,
     #[derivative(Debug="ignore")]
     reader        : Rc<Option<ReadableStreamDefaultReader>>,
 }
@@ -40,7 +40,7 @@ impl File {
     /// Constructor from the [`web_sys::File`].
     pub fn from_js_file(file:&web_sys::File) -> Result<Self,Error> {
         let name      = ImString::new(file.name());
-        let size      = file.size() as usize;
+        let size      = file.size() as u64;
         let mime_type = ImString::new(file.type_());
         let blob      = AsRef::<web_sys::Blob>::as_ref(file);
         let reader    = blob.stream_reader()?;
@@ -90,7 +90,7 @@ type DragOverClosure = Closure<dyn Fn(web_sys::DragEvent) -> bool>;
 pub struct Manager {
     #[allow(dead_code)]
     network            : frp::Network,
-    file_received      : frp::Source<File>,
+    files_received     : frp::Source<Vec<File>>,
     #[allow(dead_code)]
     drop_callback      : Rc<DropClosure>,
     #[allow(dead_code)]
@@ -104,14 +104,14 @@ impl Manager {
         debug!(logger, "Creating DropFileManager");
         let network = frp::Network::new("DropFileManager");
         frp::extend! { network
-            file_received <- source();
+            files_received <- source();
         }
 
         let drop:DropClosure = Closure::wrap(Box::new(
-            f!([logger,file_received](event:web_sys::DragEvent) {
+            f!([logger,files_received](event:web_sys::DragEvent) {
                 debug!(logger, "Dropped files.");
                 event.prevent_default();
-                Self::handle_drop_event(&logger,event,&file_received)
+                Self::handle_drop_event(&logger,event,&files_received)
             })
         ));
         // To mark element as a valid drop target, the `dragover` event handler should return
@@ -128,27 +128,25 @@ impl Manager {
         target.add_event_listener_with_callback("dragover",drag_over_js).unwrap();
         let drop_callback      = Rc::new(drop);
         let drag_over_callback = Rc::new(drag_over);
-        Self {network,file_received,drop_callback,drag_over_callback}
+        Self {network,files_received,drop_callback,drag_over_callback}
     }
 
     /// The frp endpoint emitting signal when a file is dropped.
-    pub fn file_received(&self) -> &frp::Source<File> { &self.file_received }
+    pub fn files_received(&self) -> &frp::Source<Vec<File>> { &self.files_received }
 
     fn handle_drop_event
-    (logger:&Logger, event:web_sys::DragEvent, file_received:&frp::Source<File>) {
+    (logger:&Logger, event:web_sys::DragEvent, files_received:&frp::Source<Vec<File>>) {
         let opt_files = event.data_transfer().and_then(|t| t.files());
         if let Some(js_files) = opt_files {
             let js_files_iter = (0..js_files.length()).filter_map(|i| js_files.get(i));
-            let files_iter    = js_files_iter.map(|f| File::from_js_file(&f));
-            for file in files_iter {
-                debug!(logger, "One of the dropped files is {file:?}.");
-                match file {
-                    Ok(file) => file_received.emit(file),
-                    Err(err) => {
-                        error!(logger, "Error when processing dropped file: {err:?}");
-                    }
+            let files_iter    = js_files_iter.filter_map(|f| match File::from_js_file(&f) {
+                Ok(file) => Some(file),
+                Err(err) => {
+                    error!(logger, "Error when processing dropped file: {err:?}");
+                    None
                 }
-            }
+            });
+            files_received.emit(files_iter.collect_vec());
         }
     }
 }

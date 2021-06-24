@@ -230,7 +230,7 @@ impl Repository {
 
     /// Open a new transaction.
     ///
-    /// If there is already an opened transaction, it will returned as [`Err`].
+    /// If there is already an opened transaction, it will be returned as [`Err`].
     pub fn open_transaction
     (self:&Rc<Self>, name:impl Into<String>) -> Result<Rc<Transaction>,Rc<Transaction>> {
         if let Some(ongoing_transaction) = self.current_transaction() {
@@ -243,6 +243,23 @@ impl Repository {
             Ok(new_transaction)
         }
     }
+
+    /// Open an ignored transaction
+    ///
+    /// This function should be used when we want to do some changes in module which should not be
+    /// tracked in undo redo (when they are not a result of user activity). If the transaction is
+    /// already opened, it will **not** be ignored, and will be returned in [`Err`] variant.
+    ///
+    /// See also [`Repository::open_transaction`], [`Transaction::ignore`].
+    pub fn open_ignored_transaction
+    (self:&Rc<Self>, name:impl Into<String>) -> Result<Rc<Transaction>,Rc<Transaction>> {
+        let transaction = self.open_transaction(name);
+        if let Ok(new) = &transaction {
+            new.ignore();
+        }
+        transaction
+    }
+
 
     /// Get currently opened transaction. If there is none, open a new one.
     pub fn transaction(self:&Rc<Self>, name:impl Into<String>) -> Rc<Transaction> {
@@ -527,7 +544,7 @@ main =
 
         let mut fixture = crate::test::mock::Unified::new().fixture();
         let Fixture{executed_graph,graph,project,logger,..} = &mut fixture;
-        let logger:&DefaultTraceLogger = logger;
+        let logger:&Logger = logger;
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();

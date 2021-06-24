@@ -11,6 +11,8 @@ use crate::controller::graph::Connections;
 use crate::controller::graph::NodeTrees;
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::Actions;
+use crate::controller::upload;
+use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::LocalCall;
@@ -23,9 +25,10 @@ use analytics;
 use bimap::BiMap;
 use enso_data::text::TextChange;
 use enso_frp as frp;
+use enso_protocol::language_server::ExpressionUpdatePayload;
 use ensogl::display::traits::*;
 use ensogl_gui_components::list_view;
-use enso_protocol::language_server::ExpressionUpdatePayload;
+use ensogl_web::drop;
 use ide_view::graph_editor;
 use ide_view::graph_editor::component::node;
 use ide_view::graph_editor::component::visualization;
@@ -33,6 +36,7 @@ use ide_view::graph_editor::EdgeEndpoint;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use utils::iter::split_by_predicate;
+use futures::future::LocalBoxFuture;
 
 
 
@@ -259,6 +263,27 @@ impl Integration {
             eval editor_outs.visualization_registry_reload_requested ([model](()) {
                 model.view.graph().reset_visualization_registry();
                 model.load_visualizations();
+            });
+        }
+
+        // === Dropping Files ===
+
+        let file_dropped = model.view.graph().file_dropped.clone_ref();
+        frp::extend! { network
+            eval file_dropped ([model]((file,position)) {
+                let project   = model.project.clone_ref();
+                let graph     = model.graph.graph();
+                let to_upload = upload::FileToUpload {
+                    name : file.name.clone_ref().into(),
+                    size : file.size,
+                    data : file.clone_ref(),
+                };
+                let position = model::module::Position {vector:*position};
+                let handler  = NodeFromDroppedFileHandler::new(&model.logger,project,graph);
+                let res      = handler.create_node_and_start_uploading(to_upload,position);
+                if let Err(err) = res {
+                    error!(model.logger, "Error when creating node from dropped file: {err}");
+                }
             });
         }
 
@@ -1493,5 +1518,11 @@ impl ide_view::searcher::DocumentationProvider for DataProviderForView {
             Action::Example(example)     => Some(example.documentation.clone()),
             Action::ProjectManagement(_) => None,
         }
+    }
+}
+
+impl upload::DataProvider for drop::File {
+    fn next_chunk(&mut self) -> LocalBoxFuture<FallibleResult<Option<Vec<u8>>>> {
+        self.read_chunk().map(|f| f.map_err(|e| e.into())).boxed_local()
     }
 }

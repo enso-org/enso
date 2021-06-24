@@ -38,6 +38,13 @@ pub struct FileInfo {
     pub attributes: FileAttributes,
 }
 
+/// Response of `file_checksum` method.
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
+pub struct FileChecksum {
+    #[allow(missing_docs)]
+    pub checksum:Sha3_224,
+}
+
 /// Response of `open_text_file` method.
 #[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
 #[serde(rename_all="camelCase")]

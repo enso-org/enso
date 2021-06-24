@@ -3,17 +3,18 @@
 
 use crate::prelude::*;
 
+use crate::common::error::UnexpectedMessage;
 use crate::handler::Handler;
 use crate::handler::Disposition;
+use crate::binary::message::ErrorPayload;
 use crate::binary::message::FromServerPayloadOwned;
+use crate::binary::message::MessageFromServerOwned;
 use crate::binary::message::MessageToServerRef;
 use crate::binary::message::ToServerPayload;
-use crate::common::error::UnexpectedMessage;
-use crate::binary::message::MessageFromServerOwned;
 use crate::binary::message::VisualisationContext;
 use crate::language_server::types::Path;
+use crate::types::Sha3_224;
 
-use json_rpc::error::RpcError;
 use json_rpc::TransportEvent;
 use json_rpc::Transport;
 use mockall::automock;
@@ -29,6 +30,8 @@ use mockall::automock;
 #[fail(display = "Received a text message when expecting only the binary ones.")]
 pub struct UnexpectedTextMessage;
 
+/// Errors that can cause a remote call to fail.
+pub type RpcError = json_rpc::error::RpcError<ErrorPayload>;
 
 
 // ====================
@@ -67,6 +70,11 @@ pub trait API {
 
     /// Retrieves the file contents as a binary data.
     fn read_file(&self, path:&Path) -> StaticBoxFuture<FallibleResult<Vec<u8>>>;
+
+    /// Writes a set of bytes to the specified file at the specified offset.
+    fn write_bytes
+    (&self, path:&Path, byte_offset:u64, overwrite:bool, bytes:&[u8])
+    -> StaticBoxFuture<FallibleResult<Sha3_224>>;
 
     /// Asynchronous event stream with notification and errors.
     ///
@@ -155,9 +163,10 @@ impl Client {
         let logger = self.logger.clone_ref();
         let completer = move |reply| {
             info!(logger,"Completing request {id} with a reply: {reply:?}");
-            if let FromServerPayloadOwned::Error {code,message} = reply {
-                let error = RpcError::new_remote_error(code.into(), message);
-                Err(error.into())
+            if let FromServerPayloadOwned::Error {code,message,data} = reply {
+                let code  = code as i64;
+                let error = json_rpc::messages::Error{code,message,data};
+                Err(RpcError::RemoteError(error).into())
             } else {
                 f(reply)
             }
@@ -193,6 +202,20 @@ impl API for Client {
         self.make_request(payload, move |result| {
             if let FromServerPayloadOwned::FileContentsReply {contents} = result {
                 Ok(contents)
+            } else {
+                Err(RpcError::MismatchedResponseType.into())
+            }
+        })
+    }
+
+    fn write_bytes
+    (&self, path:&Path, byte_offset:u64, overwrite:bool, bytes:&[u8])
+    -> StaticBoxFuture<FallibleResult<Sha3_224>> {
+        info!(self.logger,"Writting {bytes.len()} bytes to {path} at offset {byte_offset}");
+        let payload = ToServerPayload::WriteBytes {path,byte_offset,overwrite,bytes};
+        self.make_request(payload, move |result| {
+            if let FromServerPayloadOwned::WriteBytesReply {checksum} = result {
+                Ok(checksum.into())
             } else {
                 Err(RpcError::MismatchedResponseType.into())
             }
@@ -278,8 +301,9 @@ mod tests {
         let mock_error_code = 444;
         let mock_error_message = "This is error".to_string();
         let mut mock_reply = MessageFromServer::new(FromServerPayloadOwned::Error {
-            code : mock_error_code,
+            code    : mock_error_code,
             message : mock_error_message.clone(),
+            data    : None,
         });
         mock_reply.correlation_id = Some(generated_message.message_id);
         mock_reply.with_serialized(|data| fixture.transport.mock_peer_binary_message(data));

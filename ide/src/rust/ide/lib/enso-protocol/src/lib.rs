@@ -1,4 +1,6 @@
-//! Client side implementation of Enso protocol.
+//! Client side implementation of the Enso Protocol
+//!
+//! See https://enso.org/docs/developer/enso/language-server/protocol-architecture.html.
 
 #![feature(associated_type_bounds)]
 #![feature(associated_type_defaults)]

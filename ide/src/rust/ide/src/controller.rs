@@ -12,6 +12,7 @@ pub mod text;
 pub mod project;
 pub mod visualization;
 pub mod searcher;
+pub mod upload;
 
 pub use graph::Handle           as Graph;
 pub use graph::executed::Handle as ExecutedGraph;

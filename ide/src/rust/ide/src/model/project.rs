@@ -4,6 +4,7 @@
 //!
 //! Responsible for owning any remote connection clients, and providing controllers for specific
 //! files and modules. Expected to live as long as the project remains open in the IDE.
+
 pub mod synchronized;
 
 use crate::prelude::*;
@@ -155,7 +156,7 @@ pub mod test {
         project.expect_parser().returning_st(move || parser.clone_ref());
     }
 
-    /// Sets up module expectation on the mock project, returning a give module.
+    /// Sets up module expectation on the mock project, returning a given module.
     pub fn expect_module(project:&mut MockAPI, module:model::Module) {
         let module_path = module.path().clone_ref();
         project.expect_module()
@@ -163,7 +164,7 @@ pub mod test {
             .returning_st(move |_path| ready(Ok(module.clone_ref())).boxed_local());
     }
 
-    /// Sets up module expectation on the mock project, returning a give module.
+    /// Sets up execution context expectation on the mock project, returning a given context.
     pub fn expect_execution_ctx(project:&mut MockAPI, ctx:model::ExecutionContext) {
         let ctx2 = ctx.clone_ref();
         project.expect_create_execution_context()
@@ -171,22 +172,27 @@ pub mod test {
             .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
     }
 
-    /// Sets up module expectation on the mock project, returning a give module.
+    /// Sets up root id expectation on the mock project, returning a given id.
     pub fn expect_root_id(project:&mut MockAPI, root_id:Uuid) {
         project.expect_content_root_id().return_const(root_id);
     }
 
-    /// Sets up module expectation on the mock project, returning a given module.
+    /// Sets up suggestion database expectation on the mock project, returning a given database.
     pub fn expect_suggestion_db(project:&mut MockAPI, suggestion_db:Rc<model::SuggestionDatabase>) {
         project.expect_suggestion_db().returning_st(move || suggestion_db.clone_ref());
     }
 
-    /// Sets up module expectation on the mock project, returning a give module.
+    /// Sets up JSON RPC expectation on the mock project, returning a given connection.
     pub fn expect_json_rpc(project:&mut MockAPI, json_rpc:Rc<language_server::Connection>) {
         project.expect_json_rpc().returning_st(move || json_rpc.clone_ref());
     }
 
-    /// Sets up module expectation on the mock project, returning a give module.
+    /// Sets up binary RPC expectation on the mock project, returning a given connection.
+    pub fn expect_binary_rpc(project:&mut MockAPI, binary_rpc:Rc<binary::Connection>) {
+        project.expect_binary_rpc().returning_st(move || binary_rpc.clone_ref());
+    }
+
+    /// Sets up name expectation on the mock project, returning a given name.
     pub fn expect_name(project:&mut MockAPI, name:impl Into<String>) {
         let name = ImString::new(name);
         project.expect_name().returning_st(move || name.clone_ref());

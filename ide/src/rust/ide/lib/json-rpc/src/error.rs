@@ -16,10 +16,10 @@ use futures::channel::oneshot::Canceled;
 
 /// Errors that can cause a remote call to fail.
 #[derive(Debug, Fail)]
-pub enum RpcError {
+pub enum RpcError<Payload:Debug+Send+Sync+'static = serde_json::Value> {
     /// Error returned by the remote server.
     #[fail(display = "Peer has replied with an error: {:?}.", _0)]
-    RemoteError(Error),
+    RemoteError(Error<Payload>),
 
     /// Lost connection while waiting for response.
     #[fail(display = "Lost connection before receiving a reply.")]
