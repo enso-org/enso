@@ -1237,17 +1237,23 @@ object Runtime {
 
     /** A request for project renaming.
       *
+      * @param namespace the namespace the renamed project belongs to
       * @param oldName the old project name
       * @param newName the new project name
       */
-    case class RenameProject(oldName: String, newName: String)
-        extends ApiRequest
+    case class RenameProject(
+      namespace: String,
+      oldName: String,
+      newName: String
+    ) extends ApiRequest
 
     /** Signals that project has been renamed.
       *
+      * @param namespace the namespace of the project
       * @param newName the new project name
       */
-    case class ProjectRenamed(newName: String) extends ApiResponse
+    case class ProjectRenamed(namespace: String, newName: String)
+        extends ApiResponse
 
     /** A notification about the changes in the suggestions database.
       *

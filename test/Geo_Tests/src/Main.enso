@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test
 
-import Geo_Tests.Geo_Spec
+import project.Geo_Spec
 
 main = Test.Suite.run_main <|
     Geo_Spec.spec

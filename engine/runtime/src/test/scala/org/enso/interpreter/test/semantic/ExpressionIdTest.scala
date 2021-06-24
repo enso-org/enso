@@ -38,13 +38,13 @@ class ExpressionIdTest extends InterpreterTest {
     "be correct in applications and method calls" in
     withIdsInstrumenter { instrumenter =>
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main = (2-2 == 0).if_then_else (Cons 5 6) 0
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(33, 36)
-      val id2  = meta.addItem(58, 8)
+      val id1  = meta.addItem(42, 36)
+      val id2  = meta.addItem(67, 8)
 
       instrumenter.assertNodeExists(id1, "Cons 5 6")
       instrumenter.assertNodeExists(id2, "Cons 5 6")
@@ -55,7 +55,7 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |Nothing.method =
           |    foo = a -> b ->
@@ -67,10 +67,10 @@ class ExpressionIdTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(109, 5)
-      val id2  = meta.addItem(127, 1)
-      val id3  = meta.addItem(123, 7)
-      val id4  = meta.addItem(135, 9)
+      val id1  = meta.addItem(118, 5)
+      val id2  = meta.addItem(136, 1)
+      val id3  = meta.addItem(132, 7)
+      val id4  = meta.addItem(144, 9)
 
       instrumenter.assertNodeExists(id1, "30")
       instrumenter.assertNodeExists(id2, "10")
@@ -83,7 +83,7 @@ class ExpressionIdTest extends InterpreterTest {
     withIdsInstrumenter { instrumenter =>
       val code =
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |main =
           |    x = Cons 1 2
@@ -101,10 +101,10 @@ class ExpressionIdTest extends InterpreterTest {
           |    foo x + foo y
           |""".stripMargin
       val meta = new Metadata
-      val id1  = meta.addItem(106, 109)
-      val id2  = meta.addItem(152, 7)
-      val id3  = meta.addItem(172, 9)
-      val id4  = meta.addItem(209, 5)
+      val id1  = meta.addItem(115, 109)
+      val id2  = meta.addItem(161, 7)
+      val id3  = meta.addItem(181, 9)
+      val id4  = meta.addItem(218, 5)
 
       instrumenter.assertNodeExists(id1, "9")
       instrumenter.assertNodeExists(id2, "3")

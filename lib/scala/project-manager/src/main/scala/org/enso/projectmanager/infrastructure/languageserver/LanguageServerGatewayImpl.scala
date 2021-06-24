@@ -95,6 +95,7 @@ class LanguageServerGatewayImpl[
   /** @inheritdoc */
   override def renameProject(
     projectId: UUID,
+    namespace: String,
     oldName: String,
     newName: String
   ): F[ProjectRenameFailure, Unit] = {
@@ -102,7 +103,7 @@ class LanguageServerGatewayImpl[
 
     Async[F]
       .fromFuture { () =>
-        (registry ? RenameProject(projectId, oldName, newName))
+        (registry ? RenameProject(projectId, namespace, oldName, newName))
           .mapTo[ProjectRenameResult]
       }
       .mapError(_ => RenameTimeout)

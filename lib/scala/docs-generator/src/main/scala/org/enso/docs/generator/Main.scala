@@ -136,6 +136,7 @@ object Main {
       _.getPath
         .replace(path + "/", "")
         .replace(".enso", "")
+        .replace("src/", "")
     )
     val allPrograms = allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
@@ -156,8 +157,9 @@ object Main {
     val allDocJSFiles = allFiles.map { x =>
       val name = x.getPath
         .replace(".enso", ".js")
-        .replace("Standard/src", outDir)
+        .replace("std-lib/", "std-lib/" + outDir + "/")
         .replace("Main.js", "index.js")
+        .replace("src/", "")
       val ending = name.split(outDir + "/").tail.head
       name.replace(ending, ending.replace('/', '-'))
     }

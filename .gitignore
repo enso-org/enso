@@ -118,6 +118,6 @@ build-cache/
 ## Enso-Specific ##
 ###################
 
-distribution/std-lib/Standard/data/scratch_file
-distribution/std-lib/Standard/data/image.png
+distribution/std-lib/Examples/data/scratch_file
+distribution/std-lib/Examples/data/image.png
 

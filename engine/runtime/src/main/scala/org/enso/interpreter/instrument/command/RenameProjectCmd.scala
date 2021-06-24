@@ -31,14 +31,21 @@ class RenameProjectCmd(
         val logger = ctx.executionService.getLogger
         logger.log(
           Level.FINE,
-          s"Renaming project [old:${request.oldName},new:${request.newName}]..."
+          s"Renaming project [old:${request.namespace}.${request.oldName},new:${request.namespace}.${request.newName}]..."
         )
         val context = ctx.executionService.getContext
-        context.renameProject(request.oldName, request.newName)
+        context.renameProject(
+          request.namespace,
+          request.oldName,
+          request.newName
+        )
         ctx.contextManager.getAll.values
           .foreach(updateMethodPointers(request.newName, _))
-        reply(Api.ProjectRenamed(request.newName))
-        logger.log(Level.INFO, s"Project renamed to ${request.newName}")
+        reply(Api.ProjectRenamed(request.namespace, request.newName))
+        logger.log(
+          Level.INFO,
+          s"Project renamed to ${request.namespace}.${request.newName}"
+        )
       } finally {
         ctx.locking.releaseWriteCompilationLock()
       }

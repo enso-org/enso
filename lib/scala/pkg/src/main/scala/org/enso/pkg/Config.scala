@@ -8,11 +8,19 @@ import org.enso.editions.EditionSerialization._
 
 import scala.util.Try
 
+/** An extra project dependency.
+  *
+  * @param name    name of the package
+  * @param version package version
+  */
+case class Dependency(name: String, version: String)
+
 /** Contact information to a user.
   *
   * Used for defining authors and maintainers.
   * At least one of the fields must not be None.
-  * @param name contact name
+  *
+  * @param name  contact name
   * @param email contact email
   */
 case class Contact(name: Option[String], email: Option[String]) {
@@ -27,6 +35,7 @@ case class Contact(name: Option[String], email: Option[String]) {
     name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
   }
 }
+
 object Contact {
 
   /** Fields for use when serializing the [[Contact]]. */
@@ -69,6 +78,9 @@ object Contact {
 /** Represents a package configuration stored in the `package.yaml` file.
   *
   * @param name package name
+  * @param namespace    package namespace. This field is a temporary workaround
+  *                     and will be removed with further improvements to the
+  *                     libraries system. The default value is `local`.
   * @param version package version
   * @param license package license
   * @param authors name and contact information of the package author(s)
@@ -85,6 +97,7 @@ object Contact {
   */
 case class Config(
   name: String,
+  namespace: String,
   version: String,
   license: String,
   authors: List[Contact],
@@ -100,12 +113,14 @@ case class Config(
 }
 
 object Config {
+
   private object JsonFields {
     val name: String         = "name"
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
     val license: String      = "license"
     val author: String       = "authors"
+    val namespace: String    = "namespace"
     val maintainer: String   = "maintainers"
     val edition: String      = "edition"
     val preferLocalLibraries = "prefer-local-libraries"
@@ -114,6 +129,7 @@ object Config {
   implicit val decoder: Decoder[Config] = { json =>
     for {
       name        <- json.get[String](JsonFields.name)
+      namespace   <- json.getOrElse[String](JsonFields.namespace)("local")
       version     <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
       edition     <- json.get[Option[Editions.RawEdition]](JsonFields.edition)
@@ -129,6 +145,7 @@ object Config {
       originals <- json.as[JsonObject]
     } yield Config(
       name                 = name,
+      namespace            = namespace,
       version              = version,
       license              = license,
       authors              = author,
@@ -141,8 +158,10 @@ object Config {
 
   implicit val encoder: Encoder[Config] = { config =>
     val originals = config.originalJson
+
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
+      JsonFields.namespace  -> config.namespace.asJson,
       JsonFields.version    -> config.version.asJson,
       JsonFields.edition    -> config.edition.asJson,
       JsonFields.license    -> config.license.asJson,

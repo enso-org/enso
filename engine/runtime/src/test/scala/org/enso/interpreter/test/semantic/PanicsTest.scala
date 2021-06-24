@@ -15,7 +15,7 @@ class PanicsTest extends InterpreterTest {
 
     "be thrown and stop evaluation" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type Foo
           |type Bar
@@ -35,7 +35,7 @@ class PanicsTest extends InterpreterTest {
 
     "be recoverable and transformed into errors" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type MyError
           |
@@ -51,7 +51,7 @@ class PanicsTest extends InterpreterTest {
 
     "catch polyglot errors" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |polyglot java import java.lang.Long
           |
           |main =

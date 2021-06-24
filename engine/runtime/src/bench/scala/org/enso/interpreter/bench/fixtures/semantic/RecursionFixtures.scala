@@ -49,7 +49,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val oversaturatedRecursiveCall = getMain(oversaturatedRecursiveCallTCOCode)
 
   val sumStateTCOCode =
-    """from Builtins import all
+    """from Standard.Builtins import all
       |
       |stateSum = n ->
       |    acc = State.get Number
@@ -63,7 +63,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumStateTCO = getMain(sumStateTCOCode)
 
   val sumTCOWithEvalCode =
-    """from Builtins import all
+    """from Standard.Builtins import all
       |
       |main = sumTo ->
       |    summator = acc -> current ->
@@ -75,7 +75,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
   val sumTCOWithEval = getMain(sumTCOWithEvalCode)
 
   val nestedThunkSumCode =
-    """from Builtins import all
+    """from Standard.Builtins import all
       |
       |doNTimes = n -> ~block ->
       |    block

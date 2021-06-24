@@ -32,8 +32,8 @@ class ProjectRenameActionSpec
     //given
     val probe = TestProbe()
     fakeServer.withBehaviour {
-      case RenameRequestMatcher(requestId, oldName, newName) =>
-        probe.ref ! (oldName -> newName)
+      case RenameRequestMatcher(requestId, namespace, oldName, newName) =>
+        probe.ref ! ((namespace, oldName) -> newName)
         ReplyWith(
           s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
         )
@@ -48,6 +48,7 @@ class ProjectRenameActionSpec
         Socket(testHost, testJsonPort),
         10.seconds,
         2.seconds,
+        Namespace,
         OldName,
         NewName,
         virtualTime.scheduler
@@ -56,7 +57,7 @@ class ProjectRenameActionSpec
     deathWatcher.watch(actorUnderTest)
     //then
     sender.expectMsg(ProjectRenamed)
-    probe.expectMsg(OldName -> NewName)
+    probe.expectMsg((Namespace, OldName) -> NewName)
     deathWatcher.expectTerminated(actorUnderTest)
     //teardown
     fakeServer.stop()
@@ -64,7 +65,7 @@ class ProjectRenameActionSpec
 
   it should "reply with an error when renaming fails" in new TestCtx {
     //given
-    fakeServer.withBehaviour { case RenameRequestMatcher(requestId, _, _) =>
+    fakeServer.withBehaviour { case RenameRequestMatcher(requestId, _, _, _) =>
       ReplyWith(
         s"""{
            |  "jsonrpc": "2.0",
@@ -85,6 +86,7 @@ class ProjectRenameActionSpec
         Socket(testHost, testJsonPort),
         10.seconds,
         2.seconds,
+        Namespace,
         OldName,
         NewName,
         virtualTime.scheduler
@@ -107,6 +109,7 @@ class ProjectRenameActionSpec
         Socket(testHost, testJsonPort),
         10.seconds,
         2.seconds,
+        Namespace,
         OldName,
         NewName,
         virtualTime.scheduler
@@ -140,6 +143,8 @@ class ProjectRenameActionSpec
     fakeServer.start()
 
     val sender = TestProbe()
+
+    val Namespace = "Enso_Test"
 
     val OldName = "Foo"
 

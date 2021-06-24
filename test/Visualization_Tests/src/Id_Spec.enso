@@ -23,8 +23,8 @@ spec = Test.group "Serializable Visualization Identifiers" <|
             Json.from_pairs [["library", lib], ["name", v_name]]
         v_1 = Visualization.Id.from_module here "My Vis"
         v_2 = Visualization.Id.from_module Base "Other Vis"
-        v_1.to_json.should_equal (expected "Visualization_Tests" "My Vis")
-        v_2.to_json.should_equal (expected "Standard" "Other Vis")
+        v_1.to_json.should_equal (expected "enso_dev.Visualization_Tests" "My Vis")
+        v_2.to_json.should_equal (expected "Standard.Base" "Other Vis")
 
     Test.specify "specifies default JSON visualization for any type"
         My_Type 30 . default_visualization . should_equal Visualization.Id.json

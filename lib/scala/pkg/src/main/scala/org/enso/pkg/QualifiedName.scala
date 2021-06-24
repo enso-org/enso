@@ -31,7 +31,8 @@ case class QualifiedName(path: List[String], item: String) {
     * @return a [[QualifiedName]] with the updated project name
     */
   def renameProject(newName: String): QualifiedName = {
-    this.copy(path = newName :: path.tail)
+    val namespace = path.head
+    this.copy(path = namespace :: newName :: path.drop(2))
   }
 
 }

@@ -18,7 +18,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return success exit code" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" Array.empty "" False False False
@@ -31,7 +31,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return error when creating nonexistent command" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |main = System.create_process "nonexistentcommandxyz" Array.empty "" False False False
           |""".stripMargin
 
@@ -43,7 +43,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return error exit code" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "ls" (Array.new_1 "--gibberish") "" False False False
@@ -57,7 +57,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "read line; echo $line") "" True True True
@@ -72,7 +72,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "" True True True
@@ -88,7 +88,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin bytes (Unix)" taggedAs OsUnix in {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "wc -c") "" True True True
@@ -103,7 +103,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin unused" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "42") "" True True True
@@ -118,7 +118,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin empty" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "9") "" True True True
@@ -132,7 +132,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "read line; printf $line") "hello" False False False
@@ -146,7 +146,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::ReadLine()") "hello" False False False
@@ -160,7 +160,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdout chars" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False True True
@@ -174,7 +174,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\x01\\x0F\\x10'") "" False True True
@@ -188,7 +188,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stdout string" in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "echo" (Array.new_1 "foobar") "" False False False
@@ -203,7 +203,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False True True
@@ -217,7 +217,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False True True
@@ -231,7 +231,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2") "" False True True
@@ -245,7 +245,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "bash" (Array.new_2 "-c" "printf err 1>&2") "" False False False
@@ -259,7 +259,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    result = System.create_process "PowerShell" (Array.new_2 "-Command" "[System.Console]::Error.WriteLine('err')") "" False False False
