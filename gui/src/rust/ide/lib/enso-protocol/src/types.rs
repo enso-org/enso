@@ -2,9 +2,10 @@
 
 use crate::prelude::*;
 
+use crate::binary;
+
 use serde::Serialize;
 use serde::Deserialize;
-
 
 
 // ===================
@@ -30,12 +31,25 @@ impl Sha3_224 {
         use sha3::Digest;
         let mut hasher = sha3::Sha3_224::new();
         hasher.input(data);
+        hasher.into()
+    }
+}
+
+impl From<sha3::Sha3_224> for Sha3_224 {
+    fn from(hasher:sha3::Sha3_224) -> Self {
+        use sha3::Digest;
         let result = hasher.result();
         let digest = hex::encode(result[..].to_vec());
         Self(digest)
     }
 }
 
+impl From<binary::message::EnsoDigest> for Sha3_224 {
+    fn from(checksum:binary::message::EnsoDigest) -> Self {
+        let digest = hex::encode(checksum.bytes);
+        Self(digest)
+    }
+}
 
 
 // =============

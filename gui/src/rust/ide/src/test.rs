@@ -10,9 +10,10 @@ use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
 use enso_frp::data::bitfield::BitField;
 use enso_frp::data::bitfield::BitField32;
-use enso_protocol::types::Sha3_224;
+use enso_protocol::binary;
 use enso_protocol::language_server;
 use enso_protocol::language_server::CapabilityRegistration;
+use enso_protocol::types::Sha3_224;
 use json_rpc::expect_call;
 use utils::test::traits::*;
 
@@ -220,6 +221,7 @@ pub mod mock {
         , execution_context   : model::ExecutionContext
         , suggestion_database : Rc<model::SuggestionDatabase>
         , json_client         : language_server::MockClient
+        , binary_client       : binary::MockClient
         ) -> model::Project {
             let mut project = model::project::MockAPI::new();
             model::project::test::expect_name(&mut project,&self.project_name);
@@ -229,8 +231,10 @@ pub mod mock {
             // Root ID is needed to generate module path used to get the module.
             model::project::test::expect_root_id(&mut project,crate::test::mock::data::ROOT_ID);
             model::project::test::expect_suggestion_db(&mut project,suggestion_database);
-            let json_rpc = language_server::Connection::new_mock_rc(json_client);
+            let json_rpc   = language_server::Connection::new_mock_rc(json_client);
             model::project::test::expect_json_rpc(&mut project,json_rpc);
+            let binary_rpc = binary::Connection::new_mock_rc(binary_client);
+            model::project::test::expect_binary_rpc(&mut project,binary_rpc);
             project.expect_urm().returning_st(move || urm.clone_ref());
             Rc::new(project)
         }
@@ -240,16 +244,16 @@ pub mod mock {
         }
 
         pub fn fixture(&self) -> Fixture {
-            self.fixture_customize(|_,_| {})
+            self.fixture_customize(|_,_,_| {})
         }
 
-        pub fn fixture_customize
-        (&self, customize_json_rpc:impl FnOnce(&Self,&mut language_server::MockClient))
-        -> Fixture {
-            let mut json_client = language_server::MockClient::default();
+        pub fn fixture_customize<Fun>(&self, customize_rpc:Fun) -> Fixture
+        where Fun : FnOnce( &Self, &mut language_server::MockClient, &mut binary::MockClient), {
+            let mut json_client   = language_server::MockClient::default();
+            let mut binary_client = binary::MockClient::new();
             // Creating a searcher controller always triggers a query for completion.
             controller::searcher::test::expect_completion(&mut json_client, &[]);
-            customize_json_rpc(self,&mut json_client);
+            customize_rpc(self,&mut json_client,&mut binary_client);
 
             let logger        = self.logger.clone_ref();
             let urm           = self.undo_redo_manager();
@@ -259,7 +263,7 @@ pub mod mock {
             let graph     = self.graph(&logger,module.clone_ref(),suggestion_db.clone_ref());
             let execution = self.execution_context();
             let project   = self.project(urm,module.clone_ref(),execution.clone_ref(),
-                suggestion_db.clone_ref(),json_client);
+                suggestion_db.clone_ref(),json_client,binary_client);
             let ide            = self.ide(&project);
             let executed_graph = controller::ExecutedGraph::new_internal(graph.clone_ref(),
                 project.clone_ref(),execution.clone_ref());
@@ -302,7 +306,7 @@ pub mod mock {
 
     #[derive(Debug)]
     pub struct Fixture {
-        pub logger         : DefaultTraceLogger,
+        pub logger         : Logger,
         pub data           : Unified,
         pub module         : model::Module,
         pub graph          : controller::Graph,

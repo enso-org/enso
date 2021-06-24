@@ -71,6 +71,10 @@ trait API {
     #[MethodInput=FileInfoInput,rpc_name="file/info"]
     fn file_info(&self, path:Path) -> response::FileInfo;
 
+    /// Requests that the language server provide the checksum of the provided file.
+    #[MethodInput=FileChecksumInput,rpc_name="file/checksum"]
+    fn file_checksum(&self, path:Path) -> response::FileChecksum;
+
     /// Creates the specified file system object.
     #[MethodInput=CreateInput,rpc_name="file/create"]
     fn create_file(&self, object:FileSystemObject) -> ();

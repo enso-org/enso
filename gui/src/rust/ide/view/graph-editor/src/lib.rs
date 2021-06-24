@@ -66,6 +66,7 @@ use ensogl::gui::cursor;
 use ensogl::prelude::*;
 use ensogl::system::web;
 use ensogl_theme as theme;
+use ensogl_web::drop;
 
 
 
@@ -573,6 +574,7 @@ ensogl::define_endpoints! {
         view_mode (view::Mode),
 
         navigator_active (bool),
+        file_dropped     (drop::File,Vector2<f32>)
     }
 }
 
@@ -1274,6 +1276,7 @@ impl GraphEditorModelWithNetwork {
             node.set_profiling_max_global_duration <+ self.model.profiling_statuses.max_duration;
             node.set_profiling_max_global_duration(profiling_max_duration.value());
         }
+
         node.set_view_mode(self.model.frp.view_mode.value());
         let initial_metadata = visualization::Metadata {
             preprocessor : node.model.visualization.frp.preprocessor.value()
@@ -1372,6 +1375,7 @@ pub struct GraphEditorModel {
     pub nodes          : Nodes,
     pub edges          : Edges,
     pub vis_registry   : visualization::Registry,
+    pub drop_manager   : drop::Manager,
     // FIXME[MM]: The tooltip should live next to the cursor in `Application`. This does not
     //  currently work, however, because the `Application` lives in enso-core, and the tooltip
     //  requires enso-text, which in turn depends on enso-core, creating a cyclic dependency.
@@ -1412,14 +1416,15 @@ impl GraphEditorModel {
         let tooltip            = Tooltip::new(&app);
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button   = component::profiling::Button::new(&app);
+        let drop_manager       = drop::Manager::new(&scene.dom.root);
         let styles_frp         = StyleWatchFrp::new(&scene.style_sheet);
         let selection_controller = selection::Controller::new(&frp,&app.cursor
             ,&scene.mouse.frp,&touch_state,&nodes);
 
         Self {
-            logger,display_object,app,breadcrumbs,cursor,nodes,edges,vis_registry,tooltip,
-            touch_state,visualisations,frp,navigator,profiling_statuses,profiling_button,styles_frp,
-            selection_controller,
+            logger,display_object,app,breadcrumbs,cursor,nodes,edges,vis_registry,drop_manager,
+            tooltip,touch_state,visualisations,frp,navigator,profiling_statuses,profiling_button,
+            styles_frp,selection_controller
         }.init()
     }
 
@@ -3102,6 +3107,27 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         quick_visualization_preview <- bool(&frp.disable_quick_visualization_preview,
                                             &frp.enable_quick_visualization_preview);
         eval quick_visualization_preview((value) model.nodes.set_quick_preview(*value));
+    }
+
+
+
+    // =====================
+    // === Dropped Files ===
+    // =====================
+
+    let default_gap    = model.styles_frp.get_number_or(theme::project::default_gap_between_nodes,0.0);
+    let files_received = model.drop_manager.files_received().clone_ref();
+    frp::extend! { network
+        files_with_positions <- files_received.map3(&cursor_pos_in_scene,&default_gap,
+            |files,cursor_pos,default_gap| {
+                files.iter().enumerate().map(|(index,file)| {
+                    let offset = Vector2(0.0, default_gap * index as f32);
+                    (file.clone_ref(),cursor_pos+offset)
+                }).collect_vec()
+            }
+        );
+        file_dropped            <= files_with_positions;
+        out.source.file_dropped <+ file_dropped;
     }
 
 

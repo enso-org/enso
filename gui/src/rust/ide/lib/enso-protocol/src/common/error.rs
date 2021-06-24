@@ -16,3 +16,13 @@ pub struct DeserializationError(pub String);
 #[derive(Debug,Fail,Clone,Copy)]
 #[fail(display = "Received a message that is neither a response nor a notification")]
 pub struct UnexpectedMessage;
+
+/// The error codes defined in Enso Protocol (see
+/// https://enso.org/docs/developer/enso/language-server/protocol-language-server.html#error)
+pub mod code {
+    /// Informs that the requested content root cannot be found.
+    pub const CONTENT_ROOT_NOT_FOUND:i64  = 1001;
+
+    /// Signals that requested file doesn’t exist.
+    pub const FILE_NOT_FOUND:i64 = 1003;
+}

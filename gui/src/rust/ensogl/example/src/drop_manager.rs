@@ -40,8 +40,8 @@ pub fn entry_point_drop_manager() {
     let drop_manager = drop::Manager::new(world.scene().dom.root.as_ref());
     let network      = enso_frp::Network::new("Debug Scene");
     enso_frp::extend! { network
-        let file_received = drop_manager.file_received().clone_ref();
-        eval file_received ([](file) download_file(file.clone_ref()));
+        let file_received = drop_manager.files_received().clone_ref();
+        eval file_received ([](files) for file in files { download_file(file.clone_ref())});
     }
 
     let mut loader_hidden = false;

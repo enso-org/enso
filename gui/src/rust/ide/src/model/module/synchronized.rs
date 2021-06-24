@@ -579,7 +579,7 @@ pub mod test {
         let test = |runner:&mut Runner| {
             let module_path  = data.module_path.clone();
             let edit_handler = Rc::new(LsClientSetup::new(&data.logger,module_path,initial_code));
-            let mut fixture  = data.fixture_customize(|data, client| {
+            let mut fixture  = data.fixture_customize(|data,client,_| {
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
                 // Opening module and metadata generation.
@@ -627,7 +627,7 @@ pub mod test {
 
         let test = |runner:&mut Runner| {
             let edit_handler = LsClientSetup::new_for_mock_data(&data);
-            let mut fixture  = data.fixture_customize(|data, client| {
+            let mut fixture  = data.fixture_customize(|data,client,_| {
                 data.expect_opening_module(client);
                 data.expect_closing_module(client);
                 // Opening module and metadata generation.

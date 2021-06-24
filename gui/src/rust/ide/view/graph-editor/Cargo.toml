@@ -22,6 +22,7 @@ ensogl-gui-components = { version = "0.1.0", path = "../../../ensogl/lib/compone
 ensogl-text = { version = "0.1.0", path = "../../../ensogl/lib/text" }
 ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/text/msdf-sys" }
 ensogl-theme = { version = "0.1.0", path = "../../../ensogl/lib/theme" }
+ensogl-web = { version = "0.1.0", path = "../../../ensogl/lib/web" }
 failure = { version = "0.1.8" }
 ordered-float = {version = "1.0"}
 span-tree = { version = "0.1.0", path = "../../lib/span-tree" }

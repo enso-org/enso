@@ -122,6 +122,46 @@ impl<'a> SerializableDeserializableObject<'a> for LSPath {
 }
 
 
+// === impl File Segment ===
+
+impl<'a> SerializableDeserializableObject<'a> for message::FileSegment {
+    type Out = FileSegment<'a>;
+
+    fn serialize(&self, builder: &mut FlatBufferBuilder<'a>) -> WIPOffset<Self::Out> {
+        let path = self.path.serialize(builder);
+        FileSegment::create(builder, &FileSegmentArgs {
+            path       : Some(path),
+            byteOffset : self.byte_offset,
+            length     : self.length
+        })
+    }
+
+    fn deserialize(fbs: Self::Out) -> Result<Self, DeserializationError> {
+        let path        = LSPath::deserialize(fbs.path())?;
+        let byte_offset = fbs.byteOffset();
+        let length      = fbs.length();
+        Ok(Self {path,byte_offset,length})
+    }
+}
+
+
+// === impl EnsoDigest ===
+
+impl<'a> SerializableDeserializableObject<'a> for message::EnsoDigest {
+    type Out = EnsoDigest<'a>;
+
+    fn serialize(&self, builder: &mut FlatBufferBuilder<'a>) -> WIPOffset<Self::Out> {
+        let bytes = builder.create_vector(&self.bytes);
+        EnsoDigest::create(builder, &EnsoDigestArgs {bytes:Some(bytes)})
+    }
+
+    fn deserialize(fbs: Self::Out) -> Result<Self, DeserializationError> {
+        let bytes = fbs.bytes().to_vec();
+        Ok(Self {bytes})
+    }
+}
+
+
 
 // =========================
 // === SerializableUnion ===
@@ -133,7 +173,7 @@ pub trait SerializableUnion : Sized {
     type EnumType;
 
     /// Write the enumeration to the builder and return the handle.
-    fn serialize(&self, builder: &mut FlatBufferBuilder) -> WIPOffset<UnionWIPOffset>;
+    fn serialize(&self, builder: &mut FlatBufferBuilder) -> Option<WIPOffset<UnionWIPOffset>>;
 
     /// Obtain the index of the active variant.
     fn active_variant(&self) -> Self::EnumType;
@@ -141,8 +181,8 @@ pub trait SerializableUnion : Sized {
 
 impl<'a> SerializableUnion for ToServerPayload<'a> {
     type EnumType = InboundPayload;
-    fn serialize(&self, builder: &mut FlatBufferBuilder) -> WIPOffset<UnionWIPOffset> {
-        match self {
+    fn serialize(&self, builder: &mut FlatBufferBuilder) -> Option<WIPOffset<UnionWIPOffset>> {
+        Some(match self {
             ToServerPayload::InitSession {client_id} => {
                 InitSessionCommand::create(builder, &InitSessionCommandArgs {
                     identifier : Some(&client_id.into())
@@ -162,22 +202,47 @@ impl<'a> SerializableUnion for ToServerPayload<'a> {
                     path : Some(path)
                 }).as_union_value()
             }
-        }
+            ToServerPayload::ReadBytes {segment} => {
+                let segment = segment.serialize(builder);
+                ReadBytesCommand::create(builder, &ReadBytesCommandArgs {
+                    segment : Some(segment)
+                }).as_union_value()
+            }
+            ToServerPayload::WriteBytes { path,byte_offset,overwrite,bytes } => {
+                let path  = path.serialize(builder);
+                let bytes = builder.create_vector(bytes);
+                WriteBytesCommand::create(builder, &WriteBytesCommandArgs {
+                    byteOffset        : *byte_offset,
+                    path              : Some(path),
+                    overwriteExisting : *overwrite,
+                    bytes             : Some(bytes),
+                }).as_union_value()
+            }
+            ToServerPayload::ChecksumBytes {segment} => {
+                let segment = segment.serialize(builder);
+                ChecksumBytesCommand::create(builder, &ChecksumBytesCommandArgs {
+                    segment : Some(segment)
+                }).as_union_value()
+            }
+        })
     }
 
     fn active_variant(&self) -> Self::EnumType {
         match self {
-            ToServerPayload::InitSession {..} => InboundPayload::INIT_SESSION_CMD,
-            ToServerPayload::WriteFile   {..} => InboundPayload::WRITE_FILE_CMD,
-            ToServerPayload::ReadFile    {..} => InboundPayload::READ_FILE_CMD,
+            ToServerPayload::InitSession   {..} => InboundPayload::INIT_SESSION_CMD,
+            ToServerPayload::WriteFile     {..} => InboundPayload::WRITE_FILE_CMD,
+            ToServerPayload::ReadFile      {..} => InboundPayload::READ_FILE_CMD,
+            ToServerPayload::WriteBytes    {..} => InboundPayload::WRITE_BYTES_CMD,
+            ToServerPayload::ReadBytes     {..} => InboundPayload::READ_BYTES_CMD,
+            ToServerPayload::ChecksumBytes {..} => InboundPayload::CHECKSUM_BYTES_CMD,
         }
     }
 }
 
 impl SerializableUnion for ToServerPayloadOwned {
     type EnumType = InboundPayload;
-    fn serialize(&self, builder: &mut FlatBufferBuilder) -> WIPOffset<UnionWIPOffset> {
-        match self {
+    fn serialize(&self, builder: &mut FlatBufferBuilder) -> Option<WIPOffset<UnionWIPOffset>> {
+        Some(match self {
             ToServerPayloadOwned::InitSession {client_id} => {
                 InitSessionCommand::create(builder, &InitSessionCommandArgs {
                     identifier : Some(&client_id.into())
@@ -197,14 +262,39 @@ impl SerializableUnion for ToServerPayloadOwned {
                     path : Some(path)
                 }).as_union_value()
             }
-        }
+            ToServerPayloadOwned::ReadBytes {segment} => {
+                let segment = segment.serialize(builder);
+                ReadBytesCommand::create(builder, &ReadBytesCommandArgs {
+                    segment : Some(segment)
+                }).as_union_value()
+            }
+            ToServerPayloadOwned::WriteBytes { path,byte_offset,overwrite,bytes } => {
+                let path  = path.serialize(builder);
+                let bytes = builder.create_vector(bytes);
+                WriteBytesCommand::create(builder, &WriteBytesCommandArgs {
+                    byteOffset        : *byte_offset,
+                    path              : Some(path),
+                    overwriteExisting : *overwrite,
+                    bytes             : Some(bytes),
+                }).as_union_value()
+            }
+            ToServerPayloadOwned::ChecksumBytes {segment} => {
+                let segment = segment.serialize(builder);
+                ChecksumBytesCommand::create(builder, &ChecksumBytesCommandArgs {
+                    segment : Some(segment)
+                }).as_union_value()
+            }
+        })
     }
 
     fn active_variant(&self) -> Self::EnumType {
         match self {
-            ToServerPayloadOwned::InitSession {..} => InboundPayload::INIT_SESSION_CMD,
-            ToServerPayloadOwned::WriteFile   {..} => InboundPayload::WRITE_FILE_CMD,
-            ToServerPayloadOwned::ReadFile    {..} => InboundPayload::READ_FILE_CMD,
+            ToServerPayloadOwned::InitSession   {..} => InboundPayload::INIT_SESSION_CMD,
+            ToServerPayloadOwned::WriteFile     {..} => InboundPayload::WRITE_FILE_CMD,
+            ToServerPayloadOwned::ReadFile      {..} => InboundPayload::READ_FILE_CMD,
+            ToServerPayloadOwned::WriteBytes    {..} => InboundPayload::WRITE_BYTES_CMD,
+            ToServerPayloadOwned::ReadBytes     {..} => InboundPayload::READ_BYTES_CMD,
+            ToServerPayloadOwned::ChecksumBytes {..} => InboundPayload::CHECKSUM_BYTES_CMD,
         }
     }
 }
@@ -212,16 +302,19 @@ impl SerializableUnion for ToServerPayloadOwned {
 impl SerializableUnion for FromServerPayloadOwned {
     type EnumType = OutboundPayload;
 
-    fn serialize(&self, builder: &mut FlatBufferBuilder) -> WIPOffset<UnionWIPOffset> {
-        match self {
+    fn serialize(&self, builder: &mut FlatBufferBuilder) -> Option<WIPOffset<UnionWIPOffset>> {
+        Some(match self {
             FromServerPayloadOwned::Success {} => {
                 Success::create(builder, &SuccessArgs {}).as_union_value()
             }
-            FromServerPayloadOwned::Error {code,message} => {
-                let message = builder.create_string(&message);
+            FromServerPayloadOwned::Error {code,message,data} => {
+                let message         = builder.create_string(&message);
+                let data_serialized = data.serialize(builder);
                 Error::create(builder, &ErrorArgs {
-                    code    : *code,
-                    message : Some(message),
+                    code      : *code,
+                    message   : Some(message),
+                    data_type : data.active_variant(),
+                    data      : data_serialized,
                 }).as_union_value()
             }
             FromServerPayloadOwned::FileContentsReply {contents} => {
@@ -238,15 +331,58 @@ impl SerializableUnion for FromServerPayloadOwned {
                     visualisationContext : Some(context),
                 }).as_union_value()
             }
-        }
+            FromServerPayloadOwned::WriteBytesReply {checksum} => {
+                let checksum = checksum.serialize(builder);
+                WriteBytesReply::create(builder, &WriteBytesReplyArgs {
+                    checksum : Some(checksum),
+                }).as_union_value()
+            }
+            FromServerPayloadOwned::ReadBytesReply {checksum,bytes} => {
+                let bytes    = builder.create_vector(bytes);
+                let checksum = checksum.serialize(builder);
+                ReadBytesReply::create(builder, &ReadBytesReplyArgs {
+                    checksum : Some(checksum),
+                    bytes    : Some(bytes)
+                }).as_union_value()
+            }
+            FromServerPayloadOwned::ChecksumBytesReply {checksum} => {
+                let checksum = checksum.serialize(builder);
+                ChecksumBytesReply::create(builder, &ChecksumBytesReplyArgs {
+                    checksum : Some(checksum),
+                }).as_union_value()
+            }
+        })
     }
 
     fn active_variant(&self) -> Self::EnumType {
         match self {
-            FromServerPayloadOwned::Error {..}               => OutboundPayload::ERROR,
-            FromServerPayloadOwned::Success {..}             => OutboundPayload::SUCCESS,
-            FromServerPayloadOwned::FileContentsReply {..}   => OutboundPayload::FILE_CONTENTS_REPLY,
+            FromServerPayloadOwned::Error               {..} => OutboundPayload::ERROR,
+            FromServerPayloadOwned::Success             {..} => OutboundPayload::SUCCESS,
+            FromServerPayloadOwned::FileContentsReply   {..} => OutboundPayload::FILE_CONTENTS_REPLY,
             FromServerPayloadOwned::VisualizationUpdate {..} => OutboundPayload::VISUALISATION_UPDATE,
+            FromServerPayloadOwned::WriteBytesReply     {..} => OutboundPayload::WRITE_BYTES_REPLY,
+            FromServerPayloadOwned::ReadBytesReply      {..} => OutboundPayload::READ_BYTES_REPLY,
+            FromServerPayloadOwned::ChecksumBytesReply  {..} => OutboundPayload::CHECKSUM_BYTES_REPLY,
+        }
+    }
+}
+
+impl SerializableUnion for Option<message::ErrorPayload> {
+    type EnumType = ErrorPayload;
+
+    fn serialize(&self, builder: &mut FlatBufferBuilder) -> Option<WIPOffset<UnionWIPOffset>> {
+        Some(match self.as_ref()? {
+            message::ErrorPayload::ReadOOB {file_length} => {
+                let args = ReadOutOfBoundsErrorArgs {fileLength:*file_length};
+                ReadOutOfBoundsError::create(builder,&args).as_union_value()
+            },
+        })
+    }
+
+    fn active_variant(&self) -> Self::EnumType {
+        match self {
+            Some(message::ErrorPayload::ReadOOB {..}) => ErrorPayload::READ_OOB,
+            None                                      => ErrorPayload::NONE
         }
     }
 }
@@ -272,8 +408,9 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
             OutboundPayload::ERROR => {
                 let payload = message.payload_as_error().unwrap();
                 Ok(FromServerPayload::Error {
-                    code: payload.code(),
-                    message: payload.message().unwrap_or_default(),
+                    code    : payload.code(),
+                    message : payload.message(),
+                    data    : Option::<message::ErrorPayload>::deserialize(payload)?
                 })
             }
             OutboundPayload::FILE_CONTENTS_REPLY => {
@@ -291,9 +428,27 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                     context: message::VisualisationContext::deserialize(context)?,
                 })
             }
+            OutboundPayload::WRITE_BYTES_REPLY => {
+                let payload = message.payload_as_write_bytes_reply().unwrap();
+                Ok(FromServerPayload::WriteBytesReply {
+                    checksum : message::EnsoDigest::deserialize(payload.checksum())?,
+                })
+            }
+            OutboundPayload::READ_BYTES_REPLY => {
+                let payload = message.payload_as_read_bytes_reply().unwrap();
+                Ok(FromServerPayload::ReadBytesReply {
+                    checksum : message::EnsoDigest::deserialize(payload.checksum())?,
+                    bytes    : payload.bytes(),
+                })
+            }
+            OutboundPayload::CHECKSUM_BYTES_REPLY => {
+                let payload  = message.payload_as_checksum_bytes_reply().unwrap();
+                let checksum = message::EnsoDigest::deserialize(payload.checksum())?;
+                Ok(FromServerPayload::ChecksumBytesReply {checksum})
+            }
             OutboundPayload::NONE =>
                 Err(DeserializationError("Received a message without payload. This is not allowed, \
-                                         according to the spec.".into()))
+                                         according to the spec.".into())),
         }
     }
 }
@@ -323,7 +478,31 @@ impl<'a> DeserializableUnionField<'a, InboundMessage<'a>> for ToServerPayloadOwn
             }
             InboundPayload::NONE =>
                 Err(DeserializationError("Received a message without payload. This is not allowed, \
-                                         according to the spec.".into()))
+                                         according to the spec.".into())),
+            InboundPayload::WRITE_BYTES_CMD => {
+                let payload = message.payload_as_write_bytes_cmd().unwrap();
+
+                Ok(ToServerPayloadOwned::WriteBytes {
+                    path        : LSPath::deserialize(payload.path())?,
+                    byte_offset : payload.byteOffset(),
+                    overwrite   : payload.overwriteExisting(),
+                    bytes       : payload.bytes().to_vec(),
+                })
+            }
+            InboundPayload::READ_BYTES_CMD => {
+                let payload = message.payload_as_read_bytes_cmd().unwrap();
+
+                Ok(ToServerPayloadOwned::ReadBytes {
+                    segment : message::FileSegment::deserialize(payload.segment())?
+                })
+            }
+            InboundPayload::CHECKSUM_BYTES_CMD => {
+                let payload = message.payload_as_checksum_bytes_cmd().unwrap();
+
+                Ok(ToServerPayloadOwned::ChecksumBytes {
+                    segment : message::FileSegment::deserialize(payload.segment())?
+                })
+            }
         }
     }
 }
@@ -334,14 +513,15 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
             OutboundPayload::ERROR => {
                 let payload = message.payload_as_error().unwrap();
                 Ok(FromServerPayloadOwned::Error {
-                    code: payload.code(),
-                    message: payload.message().unwrap_or_default().to_string(),
+                    code    : payload.code(),
+                    message : payload.message().to_string(),
+                    data    : Option::<message::ErrorPayload>::deserialize(payload)?
                 })
             }
             OutboundPayload::FILE_CONTENTS_REPLY => {
                 let payload = message.payload_as_file_contents_reply().unwrap();
                 Ok(FromServerPayloadOwned::FileContentsReply {
-                    contents: Vec::from(payload.contents().unwrap_or_default())
+                    contents : Vec::from(payload.contents().unwrap_or_default())
                 })
             }
             OutboundPayload::SUCCESS => Ok(FromServerPayloadOwned::Success {}),
@@ -353,9 +533,40 @@ impl<'a> DeserializableUnionField<'a, OutboundMessage<'a>> for FromServerPayload
                     context: message::VisualisationContext::deserialize(context)?,
                 })
             }
+            OutboundPayload::WRITE_BYTES_REPLY => {
+                let payload = message.payload_as_write_bytes_reply().unwrap();
+                Ok(FromServerPayloadOwned::WriteBytesReply {
+                    checksum : message::EnsoDigest::deserialize(payload.checksum())?,
+                })
+            }
+            OutboundPayload::READ_BYTES_REPLY => {
+                let payload = message.payload_as_read_bytes_reply().unwrap();
+                Ok(FromServerPayloadOwned::ReadBytesReply {
+                    checksum : message::EnsoDigest::deserialize(payload.checksum())?,
+                    bytes    : payload.bytes().to_vec(),
+                })
+            }
+            OutboundPayload::CHECKSUM_BYTES_REPLY => {
+                let payload  = message.payload_as_checksum_bytes_reply().unwrap();
+                Ok(FromServerPayloadOwned::ChecksumBytesReply {
+                    checksum : message::EnsoDigest::deserialize(payload.checksum())?,
+                })
+            }
             OutboundPayload::NONE =>
                 Err(DeserializationError("Received a message without payload. This is not allowed, \
                                          according to the spec.".into()))
+        }
+    }
+}
+
+impl<'a> DeserializableUnionField<'a, Error<'a>> for Option<message::ErrorPayload> {
+    fn deserialize(owner: Error<'a>) -> Result<Self, DeserializationError> {
+        match owner.data_type() {
+            ErrorPayload::NONE => Ok(None),
+            ErrorPayload::READ_OOB => {
+                let payload = owner.data_as_read_oob().unwrap();
+                Ok(Some(message::ErrorPayload::ReadOOB {file_length:payload.fileLength()}))
+            }
         }
     }
 }
@@ -391,7 +602,7 @@ where T:SerializableUnion<EnumType=InboundPayload> {
         let correlation_id = self.correlation_id.map(EnsoUUID::from);
         let message_id     = self.message_id.into();
         let payload_type   = self.payload.active_variant();
-        let payload        = Some(self.payload.serialize(builder));
+        let payload        = self.payload.serialize(builder);
         let message        = InboundMessage::create(builder, &InboundMessageArgs {
             correlationId : correlation_id.as_ref(),
             messageId     : Some(&message_id),
@@ -408,7 +619,7 @@ where T : SerializableUnion<EnumType=OutboundPayload> {
         let correlation_id = self.correlation_id.map(EnsoUUID::from);
         let message_id     = self.message_id.into();
         let payload_type   = self.payload.active_variant();
-        let payload        = Some(self.payload.serialize(builder));
+        let payload        = self.payload.serialize(builder);
         let message        = OutboundMessage::create(builder, &OutboundMessageArgs {
             correlationId : correlation_id.as_ref(),
             messageId     : Some(&message_id),

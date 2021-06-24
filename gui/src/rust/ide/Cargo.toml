@@ -23,6 +23,7 @@ ensogl-system-web = { path = "../lib/system/web" }
 ensogl-text = { path = "../ensogl/lib/text" }
 ensogl-text-msdf-sys = { path = "../ensogl/lib/text/msdf-sys" }
 ensogl-theme = { path = "../ensogl/lib/theme" }
+ensogl-web = { path = "../ensogl/lib/web" }
 fuzzly = { path = "../lib/fuzzly" }
 ast = { path = "lib/ast/impl" }
 ide-view = { path = "view" }
@@ -43,6 +44,7 @@ nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
 semver = { version = "0.9.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+sha3 = { version = "0.8.2" }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = { version = "=0.2.58" }
 

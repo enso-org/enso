@@ -17,7 +17,7 @@ use flo_stream::MessagePublisher;
 /// If Publisher buffer will be full, the thread sending next notification will be blocked until
 /// all subscribers read message from buffer. We don't expect much traffic on file notifications,
 /// therefore there is no need for setting big buffers.
-const NOTIFICATION_BUFFER_SIZE : usize = 36;
+pub const NOTIFICATION_BUFFER_SIZE : usize = 36;
 
 /// A notification publisher which implements Debug, Default and CloneRef (which is same as
 /// republishing for the same stream) and uses internal mutability.

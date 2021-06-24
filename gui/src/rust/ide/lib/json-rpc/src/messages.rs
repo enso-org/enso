@@ -187,13 +187,13 @@ pub struct Success<Ret> {
 
 /// Error raised on a failed remote call.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Error {
+pub struct Error<Payload=serde_json::Value> {
     /// A number indicating what type of error occurred.
     pub code    : i64,
     /// A short description of the error.
     pub message : String,
     /// Optional value with additional information about the error.
-    pub data    : Option<serde_json::Value>
+    pub data    : Option<Payload>
 }
 
 /// A message that can come from Server to Client — either a response or

@@ -70,6 +70,26 @@ pub struct VisualisationContext {
     pub expression_id    : Uuid,
 }
 
+#[allow(missing_docs)]
+#[derive(Copy,Clone,Debug)]
+pub enum ErrorPayload {
+    ReadOOB {file_length:u64},
+}
+
+#[allow(missing_docs)]
+#[derive(Clone,Debug,PartialEq)]
+pub struct FileSegment {
+    pub path        : LSPath,
+    pub byte_offset : u64,
+    pub length      : u64,
+}
+
+#[allow(missing_docs)]
+#[derive(Clone,Debug,Default,PartialEq)]
+pub struct EnsoDigest{
+    pub bytes : Vec<u8>,
+}
+
 
 
 // ================
@@ -79,35 +99,47 @@ pub struct VisualisationContext {
 #[allow(missing_docs)]
 #[derive(Clone,Debug,PartialEq)]
 pub enum ToServerPayloadOwned {
-    InitSession {client_id:Uuid},
-    WriteFile   {path:LSPath, contents:Vec<u8>},
-    ReadFile    {path:LSPath}
+    InitSession   {client_id:Uuid},
+    WriteFile     {path:LSPath, contents:Vec<u8>},
+    ReadFile      {path:LSPath},
+    WriteBytes    {path:LSPath, byte_offset:u64, overwrite:bool, bytes:Vec<u8>},
+    ReadBytes     {segment:FileSegment},
+    ChecksumBytes {segment:FileSegment},
 }
 
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
 pub enum FromServerPayloadOwned {
-    Error {code:i32, message:String},
-    Success {},
+    Error               {code:i32, message:String, data:Option<ErrorPayload>},
+    Success             {},
     VisualizationUpdate {context:VisualisationContext, data:Vec<u8>},
     FileContentsReply   {contents:Vec<u8>},
+    WriteBytesReply     {checksum:EnsoDigest},
+    ReadBytesReply      {checksum:EnsoDigest, bytes:Vec<u8>},
+    ChecksumBytesReply  {checksum:EnsoDigest},
 }
 
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
 pub enum ToServerPayload<'a> {
-    InitSession {client_id:Uuid},
-    WriteFile   {path:&'a LSPath, contents:&'a[u8]},
-    ReadFile    {path:&'a LSPath}
+    InitSession   {client_id:Uuid},
+    WriteFile     {path:&'a LSPath, contents:&'a[u8]},
+    ReadFile      {path:&'a LSPath},
+    WriteBytes    {path:&'a LSPath, byte_offset:u64, overwrite:bool, bytes:&'a [u8]},
+    ReadBytes     {segment:&'a FileSegment},
+    ChecksumBytes {segment:&'a FileSegment},
 }
 
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
 pub enum FromServerPayload<'a> {
-    Error {code:i32, message:&'a str},
-    Success {},
+    Error               {code:i32, message:&'a str, data:Option<ErrorPayload>},
+    Success             {},
     VisualizationUpdate {context:VisualisationContext, data:&'a [u8]},
-    FileContentsReply {contents:&'a [u8]},
+    FileContentsReply   {contents:&'a [u8]},
+    WriteBytesReply     {checksum:EnsoDigest},
+    ReadBytesReply      {checksum:EnsoDigest, bytes:&'a [u8]},
+    ChecksumBytesReply  {checksum:EnsoDigest},
 }
 
 
