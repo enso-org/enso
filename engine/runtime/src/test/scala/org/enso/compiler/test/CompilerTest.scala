@@ -206,6 +206,7 @@ trait CompilerRunner {
             .Specified(
               IR.Name
                 .Literal("arg", isReferent = false, isMethod = false, None),
+              None,
               Some(ir),
               suspended = false,
               None

@@ -190,6 +190,7 @@ case object DemandAnalysis extends IRPass {
               "analysis runs."
             )
           case err: IR.Error.Resolution => err
+          case err: IR.Error.Conversion => err
           case _: IR.Name.Blank =>
             throw new CompilerError(
               "Blanks should not be present by the time demand analysis runs."
@@ -318,7 +319,7 @@ case object DemandAnalysis extends IRPass {
     arg: IR.DefinitionArgument
   ): IR.DefinitionArgument = {
     arg match {
-      case spec @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         spec.copy(
           defaultValue = default.map(x =>
             analyseExpression(

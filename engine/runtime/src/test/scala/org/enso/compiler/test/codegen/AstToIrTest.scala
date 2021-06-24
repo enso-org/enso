@@ -7,33 +7,6 @@ import org.scalatest.Inside
 
 class AstToIrTest extends CompilerTest with Inside {
 
-  "AST translation of lambda definitions" should {
-    "result in a syntax error when defined with multiple arguments" in {
-      val ir =
-        """x y -> x + y
-          |""".stripMargin.toIrExpression.get
-
-      ir shouldBe an[IR.Error.Syntax]
-
-      ir.asInstanceOf[IR.Error.Syntax].message shouldEqual
-      "Syntax is not supported yet: pattern matching function arguments."
-    }
-
-    "support standard lambda chaining" in {
-      val ir =
-        """
-          |x -> y -> z -> x
-          |""".stripMargin.toIrExpression.get
-
-      ir shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Function.Lambda]
-      ir.asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body shouldBe an[IR.Function.Lambda]
-    }
-  }
-
   "AST translation of operators" should {
     "disallow named arguments to operators" in {
       val ir =
@@ -278,6 +251,48 @@ class AstToIrTest extends CompilerTest with Inside {
         ir.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
       blankArg.name shouldBe an[IR.Name.Blank]
     }
+
+    "result in a syntax error when defined with multiple arguments" in {
+      val ir =
+        """x y -> x + y
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+
+      ir.asInstanceOf[IR.Error.Syntax].message shouldEqual
+      "Syntax is not supported yet: pattern matching function arguments."
+    }
+
+    "support standard lambda chaining" in {
+      val ir =
+        """
+          |x -> y -> z -> x
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body shouldBe an[IR.Function.Lambda]
+    }
+
+    "support ascribed argument definitions" in {
+      val ir =
+        """
+          |(~x : Type = Type.default) -> x.do_thing
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Lambda]
+      val args = ir.asInstanceOf[IR.Function.Lambda].arguments
+      args.length shouldEqual 1
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "x"
+      firstArg.ascribedType shouldBe defined
+      firstArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "Type"
+      firstArg.defaultValue shouldBe defined
+      firstArg.suspended shouldBe true
+    }
   }
 
   "AST translation of bindings" should {
@@ -365,13 +380,43 @@ class AstToIrTest extends CompilerTest with Inside {
       ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
     }
 
-    "work for method definitions with operator names" in {
-      val bindings = """
-                       |My.== : My -> Boolean
-                       |My.== that = this.a == that.a
-                       |""".stripMargin.toIrModule.bindings
+    "work for method definitions with ascribed arguments" in {
+      val ir =
+        """
+          |T.f a:b (~c : d = 1) = a + c
+          |""".stripMargin.toIrModule
 
-      val tpIr = bindings(0)
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
+
+      val method =
+        ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+
+      val args = method.arguments
+      args.length shouldEqual 2
+
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "a"
+      firstArg.ascribedType shouldBe defined
+      firstArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "b"
+      firstArg.defaultValue should not be defined
+      firstArg.suspended shouldBe false
+
+      val secondArg = args(1)
+      secondArg.name.name shouldEqual "c"
+      secondArg.ascribedType shouldBe defined
+      secondArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "d"
+      secondArg.defaultValue shouldBe defined
+      secondArg.suspended shouldBe true
+    }
+
+    "work for method definitions with operator names" in {
+      val bindings =
+        """
+          |My.== : My -> Boolean
+          |My.== that = this.a == that.a
+          |""".stripMargin.toIrModule.bindings
+
+      val tpIr = bindings.head
       tpIr shouldBe a[IR.Type.Ascription]
       val tp = tpIr.asInstanceOf[IR.Type.Ascription]
       tp.typed shouldBe a[IR.Name.MethodReference]
@@ -422,6 +467,113 @@ class AstToIrTest extends CompilerTest with Inside {
 
       ir shouldBe an[IR.Function.Binding]
     }
+
+    "work with ascribed arguments" in {
+      val ir =
+        """
+          |f a:b (~c : d = 1) = a + c
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Binding]
+      val func = ir.asInstanceOf[IR.Function.Binding]
+      val args = func.arguments
+      args.length shouldEqual 2
+
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "a"
+      firstArg.ascribedType shouldBe defined
+      firstArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "b"
+      firstArg.defaultValue should not be defined
+      firstArg.suspended shouldBe false
+
+      val secondArg = args(1)
+      secondArg.name.name shouldEqual "c"
+      secondArg.ascribedType shouldBe defined
+      secondArg.ascribedType.get.asInstanceOf[IR.Name].name shouldEqual "d"
+      secondArg.defaultValue shouldBe defined
+      secondArg.suspended shouldBe true
+    }
+  }
+
+  "AST translation for atom definitions" should {
+    "work for atoms with no arguments" in {
+      val ir =
+        """
+          |type My_Type
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      atom.name.name shouldEqual "My_Type"
+    }
+
+    "work for atoms with arguments" in {
+      val ir =
+        """
+          |type My_Type a b c
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      atom.name.name shouldEqual "My_Type"
+      val args = atom.arguments
+      args.length shouldEqual 3
+      args.head.name.name shouldEqual "a"
+      args(1).name.name shouldEqual "b"
+      args(2).name.name shouldEqual "c"
+    }
+
+    "work for atoms with default arguments" in {
+      val ir =
+        """
+          |type My_Type (a = 1)
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      atom.name.name shouldEqual "My_Type"
+      val args = atom.arguments
+      args.length shouldEqual 1
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "a"
+      firstArg.ascribedType should not be defined
+      firstArg.defaultValue shouldBe defined
+      firstArg.suspended shouldBe false
+    }
+
+    "raise an error for atoms with lazy arguments" in {
+      val ir =
+        """
+          |type My_Type ~a
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Error.Syntax]
+      val error = ir.bindings.head.asInstanceOf[IR.Error.Syntax]
+      error.reason shouldBe an[IR.Error.Syntax.SuspendedArgInAtom.type]
+    }
+
+    "work for atoms with ascribed arguments" in {
+      val ir =
+        """
+          |type My_Type a:b (c : d = 1)
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      val atom = ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Atom]
+      atom.name.name shouldEqual "My_Type"
+      val args = atom.arguments
+      args.length shouldEqual 2
+
+      val firstArg = args.head
+      firstArg.name.name shouldEqual "a"
+      firstArg.ascribedType shouldBe defined
+      firstArg.defaultValue should not be defined
+
+      val secondArg = args(1)
+      secondArg.name.name shouldEqual "c"
+      secondArg.ascribedType shouldBe defined
+      secondArg.defaultValue shouldBe defined
+    }
   }
 
   "AST translation for the inline flow" should {
@@ -436,7 +588,7 @@ class AstToIrTest extends CompilerTest with Inside {
         .reason shouldBe an[IR.Error.Syntax.MethodDefinedInline]
     }
 
-    "disallow type definitions without explocing" in {
+    "disallow type definitions without exploding" in {
       val ir =
         """
           |type MyAtom a b
@@ -807,10 +959,12 @@ class AstToIrTest extends CompilerTest with Inside {
           |""".stripMargin.toIrExpression.get
           .asInstanceOf[IR.Application.Operator.Binary]
 
+      ir.right.value shouldBe an[IR.Function.Lambda]
       ir.right.value
-        .asInstanceOf[IR.Application.Operator.Binary]
-        .left
-        .value shouldBe an[IR.Application.Operator.Binary]
+        .asInstanceOf[IR.Function.Lambda]
+        .arguments
+        .head
+        .ascribedType shouldBe defined
     }
 
     // TODO [AA] Syntax error with `f a ->`
