@@ -627,6 +627,7 @@ impl Node {
             out.source.freeze <+ action_bar.action_freeze;
             show_action_bar   <- out.hover  && frp.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
+            eval frp.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
 
 
             // === View Mode ===
