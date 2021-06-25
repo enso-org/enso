@@ -6,6 +6,11 @@
   project namespace, or use the new `project` keyword to import from the current
   project ([#1806](https://github.com/enso-org/enso/pull/1806)).
 
+## Tooling
+
+- Added namespace information to project manager messages
+  ([#1820](https://github.com/enso-org/enso/pull/1820)).
+
 # Enso 0.2.12 (2021-06-24)
 
 ## Interpreter/Runtime
