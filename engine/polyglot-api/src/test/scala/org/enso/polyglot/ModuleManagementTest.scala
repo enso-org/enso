@@ -19,6 +19,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.STRICT_ERRORS, "true")
         .build()
     )
 
@@ -97,7 +98,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
   subject should "allow to create new, importable modules" in {
     val ctx = new TestContext("Test")
     ctx.writeMain("""
-                    |import MyLib.Foo
+                    |import Enso_Test.Test.Foo
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -111,7 +112,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val topScope = ctx.executionContext.getTopScope
     topScope.registerModule(
-      "MyLib.Foo.Main",
+      "Enso_Test.Test.Foo",
       ctx.mkFile("Foo.enso").getAbsolutePath
     )
 
@@ -124,7 +125,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
   subject should "allow importing literal-source modules" in {
     val ctx = new TestContext("Test")
     ctx.writeMain("""
-                    |import MyLib.Foo
+                    |import Enso_Test.Test.Foo
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -138,7 +139,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val topScope = ctx.executionContext.getTopScope
     val fooModule = topScope.registerModule(
-      "MyLib.Foo.Main",
+      "Enso_Test.Test.Foo",
       ctx.mkFile("Foo.enso").getAbsolutePath
     )
     fooModule.setSource("""
@@ -182,9 +183,6 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     )
     val exception =
       the[PolyglotException] thrownBy mod2.getAssociatedConstructor
-    exception.getMessage shouldEqual "org.enso.compiler.exception." +
-    "CompilerError: Compiler Internal Error: Attempted to import the " +
-    "unresolved module Enso_Test.Test.Main during code generation. Defined " +
-    "at X2[2:1-2:26]."
+    exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 }
