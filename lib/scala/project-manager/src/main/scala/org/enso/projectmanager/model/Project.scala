@@ -10,6 +10,7 @@ import java.util.UUID
   *
   * @param id a project id
   * @param name a project name
+  * @param namespace a project namespace
   * @param kind a project kind
   * @param created a project creation time
   * @param edition the edition configuration associated with the project
@@ -19,6 +20,7 @@ import java.util.UUID
 case class Project(
   id: UUID,
   name: String,
+  namespace: String,
   kind: ProjectKind,
   created: OffsetDateTime,
   edition: Editions.RawEdition,

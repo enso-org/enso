@@ -11,5 +11,6 @@ import nl.gn0s1s.bump.SemVer
 case class RunningLanguageServerInfo(
   engineVersion: SemVer,
   sockets: LanguageServerSockets,
-  projectName: String
+  projectName: String,
+  projectNamespace: String
 )

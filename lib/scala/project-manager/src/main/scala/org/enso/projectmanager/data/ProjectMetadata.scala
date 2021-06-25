@@ -14,6 +14,7 @@ import nl.gn0s1s.bump.SemVer
   */
 case class ProjectMetadata(
   name: String,
+  namespace: String,
   id: UUID,
   engineVersion: SemVer,
   lastOpened: Option[OffsetDateTime]
