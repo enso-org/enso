@@ -55,7 +55,8 @@ class ProjectOpenHandler[F[+_, +_]: Exec: CovariantFlatMap](
       engineVersion               = server.engineVersion,
       languageServerJsonAddress   = server.sockets.jsonSocket,
       languageServerBinaryAddress = server.sockets.binarySocket,
-      projectName                 = server.projectName
+      projectName                 = server.projectName,
+      projectNamespace            = server.projectNamespace
     )
   }
 

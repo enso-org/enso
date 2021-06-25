@@ -114,6 +114,8 @@ case class Config(
 
 object Config {
 
+  val defaultNamespace: String = "local"
+
   private object JsonFields {
     val name: String         = "name"
     val version: String      = "version"
@@ -129,7 +131,7 @@ object Config {
   implicit val decoder: Decoder[Config] = { json =>
     for {
       name        <- json.get[String](JsonFields.name)
-      namespace   <- json.getOrElse[String](JsonFields.namespace)("local")
+      namespace   <- json.getOrElse[String](JsonFields.namespace)(defaultNamespace)
       version     <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
       edition     <- json.get[Option[Editions.RawEdition]](JsonFields.edition)

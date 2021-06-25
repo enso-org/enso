@@ -93,11 +93,12 @@ class ProjectService[
       DefaultEnsoVersion
     )
     project = Project(
-      id      = projectId,
-      name    = name,
-      kind    = UserProject,
-      created = creationTime,
-      edition = defaultEdition
+      id        = projectId,
+      name      = name,
+      namespace = Config.defaultNamespace,
+      kind      = UserProject,
+      created   = creationTime,
+      edition   = defaultEdition
     )
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
@@ -328,7 +329,12 @@ class ProjectService[
             s"Language server boot failed. ${th.getMessage}"
           )
       }
-  } yield RunningLanguageServerInfo(version, sockets, project.name)
+  } yield RunningLanguageServerInfo(
+    version,
+    sockets,
+    project.name,
+    project.namespace
+  )
 
   /** @inheritdoc */
   override def closeProject(
@@ -380,6 +386,7 @@ class ProjectService[
   ): ProjectMetadata =
     ProjectMetadata(
       name          = project.name,
+      namespace     = project.namespace,
       id            = project.id,
       engineVersion = engineVersion,
       lastOpened    = project.lastOpened
