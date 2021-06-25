@@ -171,7 +171,7 @@ object FileManagerApi {
     }
   }
 
-  case object ContentRootRemoved extends Method("file/rootAdded") {
+  case object ContentRootRemoved extends Method("file/rootRemoved") {
     case class Params(id: UUID)
 
     implicit val hasParams = new HasParams[this.type] {

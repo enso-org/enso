@@ -9,6 +9,8 @@ object LibraryVersion {
 
   /** Indicates that the version from the local library path should be used. */
   case object Local extends LibraryVersion {
+
+    /** @inheritdoc */
     override def toString: String = "local"
   }
 
@@ -19,6 +21,8 @@ object LibraryVersion {
     */
   case class Published(version: SemVer, repository: Repository)
       extends LibraryVersion {
+
+    /** @inheritdoc */
     override def toString: String = version.toString
   }
 }

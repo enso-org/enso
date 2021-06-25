@@ -11,11 +11,19 @@ import java.util.UUID
   */
 case class Path(rootId: UUID, segments: Vector[String]) {
 
+  /** Given the filesystem path of the content root, resolves this path relative
+    * to the content root path.
+    */
   def toFile(rootPath: File): File =
     segments.foldLeft(rootPath) { case (parent, child) =>
       new File(parent, child)
     }
 
+  /** Given the filesystem path of the content root and a filename, treats the
+    *  current path as a directory path and resolves a path to the provided file
+    *  inside of the directory indicated by this path, relative to the content
+    *  root path.
+    */
   def toFileInsideThisDirectory(rootPath: File, fileName: String): File = {
     val parentDir = toFile(rootPath)
     new File(parentDir, fileName)

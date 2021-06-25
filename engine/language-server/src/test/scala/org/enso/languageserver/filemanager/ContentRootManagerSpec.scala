@@ -10,13 +10,15 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   SubscribeToNotifications
 }
 import org.enso.polyglot.runtime.Runtime.Api
-import org.scalatest.Inside
+import org.enso.testkit.EitherValue
+import org.scalatest.{Inside, OptionValues}
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.io.File
+import java.nio.file.{Path => JPath}
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
@@ -25,14 +27,16 @@ class ContentRootManagerSpec
     with AnyWordSpecLike
     with Matchers
     with Futures
-    with Inside {
+    with Inside
+    with EitherValue
+    with OptionValues {
 
   def makeContentRootManager(): (ContentRootManagerWrapper, ActorRef) = {
     val root = ContentRootWithFile(
       UUID.randomUUID(),
       ContentRootType.Project,
       "Project",
-      new File("foobar")
+      new File("foobar").getCanonicalFile
     )
     val config = Config(
       root,
@@ -100,6 +104,44 @@ class ContentRootManagerSpec
 
       val roots = wrapper.getContentRoots(system.dispatcher).futureValue
       roots.map(r => r.name) should contain(rootName)
+    }
+
+    "return the root based on the id" in {
+      val (rootManager, _) = makeContentRootManager()
+      import system.dispatcher
+      val roots         = rootManager.getContentRoots.futureValue
+      val arbitraryRoot = roots.head
+      val id            = arbitraryRoot.id
+
+      rootManager
+        .findContentRoot(id)
+        .futureValue
+        .rightValue shouldEqual arbitraryRoot
+    }
+
+    "relativize paths relative to the correct content root" in {
+      val (rootManager, _) = makeContentRootManager()
+      import system.dispatcher
+      val roots = rootManager.getContentRoots.futureValue
+
+      val projectRoot = roots.filter(_.`type` == ContentRootType.Project).head
+      val fsRoot      = roots.filter(_.`type` == ContentRootType.Root).head
+
+      val projectPathRel = JPath.of("p1/foo")
+      val projectPathAbsolute =
+        projectRoot.file.toPath.resolve(projectPathRel).toFile
+      val projectPathResolved =
+        rootManager.findRelativePath(projectPathAbsolute).futureValue.value
+      projectPathResolved.rootId shouldEqual projectRoot.id
+      projectPathResolved.segments shouldEqual Vector("p1", "foo")
+
+      val fsPathRel = JPath.of("fs/bar")
+      val fsPathAbsolute =
+        fsRoot.file.toPath.resolve(fsPathRel).toFile
+      val fsPathResolved =
+        rootManager.findRelativePath(fsPathAbsolute).futureValue.value
+      fsPathResolved.rootId shouldEqual fsRoot.id
+      fsPathResolved.segments shouldEqual Vector("fs", "bar")
     }
   }
 }
