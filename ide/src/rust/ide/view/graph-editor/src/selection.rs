@@ -327,7 +327,7 @@ impl Controller {
             not_edit_mode      <- edit_mode.not();
             should_area_select <- not_edit_mode && enable_area_selection;
 
-            drag_start  <- mouse.down_primary.gate(&should_area_select);
+            drag_start  <- touch.background.is_down.on_true().gate(&should_area_select);
             is_dragging <- bool(&mouse.up_primary,&drag_start);
             drag_end    <- is_dragging.on_false();
             drag_start  <- is_dragging.on_true();
