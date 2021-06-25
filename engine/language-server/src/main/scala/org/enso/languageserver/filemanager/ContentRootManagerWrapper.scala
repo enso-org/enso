@@ -10,14 +10,18 @@ import java.io.File
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
+/** An implementation of [[ContentRootManager]] that wraps the
+  * [[ContentRootManagerActor]] in an interface that is more friendly for non-Actor-based clients.
+  */
 class ContentRootManagerWrapper(
   config: Config,
   contentRootManagerActor: ActorRef
 ) extends ContentRootManager {
-  implicit val timeout: Timeout = Timeout(
+  implicit private val timeout: Timeout = Timeout(
     2 * config.executionContext.requestTimeout
   )
 
+  /** @inheritdoc */
   override def getContentRoots(implicit
     ec: ExecutionContext
   ): Future[List[ContentRootWithFile]] =
@@ -25,6 +29,7 @@ class ContentRootManagerWrapper(
       .mapTo[GetContentRootsResult]
       .map(_.contentRoots)
 
+  /** @inheritdoc */
   override def findContentRoot(id: UUID)(implicit
     ec: ExecutionContext
   ): Future[Either[ContentRootNotFound.type, ContentRootWithFile]] =
@@ -40,6 +45,7 @@ class ContentRootManagerWrapper(
         Future.successful(Left(ContentRootNotFound))
       }
 
+  /** @inheritdoc */
   override def findRelativePath(
     path: File
   )(implicit ec: ExecutionContext): Future[Option[Path]] =

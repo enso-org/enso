@@ -15,6 +15,16 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
+/** The Actor-based implementation of [[ContentRootManager]] that includes some
+  * additional functionality.
+  *
+  * Aside from providing the desired request-response API, it allows other
+  * Actors to subscribe to content root updates and will send them a
+  * notification whenever a new content root is added.
+  *
+  * It watches the event stream for messages from the RuntimeConnector signaling
+  * that new libraries are loaded, to register their content roots.
+  */
 class ContentRootManagerActor(config: Config)
     extends Actor
     with LazyLogging
@@ -23,11 +33,19 @@ class ContentRootManagerActor(config: Config)
     context.system.eventStream.subscribe(self, classOf[Api.LibraryLoaded])
   }
 
+  /** @inheritdoc */
   override def receive: Receive = mainStage(
     ContentRootManagerActor.initializeRoots(config),
     Set()
   )
 
+  /** The main and only state of the Actor.
+    *
+    * @param contentRoots the structure containing currently registered content
+    *                     roots
+    * @param subscribers a set of subscribers that should receive updates about
+    *                    new content roots
+    */
   private def mainStage(
     contentRoots: ContentRoots,
     subscribers: Set[ActorRef]
@@ -35,12 +53,6 @@ class ContentRootManagerActor(config: Config)
     val rootsMap = Map.from(contentRoots.toList.map(root => root.id -> root))
 
     {
-      case Ping =>
-        sender() ! Pong
-
-      case GetContentRoots =>
-        sender() ! GetContentRootsResult(contentRoots.toList)
-
       case SubscribeToNotifications =>
         sender() ! ContentRootsAddedNotification(contentRoots.toList)
         context.become(mainStage(contentRoots, subscribers + sender()))
@@ -69,13 +81,31 @@ class ContentRootManagerActor(config: Config)
       case FindRelativePath(path) =>
         val relativized = contentRoots.findRelativePath(path)
         sender() ! FindRelativePathResult(relativized)
+
+      case GetContentRoots =>
+        sender() ! GetContentRootsResult(contentRoots.toList)
+
+      case Ping =>
+        sender() ! Pong
     }
   }
 }
 
 object ContentRootManagerActor {
+
+  /** Creates a configuration object used to create a
+    * [[ContentRootManagerActor]].
+    */
   def props(config: Config): Props = Props(new ContentRootManagerActor(config))
 
+  /** The structure that manages the registered content roots.
+    *
+    * The content roots are grouped based on their type, as the types also
+    * define the specificity of the content root - the project and library
+    * roots are most specific, then there are the home directories and at last,
+    * the filesystem roots are most general, as every path will resolve as a
+    * child of one of them.
+    */
   private case class ContentRoots(
     projectRoot: ContentRootWithFile,
     librariesRoots: List[ContentRootWithFile],
@@ -94,6 +124,11 @@ object ContentRootManagerActor {
     lazy val toList: List[ContentRootWithFile] =
       List(projectRoot) ++ librariesRoots ++ homeRoots ++ filesystemRoots
 
+    /** Resolves the path as relative to one of the registered content roots.
+      *
+      * It tries to select the most specific content root associated with that
+      * path, as described in the class documentation.
+      */
     def findRelativePath(path: File): Option[Path] =
       toList.flatMap { root =>
         if (path.toPath.startsWith(root.file.toPath)) {
@@ -104,6 +139,9 @@ object ContentRootManagerActor {
       }.headOption
   }
 
+  /** Creates an initial content root configuration which consists of the main
+    * project root, the home directory and filesystem roots.
+    */
   private def initializeRoots(config: Config): ContentRoots = {
     val fsRoots = FileSystems.getDefault.getRootDirectories.asScala.map {
       path =>

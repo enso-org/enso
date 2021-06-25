@@ -5,16 +5,27 @@ import java.util.UUID
 
 object ContentRootManagerProtocol {
 
-  /** Gets all content roots. */
+  /** Request to get all currently registered content roots. */
   case object GetContentRoots
 
   /** Response containing all current content roots. */
   case class GetContentRootsResult(contentRoots: List[ContentRootWithFile])
 
+  /** Request to find the content root with the given id. */
   case class FindContentRoot(id: UUID)
+
+  /** Response to [[FindContentRoot]] containing the found content root or None.
+    */
   case class FindContentRootResult(contentRoot: Option[ContentRootWithFile])
 
+  /** Request to resolve the path as relative to one of the registered content
+    * roots.
+    */
   case class FindRelativePath(path: File)
+
+  /** Response to [[FindRelativePath]] containing the relativized path or None
+    * if the path did not match any registered content root.
+    */
   case class FindRelativePathResult(path: Option[Path])
 
   /** The message that should be sent t the [[ContentRootManagerActor]] to
@@ -30,7 +41,20 @@ object ContentRootManagerProtocol {
     * sent even if there are no registered content roots (although this should
     * never happen in practice, as the project root should always be present),
     * to confirm the subscription .
+    *
+    * Due to the synchronization issue sketched above, the initial set of
+    * content roots should be inferred from the first notification and not from
+    * [[GetContentRoots]]. [[GetContentRoots]] should only be used if a
+    * one-time, possibly immediately outdated, information about current content
+    * root is needed.
     */
   case object SubscribeToNotifications
+
+  /** The notification sent to confirm the subscription and then for every added content root to every subscriber.
+    *
+    * @param newRoots the list of roots that were added since the last time that
+    *                 notification has been sent (or all currently registered
+    *                 roots when it is sent for the first time)
+    */
   case class ContentRootsAddedNotification(newRoots: List[ContentRootWithFile])
 }
