@@ -261,7 +261,11 @@ fn test_file_requests() {
 #[test]
 fn test_protocol_connection() {
     let init_protocol_connection_response = response::InitProtocolConnection {
-        content_roots: vec![uuid::Uuid::default()]
+        content_roots: vec![ContentRoot {
+            id                : default(),
+            content_root_type : ContentRootType::Project,
+            name              : "Project".to_owned()
+        }]
     };
     test_request(
         |client| client.init_protocol_connection(&uuid::Uuid::default()),
@@ -270,7 +274,11 @@ fn test_protocol_connection() {
             "clientId" : "00000000-0000-0000-0000-000000000000"
         }),
         json!({
-            "contentRoots" : ["00000000-0000-0000-0000-000000000000"]
+            "contentRoots" : [{
+                "id"   : "00000000-0000-0000-0000-000000000000",
+                "type" : "Project",
+                "name" : "Project",
+            }]
         }),
         init_protocol_connection_response
     );
