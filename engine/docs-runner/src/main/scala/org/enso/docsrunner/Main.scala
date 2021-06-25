@@ -27,7 +27,7 @@ object Main {
 
     val languageContext = executionContext
       .getBindings(LanguageInfo.ID)
-      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .invokeMember(MethodNames.TopScope.GET_MODULE)
       .asHostObject[EnsoContext]
 
     val module = languageContext.getModuleForFile(file)
@@ -42,8 +42,8 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     // Go through files executing generateFrom(File f)
-    val stdLibPath   = "./distribution/std-lib/Standard/src"
-    val tempFileName = "Base/Geo.enso"
+    val stdLibPath   = "./distribution/std-lib"
+    val tempFileName = "Geo/src/Geo_Json.enso"
     val file         = new File(stdLibPath + "/" + tempFileName)
     generateFrom(file)
   }
