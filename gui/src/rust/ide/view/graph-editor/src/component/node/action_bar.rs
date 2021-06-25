@@ -302,6 +302,7 @@ impl ActionBar {
         model.icons.skip.frp.set_color_scheme(&color_scheme);
         model.icons.visibility.frp.set_color_scheme(&color_scheme);
 
+        frp.show_on_hover.emit(true);
         visibility_init.emit(false);
 
         self
