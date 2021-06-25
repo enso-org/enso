@@ -97,6 +97,7 @@ mod prompt_background {
 
 
 // =============
+// =============
 // === Model ===
 // =============
 
@@ -263,6 +264,8 @@ impl Model {
         js::fullscreen();
     }
 }
+
+
 
 mod js {
     // use super::*;

@@ -452,7 +452,6 @@ jobs:
       - version_assertions
       - lint
       - test
-      - wasm-test
       - build
   release_to_cdn:
     name: CDN Release
@@ -517,5 +516,4 @@ jobs:
       - version_assertions
       - lint
       - test
-      - wasm-test
       - build
