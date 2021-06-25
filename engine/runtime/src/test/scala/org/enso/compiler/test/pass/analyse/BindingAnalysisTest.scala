@@ -82,9 +82,6 @@ class BindingAnalysisTest extends CompilerTest {
         ModuleMethod("enso_project"),
         ModuleMethod("foo")
       )
-      metadata.moduleConversions.map(
-        _.sourceType.asInstanceOf[IR.Name].name
-      ) shouldEqual List("Bar", "Baz")
       metadata.currentModule shouldEqual ctx.module
     }
 

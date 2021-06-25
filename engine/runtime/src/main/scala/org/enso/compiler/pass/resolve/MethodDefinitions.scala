@@ -13,8 +13,8 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
-/** Resolves the correct `this` argument type for methods definitions
-  * and stores the resolution in the method's metadata.
+/** Resolves the correct `this` argument type for method definitions and stores
+  * the resolution in the method's metadata.
   */
 case object MethodDefinitions extends IRPass {
 
@@ -47,7 +47,7 @@ case object MethodDefinitions extends IRPass {
     val newDefs = ir.bindings.map {
       case method: IR.Module.Scope.Definition.Method.Explicit =>
         val methodRef = method.methodReference
-        val resolvedTypeRef = methodRef.typePointer match {
+        val resolvedTypeRef: IR.Name = methodRef.typePointer match {
           case tp: IR.Name.Here =>
             tp.updateMetadata(
               this -->> BindingsMap.Resolution(
