@@ -26,6 +26,7 @@ that we have a well-defined release policy. This document defines said policy.
   - [Launcher Versioning](#launcher-versioning)
 - [Release Branches](#release-branches)
 - [Release Workflow](#release-workflow)
+  - [Breaking Release Workflow](#breaking-release-workflow)
   - [Tag Naming](#tag-naming)
   - [Manifest Files](#manifest-files)
   - [Breaking Changes to Launcher Upgrade](#breaking-changes-to-launcher-upgrade)
@@ -131,6 +132,69 @@ git tag --sign enso-0.2.11
     the QA team.
 17. Once verification has been performed, the release can be published. It
     should _not_ be a pre-releases as we reserve these for nightly builds.
+
+### Breaking Release Workflow
+
+If, however, the engine needs to release but the `HEAD` of `main` is not in a
+compatible state with the IDE, the process has to differ a little bit. Please
+note that the instructions here are more vague than the above, as exactly what
+is required may vary based on the situation.
+
+Consider a scenario where there are four new commits since the last release:
+`wwwwwww`, `xxxxxxx`, `yyyyyyy`, `zzzzzzz`. The commit `yyyyyyy` contains
+breaking changes that are _not yet integrated with the IDE_. Releasing a package
+containing that commit (and those that depend on it) would break the IDE, but we
+nevertheless want to release as much as possible:
+
+1.  If no release branch exists for the current major version, one should be
+    created.
+2.  Rebase the commits that are wanted onto the release branch:
+
+```
+git rebase --onto origin/release/0.x wwwwwww~1 xxxxxxx
+```
+
+3.  This will put you into a "detached HEAD" state at commit `aaaaaaa`, so you
+    need to make a new branch: `git branch release-update aaaaaaa`, whose `HEAD`
+    commit is the same as `xxxxxxx`.
+4.  This new branch is a fast-forward merge away from the release branch. Check
+    out the release branch and then fast-forward merge `release-update` into it.
+    For example:
+
+```
+git checkout release/0.x
+git merge --ff-only release-update
+```
+
+5.  On the release branch, ensure that the release notes are up to date in
+    `RELEASES.md` (follow the existing format), and that the new version number
+    has been set in `build.sbt`. This version should _not_ contain `SNAPSHOT`.
+6.  Once this is done, create a tag for the commit at the HEAD of the release
+    branch. It should be named as above. For example:
+
+```
+git tag --sign enso-0.2.11
+```
+
+7.  Push the tag to the remote. This will start the release build.
+8.  CI will create a draft release for this tag, as well as build and upload the
+    appropriate artefacts. **Do not** create a release for this tag manually.
+9.  The release notes for the version being released should be copied from the
+    new section in `RELEASES.md` into the GitHub release description with the
+    line breaks removed.
+10. The title of the release should be `Enso Engine <version>` (e.g.
+    `Enso Engine 0.2.11`).
+11. Check out the main branch, and then synchronise the changes to `RELEASES.md`
+    on the release branch with the changes on `main`.
+12. In the same commit, Update the build version number in `build.sbt` to the
+    new snapshot version. If unclear, bump the patch version by one and append
+    `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The message should be
+    `Bump the snapshot version`.
+13. Push this commit into `origin/main`, or merge via PR if unable to directly
+    push.
+
+It is recommended that you instigate a freeze on merges to `main` whilst
+performing this process.
 
 ### Tag Naming
 
