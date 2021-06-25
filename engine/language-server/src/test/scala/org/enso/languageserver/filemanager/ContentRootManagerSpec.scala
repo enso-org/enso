@@ -3,12 +3,13 @@ package org.enso.languageserver.filemanager
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestDuration, TestKit, TestProbe}
 import org.apache.commons.lang3.SystemUtils
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
-  AddLibraryRoot,
   ContentRootsAddedNotification,
   SubscribeToNotifications
 }
+import org.enso.polyglot.runtime.Runtime.Api
 import org.scalatest.Inside
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
@@ -79,9 +80,14 @@ class ContentRootManagerSpec
           roots.filter(_.`type` == ContentRootType.Root) should not be empty
       }
 
-      val rootName = "Foo.Bar:1.2.3"
-      val rootPath = new File("foobar")
-      contentRootActor ! AddLibraryRoot(rootName, rootPath)
+      val libraryName    = LibraryName("Foo", "Bar")
+      val libraryVersion = LibraryVersion.Local
+      val rootPath       = new File("foobar")
+      val rootName       = "Foo.Bar:local"
+
+      system.eventStream.publish(
+        Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
+      )
 
       inside(subscriberProbe.receiveOne(2.seconds.dilated)) {
         case ContentRootsAddedNotification(roots) =>

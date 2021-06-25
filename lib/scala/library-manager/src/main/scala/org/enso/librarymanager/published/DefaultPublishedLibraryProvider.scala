@@ -2,8 +2,8 @@ package org.enso.librarymanager.published
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.DistributionManager
-import org.enso.editions.{Editions, LibraryName}
-import org.enso.librarymanager.{LibraryResolutionResult, LibraryVersion}
+import org.enso.editions.{Editions, LibraryName, LibraryVersion}
+import org.enso.librarymanager.LibraryResolutionResult
 
 import scala.annotation.nowarn
 

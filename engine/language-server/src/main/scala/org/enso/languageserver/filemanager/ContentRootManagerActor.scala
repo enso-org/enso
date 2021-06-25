@@ -7,6 +7,7 @@ import org.enso.languageserver.filemanager.ContentRootManagerActor.ContentRoots
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol._
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.nio.file.{FileSystems, Path => JPath}
@@ -18,6 +19,10 @@ class ContentRootManagerActor(config: Config)
     extends Actor
     with LazyLogging
     with UnhandledLogging {
+  override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, classOf[Api.LibraryLoaded])
+  }
+
   override def receive: Receive = mainStage(
     ContentRootManagerActor.initializeRoots(config),
     Set()
@@ -40,7 +45,9 @@ class ContentRootManagerActor(config: Config)
         sender() ! ContentRootsAddedNotification(contentRoots.toList)
         context.become(mainStage(contentRoots, subscribers + sender()))
 
-      case AddLibraryRoot(rootName, rootPath) =>
+      case Api.LibraryLoaded(libraryName, libraryVersion, rootPath) =>
+        val rootName = s"$libraryName:$libraryVersion"
+
         val libraryRoot = ContentRootWithFile(
           id     = UUID.randomUUID(),
           `type` = ContentRootType.Library,

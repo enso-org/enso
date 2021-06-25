@@ -1,18 +1,21 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{Files, Paths}
-import java.util.UUID
 import io.circe.literal._
 import io.circe.parser.parse
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
+import org.enso.editions.Editions.Repository
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.languageserver.data._
-import org.enso.languageserver.filemanager.ContentRootManagerProtocol
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 
 import java.io.File
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{Files, Paths}
 import java.security.MessageDigest
+import java.util.UUID
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -1791,11 +1794,15 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     "notify the IDE when a new root is added" in {
       val client = getInitialisedWsClient()
 
-      val rootName = "Foo.Bar:1.2.3"
-      val rootPath = new File("foobar")
-      contentRootManagerActor ! ContentRootManagerProtocol.AddLibraryRoot(
-        rootName,
-        rootPath
+      val repo = Repository.make("example", "https://example.com/").get
+
+      val libraryName    = LibraryName("Foo", "Bar")
+      val libraryVersion = LibraryVersion.Published(SemVer(1, 2, 3), repo)
+      val rootPath       = new File("foobar")
+      val rootName       = "Foo.Bar:1.2.3"
+
+      system.eventStream.publish(
+        Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
       )
 
       val parsed = parse(client.expectMessage())

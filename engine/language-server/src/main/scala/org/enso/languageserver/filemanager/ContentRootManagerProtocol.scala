@@ -11,8 +11,6 @@ object ContentRootManagerProtocol {
   /** Response containing all current content roots. */
   case class GetContentRootsResult(contentRoots: List[ContentRootWithFile])
 
-  case class AddLibraryRoot(rootName: String, rootPath: File)
-
   case class FindContentRoot(id: UUID)
   case class FindContentRootResult(contentRoot: Option[ContentRootWithFile])
 

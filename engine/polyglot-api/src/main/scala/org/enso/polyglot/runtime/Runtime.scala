@@ -1,9 +1,5 @@
 package org.enso.polyglot.runtime
 
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -11,6 +7,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
@@ -18,6 +15,9 @@ import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
+import java.io.File
+import java.nio.ByteBuffer
+import java.util.UUID
 import scala.util.Try
 
 object Runtime {
@@ -1341,9 +1341,16 @@ object Runtime {
     /** Signals that a new library has been imported, which means its content
       * root should be registered.
       *
-      * @param todo TODO [RW]
+      * @param name name of the loaded library
+      * @param version library version that was selected
+      * @param location location on disk of the project root belonging to the
+      *                 loaded library
       */
-    case class LibraryLoaded(todo: Any) extends ApiNotification
+    case class LibraryLoaded(
+      name: LibraryName,
+      version: LibraryVersion,
+      location: File
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()
