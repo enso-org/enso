@@ -15,6 +15,10 @@
 - Fixed a bug where the Project Manager would not preinstall the Graal runtime
   if the engine was already installed and only its runtime was missing
   ([#1824](https://github.com/enso-org/enso/pull/1824)).
+- Extended content root mechanism to provide the home directory and filesystem
+  roots on startup ([#1821](https://github.com/enso-org/enso/pull/1821)). It now
+  also supports dynamically adding content roots and notifies the IDE when a new
+  content root is added.
 
 # Enso 0.2.12 (2021-06-24)
 
