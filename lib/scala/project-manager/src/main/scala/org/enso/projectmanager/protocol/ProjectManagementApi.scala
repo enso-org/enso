@@ -76,7 +76,8 @@ object ProjectManagementApi {
       engineVersion: SemVer,
       languageServerJsonAddress: Socket,
       languageServerBinaryAddress: Socket,
-      projectName: String
+      projectName: String,
+      projectNamespace: String
     )
 
     implicit val hasParams = new HasParams[this.type] {

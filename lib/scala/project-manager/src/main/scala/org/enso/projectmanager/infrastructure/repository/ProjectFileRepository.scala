@@ -106,6 +106,7 @@ class ProjectFileRepository[
       Project(
         id                    = meta.id,
         name                  = pkg.name,
+        namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
         edition               = pkg.config.edition,
