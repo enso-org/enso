@@ -498,7 +498,7 @@ let workflow = {
             assertReleaseDoNotExists,
             uploadGitHubRelease,
         ],{ if:releaseCondition,
-            needs:['version_assertions','lint','test','wasm-test','build']
+            needs:['version_assertions','lint','test','build']
         }),
         release_to_cdn: job_on_ubuntu_18_04("CDN Release", [
             downloadArtifacts,
@@ -506,7 +506,7 @@ let workflow = {
             prepareAwsSessionCDN,
             uploadToCDN('index.js.gz','style.css','ide.wasm','wasm_imports.js.gz'),
         ],{ if:releaseCondition,
-            needs:['version_assertions','lint','test','wasm-test','build']
+            needs:['version_assertions','lint','test','build']
         })
     }
 }
