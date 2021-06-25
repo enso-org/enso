@@ -154,8 +154,9 @@ nevertheless want to release as much as possible:
 git rebase --onto origin/release/0.x wwwwwww~1 xxxxxxx
 ```
 
-3.  This will put you into a "detached HEAD" state at commit `zzzzzzz`, so you
-    need to make a new branch: `git branch release-update zzzzzzz`.
+3.  This will put you into a "detached HEAD" state at commit `aaaaaaa`, so you
+    need to make a new branch: `git branch release-update aaaaaaa`, whose `HEAD`
+    commit is the same as `xxxxxxx`.
 4.  This new branch is a fast-forward merge away from the release branch. Check
     out the release branch and then fast-forward merge `release-update` into it.
     For example:
@@ -183,23 +184,17 @@ git tag --sign enso-0.2.11
     line breaks removed.
 10. The title of the release should be `Enso Engine <version>` (e.g.
     `Enso Engine 0.2.11`).
-11. Check out the main branch, and then check out both `RELEASES.md` and
-    `build.sbt` from the release branch.
-
-```
-git checkout main
-git checkout release/0.x -- RELEASES.md build.sbt
-```
-
-12. Update the build version number in `build.sbt` to the new snapshot version.
-    If unclear, bump the patch version by one and append `-SNAPSHOT` (e.g.
-    `0.2.10` becomes `0.2.11-SNAPSHOT`). The message should be
+11. Check out the main branch, and then synchronise the changes to `RELEASES.md`
+    on the release branch with the changes on `main`.
+12. In the same commit, Update the build version number in `build.sbt` to the
+    new snapshot version. If unclear, bump the patch version by one and append
+    `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The message should be
     `Bump the snapshot version`.
 13. Push this commit into `origin/main`, or merge via PR if unable to directly
     push.
 
 It is recommended that you instigate a freeze on merges to `main` whilst
-performing this erroneous process.
+performing this process.
 
 ### Tag Naming
 
