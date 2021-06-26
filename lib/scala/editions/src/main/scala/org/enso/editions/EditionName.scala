@@ -8,7 +8,11 @@ import io.circe.Decoder
   * unquoted inside of a YAML file, that is treated as a floating point
   * number, so special care must be taken to correctly parse it.
   */
-case class EditionName(name: String) extends AnyVal
+case class EditionName(name: String) extends AnyVal {
+
+  /** Returns the name of the file that is associated with the edition name. */
+  def toFileName: String = s"$name.yaml"
+}
 
 object EditionName {
 

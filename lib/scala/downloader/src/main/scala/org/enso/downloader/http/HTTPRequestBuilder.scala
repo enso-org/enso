@@ -57,5 +57,5 @@ object HTTPRequestBuilder {
     * builder that will send the request to the given `uri`.
     */
   def fromURIString(uri: String): HTTPRequestBuilder =
-    fromURI(Uri.parseAbsolute(uri))
+    fromURI(URIBuilder.fromUri(uri).build())
 }

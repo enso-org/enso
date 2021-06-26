@@ -6,9 +6,6 @@ import akka.http.scaladsl.model.Uri
   *
   * It contains very limited functionality that is needed by the APIs used in
   * the launcher. It can be easily extended if necessary.
-  *
-  * As all APIs we use support HTTPS, it does not allow to create a non-HTTPS
-  * URL.
   */
 case class URIBuilder private (uri: Uri) {
 
@@ -42,6 +39,18 @@ object URIBuilder {
     */
   def fromHost(host: String): URIBuilder =
     new URIBuilder(Uri.from(scheme = "https", host = host))
+
+  /** Creates a builder from an arbitrary [[Uri]] instance. */
+  def fromUri(uri: Uri): URIBuilder =
+    new URIBuilder(uri)
+
+  /** Creates a builder from an arbitrary URI represented as string.
+    *
+    * If the string is invalid, it throws
+    * [[akka.http.scaladsl.model.IllegalUriException]].
+    */
+  def fromUri(uri: String): URIBuilder =
+    new URIBuilder(Uri.parseAbsolute(uri))
 
   /** A simple DSL for the URIBuilder. */
   implicit class URIBuilderSyntax(builder: URIBuilder) {
