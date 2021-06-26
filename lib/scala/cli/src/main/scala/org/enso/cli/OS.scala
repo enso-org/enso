@@ -1,4 +1,4 @@
-package org.enso.distribution
+package org.enso.cli
 
 import com.typesafe.scalalogging.Logger
 import io.circe.{Decoder, DecodingFailure}

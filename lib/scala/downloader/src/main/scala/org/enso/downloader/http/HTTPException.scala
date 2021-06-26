@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.http
+package org.enso.downloader.http
 
 /** Indicates an error when processing a HTTP request.
   */

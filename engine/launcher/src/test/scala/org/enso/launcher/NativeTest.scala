@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import org.enso.distribution.OS
+import org.enso.cli.OS
 
 import java.nio.file.{Files, Path}
 import org.enso.runtimeversionmanager.test.NativeTestHelper

@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.archive
+package org.enso.downloader.archive
 
 import java.nio.file.attribute.PosixFilePermission
 import java.util

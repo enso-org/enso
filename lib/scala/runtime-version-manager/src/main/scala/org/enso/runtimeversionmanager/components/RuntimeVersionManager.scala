@@ -3,12 +3,13 @@ package org.enso.runtimeversionmanager.components
 import java.nio.file.{Files, Path, StandardOpenOption}
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{DistributionManager, FileSystem, OS}
+import org.enso.cli.OS
+import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.distribution.locking.{LockType, ResourceManager}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.logger.masking.MaskedPath
-import org.enso.runtimeversionmanager.archive.Archive
+import org.enso.downloader.archive.Archive
 import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.locking.Resources
 import org.enso.runtimeversionmanager.releases.ReleaseProvider

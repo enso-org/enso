@@ -710,9 +710,10 @@ lazy val cli = project
   .configs(Test)
   .settings(
     version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      "org.typelevel" %% "cats-core" % catsVersion
+    libraryDependencies ++= circe ++ Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test,
+      "org.typelevel"              %% "cats-core"     % catsVersion
     ),
     Test / parallelExecution := false
   )
@@ -1337,6 +1338,7 @@ lazy val `distribution-manager` = project
     )
   )
   .dependsOn(editions)
+  .dependsOn(cli)
   .dependsOn(pkg)
   .dependsOn(`logging-utils`)
 
@@ -1354,11 +1356,37 @@ lazy val editions = project
   )
   .dependsOn(testkit % Test)
 
+lazy val downloader = (project in file("lib/scala/downloader"))
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= circe ++ Seq(
+      "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
+      "commons-io"                  % "commons-io"       % commonsIoVersion,
+      "org.apache.commons"          % "commons-compress" % commonsCompressVersion,
+      "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
+      akkaActor,
+      akkaStream,
+      akkaHttp
+    )
+  )
+  .dependsOn(cli)
+
+lazy val `edition-updater` = project
+  .in(file("lib/scala/edition-updater"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(editions)
+  .dependsOn(downloader)
+
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .configs(Test)
   .settings(
-    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
@@ -1368,6 +1396,7 @@ lazy val `library-manager` = project
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
+  .dependsOn(downloader)
   .dependsOn(testkit % Test)
 
 lazy val `runtime-version-manager` = project
@@ -1385,6 +1414,7 @@ lazy val `runtime-version-manager` = project
     )
   )
   .dependsOn(pkg)
+  .dependsOn(downloader)
   .dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)

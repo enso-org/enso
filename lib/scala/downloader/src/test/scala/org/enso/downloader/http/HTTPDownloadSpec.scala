@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.http
+package org.enso.downloader.http
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

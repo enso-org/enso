@@ -1,9 +1,9 @@
-package org.enso.runtimeversionmanager.archive
+package org.enso.downloader.archive
+
+import org.enso.downloader.archive.internal.ProgressInputStream
 
 import java.io.FileInputStream
 import java.nio.file.{Files, Path}
-
-import org.enso.runtimeversionmanager.internal.ProgressInputStream
 
 /** A helper that allows to create a [[ProgressInputStream]] for a file located
   * at the given path.

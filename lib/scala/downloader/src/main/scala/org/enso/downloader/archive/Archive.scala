@@ -1,12 +1,6 @@
-package org.enso.runtimeversionmanager.archive
+package org.enso.downloader.archive
 
-import java.io.BufferedInputStream
-import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
-import org.apache.commons.compress.archivers.{
-  ArchiveInputStream,
-  ArchiveEntry => ApacheArchiveEntry
-}
 import org.apache.commons.compress.archivers.tar.{
   TarArchiveEntry,
   TarArchiveInputStream
@@ -15,20 +9,26 @@ import org.apache.commons.compress.archivers.zip.{
   ZipArchiveEntry,
   ZipArchiveInputStream
 }
+import org.apache.commons.compress.archivers.{
+  ArchiveInputStream,
+  ArchiveEntry => ApacheArchiveEntry
+}
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
+import org.enso.cli.OS
 import org.enso.cli.task.{
   ProgressUnit,
   TaskProgress,
   TaskProgressImplementation
 }
-import org.enso.distribution.OS
-import org.enso.runtimeversionmanager.archive.internal.{
+import org.enso.downloader.archive.internal.{
   ArchiveIterator,
-  BaseRenamer
+  BaseRenamer,
+  ReadProgress
 }
-import org.enso.runtimeversionmanager.internal.ReadProgress
 
+import java.io.BufferedInputStream
+import java.nio.file.{Files, Path}
 import scala.util.{Try, Using}
 
 /** Contains utilities related to the extraction of various archive file

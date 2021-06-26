@@ -1,7 +1,8 @@
-package org.enso.runtimeversionmanager.archive
+package org.enso.downloader.archive
+
+import org.enso.downloader.archive.POSIXPermissions
 
 import java.nio.file.attribute.PosixFilePermissions
-
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

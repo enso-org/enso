@@ -1,7 +1,8 @@
-package org.enso.runtimeversionmanager.http
+package org.enso.downloader.http
 
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
+import org.enso.downloader.http
 
 /** A simple immutable builder for HTTP requests.
   *
@@ -39,7 +40,9 @@ case class HTTPRequestBuilder private (
           )
       }
     }
-    HTTPRequest(HttpRequest(method = method, uri = uri, headers = httpHeaders))
+    http.HTTPRequest(
+      HttpRequest(method = method, uri = uri, headers = httpHeaders)
+    )
   }
 }
 

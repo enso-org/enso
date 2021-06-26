@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.archive.internal
+package org.enso.downloader.archive.internal
 
 import java.nio.file.Path
 

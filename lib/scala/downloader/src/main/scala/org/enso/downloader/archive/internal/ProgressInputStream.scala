@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.internal
+package org.enso.downloader.archive.internal
 
 import java.io.InputStream
 

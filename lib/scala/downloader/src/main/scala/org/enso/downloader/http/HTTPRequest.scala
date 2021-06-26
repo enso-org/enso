@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.http
+package org.enso.downloader.http
 
 import akka.http.scaladsl.model.HttpRequest
 

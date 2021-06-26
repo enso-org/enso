@@ -1,7 +1,4 @@
-package org.enso.runtimeversionmanager.http
-
-import java.nio.charset.{Charset, StandardCharsets}
-import java.nio.file.Path
+package org.enso.downloader.http
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -17,6 +14,8 @@ import org.enso.cli.task.{
   TaskProgressImplementation
 }
 
+import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.file.Path
 import scala.concurrent.Future
 
 /** Represents a HTTP header. */
