@@ -76,6 +76,23 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
     meta.get.documentation
   }
 
+  def docGenGetAssertion(inner: String): String =
+    s"""<html>
+       | <body>
+       |   <div class="doc" style="font-size: 13px;">
+       |     <div>
+       |       <div class="">
+       |         <div class="example">
+       |           <div class="summary">$inner</div>
+       |         </div>
+       |       </div>
+       |     </div>
+       |   </div>
+       | </body>
+       |</html>""".stripMargin
+      .replaceAll(System.lineSeparator(), "")
+      .replaceAll(">[ ]+<", "><")
+
   // === The Tests ============================================================
 
   "Documentation comments in the top scope" should {
@@ -97,10 +114,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       getDoc(
         ir.bindings(0)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;This is doc for My&lt;&lt;Atom&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for My&lt;&lt;Atom&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       getDoc(
         ir.bindings(1)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;This is doc for my&lt;&lt;method&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for my&lt;&lt;method&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
     }
   }
 
@@ -125,10 +146,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       body.expressions.length shouldEqual 1
       getDoc(
         body.expressions(0)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       getDoc(
         body.returnValue
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
     }
 
     "be associated with the documented expression in module flow" in {
@@ -150,10 +175,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       body.expressions.length shouldEqual 1
       getDoc(
         body.expressions(0)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       getDoc(
         body.returnValue
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
     }
 
     "be associated with the type ascriptions" in {
@@ -178,10 +207,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
       getDoc(
         body.expressions(0)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Id&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Id&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       getDoc(
         body.returnValue
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;Return thing&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;Return thing&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
     }
   }
 
@@ -208,26 +241,38 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
       getDoc(
         tp
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the type Foo&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;the type Foo&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       val t1 = tp.body(0)
       getDoc(
         t1
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the constructor Bar&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;the constructor Bar&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       val t2 = tp.body(1)
       getDoc(
         t2
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the included Unit&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;the included Unit&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
       getDoc(
         method
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;a method&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;a method&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       val block = method.body.asInstanceOf[IR.Expression.Block]
       getDoc(
         block.expressions(0)
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;a statement&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;a statement&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
       getDoc(
         block.returnValue
-      ) shouldEqual "<html><body><div class=\"doc\" style=\"font-size: 13px;\"><div><div class=\"\"><div class=\"example\"><div class=\"summary\">&lt;&lt;&lt;&lt;&lt;&lt;the return&lt;&lt;&lt;&lt;&lt;&lt;</div></div></div></div></div></body></html>"
+      ) shouldEqual docGenGetAssertion(
+        "&lt;&lt;&lt;&lt;&lt;&lt;the return&lt;&lt;&lt;&lt;&lt;&lt;"
+      )
     }
   }
 }
