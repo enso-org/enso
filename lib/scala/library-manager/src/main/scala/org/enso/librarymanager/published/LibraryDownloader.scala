@@ -1,9 +1,8 @@
 package org.enso.librarymanager.published
 
-import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.{ProgressReporter, TaskProgress}
+import org.enso.cli.task.ProgressReporter
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
-import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.yaml.YamlHelper
@@ -36,5 +35,24 @@ class LibraryDownloader(progressReporter: ProgressReporter) {
     YamlHelper.parseString[LibraryManifest](response.content).toTry.get
   }
 
-  def downloadPac
+  /** Downloads a sub-package and extracts it to the given location, it will
+    * merge the contents with other packages that were extracted there earlier.
+    */
+  def downloadAndExtractPackage(
+    libraryName: LibraryName,
+    libraryRoot: URIBuilder,
+    packageName: String,
+    destination: Path
+  ): Unit = {
+    val uri     = libraryRoot.addPathSegment(packageName).build()
+    val request = HTTPRequestBuilder.fromURI(uri).GET
+    // TODO download to temporary location, not to the final destination!
+    val download = HTTPDownload.download(request, destination / packageName)
+    progressReporter.trackProgress(
+      s"Downloading $libraryName ($packageName).",
+      download
+    )
+    download.force()
+    // TODO WIP
+  }
 }
