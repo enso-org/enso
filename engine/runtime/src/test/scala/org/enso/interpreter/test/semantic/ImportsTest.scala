@@ -17,6 +17,20 @@ class ImportsTest extends PackageTest {
     ) should have message "Method `method` of X could not be found."
   }
 
+  "Import statements" should "report errors when they cannot be resolved" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Bad_Imports"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines(2) should include(
+      "Package containing the module Surely_This.Does_Not_Exist.My_Module could" +
+        " not be found."
+    )
+    outLines(3) should include(
+      "The module Enso_Test.Test_Bad_Imports.Oopsie does not exist."
+    )
+  }
+
   "Symbols from imported modules" should "not be visible when imported qualified" in {
     the[InterpreterException] thrownBy evalTestProject(
       "Test_Qualified_Error"
