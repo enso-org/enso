@@ -44,8 +44,10 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
-  public static final String SOURCE_NAME = "Builtins.enso";
-  public static final String MODULE_NAME = "Standard.Builtins.Main";
+  public static final String PACKAGE_NAME = "Builtins";
+  public static final String NAMESPACE = "Standard";
+  public static final String SOURCE_NAME = PACKAGE_NAME + ".enso";
+  public static final String MODULE_NAME = NAMESPACE + "." + PACKAGE_NAME + ".Main";
 
   /** Container for method names needed outside this class. */
   public static class MethodNames {
