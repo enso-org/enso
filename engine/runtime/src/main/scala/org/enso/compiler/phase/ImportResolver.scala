@@ -51,18 +51,53 @@ class ImportResolver(compiler: Compiler) {
             current.getCompilationStage
               .isBefore(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
           ) {
-            val importedModules = ir.imports.flatMap {
-              case imp: IR.Module.Scope.Import.Module =>
-                val impName = imp.name.name
-                val exp = ir.exports
-                  .collect { case ex: IR.Module.Scope.Export.Module => ex }
-                  .find(_.name.name == impName)
-                compiler
-                  .getModule(impName)
-                  .map(BindingsMap.ResolvedImport(imp, exp, _))
-              case _ => None
-            }
-            currentLocal.resolvedImports = importedModules
+            val importedModules: List[
+              (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+            ] =
+              ir.imports.map {
+                case imp: IR.Module.Scope.Import.Module =>
+                  val impName = imp.name.name
+                  val exp = ir.exports
+                    .collect { case ex: IR.Module.Scope.Export.Module => ex }
+                    .find(_.name.name == impName)
+                  val isLoaded = imp.name.parts match {
+                    case namespace :: name :: _ =>
+                      compiler.packageRepository.ensurePackageIsLoaded(
+                        namespace.name,
+                        name.name
+                      ).isRight
+                    case _ => false
+                  }
+                  if (isLoaded) {
+                    compiler.getModule(impName) match {
+                      case Some(module) =>
+                        (
+                          imp,
+                          Some(BindingsMap.ResolvedImport(imp, exp, module))
+                        )
+                      case None =>
+                        (
+                          IR.Error.ImportExport(
+                            imp,
+                            IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                          ),
+                          None
+                        )
+                    }
+                  } else {
+                    (
+                      IR.Error.ImportExport(
+                        imp,
+                        IR.Error.ImportExport.PackageDoesNotExist(impName)
+                      ),
+                      None
+                    )
+                  }
+                case other => (other, None)
+              }
+            currentLocal.resolvedImports = importedModules.flatMap(_._2)
+            val newIr = ir.copy(imports = importedModules.map(_._1))
+            current.unsafeSetIr(newIr)
             current.unsafeSetCompilationStage(
               Module.CompilationStage.AFTER_IMPORT_RESOLUTION
             )

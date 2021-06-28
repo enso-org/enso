@@ -18,6 +18,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
@@ -78,7 +79,8 @@ public class Context {
 
     builtins = new Builtins(this);
 
-    this.compiler = new Compiler(this, builtins, compilerConfig);
+    this.compiler =
+        new Compiler(this, builtins, new PackageRepository.Default(this), compilerConfig);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -387,6 +389,11 @@ public class Context {
   /** @return the list of shadowed packages */
   public List<ShadowedPackage> getShadowedPackages() {
     return shadowedPackages;
+  }
+
+  /** @return the pre-loaded packages */
+  public List<Package<TruffleFile>> getPackages() {
+    return packages;
   }
 
   /** @return the compiler configuration for this language */
