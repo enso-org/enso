@@ -12,13 +12,26 @@ trait PackageRepository {
     *
     * @param namespace the namespace of the package.
     * @param name the package name.
-    * @return `true` if the package was already loaded or successfully
-    *         downloaded. `false` otherwise.
+    * @return `Right(())` if the package was already loaded or successfully
+    *         downloaded. A `Left` containing an error otherwise.
     */
-  def ensurePackageIsLoaded(namespace: String, name: String): Boolean
+  def ensurePackageIsLoaded(
+    namespace: String,
+    name: String
+  ): Either[PackageRepository.Error, Unit]
 }
 
 object PackageRepository {
+
+  /** A trait representing errors reported by this system */
+  sealed trait Error
+
+  object Error {
+
+    /** An error reported when the requested package does not exist.
+      */
+    case object PackageDoesNotExist extends Error
+  }
 
   /** A temporary package repository, only able to resolve packages known
     * upfront to the language context.
@@ -31,10 +44,12 @@ object PackageRepository {
     override def ensurePackageIsLoaded(
       namespace: String,
       name: String
-    ): Boolean =
-      (name == Builtins.PACKAGE_NAME && namespace == Builtins.NAMESPACE) ||
-      context.getPackages.asScala.exists(p =>
-        p.name == name && p.namespace == namespace
-      )
+    ): Either[PackageRepository.Error, Unit] =
+      if (
+        (name == Builtins.PACKAGE_NAME && namespace == Builtins.NAMESPACE) ||
+        context.getPackages.asScala
+          .exists(p => p.name == name && p.namespace == namespace)
+      ) Right(())
+      else Left(Error.PackageDoesNotExist)
   }
 }

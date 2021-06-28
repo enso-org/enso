@@ -65,7 +65,7 @@ class ImportResolver(compiler: Compiler) {
                       compiler.packageRepository.ensurePackageIsLoaded(
                         namespace.name,
                         name.name
-                      )
+                      ).isRight
                     case _ => false
                   }
                   if (isLoaded) {
