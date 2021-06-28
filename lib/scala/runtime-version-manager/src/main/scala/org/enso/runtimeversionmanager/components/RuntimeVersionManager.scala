@@ -171,7 +171,7 @@ class RuntimeVersionManager(
     *
     * @param engine the engine for which the runtime is requested
     */
-  private def findOrInstallGraalRuntime(engine: Engine): GraalRuntime =
+  def findOrInstallGraalRuntime(engine: Engine): GraalRuntime =
     findGraalRuntime(engine) match {
       case Some(found) => found
       case None =>
