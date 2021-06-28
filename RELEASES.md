@@ -5,6 +5,8 @@
 - Implemented changes to the import and export syntax, requiring to provide the
   project namespace, or use the new `project` keyword to import from the current
   project ([#1806](https://github.com/enso-org/enso/pull/1806)).
+- Fixed a bug where unresolved imports would crash the compiler
+  ([#1822](https://github.com/enso-org/enso/pull/1822)).
 
 ## Tooling
 
