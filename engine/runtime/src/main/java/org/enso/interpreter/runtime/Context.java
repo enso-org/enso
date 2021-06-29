@@ -89,6 +89,7 @@ public class Context {
     HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
     packages = new ArrayList<>();
 
+    // FIXME [RW] why TruffleFile
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);

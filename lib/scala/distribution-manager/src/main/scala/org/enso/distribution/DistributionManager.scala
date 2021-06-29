@@ -136,6 +136,16 @@ class DistributionManager(val env: Environment) {
   private val ENSO_EDITION_PATH = "ENSO_EDITION_PATH"
   private val ENSO_LIBRARY_PATH = "ENSO_LIBRARY_PATH"
 
+  private val ENSO_AUXILIARY_LIBRARY_CACHES = "ENSO_AUXILIARY_LIBRARY_CACHES"
+
+  /** List of paths of additional caches for published libraries.
+    *
+    * These locations can be used to preload published libraries, for example
+    * from a shared network drive, so that they do not need to be downloaded.
+    */
+  def auxiliaryLibraryCaches(): Seq[Path] =
+    env.getEnvPaths(ENSO_AUXILIARY_LIBRARY_CACHES).getOrElse(Seq())
+
   /** Finds the path to the ENSO_HOME directory that is used for keeping user's
     * projects, libraries and other custom artifacts.
     */

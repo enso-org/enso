@@ -3,7 +3,7 @@ package org.enso.compiler
 import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.librarymanager.LibraryProvider
+import org.enso.librarymanager.ResolvingLibraryProvider
 
 import scala.jdk.CollectionConverters._
 
@@ -55,7 +55,7 @@ object PackageRepository {
       else Left(Error.PackageDoesNotExist)
   }
 
-  class Default(libraryProvider: LibraryProvider, context: Context)
+  class Default(libraryProvider: ResolvingLibraryProvider, context: Context)
       extends PackageRepository {
     override def ensurePackageIsLoaded(
       libraryName: LibraryName

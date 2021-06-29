@@ -3,25 +3,49 @@ package org.enso.librarymanager
 import org.enso.distribution.DistributionManager
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
+import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
+import org.enso.librarymanager.published.cache.NoOpCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
   PublishedLibraryProvider
 }
 
 import java.nio.file.Path
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
-/** A helper class for loading libraries. */
+/** A helper class for loading libraries.
+  *
+  * @param distributionManager    a distribution manager
+  * @param engineDistributionRoot the root of the engine distribution that is
+  *                               being run, if applicable; it is used to make bundled libraries available
+  * @param edition                the edition used in the project
+  * @param preferLocalLibraries   project setting whether to use local libraries
+  */
 case class DefaultLibraryProvider(
   distributionManager: DistributionManager,
+  engineDistributionRoot: Option[Path],
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
 ) {
   private val localLibraryProvider =
     LocalLibraryProvider.make(distributionManager)
   private val resolver = LibraryResolver(localLibraryProvider)
+
+  // TODO [RW] actual cache that can download libraries will be implemented in #1772
+  private val primaryCache = new NoOpCache
+
+  private val additionalCaches = {
+    val bundleRoot = engineDistributionRoot.map { root =>
+      // TODO [RW] change this to sth like just `lib`
+      root.resolve("std-lib")
+    }
+    val locations =
+      bundleRoot.toList ++ distributionManager.auxiliaryLibraryCaches()
+    locations.map(new LocalReadOnlyRepository(_))
+  }
+
   private val publishedLibraryProvider: PublishedLibraryProvider =
-    new DefaultPublishedLibraryProvider(distributionManager)
+    new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
 
   /** Resolves the library version that should be used based on the
     * configuration and returns its location on the filesystem.
