@@ -99,41 +99,6 @@ impl ExecutionContextsRegistry {
 #[fail(display="Project Manager is unavailable.")]
 pub struct ProjectManagerUnavailable;
 
-/// A wrapper for an error with information that user tried to open project with unsupported
-/// engine's version (which is likely the cause of the problems).
-#[derive(Debug,Fail)]
-pub struct UnsupportedEngineVersion {
-    project_name : String,
-    root_cause   : failure::Error,
-}
-
-impl UnsupportedEngineVersion {
-    fn error_wrapper
-    (project_name:String, engine_version:semver::Version)
-    -> impl Fn(failure::Error) -> failure::Error {
-        move |root_cause| {
-            let requirements = semver::VersionReq::parse(controller::project::ENGINE_VERSION_SUPPORTED);
-            match requirements {
-                Ok(requirements) if !requirements.matches(&engine_version) => {
-                    let project_name = project_name.clone();
-                    UnsupportedEngineVersion {project_name,root_cause}.into()
-                }
-                _ => root_cause,
-            }
-        }
-    }
-}
-
-impl Display for UnsupportedEngineVersion {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let package_yaml_path = controller::project::package_yaml_path(&self.project_name);
-        let version_supported = controller::project::ENGINE_VERSION_FOR_NEW_PROJECTS;
-        write!(f, "Failed to open project: unsupported engine version. Please update \
-            engine_version in {} to {}.",package_yaml_path,version_supported)
-    }
-}
-
-
 
 // === Data ===
 
@@ -181,7 +146,6 @@ impl Project {
     , id                  : Uuid
     , name                : impl Str
     ) -> FallibleResult<Self> {
-        let wrap   = UnsupportedEngineVersion::error_wrapper(name.as_ref().to_owned(),engine_version.clone());
         let logger = Logger::sub(parent,"Project Controller");
         info!(logger,"Creating a model of project {name.as_ref()}");
         let binary_protocol_events  = language_server_bin.event_stream();
@@ -195,10 +159,10 @@ impl Project {
         let parser                  = Parser::new_or_panic();
         let language_server         = &*language_server_rpc;
         let suggestion_db           = SuggestionDatabase::create_synchronized(language_server);
-        let suggestion_db           = Rc::new(suggestion_db.await.map_err(&wrap)?);
+        let suggestion_db           = Rc::new(suggestion_db.await?);
         let notifications           = notification::Publisher::default();
         let urm                     = Rc::new(model::undo_redo::Manager::new(&logger));
-        let engine_version          = engine_version.clone();
+
         let properties = Rc::new(Properties {id,name,engine_version});
 
         let ret = Project
@@ -211,7 +175,7 @@ impl Project {
         let json_rpc_handler = ret.json_event_handler();
         crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
 
-        ret.acquire_suggestion_db_updates_capability().await.map_err(|err| wrap(err.into()))?;
+        ret.acquire_suggestion_db_updates_capability().await?;
         Ok(ret)
     }
 
@@ -225,18 +189,15 @@ impl Project {
     , id                  : Uuid
     , name                : impl Str
     ) -> FallibleResult<model::Project> {
-        let wrap      = UnsupportedEngineVersion::error_wrapper(name.as_ref().to_owned(),engine_version.clone());
-        let client_id = Uuid::new_v4();
-        let json_ws   = WebSocket::new_opened(&parent,&language_server_rpc).await?;
-        let binary_ws = WebSocket::new_opened(&parent,&language_server_bin).await?;
+        let client_id     = Uuid::new_v4();
+        let json_ws       = WebSocket::new_opened(&parent,&language_server_rpc).await?;
+        let binary_ws     = WebSocket::new_opened(&parent,&language_server_bin).await?;
         let client_json   = language_server::Client::new(json_ws);
         let client_binary = binary::Client::new(&parent,binary_ws);
         crate::executor::global::spawn(client_json.runner());
         crate::executor::global::spawn(client_binary.runner());
-        let connection_json = language_server::Connection::new(client_json,client_id)
-            .await.map_err(&wrap)?;
-        let connection_binary = binary::Connection::new(client_binary,client_id)
-            .await.map_err(&wrap)?;
+        let connection_json     = language_server::Connection::new(client_json,client_id).await?;
+        let connection_binary   = binary::Connection::new(client_binary,client_id).await?;
         let language_server_rpc = Rc::new(connection_json);
         let language_server_bin = Rc::new(connection_binary);
         let model               = Self::new(parent,project_manager,language_server_rpc
@@ -252,12 +213,12 @@ impl Project {
     , id              : Uuid
     , name            : impl Str
     ) -> FallibleResult<model::Project> {
-        let action          = MissingComponentAction::Install;
-        let opened          = project_manager.open_project(&id,&action).await?;
-        let version         = semver::Version::parse(&opened.engine_version)?;
+        let action = MissingComponentAction::Install;
+        let opened = project_manager.open_project(&id,&action).await?;
         let project_manager = Some(project_manager);
         let json_endpoint   = opened.language_server_json_address.to_string();
         let binary_endpoint = opened.language_server_binary_address.to_string();
+        let version         = semver::Version::parse(&opened.engine_version)?;
         Self::new_connected(parent,project_manager,json_endpoint,binary_endpoint,version,id,name).await
     }
 
@@ -443,7 +404,7 @@ impl model::project::API for Project {
     }
 
     fn content_root_id(&self) -> Uuid {
-        self.language_server_rpc.project_root().id
+        self.language_server_rpc.content_root()
     }
 
     fn subscribe(&self) -> Subscriber<model::project::Notification> {

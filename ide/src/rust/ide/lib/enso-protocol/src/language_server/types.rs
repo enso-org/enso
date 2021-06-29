@@ -386,39 +386,6 @@ impl FileSystemObject {
 
 
 
-// =====================
-// === Content Roots ===
-// =====================
-
-/// The type of the annotated content root.
-#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
-pub enum ContentRootType {
-    /// The project home.
-    Project,
-    /// System root `/` on unix systems, or drive root on Windows. In Windows’ case, there may be
-    /// multiple [`Root`] entries corresponding to the various drives.
-    Root,
-    /// The user’s home directory.
-    Home,
-    /// An Enso library location.
-    Library,
-    /// A content root that has been added by the IDE (unused for now).
-    Custom
-}
-
-/// A content root represents a location on a real file-system that has been virtualized for use in
-/// the Cloud.
-#[allow(missing_docs)]
-#[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
-#[serde(rename_all="camelCase")]
-pub struct ContentRoot {
-    pub id:Uuid,
-    #[serde(rename="type")]
-    pub content_root_type : ContentRootType,
-    pub name              : String,
-}
-
-
 
 // ================
 // === Position ===
