@@ -1,6 +1,8 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
 
 class SessionManagementTest extends BaseServerTest {
 
@@ -20,20 +22,19 @@ class SessionManagementTest extends BaseServerTest {
             }
           }
           """)
-        client.expectJson(json"""
-            { "jsonrpc":"2.0",
-              "id":1,
-              "result":{
-                "contentRoots": [
-                  {
-                    "id": $testContentRootId,
-                    "type": "Project",
-                    "name": "Project"
-                  }
-                ]
-              }
-            }
-              """)
+        val response = parse(client.expectMessage()).rightValue.asObject.value
+        response("jsonrpc") shouldEqual Some("2.0".asJson)
+        response("id") shouldEqual Some(1.asJson)
+        val result = response("result").value.asObject.value
+        result("contentRoots").value.asArray.value should contain(
+          json"""
+          {
+            "id" : $testContentRootId,
+            "type" : "Project",
+            "name" : "Project"
+          }
+          """
+        )
       }
 
       "reply with SessionNotInitialisedError if client sends a request" in {

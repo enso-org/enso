@@ -18,16 +18,6 @@ object FileManagerProtocol {
     */
   case class BinaryFileContent(path: File, contents: Array[Byte])
 
-  /** Gets all content roots.
-    */
-  case object GetContentRoots
-
-  /** Response containing all content roots.
-    *
-    * @param contentRoots content roots
-    */
-  case class ContentRootsResult(contentRoots: Set[ContentRoot])
-
   /** Requests the Language Server write textual content to an arbitrary file.
     *
     * @param path a path to a file

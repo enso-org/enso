@@ -9,6 +9,9 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile,
   FileManager,
@@ -65,7 +68,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     new File(serverConfig.contentRootPath)
   )
   val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> contentRoot),
+    contentRoot,
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
@@ -116,8 +119,22 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  lazy val contentRootManagerActor =
+    system.actorOf(
+      ContentRootManagerActor.props(languageServerConfig),
+      "content-root-manager"
+    )
+
+  lazy val contentRootManagerWrapper: ContentRootManager =
+    new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
+
   lazy val fileManager = system.actorOf(
-    FileManager.pool(languageServerConfig, fileSystem, zioExec),
+    FileManager.pool(
+      languageServerConfig.fileManager,
+      contentRootManagerWrapper,
+      fileSystem,
+      zioExec
+    ),
     "file-manager"
   )
 
@@ -129,8 +146,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val receivesTreeUpdatesHandler =
     system.actorOf(
-      ReceivesTreeUpdatesHandler
-        .props(languageServerConfig, fileSystem, zioExec),
+      ReceivesTreeUpdatesHandler.props(
+        languageServerConfig,
+        contentRootManagerWrapper,
+        fileSystem,
+        zioExec
+      ),
       "file-event-registry"
     )
 
@@ -139,6 +160,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       SuggestionsHandler
         .props(
           languageServerConfig,
+          contentRootManagerWrapper,
           suggestionsRepo,
           versionsRepo,
           sessionRouter,
@@ -163,6 +185,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         .props(
           suggestionsRepo,
           languageServerConfig,
+          RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter
         ),
@@ -249,6 +272,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     bufferRegistry,
     capabilityRouter,
     fileManager,
+    contentRootManagerActor,
     contextRegistry,
     suggestionsHandler,
     stdOutController,

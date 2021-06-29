@@ -13,6 +13,9 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile,
   Path
@@ -767,10 +770,15 @@ class SuggestionsHandlerSpec
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future]
   ): ActorRef = {
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val handler =
       system.actorOf(
         SuggestionsHandler.props(
           config,
+          contentRootManagerWrapper,
           suggestionsRepo,
           fileVersionsRepo,
           sessionRouter.ref,
@@ -802,7 +810,7 @@ class SuggestionsHandlerSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -811,7 +819,7 @@ class SuggestionsHandlerSpec
   }
 
   def mkModulePath(config: Config, segments: String*): Path = {
-    val (rootId, _) = config.contentRoots.head
+    val rootId = config.projectContentRoot.id
     Path(rootId, "src" +: segments.toVector)
   }
 

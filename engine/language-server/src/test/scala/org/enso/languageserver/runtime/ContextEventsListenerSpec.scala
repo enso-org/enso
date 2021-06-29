@@ -6,6 +6,9 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile
 }
@@ -434,7 +437,7 @@ class ContextEventsListenerSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -482,9 +485,13 @@ class ContextEventsListenerSpec
     val router          = TestProbe("session-router")
     val contextRegistry = TestProbe("context-registry")
     val repo            = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val listener = contextRegistry.childActorOf(
       ContextEventsListener.props(
-        config,
+        RuntimeFailureMapper(contentRootManagerWrapper),
         repo,
         newJsonSession(clientId),
         contextId,

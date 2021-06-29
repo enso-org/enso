@@ -1,6 +1,6 @@
 package org.enso.librarymanager
 
-import org.enso.editions.{Editions, LibraryName}
+import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
 
 /** A helper class that figures out which library version should be used in a

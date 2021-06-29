@@ -1,7 +1,7 @@
 package org.enso.librarymanager
 
 import org.enso.distribution.DistributionManager
-import org.enso.editions.{Editions, LibraryName}
+import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,

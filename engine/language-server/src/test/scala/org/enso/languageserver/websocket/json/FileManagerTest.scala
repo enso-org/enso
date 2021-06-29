@@ -1,15 +1,21 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{Files, Paths}
-import java.util.UUID
 import io.circe.literal._
+import io.circe.parser.parse
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
+import org.enso.editions.Editions.Repository
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.languageserver.data._
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 
+import java.io.File
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{Files, Paths}
 import java.security.MessageDigest
+import java.util.UUID
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -18,7 +24,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
-      Map(testContentRootId -> testContentRoot),
+      testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -1652,7 +1658,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when getting info of nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1780,6 +1787,31 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
+    }
+  }
+
+  "Content root management" must {
+    "notify the IDE when a new root is added" in {
+      val client = getInitialisedWsClient()
+
+      val repo = Repository.make("example", "https://example.com/").get
+
+      val libraryName    = LibraryName("Foo", "Bar")
+      val libraryVersion = LibraryVersion.Published(SemVer(1, 2, 3), repo)
+      val rootPath       = new File("foobar")
+      val rootName       = "Foo.Bar:1.2.3"
+
+      system.eventStream.publish(
+        Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
+      )
+
+      val parsed = parse(client.expectMessage())
+      inside(parsed) { case Right(json) =>
+        val params = json.asObject.value("params").value.asObject.value
+        val root   = params("root").value.asObject.value
+        root("name").value.asString.value shouldEqual rootName
+        root("type").value.asString.value shouldEqual "Library"
+      }
     }
   }
 
