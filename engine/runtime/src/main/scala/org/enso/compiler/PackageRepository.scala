@@ -4,8 +4,11 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.librarymanager.ResolvingLibraryProvider
+import org.enso.librarymanager.ResolvingLibraryProvider.Error
 
+import java.nio.file.Path
 import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success}
 
 trait PackageRepository {
 
@@ -28,10 +31,8 @@ object PackageRepository {
   sealed trait Error
 
   object Error {
-
-    /** An error reported when the requested package does not exist.
-      */
-    case object PackageDoesNotExist extends Error
+    case class PackageCouldNotBeResolved(cause: Throwable) extends Error
+    case class PackageDownloadFailed(cause: Throwable)     extends Error
   }
 
   /** A temporary package repository, only able to resolve packages known
@@ -52,13 +53,37 @@ object PackageRepository {
             p.name == libraryName.name && p.namespace == libraryName.prefix
           )
       ) Right(())
-      else Left(Error.PackageDoesNotExist)
+      else Left(Error.PackageCouldNotBeResolved(new NotImplementedError))
   }
 
   class Default(libraryProvider: ResolvingLibraryProvider, context: Context)
       extends PackageRepository {
+
+    // TODO [RW, MK] what are the concurrency guarantees here? do we have only one thread or more?
+    val loadedModules: collection.mutable.Set[LibraryName] = {
+      val builtins = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
+      collection.mutable.Set(builtins)
+    }
+
+    private def loadPackage(libraryName: LibraryName, root: Path): Unit = {
+      loadedModules.add(libraryName)
+
+      // TODO actually load stuff
+    }
+
     override def ensurePackageIsLoaded(
       libraryName: LibraryName
-    ): Either[Error, Unit] = ???
+    ): Either[Error, Unit] = if (loadedModules.contains(libraryName)) Right(())
+    else
+      libraryProvider
+        .findLibrary(libraryName)
+        .map(loadPackage(libraryName, _))
+        .left
+        .map {
+          case ResolvingLibraryProvider.Error.NotResolved(details) =>
+            Error.PackageCouldNotBeResolved(details)
+          case ResolvingLibraryProvider.Error.DownloadFailed(reason) =>
+            Error.PackageDownloadFailed(reason)
+        }
   }
 }

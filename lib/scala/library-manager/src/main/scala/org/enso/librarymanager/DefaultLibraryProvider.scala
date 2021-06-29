@@ -26,7 +26,7 @@ case class DefaultLibraryProvider(
   engineDistributionRoot: Option[Path],
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
-) {
+) extends ResolvingLibraryProvider {
   private val localLibraryProvider =
     LocalLibraryProvider.make(distributionManager)
   private val resolver = LibraryResolver(localLibraryProvider)
@@ -52,37 +52,44 @@ case class DefaultLibraryProvider(
     *
     * If the library is not available, this operation may download it.
     */
-  def findLibrary(
+  override def findLibrary(
     libraryName: LibraryName
-  ): Try[Path] = {
+  ): Either[ResolvingLibraryProvider.Error, Path] = {
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
     resolvedVersion match {
-      case Left(error) =>
-        Failure(error)
+      case Left(reason) =>
+        Left(ResolvingLibraryProvider.Error.NotResolved(reason))
+
       case Right(LibraryVersion.Local) =>
         localLibraryProvider
           .findLibrary(libraryName)
           .toRight {
-            LibraryResolutionError(
-              s"Edition configuration forces to use the local version, but " +
-              s"the `$libraryName` library is not present among local " +
-              s"libraries."
+            ResolvingLibraryProvider.Error.NotResolved(
+              LibraryResolutionError(
+                s"Edition configuration forces to use the local version, but " +
+                s"the `$libraryName` library is not present among local " +
+                s"libraries."
+              )
             )
           }
-          .toTry
+
       case Right(LibraryVersion.Published(version, repository)) =>
         val dependencyResolver = { name: LibraryName =>
           resolver
             .resolveLibraryVersion(name, edition, preferLocalLibraries)
             .toOption
         }
-        publishedLibraryProvider.findLibrary(
-          libraryName,
-          version,
-          repository,
-          dependencyResolver
-        )
+        publishedLibraryProvider
+          .findLibrary(
+            libraryName,
+            version,
+            repository,
+            dependencyResolver
+          )
+          .toEither
+          .left
+          .map(ResolvingLibraryProvider.Error.DownloadFailed)
     }
   }
 }
