@@ -8,8 +8,15 @@ import org.enso.librarymanager.published.{
   PublishedLibraryProvider
 }
 
+import java.nio.file.Path
+import scala.util.{Failure, Success, Try}
+
 /** A helper class for loading libraries. */
-case class LibraryLoader(distributionManager: DistributionManager) {
+case class DefaultLibraryProvider(
+  distributionManager: DistributionManager,
+  edition: Editions.ResolvedEdition,
+  preferLocalLibraries: Boolean
+) {
   private val localLibraryProvider =
     LocalLibraryProvider.make(distributionManager)
   private val resolver = LibraryResolver(localLibraryProvider)
@@ -22,28 +29,24 @@ case class LibraryLoader(distributionManager: DistributionManager) {
     * If the library is not available, this operation may download it.
     */
   def findLibrary(
-    libraryName: LibraryName,
-    edition: Editions.ResolvedEdition,
-    preferLocalLibraries: Boolean
-  ): LibraryResolutionResult = {
+    libraryName: LibraryName
+  ): Try[Path] = {
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
     resolvedVersion match {
       case Left(error) =>
-        LibraryResolutionResult.ResolutionFailure(error)
+        Failure(error)
       case Right(LibraryVersion.Local) =>
         localLibraryProvider
           .findLibrary(libraryName)
-          .map(LibraryResolutionResult.ResolvedImmediately)
-          .getOrElse {
-            LibraryResolutionResult.ResolutionFailure(
-              LibraryResolutionError(
-                s"Edition configuration forces to use the local version, but " +
-                s"the `$libraryName` library is not present among local " +
-                s"libraries."
-              )
+          .toRight {
+            LibraryResolutionError(
+              s"Edition configuration forces to use the local version, but " +
+              s"the `$libraryName` library is not present among local " +
+              s"libraries."
             )
           }
+          .toTry
       case Right(LibraryVersion.Published(version, repository)) =>
         val dependencyResolver = { name: LibraryName =>
           resolver

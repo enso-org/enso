@@ -1,7 +1,9 @@
 package org.enso.compiler
 
+import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.librarymanager.LibraryProvider
 
 import scala.jdk.CollectionConverters._
 
@@ -16,8 +18,7 @@ trait PackageRepository {
     *         downloaded. A `Left` containing an error otherwise.
     */
   def ensurePackageIsLoaded(
-    namespace: String,
-    name: String
+    libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 }
 
@@ -38,18 +39,26 @@ object PackageRepository {
     *
     * @param context the language context
     */
-  class Default(context: Context) extends PackageRepository {
+  class Legacy(context: Context) extends PackageRepository {
 
     /** @inheritdoc */
     override def ensurePackageIsLoaded(
-      namespace: String,
-      name: String
+      libraryName: LibraryName
     ): Either[PackageRepository.Error, Unit] =
       if (
-        (name == Builtins.PACKAGE_NAME && namespace == Builtins.NAMESPACE) ||
+        (libraryName.name == Builtins.PACKAGE_NAME && libraryName.prefix == Builtins.NAMESPACE) ||
         context.getPackages.asScala
-          .exists(p => p.name == name && p.namespace == namespace)
+          .exists(p =>
+            p.name == libraryName.name && p.namespace == libraryName.prefix
+          )
       ) Right(())
       else Left(Error.PackageDoesNotExist)
+  }
+
+  class Default(libraryProvider: LibraryProvider, context: Context)
+      extends PackageRepository {
+    override def ensurePackageIsLoaded(
+      libraryName: LibraryName
+    ): Either[Error, Unit] = ???
   }
 }

@@ -80,7 +80,7 @@ public class Context {
     builtins = new Builtins(this);
 
     this.compiler =
-        new Compiler(this, builtins, new PackageRepository.Default(this), compilerConfig);
+        new Compiler(this, builtins, new PackageRepository.Legacy(this), compilerConfig);
   }
 
   /** Perform expensive initialization logic for the context. */
