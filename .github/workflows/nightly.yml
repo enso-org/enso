@@ -268,7 +268,6 @@ jobs:
           sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/std-lib/Image/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/std-lib/Database/THIRD-PARTY"
 
-
       # Publish
       - name: Upload the Engine Artifact
         uses: actions/upload-artifact@v2
