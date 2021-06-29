@@ -7,7 +7,7 @@ use crate::language_server::SuggestionsDatabaseEntry;
 #[serde(rename_all="camelCase")]
 pub struct InitProtocolConnection {
     /// List of Root IDs.
-    pub content_roots:Vec<ContentRoot>,
+    pub content_roots:Vec<Uuid>,
 }
 
 /// Response of `file_read` method.

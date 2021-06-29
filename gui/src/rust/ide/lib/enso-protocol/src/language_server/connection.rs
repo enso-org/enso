@@ -2,10 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::language_server::API;
 use crate::language_server::MockClient;
-use crate::language_server::types::ContentRoot;
-use crate::language_server::types::ContentRootType;
+use crate::language_server::API;
 
 use uuid::Uuid;
 use utils::fail::FallibleResult;
@@ -41,41 +39,30 @@ pub struct Connection {
     /// LS client that has already initialized protocol.
     #[derivative(Debug="ignore")]
     pub client:Box<dyn API>,
-    /// The Project content root, being an only obligatory content root received.
-    project_root:ContentRoot,
-    /// Content roots obtained during initialization other than the `project_root`].
-    content_roots:Vec<ContentRoot>,
+    /// Content roots obtained during initialization. Guaranteed to be non-empty.
+    content_roots:Vec<Uuid>,
 }
 
 impl Connection {
     /// Takes a client, generates ID for it and initializes the protocol.
     pub async fn new(client:impl API + 'static, client_id:Uuid) -> FallibleResult<Self> {
-        let client            = Box::new(client);
-        let init_response     = client.init_protocol_connection(&client_id).await;
-        let init_response     = init_response.map_err(|e| FailedToInitializeProtocol(e.into()))?;
-        let mut content_roots = init_response.content_roots;
-        let project_root      = Self::extract_project_root(&mut content_roots)?;
-        Ok(Connection {client_id,client,project_root,content_roots})
-    }
-
-    fn extract_project_root(content_roots:&mut Vec<ContentRoot>) -> FallibleResult<ContentRoot> {
-        use ContentRootType::*;
-        let opt_index = content_roots.iter().position(|cr| cr.content_root_type == Project);
-        let index     = opt_index.ok_or(MissingContentRoots)?;
-        Ok(content_roots.drain(index..=index).next().unwrap())
+        let client        = Box::new(client);
+        let init_response = client.init_protocol_connection(&client_id).await;
+        let init_response = init_response.map_err(|e| FailedToInitializeProtocol(e.into()))?;
+        let content_roots = init_response.content_roots;
+        if content_roots.is_empty() {
+            Err(MissingContentRoots.into())
+        } else {
+            Ok(Connection {client_id,client,content_roots})
+        }
     }
 
     /// Creates a connection which wraps a mock client.
     pub fn new_mock(client:MockClient) -> Connection {
         Connection {
-            client       : Box::new(client),
-            client_id    : default(),
-            project_root : ContentRoot {
-                id                : default(),
-                content_root_type : ContentRootType::Project,
-                name              : "Project".to_owned()
-            },
-            content_roots : default(),
+            client        : Box::new(client),
+            client_id     : default(),
+            content_roots : vec![default()],
         }
     }
 
@@ -85,11 +72,14 @@ impl Connection {
     }
 
     /// Returns the first content root.
-    pub fn project_root(&self) -> &ContentRoot { &self.project_root }
+    pub fn content_root(&self) -> Uuid {
+        // Guaranteed to be non-empty thanks to check in `new` and implementation of `new_mock`.
+        self.content_roots[0]
+    }
 
     /// Lists all content roots for this LS connection.
-    pub fn content_roots(&self) -> impl Iterator<Item=&ContentRoot> {
-        std::iter::once(&self.project_root).chain(self.content_roots.iter())
+    pub fn content_roots(&self) -> &Vec<Uuid> {
+        &self.content_roots
     }
 }
 
