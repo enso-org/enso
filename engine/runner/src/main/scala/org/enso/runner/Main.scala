@@ -27,6 +27,7 @@ object Main {
   private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
+  private val DOCS_OPTION                 = "docs"
   private val LANGUAGE_SERVER_OPTION      = "server"
   private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
@@ -61,6 +62,10 @@ object Main {
       .argName("file")
       .longOpt(RUN_OPTION)
       .desc("Runs a specified Enso file.")
+      .build
+    val docs = CliOption.builder
+      .longOpt(DOCS_OPTION)
+      .desc("Runs the Enso documentation generator.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -190,6 +195,7 @@ object Main {
       .addOption(help)
       .addOption(repl)
       .addOption(run)
+      .addOption(docs)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectAuthorNameOpt)
@@ -320,6 +326,56 @@ object Main {
     }
     exitSuccess()
   }
+
+  /** Handles the `--docs` CLI option.
+    *
+    * Generates reference website from standard library.
+    *
+    * @param projectPath if specified, the docs is generated for a project
+    *                    at the given path
+    * @param logLevel log level to set for the engine runtime
+    */
+  private def genDocs(projectPath: Option[String], logLevel: LogLevel): Unit = {
+    val stdLibPath   = "./distribution/std-lib"
+    val tempFileName = "Geo/src/Geo_Json.enso"
+    val path         = stdLibPath + "/" + tempFileName
+    generateFrom(path, logLevel)
+    exitSuccess()
+  }
+
+  def generateFrom(path: String, logLevel: LogLevel): Unit = {
+    val executionContext = new ContextFactory().create(
+      path,
+      System.in,
+      System.out,
+      Repl(TerminalIO()),
+      logLevel = logLevel
+    )
+
+    val file  = new File(path)
+    val pkg  = PackageManager.Default.fromDirectory(file)
+    val main = pkg.map(_.mainFile)
+
+    if (main.exists(_.exists())) {
+      val mainFile       = main.get
+      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
+      runPackage(executionContext, mainModuleName, file)
+
+//      val languageContext = executionContext
+//        .getBindings(LanguageInfo.ID)
+//        .invokeMember(MethodNames.TopScope.GET_MODULE)
+//        .asHostObject[EnsoContext]
+//
+//      val module = languageContext.getModuleForFile(file)
+//
+//      val generated = module.map(languageContext.getCompiler.generateDocs)
+//      print(generated)
+
+      // TODO:
+      // - go through executed code and get all HTML docs
+      //   with their corresponding atoms/methods etc.
+      // - Save those to files
+    }
 
   private def runPackage(
     context: PolyglotContext,
@@ -576,6 +632,9 @@ object Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+    }
+    if (line.hasOption(DOCS_OPTION)) {
+      genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)
