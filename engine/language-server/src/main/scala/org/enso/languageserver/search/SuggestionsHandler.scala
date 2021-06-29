@@ -1,6 +1,5 @@
 package org.enso.languageserver.search
 
-import java.util.UUID
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
@@ -18,11 +17,12 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
-  ContentRootType,
+  ContentRootManager,
   FileDeletedEvent,
   Path
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
+import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.search.handler.{
   ImportModuleHandler,
@@ -40,6 +40,7 @@ import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
+import java.util.UUID
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
@@ -76,12 +77,14 @@ import scala.util.{Failure, Success}
   * }}
   *
   * @param config the server configuration
+  * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
   */
 final class SuggestionsHandler(
   config: Config,
+  contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
   fileVersionsRepo: FileVersionsRepo[Future],
   sessionRouter: ActorRef,
@@ -114,13 +117,9 @@ final class SuggestionsHandler(
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
 
-    config.contentRoots.foreach {
-      case (_, root) if root.`type` == ContentRootType.Project =>
-        PackageManager.Default
-          .fromDirectory(root.file)
-          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
-      case _ =>
-    }
+    PackageManager.Default
+      .fromDirectory(config.projectContentRoot.file)
+      .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
   }
 
   override def receive: Receive =
@@ -284,19 +283,21 @@ final class SuggestionsHandler(
     case Completion(path, pos, selfType, returnType, tags) =>
       val selfTypes = selfType.toList.flatMap(ty => ty :: graph.getParents(ty))
       getModuleName(projectName, path)
-        .fold(
-          Future.successful,
-          module =>
-            suggestionsRepo
-              .search(
-                Some(module),
-                selfTypes,
-                returnType,
-                tags.map(_.map(SuggestionKind.toSuggestion)),
-                Some(toPosition(pos))
-              )
-              .map(CompletionResult.tupled)
-        )
+        .flatMap { either =>
+          either.fold(
+            Future.successful,
+            module =>
+              suggestionsRepo
+                .search(
+                  Some(module),
+                  selfTypes,
+                  returnType,
+                  tags.map(_.map(SuggestionKind.toSuggestion)),
+                  Some(toPosition(pos))
+                )
+                .map(CompletionResult.tupled)
+          )
+        }
         .pipeTo(sender())
 
     case Import(suggestionId) =>
@@ -306,26 +307,34 @@ final class SuggestionsHandler(
         .map(SearchProtocol.ImportSuggestion)
         .getOrElse(SearchProtocol.SuggestionNotFoundError)
 
-      val handler = context.system
-        .actorOf(ImportModuleHandler.props(config, timeout, runtimeConnector))
+      val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
+      val handler = context.system.actorOf(
+        ImportModuleHandler.props(
+          runtimeFailureMapper,
+          timeout,
+          runtimeConnector
+        )
+      )
       action.pipeTo(handler)(sender())
 
     case FileDeletedEvent(path) =>
       getModuleName(projectName, path)
-        .fold(
-          err => Future.successful(Left(err)),
-          module =>
-            suggestionsRepo
-              .removeModules(Seq(module))
-              .map { case (version, ids) =>
-                Right(
-                  SuggestionsDatabaseUpdateNotification(
-                    version,
-                    ids.map(SuggestionsDatabaseUpdate.Remove)
+        .flatMap { either =>
+          either.fold(
+            err => Future.successful(Left(err)),
+            module =>
+              suggestionsRepo
+                .removeModules(Seq(module))
+                .map { case (version, ids) =>
+                  Right(
+                    SuggestionsDatabaseUpdateNotification(
+                      version,
+                      ids.map(SuggestionsDatabaseUpdate.Remove)
+                    )
                   )
-                )
-              }
-        )
+                }
+          )
+        }
         .onComplete {
           case Success(Right(notification)) =>
             if (notification.updates.nonEmpty) {
@@ -351,10 +360,14 @@ final class SuggestionsHandler(
         _ <- fileVersionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
-      val handler = context.system
-        .actorOf(
-          InvalidateModulesIndexHandler.props(config, timeout, runtimeConnector)
+      val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
+      val handler = context.system.actorOf(
+        InvalidateModulesIndexHandler.props(
+          runtimeFailureMapper,
+          timeout,
+          runtimeConnector
         )
+      )
       action.pipeTo(handler)(sender())
 
     case ProjectNameChangedEvent(oldName, newName) =>
@@ -544,14 +557,16 @@ final class SuggestionsHandler(
   private def getModuleName(
     projectName: String,
     path: Path
-  ): Either[SearchFailure, String] =
-    for {
-      root <- config.findContentRoot(path.rootId).left.map(FileSystemError)
-      module <-
-        ModuleNameBuilder
-          .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
-          .toRight(ModuleNameNotResolvedError(path))
-    } yield module
+  ): Future[Either[SearchFailure, String]] =
+    contentRootManager.findContentRoot(path.rootId).map { rootOrError =>
+      for {
+        root <- rootOrError.left.map(FileSystemError)
+        module <-
+          ModuleNameBuilder
+            .build(projectName, root.file.toPath, path.toFile(root.file).toPath)
+            .toRight(ModuleNameNotResolvedError(path))
+      } yield module
+    }
 
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)
@@ -610,6 +625,7 @@ object SuggestionsHandler {
   /** Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param config the server configuration
+    * @param contentRootManager the content root manager
     * @param suggestionsRepo the suggestions repo
     * @param fileVersionsRepo the file versions repo
     * @param sessionRouter the session router
@@ -617,6 +633,7 @@ object SuggestionsHandler {
     */
   def props(
     config: Config,
+    contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future],
     sessionRouter: ActorRef,
@@ -625,6 +642,7 @@ object SuggestionsHandler {
     Props(
       new SuggestionsHandler(
         config,
+        contentRootManager,
         suggestionsRepo,
         fileVersionsRepo,
         sessionRouter,

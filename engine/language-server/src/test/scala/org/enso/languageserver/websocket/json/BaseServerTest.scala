@@ -15,6 +15,9 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootType,
   ContentRootWithFile,
   FileManager,
@@ -27,7 +30,7 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.runtime.ContextRegistry
+import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -40,8 +43,15 @@ import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
+import org.enso.testkit.EitherValue
+import org.scalatest.OptionValues
 
-class BaseServerTest extends JsonRpcServerTestKit {
+class BaseServerTest
+    extends JsonRpcServerTestKit
+    with EitherValue
+    with OptionValues {
 
   import system.dispatcher
 
@@ -69,7 +79,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   def mkConfig: Config =
     Config(
-      Map(testContentRootId -> testContentRoot),
+      testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -119,9 +129,20 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
   )
 
+  val contentRootManagerActor =
+    system.actorOf(ContentRootManagerActor.props(config))
+
   override def clientControllerFactory: ClientControllerFactory = {
-    val fileManager =
-      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
+    val fileManager = system.actorOf(
+      FileManager.props(
+        config.fileManager,
+        contentRootManagerWrapper,
+        new FileSystem,
+        zioExec
+      )
+    )
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(
@@ -132,16 +153,21 @@ class BaseServerTest extends JsonRpcServerTestKit {
           Sha3_224VersionCalculator
         )
       )
-    val fileEventRegistry =
-      system.actorOf(
-        ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
+    val fileEventRegistry = system.actorOf(
+      ReceivesTreeUpdatesHandler.props(
+        config,
+        contentRootManagerWrapper,
+        new FileSystem,
+        zioExec
       )
+    )
 
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(
           suggestionsRepo,
           config,
+          RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnectorProbe.ref,
           sessionRouter
         )
@@ -151,6 +177,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(
         SuggestionsHandler.props(
           config,
+          contentRootManagerWrapper,
           suggestionsRepo,
           versionsRepo,
           sessionRouter,
@@ -187,6 +214,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       bufferRegistry,
       capabilityRouter,
       fileManager,
+      contentRootManagerActor,
       contextRegistry,
       suggestionsHandler,
       stdOutController,
@@ -214,20 +242,19 @@ class BaseServerTest extends JsonRpcServerTestKit {
             }
           }
           """)
-    client.expectJson(json"""
-            { "jsonrpc":"2.0",
-              "id":1,
-              "result":{
-                "contentRoots" : [
-                  {
-                    "id" : $testContentRootId,
-                    "type" : "Project",
-                    "name" : "Project"
-                  }
-                ]
-              }
-            }
-              """)
+    val response = parse(client.expectMessage()).rightValue.asObject.value
+    response("jsonrpc") shouldEqual Some("2.0".asJson)
+    response("id") shouldEqual Some(1.asJson)
+    val result = response("result").value.asObject.value
+    result("contentRoots").value.asArray.value should contain(
+      json"""
+          {
+            "id" : $testContentRootId,
+            "type" : "Project",
+            "name" : "Project"
+          }
+          """
+    )
     clientId
   }
 

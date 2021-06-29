@@ -1,10 +1,8 @@
 package org.enso.languageserver.runtime.handler
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.data.Config
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
@@ -13,16 +11,17 @@ import org.enso.languageserver.runtime.{
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for push commands.
   *
-  * @param config the language server config
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
   * @param runtime reference to the runtime conector
   */
 final class PopContextHandler(
-  config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -54,7 +53,7 @@ final class PopContextHandler(
       context.stop(self)
 
     case Api.Response(_, error: Api.Error) =>
-      replyTo ! RuntimeFailureMapper(config).mapApiError(error)
+      runtimeFailureMapper.mapApiError(error).pipeTo(replyTo)
       cancellable.cancel()
       context.stop(self)
   }
@@ -64,10 +63,14 @@ object PopContextHandler {
 
   /** Creates a configuration object used to create [[PopContextHandler]].
     *
-    * @param config the language server config
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
     * @param runtime reference to the runtime conector
     */
-  def props(config: Config, timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new PopContextHandler(config, timeout, runtime))
+  def props(
+    runtimeFailureMapper: RuntimeFailureMapper,
+    timeout: FiniteDuration,
+    runtime: ActorRef
+  ): Props =
+    Props(new PopContextHandler(runtimeFailureMapper, timeout, runtime))
 }

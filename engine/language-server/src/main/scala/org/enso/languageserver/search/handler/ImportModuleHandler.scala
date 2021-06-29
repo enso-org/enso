@@ -1,26 +1,24 @@
 package org.enso.languageserver.search.handler
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.data.Config
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.RuntimeFailureMapper
 import org.enso.languageserver.search.SearchProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for import module command.
   *
-  * @param config the language server config
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param timeout request timeout
   * @param runtime reference to the runtime connector
   */
 final class ImportModuleHandler(
-  config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -64,7 +62,7 @@ final class ImportModuleHandler(
       context.stop(self)
 
     case Api.Response(_, error: Api.Error) =>
-      replyTo ! RuntimeFailureMapper(config).mapApiError(error)
+      replyTo ! runtimeFailureMapper.mapApiError(error)
       cancellable.cancel()
       context.stop(self)
   }
@@ -82,10 +80,14 @@ object ImportModuleHandler {
 
   /** Creates a configuration object used to create [[ImportModuleHandler]].
     *
-    * @param config the language server config
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param timeout request timeout
     * @param runtime reference to the runtime conector
     */
-  def props(config: Config, timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new ImportModuleHandler(config, timeout, runtime))
+  def props(
+    runtimeFailureMapper: RuntimeFailureMapper,
+    timeout: FiniteDuration,
+    runtime: ActorRef
+  ): Props =
+    Props(new ImportModuleHandler(runtimeFailureMapper, timeout, runtime))
 }

@@ -1,7 +1,5 @@
 package org.enso.languageserver.filemanager
 
-import java.io.File
-
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
 import cats.implicits._
@@ -14,7 +12,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data.{
   CapabilityRegistration,
-  Config,
+  PathWatcherConfig,
   ReceivesTreeUpdates
 }
 import org.enso.languageserver.effect._
@@ -22,27 +20,32 @@ import org.enso.languageserver.event.JsonSessionTerminated
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
+import java.io.File
 import scala.concurrent.Await
+import scala.util.Success
 
 /** Starts [[WatcherAdapter]], handles errors, converts and sends
   * events to the client.
   *
   * @param config configuration
+  * @param contentRootManager the content root manager
   * @param fs file system
   * @param exec executor of file system effects
   */
 final class PathWatcher(
-  config: Config,
+  config: PathWatcherConfig,
+  contentRootManager: ContentRootManager,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
 
-  import context.dispatcher, PathWatcherProtocol._
+  import PathWatcherProtocol._
+  import context.dispatcher
 
   private val restartCounter =
-    new PathWatcher.RestartCounter(config.pathWatcher.maxRestarts)
+    new PathWatcher.RestartCounter(config.maxRestarts)
   private var fileWatcher: Option[WatcherAdapter] = None
 
   override def preStart(): Unit = {
@@ -56,15 +59,19 @@ final class PathWatcher(
   override def receive: Receive = uninitializedStage
 
   private def uninitializedStage: Receive = { case WatchPath(path, clients) =>
-    val pathToWatchResult = config
+    val pathToWatchResult = contentRootManager
       .findContentRoot(path.rootId)
-      .map(x => path.toFile(x.file))
+      .map(result => result.map(root => path.toFile(root.file)))
+
     val result: BlockingIO[FileSystemFailure, Unit] =
       for {
-        pathToWatch <- IO.fromEither(pathToWatchResult)
-        _           <- validatePath(pathToWatch)
-        watcher     <- IO.fromEither(buildWatcher(pathToWatch))
-        _           <- IO.fromEither(startWatcher(watcher))
+        pathToWatch <- IO
+          .fromFuture { _ => pathToWatchResult }
+          .mapError { _ => ContentRootNotFound }
+          .absolve
+        _       <- validatePath(pathToWatch)
+        watcher <- IO.fromEither(buildWatcher(pathToWatch))
+        _       <- IO.fromEither(startWatcher(watcher))
       } yield ()
 
     exec
@@ -75,10 +82,10 @@ final class PathWatcher(
       }
       .pipeTo(sender())
 
-    pathToWatchResult match {
-      case Right(root) =>
+    pathToWatchResult.onComplete {
+      case Success(Right(root)) =>
         context.become(initializedStage(root, path, clients))
-      case Left(_) =>
+      case _ =>
         context.stop(self)
     }
   }
@@ -111,7 +118,7 @@ final class PathWatcher(
       if (restartCounter.canRestart) {
         logger.error(s"Restart on error#${restartCounter.count}", e)
         context.system.scheduler.scheduleOnce(
-          config.pathWatcher.restartTimeout,
+          config.restartTimeout,
           self,
           WatchPath(base, clients)
         )
@@ -165,7 +172,7 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher.foreach { watcher =>
-          Await.ready(exec.exec(watcher.stop()), config.pathWatcher.timeout)
+          Await.ready(exec.exec(watcher.stop()), config.timeout)
         }
       }
       .leftMap(errorHandler)
@@ -209,13 +216,15 @@ object PathWatcher {
   /** Creates a configuration object used to create a [[PathWatcher]].
     *
     * @param config configuration
+    * @param contentRootManager the content root manager
     * @param fs file system
     * @param exec executor of file system effects
     */
   def props(
-    config: Config,
+    config: PathWatcherConfig,
+    contentRootManager: ContentRootManager,
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new PathWatcher(config, fs, exec))
+    Props(new PathWatcher(config, contentRootManager, fs, exec))
 }
