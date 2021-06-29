@@ -12,6 +12,9 @@
 
 - Added namespace information to project manager messages
   ([#1820](https://github.com/enso-org/enso/pull/1820)).
+- Fixed a bug where the Project Manager would not preinstall the Graal runtime
+  if the engine was already installed and only its runtime was missing
+  ([#1824](https://github.com/enso-org/enso/pull/1824)).
 
 # Enso 0.2.12 (2021-06-24)
 

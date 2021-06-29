@@ -18,6 +18,7 @@ import org.enso.loggingservice.{LogLevel, LoggerMode, LoggingServiceManager}
 import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
+import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
   ExecutorWithUnlimitedPool,
@@ -32,13 +33,17 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.config.GlobalConfigService
-import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagementService
+import org.enso.projectmanager.service.versionmanagement.{
+  RuntimeVersionManagementService,
+  RuntimeVersionManagerFactory
+}
 import org.enso.projectmanager.service.{
   MonadicProjectValidator,
   ProjectCreationService,
   ProjectService
 }
 import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.runtimeversionmanager.test.FakeReleases
 import org.scalatest.BeforeAndAfterAll
 import pureconfig.ConfigSource
@@ -50,6 +55,19 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
+
+  /** Tests can override this value to request a specific engine version to be
+    * preinstalled when running the suite.
+    */
+  val engineToInstall: Option[SemVer] = None
+
+  /** Tests can override this to set up a logging service that will print debug
+    * logs.
+    */
+  val debugLogs: Boolean = false
+
+  /** Tests can override this to allow child process output to be displayed. */
+  val debugChildLogs: Boolean = false
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -109,7 +127,7 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
-  lazy val distributionConfiguration =
+  val distributionConfiguration =
     TestDistributionConfiguration(
       distributionRoot       = testDistributionRoot.toPath,
       engineReleaseProvider  = FakeReleases.engineReleaseProvider,
@@ -199,19 +217,6 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     FileUtils.deleteQuietly(testProjectsRoot)
   }
 
-  /** Tests can override this value to request a specific engine version to be
-    * preinstalled when running the suite.
-    */
-  val engineToInstall: Option[SemVer] = None
-
-  /** Tests can override this to set up a logging service that will print debug
-    * logs.
-    */
-  val debugLogs: Boolean = false
-
-  /** Tests can override this to allow child process output to be displayed. */
-  val debugChildLogs: Boolean = false
-
   override def beforeAll(): Unit = {
     super.beforeAll()
 
@@ -269,6 +274,15 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
       version
     )
     Runtime.default.unsafeRun(action)
+  }
+
+  def uninstallRuntime(graalVMVersion: GraalVMVersion): Unit = {
+    val blackhole = system.actorOf(blackholeProps)
+    val runtimeVersionManager = RuntimeVersionManagerFactory(
+      distributionConfiguration
+    ).makeRuntimeVersionManager(blackhole, MissingComponentAction.Fail)
+    val runtime = runtimeVersionManager.findGraalRuntime(graalVMVersion).get
+    FileUtils.deleteDirectory(runtime.path.toFile)
   }
 
   implicit class ClientSyntax(client: WsTestClient) {
