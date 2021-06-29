@@ -285,9 +285,13 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
       .blockingOp {
-        RuntimeVersionManagerFactory(distributionConfiguration)
-          .makeRuntimeVersionManager(progressTracker, missingComponentAction)
-          .findOrInstallEngine(version)
+        val runtimeVersionManager =
+          RuntimeVersionManagerFactory(distributionConfiguration)
+            .makeRuntimeVersionManager(progressTracker, missingComponentAction)
+        runtimeVersionManager.logAvailableComponentsForDebugging()
+        val engine = runtimeVersionManager.findOrInstallEngine(version)
+        runtimeVersionManager.findOrInstallGraalRuntime(engine)
+        runtimeVersionManager.logAvailableComponentsForDebugging()
         ()
       }
       .mapRuntimeManagerErrors(th =>

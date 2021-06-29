@@ -7,6 +7,7 @@ import org.enso.distribution.{DistributionManager, FileSystem, OS}
 import org.enso.distribution.locking.{LockType, ResourceManager}
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.logger.masking.MaskedPath
 import org.enso.runtimeversionmanager.archive.Archive
 import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.locking.Resources
@@ -171,7 +172,7 @@ class RuntimeVersionManager(
     *
     * @param engine the engine for which the runtime is requested
     */
-  private def findOrInstallGraalRuntime(engine: Engine): GraalRuntime =
+  def findOrInstallGraalRuntime(engine: Engine): GraalRuntime =
     findGraalRuntime(engine) match {
       case Some(found) => found
       case None =>
@@ -844,6 +845,32 @@ class RuntimeVersionManager(
       temporaryDirectoryManager.accessTemporaryDirectory() / path.getFileName
     FileSystem.atomicMove(path, temporaryPath)
     FileSystem.removeDirectory(temporaryPath)
+  }
+
+  /** Logs on trace level all installed engines and runtimes.
+    *
+    * Useful for debugging.
+    */
+  def logAvailableComponentsForDebugging(): Unit = logger.whenTraceEnabled {
+    logger.trace("Discovering available components...")
+    val engines = for (engine <- listInstalledEngines()) yield {
+      val runtime = findGraalRuntime(engine)
+      val runtimeName = runtime
+        .map(_.toString)
+        .getOrElse("no runtime found")
+      val broken = if (engine.isMarkedBroken) " (broken)" else ""
+      s" - Enso ${engine.version}$broken [runtime: $runtimeName] " +
+      s"[location: ${MaskedPath(engine.path)}]"
+    }
+
+    val runtimes =
+      for (runtime <- listInstalledGraalRuntimes())
+        yield s" - $runtime [location: ${MaskedPath(runtime.path)}]"
+
+    logger.trace(
+      s"Installed engines (${engines.length}):\n${engines.mkString("\n")}\n\n" +
+      s"Installed runtimes (${runtimes.length}):\n${runtimes.mkString("\n")}"
+    )
   }
 }
 
