@@ -352,7 +352,7 @@ object Main {
       logLevel = logLevel
     )
 
-    val file  = new File(path)
+    val file = new File(path)
     val pkg  = PackageManager.Default.fromDirectory(file)
     val main = pkg.map(_.mainFile)
 
@@ -361,21 +361,22 @@ object Main {
       val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
       runPackage(executionContext, mainModuleName, file)
 
-//      val languageContext = executionContext
-//        .getBindings(LanguageInfo.ID)
-//        .invokeMember(MethodNames.TopScope.GET_MODULE)
-//        .asHostObject[EnsoContext]
-//
-//      val module = languageContext.getModuleForFile(file)
-//
-//      val generated = module.map(languageContext.getCompiler.generateDocs)
-//      print(generated)
+      //      val languageContext = executionContext
+      //        .getBindings(LanguageInfo.ID)
+      //        .invokeMember(MethodNames.TopScope.GET_MODULE)
+      //        .asHostObject[EnsoContext]
+      //
+      //      val module = languageContext.getModuleForFile(file)
+      //
+      //      val generated = module.map(languageContext.getCompiler.generateDocs)
+      //      print(generated)
 
       // TODO:
       // - go through executed code and get all HTML docs
       //   with their corresponding atoms/methods etc.
       // - Save those to files
     }
+  }
 
   private def runPackage(
     context: PolyglotContext,
