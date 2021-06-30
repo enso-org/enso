@@ -2,8 +2,8 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.pipe
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   DetachVisualisation,
   RegisterOneshotVisualisation,
@@ -29,7 +29,7 @@ import scala.concurrent.duration._
   *
   * Expression updates are collected and sent to the user in a batch.
   *
-  * @param config the language server configuration
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
@@ -37,7 +37,7 @@ import scala.concurrent.duration._
   * @param updatesSendRate how often send the updates to the user
   */
 final class ContextEventsListener(
-  config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   repo: SuggestionsRepo[Future],
   rpcSession: JsonSession,
   contextId: ContextId,
@@ -49,8 +49,6 @@ final class ContextEventsListener(
 
   import ContextEventsListener.RunExpressionUpdates
   import context.dispatcher
-
-  private val failureMapper = RuntimeFailureMapper(config)
 
   override def preStart(): Unit = {
     if (updatesSendRate.length > 0) {
@@ -120,20 +118,29 @@ final class ContextEventsListener(
       )
 
     case Api.ExecutionFailed(`contextId`, error) =>
-      val payload =
-        ContextRegistryProtocol.ExecutionFailedNotification(
+      val message = for {
+        failure <- runtimeFailureMapper.toProtocolFailure(error)
+        payload = ContextRegistryProtocol.ExecutionFailedNotification(
           contextId,
-          failureMapper.toProtocolFailure(error)
+          failure
         )
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      message.pipeTo(sessionRouter)
 
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
-      val payload =
-        ContextRegistryProtocol.ExecutionDiagnosticNotification(
+      val message = for {
+        diagnostics <- diagnostics
+          .map(runtimeFailureMapper.toProtocolDiagnostic)
+          .toList
+          .sequence
+        payload = ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
-          diagnostics.map(failureMapper.toProtocolDiagnostic)
+          diagnostics
         )
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      message.pipeTo(sessionRouter)
 
     case Api.VisualisationEvaluationFailed(
           `contextId`,
@@ -142,15 +149,21 @@ final class ContextEventsListener(
           message,
           diagnostic
         ) =>
-      val payload =
-        ContextRegistryProtocol.VisualisationEvaluationFailed(
-          contextId,
-          visualisationId,
-          expressionId,
-          message,
-          diagnostic.map(failureMapper.toProtocolDiagnostic)
-        )
-      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+      val response = for {
+        diagnostic <- diagnostic
+          .map(runtimeFailureMapper.toProtocolDiagnostic)
+          .sequence
+        payload =
+          ContextRegistryProtocol.VisualisationEvaluationFailed(
+            contextId,
+            visualisationId,
+            expressionId,
+            message,
+            diagnostic
+          )
+      } yield DeliverToJsonController(rpcSession.clientId, payload)
+
+      response.pipeTo(sessionRouter)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       runExpressionUpdates(expressionUpdates)
@@ -256,7 +269,7 @@ object ContextEventsListener {
 
   /** Creates a configuration object used to create a [[ContextEventsListener]].
     *
-    * @param config the language server configuration
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param repo the suggestions repo
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
@@ -264,7 +277,7 @@ object ContextEventsListener {
     * @param updatesSendRate how often send the updates to the user
     */
   def props(
-    config: Config,
+    runtimeFailureMapper: RuntimeFailureMapper,
     repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
@@ -273,7 +286,7 @@ object ContextEventsListener {
   ): Props =
     Props(
       new ContextEventsListener(
-        config,
+        runtimeFailureMapper,
         repo,
         rpcSession,
         contextId,

@@ -4,7 +4,7 @@ import io.circe.literal.JsonStringContext
 import org.enso.projectmanager.BaseServerSpec
 
 class ProjectCreateDefaultToLatestSpec extends BaseServerSpec {
-  "project/open" should {
+  "project/create" should {
     "default to latest available engine version if none are installed" in {
       implicit val client = new WsTestClient(address)
       client.send(json"""

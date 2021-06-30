@@ -1,4 +1,4 @@
-package org.enso.librarymanager
+package org.enso.editions
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
@@ -8,7 +8,11 @@ sealed trait LibraryVersion
 object LibraryVersion {
 
   /** Indicates that the version from the local library path should be used. */
-  case object Local extends LibraryVersion
+  case object Local extends LibraryVersion {
+
+    /** @inheritdoc */
+    override def toString: String = "local"
+  }
 
   /** Indicates that a particular published version should be used.
     *
@@ -16,5 +20,9 @@ object LibraryVersion {
     * already cached.
     */
   case class Published(version: SemVer, repository: Repository)
-      extends LibraryVersion
+      extends LibraryVersion {
+
+    /** @inheritdoc */
+    override def toString: String = version.toString
+  }
 }

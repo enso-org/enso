@@ -1,8 +1,5 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.io.PrintWriter
-import java.lang.ProcessBuilder.Redirect
-import java.util.concurrent.Executors
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
@@ -12,9 +9,13 @@ import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFa
 import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
+import java.io.PrintWriter
+import java.lang.ProcessBuilder.Redirect
+import java.util.concurrent.Executors
 import scala.util.Using
 
 object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
+  private lazy val logger = Logger[ExecutorWithUnlimitedPool.type]
 
   /** An executor that ensures each job runs in a separate thread.
     *
@@ -72,6 +73,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val versionManager = RuntimeVersionManagerFactory(distributionConfiguration)
       .makeRuntimeVersionManager(progressTracker)
 
+    versionManager.logAvailableComponentsForDebugging()
+
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
@@ -102,7 +105,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
-      Logger[ExecutorWithUnlimitedPool.type].trace(
+      logger.trace(
         "Starting Language Server Process [{}]",
         command
       )
