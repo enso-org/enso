@@ -78,7 +78,8 @@ public class Context {
     this.shadowedPackages = new ArrayList<>();
 
     builtins = new Builtins(this);
-    packageRepository = PackageRepository.makeLegacyRepository(this, builtins);
+    packageRepository =
+        PackageRepository.makeLegacyRepository(RuntimeDistributionManager$.MODULE$, this, builtins);
     topScope = new TopLevelScope(builtins, packageRepository);
 
     this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);

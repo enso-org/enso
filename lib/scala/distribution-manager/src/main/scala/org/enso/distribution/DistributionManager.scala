@@ -2,6 +2,7 @@ package org.enso.distribution
 
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.logger.masking.{MaskedPath, ToLogString}
 
 import java.nio.file.{Files, Path}
 import scala.util.Try
@@ -47,15 +48,22 @@ case class DistributionPaths(
   /** @inheritdoc */
   override def toString: String =
     s"""DistributionPaths(
-       |  dataRoot = $dataRoot,
-       |  runtimes = $runtimes,
-       |  engines  = $engines,
-       |  bundle   = $bundle,
-       |  config   = $config,
-       |  locks    = $locks,
-       |  tmp      = $unsafeTemporaryDirectory,
-       |  ensoHome = $ensoHome
+       |  dataRoot = ${mask(dataRoot)},
+       |  runtimes = ${mask(runtimes)},
+       |  engines  = ${mask(engines)},
+       |  bundle   = ${bundle.map(_.applyMasking())},
+       |  config   = ${mask(config)},
+       |  locks    = ${mask(locks)},
+       |  logs     = ${mask(logs)},
+       |  tmp      = ${mask(unsafeTemporaryDirectory)},
+       |  ensoHome = ${mask(ensoHome)},
+       |  customEditions = ${mask(customEditions)},
+       |  localLibrariesSearchpaths = ${mask(localLibrariesSearchPaths)}
        |)""".stripMargin
+
+  private def mask(path: Path): String = MaskedPath(path).applyMasking()
+  private def mask(paths: Seq[Path]): String =
+    paths.map(p => MaskedPath(p).applyMasking()).toString()
 
   /** Sequence of paths to search for engine installations, in order of
     * precedence.
@@ -91,7 +99,11 @@ case class DistributionPaths(
   * For portable distributions, bundled packages are already included in the
   * primary directory.
   */
-case class Bundle(engines: Path, runtimes: Path)
+case class Bundle(engines: Path, runtimes: Path) extends ToLogString {
+  override def toLogString(shouldMask: Boolean): String =
+    s"Bundle(engines = ${MaskedPath(engines).toLogString(shouldMask)}, " +
+    s"runtimes = ${MaskedPath(runtimes).toLogString(shouldMask)})"
+}
 
 /** A helper class that encapsulates management of paths to components of the
   * distribution.

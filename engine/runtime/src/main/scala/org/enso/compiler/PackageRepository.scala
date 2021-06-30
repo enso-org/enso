@@ -1,14 +1,15 @@
 package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
+import com.typesafe.scalalogging.Logger
+import org.enso.distribution.DistributionManager
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
-import org.enso.librarymanager.{
-  LibraryResolutionError,
-  ResolvingLibraryProvider
-}
+import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.librarymanager.ResolvingLibraryProvider
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 
 import java.nio.file.Path
@@ -55,9 +56,9 @@ object PackageRepository {
       override def toString: String =
         s"The package download has failed: ${cause.getMessage}"
     }
-    case class PackageLoadingError(cause: Throwable) extends Error {
+    case class PackageLoadingError(cause: String) extends Error {
       override def toString: String =
-        s"The package could not be loaded: ${cause.getMessage}"
+        s"The package could not be loaded: $cause"
     }
   }
 
@@ -67,6 +68,7 @@ object PackageRepository {
     builtins: Builtins
   ) extends PackageRepository {
 
+    private val logger         = Logger[Default]
     implicit private val fs    = new TruffleFileSystem
     private val packageManager = new PackageManager[TruffleFile]
 
@@ -110,18 +112,23 @@ object PackageRepository {
       libraryName: LibraryName,
       root: Path
     ): Either[Error, Unit] = Try {
+      logger.debug(
+        s"Loading library $libraryName from " +
+        s"[${MaskedPath(root).applyMasking()}]."
+      )
       val rootFile = context.getEnvironment.getInternalTruffleFile(
         root.toAbsolutePath.normalize.toString
       )
       val pkg = packageManager.loadPackage(rootFile).get
       registerPackage(libraryName, pkg)
-    }.toEither.left.map { error => Error.PackageLoadingError(error) }
+    }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
     override def ensurePackageIsLoaded(
       libraryName: LibraryName
     ): Either[Error, Unit] =
       if (loadedPackages.contains(libraryName)) Right(())
       else {
+        logger.trace(s"Resolving library $libraryName.")
         val libraryPath = libraryProvider.findLibrary(libraryName)
         this.synchronized {
           // We check again inside of the monitor, in case that some other
@@ -136,6 +143,11 @@ object PackageRepository {
                   Error.PackageCouldNotBeResolved(details)
                 case ResolvingLibraryProvider.Error.DownloadFailed(reason) =>
                   Error.PackageDownloadFailed(reason)
+                case ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist =>
+                  Error.PackageLoadingError(
+                    "The local library has not been found on the local " +
+                    "libraries search paths."
+                  )
               }
         }
       }
@@ -206,19 +218,26 @@ object PackageRepository {
     }
   }
 
-  private class NoOpProvider extends ResolvingLibraryProvider {
+  private class TemporaryLocalProvider(distributionManager: DistributionManager)
+      extends ResolvingLibraryProvider {
+
+    private val localRepo = new DefaultLocalLibraryProvider(distributionManager)
+
     override def findLibrary(
       name: LibraryName
-    ): Either[ResolvingLibraryProvider.Error, Path] = Left(
-      ResolvingLibraryProvider.Error.NotResolved(
-        LibraryResolutionError("Not implemented")
-      )
-    )
+    ): Either[ResolvingLibraryProvider.Error, Path] =
+      localRepo.findLibrary(name).toRight {
+        ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
+      }
   }
 
   def makeLegacyRepository(
+    distributionManager: DistributionManager,
     context: Context,
     builtins: Builtins
-  ): PackageRepository =
-    new Default(new NoOpProvider, context, builtins)
+  ): PackageRepository = new Default(
+    new TemporaryLocalProvider(distributionManager),
+    context,
+    builtins
+  )
 }
