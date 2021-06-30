@@ -10,13 +10,22 @@ import java.util.UUID
   * @param id the unique identifier of the content root
   * @param type the type of the content root
   * @param name The name of the content root
+  * @param path the filesystem path of the content root, represented as a String
   */
-case class ContentRoot(id: UUID, `type`: ContentRootType, name: String)
+case class ContentRoot(
+  id: UUID,
+  `type`: ContentRootType,
+  name: String,
+  path: String
+  // TODO [RW] make sure that the path on the cloud will remain stable
+)
 
 /** The type of entity that the content root represents.
   */
 sealed trait ContentRootType extends EnumEntry
-object ContentRootType extends Enum[ContentRootType] with CirceEnum[ContentRootType] {
+object ContentRootType
+    extends Enum[ContentRootType]
+    with CirceEnum[ContentRootType] {
 
   /** The content root represents the root of the current Enso project.
     */
@@ -64,6 +73,6 @@ case class ContentRootWithFile(
     * @return a protocol content root
     */
   def toContentRoot: ContentRoot = {
-    ContentRoot(id, `type`, name)
+    ContentRoot(id, `type`, name, file.getCanonicalPath)
   }
 }

@@ -251,7 +251,8 @@ class BaseServerTest
           {
             "id" : $testContentRootId,
             "type" : "Project",
-            "name" : "Project"
+            "name" : "Project",
+            "path" : ${config.projectContentRoot.file.getCanonicalPath}
           }
           """
     )
