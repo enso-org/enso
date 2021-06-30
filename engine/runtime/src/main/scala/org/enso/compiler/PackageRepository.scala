@@ -29,17 +29,24 @@ trait PackageRepository {
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 
-  def getLoadedModules():                     Seq[Module]
+  def getLoadedPackages(): Seq[Package[TruffleFile]]
+
+  def getLoadedModules(): Seq[Module]
+
   def getLoadedModule(qualifiedName: String): Option[Module]
 
   def registerPackage(libraryName: LibraryName, pkg: Package[TruffleFile]): Unit
 
+  def registerMainProjectPackage(
+    libraryName: LibraryName,
+    pkg: Package[TruffleFile]
+  ): Unit
+
   def registerModuleCreatedInRuntime(module: Module): Unit
-  def deregisterModule(qualifiedName: String):        Unit
+
+  def deregisterModule(qualifiedName: String): Unit
 
   def renameProject(namespace: String, oldName: String, newName: String): Unit
-
-  def getLoadedPackages(): Seq[Package[TruffleFile]]
 }
 
 object PackageRepository {
@@ -92,6 +99,17 @@ object PackageRepository {
     override def registerPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
+    ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = true)
+
+    def registerMainProjectPackage(
+      libraryName: LibraryName,
+      pkg: Package[TruffleFile]
+    ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = false)
+
+    private def registerPackageInternal(
+      libraryName: LibraryName,
+      pkg: Package[TruffleFile],
+      isLibrary: Boolean
     ): Unit = {
       val extensions = pkg.listPolyglotExtensions("java")
       extensions.foreach(context.getEnvironment.addToHostClassPath)
@@ -101,6 +119,12 @@ object PackageRepository {
           new Module(srcFile.qualifiedName, pkg, srcFile.file)
         }
         .foreach(registerModule)
+
+      if (isLibrary) {
+        context
+        // TODO notify the content root manager
+        // TODO [RW, MK, DB] how to pass the Endpoint to here?
+      }
 
       loadedPackages.put(libraryName, Some(pkg))
     }

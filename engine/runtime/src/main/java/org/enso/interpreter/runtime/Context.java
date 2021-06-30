@@ -14,8 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
@@ -88,45 +86,48 @@ public class Context {
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
-    HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
+    HashMap<LibraryName, Package<TruffleFile>> packageMap = new HashMap<>();
+
+    PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
+    // TODO [RW] this should be changed to a single optional path to the project root, as any
+    // additional libraries should be added using a different mechanism + we need the main path to
+    // find the edition configuration located in package.yaml
+    List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
+
+    // Add user packages one-by-one, shadowing previously added packages.
+    for (var packagePath : packagePaths) {
+      Optional<Package<TruffleFile>> asPackage =
+          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
+      if (asPackage.isPresent()) {
+        Package<TruffleFile> pkg = asPackage.get();
+        boolean nameExists = packageMap.containsKey(pkg.libraryName());
+
+        if (nameExists) {
+          shadowedPackages.add(
+              new ShadowedPackage(
+                  packageMap.get(pkg.libraryName()).root().getPath(),
+                  pkg.root().getPath(),
+                  pkg.name()));
+          packageMap.remove(pkg.libraryName());
+        }
+        packageMap.put(pkg.libraryName(), pkg);
+      }
+    }
+
+    packageMap.forEach(packageRepository::registerMainProjectPackage);
 
     // TODO [RW] this is left here temporarily, until the edition system takes over resolving the
     // std-lib
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      packageMap.putAll(
-          homeManager.loadStdLib().collect(Collectors.toMap((Package::name), Function.identity())));
+      homeManager
+          .loadStdLib()
+          .forEach(
+              pkg -> {
+                packageRepository.registerPackage(pkg.libraryName(), pkg);
+              });
     }
-
-    PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
-    List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
-
-    // Add user packages one-by-one, shadowing previously added packages. It assumes that the
-    // standard library packages will not clash. In the future, we should be able to disambiguate
-    // packages that clash.
-    for (var packagePath : packagePaths) {
-      Optional<Package<TruffleFile>> asPackage =
-          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
-      if (asPackage.isPresent()) {
-        Package<TruffleFile> pkg = asPackage.get();
-        boolean nameExists = packageMap.containsKey(pkg.name());
-
-        if (nameExists) {
-          shadowedPackages.add(
-              new ShadowedPackage(
-                  packageMap.get(pkg.name()).root().getPath(), pkg.root().getPath(), pkg.name()));
-          packageMap.remove(pkg.name());
-        }
-        packageMap.put(pkg.name(), pkg);
-      }
-    }
-
-    packageMap.forEach(
-        (name, pkg) -> {
-          var libraryName = new LibraryName(pkg.namespace(), pkg.name());
-          packageRepository.registerPackage(libraryName, pkg);
-        });
   }
 
   public TruffleFile getTruffleFile(File file) {
