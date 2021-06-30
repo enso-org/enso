@@ -45,6 +45,7 @@ class ProjectCreationService[
       val runner =
         new Runner(
           runtimeVersionManager      = versionManager,
+          distributionManager        = distributionConfiguration.distributionManager,
           globalConfigurationManager = configurationManager,
           editionManager             = distributionConfiguration.editionManager,
           environment                = distributionConfiguration.environment,
