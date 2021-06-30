@@ -93,7 +93,10 @@ class ImportResolver(compiler: Compiler) {
                       (
                         IR.Error.ImportExport(
                           imp,
-                          IR.Error.ImportExport.PackageCouldNotBeLoaded(impName)
+                          IR.Error.ImportExport.PackageCouldNotBeLoaded(
+                            impName,
+                            loadingError.toString
+                          )
                         ),
                         None
                       )

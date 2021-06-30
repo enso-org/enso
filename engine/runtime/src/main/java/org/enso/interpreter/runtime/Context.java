@@ -12,7 +12,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -20,6 +19,7 @@ import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.editions.LibraryName;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -47,7 +47,7 @@ public class Context {
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private List<Package<TruffleFile>> packages;
+  private final PackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
@@ -78,18 +78,19 @@ public class Context {
     this.shadowedPackages = new ArrayList<>();
 
     builtins = new Builtins(this);
+    packageRepository = PackageRepository.makeLegacyRepository(this, builtins);
+    topScope = new TopLevelScope(builtins, packageRepository);
 
-    this.compiler =
-        new Compiler(this, builtins, new PackageRepository.Legacy(this), compilerConfig);
+    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
   }
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
     HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
-    packages = new ArrayList<>();
 
-    // FIXME [RW] why TruffleFile
+    // TODO [RW] this is left here temporarily, until the edition system takes over resolving the
+    // std-lib
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
@@ -120,24 +121,11 @@ public class Context {
       }
     }
 
-    packages.addAll(packageMap.values());
-
-    packages.forEach(
-        pkg -> {
-          List<TruffleFile> classPathItems =
-              ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
-          classPathItems.forEach(environment::addToHostClassPath);
+    packageMap.forEach(
+        (name, pkg) -> {
+          var libraryName = new LibraryName(pkg.namespace(), pkg.name());
+          packageRepository.registerPackage(libraryName, pkg);
         });
-
-    Map<String, Module> knownFiles =
-        packages.stream()
-            .flatMap(
-                p ->
-                    ScalaConversions.asJava(p.listSources()).stream()
-                        .map(srcFile -> new Module(srcFile.qualifiedName(), p, srcFile.file())))
-            .collect(Collectors.toMap(mod -> mod.getName().toString(), mod -> mod));
-
-    topScope = new TopLevelScope(builtins, knownFiles);
   }
 
   public TruffleFile getTruffleFile(File file) {
@@ -218,7 +206,7 @@ public class Context {
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     TruffleFile p = getTruffleFile(path);
-    return packages.stream()
+    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
         .filter(pkg -> p.startsWith(pkg.sourceDir()))
         .map(pkg -> pkg.moduleNameForFile(p))
         .findFirst();
@@ -232,23 +220,7 @@ public class Context {
    * @param newName the new project name
    */
   public void renameProject(String namespace, String oldName, String newName) {
-    renamePackages(namespace, oldName, newName);
-    topScope.renameProjectInModules(namespace, oldName, newName);
-  }
-
-  private void renamePackages(String namespace, String oldName, String newName) {
-    List<Package<TruffleFile>> toChange =
-        packages.stream()
-            .filter(
-                p -> p.config().namespace().equals(namespace) && p.config().name().equals(oldName))
-            .collect(Collectors.toList());
-
-    packages.removeAll(toChange);
-
-    List<Package<TruffleFile>> renamed =
-        toChange.stream().map(p -> p.setPackageName(newName)).collect(Collectors.toList());
-
-    packages.addAll(renamed);
+    packageRepository.renameProject(namespace, oldName, newName);
   }
 
   /**
@@ -295,7 +267,7 @@ public class Context {
     if (file == null) {
       return Optional.empty();
     }
-    return packages.stream()
+    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
         .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
@@ -390,11 +362,6 @@ public class Context {
   /** @return the list of shadowed packages */
   public List<ShadowedPackage> getShadowedPackages() {
     return shadowedPackages;
-  }
-
-  /** @return the pre-loaded packages */
-  public List<Package<TruffleFile>> getPackages() {
-    return packages;
   }
 
   /** @return the compiler configuration for this language */

@@ -24,7 +24,7 @@ class ImportsTest extends PackageTest {
     val outLines = consumeOut
     outLines(2) should include(
       "Package containing the module Surely_This.Does_Not_Exist.My_Module could" +
-        " not be found."
+      " not be loaded: The package could not be resolved: Not implemented"
     )
     outLines(3) should include(
       "The module Enso_Test.Test_Bad_Imports.Oopsie does not exist."

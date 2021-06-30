@@ -1,14 +1,18 @@
 package org.enso.compiler
 
+import com.oracle.truffle.api.TruffleFile
 import org.enso.editions.LibraryName
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.librarymanager.ResolvingLibraryProvider
-import org.enso.librarymanager.ResolvingLibraryProvider.Error
+import org.enso.interpreter.runtime.util.TruffleFileSystem
+import org.enso.librarymanager.{
+  LibraryResolutionError,
+  ResolvingLibraryProvider
+}
+import org.enso.pkg.{Package, PackageManager, QualifiedName}
 
 import java.nio.file.Path
-import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Success}
+import scala.util.Try
 
 trait PackageRepository {
 
@@ -23,6 +27,18 @@ trait PackageRepository {
   def ensurePackageIsLoaded(
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
+
+  def getLoadedModules():                     Seq[Module]
+  def getLoadedModule(qualifiedName: String): Option[Module]
+
+  def registerPackage(libraryName: LibraryName, pkg: Package[TruffleFile]): Unit
+
+  def registerModuleCreatedInRuntime(module: Module): Unit
+  def deregisterModule(qualifiedName: String):        Unit
+
+  def renameProject(namespace: String, oldName: String, newName: String): Unit
+
+  def getLoadedPackages(): Seq[Package[TruffleFile]]
 }
 
 object PackageRepository {
@@ -31,59 +47,178 @@ object PackageRepository {
   sealed trait Error
 
   object Error {
-    case class PackageCouldNotBeResolved(cause: Throwable) extends Error
-    case class PackageDownloadFailed(cause: Throwable)     extends Error
+    case class PackageCouldNotBeResolved(cause: Throwable) extends Error {
+      override def toString: String =
+        s"The package could not be resolved: ${cause.getMessage}"
+    }
+    case class PackageDownloadFailed(cause: Throwable) extends Error {
+      override def toString: String =
+        s"The package download has failed: ${cause.getMessage}"
+    }
+    case class PackageLoadingError(cause: Throwable) extends Error {
+      override def toString: String =
+        s"The package could not be loaded: ${cause.getMessage}"
+    }
   }
 
-  /** A temporary package repository, only able to resolve packages known
-    * upfront to the language context.
-    *
-    * @param context the language context
-    */
-  class Legacy(context: Context) extends PackageRepository {
+  class Default(
+    libraryProvider: ResolvingLibraryProvider,
+    context: Context,
+    builtins: Builtins
+  ) extends PackageRepository {
 
-    /** @inheritdoc */
-    override def ensurePackageIsLoaded(
-      libraryName: LibraryName
-    ): Either[PackageRepository.Error, Unit] =
-      if (
-        (libraryName.name == Builtins.PACKAGE_NAME && libraryName.prefix == Builtins.NAMESPACE) ||
-        context.getPackages.asScala
-          .exists(p =>
-            p.name == libraryName.name && p.namespace == libraryName.prefix
-          )
-      ) Right(())
-      else Left(Error.PackageCouldNotBeResolved(new NotImplementedError))
-  }
+    implicit private val fs    = new TruffleFileSystem
+    private val packageManager = new PackageManager[TruffleFile]
 
-  class Default(libraryProvider: ResolvingLibraryProvider, context: Context)
-      extends PackageRepository {
-
-    // TODO [RW, MK] what are the concurrency guarantees here? do we have only one thread or more?
-    val loadedModules: collection.mutable.Set[LibraryName] = {
-      val builtins = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
-      collection.mutable.Set(builtins)
+    /** The mapping containing all loaded packages.
+      *
+      * It should be modified only from within synchronized sections, but it may
+      * be always read. Thus elements should be added to this mapping only after
+      * all library loading bookkeeping has been finished - so that if other,
+      * unsynchronized threads read this map, every element it contains is
+      * already fully processed.
+      */
+    val loadedPackages
+      : collection.concurrent.Map[LibraryName, Option[Package[TruffleFile]]] = {
+      val builtinsName = LibraryName(Builtins.NAMESPACE, Builtins.PACKAGE_NAME)
+      collection.concurrent.TrieMap(builtinsName -> None)
     }
 
-    private def loadPackage(libraryName: LibraryName, root: Path): Unit = {
-      loadedModules.add(libraryName)
+    val loadedModules: collection.concurrent.Map[String, Module] =
+      collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
 
-      // TODO actually load stuff
-    }
+    override def registerPackage(
+      libraryName: LibraryName,
+      pkg: Package[TruffleFile]
+    ): Unit = {
+      val extensions = pkg.listPolyglotExtensions("java")
+      extensions.foreach(context.getEnvironment.addToHostClassPath)
 
-    override def ensurePackageIsLoaded(
-      libraryName: LibraryName
-    ): Either[Error, Unit] = if (loadedModules.contains(libraryName)) Right(())
-    else
-      libraryProvider
-        .findLibrary(libraryName)
-        .map(loadPackage(libraryName, _))
-        .left
-        .map {
-          case ResolvingLibraryProvider.Error.NotResolved(details) =>
-            Error.PackageCouldNotBeResolved(details)
-          case ResolvingLibraryProvider.Error.DownloadFailed(reason) =>
-            Error.PackageDownloadFailed(reason)
+      pkg.listSources
+        .map { srcFile =>
+          new Module(srcFile.qualifiedName, pkg, srcFile.file)
         }
+        .foreach(registerModule)
+
+      loadedPackages.put(libraryName, Some(pkg))
+    }
+
+    /** This package modifies the [[loadedPackages]], so it should be only
+      * called from within synchronized sections.
+      */
+    private def loadPackage(
+      libraryName: LibraryName,
+      root: Path
+    ): Either[Error, Unit] = Try {
+      val rootFile = context.getEnvironment.getInternalTruffleFile(
+        root.toAbsolutePath.normalize.toString
+      )
+      val pkg = packageManager.loadPackage(rootFile).get
+      registerPackage(libraryName, pkg)
+    }.toEither.left.map { error => Error.PackageLoadingError(error) }
+
+    override def ensurePackageIsLoaded(
+      libraryName: LibraryName
+    ): Either[Error, Unit] =
+      if (loadedPackages.contains(libraryName)) Right(())
+      else {
+        val libraryPath = libraryProvider.findLibrary(libraryName)
+        this.synchronized {
+          // We check again inside of the monitor, in case that some other
+          // thread has just added this library.
+          if (loadedPackages.contains(libraryName)) Right(())
+          else
+            libraryPath
+              .flatMap(loadPackage(libraryName, _))
+              .left
+              .map {
+                case ResolvingLibraryProvider.Error.NotResolved(details) =>
+                  Error.PackageCouldNotBeResolved(details)
+                case ResolvingLibraryProvider.Error.DownloadFailed(reason) =>
+                  Error.PackageDownloadFailed(reason)
+              }
+        }
+      }
+
+    override def getLoadedModules(): Seq[Module] = loadedModules.values.toSeq
+
+    override def getLoadedPackages(): Seq[Package[TruffleFile]] =
+      loadedPackages.values.toSeq.flatten
+
+    override def getLoadedModule(qualifiedName: String): Option[Module] =
+      loadedModules.get(qualifiedName)
+
+    override def registerModuleCreatedInRuntime(module: Module): Unit =
+      registerModule(module)
+
+    private def registerModule(module: Module): Unit =
+      loadedModules.put(module.getName.toString, module)
+
+    override def deregisterModule(qualifiedName: String): Unit =
+      loadedModules.remove(qualifiedName)
+
+    override def renameProject(
+      namespace: String,
+      oldName: String,
+      newName: String
+    ): Unit = this.synchronized {
+      renamePackages(namespace, oldName, newName)
+      renameModules(namespace, oldName, newName)
+    }
+
+    private def renamePackages(
+      namespace: String,
+      oldName: String,
+      newName: String
+    ): Unit = {
+      val toChange = loadedPackages.toSeq.filter { case (name, _) =>
+        name.prefix == namespace && name.name == oldName
+      }
+
+      for ((key, _) <- toChange) {
+        loadedPackages.remove(key)
+      }
+
+      for ((key, pkgOption) <- toChange) {
+        val newPkg = pkgOption.map(_.setPackageName(newName))
+        val newKey = key.copy(name = newName)
+        loadedPackages.put(newKey, newPkg)
+      }
+    }
+
+    private def renameModules(
+      namespace: String,
+      oldName: String,
+      newName: String
+    ): Unit = {
+      val separator: String = QualifiedName.separator
+      val keys = loadedModules.keySet.filter(name =>
+        name.startsWith(namespace + separator + oldName + separator)
+      )
+
+      for {
+        key    <- keys
+        module <- loadedModules.remove(key)
+      } {
+        module.renameProject(newName)
+        loadedModules.put(module.getName.toString, module)
+      }
+    }
   }
+
+  private class NoOpProvider extends ResolvingLibraryProvider {
+    override def findLibrary(
+      name: LibraryName
+    ): Either[ResolvingLibraryProvider.Error, Path] = Left(
+      ResolvingLibraryProvider.Error.NotResolved(
+        LibraryResolutionError("Not implemented")
+      )
+    )
+  }
+
+  def makeLegacyRepository(
+    context: Context,
+    builtins: Builtins
+  ): PackageRepository =
+    new Default(new NoOpProvider, context, builtins)
 }

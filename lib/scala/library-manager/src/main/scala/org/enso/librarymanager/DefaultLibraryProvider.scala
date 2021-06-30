@@ -11,13 +11,13 @@ import org.enso.librarymanager.published.{
 }
 
 import java.nio.file.Path
-import scala.util.{Failure, Try}
 
 /** A helper class for loading libraries.
   *
   * @param distributionManager    a distribution manager
   * @param engineDistributionRoot the root of the engine distribution that is
-  *                               being run, if applicable; it is used to make bundled libraries available
+  *                               being run, if applicable; it is used to make
+  *                               bundled libraries available
   * @param edition                the edition used in the project
   * @param preferLocalLibraries   project setting whether to use local libraries
   */
