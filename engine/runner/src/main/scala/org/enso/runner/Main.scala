@@ -335,10 +335,14 @@ object Main {
     *                    at the given path
     * @param logLevel log level to set for the engine runtime
     */
-  private def genDocs(projectPath: Option[String], logLevel: LogLevel): Unit = {
+  private def genDocs(
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = {
     val stdLibPath   = "./distribution/std-lib"
     val tempFileName = "Geo/src/Geo_Json.enso"
-    val path         = stdLibPath + "/" + tempFileName
+    val testFilepath = stdLibPath + "/" + tempFileName
+    val path         = projectPath.getOrElse(testFilepath)
     generateFrom(path, logLevel)
     exitSuccess()
   }
