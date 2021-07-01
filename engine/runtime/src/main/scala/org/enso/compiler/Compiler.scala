@@ -141,12 +141,13 @@ class Compiler(
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = config
+      compilerConfig  = config,
+      isGeneratingDocs = if (isGeneratingDocs) { true }
+      else { false }
     )
-    val parsedAST = parse(module.getSource)
-    val expr      = generateIR(parsedAST)
-    val discoveredModule =
-      recognizeBindings(expr, moduleContext, isGeneratingDocs)
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
     module.unsafeSetIr(discoveredModule)
     module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
@@ -266,22 +267,13 @@ class Compiler(
 
   private def recognizeBindings(
     module: IR.Module,
-    moduleContext: ModuleContext,
-    isGeneratingDocs: Boolean
+    moduleContext: ModuleContext
   ): IR.Module = {
-    if (isGeneratingDocs) {
-      passManager.runPassesOnModule(
-        module,
-        moduleContext,
-        passes.passesWithDocsGenerator
-      )
-    } else {
-      passManager.runPassesOnModule(
-        module,
-        moduleContext,
-        passes.moduleDiscoveryPasses
-      )
-    }
+    passManager.runPassesOnModule(
+      module,
+      moduleContext,
+      passes.moduleDiscoveryPasses
+    )
   }
 
   /** Lowers the input AST to the compiler's high-level intermediate

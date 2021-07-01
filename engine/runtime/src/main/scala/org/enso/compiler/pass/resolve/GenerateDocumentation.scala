@@ -34,7 +34,13 @@ case object GenerateDocumentation extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = resolveModule(ir)
+  ): IR.Module = {
+    if (moduleContext.isGeneratingDocs) {
+      resolveModule(ir)
+    } else {
+      ir
+    }
+  }
 
   /** Collects comments for an expression.
     *

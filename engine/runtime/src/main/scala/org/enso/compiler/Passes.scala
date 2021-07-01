@@ -31,12 +31,9 @@ class Passes(
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingAnalysis
+      BindingAnalysis,
+      GenerateDocumentation
     )
-  )
-
-  val passesWithDocsGenerator = new PassGroup(
-    moduleDiscoveryPasses.passes :+ GenerateDocumentation
   )
 
   val functionBodyPasses = new PassGroup(
