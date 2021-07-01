@@ -363,17 +363,10 @@ object Main {
     if (main.exists(_.exists())) {
       val mainFile       = main.get
       val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
-      runPackage(executionContext, mainModuleName, file)
-
-      //      val languageContext = executionContext
-      //        .getBindings(LanguageInfo.ID)
-      //        .invokeMember(MethodNames.TopScope.GET_MODULE)
-      //        .asHostObject[EnsoContext]
-      //
-      //      val module = languageContext.getModuleForFile(file)
-      //
-      //      val generated = module.map(languageContext.getCompiler.generateDocs)
-      //      print(generated)
+      val topScope       = executionContext.getTopScope
+      val mainModule     = topScope.getModule(mainModuleName)
+      val generated      = mainModule.generateDocs()
+      print(generated)
 
       // TODO:
       // - go through executed code and get all HTML docs

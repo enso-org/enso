@@ -51,11 +51,10 @@ class Module(private val value: Value) {
 
   /** Triggers generation of documentation from module sources.
     *
-    * @param source the source code to run generator on.
     * @return the return value of the expression
     */
-  def generateDocs(source: String): Value = {
-    value.invokeMember(GENERATE_DOCS, source)
+  def generateDocs(): Value = {
+    value.invokeMember(GENERATE_DOCS)
   }
 
   /** Triggers reparsing of module sources. Used to notify the module that
