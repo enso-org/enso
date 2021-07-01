@@ -17,7 +17,6 @@ case class ContentRoot(
   `type`: ContentRootType,
   name: String,
   path: String
-  // TODO [RW] make sure that the path on the cloud will remain stable
 )
 
 /** The type of entity that the content root represents.

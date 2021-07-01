@@ -1165,7 +1165,7 @@ interface ContentRoot {
   // The name of the content root.
   name: String;
 
-  // The filesystem path of that root.
+  // The filesystem path of the content root.
   path: String;
 }
 ```
