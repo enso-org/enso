@@ -124,6 +124,7 @@ case class Package[F](
 
   def namespace: String = config.namespace
 
+  /** A [[LibraryName]] associated with the package. */
   def libraryName: LibraryName = LibraryName(config.namespace, config.name)
 
   /** Parses a file path into a qualified module name belonging to this

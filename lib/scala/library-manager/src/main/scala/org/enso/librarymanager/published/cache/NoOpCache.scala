@@ -11,11 +11,14 @@ import scala.util.{Failure, Try}
   * downloading mechanism is implemented.
   */
 class NoOpCache extends LibraryCache {
+
+  /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
   ): Option[Path] = None
 
+  /** @inheritdoc */
   override def findOrInstallLibrary(
     libraryName: LibraryName,
     version: SemVer,

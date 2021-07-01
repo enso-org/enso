@@ -37,7 +37,7 @@ public class TopLevelScope implements TruffleObject {
    * Creates a new instance of top scope.
    *
    * @param builtins the automatically-imported builtin module.
-   * @param packageRepository TODO [RW]
+   * @param packageRepository the {@link PackageRepository} instance that manages loaded packages
    */
   public TopLevelScope(Builtins builtins, PackageRepository packageRepository) {
     this.builtins = builtins;
@@ -118,9 +118,6 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);
 
-      if (moduleName.equals(Builtins.MODULE_NAME)) {
-        return scope.builtins.getModule();
-      }
       var module = scope.getModule(moduleName);
       if (module.isEmpty()) {
         throw UnknownIdentifierException.create(moduleName);

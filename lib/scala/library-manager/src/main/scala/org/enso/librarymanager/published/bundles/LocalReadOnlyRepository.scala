@@ -19,6 +19,8 @@ import java.nio.file.{Files, Path}
   * being copied into this repository.
   */
 class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
+
+  /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer

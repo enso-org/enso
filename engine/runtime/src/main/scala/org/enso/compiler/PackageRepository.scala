@@ -15,13 +15,13 @@ import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import java.nio.file.Path
 import scala.util.Try
 
+/** Manages loaded packages and modules. */
 trait PackageRepository {
 
   /** Informs the repository that it should populate the top scope with modules
     * belonging to a given package.
     *
-    * @param namespace the namespace of the package.
-    * @param name the package name.
+    * @param libraryName the name of the library that should be loaded
     * @return `Right(())` if the package was already loaded or successfully
     *         downloaded. A `Left` containing an error otherwise.
     */
@@ -29,23 +29,37 @@ trait PackageRepository {
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 
+  /** Get a sequence of currently loaded packages. */
   def getLoadedPackages(): Seq[Package[TruffleFile]]
 
+  /** Get a sequence of currently loaded modules. */
   def getLoadedModules(): Seq[Module]
 
+  /** Get a loaded module by its qualified name. */
   def getLoadedModule(qualifiedName: String): Option[Module]
 
+  /** Register a pre-loaded library package.
+    *
+    * TODO [RW] this should most likely be removed from the public API once the
+    * std-lib workaround is removed
+    */
   def registerPackage(libraryName: LibraryName, pkg: Package[TruffleFile]): Unit
 
+  /** Register the main project package. */
   def registerMainProjectPackage(
     libraryName: LibraryName,
     pkg: Package[TruffleFile]
   ): Unit
 
+  /** Register a single module, outside of any packages or part of an already
+    * loaded package, that has been created manually during runtime.
+    */
   def registerModuleCreatedInRuntime(module: Module): Unit
 
+  /** Removes a module with the given name from the list of loaded modules. */
   def deregisterModule(qualifiedName: String): Unit
 
+  /** Modifies package and module names to reflect the project name change. */
   def renameProject(namespace: String, oldName: String, newName: String): Unit
 }
 
@@ -55,29 +69,52 @@ object PackageRepository {
   sealed trait Error
 
   object Error {
+
+    /** Indicates that a resolution error has happened, for example the package
+      *  was not defined in the selected edition.
+      */
     case class PackageCouldNotBeResolved(cause: Throwable) extends Error {
       override def toString: String =
         s"The package could not be resolved: ${cause.getMessage}"
     }
+
+    /** Indicates that the package was missing and a download was attempted, but
+      * it failed - for example due to connectivity problems or just because the
+      * package did not exist in the repository.
+      */
     case class PackageDownloadFailed(cause: Throwable) extends Error {
       override def toString: String =
         s"The package download has failed: ${cause.getMessage}"
     }
+
+    /** Indicates that the package was already present in the cache (or within
+      * local packages), but it could not be loaded, possibly to a filesystem
+      * error or insufficient permissions.
+      */
     case class PackageLoadingError(cause: String) extends Error {
       override def toString: String =
         s"The package could not be loaded: $cause"
     }
   }
 
+  /** The default [[PackageRepository]] implementation.
+    *
+    * @param libraryProvider the [[ResolvingLibraryProvider]] which resolves
+    *                        which library version should be imported and
+    *                        locates them (or downloads if they are missing)
+    * @param context the language context
+    * @param builtins the builtins module
+    */
   class Default(
     libraryProvider: ResolvingLibraryProvider,
     context: Context,
     builtins: Builtins
   ) extends PackageRepository {
 
-    private val logger         = Logger[Default]
-    implicit private val fs    = new TruffleFileSystem
-    private val packageManager = new PackageManager[TruffleFile]
+    private val logger = Logger[Default]
+
+    implicit private val fs: TruffleFileSystem = new TruffleFileSystem
+    private val packageManager                 = new PackageManager[TruffleFile]
 
     /** The mapping containing all loaded packages.
       *
@@ -93,15 +130,18 @@ object PackageRepository {
       collection.concurrent.TrieMap(builtinsName -> None)
     }
 
+    /** The mapping containing loaded modules. */
     val loadedModules: collection.concurrent.Map[String, Module] =
       collection.concurrent.TrieMap(Builtins.MODULE_NAME -> builtins.getModule)
 
+    /** @inheritdoc */
     override def registerPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
     ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = true)
 
-    def registerMainProjectPackage(
+    /** @inheritdoc */
+    override def registerMainProjectPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
     ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = false)
@@ -147,6 +187,7 @@ object PackageRepository {
       registerPackage(libraryName, pkg)
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
+    /** @inheritdoc */
     override def ensurePackageIsLoaded(
       libraryName: LibraryName
     ): Either[Error, Unit] =
@@ -176,14 +217,18 @@ object PackageRepository {
         }
       }
 
+    /** @inheritdoc */
     override def getLoadedModules(): Seq[Module] = loadedModules.values.toSeq
 
+    /** @inheritdoc */
     override def getLoadedPackages(): Seq[Package[TruffleFile]] =
       loadedPackages.values.toSeq.flatten
 
+    /** @inheritdoc */
     override def getLoadedModule(qualifiedName: String): Option[Module] =
       loadedModules.get(qualifiedName)
 
+    /** @inheritdoc */
     override def registerModuleCreatedInRuntime(module: Module): Unit =
       registerModule(module)
 
@@ -193,6 +238,7 @@ object PackageRepository {
     override def deregisterModule(qualifiedName: String): Unit =
       loadedModules.remove(qualifiedName)
 
+    /** @inheritdoc */
     override def renameProject(
       namespace: String,
       oldName: String,
@@ -242,6 +288,11 @@ object PackageRepository {
     }
   }
 
+  /** A temporary [[ResolvingLibraryProvider]] that ignores the edition and just
+    * provides the local libraries.
+    *
+    * TODO [RW] it should be removed once the editions are integrated
+    */
   private class TemporaryLocalProvider(distributionManager: DistributionManager)
       extends ResolvingLibraryProvider {
 
@@ -255,6 +306,11 @@ object PackageRepository {
       }
   }
 
+  /** A temporary helper constructor for [[PackageRepository]] that does not
+    * need any edition configuration.
+    *
+    * TODO [RW] it should be removed once the editions are integrated
+    */
   def makeLegacyRepository(
     distributionManager: DistributionManager,
     context: Context,

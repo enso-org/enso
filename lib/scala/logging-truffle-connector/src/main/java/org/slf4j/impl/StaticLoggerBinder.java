@@ -4,7 +4,11 @@ import org.enso.truffleloggerwrapper.TruffleLoggerWrapperFactory;
 import org.slf4j.ILoggerFactory;
 
 /**
- * TODO [RW]
+ * Binds the SLF4J logger instance within the runtime to a logger which wraps the TruffleLogger.
+ *
+ * <p>This way, the standard SLF4J interface that is used in other subprojects, can also be used
+ * within the runtime and its log messages are correctly passed to the TruffleLogger. Thus libraries
+ * that are used both inside and outside of runtime can keep a simple interface.
  *
  * <p>The public interface of this class must conform to what is expected by an SLF4J backend. See
  * slf4j-simple for reference.

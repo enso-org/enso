@@ -11,5 +11,9 @@ import java.nio.file.Path
   * An example of a read-only cache are libraries bundled with the engine.
   */
 trait ReadOnlyLibraryCache {
+
+  /** Locates the library in the cache and returns the path to its root if it
+    * has been found.
+    */
   def findCachedLibrary(libraryName: LibraryName, version: SemVer): Option[Path]
 }

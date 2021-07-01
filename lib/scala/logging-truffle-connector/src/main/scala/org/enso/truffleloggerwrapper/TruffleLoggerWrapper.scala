@@ -9,6 +9,14 @@ import org.slf4j.{Logger, Marker}
 import java.util.logging.Level
 import scala.annotation.unused
 
+/** A wrapper around [[TruffleLogger]] that abides by the SLF4J's [[Logger]]
+  * interface.
+  *
+  * It is used so that libraries which are used both inside and outside of the
+  * runtime can simply use the SLF4J API and the log messages are passed to the
+  * correct backend (in the case of the runtime, they are forwarded to the
+  * [[TruffleLogger]]).
+  */
 class TruffleLoggerWrapper(name: String, masking: Masking) extends Logger {
   final private val underlying = TruffleLogger.getLogger(LanguageInfo.ID, name)
 
