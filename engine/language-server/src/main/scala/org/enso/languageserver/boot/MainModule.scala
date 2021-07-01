@@ -9,10 +9,10 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
+  ContentRoot,
   ContentRootManager,
   ContentRootManagerActor,
   ContentRootManagerWrapper,
-  ContentRootType,
   ContentRootWithFile,
   FileManager,
   FileSystem,
@@ -62,9 +62,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
-    serverConfig.contentRootUuid,
-    ContentRootType.Project,
-    "Project",
+    ContentRoot.Project(serverConfig.contentRootUuid),
     new File(serverConfig.contentRootPath)
   )
   val languageServerConfig = Config(

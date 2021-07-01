@@ -30,9 +30,7 @@ class SessionManagementTest extends BaseServerTest {
           json"""
           {
             "id" : $testContentRootId,
-            "type" : "Project",
-            "name" : "Project",
-            "path" : ${config.projectContentRoot.file.getCanonicalPath}
+            "type" : "Project"
           }
           """
         )

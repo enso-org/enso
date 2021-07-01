@@ -15,10 +15,10 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
+  ContentRoot,
   ContentRootManager,
   ContentRootManagerActor,
   ContentRootManagerWrapper,
-  ContentRootType,
   ContentRootWithFile,
   FileManager,
   FileSystem
@@ -37,9 +37,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
-    testContentRootId,
-    ContentRootType.Project,
-    "Project",
+    ContentRoot.Project(testContentRootId),
     Files.createTempDirectory(null).toRealPath().toFile
   )
   val config = Config(

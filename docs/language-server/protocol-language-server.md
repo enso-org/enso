@@ -1175,7 +1175,7 @@ interface ContentRoot {
 The type of the annotated content root.
 
 ```typescript
-type ContentRootType = Project | Root | Home | Library | Custom;
+type ContentRootType = Project | FileSystemRoot | Home | Library | Custom;
 ```
 
 These represent:
