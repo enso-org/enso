@@ -68,8 +68,7 @@ object NotificationHandler {
           this.synchronized {
             endpoint match {
               case Some(justConnected) => justConnected.sendToClient(response)
-              case None =>
-                queue ::= response
+              case None                => queue ::= response
             }
           }
       }
@@ -81,7 +80,12 @@ object NotificationHandler {
       libraryVersion: LibraryVersion,
       location: Path
     ): Unit = sendMessage(
-      Api.LibraryLoaded(libraryName, libraryVersion, location.toFile)
+      Api.LibraryLoaded(
+        namespace = libraryName.prefix,
+        name      = libraryName.name,
+        version   = libraryVersion.toString,
+        location  = location.toFile
+      )
     )
 
     /** Registers the endpoint and sends to it any pending messages. */

@@ -10,15 +10,12 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.editions.LibraryName;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -28,9 +25,9 @@ import org.enso.interpreter.runtime.NotificationHandler.TextMode$;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.interpreter.runtime.util.ShadowedPackage;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
+import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
@@ -57,7 +54,6 @@ public class Context {
   private final boolean isCachingDisabled;
   private final Builtins builtins;
   private final String home;
-  private final List<ShadowedPackage> shadowedPackages;
   private final CompilerConfig compilerConfig;
   private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
@@ -80,7 +76,6 @@ public class Context {
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
-    this.shadowedPackages = new ArrayList<>();
 
     if (isInteractiveMode()) {
       notificationHandler = new InteractiveMode();
@@ -100,35 +95,34 @@ public class Context {
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
-    HashMap<LibraryName, Package<TruffleFile>> packageMap = new HashMap<>();
 
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
-    // TODO [RW] this should be changed to a single optional path to the project root, as any
-    // additional libraries should be added using a different mechanism + we need the main path to
-    // find the edition configuration located in package.yaml
-    List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
 
-    // Add user packages one-by-one, shadowing previously added packages.
-    for (var packagePath : packagePaths) {
-      Optional<Package<TruffleFile>> asPackage =
-          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
-      if (asPackage.isPresent()) {
-        Package<TruffleFile> pkg = asPackage.get();
-        boolean nameExists = packageMap.containsKey(pkg.libraryName());
-
-        if (nameExists) {
-          shadowedPackages.add(
-              new ShadowedPackage(
-                  packageMap.get(pkg.libraryName()).root().getPath(),
-                  pkg.root().getPath(),
-                  pkg.name()));
-          packageMap.remove(pkg.libraryName());
-        }
-        packageMap.put(pkg.libraryName(), pkg);
+    Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
+    if (projectRoot.isPresent()) {
+      Optional<Package<TruffleFile>> projectPackage =
+          ScalaConversions.asJava(packageManager.fromDirectory(projectRoot.get()));
+      if (projectPackage.isEmpty()) {
+        logger.warning("Could not load the project root package.");
+      } else {
+        var pkg = projectPackage.get();
+        packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg);
       }
     }
 
-    packageMap.forEach(packageRepository::registerMainProjectPackage);
+    // TODO [RW] This preloading mechanism should be replaced by prepending this special path to the
+    // local libraries search paths when switching to the actual edition-based resolution.
+    List<TruffleFile> preloadedPackagePaths = OptionsHelper.getPreloadedPackagesPaths(environment);
+    for (var packagePath : preloadedPackagePaths) {
+      Optional<Package<TruffleFile>> pkgOpt =
+          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
+      if (pkgOpt.isPresent()) {
+        var pkg = pkgOpt.get();
+        packageRepository.registerPackage(pkg.libraryName(), pkg);
+      } else {
+        logger.warning("Could not preload a package.");
+      }
+    }
 
     // TODO [RW] this is left here temporarily, until the edition system takes over resolving the
     // std-lib
@@ -137,10 +131,7 @@ public class Context {
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
       homeManager
           .loadStdLib()
-          .forEach(
-              pkg -> {
-                packageRepository.registerPackage(pkg.libraryName(), pkg);
-              });
+          .forEach(pkg -> packageRepository.registerPackage(pkg.libraryName(), pkg));
     }
   }
 
@@ -389,11 +380,6 @@ public class Context {
   /** @return whether inline caches should be disabled for this context. */
   public boolean isCachingDisabled() {
     return isCachingDisabled;
-  }
-
-  /** @return the list of shadowed packages */
-  public List<ShadowedPackage> getShadowedPackages() {
-    return shadowedPackages;
   }
 
   /** @return the compiler configuration for this language */

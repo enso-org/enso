@@ -313,10 +313,10 @@ object PackageRepository {
     *
     * TODO [RW] it should be removed once the editions are integrated
     */
-  private class TemporaryLocalProvider(distributionManager: DistributionManager)
+  private class TemporaryLocalProvider(searchPaths: List[Path])
       extends ResolvingLibraryProvider {
 
-    private val localRepo = new DefaultLocalLibraryProvider(distributionManager)
+    private val localRepo = new DefaultLocalLibraryProvider(searchPaths)
 
     override def findLibrary(
       name: LibraryName
@@ -339,10 +339,13 @@ object PackageRepository {
     context: Context,
     builtins: Builtins,
     notificationHandler: NotificationHandler
-  ): PackageRepository = new Default(
-    new TemporaryLocalProvider(distributionManager),
-    context,
-    builtins,
-    notificationHandler
-  )
+  ): PackageRepository = {
+    val searchPaths = distributionManager.paths.localLibrariesSearchPaths.toList
+    new Default(
+      new TemporaryLocalProvider(searchPaths),
+      context,
+      builtins,
+      notificationHandler
+    )
+  }
 }

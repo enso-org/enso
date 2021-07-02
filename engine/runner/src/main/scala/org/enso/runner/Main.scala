@@ -284,7 +284,7 @@ object Main {
       exitFail()
     }
     val projectMode = file.isDirectory
-    val packagePath =
+    val projectRoot =
       if (projectMode) {
         projectPath match {
           case Some(inProject) if inProject != path =>
@@ -299,7 +299,7 @@ object Main {
         file.getAbsolutePath
       } else projectPath.getOrElse("")
     val context = new ContextFactory().create(
-      packagePath,
+      projectRoot,
       System.in,
       System.out,
       Repl(TerminalIO()),
@@ -426,10 +426,10 @@ object Main {
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin
     val replModuleName = "Internal_Repl_Module___"
-    val packagePath    = projectPath.getOrElse("")
+    val projectRoot    = projectPath.getOrElse("")
     val context =
       new ContextFactory().create(
-        packagePath,
+        projectRoot,
         System.in,
         System.out,
         Repl(TerminalIO()),

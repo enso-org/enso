@@ -18,7 +18,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.STRICT_ERRORS, "true")
         .build()
     )

@@ -1,16 +1,15 @@
 package org.enso.librarymanager.local
 
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.DistributionManager
-import org.enso.editions.LibraryName
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.editions.LibraryName
 import org.enso.logger.masking.MaskedPath
 
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 
 /** A default implementation of [[LocalLibraryProvider]]. */
-class DefaultLocalLibraryProvider(distributionManager: DistributionManager)
+class DefaultLocalLibraryProvider(searchPaths: List[Path])
     extends LocalLibraryProvider {
 
   private val logger = Logger[DefaultLocalLibraryProvider]
@@ -19,7 +18,7 @@ class DefaultLocalLibraryProvider(distributionManager: DistributionManager)
   override def findLibrary(libraryName: LibraryName): Option[Path] =
     findLibraryHelper(
       libraryName,
-      distributionManager.paths.localLibrariesSearchPaths.toList
+      searchPaths
     )
 
   /** Searches through the available library paths, checking if any one of them contains the requested library.

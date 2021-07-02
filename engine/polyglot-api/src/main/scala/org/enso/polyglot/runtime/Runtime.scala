@@ -7,7 +7,6 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
-import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.logger.masking.{MaskedPath, MaskedString, ToLogString}
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
@@ -1341,14 +1340,16 @@ object Runtime {
     /** Signals that a new library has been imported, which means its content
       * root should be registered.
       *
+      * @param namespace namespace of the loaded library
       * @param name name of the loaded library
       * @param version library version that was selected
       * @param location location on disk of the project root belonging to the
       *                 loaded library
       */
     case class LibraryLoaded(
-      name: LibraryName,
-      version: LibraryVersion,
+      namespace: String,
+      name: String,
+      version: String,
       location: File
     ) extends ApiNotification
 

@@ -17,7 +17,8 @@ class ContextFactory {
 
   /** Creates a new Graal polyglot context.
     *
-    * @param packagesPath Enso packages path
+    * @param projectRoot root of the project the interpreter is being run in
+    *                    (or empty if ran outside of any projects)
     * @param in the input stream for standard in
     * @param out the output stream for standard out
     * @param repl the Repl manager to use for this context
@@ -26,7 +27,7 @@ class ContextFactory {
     * @return configured Context instance
     */
   def create(
-    packagesPath: String = "",
+    projectRoot: String = "",
     in: InputStream,
     out: OutputStream,
     repl: Repl,
@@ -37,7 +38,7 @@ class ContextFactory {
       .newBuilder()
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .option(RuntimeOptions.PACKAGES_PATH, packagesPath)
+      .option(RuntimeOptions.PROJECT_ROOT, projectRoot)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .option(DebugServerInfo.ENABLE_OPTION, "true")
       .option("js.foreign-object-prototype", "true")
