@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
@@ -21,6 +22,9 @@ import org.enso.editions.LibraryName;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
+import org.enso.interpreter.instrument.Endpoint;
+import org.enso.interpreter.runtime.NotificationHandler.InteractiveMode;
+import org.enso.interpreter.runtime.NotificationHandler.TextMode$;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -30,6 +34,7 @@ import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
 
 /**
@@ -54,6 +59,8 @@ public class Context {
   private final String home;
   private final List<ShadowedPackage> shadowedPackages;
   private final CompilerConfig compilerConfig;
+  private final NotificationHandler notificationHandler;
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
 
   /**
    * Creates a new Enso context.
@@ -75,9 +82,16 @@ public class Context {
     this.home = home;
     this.shadowedPackages = new ArrayList<>();
 
+    if (isInteractiveMode()) {
+      notificationHandler = new InteractiveMode();
+    } else {
+      notificationHandler = TextMode$.MODULE$;
+    }
+
     builtins = new Builtins(this);
     packageRepository =
-        PackageRepository.makeLegacyRepository(RuntimeDistributionManager$.MODULE$, this, builtins);
+        PackageRepository.makeLegacyRepository(
+            RuntimeDistributionManager$.MODULE$, this, builtins, notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
 
     this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
@@ -127,6 +141,22 @@ public class Context {
               pkg -> {
                 packageRepository.registerPackage(pkg.libraryName(), pkg);
               });
+    }
+  }
+
+  private boolean isInteractiveMode() {
+    return environment.getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
+  }
+
+  /** Sets the {@link Endpoint} that is used for communicating with the Language Server. */
+  public void setLanguageServerEndpoint(Endpoint endpoint) {
+    if (notificationHandler instanceof InteractiveMode) {
+      InteractiveMode interactiveNotificationHandler = (InteractiveMode) notificationHandler;
+      interactiveNotificationHandler.registerLanguageServerEndpoint(endpoint);
+    } else {
+      logger.warning(
+          "Setting a Language Server endpoint even though the Context was not "
+              + "configured for interactive mode. Some interactive features may not work.");
     }
   }
 

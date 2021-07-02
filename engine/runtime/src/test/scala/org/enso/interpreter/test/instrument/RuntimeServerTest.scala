@@ -60,6 +60,7 @@ class RuntimeServerTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>

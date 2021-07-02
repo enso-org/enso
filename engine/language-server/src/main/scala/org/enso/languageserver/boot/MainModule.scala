@@ -200,6 +200,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+    .option(RuntimeOptions.INTERACTIVE_MODE, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,

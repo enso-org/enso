@@ -28,6 +28,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String INTERACTIVE_MODE = interpreterOptionName("interactive");
+  public static final OptionKey<Boolean> INTERACTIVE_MODE_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor INTERACTIVE_MODE_DESCRIPTOR =
+      OptionDescriptor.newBuilder(INTERACTIVE_MODE_KEY, INTERACTIVE_MODE).build();
+
   public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
       interpreterOptionName("sequentialCommandExecution");
   public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
@@ -41,7 +46,8 @@ public class RuntimeOptions {
   public static final String ENABLE_PROJECT_SUGGESTIONS = optionName("enableProjectSuggestions");
   public static final OptionKey<Boolean> ENABLE_PROJECT_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(ENABLE_PROJECT_SUGGESTIONS_KEY, ENABLE_PROJECT_SUGGESTIONS).build();
+      OptionDescriptor.newBuilder(ENABLE_PROJECT_SUGGESTIONS_KEY, ENABLE_PROJECT_SUGGESTIONS)
+          .build();
 
   public static final String ENABLE_GLOBAL_SUGGESTIONS = optionName("enableGlobalSuggestions");
   public static final OptionKey<Boolean> ENABLE_GLOBAL_SUGGESTIONS_KEY = new OptionKey<>(true);
@@ -57,6 +63,7 @@ public class RuntimeOptions {
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              INTERACTIVE_MODE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**

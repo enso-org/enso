@@ -62,6 +62,7 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {

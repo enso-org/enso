@@ -3,11 +3,11 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.DistributionManager
-import org.enso.editions.LibraryName
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
-import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.librarymanager.ResolvingLibraryProvider
+import org.enso.interpreter.runtime.{Context, Module, NotificationHandler}
+import org.enso.librarymanager.{ResolvedLibrary, ResolvingLibraryProvider}
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
@@ -104,11 +104,13 @@ object PackageRepository {
     *                        locates them (or downloads if they are missing)
     * @param context the language context
     * @param builtins the builtins module
+    * @param notificationHandler a notification handler
     */
   class Default(
     libraryProvider: ResolvingLibraryProvider,
     context: Context,
-    builtins: Builtins
+    builtins: Builtins,
+    notificationHandler: NotificationHandler
   ) extends PackageRepository {
 
     private val logger = Logger[Default]
@@ -138,16 +140,27 @@ object PackageRepository {
     override def registerPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
-    ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = true)
+    ): Unit = registerPackageInternal(
+      libraryName    = libraryName,
+      pkg            = pkg,
+      libraryVersion = LibraryVersion.Local,
+      isLibrary      = true
+    )
 
     /** @inheritdoc */
     override def registerMainProjectPackage(
       libraryName: LibraryName,
       pkg: Package[TruffleFile]
-    ): Unit = registerPackageInternal(libraryName, pkg, isLibrary = false)
+    ): Unit = registerPackageInternal(
+      libraryName    = libraryName,
+      pkg            = pkg,
+      libraryVersion = LibraryVersion.Local,
+      isLibrary      = false
+    )
 
     private def registerPackageInternal(
       libraryName: LibraryName,
+      libraryVersion: LibraryVersion,
       pkg: Package[TruffleFile],
       isLibrary: Boolean
     ): Unit = {
@@ -161,9 +174,8 @@ object PackageRepository {
         .foreach(registerModule)
 
       if (isLibrary) {
-        context
-        // TODO notify the content root manager
-        // TODO [RW, MK, DB] how to pass the Endpoint to here?
+        val root = Path.of(pkg.root.toString)
+        notificationHandler.addedLibrary(libraryName, libraryVersion, root)
       }
 
       loadedPackages.put(libraryName, Some(pkg))
@@ -174,6 +186,7 @@ object PackageRepository {
       */
     private def loadPackage(
       libraryName: LibraryName,
+      libraryVersion: LibraryVersion,
       root: Path
     ): Either[Error, Unit] = Try {
       logger.debug(
@@ -184,7 +197,12 @@ object PackageRepository {
         root.toAbsolutePath.normalize.toString
       )
       val pkg = packageManager.loadPackage(rootFile).get
-      registerPackage(libraryName, pkg)
+      registerPackageInternal(
+        libraryName    = libraryName,
+        libraryVersion = libraryVersion,
+        pkg            = pkg,
+        isLibrary      = true
+      )
     }.toEither.left.map { error => Error.PackageLoadingError(error.getMessage) }
 
     /** @inheritdoc */
@@ -194,14 +212,16 @@ object PackageRepository {
       if (loadedPackages.contains(libraryName)) Right(())
       else {
         logger.trace(s"Resolving library $libraryName.")
-        val libraryPath = libraryProvider.findLibrary(libraryName)
+        val resolvedLibrary = libraryProvider.findLibrary(libraryName)
         this.synchronized {
           // We check again inside of the monitor, in case that some other
           // thread has just added this library.
           if (loadedPackages.contains(libraryName)) Right(())
           else
-            libraryPath
-              .flatMap(loadPackage(libraryName, _))
+            resolvedLibrary
+              .flatMap { library =>
+                loadPackage(library.name, library.version, library.location)
+              }
               .left
               .map {
                 case ResolvingLibraryProvider.Error.NotResolved(details) =>
@@ -300,10 +320,13 @@ object PackageRepository {
 
     override def findLibrary(
       name: LibraryName
-    ): Either[ResolvingLibraryProvider.Error, Path] =
-      localRepo.findLibrary(name).toRight {
-        ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
-      }
+    ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] =
+      localRepo
+        .findLibrary(name)
+        .map(ResolvedLibrary(name, LibraryVersion.Local, _))
+        .toRight {
+          ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
+        }
   }
 
   /** A temporary helper constructor for [[PackageRepository]] that does not
@@ -314,10 +337,12 @@ object PackageRepository {
   def makeLegacyRepository(
     distributionManager: DistributionManager,
     context: Context,
-    builtins: Builtins
+    builtins: Builtins,
+    notificationHandler: NotificationHandler
   ): PackageRepository = new Default(
     new TemporaryLocalProvider(distributionManager),
     context,
-    builtins
+    builtins,
+    notificationHandler
   )
 }

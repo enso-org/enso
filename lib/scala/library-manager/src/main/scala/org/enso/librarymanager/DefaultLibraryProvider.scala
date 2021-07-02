@@ -54,7 +54,7 @@ case class DefaultLibraryProvider(
     */
   override def findLibrary(
     libraryName: LibraryName
-  ): Either[ResolvingLibraryProvider.Error, Path] = {
+  ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] = {
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
     resolvedVersion match {
@@ -64,6 +64,7 @@ case class DefaultLibraryProvider(
       case Right(LibraryVersion.Local) =>
         localLibraryProvider
           .findLibrary(libraryName)
+          .map(ResolvedLibrary(libraryName, LibraryVersion.Local, _))
           .toRight {
             ResolvingLibraryProvider.Error.NotResolved(
               LibraryResolutionError(
@@ -74,19 +75,21 @@ case class DefaultLibraryProvider(
             )
           }
 
-      case Right(LibraryVersion.Published(version, repository)) =>
+      case Right(version @ LibraryVersion.Published(semver, repository)) =>
         val dependencyResolver = { name: LibraryName =>
           resolver
             .resolveLibraryVersion(name, edition, preferLocalLibraries)
             .toOption
         }
+
         publishedLibraryProvider
           .findLibrary(
             libraryName,
-            version,
+            semver,
             repository,
             dependencyResolver
           )
+          .map(ResolvedLibrary(libraryName, version, _))
           .toEither
           .left
           .map(ResolvingLibraryProvider.Error.DownloadFailed)

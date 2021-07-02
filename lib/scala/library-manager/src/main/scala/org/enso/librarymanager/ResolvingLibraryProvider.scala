@@ -2,8 +2,6 @@ package org.enso.librarymanager
 
 import org.enso.editions.LibraryName
 
-import java.nio.file.Path
-
 /** A helper class for resolving libraries. */
 trait ResolvingLibraryProvider {
 
@@ -13,11 +11,11 @@ trait ResolvingLibraryProvider {
     * If the library is not cached, it attempts to download it.
     *
     * @param name name of the library
-    * @return the path to the root of the requested library or an error
+    * @return the resolved library containing the resulting version and path
     */
   def findLibrary(
     name: LibraryName
-  ): Either[ResolvingLibraryProvider.Error, Path]
+  ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary]
 }
 
 object ResolvingLibraryProvider {
