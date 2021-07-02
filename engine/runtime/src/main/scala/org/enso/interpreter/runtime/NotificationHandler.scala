@@ -9,6 +9,9 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import java.nio.file.Path
 
+/** A class that forwards notifications about loaded libraries and long-running
+  * tasks to the user interface.
+  */
 trait NotificationHandler extends ProgressReporter {
 
   /** Called when a library has been loaded.
@@ -56,6 +59,8 @@ object NotificationHandler {
     * the IDE.
     */
   class InteractiveMode extends NotificationHandler {
+    private val logger = Logger[InteractiveMode]
+
     private var endpoint: Option[Endpoint] = None
     private var queue: List[Api.Response]  = Nil
 
@@ -92,7 +97,7 @@ object NotificationHandler {
     def registerLanguageServerEndpoint(endpoint: Endpoint): Unit =
       this.synchronized {
         if (this.endpoint.isDefined) {
-          Logger[InteractiveMode].warn(
+          logger.warn(
             "Language Server endpoint has been set twice. " +
             "The second one has been ignored."
           )
@@ -105,6 +110,7 @@ object NotificationHandler {
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
+      logger.info(message)
       // TODO [RW] this should be implemented once progress tracking is used by downloads
     }
   }
