@@ -88,22 +88,24 @@ public class Context {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
-    if (projectRoot.isPresent()) {
-      Optional<Package<TruffleFile>> projectPackage =
-          ScalaConversions.asJava(packageManager.fromDirectory(projectRoot.get()));
-      if (projectPackage.isEmpty()) {
-        logger.warning("Could not load the project root package.");
-      } else {
-        var pkg = projectPackage.get();
-        packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg);
-      }
-    }
+    Optional<Package<TruffleFile>> projectPackage =
+        projectRoot.flatMap(
+            file -> {
+              var result = packageManager.fromDirectory(projectRoot.get());
+              if (result.isEmpty()) {
+                logger.warning("Could not load the project root package.");
+              }
+              return ScalaConversions.asJava(result);
+            });
 
     packageRepository =
         PackageRepository.makeLegacyRepository(
             RuntimeDistributionManager$.MODULE$, this, builtins, notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
     this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
+
+    projectPackage.ifPresent(
+        pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
 
     List<Package<TruffleFile>> packagesToPreload = new ArrayList<>();
     // TODO [RW] This preloading mechanism should be replaced by prepending this special path to the
