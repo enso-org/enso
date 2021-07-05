@@ -75,7 +75,7 @@ final class Handler {
         truffleContext
       )
     commandProcessor = new CommandExecutionEngine(interpreterCtx)
-    service.getContext.setLanguageServerEndpoint(endpoint)
+    executionService.initializeLanguageServerConnection(endpoint)
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
 

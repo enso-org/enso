@@ -136,22 +136,7 @@ class RuntimeStdlibTest
 
   override protected def beforeEach(): Unit = {
     context = new TestContext("Test")
-    val initMessages = context.receiveN(2)
-
-    initMessages.collect {
-      case Api.Response(_, Api.InitializedNotification()) =>
-    } should have size 1
-
-    // TODO [RW] this library loaded notification should be moved to the actual test suite once the preloading is gone
-    val contentRootNotifications = initMessages.collect {
-      case Api.Response(
-            None,
-            Api.LibraryLoaded(namespace, name, version, _)
-          ) =>
-        (namespace, name, version)
-    }
-
-    contentRootNotifications should contain(("Standard", "Base", "local"))
+    val Some(Api.Response(_, Api.InitializedNotification())) = context.receive
   }
 
   it should "import Base modules" in {
@@ -222,6 +207,16 @@ class RuntimeStdlibTest
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
     builtinsSuggestions.length shouldBe 1
+
+    val contentRootNotifications = responses.collect {
+      case Api.Response(
+            None,
+            Api.LibraryLoaded(namespace, name, version, _)
+          ) =>
+        (namespace, name, version)
+    }
+
+    contentRootNotifications should contain(("Standard", "Base", "local"))
 
     context.consumeOut shouldEqual List("Hello World!")
   }

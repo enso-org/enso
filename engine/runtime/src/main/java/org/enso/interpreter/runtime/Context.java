@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,20 +20,18 @@ import org.enso.compiler.data.CompilerConfig;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
-import org.enso.interpreter.instrument.Endpoint;
-import org.enso.interpreter.runtime.NotificationHandler.InteractiveMode;
-import org.enso.interpreter.runtime.NotificationHandler.TextMode$;
+import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
-import org.enso.logger.masking.MaskedPath;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -55,16 +54,18 @@ public class Context {
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
-  private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
 
   /**
    * Creates a new Enso context.
    *
    * @param language the language identifier
+   * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
+   * @param notificationHandler a handler for notifications
    */
-  public Context(Language language, String home, Env environment) {
+  public Context(
+      Language language, String home, Env environment, NotificationHandler notificationHandler) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
@@ -76,12 +77,6 @@ public class Context {
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
-
-    if (isInteractiveMode()) {
-      notificationHandler = new InteractiveMode();
-    } else {
-      notificationHandler = TextMode$.MODULE$;
-    }
 
     builtins = new Builtins(this);
     packageRepository =
@@ -110,6 +105,7 @@ public class Context {
       }
     }
 
+    List<Package<TruffleFile>> packagesToPreload = new ArrayList<>();
     // TODO [RW] This preloading mechanism should be replaced by prepending this special path to the
     // local libraries search paths when switching to the actual edition-based resolution.
     List<TruffleFile> preloadedPackagePaths = OptionsHelper.getPreloadedPackagesPaths(environment);
@@ -118,7 +114,7 @@ public class Context {
           ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
       if (pkgOpt.isPresent()) {
         var pkg = pkgOpt.get();
-        packageRepository.registerPackage(pkg.libraryName(), pkg);
+        packagesToPreload.add(pkg);
       } else {
         logger.warning("Could not preload a package.");
       }
@@ -129,26 +125,10 @@ public class Context {
     if (home != null) {
       HomeManager<TruffleFile> homeManager =
           new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      homeManager
-          .loadStdLib()
-          .forEach(pkg -> packageRepository.registerPackage(pkg.libraryName(), pkg));
+      homeManager.loadStdLib().forEach(packagesToPreload::add);
     }
-  }
 
-  private boolean isInteractiveMode() {
-    return environment.getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
-  }
-
-  /** Sets the {@link Endpoint} that is used for communicating with the Language Server. */
-  public void setLanguageServerEndpoint(Endpoint endpoint) {
-    if (notificationHandler instanceof InteractiveMode) {
-      InteractiveMode interactiveNotificationHandler = (InteractiveMode) notificationHandler;
-      interactiveNotificationHandler.registerLanguageServerEndpoint(endpoint);
-    } else {
-      logger.warning(
-          "Setting a Language Server endpoint even though the Context was not "
-              + "configured for interactive mode. Some interactive features may not work.");
-    }
+    packageRepository.registerForPreload(CollectionConverters.asScala(packagesToPreload).toSeq());
   }
 
   public TruffleFile getTruffleFile(File file) {

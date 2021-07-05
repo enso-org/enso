@@ -1,10 +1,9 @@
-package org.enso.interpreter.runtime
+package org.enso.interpreter.instrument
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.editions.{LibraryName, LibraryVersion}
-import org.enso.interpreter.instrument.Endpoint
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import java.nio.file.Path
@@ -54,29 +53,39 @@ object NotificationHandler {
     }
   }
 
+  /** A [[NotificationHandler]] that forwards messages to other
+    * NotificationHandlers.
+    */
+  class Forwarder extends NotificationHandler {
+    private var listeners: List[NotificationHandler] = Nil
+
+    /** @inheritdoc */
+    override def addedLibrary(
+      libraryName: LibraryName,
+      libraryVersion: LibraryVersion,
+      location: Path
+    ): Unit = for (listener <- listeners)
+      listener.addedLibrary(libraryName, libraryVersion, location)
+
+    /** @inheritdoc */
+    override def trackProgress(message: String, task: TaskProgress[_]): Unit =
+      for (listener <- listeners) listener.trackProgress(message, task)
+
+    /** Registers a new listener. */
+    def addListener(listener: NotificationHandler): Unit =
+      listeners ::= listener
+  }
+
   /** A [[NotificationHandler]] for interactive mode, which forwards the
     * notifications to the Language Server, which then should forward them to
     * the IDE.
     */
-  class InteractiveMode extends NotificationHandler {
+  class InteractiveMode(endpoint: Endpoint) extends NotificationHandler {
     private val logger = Logger[InteractiveMode]
 
-    private var endpoint: Option[Endpoint] = None
-    private var queue: List[Api.Response]  = Nil
-
-    /** Sends a message or queues it if the endpoint is not yet registered. */
     private def sendMessage(message: ApiResponse): Unit = {
       val response = Api.Response(None, message)
-      endpoint match {
-        case Some(connected) => connected.sendToClient(response)
-        case None =>
-          this.synchronized {
-            endpoint match {
-              case Some(justConnected) => justConnected.sendToClient(response)
-              case None                => queue ::= response
-            }
-          }
-      }
+      endpoint.sendToClient(response)
     }
 
     /** @inheritdoc */
@@ -92,21 +101,6 @@ object NotificationHandler {
         location  = location.toFile
       )
     )
-
-    /** Registers the endpoint and sends to it any pending messages. */
-    def registerLanguageServerEndpoint(endpoint: Endpoint): Unit =
-      this.synchronized {
-        if (this.endpoint.isDefined) {
-          logger.warn(
-            "Language Server endpoint has been set twice. " +
-            "The second one has been ignored."
-          )
-        } else {
-          this.endpoint = Some(endpoint)
-          queue.foreach(endpoint.sendToClient)
-          queue = Nil
-        }
-      }
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
