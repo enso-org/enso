@@ -343,11 +343,14 @@ object Main {
       println("Path hasn't been provided.")
       exitFail()
     }
-    generateFrom(projectPath.get, logLevel)
+    generateDocsFrom(projectPath.get, logLevel)
     exitSuccess()
   }
 
-  def generateFrom(path: String, logLevel: LogLevel): Unit = {
+  /** Subroutine of `genDocs` function.
+    * Generates the documentation for given Enso project at given path.
+    */
+  def generateDocsFrom(path: String, logLevel: LogLevel): Unit = {
     val executionContext = new ContextFactory().create(
       path,
       System.in,
