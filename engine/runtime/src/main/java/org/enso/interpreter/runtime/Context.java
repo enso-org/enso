@@ -41,12 +41,12 @@ public class Context {
 
   private final Language language;
   private final Env environment;
-  private final Compiler compiler;
+  private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private final PackageRepository packageRepository;
+  private @CompilationFinal PackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
@@ -54,6 +54,7 @@ public class Context {
   private final Builtins builtins;
   private final String home;
   private final CompilerConfig compilerConfig;
+  private final NotificationHandler notificationHandler;
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
 
   /**
@@ -77,20 +78,13 @@ public class Context {
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
-
-    builtins = new Builtins(this);
-    packageRepository =
-        PackageRepository.makeLegacyRepository(
-            RuntimeDistributionManager$.MODULE$, this, builtins, notificationHandler);
-    topScope = new TopLevelScope(builtins, packageRepository);
-
-    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
+    this.builtins = new Builtins(this);
+    this.notificationHandler = notificationHandler;
   }
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
-
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
@@ -104,6 +98,12 @@ public class Context {
         packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg);
       }
     }
+
+    packageRepository =
+        PackageRepository.makeLegacyRepository(
+            RuntimeDistributionManager$.MODULE$, this, builtins, notificationHandler);
+    topScope = new TopLevelScope(builtins, packageRepository);
+    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
 
     List<Package<TruffleFile>> packagesToPreload = new ArrayList<>();
     // TODO [RW] This preloading mechanism should be replaced by prepending this special path to the
@@ -293,7 +293,7 @@ public class Context {
    * @return an object containing the builtin functions
    */
   public Builtins getBuiltins() {
-    return getTopScope().getBuiltins();
+    return this.builtins;
   }
 
   /**
