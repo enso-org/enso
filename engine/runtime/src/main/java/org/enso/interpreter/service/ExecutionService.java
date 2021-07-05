@@ -4,11 +4,23 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.source.SourceSection;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
+import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.execution.LocationFilter;
@@ -21,7 +33,12 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
-import org.enso.interpreter.service.error.*;
+import org.enso.interpreter.service.error.ConstructorNotFoundException;
+import org.enso.interpreter.service.error.FailedToApplyEditsException;
+import org.enso.interpreter.service.error.MethodNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundForFileException;
+import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -30,13 +47,6 @@ import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.TextEditor;
 import org.enso.text.editing.model;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
-
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
@@ -44,6 +54,7 @@ import java.util.function.Consumer;
 public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
+  private final NotificationHandler.Forwarder notificationForwarder;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
 
@@ -54,9 +65,13 @@ public class ExecutionService {
    * @param idExecutionInstrument an instance of the {@link IdExecutionInstrument} to use in the
    *     course of executions.
    */
-  public ExecutionService(Context context, IdExecutionInstrument idExecutionInstrument) {
+  public ExecutionService(
+      Context context,
+      IdExecutionInstrument idExecutionInstrument,
+      NotificationHandler.Forwarder notificationForwarder) {
     this.idExecutionInstrument = idExecutionInstrument;
     this.context = context;
+    this.notificationForwarder = notificationForwarder;
   }
 
   /** @return the language context. */
@@ -84,6 +99,11 @@ public class ExecutionService {
     }
     return new FunctionCallInstrumentationNode.FunctionCall(
         function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
+  }
+
+  public void initializeLanguageServerConnection(Endpoint endpoint) {
+    var notificationHandler = new NotificationHandler.InteractiveMode(endpoint);
+    notificationForwarder.addListener(notificationHandler);
   }
 
   /**

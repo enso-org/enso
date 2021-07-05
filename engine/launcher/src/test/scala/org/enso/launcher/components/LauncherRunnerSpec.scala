@@ -37,6 +37,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
     val runner =
       new LauncherRunner(
         projectManager,
+        distributionManager,
         configurationManager,
         componentsManager,
         editionManager,

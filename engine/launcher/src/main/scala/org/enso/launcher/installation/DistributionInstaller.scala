@@ -133,7 +133,7 @@ class DistributionInstaller(
         throw InstallationError(
           s"${installed.configDirectory} already exists but is not a " +
           s"directory. Please remove it or change the installation " +
-          s"location by setting `${installed.ENSO_CONFIG_DIRECTORY}`."
+          s"location by setting `${manager.ENSO_CONFIG_DIRECTORY}`."
         )
       }
     }

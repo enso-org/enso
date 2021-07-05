@@ -8,10 +8,10 @@ import org.graalvm.options.OptionKey;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
-  public static final String PACKAGES_PATH = optionName("packagesPath");
-  public static final OptionKey<String> PACKAGES_PATH_KEY = new OptionKey<>("");
-  private static final OptionDescriptor PACKAGES_PATH_DESCRIPTOR =
-      OptionDescriptor.newBuilder(PACKAGES_PATH_KEY, PACKAGES_PATH).build();
+  public static final String PROJECT_ROOT = optionName("projectRoot");
+  public static final OptionKey<String> PROJECT_ROOT_KEY = new OptionKey<>("");
+  private static final OptionDescriptor PROJECT_ROOT_DESCRIPTOR =
+      OptionDescriptor.newBuilder(PROJECT_ROOT_KEY, PROJECT_ROOT).build();
 
   public static final String STRICT_ERRORS = optionName("strictErrors");
   public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(false);
@@ -28,6 +28,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String INTERACTIVE_MODE = interpreterOptionName("interactive");
+  public static final OptionKey<Boolean> INTERACTIVE_MODE_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor INTERACTIVE_MODE_DESCRIPTOR =
+      OptionDescriptor.newBuilder(INTERACTIVE_MODE_KEY, INTERACTIVE_MODE).build();
+
   public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
       interpreterOptionName("sequentialCommandExecution");
   public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
@@ -41,22 +46,30 @@ public class RuntimeOptions {
   public static final String ENABLE_PROJECT_SUGGESTIONS = optionName("enableProjectSuggestions");
   public static final OptionKey<Boolean> ENABLE_PROJECT_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(ENABLE_PROJECT_SUGGESTIONS_KEY, ENABLE_PROJECT_SUGGESTIONS).build();
+      OptionDescriptor.newBuilder(ENABLE_PROJECT_SUGGESTIONS_KEY, ENABLE_PROJECT_SUGGESTIONS)
+          .build();
 
   public static final String ENABLE_GLOBAL_SUGGESTIONS = optionName("enableGlobalSuggestions");
   public static final OptionKey<Boolean> ENABLE_GLOBAL_SUGGESTIONS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_GLOBAL_SUGGESTIONS_KEY, ENABLE_GLOBAL_SUGGESTIONS).build();
 
+  public static final String PRELOADED_PACKAGES_PATHS = optionName("preloadedPackagesPaths");
+  public static final OptionKey<String> PRELOADED_PACKAGES_PATHS_KEY = new OptionKey<>("");
+  private static final OptionDescriptor PRELOADED_PACKAGES_PATHS_DESCRIPTOR =
+      OptionDescriptor.newBuilder(PRELOADED_PACKAGES_PATHS_KEY, PRELOADED_PACKAGES_PATHS).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
-              PACKAGES_PATH_DESCRIPTOR,
+              PROJECT_ROOT_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              INTERACTIVE_MODE_DESCRIPTOR,
+              PRELOADED_PACKAGES_PATHS_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**

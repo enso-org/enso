@@ -6631,12 +6631,15 @@ object IR {
           " but the module does not belong to a project."
       }
 
-      /** Used when an import statement triggers loading of a package that does not exist.
+      /** Used when an import statement triggers loading of a package that could
+        * not be loaded.
+        *
         * @param name the module name.
         */
-      case class PackageDoesNotExist(name: String) extends Reason {
+      case class PackageCouldNotBeLoaded(name: String, reason: String)
+          extends Reason {
         override def message: String = s"Package containing the module $name" +
-          s" could not be found."
+          s" could not be loaded: $reason"
       }
 
       /** Used when an import statement refers to a module that does not exist.

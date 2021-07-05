@@ -51,6 +51,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val runner =
     new LauncherRunner(
       projectManager,
+      distributionManager,
       configurationManager,
       componentsManager,
       editionManager,
