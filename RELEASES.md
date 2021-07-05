@@ -9,8 +9,8 @@
   ([#1822](https://github.com/enso-org/enso/pull/1822)).
 - Implemented the ability to dynamically load local libraries
   ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
-  allows to load local libraries, it will be integrated with the editions system
-  soon.
+  supports the loading of local libraries, but will be integrated with the
+  editions system soon.
 
 ## Tooling
 

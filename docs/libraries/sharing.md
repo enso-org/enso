@@ -12,19 +12,22 @@ This document explains how users can share Enso libraries.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Sharing Privately](#sharing-privately)
+- [Publishing](#publishing)
+
 <!-- /MarkdownTOC -->
 
 ## Sharing Privately
 
-To prepare the project for sharing make sure that it has a proper `namespace`
+To prepare the project for sharing, make sure that it has a proper `namespace`
 field set in `package.yaml`. It should be set to something unique, like your
 username.
 
-> The field `namespace` is a temporary workaround and in the near future it will
-> be deprecated and handled mostly automatically. For now however you need to
-> set it properly.
+> **NOTE**: The field `namespace` is a temporary workaround and in the near
+> future it will be deprecated and handled mostly automatically. For now however
+> you need to set it properly.
 
-To share an Enso library all you need to do is to package the project into an
+To share an Enso library, all you need to do is to package the project into an
 archive (for example ZIP) and share it (through e-mail, cloud drive services
 etc.) with your peers. Now to be able to use the library that was shared with
 you, you need to extract it to the directory
@@ -38,7 +41,7 @@ extracted correctly, make sure that under the path
 > system is fully integrated, so it is better to perform it for forwards
 > compatibility.
 
-Now you need to set-up your project properly to be able to use this unpublished
+Now you need to set up your project properly to be able to use this unpublished
 library. The simplest way to do that is to set `prefer-local-libraries` in your
 project's `package.yaml` to `true`. This will make all libraries from
 `~/enso/libraries` take precedence over published libraries set-up in the
