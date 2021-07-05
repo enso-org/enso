@@ -339,11 +339,11 @@ object Main {
     projectPath: Option[String],
     logLevel: LogLevel
   ): Unit = {
-    val stdLibPath   = "./distribution/std-lib"
-    val tempFileName = "Geo/src/Geo_Json.enso"
-    val testFilepath = stdLibPath + "/" + tempFileName
-    val path         = projectPath.getOrElse(testFilepath)
-    generateFrom(path, logLevel)
+    if (projectPath.isEmpty) {
+      println("Path hasn't been provided.")
+      exitFail()
+    }
+    generateFrom(projectPath.get, logLevel)
     exitSuccess()
   }
 

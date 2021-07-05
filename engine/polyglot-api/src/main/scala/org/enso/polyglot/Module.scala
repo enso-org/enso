@@ -51,7 +51,7 @@ class Module(private val value: Value) {
 
   /** Triggers generation of documentation from module sources.
     *
-    * @return the return value of the expression
+    * @return value with `GENERATE_DOCS` invoked on it.
     */
   def generateDocs(): Value = {
     value.invokeMember(GENERATE_DOCS)
