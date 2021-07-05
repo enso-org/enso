@@ -4,7 +4,6 @@ import org.enso.docs.generator.DocsGenerator
 import org.scalameter.api._
 import org.scalameter.execution.LocalExecutor
 import org.scalameter.picklers.Implicits._
-import scala.annotation.nowarn
 import scala.math.pow
 
 object DocsGeneratorBench extends Bench.OfflineRegressionReport {
@@ -12,12 +11,16 @@ object DocsGeneratorBench extends Bench.OfflineRegressionReport {
   override def executor = new LocalExecutor(warmer, aggregator, measurer)
 
   val range = 0
-  @nowarn("cat=w-flag-numeric-widen")
+
   def exp(i: Int): Gen[Int] =
-    Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
+    Gen.exponential("size")(
+      pow(2.0, (i - range).toDouble).toInt,
+      pow(2.0, i.toDouble).toInt,
+      2
+    )
 
   def gen(range: Gen[Int], f: Int => List[String]): Gen[String] =
-    for { i <- range } yield f(i)
+    for { i <- range } yield f(i).toString()
 
   val tests = List(
     "formatters" -> gen(exp(14), i => List.fill(i)("*foo bar*\n")),
