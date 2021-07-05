@@ -16,7 +16,8 @@ class HomeManager[F](languageHomePath: F, implicit val fs: FileSystem[F]) {
   val packageManager = new PackageManager[F]()
 
   val rootPath: F = languageHomePath.getParent
-  val libPath: F  = rootPath.getChild("std-lib")
+  // TODO [RW] rename to lib or sth more general than just std
+  val libPath: F = rootPath.getChild("std-lib")
 
   /** @return a stream of packages found in the `std-lib` home directory.
     */

@@ -76,6 +76,7 @@ class PortableDistributionManager(env: Environment)
         engines                   = root / ENGINES_DIRECTORY,
         bundle                    = None,
         config                    = root / CONFIG_DIRECTORY,
+        runRoot                   = root,
         locks                     = root / LOCK_DIRECTORY,
         logs                      = root / LOG_DIRECTORY,
         unsafeTemporaryDirectory  = root / TMP_DIRECTORY,

@@ -7,6 +7,10 @@
   project ([#1806](https://github.com/enso-org/enso/pull/1806)).
 - Fixed a bug where unresolved imports would crash the compiler
   ([#1822](https://github.com/enso-org/enso/pull/1822)).
+- Implemented the ability to dynamically load local libraries
+  ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
+  supports the loading of local libraries, but will be integrated with the
+  editions system soon.
 
 ## Tooling
 

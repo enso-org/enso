@@ -3,7 +3,9 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
@@ -60,38 +62,44 @@ class ImportResolver(compiler: Compiler) {
                   val exp = ir.exports
                     .collect { case ex: IR.Module.Scope.Export.Module => ex }
                     .find(_.name.name == impName)
-                  val isLoaded = imp.name.parts match {
+                  val libraryName = imp.name.parts match {
                     case namespace :: name :: _ =>
-                      compiler.packageRepository.ensurePackageIsLoaded(
-                        namespace.name,
-                        name.name
-                      ).isRight
-                    case _ => false
+                      LibraryName(namespace.name, name.name)
+                    case _ =>
+                      throw new CompilerError(
+                        "Imports should containt at least two segments after " +
+                        "desugaring."
+                      )
                   }
-                  if (isLoaded) {
-                    compiler.getModule(impName) match {
-                      case Some(module) =>
-                        (
-                          imp,
-                          Some(BindingsMap.ResolvedImport(imp, exp, module))
-                        )
-                      case None =>
-                        (
-                          IR.Error.ImportExport(
+                  compiler.packageRepository
+                    .ensurePackageIsLoaded(libraryName) match {
+                    case Right(()) =>
+                      compiler.getModule(impName) match {
+                        case Some(module) =>
+                          (
                             imp,
-                            IR.Error.ImportExport.ModuleDoesNotExist(impName)
-                          ),
-                          None
-                        )
-                    }
-                  } else {
-                    (
-                      IR.Error.ImportExport(
-                        imp,
-                        IR.Error.ImportExport.PackageDoesNotExist(impName)
-                      ),
-                      None
-                    )
+                            Some(BindingsMap.ResolvedImport(imp, exp, module))
+                          )
+                        case None =>
+                          (
+                            IR.Error.ImportExport(
+                              imp,
+                              IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                            ),
+                            None
+                          )
+                      }
+                    case Left(loadingError) =>
+                      (
+                        IR.Error.ImportExport(
+                          imp,
+                          IR.Error.ImportExport.PackageCouldNotBeLoaded(
+                            impName,
+                            loadingError.toString
+                          )
+                        ),
+                        None
+                      )
                   }
                 case other => (other, None)
               }

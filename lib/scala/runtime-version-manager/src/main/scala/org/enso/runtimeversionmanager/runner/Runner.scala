@@ -3,7 +3,7 @@ package org.enso.runtimeversionmanager.runner
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{EditionManager, Environment}
+import org.enso.distribution.{DistributionManager, EditionManager, Environment}
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.logger.masking.MaskedString
 import org.enso.loggingservice.LogLevel
@@ -26,6 +26,7 @@ import scala.util.Try
   */
 class Runner(
   runtimeVersionManager: RuntimeVersionManager,
+  distributionManager: DistributionManager,
   globalConfigurationManager: GlobalConfigurationManager,
   editionManager: EditionManager,
   environment: Environment,
@@ -179,9 +180,12 @@ class Runner(
       val command = Seq(javaCommand.executableName) ++
         jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
-      // TODO [RW] set the paths from DistributionManager so that the engine can use the simple distribution resolution logic
+      val distributionSettings =
+        distributionManager.getEnvironmentToInheritSettings
       val extraEnvironmentOverrides =
-        javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
+        javaCommand.javaHomeOverride
+          .map("JAVA_HOME" -> _)
+          .toSeq ++ distributionSettings.toSeq
 
       action(Command(command, extraEnvironmentOverrides))
     }
