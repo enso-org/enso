@@ -31,13 +31,14 @@ object DocParserWrapper {
     * won't find anything at this page, and that it is not a bug.
     */
   def mapIfEmpty(doc: String): String = {
-    var tmp = doc
     if (doc.replace("<div>", "").replace("</div>", "").length == 0) {
-      tmp =
+      val placeholder =
         "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
-      tmp = runOnPureDoc(tmp).replace("style=\"font-size: 13px;\"", "")
+      val generatedPlaceholderCode =
+        runOnPureDoc(placeholder).replace("style=\"font-size: 13px;\"", "")
+      return generatedPlaceholderCode
     }
-    tmp
+    doc
   }
 
   /** Doc Parser may output file with many nested empty divs.
