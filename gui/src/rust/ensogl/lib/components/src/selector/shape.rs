@@ -24,7 +24,8 @@ struct Background {
 }
 
 impl Background {
-    fn new(corner_left:&Var<f32>, corner_right:&Var<f32>, style:&StyleWatch) -> Background {
+    fn new(corner_left:&Var<f32>, corner_right:&Var<f32>, style:&StyleWatch)
+    -> Background {
         let sprite_width  : Var<Pixels> = "input_size.x".into();
         let sprite_height : Var<Pixels> = "input_size.y".into();
 
@@ -50,10 +51,10 @@ pub mod background {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        (style:Style,corner_left:f32,corner_right:f32) {
+        (style:Style,corner_left:f32,corner_right:f32,color:Vector4,show_shadow:f32) {
             let background = Background::new(&corner_left,&corner_right,style);
-            let color      = style.get_color(theme::component::slider::background);
-            let shadow     = shadow::from_shape(background.shape.clone(),style);
+            let shadow     = shadow::from_shape_with_alpha(background.shape.clone(),
+                &show_shadow,style);
             let background = background.shape.fill(color);
             (shadow + background).into()
         }
@@ -97,14 +98,17 @@ pub mod track {
     use super::*;
 
     ensogl_core::define_shape_system! {
-        (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,track_color:Vector4) {
-            let background = Background::new(&corner_left,&corner_right,style);
-            let width      = background.width;
-            let height     = background.height;
+        (style:Style,left:f32,right:f32,corner_left:f32,corner_right:f32,corner_inner:f32,
+         track_color:Vector4) {
+            let background    = Background::new(&corner_left,&corner_right,style);
+            let width         = background.width;
+            let height        = background.height;
+            let corner_radius = corner_inner * &height/2.0;
+
 
             let track_width = (&right - &left) * &width;
             let track_start = left * &width;
-            let track       = Rect((&track_width,&height));
+            let track       = Rect((&track_width,&height)).corners_radius(corner_radius);
             let track       = track.translate_x(&track_start + (track_width / 2.0) );
             let track       = track.translate_x(-width/2.0);
             let track       = track.intersection(&background.shape);
@@ -136,7 +140,7 @@ impl OverflowShape {
         let sprite_height : Var<Pixels> = "input_size.y".into();
 
         let width           = &sprite_width - shadow::size(style).px();
-        let height          =  &sprite_height - shadow::size(style).px();
+        let height          = &sprite_height - shadow::size(style).px();
         let overflow_color  = style.get_color(theme::component::slider::overflow::color);
         let shape           = Triangle(&sprite_height/6.0,&sprite_height/6.0);
         let shape           = shape.fill(&overflow_color);
@@ -186,10 +190,13 @@ pub mod right_overflow {
 use enso_frp;
 use enso_frp::Network;
 use ensogl_core::frp::io::Mouse;
+use ensogl_core::gui::component::ShapeView;
 use ensogl_core::gui::component::ShapeViewEvents;
 
 pub use super::frp::*;
 pub use super::model::*;
+use ensogl_core::display;
+use ensogl_core::display::Scene;
 
 /// Return whether a dragging action has been started from the shape passed to this function. A
 /// dragging action is started by a mouse down on the shape, followed by a movement of the mouse.
@@ -206,23 +213,24 @@ pub fn shape_is_dragged
     is_dragging_shape
 }
 
-/// Returns the position of a mouse down on a shape. The position is given relative to the origin
-/// of the shape position.
-pub fn relative_shape_click_position(
-    base_position:impl Fn() -> Vector2 + 'static,
-    network:&Network,
-    shape:&ShapeViewEvents,
-    mouse:&Mouse) -> enso_frp::Stream<Vector2>  {
+/// Returns the position of a mouse down on a shape. The position is given in the shape's local
+/// coordinate system
+pub fn relative_shape_down_position<T:'static+display::Object+CloneRef>
+( network : &Network
+, scene   : &Scene
+, shape   : &ShapeView<T>
+) -> enso_frp::Stream<Vector2> {
+    let mouse = &scene.mouse.frp;
     enso_frp::extend! { network
-        mouse_down               <- mouse.down.constant(());
-        over_shape               <- bool(&shape.mouse_out,&shape.mouse_over);
-        mouse_down_over_shape    <- mouse_down.gate(&over_shape);
-        background_click_positon <- mouse.position.sample(&mouse_down_over_shape);
-        background_click_positon <- background_click_positon.map(move |pos|
-            pos - base_position()
-        );
+        mouse_down            <- mouse.down.constant(());
+        over_shape            <- bool(&shape.events.mouse_out,&shape.events.mouse_over);
+        mouse_down_over_shape <- mouse_down.gate(&over_shape);
+        click_positon         <- mouse.position.sample(&mouse_down_over_shape);
+        click_positon         <- click_positon.map(f!([scene,shape](pos)
+            scene.screen_to_object_space(&shape,*pos)
+        ));
     }
-    background_click_positon
+    click_positon
 }
 
 
@@ -266,32 +274,5 @@ mod tests {
         shape.mouse_out.emit(());
         mouse.down.emit(Button::from_code(0));
         assert_eq!(is_dragged.value(),false);
-    }
-
-    #[test]
-    fn test_relative_shape_click_position() {
-        let network = enso_frp::Network::new("TestNetwork");
-        let mouse   = enso_frp::io::Mouse::default();
-        let shape   = ShapeViewEvents::default();
-
-        let base_position = || Vector2::new(-10.0,200.0);
-        let click_position = relative_shape_click_position(base_position, &network,&shape,&mouse);
-        let _watch = click_position.register_watch();
-
-        shape.mouse_over.emit(());
-        mouse.position.emit(Vector2::new(-10.0,200.0));
-        mouse.down.emit(Button::from_code(0));
-        assert_float_eq!(click_position.value().x,0.0,ulps<=7);
-        assert_float_eq!(click_position.value().y,0.0,ulps<=7);
-
-        mouse.position.emit(Vector2::new(0.0,0.0));
-        mouse.down.emit(Button::from_code(0));
-        assert_float_eq!(click_position.value().x,10.0,ulps<=7);
-        assert_float_eq!(click_position.value().y,-200.0,ulps<=7);
-
-        mouse.position.emit(Vector2::new(400.0,0.5));
-        mouse.down.emit(Button::from_code(0));
-        assert_float_eq!(click_position.value().x,410.0,ulps<=7);
-        assert_float_eq!(click_position.value().y,-199.5,ulps<=7);
     }
 }

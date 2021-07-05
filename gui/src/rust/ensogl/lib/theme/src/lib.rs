@@ -432,7 +432,8 @@ define_themes! { [light:0, dark:1]
                 color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
             }
             track {
-                color = Lcha(0.9,0.0,0.0,0.5), Lcha(0.1,0.0,0.0,0.5);
+                color       = Lcha(0.7,0.0,0.0,1.0), Lcha(0.3,0.0,0.0,1.0);
+                hover_color = Lcha(0.6,0.0,0.0,1.0), Lcha(0.4,0.0,0.0,1.0);
             }
             overflow {
                 color = Lcha(0.0,0.0,0.0,1.0), Lcha(1.0,0.0,0.0,1.0);

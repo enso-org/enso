@@ -49,6 +49,7 @@ impl component::Frp<Model> for Frp {
         let base_frp = super::Frp::new(model, style, network, frp.resize.clone().into(), mouse);
 
         model.use_track_handles(true);
+        model.show_background(true);
 
         let style_track_color = style.get_color(theme::component::slider::track::color);
 

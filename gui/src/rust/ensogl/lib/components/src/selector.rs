@@ -9,10 +9,11 @@
 //! The only things exposed form this module are the `NumberPicker`, `NumberRangePicker`, their
 //! FRPs and the `Bounds` struct.
 
-mod bounds;
+pub(crate) mod bounds;
+pub(crate) mod model;
+
 mod decimal_aligned;
 mod frp;
-mod model;
 mod number;
 mod range;
 mod shape;
@@ -21,8 +22,8 @@ use ensogl_core::application;
 use ensogl_core::application::Application;
 
 pub use bounds::Bounds;
+pub(crate) use frp::*;
 use model::*;
-use frp::*;
 
 
 

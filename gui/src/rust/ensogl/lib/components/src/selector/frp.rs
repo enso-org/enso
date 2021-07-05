@@ -13,6 +13,7 @@ use crate::shadow;
 
 use super::model::Model;
 use super::shape::shape_is_dragged;
+use super::shape::relative_shape_down_position;
 
 
 
@@ -55,6 +56,14 @@ pub struct Frp {
     pub is_dragging_right_handle   : frp::Stream<bool>,
     /// Indicates whether there is an ongoing dragging action on any of the component shapes.
     pub is_dragging_any            : frp::Stream<bool>,
+    /// Position of a click on the background. Position is given relative to the overall shape
+    /// origin and normalised to the shape size.
+    pub background_click           : frp::Stream<Vector2>,
+    /// Position of a click on the track shape. Position is given relative to the overall shape
+    /// origin and normalised to the shape size.
+    pub track_click                : frp::Stream<Vector2>,
+    /// Indicates whether the track is hovered..
+    pub track_hover               : frp::Stream<bool>,
 }
 
 impl Frp {
@@ -77,6 +86,11 @@ impl Frp {
         let is_dragging_right_handle   = shape_is_dragged(
             network,&model.track_handle_right.events,mouse);
 
+        let background_click = relative_shape_down_position(
+            network,model.app.display.scene(),&model.background);
+        let track_click = relative_shape_down_position(
+            network,model.app.display.scene(),&model.track);
+
         // Initialisation of components. Required for correct layout on startup.
         model.label_right.set_position_y(text_size.value()/2.0);
         model.label_left.set_position_y(text_size.value()/2.0);
@@ -84,15 +98,20 @@ impl Frp {
         model.caption_left.set_position_y(text_size.value()/2.0);
         model.caption_center.set_position_y(text_size.value()/2.0);
 
+        let bg_color = style.get_color(theme::component::slider::background);
+        model.set_background_color(bg_color.value());
+
         frp::extend! { network
 
             // Style updates.
-            shadow_padding  <- shadow.size.map(|&v| Vector2(v,v));
+            init_shadow_padding <- source::<()>();
+            shadow_padding      <- all_with(&shadow.size,&init_shadow_padding,|&v,_| Vector2(v,v));
             eval text_size ((size) {
                 model.label.set_position_y(size / 2.0);
                 model.label_right.set_position_y(size / 2.0);
                 model.label_left.set_position_y(size / 2.0);
             });
+            eval bg_color ((color)  model.set_background_color(*color) );
 
              // Caption updates.
              update_caption_position <- all(&size,&text_size);
@@ -117,10 +136,14 @@ impl Frp {
                 &is_dragging_overflow,
                 &is_dragging_handle,
             );
+
+            track_hover <- bool(&model.track.events.mouse_out,&model.track.events.mouse_over);
         }
+
+        init_shadow_padding.emit(());
 
         Frp {track_max_width,is_dragging_left_overflow,is_dragging_right_overflow,
                  is_dragging_track,is_dragging_background,is_dragging_left_handle,
-                 is_dragging_right_handle,is_dragging_any}
+                 is_dragging_right_handle,is_dragging_any,background_click,track_click,track_hover}
     }
 }
