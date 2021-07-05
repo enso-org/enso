@@ -1799,8 +1799,6 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       val libraryName    = LibraryName("Foo", "Bar")
       val libraryVersion = LibraryVersion.Published(SemVer(1, 2, 3), repo)
       val rootPath       = new File("foobar")
-      val rootName       = "Foo.Bar:1.2.3"
-
       system.eventStream.publish(
         Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
       )
@@ -1809,8 +1807,10 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
       inside(parsed) { case Right(json) =>
         val params = json.asObject.value("params").value.asObject.value
         val root   = params("root").value.asObject.value
-        root("name").value.asString.value shouldEqual rootName
         root("type").value.asString.value shouldEqual "Library"
+        root("namespace").value.asString.value shouldEqual "Foo"
+        root("name").value.asString.value shouldEqual "Bar"
+        root("version").value.asString.value shouldEqual "1.2.3"
       }
     }
   }

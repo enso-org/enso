@@ -5,10 +5,7 @@ import akka.testkit._
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{
-  ContentRootType,
-  ContentRootWithFile
-}
+import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
 import org.enso.searcher.sql.{
   SchemaVersion,
   SqlDatabase,
@@ -222,9 +219,7 @@ class RepoInitializationSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )

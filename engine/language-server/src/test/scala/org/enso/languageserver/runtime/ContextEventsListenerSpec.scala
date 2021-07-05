@@ -6,10 +6,10 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
+  ContentRoot,
   ContentRootManager,
   ContentRootManagerActor,
   ContentRootManagerWrapper,
-  ContentRootType,
   ContentRootWithFile
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol._
@@ -474,9 +474,7 @@ class ContextEventsListenerSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )

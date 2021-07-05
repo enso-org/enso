@@ -33,9 +33,7 @@ class ContentRootManagerSpec
 
   def makeContentRootManager(): (ContentRootManagerWrapper, ActorRef) = {
     val root = ContentRootWithFile(
-      UUID.randomUUID(),
-      ContentRootType.Project,
-      "Project",
+      ContentRoot.Project(UUID.randomUUID()),
       new File("foobar").getCanonicalFile
     )
     val config = Config(
@@ -57,17 +55,17 @@ class ContentRootManagerSpec
       val (contentRootManager, _) = makeContentRootManager()
       val roots =
         contentRootManager.getContentRoots(system.dispatcher).futureValue
-      val simplifiedRoots =
-        roots.map(root => (root.name, root.`type`, root.file))
+      val fsRoots =
+        roots.collect {
+          case ContentRootWithFile(ContentRoot.FileSystemRoot(_, path), _) =>
+            path
+        }
 
       if (SystemUtils.IS_OS_WINDOWS) {
-        simplifiedRoots should contain(
-          ("C:\\", ContentRootType.Root, new File("C:\\"))
-        )
+        fsRoots should contain("C:\\")
       } else {
-        simplifiedRoots should contain(
-          ("/", ContentRootType.Root, new File("/"))
-        )
+        fsRoots should contain("/")
+        fsRoots should have size 1
       }
     }
 
@@ -79,15 +77,19 @@ class ContentRootManagerSpec
 
       inside(subscriberProbe.receiveOne(2.seconds.dilated)) {
         case ContentRootsAddedNotification(roots) =>
-          val projectRoot = roots.filter(_.`type` == ContentRootType.Project)
-          projectRoot should have size 1
-          roots.filter(_.`type` == ContentRootType.Root) should not be empty
+          val projectRoots = roots.collect {
+            case ContentRootWithFile(ContentRoot.Project(_), _) =>
+          }
+          val fsRoots = roots.collect {
+            case ContentRootWithFile(ContentRoot.Project(_), _) =>
+          }
+          projectRoots should have size 1
+          fsRoots should not be empty
       }
 
       val libraryName    = LibraryName("Foo", "Bar")
       val libraryVersion = LibraryVersion.Local
       val rootPath       = new File("foobar")
-      val rootName       = "Foo.Bar:local"
 
       system.eventStream.publish(
         Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
@@ -97,13 +99,27 @@ class ContentRootManagerSpec
         case ContentRootsAddedNotification(roots) =>
           roots should have length 1
           val root = roots.head
-          root.name shouldEqual rootName
-          root.file.getCanonicalFile shouldEqual rootPath.getCanonicalFile
-          root.`type` shouldEqual ContentRootType.Library
+          inside(root) {
+            case ContentRootWithFile(
+                  ContentRoot.Library(_, namespace, name, version),
+                  file
+                ) =>
+              file.getCanonicalFile shouldEqual rootPath.getCanonicalFile
+              namespace shouldEqual "Foo"
+              name shouldEqual "Bar"
+              version shouldEqual "local"
+          }
       }
 
       val roots = wrapper.getContentRoots(system.dispatcher).futureValue
-      roots.map(r => r.name) should contain(rootName)
+      roots.exists {
+        case ContentRootWithFile(
+              ContentRoot.Library(_, "Foo", "Bar", "local"),
+              _
+            ) =>
+          true
+        case _ => false
+      }
     }
 
     "return the root based on the id" in {
@@ -124,8 +140,15 @@ class ContentRootManagerSpec
       import system.dispatcher
       val roots = rootManager.getContentRoots.futureValue
 
-      val projectRoot = roots.filter(_.`type` == ContentRootType.Project).head
-      val fsRoot      = roots.filter(_.`type` == ContentRootType.Root).head
+      val projectRoots = roots.collect {
+        case root @ ContentRootWithFile(ContentRoot.Project(_), _) => root
+      }
+      val fsRoots = roots.collect {
+        case root @ ContentRootWithFile(ContentRoot.Project(_), _) => root
+      }
+
+      val projectRoot = projectRoots.head
+      val someFsRoot  = fsRoots.head
 
       val projectPathRel = JPath.of("p1/foo")
       val projectPathAbsolute =
@@ -137,10 +160,10 @@ class ContentRootManagerSpec
 
       val fsPathRel = JPath.of("fs/bar")
       val fsPathAbsolute =
-        fsRoot.file.toPath.resolve(fsPathRel).toFile
+        someFsRoot.file.toPath.resolve(fsPathRel).toFile
       val fsPathResolved =
         rootManager.findRelativePath(fsPathAbsolute).futureValue.value
-      fsPathResolved.rootId shouldEqual fsRoot.id
+      fsPathResolved.rootId shouldEqual someFsRoot.id
       fsPathResolved.segments shouldEqual Vector("fs", "bar")
     }
   }

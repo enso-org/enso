@@ -57,6 +57,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`WorkspaceEdit`](#workspaceedit)
   - [`EnsoDigest`](#ensodigest)
   - [`FileSegment`](#filesegment)
+  - [`ContentRoot`](#contentroot)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -1156,34 +1157,60 @@ a location on a real file-system that has been virtualised for use in the Enso
 VFS.
 
 ```typescript
-interface ContentRoot {
-  // A unique identifier for the content root.
-  id: UUID;
-  // The type of content root.
-  type: ContentRootType;
-
-  // The name of the content root.
-  name: String;
-}
+type ContentRoot = Project | FileSystemRoot | Home | Library | Custom;
 ```
-
-### `ContentRootType`
-
-The type of the annotated content root.
 
 ```typescript
-type ContentRootType = Project | Root | Home | Library | Custom;
+/** This content root points to the project home. */
+interface Project {
+  // A unique identifier for the content root.
+  id: UUID;
+}
+
+/**
+ * This content root points to the system root (`/`) on unix systems, or to a
+ * drive root on Windows. In Windows' case, there may be multiple `Root` entries
+ * corresponding to the various drives.
+ */
+interface FileSystemRoot {
+  // A unique identifier for the content root.
+  id: UUID;
+
+  // The absolute filesystem path of the content root.
+  path: String;
+}
+
+/** The user's home directory. */
+interface Home {
+  // A unique identifier for the content root.
+  id: UUID;
+}
+
+/** An Enso library location. */
+interface Library {
+  // A unique identifier for the content root.
+  id: UUID;
+
+  // The namespace of the library.
+  namespace: String;
+
+  // The name of the library.
+  name: String;
+
+  /**
+   * The version of the library.
+   *
+   * It is either a semver version of the library or the string "local".
+   */
+  version: String;
+}
+
+/** A content root that has been added by the IDE (unused for now). */
+interface Custom {
+  // A unique identifier for the content root.
+  id: UUID;
+}
 ```
-
-These represent:
-
-- `Project`: This content root points to the project home.
-- `Root`: This content root points to the system root (`/`) on unix systems, or
-  to a drive root on Windows. In Windows' case, there may be multiple `Root`
-  entries corresponding to the various drives.
-- `Home`: The user's home directory.
-- `Library`: An Enso library location.
-- `Custom`: A content root that has been added by the IDE (unused for now).
 
 ## Connection Management
 

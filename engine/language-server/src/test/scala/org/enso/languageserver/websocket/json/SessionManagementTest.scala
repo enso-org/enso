@@ -30,8 +30,7 @@ class SessionManagementTest extends BaseServerTest {
           json"""
           {
             "id" : $testContentRootId,
-            "type" : "Project",
-            "name" : "Project"
+            "type" : "Project"
           }
           """
         )

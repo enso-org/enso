@@ -1,8 +1,5 @@
 package org.enso.languageserver.search
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -12,14 +9,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{
-  ContentRootManager,
-  ContentRootManagerActor,
-  ContentRootManagerWrapper,
-  ContentRootType,
-  ContentRootWithFile,
-  Path
-}
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
@@ -36,6 +26,9 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.io.File
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
@@ -839,9 +832,7 @@ class SuggestionsHandlerSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )
