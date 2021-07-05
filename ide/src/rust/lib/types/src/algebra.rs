@@ -42,6 +42,9 @@ mod vectors {
     pub type Vector3<T=f32> = nalgebra::Vector3<T>;
     pub type Vector4<T=f32> = nalgebra::Vector4<T>;
 
+    pub type Rotation2<T=f32> = nalgebra::Rotation2<T>;
+    pub type Rotation3<T=f32> = nalgebra::Rotation3<T>;
+
     pub fn Vector2<T:Scalar>(t1:T,t2:T)           -> Vector2<T> { Vector2::new(t1,t2) }
     pub fn Vector3<T:Scalar>(t1:T,t2:T,t3:T)      -> Vector3<T> { Vector3::new(t1,t2,t3) }
     pub fn Vector4<T:Scalar>(t1:T,t2:T,t3:T,t4:T) -> Vector4<T> { Vector4::new(t1,t2,t3,t4) }

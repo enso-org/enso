@@ -45,6 +45,11 @@ impl Bounds {
     pub fn width(self) -> f32 {
         self.end - self.start
     }
+
+    /// Return the center between start and end.
+    pub fn center(self) -> f32 {
+        self.start + self.width() / 2.0
+    }
 }
 
 impl From<(f32,f32)> for Bounds {
