@@ -2,11 +2,8 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import io.circe.parser.parse
-import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
-import org.enso.editions.Editions.Repository
-import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.languageserver.data._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
@@ -1792,15 +1789,10 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
   "Content root management" must {
     "notify the IDE when a new root is added" in {
-      val client = getInitialisedWsClient()
-
-      val repo = Repository.make("example", "https://example.com/").get
-
-      val libraryName    = LibraryName("Foo", "Bar")
-      val libraryVersion = LibraryVersion.Published(SemVer(1, 2, 3), repo)
-      val rootPath       = new File("foobar")
+      val client   = getInitialisedWsClient()
+      val rootPath = new File("foobar")
       system.eventStream.publish(
-        Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
+        Api.LibraryLoaded("Foo", "Bar", "1.2.3", rootPath)
       )
 
       val parsed = parse(client.expectMessage())

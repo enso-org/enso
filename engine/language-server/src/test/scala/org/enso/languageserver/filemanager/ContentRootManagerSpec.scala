@@ -3,7 +3,6 @@ package org.enso.languageserver.filemanager
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{TestDuration, TestKit, TestProbe}
 import org.apache.commons.lang3.SystemUtils
-import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
   ContentRootsAddedNotification,
@@ -11,11 +10,11 @@ import org.enso.languageserver.filemanager.ContentRootManagerProtocol.{
 }
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.EitherValue
-import org.scalatest.{Inside, OptionValues}
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{Inside, OptionValues}
 
 import java.io.File
 import java.nio.file.{Path => JPath}
@@ -87,12 +86,10 @@ class ContentRootManagerSpec
           fsRoots should not be empty
       }
 
-      val libraryName    = LibraryName("Foo", "Bar")
-      val libraryVersion = LibraryVersion.Local
-      val rootPath       = new File("foobar")
+      val rootPath = new File("foobar")
 
       system.eventStream.publish(
-        Api.LibraryLoaded(libraryName, libraryVersion, rootPath)
+        Api.LibraryLoaded("Foo", "Bar", "local", rootPath)
       )
 
       inside(subscriberProbe.receiveOne(2.seconds.dilated)) {

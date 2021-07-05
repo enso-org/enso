@@ -63,7 +63,7 @@ object LibraryCache {
     */
   def resolvePath(root: Path, libraryName: LibraryName, version: SemVer): Path =
     root
-      .resolve(libraryName.prefix)
+      .resolve(libraryName.namespace)
       .resolve(libraryName.name)
       .resolve(version.toString)
 }

@@ -274,7 +274,7 @@ object PackageRepository {
       newName: String
     ): Unit = {
       val toChange = loadedPackages.toSeq.filter { case (name, _) =>
-        name.prefix == namespace && name.name == oldName
+        name.namespace == namespace && name.name == oldName
       }
 
       for ((key, _) <- toChange) {

@@ -86,7 +86,7 @@ object NotificationHandler {
       location: Path
     ): Unit = sendMessage(
       Api.LibraryLoaded(
-        namespace = libraryName.prefix,
+        namespace = libraryName.namespace,
         name      = libraryName.name,
         version   = libraryVersion.toString,
         location  = location.toFile
