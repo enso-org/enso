@@ -66,7 +66,7 @@ public final class Language extends TruffleLanguage<Context> {
     var notificationHandler = new Forwarder();
     boolean isInteractiveMode = env.getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
     boolean isTextMode = !isInteractiveMode;
-    if (!isTextMode) {
+    if (isTextMode) {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
