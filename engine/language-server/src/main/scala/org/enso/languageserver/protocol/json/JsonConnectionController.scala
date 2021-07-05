@@ -207,7 +207,11 @@ class JsonConnectionController(
   ): Receive = {
     case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
       val allRoots = roots ++ rootsSoFar
-      if (roots.exists(_.`type` == ContentRootType.Project)) {
+      val hasProject = roots.exists {
+        case ContentRootWithFile(ContentRoot.Project(_), _) => true
+        case _                                              => false
+      }
+      if (hasProject) {
         cancellable.cancel()
         unstashAll()
 

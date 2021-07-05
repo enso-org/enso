@@ -58,13 +58,14 @@ class ContentRootManagerActor(config: Config)
         context.become(mainStage(contentRoots, subscribers + sender()))
 
       case Api.LibraryLoaded(libraryName, libraryVersion, rootPath) =>
-        val rootName = s"$libraryName:$libraryVersion"
-
         val libraryRoot = ContentRootWithFile(
-          id     = UUID.randomUUID(),
-          `type` = ContentRootType.Library,
-          name   = rootName,
-          file   = rootPath.getCanonicalFile
+          ContentRoot.Library(
+            id        = UUID.randomUUID(),
+            namespace = libraryName.namespace,
+            name      = libraryName.name,
+            version   = libraryVersion.toString
+          ),
+          file = rootPath.getCanonicalFile
         )
 
         subscribers.foreach { subscriber =>
@@ -109,7 +110,7 @@ object ContentRootManagerActor {
   private case class ContentRoots(
     projectRoot: ContentRootWithFile,
     librariesRoots: List[ContentRootWithFile],
-    homeRoots: List[ContentRootWithFile],
+    homeRoot: Option[ContentRootWithFile],
     filesystemRoots: List[ContentRootWithFile]
   ) {
     def addLibraryRoot(contentRoot: ContentRootWithFile): ContentRoots =
@@ -122,7 +123,7 @@ object ContentRootManagerActor {
       * roots will take precedence.
       */
     lazy val toList: List[ContentRootWithFile] =
-      List(projectRoot) ++ librariesRoots ++ homeRoots ++ filesystemRoots
+      List(projectRoot) ++ librariesRoots ++ homeRoot.toList ++ filesystemRoots
 
     /** Resolves the path as relative to one of the registered content roots.
       *
@@ -146,13 +147,12 @@ object ContentRootManagerActor {
     val fsRoots = FileSystems.getDefault.getRootDirectories.asScala.map {
       path =>
         val absolutePath = path.toAbsolutePath.normalize
-        val name =
-          Option(absolutePath.getRoot).map(_.toString).getOrElse("<root>")
         ContentRootWithFile(
-          id     = UUID.randomUUID(),
-          `type` = ContentRootType.Root,
-          name   = name,
-          file   = absolutePath.toFile
+          ContentRoot.FileSystemRoot(
+            id   = UUID.randomUUID(),
+            path = absolutePath.toString
+          ),
+          file = absolutePath.toFile
         )
     }
 
@@ -160,16 +160,14 @@ object ContentRootManagerActor {
       homeProp <- sys.props.get("user.home")
       homePath <- Try(JPath.of(homeProp)).toOption
     } yield ContentRootWithFile(
-      id     = UUID.randomUUID(),
-      `type` = ContentRootType.Home,
-      name   = "Home",
-      file   = homePath.toAbsolutePath.normalize.toFile
+      ContentRoot.Home(UUID.randomUUID()),
+      file = homePath.toAbsolutePath.normalize.toFile
     )
 
     ContentRoots(
       projectRoot     = config.projectContentRoot,
       librariesRoots  = Nil,
-      homeRoots       = homeRoot.toList,
+      homeRoot        = homeRoot,
       filesystemRoots = fsRoots.toList
     )
   }

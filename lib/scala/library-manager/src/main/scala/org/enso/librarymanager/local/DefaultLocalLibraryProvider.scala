@@ -28,7 +28,7 @@ class DefaultLocalLibraryProvider(distributionManager: DistributionManager)
     searchPaths: List[Path]
   ): Option[Path] = searchPaths match {
     case head :: tail =>
-      val potentialPath = head / libraryName.prefix / libraryName.name
+      val potentialPath = head / libraryName.namespace / libraryName.name
       if (Files.exists(potentialPath) && Files.isDirectory(potentialPath))
         Some(potentialPath)
       else findLibraryHelper(libraryName, tail)

@@ -2,6 +2,8 @@ package org.enso.languageserver.websocket.json
 
 import akka.testkit.TestProbe
 import io.circe.literal._
+import io.circe.parser.parse
+import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
@@ -14,16 +16,7 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{
-  ContentRootManager,
-  ContentRootManagerActor,
-  ContentRootManagerWrapper,
-  ContentRootType,
-  ContentRootWithFile,
-  FileManager,
-  FileSystem,
-  ReceivesTreeUpdatesHandler
-}
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
@@ -37,16 +30,14 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.testkit.EitherValue
 import org.enso.text.Sha3_224VersionCalculator
+import org.scalatest.OptionValues
 
 import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import io.circe.parser.parse
-import io.circe.syntax.EncoderOps
-import org.enso.testkit.EitherValue
-import org.scalatest.OptionValues
 
 class BaseServerTest
     extends JsonRpcServerTestKit
@@ -59,9 +50,7 @@ class BaseServerTest
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
-    testContentRootId,
-    ContentRootType.Project,
-    "Project",
+    ContentRoot.Project(testContentRootId),
     Files.createTempDirectory(null).toRealPath().toFile
   )
   val config                = mkConfig
@@ -250,8 +239,7 @@ class BaseServerTest
       json"""
           {
             "id" : $testContentRootId,
-            "type" : "Project",
-            "name" : "Project"
+            "type" : "Project"
           }
           """
     )

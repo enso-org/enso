@@ -17,7 +17,7 @@ class LibraryNameSpec
       val libraryName = LibraryName.fromString(str).rightValue
       libraryName.qualifiedName shouldEqual str
       libraryName.name shouldEqual "Bar"
-      libraryName.prefix shouldEqual "Foo"
+      libraryName.namespace shouldEqual "Foo"
 
       val yamlParsed = YamlHelper.parseString[LibraryName](str).rightValue
       yamlParsed shouldEqual libraryName
