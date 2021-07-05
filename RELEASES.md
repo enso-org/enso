@@ -19,6 +19,11 @@
   roots on startup ([#1821](https://github.com/enso-org/enso/pull/1821)). It now
   also supports dynamically adding content roots and notifies the IDE when a new
   content root is added.
+- Connected the documentation generator with Enso compiler and suggestion
+  database, making the documentation generated before being sent to the IDE, 
+  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's 
+  side, also enabling us to connect many AST elements with docs. See
+  ([#1744](https://github.com/enso-org/enso/pull/1744).
 
 # Enso 0.2.12 (2021-06-24)
 
@@ -99,11 +104,6 @@
   for the entire standard library 8-10 times faster than before.
 - Implemented Standard Library methods for controlling default visualizations in
   the graphical interface ([#1786](https://github.com/enso-org/enso/pull/1786)).
-- Connected the documentation generator with Enso compiler and suggestion
-  database, making the documentation generated before being sent to IDE, using
-  faster scala-based generator instead of ScalaJS-based on IDE's site, also
-  enabling us to connect many AST elements with docs. See
-  ([#1744](https://github.com/enso-org/enso/pull/1744)
 
 ## Miscellaneous
 
