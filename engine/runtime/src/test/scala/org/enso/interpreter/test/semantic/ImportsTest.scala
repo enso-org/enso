@@ -23,8 +23,9 @@ class ImportsTest extends PackageTest {
     ) should have message "Compilation aborted due to errors."
     val outLines = consumeOut
     outLines(2) should include(
-      "Package containing the module Surely_This.Does_Not_Exist.My_Module could" +
-        " not be found."
+      "Package containing the module Surely_This.Does_Not_Exist.My_Module " +
+      "could not be loaded: The package could not be loaded: The local " +
+      "library has not been found on the local libraries search paths."
     )
     outLines(3) should include(
       "The module Enso_Test.Test_Bad_Imports.Oopsie does not exist."

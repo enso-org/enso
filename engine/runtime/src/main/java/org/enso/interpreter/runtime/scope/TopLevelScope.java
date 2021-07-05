@@ -14,41 +14,39 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.File;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import org.enso.compiler.PackageRepository;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
-import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
-  private final Map<String, Module> modules;
+  private final PackageRepository packageRepository;
 
   /**
    * Creates a new instance of top scope.
    *
    * @param builtins the automatically-imported builtin module.
-   * @param modules the initial modules this scope contains.
+   * @param packageRepository the {@link PackageRepository} instance that manages loaded packages
    */
-  public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
+  public TopLevelScope(Builtins builtins, PackageRepository packageRepository) {
     this.builtins = builtins;
-    this.modules = modules;
+    this.packageRepository = packageRepository;
   }
 
   /** @return the list of modules in the scope. */
   public Collection<Module> getModules() {
-    return modules.values();
+    return ScalaConversions.asJava(packageRepository.getLoadedModules());
   }
 
   /**
@@ -58,10 +56,7 @@ public class TopLevelScope implements TruffleObject {
    * @return empty result if the module does not exist or the requested module.
    */
   public Optional<Module> getModule(String name) {
-    if (name.equals(Builtins.MODULE_NAME)) {
-      return Optional.of(builtins.getModule());
-    }
-    return Optional.ofNullable(modules.get(name));
+    return ScalaConversions.asJava(packageRepository.getLoadedModule(name));
   }
 
   /**
@@ -73,30 +68,8 @@ public class TopLevelScope implements TruffleObject {
    */
   public Module createModule(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
     Module module = new Module(name, pkg, sourceFile);
-    modules.put(name.toString(), module);
+    packageRepository.registerModuleCreatedInRuntime(module);
     return module;
-  }
-
-  /**
-   * Renames a project part of the included modules.
-   *
-   * @param oldName the old project name
-   * @param newName the new project name
-   */
-  public void renameProjectInModules(String namespace, String oldName, String newName) {
-    String separator = QualifiedName$.MODULE$.separator();
-    List<String> keys =
-        modules.keySet().stream()
-            .filter(name -> name.startsWith(namespace + separator + oldName + separator))
-            .collect(Collectors.toList());
-
-    keys.stream()
-        .map(modules::remove)
-        .forEach(
-            module -> {
-              module.renameProject(newName);
-              modules.put(module.getName().toString(), module);
-            });
   }
 
   /**
@@ -145,15 +118,12 @@ public class TopLevelScope implements TruffleObject {
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
       String moduleName = Types.extractArguments(arguments, String.class);
 
-      if (moduleName.equals(Builtins.MODULE_NAME)) {
-        return scope.builtins.getModule();
-      }
-      Module module = scope.modules.get(moduleName);
-      if (module == null) {
+      var module = scope.getModule(moduleName);
+      if (module.isEmpty()) {
         throw UnknownIdentifierException.create(moduleName);
       }
 
-      return module;
+      return module.get();
     }
 
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
@@ -169,14 +139,14 @@ public class TopLevelScope implements TruffleObject {
       QualifiedName qualName = QualifiedName.fromString(args.getFirst());
       File location = new File(args.getSecond());
       Module module = new Module(qualName, null, context.getTruffleFile(location));
-      scope.modules.put(qualName.toString(), module);
+      scope.packageRepository.registerModuleCreatedInRuntime(module);
       return module;
     }
 
     private static Object unregisterModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
-      scope.modules.remove(name);
+      scope.packageRepository.deregisterModule(name);
       return context.getNothing().newInstance();
     }
 

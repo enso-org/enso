@@ -860,12 +860,13 @@ class RuntimeVersionManager(
         .getOrElse("no runtime found")
       val broken = if (engine.isMarkedBroken) " (broken)" else ""
       s" - Enso ${engine.version}$broken [runtime: $runtimeName] " +
-      s"[location: ${MaskedPath(engine.path)}]"
+      s"[location: ${MaskedPath(engine.path).applyMasking()}]"
     }
 
     val runtimes =
       for (runtime <- listInstalledGraalRuntimes())
-        yield s" - $runtime [location: ${MaskedPath(runtime.path)}]"
+        yield s" - $runtime [location: " +
+        s"${MaskedPath(runtime.path).applyMasking()}]"
 
     logger.trace(
       s"Installed engines (${engines.length}):\n${engines.mkString("\n")}\n\n" +

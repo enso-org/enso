@@ -19,5 +19,7 @@ object LocalLibraryProvider {
   /** Creates a default [[LocalLibraryProvider]] from a [[DistributionManager]].
     */
   def make(distributionManager: DistributionManager): LocalLibraryProvider =
-    new DefaultLocalLibraryProvider(distributionManager)
+    new DefaultLocalLibraryProvider(
+      distributionManager.paths.localLibrariesSearchPaths.toList
+    )
 }

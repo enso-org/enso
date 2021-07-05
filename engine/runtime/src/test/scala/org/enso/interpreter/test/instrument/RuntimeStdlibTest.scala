@@ -1,11 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.{Files, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -13,19 +7,25 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.{Files, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeStdlibTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
+    with BeforeAndAfterAll
     with OsSpec {
 
-  final val ContextPathSeparator: String =
-    if (isWindows) ";" else ":"
+  final val ContextPathSeparator: String = File.pathSeparator
 
   var context: TestContext = _
 
@@ -47,13 +47,12 @@ class RuntimeStdlibTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(
-          RuntimeOptions.PACKAGES_PATH,
-          toPackagesPath(pkg.root.getAbsolutePath, stdlib.toString)
-        )
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PRELOADED_PACKAGES_PATHS, stdlib.toString)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {
@@ -77,7 +76,7 @@ class RuntimeStdlibTest
     executionContext.context.initialize(LanguageInfo.ID)
 
     def toPackagesPath(paths: String*): String =
-      paths.mkString(ContextPathSeparator)
+      paths.mkString(File.pathSeparator)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -92,7 +91,7 @@ class RuntimeStdlibTest
 
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
 
-    def receiveNone: Option[Api.Response] = {
+    def receiveOne: Option[Api.Response] = {
       Option(messageQueue.poll())
     }
 
@@ -165,7 +164,7 @@ class RuntimeStdlibTest
     context.send(
       Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
-    context.receiveNone shouldEqual None
+    context.receiveOne shouldEqual None
 
     // push main
     context.send(
@@ -181,16 +180,17 @@ class RuntimeStdlibTest
         )
       )
     )
-    val response =
+    val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
         timeout = 60
       )
-    response should contain allOf (
+    responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    val suggestions = response.collect {
+
+    val suggestions = responses.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, xs)
@@ -199,7 +199,7 @@ class RuntimeStdlibTest
     }
     suggestions.isEmpty shouldBe false
 
-    val builtinsSuggestions = response.collect {
+    val builtinsSuggestions = responses.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
@@ -207,6 +207,16 @@ class RuntimeStdlibTest
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
     builtinsSuggestions.length shouldBe 1
+
+    val contentRootNotifications = responses.collect {
+      case Api.Response(
+            None,
+            Api.LibraryLoaded(namespace, name, version, _)
+          ) =>
+        (namespace, name, version)
+    }
+
+    contentRootNotifications should contain(("Standard", "Base", "local"))
 
     context.consumeOut shouldEqual List("Hello World!")
   }

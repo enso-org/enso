@@ -164,7 +164,7 @@ class DistributionUninstaller(
     val remaining =
       FileSystem.listDirectory(manager.paths.config).map(_.getFileName.toString)
     handleRemainingFiles(
-      manager.LocallyInstalledDirectories.ENSO_CONFIG_DIRECTORY,
+      manager.ENSO_CONFIG_DIRECTORY,
       manager.paths.config,
       remaining
     )
@@ -244,7 +244,7 @@ class DistributionUninstaller(
       .toSet -- ignoredFiles
     if (remainingFiles.nonEmpty) {
       handleRemainingFiles(
-        manager.LocallyInstalledDirectories.ENSO_DATA_DIRECTORY,
+        manager.ENSO_DATA_DIRECTORY,
         dataRoot.toAbsolutePath.normalize,
         remainingFiles.toSeq
       )

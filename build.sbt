@@ -652,6 +652,18 @@ lazy val `logging-service` = project
   .dependsOn(`akka-native`)
   .dependsOn(`logging-utils`)
 
+lazy val `logging-truffle-connector` = project
+  .in(file("lib/scala/logging-truffle-connector"))
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"           % "slf4j-api"   % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+    )
+  )
+  .dependsOn(`logging-utils`)
+  .dependsOn(`polyglot-api`)
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
@@ -1084,8 +1096,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
+  .dependsOn(`library-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-utils`)
+  .dependsOn(`logging-truffle-connector`)
   .dependsOn(`docs-generator`)
 
 /* Note [Unmanaged Classpath]

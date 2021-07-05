@@ -2,7 +2,9 @@ package org.enso.distribution
 
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.logger.masking.{MaskedPath, ToLogString}
 
+import java.io.File
 import java.nio.file.{Files, Path}
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -19,6 +21,7 @@ import scala.util.control.NonFatal
   * @param bundle optional bundle description, containing secondary engine and
   *               runtime directories
   * @param config location of configuration
+  * @param runRoot root for directories that store runtime files, like lockfiles
   * @param locks a directory for storing lockfiles that are used to synchronize
   *              access to the various components
   * @param logs a directory for storing logs
@@ -36,6 +39,7 @@ case class DistributionPaths(
   engines: Path,
   bundle: Option[Bundle],
   config: Path,
+  runRoot: Path,
   locks: Path,
   logs: Path,
   unsafeTemporaryDirectory: Path,
@@ -47,15 +51,22 @@ case class DistributionPaths(
   /** @inheritdoc */
   override def toString: String =
     s"""DistributionPaths(
-       |  dataRoot = $dataRoot,
-       |  runtimes = $runtimes,
-       |  engines  = $engines,
-       |  bundle   = $bundle,
-       |  config   = $config,
-       |  locks    = $locks,
-       |  tmp      = $unsafeTemporaryDirectory,
-       |  ensoHome = $ensoHome
+       |  dataRoot = ${mask(dataRoot)},
+       |  runtimes = ${mask(runtimes)},
+       |  engines  = ${mask(engines)},
+       |  bundle   = ${bundle.map(_.applyMasking())},
+       |  config   = ${mask(config)},
+       |  locks    = ${mask(locks)},
+       |  logs     = ${mask(logs)},
+       |  tmp      = ${mask(unsafeTemporaryDirectory)},
+       |  ensoHome = ${mask(ensoHome)},
+       |  customEditions = ${mask(customEditions)},
+       |  localLibrariesSearchpaths = ${mask(localLibrariesSearchPaths)}
        |)""".stripMargin
+
+  private def mask(path: Path): String = MaskedPath(path).applyMasking()
+  private def mask(paths: Seq[Path]): String =
+    paths.map(p => MaskedPath(p).applyMasking()).toString()
 
   /** Sequence of paths to search for engine installations, in order of
     * precedence.
@@ -91,7 +102,11 @@ case class DistributionPaths(
   * For portable distributions, bundled packages are already included in the
   * primary directory.
   */
-case class Bundle(engines: Path, runtimes: Path)
+case class Bundle(engines: Path, runtimes: Path) extends ToLogString {
+  override def toLogString(shouldMask: Boolean): String =
+    s"Bundle(engines = ${MaskedPath(engines).toLogString(shouldMask)}, " +
+    s"runtimes = ${MaskedPath(runtimes).toLogString(shouldMask)})"
+}
 
 /** A helper class that encapsulates management of paths to components of the
   * distribution.
@@ -123,6 +138,7 @@ class DistributionManager(val env: Environment) {
       engines                   = dataRoot / ENGINES_DIRECTORY,
       bundle                    = detectBundle(),
       config                    = configRoot,
+      runRoot                   = runRoot,
       locks                     = runRoot / LOCK_DIRECTORY,
       logs                      = LocallyInstalledDirectories.logDirectory,
       unsafeTemporaryDirectory  = dataRoot / TMP_DIRECTORY,
@@ -132,9 +148,44 @@ class DistributionManager(val env: Environment) {
     )
   }
 
+  /** Returns a mapping of environment variables, such that if it is set to
+    * another [[DistributionManager]] instance (but one which is not
+    * [[PortableDistributionManager]], because the portable mark overrides the
+    * environment variable settings), it will lead to the same paths.
+    */
+  def getEnvironmentToInheritSettings: Map[String, String] = {
+    def canonize(path: Path): String = path.toAbsolutePath.normalize.toString
+    def canonizeSeq(paths: Seq[Path]): String =
+      paths.map(canonize).mkString(File.pathSeparator)
+    Map(
+      ENSO_DATA_DIRECTORY    -> canonize(paths.dataRoot),
+      ENSO_CONFIG_DIRECTORY  -> canonize(paths.config),
+      ENSO_RUNTIME_DIRECTORY -> canonize(paths.runRoot),
+      ENSO_LOG_DIRECTORY     -> canonize(paths.logs),
+      ENSO_HOME              -> canonize(paths.ensoHome),
+      ENSO_EDITION_PATH      -> canonizeSeq(paths.customEditions),
+      ENSO_LIBRARY_PATH      -> canonizeSeq(paths.localLibrariesSearchPaths)
+    )
+  }
+
   private val ENSO_HOME         = "ENSO_HOME"
   private val ENSO_EDITION_PATH = "ENSO_EDITION_PATH"
   private val ENSO_LIBRARY_PATH = "ENSO_LIBRARY_PATH"
+  val ENSO_DATA_DIRECTORY       = "ENSO_DATA_DIRECTORY"
+  val ENSO_CONFIG_DIRECTORY     = "ENSO_CONFIG_DIRECTORY"
+  val ENSO_BIN_DIRECTORY        = "ENSO_BIN_DIRECTORY"
+  val ENSO_RUNTIME_DIRECTORY    = "ENSO_RUNTIME_DIRECTORY"
+  val ENSO_LOG_DIRECTORY        = "ENSO_LOG_DIRECTORY"
+
+  private val ENSO_AUXILIARY_LIBRARY_CACHES = "ENSO_AUXILIARY_LIBRARY_CACHES"
+
+  /** List of paths of additional caches for published libraries.
+    *
+    * These locations can be used to preload published libraries, for example
+    * from a shared network drive, so that they do not need to be downloaded.
+    */
+  def auxiliaryLibraryCaches(): Seq[Path] =
+    env.getEnvPaths(ENSO_AUXILIARY_LIBRARY_CACHES).getOrElse(Seq())
 
   /** Finds the path to the ENSO_HOME directory that is used for keeping user's
     * projects, libraries and other custom artifacts.
@@ -208,12 +259,6 @@ class DistributionManager(val env: Environment) {
     * to determine destination for installed files.
     */
   object LocallyInstalledDirectories {
-    val ENSO_DATA_DIRECTORY    = "ENSO_DATA_DIRECTORY"
-    val ENSO_CONFIG_DIRECTORY  = "ENSO_CONFIG_DIRECTORY"
-    val ENSO_BIN_DIRECTORY     = "ENSO_BIN_DIRECTORY"
-    val ENSO_RUNTIME_DIRECTORY = "ENSO_RUNTIME_DIRECTORY"
-    val ENSO_LOG_DIRECTORY     = "ENSO_LOG_DIRECTORY"
-
     private val XDG_DATA_DIRECTORY   = "XDG_DATA_HOME"
     private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_HOME"
     private val XDG_BIN_DIRECTORY    = "XDG_BIN_HOME"

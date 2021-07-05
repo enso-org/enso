@@ -23,7 +23,6 @@ import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -330,12 +329,6 @@ class Compiler(
   def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    val shadowed = context.getShadowedPackages.asScala
-    if (shadowed.nonEmpty) {
-      context.getOut.println("Modules were shadowed during loading:")
-    }
-    shadowed.foreach(s => context.getOut.println(s.toString))
-
     if (context.isStrictErrors) {
       val diagnostics = modules.map { module =>
         val errors = GatherDiagnostics

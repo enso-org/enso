@@ -1,7 +1,7 @@
 package org.enso.pkg
 
 import cats.Show
-import org.enso.editions.{DefaultEnsoVersion, EnsoVersion}
+import org.enso.editions.{DefaultEnsoVersion, EnsoVersion, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
 
@@ -123,6 +123,9 @@ case class Package[F](
   def name: String = config.name
 
   def namespace: String = config.namespace
+
+  /** A [[LibraryName]] associated with the package. */
+  def libraryName: LibraryName = LibraryName(config.namespace, config.name)
 
   /** Parses a file path into a qualified module name belonging to this
     * package.

@@ -53,12 +53,13 @@ class RuntimeVisualisationsTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -180,7 +181,13 @@ class RuntimeVisualisationsTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Enso_Test.Test.Main", Constants.NUMBER, "foo")),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      Constants.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()

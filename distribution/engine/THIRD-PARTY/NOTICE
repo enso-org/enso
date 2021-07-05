@@ -26,11 +26,6 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `com.thoughtworks.paranamer.paranamer-2.8`.
 
 
-'slf4j-api', licensed under the MIT License, is distributed with the engine.
-The license file can be found at `licenses/MIT`.
-Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-1.7.26`.
-
-
 'izumi-reflect_2.13', licensed under the BSD-style, is distributed with the engine.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `dev.zio.izumi-reflect_2.13-1.0.0-M5`.

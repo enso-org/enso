@@ -7,6 +7,7 @@ import org.enso.languageserver.filemanager.ContentRootManagerActor.ContentRoots
 import org.enso.languageserver.filemanager.ContentRootManagerProtocol._
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.logger.masking.MaskedPath
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
@@ -57,15 +58,20 @@ class ContentRootManagerActor(config: Config)
         sender() ! ContentRootsAddedNotification(contentRoots.toList)
         context.become(mainStage(contentRoots, subscribers + sender()))
 
-      case Api.LibraryLoaded(libraryName, libraryVersion, rootPath) =>
+      case Api.LibraryLoaded(namespace, name, version, rootPath) =>
         val libraryRoot = ContentRootWithFile(
           ContentRoot.Library(
             id        = UUID.randomUUID(),
-            namespace = libraryName.namespace,
-            name      = libraryName.name,
-            version   = libraryVersion.toString
+            namespace = namespace,
+            name      = name,
+            version   = version.toString
           ),
           file = rootPath.getCanonicalFile
+        )
+
+        logger.trace(
+          s"Library root for [$namespace.$name:$version] added at " +
+          s"[${MaskedPath(rootPath.toPath).applyMasking()}]."
         )
 
         subscribers.foreach { subscriber =>

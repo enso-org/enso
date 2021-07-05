@@ -43,11 +43,12 @@ class RuntimeSuggestionUpdatesTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {
@@ -184,7 +185,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -240,7 +247,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -318,7 +331,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -416,7 +435,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -524,7 +549,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
@@ -590,7 +621,13 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None),
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        ),
                       Suggestion
                         .Argument("x", Constants.ANY, false, false, None)
                     ),
@@ -652,7 +689,13 @@ class RuntimeSuggestionUpdatesTest
                     "foo",
                     List(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None),
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        ),
                       Suggestion
                         .Argument("x", Constants.ANY, false, false, None)
                     ),
@@ -768,7 +811,13 @@ class RuntimeSuggestionUpdatesTest
                     "main",
                     Seq(
                       Suggestion
-                        .Argument("this", "Enso_Test.Test.Main", false, false, None)
+                        .Argument(
+                          "this",
+                          "Enso_Test.Test.Main",
+                          false,
+                          false,
+                          None
+                        )
                     ),
                     "Enso_Test.Test.Main",
                     Constants.ANY,
