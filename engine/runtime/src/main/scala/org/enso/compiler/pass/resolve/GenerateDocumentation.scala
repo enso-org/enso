@@ -42,13 +42,12 @@ case object GenerateDocumentation extends IRPass {
     }
   }
 
-  /** Collects comments for an expression.
+  /** Acts as an identity function to conform with the interface.
     *
-    * @param ir the Enso IR to process
+    * @param ir the Enso IR to process.
     * @param inlineContext a context object that contains the information
-    *                      needed for inline evaluation
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
+    *                      needed for inline evaluation.
+    * @return unchanged ir.
     */
   override def runExpression(
     ir: IR.Expression,

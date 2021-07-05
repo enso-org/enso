@@ -128,22 +128,21 @@ class Compiler(
     */
   def generateDocs(module: Module): Module = {
     initializeBuiltinsIr()
-    parseModule(module, isGeneratingDocs = true)
+    parseModule(module, isGenDocs = true)
     module
   }
 
   private def parseModule(
     module: Module,
-    isGeneratingDocs: Boolean = false
+    isGenDocs: Boolean = false
   ): Unit = {
     module.ensureScopeExists()
     module.getScope.reset()
     val moduleContext = ModuleContext(
-      module          = module,
-      freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = config,
-      isGeneratingDocs = if (isGeneratingDocs) { true }
-      else { false }
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
     )
     val parsedAST        = parse(module.getSource)
     val expr             = generateIR(parsedAST)
