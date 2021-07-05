@@ -558,7 +558,7 @@ lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
     mainClass := Some("org.enso.docs.generator.Main"),
     inConfig(Benchmark)(Defaults.testSettings),
     Benchmark / unmanagedSourceDirectories +=
-      baseDirectory.value.getParentFile / "bench/scala",
+      baseDirectory.value.getParentFile / "bench" / "scala",
     libraryDependencies +=
       "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks := List(
