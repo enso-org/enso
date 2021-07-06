@@ -1,9 +1,10 @@
 package org.enso.compiler.test.pass.resolve
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.GenerateDocumentation
-import org.enso.compiler.pass.{PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -11,10 +12,15 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
-  val passConfig: PassConfiguration = PassConfiguration()
+  val passes = new Passes(defaultConfig)
+
+  val precursorPasses: PassGroup =
+    passes.getPrecursors(GenerateDocumentation).get
+
+  val passConfiguration: PassConfiguration = PassConfiguration();
 
   implicit val passManager: PassManager =
-    new PassManager(List(), passConfig)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Resolves documentation comments in a module.
     *
@@ -111,14 +117,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |
           |""".stripMargin.preprocessModule.resolve
 
-      ir.bindings.length shouldEqual 4
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
-      ir.bindings(3) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings.length shouldEqual 2
+      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
-      getDoc(ir.bindings(1)) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(ir.bindings(0)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for My&lt;&lt;Atom&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(ir.bindings(3)) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(ir.bindings(1)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for my&lt;&lt;method&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
@@ -142,8 +148,8 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 3
-      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 1
+      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
@@ -167,8 +173,8 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 3
-      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 1
+      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
@@ -194,9 +200,9 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 4
-      body.expressions(1) shouldBe an[IR.Application.Operator.Binary]
-      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 2
+      body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
+      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Id&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
@@ -225,7 +231,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings(1).asInstanceOf[IR.Module.Scope.Definition.Type]
+      val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
       getDoc(tp) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;the type Foo&lt;&lt;&lt;&lt;&lt;&lt;"
       )
