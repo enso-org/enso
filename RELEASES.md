@@ -24,8 +24,8 @@
   also supports dynamically adding content roots and notifies the IDE when a new
   content root is added.
 - Connected the documentation generator with Enso compiler and suggestion
-  database, making the documentation generated before being sent to the IDE, 
-  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's 
+  database, making the documentation generated before being sent to the IDE,
+  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's
   side, also enabling us to connect many AST elements with docs. See
   ([#1744](https://github.com/enso-org/enso/pull/1744).
 
