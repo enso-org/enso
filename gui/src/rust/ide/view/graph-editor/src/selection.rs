@@ -310,6 +310,7 @@ impl Controller {
 
 
         frp::extend! { network
+            deselect_all_nodes      <- any_(...);
 
             enable_area_selection  <- source();
 
@@ -373,7 +374,7 @@ impl Controller {
 
             keep_selection     <- selection_mode.map(|t| *t != Mode::Normal);
             deselect_on_select <- drag_start.gate_not(&keep_selection);
-            eval_ deselect_on_select ( nodes.deselect_all() );
+            deselect_all_nodes <+ deselect_on_select;
 
             cursor_selection_nodes.insert <+ node_info;
             cursor_selection_nodes.remove_difference_with_vec <+ nodes_in_bb;
@@ -417,7 +418,6 @@ impl Controller {
                 |_,mode,was_selected| mode.single_should_deselect(*was_selected)
             );
 
-            deselect_all_nodes      <- any_(...);
             deselect_on_select      <- node_to_select.gate_not(&keep_selection);
             deselect_all_nodes      <+ deselect_on_select;
             deselect_all_nodes      <+ editor.deselect_all_nodes;

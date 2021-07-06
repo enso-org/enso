@@ -18,6 +18,9 @@
   undo last action and <kbd>cmd</kbd>+<kbd>z</kbd> to redo last undone action.
   This version of undo redo does not have proper support for text editor and
   undoing UI changes (like selecting nodes).
+- [Fox node selection bug ][1664]. Fix nodes not being deselected correctly in
+  some circumstances. This would lead to nodes moving too fast when dragged
+  [1650] or the internal state of the project being inconsistent [1626].
 
 #### EnsoGL (rendering engine)
 
@@ -34,6 +37,9 @@
 [1577]: https://github.com/enso-org/ide/pull/1577
 [1587]: https://github.com/enso-org/ide/pull/1587
 [1602]: https://github.com/enso-org/ide/pull/1602
+[1602]: https://github.com/enso-org/ide/pull/1664
+[1602]: https://github.com/enso-org/ide/pull/1650
+[1602]: https://github.com/enso-org/ide/pull/1626
 
 # Enso 2.0.0-alpha.5 (2021-05-14)
 
