@@ -960,6 +960,11 @@ impl Nodes {
     fn select(&self, node_id:impl Into<NodeId>) {
         let node_id = node_id.into();
         if let Some(node) = self.get_cloned_ref(&node_id) {
+            // Remove previous instances and add new selection at end of the list, indicating that
+            // this node was selected last, superseding the previous selection.
+            while self.selected.contains(&node_id) {
+                  self.selected.remove_item(&node_id)
+            }
             self.selected.push(node_id);
             node.frp.select.emit(());
         }

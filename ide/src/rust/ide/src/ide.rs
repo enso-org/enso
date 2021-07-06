@@ -65,7 +65,7 @@ impl Ide {
         let mouse    = &scene.mouse.frp;
         let keyboard = &scene.keyboard.frp;
 
-        enso_frp::extend! { TRACE_ALL network
+        enso_frp::extend! { network
             on_log_sent          <- source::<()>();
             mouse_moved          <- mouse.position.constant(());
             any_mouse_press      <- any(mouse.up,mouse.down).constant(());
