@@ -111,18 +111,14 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |
           |""".stripMargin.preprocessModule.resolve
 
-      ir.bindings.length shouldEqual 2
-      ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings.length shouldEqual 4
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(3) shouldBe an[IR.Module.Scope.Definition.Method]
 
-      getDoc(
-        ir.bindings(0)
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(ir.bindings(1)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for My&lt;&lt;Atom&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(
-        ir.bindings(1)
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(ir.bindings(3)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;This is doc for my&lt;&lt;method&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
@@ -146,15 +142,11 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 1
-      getDoc(
-        body.expressions(0)
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 3
+      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(
-        body.returnValue
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
@@ -175,15 +167,11 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 1
-      getDoc(
-        body.expressions(0)
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 3
+      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(
-        body.returnValue
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
@@ -206,16 +194,12 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
         .body
         .asInstanceOf[IR.Expression.Block]
 
-      body.expressions.length shouldEqual 2
-      body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
-      getDoc(
-        body.expressions(0)
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      body.expressions.length shouldEqual 4
+      body.expressions(1) shouldBe an[IR.Application.Operator.Binary]
+      getDoc(body.expressions(1)) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Id&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(
-        body.returnValue
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;Return thing&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
@@ -241,28 +225,20 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-      val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
-      getDoc(
-        tp
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      val tp = ir.bindings(1).asInstanceOf[IR.Module.Scope.Definition.Type]
+      getDoc(tp) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;the type Foo&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       val t1 = tp.body(0)
-      getDoc(
-        t1
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(t1) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;the constructor Bar&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       val t2 = tp.body(1)
-      getDoc(
-        t2
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(t2) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;the included Unit&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
-      getDoc(
-        method
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(method) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;a method&lt;&lt;&lt;&lt;&lt;&lt;"
       )
       val block = method.body.asInstanceOf[IR.Expression.Block]
@@ -271,9 +247,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       ) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;a statement&lt;&lt;&lt;&lt;&lt;&lt;"
       )
-      getDoc(
-        block.returnValue
-      ) shouldEqual unfoldedDocumentationForAssertion(
+      getDoc(block.returnValue) shouldEqual unfoldedDocumentationForAssertion(
         "&lt;&lt;&lt;&lt;&lt;&lt;the return&lt;&lt;&lt;&lt;&lt;&lt;"
       )
     }
