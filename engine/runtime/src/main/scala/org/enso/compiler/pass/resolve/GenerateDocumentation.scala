@@ -62,7 +62,6 @@ case object GenerateDocumentation extends IRPass {
     * @return `ir`, with any doc comments associated with nodes as metadata
     */
   private def resolveModule(ir: IR.Module): IR.Module = {
-
     val newBindings = ir.bindings.map { x =>
       val doc = x.getMetadata(DocumentationComments)
       doc match {
