@@ -59,15 +59,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    buildModuleContext()
-  }
-
-  /** Creates a defaulted inline context.
-    *
-    * @return a defaulted inline context
-    */
-  def mkInlineContext: InlineContext = {
-    buildInlineContext()
+    buildModuleContext(isGeneratingDocs = true)
   }
 
   /** Gets documentation metadata from a node.
@@ -131,32 +123,6 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
   }
 
   "Documentation comments in blocks" should {
-    "be associated with the documented expression in expression flow" in {
-      implicit val inlineContext: InlineContext = mkInlineContext
-      val ir =
-        """
-          |x -> y ->
-          |    ## Do thing
-          |    x + y
-          |    ## Do another thing
-          |    z = x * y
-          |""".stripMargin.preprocessExpression.get.resolve
-      val body = ir
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Expression.Block]
-
-      body.expressions.length shouldEqual 1
-      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
-        "&lt;&lt;&lt;&lt;&lt;&lt;Do thing&lt;&lt;&lt;&lt;&lt;&lt;"
-      )
-      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
-        "&lt;&lt;&lt;&lt;&lt;&lt;Do another thing&lt;&lt;&lt;&lt;&lt;&lt;"
-      )
-    }
-
     "be associated with the documented expression in module flow" in {
       implicit val moduleContext: ModuleContext = mkModuleContext
       val ir =
