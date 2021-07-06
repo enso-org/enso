@@ -1117,6 +1117,22 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            ensoVersion = ensoVersion,
+            editionName = currentEdition,
+            libraryVersion =
+              "0.1.0", // TODO [RW] Once we start releasing the standard libraries, this will be synced with engine version.
+            log = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
