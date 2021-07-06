@@ -254,6 +254,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: true
           APPLEID: ${{secrets.APPLE_NOTARIZATION_USERNAME}}
           APPLEIDPASS: ${{secrets.APPLE_NOTARIZATION_PASSWORD}}
+          FIREBASE_API_KEY: ${{secrets.FIREBASE_API_KEY}}
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
   build:
@@ -330,15 +331,19 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: true
           APPLEID: ${{secrets.APPLE_NOTARIZATION_USERNAME}}
           APPLEIDPASS: ${{secrets.APPLE_NOTARIZATION_PASSWORD}}
+          FIREBASE_API_KEY: ${{secrets.FIREBASE_API_KEY}}
         run: node ./run dist --skip-version-validation --target macos
         if: startsWith(matrix.os,'macos')
       - name: Build (win)
         env:
           WIN_CSC_LINK: ${{secrets.MICROSOFT_CODE_SIGNING_CERT}}
           WIN_CSC_KEY_PASSWORD: ${{secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD}}
+          FIREBASE_API_KEY: ${{secrets.FIREBASE_API_KEY}}
         run: node ./run dist --skip-version-validation --target win
         if: startsWith(matrix.os,'windows')
       - name: Build (linux)
+        env:
+          FIREBASE_API_KEY: ${{secrets.FIREBASE_API_KEY}}
         run: node ./run dist --skip-version-validation --target linux
         if: startsWith(matrix.os,'ubuntu')
       - name: Upload Content Artifacts

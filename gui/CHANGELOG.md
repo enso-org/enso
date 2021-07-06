@@ -1,12 +1,24 @@
 # Enso 2.0.0-alpha.7 (2021-06-06)
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
 #### Visual Environment
 
+- [User Authentication][1653]. Users can sign in to Enso using Google, GitHub or
+  email accounts.
+
 <br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+#### Visual Environment
 
 - [Fix node selection bug ][1664]. Fix nodes not being deselected correctly in
   some circumstances. This would lead to nodes moving too fast when dragged
   [1650] or the internal state of the project being inconsistent [1626].
+
+[1653]: https://github.com/enso-org/ide/pull/1653
+[1664]: https://github.com/enso-org/ide/pull/1664
+
+<br/>
 
 # Enso 2.0.0-alpha.6 (2021-06-28)
 
