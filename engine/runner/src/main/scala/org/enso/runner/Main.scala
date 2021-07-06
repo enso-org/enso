@@ -3,7 +3,7 @@ package org.enso.runner
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
-import org.enso.editions.SemVerEnsoVersion
+import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.loggingservice.LogLevel
@@ -261,7 +261,7 @@ object Main {
     PackageManager.Default.create(
       root        = root,
       name        = name,
-      ensoVersion = SemVerEnsoVersion(CurrentVersion.version),
+      edition     = Some(DefaultEdition.getDefaultEdition),
       authors     = authors,
       maintainers = authors
     )

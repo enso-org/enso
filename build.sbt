@@ -25,12 +25,15 @@ val currentEdition = "2021.1"          // Note [Default Editions]
  * scripts at .github/workflows accordingly.
  */
 
-/* Note [Generating Editions]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* Note [Default Editions]
+ * ~~~~~~~~~~~~~~~~~~~~~~~
  * Currently, the default edition to use is inferred based on the engine
  * version. Each Enso version has an associated default edition name and the
  * `currentEdition` field specifies the default edition name for the upcoming
  * release.
+ *
+ * Thus the `library-manager` needs to depend on the `version-output` to get
+ * this defaults from the build metadata.
  *
  * In the future we may automate generating this edition number when cutting a
  * release.
@@ -1190,6 +1193,7 @@ lazy val `engine-runner` = project
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
@@ -1289,6 +1293,7 @@ lazy val `library-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)

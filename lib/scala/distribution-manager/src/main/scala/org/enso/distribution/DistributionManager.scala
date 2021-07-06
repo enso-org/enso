@@ -89,7 +89,18 @@ case class DistributionPaths(
     * precedence.
     */
   def editionSearchPaths: Seq[Path] =
-    customEditions ++ Seq(cachedEditions)
+    customEditions ++ Seq(cachedEditions) ++
+    bundledEnginesPaths(DistributionManager.EDITIONS_DIRECTORY)
+
+  /** Returns a sequence of paths to some subdirectory in all bundled engines.
+    */
+  def bundledEnginesPaths(subdirectory: String): Seq[Path] =
+    for {
+      Bundle(enginesDir, _) <- bundle.toSeq
+      enginePath            <- FileSystem.listDirectory(enginesDir)
+      candidate = enginePath.toAbsolutePath.normalize / subdirectory
+      if Files.exists(candidate)
+    } yield candidate
 }
 
 /** Paths to secondary directories for additionally bundled engine

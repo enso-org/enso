@@ -2,7 +2,6 @@ package org.enso.editions
 
 import nl.gn0s1s.bump.SemVer
 
-import java.net.URL
 import scala.util.Try
 
 /** Defines the general edition structure.
@@ -91,7 +90,7 @@ trait Editions {
 object Editions {
 
   /** Represents a repository that provides libraries. */
-  case class Repository(name: String, url: URL)
+  case class Repository(name: String, url: String)
 
   object Repository {
 
@@ -99,7 +98,7 @@ object Editions {
       * URL.
       */
     def make(name: String, url: String): Try[Repository] = Try {
-      Repository(name, new URL(url))
+      Repository(name, url)
     }
   }
 

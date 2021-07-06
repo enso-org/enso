@@ -1,15 +1,10 @@
 package org.enso.pkg
 
+import io.circe._
 import io.circe.syntax._
-import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.yaml.Printer
-import org.enso.editions.{
-  DefaultEnsoVersion,
-  EditionName,
-  Editions,
-  EnsoVersion
-}
 import org.enso.editions.EditionSerialization._
+import org.enso.editions.{EditionName, Editions, EnsoVersion}
 
 import scala.util.Try
 
@@ -92,7 +87,8 @@ object Contact {
   * @param maintainers name and contact information of current package
   *                   maintainer(s)
   * @param edition the Edition associated with the project; it implies the
-  *                engine version and dependency configuration to be used
+  *                engine version and dependency configuration to be used, if it
+  *                is missing, the default edition is used
   * @param preferLocalLibraries specifies if library resolution should prefer
   *                             local libraries over what is defined in the
   *                             edition
@@ -107,7 +103,7 @@ case class Config(
   license: String,
   authors: List[Contact],
   maintainers: List[Contact],
-  edition: Editions.RawEdition,
+  edition: Option[Editions.RawEdition],
   preferLocalLibraries: Boolean,
   originalJson: JsonObject = JsonObject()
 ) {
@@ -179,20 +175,22 @@ object Config {
   implicit val encoder: Encoder[Config] = { config =>
     val originals = config.originalJson
 
-    val edition =
-      if (config.edition.isDerivingWithoutOverrides)
-        config.edition.parent.get.asJson
-      else config.edition.asJson
+    val edition = config.edition
+      .map { edition =>
+        if (edition.isDerivingWithoutOverrides) edition.parent.get.asJson
+        else edition.asJson
+      }
+      .map(JsonFields.edition -> _)
 
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
       JsonFields.namespace  -> config.namespace.asJson,
       JsonFields.version    -> config.version.asJson,
-      JsonFields.edition    -> edition,
       JsonFields.license    -> config.license.asJson,
       JsonFields.author     -> config.authors.asJson,
       JsonFields.maintainer -> config.maintainers.asJson
-    )
+    ) ++ edition.toSeq
+
     val preferLocalOverride =
       if (config.preferLocalLibraries)
         Seq(JsonFields.preferLocalLibraries -> true.asJson)
@@ -243,15 +241,18 @@ object Config {
   private def editionOrVersionBackwardsCompatibility(
     edition: Option[Editions.RawEdition],
     ensoVersion: Option[EnsoVersion]
-  ): Either[String, Editions.RawEdition] = (edition, ensoVersion) match {
-    case (Some(_), Some(_)) =>
-      Left(
-        s"The deprecated `${JsonFields.ensoVersion}` should not be defined " +
-        s"if the `${JsonFields.edition}` that replaces it is already defined."
-      )
-    case (Some(edition), _) => Right(edition)
-    case _ =>
-      val version = ensoVersion.getOrElse(DefaultEnsoVersion)
-      Right(makeCompatibilityEditionFromVersion(version))
-  }
+  ): Either[String, Option[Editions.RawEdition]] =
+    (edition, ensoVersion) match {
+      case (Some(_), Some(_)) =>
+        Left(
+          s"The deprecated `${JsonFields.ensoVersion}` should not be defined " +
+          s"if the `${JsonFields.edition}` that replaces it is already defined."
+        )
+      case (Some(edition), _) =>
+        Right(Some(edition))
+      case (_, Some(version)) =>
+        Right(Some(makeCompatibilityEditionFromVersion(version)))
+      case _ =>
+        Right(None)
+    }
 }

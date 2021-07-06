@@ -10,7 +10,8 @@ import io.circe.Json
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.distribution.OS
+import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.distribution.{FileSystem, OS}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.loggingservice.printers.StderrPrinterWithColors
@@ -220,6 +221,8 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     super.beforeAll()
 
+    setupEditions()
+
     if (debugLogs) {
       LoggingServiceManager.setup(
         LoggerMode.Local(
@@ -230,6 +233,18 @@ class BaseServerSpec extends JsonRpcServerTestKit with BeforeAndAfterAll {
     }
 
     engineToInstall.foreach(preInstallEngine)
+  }
+
+  private def setupEditions(): Unit = {
+    val engineVersion =
+      engineToInstall.map(_.toString).getOrElse(buildinfo.Info.ensoVersion)
+    val editionsDir = testDistributionRoot.toPath / "test_data" / "editions"
+    Files.createDirectories(editionsDir)
+    val editionName = buildinfo.Info.currentEdition + ".yaml"
+    val editionConfig =
+      s"""engine-version: $engineVersion
+         |""".stripMargin
+    FileSystem.writeTextFile(editionsDir / editionName, editionConfig)
   }
 
   /** This is a temporary solution to ensure that a valid engine distribution is

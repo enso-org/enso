@@ -2,10 +2,10 @@ package org.enso.pkg
 
 import io.circe.{Json, JsonObject}
 import nl.gn0s1s.bump.SemVer
-import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
-import org.scalatest.{Inside, OptionValues}
+import org.enso.editions.SemVerEnsoVersion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{Inside, OptionValues}
 
 class ConfigSpec
     extends AnyWordSpec
@@ -34,8 +34,10 @@ class ConfigSpec
         name      = "placeholder",
         version   = "dev",
         namespace = "local",
-        edition = Config.makeCompatibilityEditionFromVersion(
-          SemVerEnsoVersion(SemVer(4, 5, 6))
+        edition = Some(
+          Config.makeCompatibilityEditionFromVersion(
+            SemVerEnsoVersion(SemVer(4, 5, 6))
+          )
         ),
         license = "none",
         authors = List(),
@@ -54,7 +56,7 @@ class ConfigSpec
     "only require the name and use defaults for everything else" in {
       val parsed = Config.fromYaml("name: FooBar").get
       parsed.name shouldEqual "FooBar"
-      parsed.edition.engineVersion should contain(DefaultEnsoVersion)
+      parsed.edition shouldBe empty
     }
 
     "be backwards compatible but correctly migrate to new format on save" in {
@@ -65,7 +67,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(oldFormat).get
 
-      parsed.edition.engineVersion should contain(
+      parsed.edition.get.engineVersion should contain(
         SemVerEnsoVersion(SemVer(1, 2, 3))
       )
 
@@ -88,7 +90,7 @@ class ConfigSpec
           |""".stripMargin
       val parsed = Config.fromYaml(config).get
 
-      parsed.edition.parent should contain("2020.1")
+      parsed.edition.get.parent should contain("2020.1")
 
       val serialized = parsed.toYaml
       serialized should include("edition: '2020.1'")
