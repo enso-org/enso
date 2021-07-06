@@ -13,6 +13,13 @@ import cfg from '../../../config'
 // @ts-ignore
 import assert from 'assert'
 
+// @ts-ignore
+import firebase from 'firebase/app'
+// @ts-ignore
+import 'firebase/auth'
+// @ts-ignore
+import semver from 'semver'
+
 // ==================
 // === Global API ===
 // ==================
@@ -25,6 +32,9 @@ class ContentApi {
         assert(typeof config.no_data_gathering == 'boolean')
         if (!config.no_data_gathering) {
             this.logger = new MixpanelLogger()
+            if (ok(config.email)) {
+                this.logger.identify(config.email)
+            }
         }
     }
     remoteLog(event: string, data?: any) {
@@ -217,6 +227,10 @@ class MixpanelLogger {
         }
     }
 
+    identify(uniqueId: string) {
+        this.mixpanel.identify(uniqueId)
+    }
+
     static trim_message(message: string) {
         const MAX_MESSAGE_LENGTH = 500
         let trimmed = message.substr(0, MAX_MESSAGE_LENGTH)
@@ -356,7 +370,7 @@ function setupCrashDetection() {
     // (https://v8.dev/docs/stack-trace-api#compatibility)
     Error.stackTraceLimit = 100
 
-    window.addEventListener('error', function (event) {
+    window.addEventListener('error', function(event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
         if (ok(event.error) && ok(event.error.stack)) {
             handleCrash(event.error.stack)
@@ -364,7 +378,7 @@ function setupCrashDetection() {
             handleCrash(event.message)
         }
     })
-    window.addEventListener('unhandledrejection', function (event) {
+    window.addEventListener('unhandledrejection', function(event) {
         // As above, we prefer stack traces.
         // But here, `event.reason` is not even guaranteed to be an `Error`.
         handleCrash(event.reason.stack || event.reason.message || 'Unhandled rejection')
@@ -443,6 +457,319 @@ async function reportCrash(message: string) {
     })
 }
 
+// =====================
+// === Version Check ===
+// =====================
+
+// An error with the payload.
+class ErrorDetails {
+
+    public readonly message: string
+    public readonly payload: any
+
+    constructor(message: string, payload: any) {
+        this.message = message
+        this.payload = payload
+    }
+}
+
+/// Utility methods helping to work with the versions.
+class Versions {
+
+    /// Development version.
+    static devVersion = semver.coerce('0.0.0')
+    /// Version of the `client` js package.
+    static clientVersion = require('../../client/package.json').version
+
+    /// Compare the application version with the minimum supported version and
+    /// return `true` if the application version is supported, i.e. greater or
+    /// equal than the minimum supported version.
+    static compare(minSupportedVersion: string, applicationVersion: string): boolean {
+        const appVersion = semver.clean(applicationVersion, { loose: true })
+        if (ok(appVersion)) {
+            if (semver.eq(appVersion, Versions.devVersion)) {
+                return true
+            } else {
+                const minVersion = semver.clean(minSupportedVersion, { loose: true })
+                if (ok(minVersion)) {
+                    return semver.gte(appVersion, minVersion)
+                } else {
+                    throw new ErrorDetails(
+                        'Failed to parse app version.',
+                        { applicationVersion }
+                    )
+                }
+            }
+        } else {
+            throw new ErrorDetails(
+                'Failed to parse minimum supported version.',
+                { minSupportedVersion }
+            )
+        }
+    }
+
+    static isDevVersion(): boolean {
+        const clientVersion = Versions.clientVersion
+        const appVersion = semver.clean(clientVersion, { loose: true })
+        if (ok(appVersion)) {
+            return semver.eq(appVersion, Versions.devVersion)
+        } else {
+            console.error('Failed to parse applicationVersion.', { clientVersion })
+            return false
+        }
+    }
+}
+
+/// Fetch the application config from the provided url.
+async function fetchApplicationConfig(url: string) {
+    const https = require('https')
+    const statusCodeOK = 200
+
+    return new Promise((resolve: any, reject: any) => {
+        https.get(url, (res: any) => {
+            const statusCode = res.statusCode
+            if (statusCode !== statusCodeOK) {
+                reject(new ErrorDetails('Request failed.', { url, statusCode }))
+            }
+
+            res.setEncoding('utf8')
+            let rawData = ''
+
+            res.on('data', (chunk: any) => rawData += chunk)
+
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(rawData))
+                } catch (e) {
+                    reject(e)
+                }
+            })
+
+            res.on('error', (e: any) => reject(e))
+        })
+    })
+}
+
+/// Return `true` if the current application version is still supported
+/// and `false` otherwise.
+///
+/// Function downloads the application config containing the minimum supported
+/// version from GitHub and compares it with the version of the `client` js
+/// package. When the function is unable to download the application config, or
+/// one of the compared versions does not match the semver scheme, it returns
+/// `true`.
+async function checkMinSupportedVersion(config: Config) {
+    try {
+        const appConfig: any = await fetchApplicationConfig(config.application_config_url)
+        const clientVersion = Versions.clientVersion
+        const minSupportedVersion = appConfig.minimumSupportedVersion
+
+        console.log(
+            `Application version check.`,
+            { minSupportedVersion, clientVersion }
+        )
+        return Versions.compare(minSupportedVersion, clientVersion)
+    } catch (e) {
+        console.error('Minimum version check failed.', e)
+        return true
+    }
+}
+
+// ======================
+// === Authentication ===
+// ======================
+
+class FirebaseAuthentication {
+
+    protected readonly config: any
+    public readonly firebaseui: any
+    public readonly ui: any
+
+    public authCallback: any
+
+    constructor(authCallback: any) {
+        this.firebaseui = require('firebaseui')
+        this.config = this.getFirebaseConfig()
+        // initialize Firebase
+        firebase.initializeApp(this.config)
+        // create HTML markup
+        this.createHtml()
+        // initialize Firebase UI
+        this.ui = new this.firebaseui.auth.AuthUI(firebase.auth())
+        this.ui.disableAutoSignIn()
+        this.authCallback = authCallback
+        firebase.auth().onAuthStateChanged((user: any) => {
+            if (ok(user)) {
+                if (this.hasEmailAuth(user) && !user.emailVerified) {
+                    document.getElementById('user-email-not-verified').style.display = 'block'
+                    this.handleSignedOutUser()
+                } else {
+                    this.handleSignedInUser(user)
+                }
+            } else {
+                this.handleSignedOutUser()
+            }
+        })
+    }
+
+    protected getFirebaseConfig() {
+        const config = require('../firebase.yaml')
+        // @ts-ignore
+        const firebaseApiKey = FIREBASE_API_KEY
+        if (ok(firebaseApiKey) && firebaseApiKey.length > 0) {
+            // @ts-ignore
+            config['apiKey'] = firebaseApiKey
+            return config
+        } else {
+            throw new Error('Empty FIREBASE_API_KEY')
+        }
+    }
+
+    protected hasEmailAuth(user: any): boolean {
+        const emailProviderId = firebase.auth.EmailAuthProvider.PROVIDER_ID
+        const hasEmailProvider = user
+            .providerData
+            .some((data: any) => data.providerId === emailProviderId)
+        const hasOneProvider = user.providerData.length === 1
+        return hasOneProvider && hasEmailProvider
+    }
+
+    protected getUiConfig() {
+        return {
+            'callbacks': {
+                // Called when the user has been successfully signed in.
+                'signInSuccessWithAuthResult': (authResult: any, redirectUrl: any) => {
+                    if (ok(authResult.user)) {
+                        switch (authResult.additionalUserInfo.providerId) {
+                            case firebase.auth.EmailAuthProvider.PROVIDER_ID:
+                                if (authResult.user.emailVerified) {
+                                    this.handleSignedInUser(authResult.user)
+                                } else {
+                                    authResult.user.sendEmailVerification()
+                                    document.getElementById('user-email-not-verified').style.display = 'block'
+                                    this.handleSignedOutUser()
+                                }
+                                break;
+
+                            default:
+                        }
+                    }
+                    // Do not redirect.
+                    return false;
+                }
+            },
+            'signInOptions': [
+                {
+                    provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+                    // Required to enable ID token credentials for this provider.
+                    clientId: this.config.clientId
+                },
+                firebase.auth.GithubAuthProvider.PROVIDER_ID,
+                {
+                    provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+                    // Whether the display name should be displayed in Sign Up page.
+                    requireDisplayName: false,
+                }
+            ],
+        }
+    }
+
+    protected handleSignedOutUser() {
+        document.getElementById('auth-container').style.display = 'block'
+        this.ui.start('#firebaseui-container', this.getUiConfig())
+    }
+
+    protected handleSignedInUser(user: any) {
+        document.getElementById('auth-container').style.display = 'none'
+        this.authCallback(user)
+    }
+
+    /// Create the HTML markup.
+    ///
+    /// ```
+    /// <div id="root">
+    ///     <div id="auth-container">
+    ///         <div class="auth-header">
+    ///             <h1>Sign in to Enso</h1>
+    ///             <div class="auth-text">
+    ///                 <p>Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.</p>
+    ///             </div>
+    ///         </div>
+    ///         <div id="user-signed-out">
+    ///             <div id="firebaseui-container"></div>
+    ///         </div>
+    ///         <div id="user-email-not-verified" class="auth-info">
+    ///             Verification link is sent. You can sign in after verifying your email.
+    ///         </div>
+    ///     </div>
+    ///     <div id="version-check" class="auth-info">
+    ///         This version is no longer supported. Please download a new one.
+    ///     </div>
+    /// </div>
+    /// ```
+    protected createHtml() {
+        const authContainer = 'auth-container'
+        const authInfo = 'auth-info'
+        const authHeader = 'auth-header'
+        const authText = 'auth-text'
+        const firebaseuiContainer = 'firebaseui-container'
+        const userSignedOut = 'user-signed-out'
+        const userEmailNotVerified = 'user-email-not-verified'
+        const versionCheck = 'version-check'
+
+        const authHeaderText = document.createTextNode('Sign in to Enso')
+        const authTextText = document.createTextNode('Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.')
+        const userEmailNotVerifiedText = document.createTextNode('Verification link is sent. You can sign in after verifying your email.')
+        const versionCheckText = document.createTextNode('This version is no longer supported. Please download a new one.')
+
+        let root = document.getElementById('root')
+
+        // div#auth-container
+        let authContainerDiv = document.createElement('div')
+        authContainerDiv.id = authContainer
+        authContainerDiv.style.display = 'none'
+        // div.auth-header
+        let authHeaderDiv = document.createElement('div')
+        authHeaderDiv.className = authHeader
+        // div.auth-header/h1
+        let authHeaderH1 = document.createElement('h1')
+        authHeaderH1.appendChild(authHeaderText)
+        // div.auth-header/div#auth-text
+        let authHeaderTextDiv = document.createElement('div')
+        authHeaderTextDiv.className = authText
+        authHeaderTextDiv.appendChild(authTextText)
+
+        authHeaderDiv.appendChild(authHeaderH1)
+        authHeaderDiv.appendChild(authHeaderTextDiv)
+
+        // div#user-signed-out
+        let userSignedOutDiv = document.createElement('div')
+        userSignedOutDiv.id = userSignedOut
+        let firebaseuiContainerDiv = document.createElement('div')
+        firebaseuiContainerDiv.id = firebaseuiContainer
+        userSignedOutDiv.appendChild(firebaseuiContainerDiv)
+
+        // div#user-email-not-verified
+        let userEmailNotVerifiedDiv = document.createElement('div')
+        userEmailNotVerifiedDiv.id = userEmailNotVerified
+        userEmailNotVerifiedDiv.className = authInfo
+        userEmailNotVerifiedDiv.appendChild(userEmailNotVerifiedText)
+
+        authContainerDiv.appendChild(authHeaderDiv)
+        authContainerDiv.appendChild(userSignedOutDiv)
+        authContainerDiv.appendChild(userEmailNotVerifiedDiv)
+
+        // div#version-check
+        let versionCheckDiv = document.createElement('div')
+        versionCheckDiv.id = versionCheck
+        versionCheckDiv.className = authInfo
+        versionCheckDiv.appendChild(versionCheckText)
+
+        root.appendChild(authContainerDiv)
+        root.appendChild(versionCheckDiv)
+    }
+}
+
 // ========================
 // === Main Entry Point ===
 // ========================
@@ -488,6 +815,9 @@ class Config {
     public no_data_gathering: boolean
     public is_in_cloud: boolean
     public verbose: boolean
+    public authentication_enabled: boolean
+    public email: string
+    public application_config_url: string
 
     static default() {
         let config = new Config()
@@ -498,6 +828,9 @@ class Config {
         config.no_data_gathering = false
         config.is_in_cloud = false
         config.entry = null
+        config.authentication_enabled = true
+        config.application_config_url =
+            'https://raw.githubusercontent.com/enso-org/ide/develop/config.json'
         return config
     }
 
@@ -567,15 +900,7 @@ function tryAsString(value: any): string {
 }
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
-API.main = async function (inputConfig: any) {
-    const urlParams = new URLSearchParams(window.location.search)
-    // @ts-ignore
-    const urlConfig = Object.fromEntries(urlParams.entries())
-
-    const config = Config.default()
-    config.updateFromObject(inputConfig)
-    config.updateFromObject(urlConfig)
-
+async function mainEntryPoint(config: any) {
     // @ts-ignore
     API[globalConfig.windowAppScopeConfigName] = config
 
@@ -617,5 +942,31 @@ API.main = async function (inputConfig: any) {
         }
     } else {
         show_debug_screen(wasm, '')
+    }
+}
+
+API.main = async function(inputConfig: any) {
+    const urlParams = new URLSearchParams(window.location.search)
+    // @ts-ignore
+    const urlConfig = Object.fromEntries(urlParams.entries())
+
+    const config = Config.default()
+    config.updateFromObject(inputConfig)
+    config.updateFromObject(urlConfig)
+
+    if (await checkMinSupportedVersion(config)) {
+        if (config.authentication_enabled && !Versions.isDevVersion()) {
+            new FirebaseAuthentication(
+                function(user: any) {
+                    config.email = user.email
+                    mainEntryPoint(config)
+                })
+        } else {
+            await mainEntryPoint(config)
+        }
+    } else {
+        // Display a message asking to update the application.
+        document.getElementById('auth-container').style.display = 'none'
+        document.getElementById('version-check').style.display = 'block'
     }
 }

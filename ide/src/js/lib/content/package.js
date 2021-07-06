@@ -7,6 +7,8 @@ let config = {
     },
     dependencies: {
         "enso-studio-common": "1.0.0",
+        "firebase": "^8.6.8",
+        "firebaseui": "^4.8.0",
         "copy-webpack-plugin": "^5.1.1",
         "mixpanel-browser":  "2.40.1"
     },

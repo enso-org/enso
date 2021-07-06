@@ -33,6 +33,28 @@ body {
     pointer-events: auto;
 }
 
+.auth-header {
+    font-family: sans-serif;
+    text-align: center;
+    margin: 24px auto;
+}
+
+.auth-text {
+    text-align: justify;
+    font-family: sans-serif;
+    color: #454545;
+    width: 50%;
+    margin: 12px auto;
+}
+
+.auth-info {
+    text-align: center;
+    font-family: sans-serif;
+    color: #454545;
+    margin: 24px auto;
+    display: none;
+}
+
 #crash-banner {
     background: DarkSalmon;
     color: #2c1007;

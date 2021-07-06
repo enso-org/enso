@@ -5,8 +5,10 @@
         <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
         <!-- FIXME https://github.com/validator/validator/issues/917 -->
         <!-- FIXME Security Vulnerabilities: https://github.com/enso-org/ide/issues/226 -->
+        <!-- NOTE `frame-src` section of `http-equiv` required only for authorization -->
         <meta http-equiv="Content-Security-Policy" content="
             default-src 'self';
+            frame-src   'self' data: https://accounts.google.com https://enso-org.firebaseapp.com;
             script-src  'self' 'unsafe-eval' data: https://*;
             style-src   'self' 'unsafe-inline' data: https://*;
             connect-src 'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://*;
@@ -22,6 +24,7 @@
         />
         <title>Enso</title>
         <link rel="stylesheet" href="/assets/style.css" />
+        <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/4.8.0/firebase-ui-auth.css" />
         <script type="module" src="/assets/index.js" defer></script>
         <script type="module" src="/assets/run.js" defer></script>
     </head>
