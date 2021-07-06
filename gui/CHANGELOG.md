@@ -1,3 +1,13 @@
+# Enso 2.0.0-alpha.7 (2021-06-06)
+
+#### Visual Environment
+
+<br/>![Bug Fixes](/docs/assets/tags/bug_fixes.svg)
+
+- [Fix node selection bug ][1664]. Fix nodes not being deselected correctly in
+  some circumstances. This would lead to nodes moving too fast when dragged
+  [1650] or the internal state of the project being inconsistent [1626].
+
 # Enso 2.0.0-alpha.6 (2021-06-28)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
@@ -18,9 +28,6 @@
   undo last action and <kbd>cmd</kbd>+<kbd>z</kbd> to redo last undone action.
   This version of undo redo does not have proper support for text editor and
   undoing UI changes (like selecting nodes).
-- [Fox node selection bug ][1664]. Fix nodes not being deselected correctly in
-  some circumstances. This would lead to nodes moving too fast when dragged
-  [1650] or the internal state of the project being inconsistent [1626].
 
 #### EnsoGL (rendering engine)
 
