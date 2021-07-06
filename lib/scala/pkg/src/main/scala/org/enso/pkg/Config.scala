@@ -3,7 +3,12 @@ package org.enso.pkg
 import io.circe.syntax._
 import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json, JsonObject}
 import io.circe.yaml.Printer
-import org.enso.editions.{DefaultEnsoVersion, Editions, EnsoVersion}
+import org.enso.editions.{
+  DefaultEnsoVersion,
+  EditionName,
+  Editions,
+  EnsoVersion
+}
 import org.enso.editions.EditionSerialization._
 
 import scala.util.Try
@@ -130,14 +135,27 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name        <- json.get[String](JsonFields.name)
-      namespace   <- json.getOrElse[String](JsonFields.namespace)(defaultNamespace)
+      name <- json.get[String](JsonFields.name)
+      namespace <- json.getOrElse[String](JsonFields.namespace)(
+        defaultNamespace
+      )
       version     <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <- json.get[Option[EnsoVersion]](JsonFields.ensoVersion)
-      edition     <- json.get[Option[Editions.RawEdition]](JsonFields.edition)
-      license     <- json.getOrElse(JsonFields.license)("")
-      author      <- json.getOrElse[List[Contact]](JsonFields.author)(List())
-      maintainer  <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
+      rawEdition <- json
+        .get[EditionName](JsonFields.edition)
+        .map(x => Left(x.name))
+        .orElse(
+          json
+            .get[Option[Editions.RawEdition]](JsonFields.edition)
+            .map(Right(_))
+        )
+      edition = rawEdition.fold(
+        editionName => Some(Editions.Raw.Edition(parent = Some(editionName))),
+        identity
+      )
+      license    <- json.getOrElse(JsonFields.license)("")
+      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
+      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
       preferLocal <-
         json.getOrElse[Boolean](JsonFields.preferLocalLibraries)(false)
       finalEdition <-
@@ -161,11 +179,16 @@ object Config {
   implicit val encoder: Encoder[Config] = { config =>
     val originals = config.originalJson
 
+    val edition =
+      if (config.edition.isDerivingWithoutOverrides)
+        config.edition.parent.get.asJson
+      else config.edition.asJson
+
     val overrides = Seq(
       JsonFields.name       -> config.name.asJson,
       JsonFields.namespace  -> config.namespace.asJson,
       JsonFields.version    -> config.version.asJson,
-      JsonFields.edition    -> config.edition.asJson,
+      JsonFields.edition    -> edition,
       JsonFields.license    -> config.license.asJson,
       JsonFields.author     -> config.authors.asJson,
       JsonFields.maintainer -> config.maintainers.asJson

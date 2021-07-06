@@ -79,5 +79,19 @@ class ConfigSpec
         "extra-value"
       )
     }
+
+    "correctly de-serialize and serialize back the shortened edition syntax " +
+    "if there are no overrides" in {
+      val config =
+        """name: FooBar
+          |edition: 2020.1
+          |""".stripMargin
+      val parsed = Config.fromYaml(config).get
+
+      parsed.edition.parent should contain("2020.1")
+
+      val serialized = parsed.toYaml
+      serialized should include("edition: '2020.1'")
+    }
   }
 }

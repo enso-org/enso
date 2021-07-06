@@ -75,10 +75,10 @@ trait Editions {
     *                  (does not include ones defined in the parents)
     */
   case class Edition(
-    parent: Option[NestedEditionType],
-    engineVersion: Option[EnsoVersion],
-    repositories: Map[String, Editions.Repository],
-    libraries: Map[String, Library]
+    parent: Option[NestedEditionType]              = None,
+    engineVersion: Option[EnsoVersion]             = None,
+    repositories: Map[String, Editions.Repository] = Map.empty,
+    libraries: Map[String, Library]                = Map.empty
   ) {
     if (parent.isEmpty && engineVersion.isEmpty)
       throw new IllegalArgumentException(
@@ -143,5 +143,20 @@ object Editions {
       }
       parent.getEngineVersion
     }
+  }
+
+  implicit class RawEditionOps(edition: RawEdition) {
+
+    /** Checks if the edition configuration consists only of an `extends` field
+      * and no other overrides.
+      *
+      * If this is the case, `package.yaml` can use the shortened edition field
+      * syntax.
+      */
+    def isDerivingWithoutOverrides: Boolean =
+      edition.parent.isDefined &&
+      edition.engineVersion.isEmpty &&
+      edition.libraries.isEmpty &&
+      edition.repositories.isEmpty
   }
 }
