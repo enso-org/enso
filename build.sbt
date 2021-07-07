@@ -82,7 +82,7 @@ def makeStdLibDistribution(
 ): DistributionDescription =
   Distribution(
     name,
-    file(s"distribution/lib/Standard/$name/THIRD-PARTY"),
+    file(s"distribution/lib/Standard/$name/$stdLibVersion/THIRD-PARTY"),
     components
   )
 
