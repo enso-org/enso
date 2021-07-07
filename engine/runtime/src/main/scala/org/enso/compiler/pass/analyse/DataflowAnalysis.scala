@@ -103,8 +103,18 @@ case object DataflowAnalysis extends IRPass {
             arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
           .updateMetadata(this -->> info)
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+      case m: Method.Conversion =>
+        val bodyDep       = asStatic(m.body)
+        val methodDep     = asStatic(m)
+        val sourceTypeDep = asStatic(m.sourceTypeName)
+        info.dependents.updateAt(sourceTypeDep, Set(methodDep))
+        info.dependents.updateAt(bodyDep, Set(methodDep))
+        info.dependencies.updateAt(methodDep, Set(bodyDep, sourceTypeDep))
+
+        m.copy(
+          body           = analyseExpression(m.body, info),
+          sourceTypeName = m.sourceTypeName.updateMetadata(this -->> info)
+        ).updateMetadata(this -->> info)
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         val bodyDep   = asStatic(body)
