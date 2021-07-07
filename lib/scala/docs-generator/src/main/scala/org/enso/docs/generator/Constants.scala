@@ -3,7 +3,7 @@ package org.enso.docs.generator
 object Constants {
   val TEMPLATE_FILES_PATH =
     "./lib/scala/docs-generator/src/main/scala/org/enso/docs/generator/"
-  val SOURCE_PATH        = "./distribution/std-lib"
+  val SOURCE_PATH        = "./distribution/lib/Standard"
   val JS_TEMPLATE_NAME   = "template.js"
   val CSS_TREE_FILE_NAME = "treeStyle.css"
   val OUTPUT_DIRECTORY   = "docs-js"

@@ -134,9 +134,9 @@ object DistributionPackage {
     )
 
     copyDirectoryIncremental(
-      file("distribution/std-lib"),
-      distributionRoot / "std-lib",
-      cacheFactory.make("engine-std-lib")
+      file("distribution/lib"),
+      distributionRoot / "lib",
+      cacheFactory.make("engine-lib")
     )
     getStdlibDataFiles(distributionRoot)
 
@@ -160,7 +160,7 @@ object DistributionPackage {
       "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     downloadFileToLocation(
       exampleImageUrl,
-      distributionRoot / "std-lib/Examples/data/image.png"
+      distributionRoot / "lib/Standard/Examples/0.1.0/data/image.png"
     )
   }
 

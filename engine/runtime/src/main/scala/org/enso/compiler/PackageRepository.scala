@@ -10,10 +10,8 @@ import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.librarymanager.{
   DefaultLibraryProvider,
-  ResolvedLibrary,
   ResolvingLibraryProvider
 }
-import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 
@@ -339,27 +337,6 @@ object PackageRepository {
       toPreload ++= packages
   }
 
-  /** A temporary [[ResolvingLibraryProvider]] that ignores the edition and just
-    * provides the local libraries.
-    *
-    * TODO [RW] it should be removed once the editions are integrated
-    */
-  private class TemporaryLocalProvider(searchPaths: List[Path])
-      extends ResolvingLibraryProvider {
-
-    private val localRepo = new DefaultLocalLibraryProvider(searchPaths)
-
-    override def findLibrary(
-      name: LibraryName
-    ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] =
-      localRepo
-        .findLibrary(name)
-        .map(ResolvedLibrary(name, LibraryVersion.Local, _))
-        .toRight {
-          ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
-        }
-  }
-
   def initializeRepository(
     projectPackage: Option[Package[TruffleFile]],
     languageHome: Option[String],
@@ -389,26 +366,6 @@ object PackageRepository {
       )
     new Default(
       resolvingLibraryProvider,
-      context,
-      builtins,
-      notificationHandler
-    )
-  }
-
-  /** A temporary helper constructor for [[PackageRepository]] that does not
-    * need any edition configuration.
-    *
-    * TODO [RW] it should be removed once the editions are integrated
-    */
-  def makeLegacyRepository(
-    distributionManager: DistributionManager,
-    context: Context,
-    builtins: Builtins,
-    notificationHandler: NotificationHandler
-  ): PackageRepository = {
-    val searchPaths = distributionManager.paths.localLibrariesSearchPaths.toList
-    new Default(
-      new TemporaryLocalProvider(searchPaths),
       context,
       builtins,
       notificationHandler

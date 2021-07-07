@@ -8,7 +8,8 @@ RUN useradd -u 2000 -c 'Enso Developer' -U -M ensodev
 
 ADD bin /opt/enso/bin
 ADD component /opt/enso/component
-ADD std-lib /opt/enso/std-lib
+ADD lib /opt/enso/lib
+ADD editions /opt/enso/editions
 
 RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso

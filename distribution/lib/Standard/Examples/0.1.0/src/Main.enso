@@ -140,8 +140,8 @@ uri = Enso_Uri.parse "http://user:pass@example.com/foo/bar?key=val"
    ! Downloading
      Calling this method will result in the image file being downloaded from
      the internet if it is not already present on your disk. If you do not want
-     this to happen, please place the image in the `std-lib/Standard/data`
-     folder for your Enso distribution.
+     this to happen, please place the image in the
+     `lib/Standard/Examples/0.1.0/data` folder for your Enso distribution.
 image_file : File
 image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
@@ -155,8 +155,8 @@ image_file =
    ! Downloading
      Calling this method will result in the image file being downloaded from
      the internet if it is not already present on your disk. If you do not want
-     this to happen, please place the image in the `std-lib/Standard/data`
-     folder for your Enso distribution.
+     this to happen, please place the image in the
+     `lib/Standard/Examples/0.1.0/data` folder for your Enso distribution.
 image : Enso_Image.Image
 image = Enso_Image.read here.image_file [Codecs.Read_Alpha_Channel]
 
