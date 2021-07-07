@@ -550,11 +550,22 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
+  .configs(Benchmark)
   .settings(
     libraryDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion
     ),
-    mainClass := Some("org.enso.docs.generator.Main")
+    mainClass := Some("org.enso.docs.generator.Main"),
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / unmanagedSourceDirectories +=
+      baseDirectory.value.getParentFile / "bench" / "scala",
+    libraryDependencies +=
+      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
+    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -864,6 +875,7 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(

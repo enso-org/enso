@@ -122,13 +122,26 @@ class Compiler(
     }
   }
 
-  private def parseModule(module: Module): Unit = {
+  /** Runs part of the compiler to generate docs from Enso code.
+    * @param module - the scope from which docs are generated.
+    */
+  def generateDocs(module: Module): Module = {
+    initializeBuiltinsIr()
+    parseModule(module, isGenDocs = true)
+    module
+  }
+
+  private def parseModule(
+    module: Module,
+    isGenDocs: Boolean = false
+  ): Unit = {
     module.ensureScopeExists()
     module.getScope.reset()
     val moduleContext = ModuleContext(
-      module          = module,
-      freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = config
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
     )
     val parsedAST        = parse(module.getSource)
     val expr             = generateIR(parsedAST)
