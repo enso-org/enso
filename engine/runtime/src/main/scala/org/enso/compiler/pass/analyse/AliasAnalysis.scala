@@ -136,10 +136,23 @@ case object AliasAnalysis extends IRPass {
     val topLevelGraph = new Graph
 
     ir match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
-      case m @ IR.Module.Scope.Definition.Method
-            .Explicit(_, body, _, _, _) =>
+      case m: Method.Conversion =>
+        m.body match {
+          case _: IR.Function =>
+            m.copy(
+              body = analyseExpression(
+                m.body,
+                topLevelGraph,
+                topLevelGraph.rootScope,
+                lambdaReuseScope = true
+              )
+            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+          case _ =>
+            throw new CompilerError(
+              "The body of a method should always be a function."
+            )
+        }
+      case m @ IR.Module.Scope.Definition.Method.Explicit(_, body, _, _, _) =>
         body match {
           case _: IR.Function =>
             m.copy(
@@ -181,7 +194,7 @@ case object AliasAnalysis extends IRPass {
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of alias " +
-            "analysis."
+          "analysis."
         )
       case err: IR.Error => err
     }
@@ -342,7 +355,15 @@ case object AliasAnalysis extends IRPass {
     scope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
-      case arg @ IR.DefinitionArgument.Specified(name, _, value, susp, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(
+            name,
+            _,
+            value,
+            susp,
+            _,
+            _,
+            _
+          ) =>
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {

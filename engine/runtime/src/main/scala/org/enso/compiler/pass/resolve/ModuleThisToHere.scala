@@ -54,22 +54,22 @@ case object ModuleThisToHere extends IRPass {
           m.methodReference.typePointer
             .getMetadata(MethodDefinitions)
             .contains(localResolution)
-        )
+        ) {
+          val result = m.body.transformExpressions {
+            case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
+          }
+
           m match {
             case m: IR.Module.Scope.Definition.Method.Explicit =>
-              m.copy(body = m.body.transformExpressions {
-                case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
-              })
+              m.copy(body = result)
             case m: IR.Module.Scope.Definition.Method.Conversion =>
-              m.copy(body = m.body.transformExpressions {
-                case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
-              })
+              m.copy(body = result)
             case _ =>
               throw new CompilerError(
                 "Impossible method type during `ModuleThisToHere`."
               )
           }
-        else m
+        } else m
       case other => other
     }
     ir.copy(bindings = newBindings)
