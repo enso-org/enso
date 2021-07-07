@@ -5620,6 +5620,11 @@ object IR {
           "A conversion definition must have at least one argument."
       }
 
+      case object IncompatibleSourceType extends Reason {
+        override def explain: String =
+          "Arbitrary expressions are not yet supported as source types."
+      }
+
       case class MissingSourceType(argName: String) extends Reason {
         override def explain: String =
           s"The argument `$argName` does not define a source type."
