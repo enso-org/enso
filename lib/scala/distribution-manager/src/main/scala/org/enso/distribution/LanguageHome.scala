@@ -3,8 +3,9 @@ package org.enso.distribution
 import java.nio.file.Path
 
 case class LanguageHome(languageHome: Path) {
+  private val rootPath = languageHome.getParent.toAbsolutePath.normalize
   def editions: Path =
-    languageHome.resolve(DistributionManager.EDITIONS_DIRECTORY)
+    rootPath.resolve(DistributionManager.EDITIONS_DIRECTORY)
   def libraries: Path =
-    languageHome.resolve(DistributionManager.LIBRARIES_DIRECTORY)
+    rootPath.resolve(DistributionManager.LIBRARIES_DIRECTORY)
 }

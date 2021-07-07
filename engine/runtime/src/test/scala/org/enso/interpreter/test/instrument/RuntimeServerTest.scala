@@ -63,7 +63,7 @@ class RuntimeServerTest
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../distribution").toFile.getAbsolutePath
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
         )
         .logHandler(logOut)
         .out(out)

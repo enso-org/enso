@@ -90,17 +90,18 @@ case class DistributionPaths(
     */
   def editionSearchPaths: Seq[Path] =
     customEditions ++ Seq(cachedEditions) ++
-    bundledEnginesPaths(DistributionManager.EDITIONS_DIRECTORY)
+    bundledWithEngines(DistributionManager.EDITIONS_DIRECTORY)
 
-  /** Returns a sequence of paths to some subdirectory in all bundled engines.
+  /** Returns a sequence of paths to some subdirectory in all installed engines.
     */
-  def bundledEnginesPaths(subdirectory: String): Seq[Path] =
+  def bundledWithEngines(subdirectory: String): Seq[Path] = {
     for {
-      Bundle(enginesDir, _) <- bundle.toSeq
-      enginePath            <- FileSystem.listDirectory(enginesDir)
+      enginesDir <- engineSearchPaths
+      enginePath <- FileSystem.listDirectory(enginesDir)
       candidate = enginePath.toAbsolutePath.normalize / subdirectory
       if Files.exists(candidate)
     } yield candidate
+  }
 }
 
 /** Paths to secondary directories for additionally bundled engine
@@ -200,7 +201,7 @@ class DistributionManager(val env: Environment) {
     val fromEnv =
       env.getEnvPaths(ENSO_AUXILIARY_LIBRARY_CACHES).getOrElse(Seq())
     val fromBundles =
-      paths.bundledEnginesPaths(DistributionManager.LIBRARIES_DIRECTORY)
+      paths.bundledWithEngines(DistributionManager.LIBRARIES_DIRECTORY)
     fromEnv ++ fromBundles
   }
 

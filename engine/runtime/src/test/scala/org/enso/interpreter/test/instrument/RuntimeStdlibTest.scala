@@ -37,7 +37,7 @@ class RuntimeStdlibTest
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val distributionHome: File =
-      Paths.get("../../distribution").toFile.getAbsoluteFile
+      Paths.get("../../distribution/component").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
@@ -52,7 +52,7 @@ class RuntimeStdlibTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")

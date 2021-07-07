@@ -106,7 +106,7 @@ class InterpreterContext(
       .in(in)
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../distribution").toFile.getAbsolutePath
+        Paths.get("../../distribution/component").toFile.getAbsolutePath
       )
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {

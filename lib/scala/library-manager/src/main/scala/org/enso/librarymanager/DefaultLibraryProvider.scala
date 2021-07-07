@@ -3,13 +3,16 @@ package org.enso.librarymanager
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
-import org.enso.librarymanager.local.LocalLibraryProvider
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.cache.NoOpCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
   PublishedLibraryProvider
 }
+import org.enso.logger.masking.MaskedPath
+
+import java.nio.file.Path
 
 /** A helper class for loading libraries.
   *
@@ -25,22 +28,42 @@ class DefaultLibraryProvider(
   preferLocalLibraries: Boolean
 ) extends ResolvingLibraryProvider {
   private val logger = Logger[DefaultLibraryProvider]
-  private val localLibraryProvider =
-    LocalLibraryProvider.make(distributionManager)
+  private val localLibrarySearchPaths =
+    distributionManager.paths.localLibrariesSearchPaths.toList
+  private val localLibraryProvider = new DefaultLocalLibraryProvider(
+    localLibrarySearchPaths
+  )
+
   private val resolver = LibraryResolver(localLibraryProvider)
 
   // TODO [RW] actual cache that can download libraries will be implemented in #1772
   private val primaryCache = new NoOpCache
-
-  private val additionalCaches = {
+  private val additionalCacheLocations = {
     val engineBundleRoot = languageHome.map(_.libraries)
     val locations =
       engineBundleRoot.toList ++ distributionManager.auxiliaryLibraryCaches()
-    locations.map(new LocalReadOnlyRepository(_))
+    locations.distinct
   }
+  private val additionalCaches =
+    additionalCacheLocations.map(new LocalReadOnlyRepository(_))
 
   private val publishedLibraryProvider: PublishedLibraryProvider =
     new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
+
+  locally {
+    def mask(path: Path): String = MaskedPath(path).applyMasking()
+
+    logger.trace(
+      s"Local library search paths = ${localLibrarySearchPaths.map(mask)}"
+    )
+    logger.trace(
+      s"Primary library cache = Not implemented"
+    )
+    logger.trace(
+      s"Auxiliary (bundled) library caches = " +
+      s"${additionalCacheLocations.map(mask)}"
+    )
+  }
 
   /** Resolves the library version that should be used based on the
     * configuration and returns its location on the filesystem.
