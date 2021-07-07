@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.ResolvedModule
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 
@@ -48,16 +49,27 @@ case object ModuleThisToHere extends IRPass {
     val localResolution =
       BindingsMap.Resolution(ResolvedModule(moduleContext.module))
     val newBindings = ir.bindings.map {
-      case m: IR.Module.Scope.Definition.Method.Explicit =>
+      case m: IR.Module.Scope.Definition.Method =>
         if (
           m.methodReference.typePointer
             .getMetadata(MethodDefinitions)
             .contains(localResolution)
-        ) {
-          m.copy(body = m.body.transformExpressions {
-            case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
-          })
-        } else m
+        )
+          m match {
+            case m: IR.Module.Scope.Definition.Method.Explicit =>
+              m.copy(body = m.body.transformExpressions {
+                case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
+              })
+            case m: IR.Module.Scope.Definition.Method.Conversion =>
+              m.copy(body = m.body.transformExpressions {
+                case IR.Name.This(loc, _, _) => IR.Name.Here(loc)
+              })
+            case _ =>
+              throw new CompilerError(
+                "Impossible method type during `ModuleThisToHere`."
+              )
+          }
+        else m
       case other => other
     }
     ir.copy(bindings = newBindings)
