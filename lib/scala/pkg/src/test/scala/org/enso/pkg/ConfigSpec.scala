@@ -34,11 +34,8 @@ class ConfigSpec
         name      = "placeholder",
         version   = "dev",
         namespace = "local",
-        edition = Some(
-          Config.makeCompatibilityEditionFromVersion(
-            SemVerEnsoVersion(SemVer(4, 5, 6))
-          )
-        ),
+        edition =
+          Some(Config.makeCompatibilityEditionFromVersion(SemVer(4, 5, 6))),
         license = "none",
         authors = List(),
         maintainers = List(

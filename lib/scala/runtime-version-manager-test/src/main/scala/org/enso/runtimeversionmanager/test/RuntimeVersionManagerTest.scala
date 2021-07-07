@@ -81,11 +81,9 @@ class RuntimeVersionManagerTest
     */
   def newProject(name: String, path: Path, version: SemVer): Unit = {
     PackageManager.Default.create(
-      root = path.toFile,
-      name = name,
-      edition = Some(
-        Config.makeCompatibilityEditionFromVersion(SemVerEnsoVersion(version))
-      )
+      root    = path.toFile,
+      name    = name,
+      edition = Some(Config.makeCompatibilityEditionFromVersion(version))
     )
   }
 }

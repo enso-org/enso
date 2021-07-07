@@ -3,8 +3,15 @@ package org.enso.pkg
 import io.circe._
 import io.circe.syntax._
 import io.circe.yaml.Printer
+import nl.gn0s1s.bump.SemVer
 import org.enso.editions.EditionSerialization._
-import org.enso.editions.{EditionName, Editions, EnsoVersion}
+import org.enso.editions.{
+  DefaultEnsoVersion,
+  EditionName,
+  Editions,
+  EnsoVersion,
+  SemVerEnsoVersion
+}
 
 import scala.util.Try
 
@@ -88,7 +95,7 @@ object Contact {
   *                   maintainer(s)
   * @param edition the Edition associated with the project; it implies the
   *                engine version and dependency configuration to be used, if it
-  *                is missing, the default edition is used
+  *                is missing, the default edition should be used
   * @param preferLocalLibraries specifies if library resolution should prefer
   *                             local libraries over what is defined in the
   *                             edition
@@ -219,10 +226,10 @@ object Config {
     * compatibility.
     */
   def makeCompatibilityEditionFromVersion(
-    ensoVersion: EnsoVersion
+    ensoVersion: SemVer
   ): Editions.RawEdition = Editions.Raw.Edition(
     parent        = None,
-    engineVersion = Some(ensoVersion),
+    engineVersion = Some(SemVerEnsoVersion(ensoVersion)),
     repositories  = Map(),
     libraries     = Map()
   )
@@ -250,9 +257,13 @@ object Config {
         )
       case (Some(edition), _) =>
         Right(Some(edition))
-      case (_, Some(version)) =>
+      case (_, Some(SemVerEnsoVersion(version))) =>
         Right(Some(makeCompatibilityEditionFromVersion(version)))
-      case _ =>
+      case (_, Some(DefaultEnsoVersion)) =>
+        // If the `default` version is specified, we return None, so that later
+        // on, it will fallback to the default edition.
+        Right(None)
+      case (None, None) =>
         Right(None)
     }
 }
