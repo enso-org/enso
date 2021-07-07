@@ -1072,6 +1072,21 @@ lazy val runtime = (project in file("engine/runtime"))
       "-Dgraalvm.locatorDisabled=true",
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
+    Test / fork := true,
+    Test / envVars ++= {
+      // Note [Fake Environment for Runtime Tests]
+      val fakeDir = file("target/fake_dir").getAbsolutePath
+      Map(
+        "ENSO_DATA_DIRECTORY"           -> fakeDir,
+        "ENSO_CONFIG_DIRECTORY"         -> fakeDir,
+        "ENSO_RUNTIME_DIRECTORY"        -> file("target/run").getAbsolutePath,
+        "ENSO_LOG_DIRECTORY"            -> file("target/logs").getAbsolutePath,
+        "ENSO_HOME"                     -> fakeDir,
+        "ENSO_EDITION_PATH"             -> "",
+        "ENSO_LIBRARY_PATH"             -> "",
+        "ENSO_AUXILIARY_LIBRARY_CACHES" -> ""
+      )
+    },
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
@@ -1169,6 +1184,12 @@ lazy val runtime = (project in file("engine/runtime"))
  * with local publishing would not recompile the definition automatically on
  * changes, so the `unmanagedClasspath` route allows us to get automatic
  * recompilation but still convince the IDE that it is a .jar dependency.
+ */
+
+/* Note [Fake Environment for Runtime Tests]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * We override environment variables related to the distribution, so that a
+ * local installation does not interfere with runtime tests.
  */
 
 lazy val `engine-runner` = project

@@ -1,8 +1,7 @@
 package org.enso.polyglot
 
 import java.io.File
-import java.nio.file.Files
-
+import java.nio.file.{Files, Paths}
 import org.enso.pkg.{Package, PackageManager}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -19,6 +18,10 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
+        )
         .option(RuntimeOptions.STRICT_ERRORS, "true")
         .build()
     )
