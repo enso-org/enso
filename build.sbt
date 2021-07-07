@@ -3,6 +3,10 @@ import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -16,6 +20,7 @@ val graalVersion   = "21.1.0"
 val javaVersion    = "11"
 val ensoVersion    = "0.2.13-SNAPSHOT" // Note [Engine And Launcher Version]
 val currentEdition = "2021.1"          // Note [Default Editions]
+val stdLibVersion  = "0.1.0"           // Note [Standard Library Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,6 +44,17 @@ val currentEdition = "2021.1"          // Note [Default Editions]
  * release.
  */
 
+/* Note [Standard Library Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently the Standard library version is fixed at 0.1.0.
+ *
+ * Once the library repository is up and we start releasing the libraries, this
+ * version will need to be bumped, so for now the best way to achieve that will
+ * be to keep it in-sync with the engine version. However this will require
+ * creating a tool which will bump these version numbers in all standard library
+ * packages.
+ */
+
 ThisBuild / organization := "org.enso"
 ThisBuild / scalaVersion := scalacVersion
 
@@ -60,6 +76,16 @@ lazy val verifyGeneratedPackage =
   )
 verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
 
+def makeStdLibDistribution(
+  name: String,
+  components: Seq[SBTDistributionComponent]
+): DistributionDescription =
+  Distribution(
+    name,
+    file(s"distribution/lib/Standard/$name/THIRD-PARTY"),
+    components
+  )
+
 GatherLicenses.distributions := Seq(
   Distribution(
     "launcher",
@@ -80,27 +106,12 @@ GatherLicenses.distributions := Seq(
     file("distribution/project-manager/THIRD-PARTY"),
     Distribution.sbtProjects(`project-manager`)
   ),
-  Distribution(
-    "Base",
-    file("distribution/std-lib/Base/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-base`)
-  ),
-  Distribution(
-    "Table",
-    file("distribution/std-lib/Table/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-table`)
-  ),
-  Distribution(
-    "Database",
-    file("distribution/std-lib/Database/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-database`)
-  ),
-  Distribution(
-    "Image",
-    file("distribution/std-lib/Image/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-image`)
-  )
+  makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
+  makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
+  makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
+  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`))
 )
+
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
@@ -1364,12 +1375,14 @@ lazy val `locking-test-helper` = project
     assembly / assemblyOutputPath := file("locking-test-helper.jar")
   )
 
-val `std-lib-root`           = file("distribution/std-lib/")
-val `standard-polyglot-root` = `std-lib-root` / "Standard" / "polyglot" / "java"
-val `base-polyglot-root`     = `std-lib-root` / "Base" / "polyglot" / "java"
-val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
-val `image-polyglot-root`    = `std-lib-root` / "Image" / "polyglot" / "java"
-val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
+val `std-lib-root` = file("distribution/lib/Standard/")
+def stdLibComponentRoot(name: String): File =
+  `std-lib-root` / name / stdLibVersion
+val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
+val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
+val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
+val `database-polyglot-root` =
+  stdLibComponentRoot("Database") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")

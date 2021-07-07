@@ -52,7 +52,7 @@ class RuntimeStdlibTest
           RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
           distributionHome.toString
         )
-        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
+        .option(RuntimeOptions.LOG_LEVEL, "FINEST")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
@@ -219,7 +219,11 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    contentRootNotifications should contain(("Standard", "Base", "local"))
+    val libraryVersion =
+      "0.1.0" // buildinfo.Info.ensoVersion // TODO [RW] Change this once stdlib version starts being in-sync with engine version.
+    contentRootNotifications should contain(
+      ("Standard", "Base", libraryVersion)
+    )
 
     context.consumeOut shouldEqual List("Hello World!")
   }

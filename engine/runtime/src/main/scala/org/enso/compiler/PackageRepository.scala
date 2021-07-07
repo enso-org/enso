@@ -206,6 +206,18 @@ object PackageRepository {
       else {
         logger.trace(s"Resolving library $libraryName.")
         val resolvedLibrary = libraryProvider.findLibrary(libraryName)
+        logger.whenTraceEnabled {
+          resolvedLibrary match {
+            case Left(error) =>
+              logger.trace(s"Resolution failed with [$error].")
+            case Right(resolved) =>
+              logger.trace(
+                s"Found library ${resolved.name} @ ${resolved.version} " +
+                s"at [${MaskedPath(resolved.location).applyMasking()}]."
+              )
+          }
+        }
+
         this.synchronized {
           // We check again inside of the monitor, in case that some other
           // thread has just added this library.

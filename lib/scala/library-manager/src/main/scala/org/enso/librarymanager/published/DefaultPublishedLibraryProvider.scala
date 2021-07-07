@@ -1,5 +1,6 @@
 package org.enso.librarymanager.published
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.published.cache.{
@@ -19,7 +20,7 @@ class DefaultPublishedLibraryProvider(
   primaryCache: LibraryCache,
   auxiliaryCaches: List[ReadOnlyLibraryCache]
 ) extends PublishedLibraryProvider {
-
+  private val logger = Logger[DefaultPublishedLibraryProvider]
   private val caches: List[ReadOnlyLibraryCache] =
     primaryCache :: auxiliaryCaches
 
@@ -46,6 +47,10 @@ class DefaultPublishedLibraryProvider(
   ): Try[Path] = {
     val cached = findCached(libraryName, version, caches)
     cached.map(Success(_)).getOrElse {
+      logger.trace(
+        s"$libraryName was not found in any caches, it will need to be " +
+        s"downloaded."
+      )
       primaryCache.findOrInstallLibrary(
         libraryName,
         version,

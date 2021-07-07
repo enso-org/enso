@@ -1,5 +1,6 @@
 package org.enso.librarymanager
 
+import com.typesafe.scalalogging.Logger
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
@@ -23,6 +24,7 @@ class DefaultLibraryProvider(
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
 ) extends ResolvingLibraryProvider {
+  private val logger = Logger[DefaultLibraryProvider]
   private val localLibraryProvider =
     LocalLibraryProvider.make(distributionManager)
   private val resolver = LibraryResolver(localLibraryProvider)
@@ -50,6 +52,7 @@ class DefaultLibraryProvider(
   ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] = {
     val resolvedVersion = resolver
       .resolveLibraryVersion(libraryName, edition, preferLocalLibraries)
+    logger.trace(s"Resolved $libraryName to [$resolvedVersion].")
     resolvedVersion match {
       case Left(reason) =>
         Left(ResolvingLibraryProvider.Error.NotResolved(reason))

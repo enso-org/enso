@@ -24,7 +24,7 @@ case class LibraryResolver(
     * @param preferLocalLibraries the flag indicating whether to prefer local
     *                             libraries that are present over what the
     *                             edition defines
-    * @return
+    * @return either a resolved library version or a resolution error
     */
   def resolveLibraryVersion(
     libraryName: LibraryName,
