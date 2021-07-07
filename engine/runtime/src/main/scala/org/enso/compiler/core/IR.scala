@@ -5636,6 +5636,11 @@ object IR {
           s"`$argName` does not."
       }
 
+      case class SuspendedSourceArgument(argName: String) extends Reason {
+        override def explain: String =
+          s"The source type argument in a conversion (here $argName) cannot " +
+          s"be suspended."
+      }
     }
 
     /** A representation of an error resulting from name resolution.
