@@ -11,7 +11,6 @@ import org.enso.pkg.{Contact, PackageManager}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
-
 import java.io.File
 import java.util.UUID
 import scala.Console.err
@@ -28,6 +27,7 @@ object Main {
   private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
+  private val DOCS_OPTION                 = "docs"
   private val LANGUAGE_SERVER_OPTION      = "server"
   private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
@@ -62,6 +62,10 @@ object Main {
       .argName("file")
       .longOpt(RUN_OPTION)
       .desc("Runs a specified Enso file.")
+      .build
+    val docs = CliOption.builder
+      .longOpt(DOCS_OPTION)
+      .desc("Runs the Enso documentation generator.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -191,6 +195,7 @@ object Main {
       .addOption(help)
       .addOption(repl)
       .addOption(run)
+      .addOption(docs)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectAuthorNameOpt)
@@ -320,6 +325,57 @@ object Main {
       runSingleFile(context, file)
     }
     exitSuccess()
+  }
+
+  /** Handles the `--docs` CLI option.
+    *
+    * Generates reference website from standard library.
+    *
+    * @param projectPath if specified, the docs is generated for a project
+    *                    at the given path
+    * @param logLevel log level to set for the engine runtime
+    */
+  private def genDocs(
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = {
+    if (projectPath.isEmpty) {
+      println("Path hasn't been provided.")
+      exitFail()
+    }
+    generateDocsFrom(projectPath.get, logLevel)
+    exitSuccess()
+  }
+
+  /** Subroutine of `genDocs` function.
+    * Generates the documentation for given Enso project at given path.
+    */
+  def generateDocsFrom(path: String, logLevel: LogLevel): Unit = {
+    val executionContext = new ContextFactory().create(
+      path,
+      System.in,
+      System.out,
+      Repl(TerminalIO()),
+      logLevel = logLevel
+    )
+
+    val file = new File(path)
+    val pkg  = PackageManager.Default.fromDirectory(file)
+    val main = pkg.map(_.mainFile)
+
+    if (main.exists(_.exists())) {
+      val mainFile       = main.get
+      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
+      val topScope       = executionContext.getTopScope
+      val mainModule     = topScope.getModule(mainModuleName)
+      val generated      = mainModule.generateDocs()
+      print(generated)
+
+      // TODO:
+      // - go through executed code and get all HTML docs
+      //   with their corresponding atoms/methods etc.
+      // - Save those to files
+    }
   }
 
   private def runPackage(
@@ -577,6 +633,9 @@ object Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+    }
+    if (line.hasOption(DOCS_OPTION)) {
+      genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)

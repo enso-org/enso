@@ -241,13 +241,15 @@ trait CompilerRunner {
     moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None,
-    compilerConfig: CompilerConfig               = defaultConfig
+    compilerConfig: CompilerConfig               = defaultConfig,
+    isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
       module            = Module.empty(moduleName, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
-      compilerConfig    = compilerConfig
+      compilerConfig    = compilerConfig,
+      isGeneratingDocs  = isGeneratingDocs
     )
   }
 

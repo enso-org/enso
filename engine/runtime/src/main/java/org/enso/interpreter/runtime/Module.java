@@ -415,6 +415,11 @@ public class Module implements TruffleObject {
           .getValue();
     }
 
+    private static Object generateDocs(Module module, Context context) {
+      Module moduleAfterGeneration = context.getCompiler().generateDocs(module);
+      return moduleAfterGeneration;
+    }
+
     @Specialization
     static Object doInvoke(
         Module module,
@@ -434,6 +439,8 @@ public class Module implements TruffleObject {
           return getConstructor(scope, arguments);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
+        case MethodNames.Module.GENERATE_DOCS:
+          return generateDocs(module, context);
         case MethodNames.Module.SET_SOURCE:
           return setSource(module, arguments, context);
         case MethodNames.Module.SET_SOURCE_FILE:

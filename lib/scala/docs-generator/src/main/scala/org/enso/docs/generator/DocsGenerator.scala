@@ -1,63 +1,43 @@
 package org.enso.docs.generator
 
-import java.io.File
-import org.enso.syntax.text.{DocParser, Parser}
-import org.enso.syntax.text.docparser._
+import org.enso.docs.generator.DocParserWrapper.runOnPureDoc
+import org.enso.syntax.text.AST
+import org.enso.syntax.text.docparser.DocParserHTMLGenerator
+import scalatags.Text.{all => HTML}
+import HTML._
 
-/** The Docs Generator class. Defines useful wrappers for Doc Parser.
+/** Defines methods for generating and glue-ing together doc content.
   */
 object DocsGenerator {
 
-  /** Generates HTML of docs from Enso program.
+  /** Generates list of HTML docs from given doc comments in AST.
     */
-  def run(program: String): String = {
-    val parser   = new Parser()
-    val module   = parser.run(program)
-    val dropMeta = parser.dropMacroMeta(module)
-    val doc      = DocParserRunner.createDocs(dropMeta)
-    val code     = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
-    code
+  def generateFromAst(ast: List[AST.Comment]): List[String] = {
+    generate(ast.map(_.show()))
   }
 
-  /** Generates HTML from Documentation string.
+  /** Generates list of HTML docs from given doc comments.
     */
-  def runOnPureDoc(comment: String): String = {
-    val doc  = DocParser.runMatched(comment)
-    val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
-    html
+  def generate(comments: List[String]): List[String] = {
+    comments.map(runOnPureDoc)
   }
 
-  /** Called if file doesn't contain docstrings, to let user know that they
-    * won't find anything at this page, and that it is not a bug.
+  /** Connects HTML documentation with it's AST element.
     */
-  def mapIfEmpty(doc: String): String = {
-    var tmp = doc
-    if (doc.replace("<div>", "").replace("</div>", "").length == 0) {
-      tmp =
-        "\n\n*Enso Reference Viewer.*\n\nNo documentation available for chosen source file."
-      tmp = runOnPureDoc(tmp).replace("style=\"font-size: 13px;\"", "")
+  def connectHtmlToAst(html: String, ast: AST): String = {
+    val astHTML = DocParserHTMLGenerator.createHTMLFromAST(ast)
+    val astName = HTML.div(astHTML.header)
+    astHTML.body match {
+      case Some(body) =>
+        HTML.div(HTML.`class` := "main ml-20")(astName, html, body).render
+      case None => HTML.div(astName, html).render
     }
-    tmp
   }
 
-  /** Doc Parser may output file with many nested empty divs.
-    * This simple function will remove all unnecessary HTML tags.
+  /** Glues together many docs with AST elements in proper order to create one
+    * documentation page.
     */
-  def removeUnnecessaryDivs(doc: String): String = {
-    var tmp = doc
-    while (tmp.contains("<div></div>"))
-      tmp = tmp.replace("<div></div>", "")
-    tmp
+  def glueGeneratedContent(docs: List[String], astList: List[AST]): String = {
+    docs.zip(astList).map(e => connectHtmlToAst(e._1, e._2)).mkString
   }
-
-  /** Traverses through root directory, outputs list of all accessible files.
-    */
-  def traverse(root: File): LazyList[File] =
-    if (!root.exists) { LazyList.empty }
-    else {
-      LazyList.apply(root) ++ (root.listFiles match {
-        case null  => LazyList.empty
-        case files => files.view.flatMap(traverse)
-      })
-    }
 }
