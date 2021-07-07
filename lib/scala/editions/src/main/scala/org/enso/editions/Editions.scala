@@ -144,6 +144,7 @@ object Editions {
     }
   }
 
+  /** Syntax helpers for a raw edition. */
   implicit class RawEditionOps(edition: RawEdition) {
 
     /** Checks if the edition configuration consists only of an `extends` field

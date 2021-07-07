@@ -91,6 +91,7 @@ public class Context {
               var result = packageManager.fromDirectory(projectRoot.get());
               if (result.isEmpty()) {
                 logger.warning("Could not load the project root package.");
+                // TODO [RW, MK] at this point we will fallback to the default edition which may not be the correct behaviour here, if we are run inside of a project and cannot load it, maybe should just throw?
               }
               return ScalaConversions.asJava(result);
             });
