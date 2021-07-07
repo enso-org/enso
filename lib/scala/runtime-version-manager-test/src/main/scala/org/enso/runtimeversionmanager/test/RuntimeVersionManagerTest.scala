@@ -1,13 +1,11 @@
 package org.enso.runtimeversionmanager.test
 
-import java.nio.file.Path
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.{
   DistributionManager,
   Environment,
   PortableDistributionManager
 }
-import org.enso.editions.SemVerEnsoVersion
 import org.enso.pkg.{Config, PackageManager}
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
@@ -21,6 +19,8 @@ import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProv
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.nio.file.Path
 
 /** Gathers helper methods for testing the [[RuntimeVersionManager]]. */
 class RuntimeVersionManagerTest
