@@ -83,8 +83,12 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+      case method: Method.Conversion =>
+        method
+          .copy(
+            body = analyseExpression(method.body, isInTailPosition = true)
+          )
+          .updateMetadata(this -->> TailPosition.Tail)
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         method
