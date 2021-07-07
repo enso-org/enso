@@ -128,6 +128,12 @@ object DistributionPackage {
     )
 
     copyDirectoryIncremental(
+      file("distribution/editions"),
+      distributionRoot / "editions",
+      cacheFactory.make("engine-editions")
+    )
+
+    copyDirectoryIncremental(
       file("distribution/std-lib"),
       distributionRoot / "std-lib",
       cacheFactory.make("engine-std-lib")

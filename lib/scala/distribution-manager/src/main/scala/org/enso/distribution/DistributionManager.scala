@@ -169,13 +169,14 @@ class DistributionManager(val env: Environment) {
     def canonizeSeq(paths: Seq[Path]): String =
       paths.map(canonize).mkString(File.pathSeparator)
     Map(
-      ENSO_DATA_DIRECTORY    -> canonize(paths.dataRoot),
-      ENSO_CONFIG_DIRECTORY  -> canonize(paths.config),
-      ENSO_RUNTIME_DIRECTORY -> canonize(paths.runRoot),
-      ENSO_LOG_DIRECTORY     -> canonize(paths.logs),
-      ENSO_HOME              -> canonize(paths.ensoHome),
-      ENSO_EDITION_PATH      -> canonizeSeq(paths.customEditions),
-      ENSO_LIBRARY_PATH      -> canonizeSeq(paths.localLibrariesSearchPaths)
+      ENSO_DATA_DIRECTORY           -> canonize(paths.dataRoot),
+      ENSO_CONFIG_DIRECTORY         -> canonize(paths.config),
+      ENSO_RUNTIME_DIRECTORY        -> canonize(paths.runRoot),
+      ENSO_LOG_DIRECTORY            -> canonize(paths.logs),
+      ENSO_HOME                     -> canonize(paths.ensoHome),
+      ENSO_EDITION_PATH             -> canonizeSeq(paths.customEditions),
+      ENSO_LIBRARY_PATH             -> canonizeSeq(paths.localLibrariesSearchPaths),
+      ENSO_AUXILIARY_LIBRARY_CACHES -> canonizeSeq(auxiliaryLibraryCaches())
     )
   }
 
@@ -195,8 +196,13 @@ class DistributionManager(val env: Environment) {
     * These locations can be used to preload published libraries, for example
     * from a shared network drive, so that they do not need to be downloaded.
     */
-  def auxiliaryLibraryCaches(): Seq[Path] =
-    env.getEnvPaths(ENSO_AUXILIARY_LIBRARY_CACHES).getOrElse(Seq())
+  def auxiliaryLibraryCaches(): Seq[Path] = {
+    val fromEnv =
+      env.getEnvPaths(ENSO_AUXILIARY_LIBRARY_CACHES).getOrElse(Seq())
+    val fromBundles =
+      paths.bundledEnginesPaths(DistributionManager.LIBRARIES_DIRECTORY)
+    fromEnv ++ fromBundles
+  }
 
   /** Finds the path to the ENSO_HOME directory that is used for keeping user's
     * projects, libraries and other custom artifacts.

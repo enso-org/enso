@@ -46,7 +46,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   }
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, distributionManager)
-  private lazy val editionManager = EditionManager(distributionManager)
+  private lazy val editionManager = new EditionManager(
+    distributionManager.paths.editionSearchPaths.toList
+  )
   private lazy val projectManager = new ProjectManager
   private lazy val runner =
     new LauncherRunner(

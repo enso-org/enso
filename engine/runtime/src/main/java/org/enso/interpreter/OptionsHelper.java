@@ -26,23 +26,17 @@ public class OptionsHelper {
   }
 
   /**
-   * Gets the list of locations of packages that should be preloaded.
+   * Gets an optional override for the language home directory.
    *
-   * <p>This is meant mainly for testing purposes, as normally package locations are handled by
-   * environment variables, see {@link org.enso.distribution.DistributionManager}.
-   *
-   * <p>It will also be slightly repurposed after integrating with editions and once the standard
-   * library directory structure is upgraded to the new format.
+   * This is used mostly for the runtime tests, as language home is not normally
+   * defined there.
    */
-  public static List<TruffleFile> getPreloadedPackagesPaths(TruffleLanguage.Env env) {
-    String option = env.getOptions().get(RuntimeOptions.PRELOADED_PACKAGES_PATHS_KEY);
+  public static Optional<String> getLanguageHomeOverride(TruffleLanguage.Env env) {
+    String option = env.getOptions().get(RuntimeOptions.LANGUAGE_HOME_OVERRIDE_KEY);
     if (option.equals("")) {
-      return Collections.emptyList();
+      return Optional.empty();
     } else {
-      return Arrays.stream(
-          option.split(env.getPathSeparator()))
-          .map(env::getInternalTruffleFile)
-          .collect(Collectors.toList());
+      return Optional.of(option);
     }
   }
 }

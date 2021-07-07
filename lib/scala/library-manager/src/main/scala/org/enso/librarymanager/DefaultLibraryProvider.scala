@@ -1,6 +1,6 @@
 package org.enso.librarymanager
 
-import org.enso.distribution.DistributionManager
+import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
@@ -10,20 +10,16 @@ import org.enso.librarymanager.published.{
   PublishedLibraryProvider
 }
 
-import java.nio.file.Path
-
 /** A helper class for loading libraries.
   *
-  * @param distributionManager    a distribution manager
-  * @param engineDistributionRoot the root of the engine distribution that is
-  *                               being run, if applicable; it is used to make
-  *                               bundled libraries available
-  * @param edition                the edition used in the project
-  * @param preferLocalLibraries   project setting whether to use local libraries
+  * @param distributionManager  a distribution manager
+  * @param languageHome         a language home which may contain bundled libraries
+  * @param edition              the edition used in the project
+  * @param preferLocalLibraries project setting whether to use local libraries
   */
-case class DefaultLibraryProvider(
+class DefaultLibraryProvider(
   distributionManager: DistributionManager,
-  engineDistributionRoot: Option[Path],
+  languageHome: Option[LanguageHome],
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
 ) extends ResolvingLibraryProvider {
@@ -35,12 +31,9 @@ case class DefaultLibraryProvider(
   private val primaryCache = new NoOpCache
 
   private val additionalCaches = {
-    val bundleRoot = engineDistributionRoot.map { root =>
-      // TODO [RW] change this to sth like just `lib`
-      root.resolve("std-lib")
-    }
+    val engineBundleRoot = languageHome.map(_.libraries)
     val locations =
-      bundleRoot.toList ++ distributionManager.auxiliaryLibraryCaches()
+      engineBundleRoot.toList ++ distributionManager.auxiliaryLibraryCaches()
     locations.map(new LocalReadOnlyRepository(_))
   }
 

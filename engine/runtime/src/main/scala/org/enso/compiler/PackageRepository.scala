@@ -2,13 +2,17 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.DistributionManager
-import org.enso.editions.{LibraryName, LibraryVersion}
+import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
+import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.librarymanager.{ResolvedLibrary, ResolvingLibraryProvider}
+import org.enso.librarymanager.{
+  DefaultLibraryProvider,
+  ResolvedLibrary,
+  ResolvingLibraryProvider
+}
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
@@ -342,6 +346,41 @@ object PackageRepository {
         .toRight {
           ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
         }
+  }
+
+  def initializeRepository(
+    projectPackage: Option[Package[TruffleFile]],
+    languageHome: Option[String],
+    distributionManager: DistributionManager,
+    context: Context,
+    builtins: Builtins,
+    notificationHandler: NotificationHandler
+  ): PackageRepository = {
+    val rawEdition = projectPackage
+      .flatMap(_.config.edition)
+      .getOrElse(DefaultEdition.getDefaultEdition)
+
+    val homeManager = languageHome.map { home => LanguageHome(Path.of(home)) }
+    val editionSearchPaths =
+      homeManager.map(_.editions).toList ++
+      distributionManager.paths.editionSearchPaths
+    val editionManager = new EditionManager(editionSearchPaths)
+    val edition        = editionManager.resolveEdition(rawEdition).get
+
+    val resolvingLibraryProvider =
+      new DefaultLibraryProvider(
+        distributionManager = distributionManager,
+        languageHome        = homeManager,
+        edition             = edition,
+        preferLocalLibraries =
+          projectPackage.map(_.config.preferLocalLibraries).getOrElse(false)
+      )
+    new Default(
+      resolvingLibraryProvider,
+      context,
+      builtins,
+      notificationHandler
+    )
   }
 
   /** A temporary helper constructor for [[PackageRepository]] that does not

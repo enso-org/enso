@@ -9,21 +9,19 @@ import org.enso.editions.{
   EnsoVersion
 }
 
+import java.nio.file.Path
 import scala.util.{Success, Try}
 
-/** A helper class for resolving editions backed by the Edition storage managed
-  * by the DistributionManager.
-  */
-case class EditionManager(distributionManager: DistributionManager) {
-  private val editionProvider = FileSystemEditionProvider(
-    distributionManager.paths.editionSearchPaths.toList
-  )
+/** A helper class for resolving editions. */
+class EditionManager(searchPaths: List[Path]) {
+  private val editionProvider = FileSystemEditionProvider(searchPaths)
 
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
 
   /** Resolves a raw edition, loading its parents from the edition search path.
+    *
     * @param edition the edition to resolve
     * @return the resolved edition
     */
@@ -34,6 +32,7 @@ case class EditionManager(distributionManager: DistributionManager) {
 
   /** Resolves the engine version that should be used based on the provided raw
     * edition configuration.
+    *
     * @param edition the edition configuration to base the selected version on;
     *                if it is not specified, it will fallback to the default
     *                engine version
