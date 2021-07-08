@@ -1,11 +1,8 @@
-
 # This is the repository for Enso's graphical interface component. If you're looking for the main product repository, you may find it at at 👉 <a href="https://github.com/enso-org/enso">github.com/enso-org/enso</a> 👈
-
 
 <br/>
 
 # Enso IDE
-
 
 ### Overview
 
@@ -23,7 +20,6 @@
          alt="License">
   </a>
 </p>
-
 
 Enso is an award-winning interactive programming language with dual visual and
 textual representations. It is a tool that spans the entire stack, going from
