@@ -10,6 +10,9 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.NotificationHandler;
+import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
+import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -60,11 +63,18 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
-    Context context = new Context(this, getLanguageHome(), env);
+    var notificationHandler = new Forwarder();
+    boolean isInteractiveMode = env.getOptions().get(RuntimeOptions.INTERACTIVE_MODE_KEY);
+    boolean isTextMode = !isInteractiveMode;
+    if (isTextMode) {
+      notificationHandler.addListener(TextMode$.MODULE$);
+    }
+
+    Context context = new Context(this, getLanguageHome(), env, notificationHandler);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
     idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
-    env.registerService(new ExecutionService(context, idExecutionInstrument));
+    env.registerService(new ExecutionService(context, idExecutionInstrument, notificationHandler));
     return context;
   }
 

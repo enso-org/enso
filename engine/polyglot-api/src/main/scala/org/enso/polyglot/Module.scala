@@ -19,7 +19,7 @@ class Module(private val value: Value) {
     value.invokeMember(GET_ASSOCIATED_CONSTRUCTOR)
 
   /** Gets a constructor definition by name.
-   *
+    *
     * @param name the constructor name
     * @return the polyglot representation of the constructor.
     */
@@ -42,12 +42,20 @@ class Module(private val value: Value) {
 
   /** Evaluates an arbitrary expression as if it were placed in a function
     * body inside this module.
-   *
+    *
     * @param code the expression to evaluate
     * @return the return value of the expression
     */
   def evalExpression(code: String): Value =
     value.invokeMember(EVAL_EXPRESSION, code)
+
+  /** Triggers generation of documentation from module sources.
+    *
+    * @return value with `GENERATE_DOCS` invoked on it.
+    */
+  def generateDocs(): Value = {
+    value.invokeMember(GENERATE_DOCS)
+  }
 
   /** Triggers reparsing of module sources. Used to notify the module that
     * sources have changed.

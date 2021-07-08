@@ -2,7 +2,7 @@ package org.enso.launcher.components
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{EditionManager, Environment}
+import org.enso.distribution.{DistributionManager, EditionManager, Environment}
 import org.enso.launcher.project.ProjectManager
 import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
@@ -17,6 +17,7 @@ import scala.util.Try
   */
 class LauncherRunner(
   projectManager: ProjectManager,
+  distributionManager: DistributionManager,
   configurationManager: GlobalConfigurationManager,
   componentsManager: RuntimeVersionManager,
   editionManager: EditionManager,
@@ -24,6 +25,7 @@ class LauncherRunner(
   loggerConnection: Future[Option[Uri]]
 ) extends Runner(
       componentsManager,
+      distributionManager,
       configurationManager,
       editionManager,
       environment,

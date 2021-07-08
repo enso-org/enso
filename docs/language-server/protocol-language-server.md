@@ -57,6 +57,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`WorkspaceEdit`](#workspaceedit)
   - [`EnsoDigest`](#ensodigest)
   - [`FileSegment`](#filesegment)
+  - [`ContentRoot`](#contentroot)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -1156,34 +1157,60 @@ a location on a real file-system that has been virtualised for use in the Enso
 VFS.
 
 ```typescript
-interface ContentRoot {
-  // A unique identifier for the content root.
-  id: UUID;
-  // The type of content root.
-  type: ContentRootType;
-
-  // The name of the content root.
-  name: String;
-}
+type ContentRoot = Project | FileSystemRoot | Home | Library | Custom;
 ```
-
-### `ContentRootType`
-
-The type of the annotated content root.
 
 ```typescript
-type ContentRootType = Project | Root | Home | Library | Custom;
+/** This content root points to the project home. */
+interface Project {
+  // A unique identifier for the content root.
+  id: UUID;
+}
+
+/**
+ * This content root points to the system root (`/`) on unix systems, or to a
+ * drive root on Windows. In Windows' case, there may be multiple `Root` entries
+ * corresponding to the various drives.
+ */
+interface FileSystemRoot {
+  // A unique identifier for the content root.
+  id: UUID;
+
+  // The absolute filesystem path of the content root.
+  path: String;
+}
+
+/** The user's home directory. */
+interface Home {
+  // A unique identifier for the content root.
+  id: UUID;
+}
+
+/** An Enso library location. */
+interface Library {
+  // A unique identifier for the content root.
+  id: UUID;
+
+  // The namespace of the library.
+  namespace: String;
+
+  // The name of the library.
+  name: String;
+
+  /**
+   * The version of the library.
+   *
+   * It is either a semver version of the library or the string "local".
+   */
+  version: String;
+}
+
+/** A content root that has been added by the IDE (unused for now). */
+interface Custom {
+  // A unique identifier for the content root.
+  id: UUID;
+}
 ```
-
-These represent:
-
-- `Project`: This content root points to the project home.
-- `Root`: This content root points to the system root (`/`) on unix systems, or
-  to a drive root on Windows. In Windows' case, there may be multiple `Root`
-  entries corresponding to the various drives.
-- `Home`: The user's home directory.
-- `Library`: An Enso library location.
-- `Custom`: A content root that has been added by the IDE (unused for now).
 
 ## Connection Management
 
@@ -2155,76 +2182,17 @@ of the (possibly multiple) content roots.
 
 None
 
-### `file/addRoot`
-
-This request adds a content root to the active project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-When a content root is added, the language server must notify clients other than
-the one that added the root by sending a `file/rootAdded`. Additionally, all
-clients must be notified with a `file/event` about the addition of the new root.
-The IDE is responsible for calling `file/tree` on that root to discover its
-structure.
-
-#### Parameters
-
-```typescript
-{
-  absolutePath: [String];
-  id: UUID; // The ID of the content root
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
-### `file/removeRoot`
-
-This request removes a content root from the active project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-When a content root is removed, the language server must notify clients other
-than the one that added the root by sending a `file/rootRemoved`. Additionally,
-the server must send a `file/event` making the root of the new tree visible. The
-IDE is responsible for any additional discovery.
-
-#### Parameters
-
-```typescript
-{
-  id: UUID; // The content root ID
-}
-```
-
-#### Result
-
-```typescript
-null;
-```
-
-#### Errors
-
-TBC
-
 ### `file/rootAdded`
 
-This is a notification sent to all clients other than the one performing the
-addition of the root in order to inform them of the content root's ID.
+This is a notification sent to all clients to inform them that a content root
+has been added.
+
+At the beginning, a series of notifications is sent that lists all content roots
+that are present at the current moment. This message may contain the same
+content roots that were already present in the `session/initProtocolConnection`.
+That is done, because there is no guarantee that no root has been added between
+the init message and the time when notifications start being sent, and this
+ensures that no content root is missed.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -2235,8 +2203,7 @@ addition of the root in order to inform them of the content root's ID.
 
 ```typescript
 {
-  id: UUID; // The content root ID
-  absolutePath: [String];
+  root: ContentRoot;
 }
 ```
 

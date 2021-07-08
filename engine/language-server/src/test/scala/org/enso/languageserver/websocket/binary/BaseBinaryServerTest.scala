@@ -8,14 +8,17 @@ import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.{
   Config,
-  ProjectDirectoriesConfig,
   ExecutionContextConfig,
   FileManagerConfig,
-  PathWatcherConfig
+  PathWatcherConfig,
+  ProjectDirectoriesConfig
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
-  ContentRootType,
+  ContentRoot,
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootWithFile,
   FileManager,
   FileSystem
@@ -34,13 +37,11 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
 
   val testContentRootId = UUID.randomUUID()
   val testContentRoot = ContentRootWithFile(
-    testContentRootId,
-    ContentRootType.Project,
-    "Project",
+    ContentRoot.Project(testContentRootId),
     Files.createTempDirectory(null).toRealPath().toFile
   )
   val config = Config(
-    Map(testContentRootId -> testContentRoot),
+    testContentRoot,
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -57,8 +58,18 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
       {
         val zioExec = ZioExec(zio.Runtime.default)
 
-        val fileManager =
-          system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+        val contentRootManagerActor =
+          system.actorOf(ContentRootManagerActor.props(config))
+        val contentRootManagerWrapper: ContentRootManager =
+          new ContentRootManagerWrapper(config, contentRootManagerActor)
+        val fileManager = system.actorOf(
+          FileManager.props(
+            config.fileManager,
+            contentRootManagerWrapper,
+            new FileSystem,
+            zioExec
+          )
+        )
 
         val controller =
           system.actorOf(

@@ -263,7 +263,10 @@ jobs:
           sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Standard ${{ env.ENGINE_DIST_DIR }}/std-lib/Standard/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/std-lib/Base/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/std-lib/Table/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/std-lib/Image/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/std-lib/Database/THIRD-PARTY"
 
       # Publish
       - name: Upload the Engine Artifact

@@ -21,7 +21,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .option(RuntimeOptions.PACKAGES_PATH, pkgPath.getAbsolutePath)
+      .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .out(output)
       .in(System.in)

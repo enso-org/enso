@@ -69,6 +69,8 @@ object JsonRpc {
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
     .registerNotification(EventFile)
+    .registerNotification(ContentRootAdded)
+    .registerNotification(ContentRootRemoved)
     .registerNotification(ExecutionContextExpressionUpdates)
     .registerNotification(ExecutionContextExecutionFailed)
     .registerNotification(ExecutionContextExecutionStatus)

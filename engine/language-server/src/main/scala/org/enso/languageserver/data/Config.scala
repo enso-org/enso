@@ -1,16 +1,10 @@
 package org.enso.languageserver.data
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
-import org.enso.languageserver.filemanager.{
-  ContentRootNotFound,
-  ContentRootWithFile,
-  FileSystemFailure,
-  Path
-}
+import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
+import java.io.File
+import java.nio.file.Files
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -123,15 +117,14 @@ object ProjectDirectoriesConfig {
 
 /** The config of the running Language Server instance.
   *
-  * @param contentRoots a mapping between content root id and absolute path to
-  * the content root
+  * @param projectContentRoot project's main content root
   * @param fileManager the file manager config
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories
   */
 case class Config(
-  contentRoots: Map[UUID, ContentRootWithFile],
+  projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
@@ -140,40 +133,20 @@ case class Config(
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
-    val maskedRoots =
+    val maskedRoot =
       if (shouldMask) {
-        contentRoots
-          .map { case (k, v) =>
-            k -> MaskingUtils.toMaskedPath(v.file.toPath)
-          }
+        MaskingUtils.toMaskedPath(projectContentRoot.file.toPath)
       } else {
-        contentRoots
+        projectContentRoot
       }
     s"Config(" +
-    s"contentRoots=$maskedRoots, " +
+    s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +
     s")"
   }
-
-  def findContentRoot(
-    rootId: UUID
-  ): Either[FileSystemFailure, ContentRootWithFile] =
-    contentRoots
-      .get(rootId)
-      .toRight(ContentRootNotFound)
-
-  def findRelativePath(path: File): Option[Path] =
-    contentRoots.view.flatMap { case (id, root) =>
-      if (path.toPath.startsWith(root.file.toPath)) {
-        Some(Path(id, root.file.toPath.relativize(path.toPath)))
-      } else {
-        None
-      }
-    }.headOption
-
 }
 object Config {
   def ensoPackageConfigName: String = "package.yaml"

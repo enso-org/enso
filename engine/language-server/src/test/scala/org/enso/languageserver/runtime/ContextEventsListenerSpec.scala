@@ -6,7 +6,10 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
-  ContentRootType,
+  ContentRoot,
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootWithFile
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol._
@@ -434,7 +437,7 @@ class ContextEventsListenerSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -471,9 +474,7 @@ class ContextEventsListenerSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )
@@ -483,9 +484,14 @@ class ContextEventsListenerSpec
     val contextRegistry = TestProbe("context-registry")
     val db              = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val repo            = new SqlSuggestionsRepo(db)
+
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val listener = contextRegistry.childActorOf(
       ContextEventsListener.props(
-        config,
+        RuntimeFailureMapper(contentRootManagerWrapper),
         repo,
         newJsonSession(clientId),
         contextId,

@@ -1,7 +1,5 @@
 package org.enso.interpreter.instrument
 
-import java.nio.ByteBuffer
-
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.CommandFactory
 import org.enso.interpreter.instrument.execution.{
@@ -11,6 +9,8 @@ import org.enso.interpreter.instrument.execution.{
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
+
+import java.nio.ByteBuffer
 
 /** A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
@@ -75,6 +75,7 @@ final class Handler {
         truffleContext
       )
     commandProcessor = new CommandExecutionEngine(interpreterCtx)
+    executionService.initializeLanguageServerConnection(endpoint)
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
   }
 

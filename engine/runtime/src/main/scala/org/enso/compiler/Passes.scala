@@ -31,7 +31,8 @@ class Passes(
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingAnalysis
+      BindingAnalysis,
+      GenerateDocumentation
     )
   )
 

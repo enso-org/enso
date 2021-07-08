@@ -14,3 +14,4 @@ Documents in this section describe Enso's library ecosystem.
   organizes library versioning.
 - [**Repositories:**](./repositories.md) Information on the structure of
   repositories providing Enso libraries and Editions.
+- [**Sharing Libraries:**](./sharing.md) Information on how to share libraries.

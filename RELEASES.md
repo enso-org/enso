@@ -7,6 +7,10 @@
   project ([#1806](https://github.com/enso-org/enso/pull/1806)).
 - Fixed a bug where unresolved imports would crash the compiler
   ([#1822](https://github.com/enso-org/enso/pull/1822)).
+- Implemented the ability to dynamically load local libraries
+  ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
+  supports the loading of local libraries, but will be integrated with the
+  editions system soon.
 
 ## Tooling
 
@@ -15,6 +19,15 @@
 - Fixed a bug where the Project Manager would not preinstall the Graal runtime
   if the engine was already installed and only its runtime was missing
   ([#1824](https://github.com/enso-org/enso/pull/1824)).
+- Extended content root mechanism to provide the home directory and filesystem
+  roots on startup ([#1821](https://github.com/enso-org/enso/pull/1821)). It now
+  also supports dynamically adding content roots and notifies the IDE when a new
+  content root is added.
+- Connected the documentation generator with Enso compiler and suggestion
+  database, making the documentation generated before being sent to the IDE,
+  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's
+  side, also enabling us to connect many AST elements with docs. See
+  ([#1744](https://github.com/enso-org/enso/pull/1744).
 
 # Enso 0.2.12 (2021-06-24)
 

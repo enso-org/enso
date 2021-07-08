@@ -550,11 +550,22 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
+  .configs(Benchmark)
   .settings(
     libraryDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion
     ),
-    mainClass := Some("org.enso.docs.generator.Main")
+    mainClass := Some("org.enso.docs.generator.Main"),
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / unmanagedSourceDirectories +=
+      baseDirectory.value.getParentFile / "bench" / "scala",
+    libraryDependencies +=
+      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
+    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -651,6 +662,18 @@ lazy val `logging-service` = project
   )
   .dependsOn(`akka-native`)
   .dependsOn(`logging-utils`)
+
+lazy val `logging-truffle-connector` = project
+  .in(file("lib/scala/logging-truffle-connector"))
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"           % "slf4j-api"   % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+    )
+  )
+  .dependsOn(`logging-utils`)
+  .dependsOn(`polyglot-api`)
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -852,6 +875,7 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -1084,8 +1108,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
+  .dependsOn(`library-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-utils`)
+  .dependsOn(`logging-truffle-connector`)
   .dependsOn(`docs-generator`)
 
 /* Note [Unmanaged Classpath]
