@@ -134,8 +134,7 @@ case object DocumentationComments extends IRPass {
     ir match {
       case _: Method.Conversion =>
         throw new CompilerError(
-          "Conversion methods should not be " +
-          "present at this point.."
+          "Conversion methods should not be present at this point."
         )
       case method: IR.Module.Scope.Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))

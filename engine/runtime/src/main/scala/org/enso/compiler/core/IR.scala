@@ -5620,7 +5620,7 @@ object IR {
           "A conversion definition must have at least one argument."
       }
 
-      case object IncompatibleSourceType extends Reason {
+      case object UnsupportedSourceType extends Reason {
         override def explain: String =
           "Arbitrary expressions are not yet supported as source types."
       }

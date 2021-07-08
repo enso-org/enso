@@ -64,7 +64,7 @@ case object MethodDefinitions extends IRPass {
               case _ =>
                 IR.Error.Conversion(
                   sourceTypeExpr,
-                  IR.Error.Conversion.IncompatibleSourceType
+                  IR.Error.Conversion.UnsupportedSourceType
                 )
             }
 

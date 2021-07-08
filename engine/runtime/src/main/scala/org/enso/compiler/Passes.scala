@@ -36,8 +36,6 @@ class Passes(
     )
   )
 
-  // TODO [AA] Allow dupe names for "from" (OverloadsResolution)
-
   val functionBodyPasses = new PassGroup(
     List(
       MethodDefinitions,
