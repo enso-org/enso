@@ -65,7 +65,7 @@ pub trait API:Debug {
 
     /// Returns the primary content root id for this project.
     fn content_root_id(&self) -> Uuid {
-        self.json_rpc().content_root()
+        self.json_rpc().project_root().id
     }
 
     /// Generates full module's qualified name that includes the leading project name segment.
