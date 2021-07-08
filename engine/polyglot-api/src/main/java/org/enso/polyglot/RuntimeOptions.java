@@ -54,10 +54,10 @@ public class RuntimeOptions {
   private static final OptionDescriptor ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_GLOBAL_SUGGESTIONS_KEY, ENABLE_GLOBAL_SUGGESTIONS).build();
 
-  public static final String PRELOADED_PACKAGES_PATHS = optionName("preloadedPackagesPaths");
-  public static final OptionKey<String> PRELOADED_PACKAGES_PATHS_KEY = new OptionKey<>("");
-  private static final OptionDescriptor PRELOADED_PACKAGES_PATHS_DESCRIPTOR =
-      OptionDescriptor.newBuilder(PRELOADED_PACKAGES_PATHS_KEY, PRELOADED_PACKAGES_PATHS).build();
+  public static final String LANGUAGE_HOME_OVERRIDE = optionName("languageHomeOverride");
+  public static final OptionKey<String> LANGUAGE_HOME_OVERRIDE_KEY = new OptionKey<>("");
+  private static final OptionDescriptor LANGUAGE_HOME_OVERRIDE_DESCRIPTOR =
+      OptionDescriptor.newBuilder(LANGUAGE_HOME_OVERRIDE_KEY, LANGUAGE_HOME_OVERRIDE).build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
@@ -69,7 +69,7 @@ public class RuntimeOptions {
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
-              PRELOADED_PACKAGES_PATHS_DESCRIPTOR,
+              LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**

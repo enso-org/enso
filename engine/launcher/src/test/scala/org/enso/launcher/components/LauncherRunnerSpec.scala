@@ -31,7 +31,9 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       new GlobalConfigurationManager(componentsManager, distributionManager) {
         override def defaultVersion: SemVer = defaultEngineVersion
       }
-    val editionManager = EditionManager(distributionManager)
+    val editionManager = new EditionManager(
+      distributionManager.paths.editionSearchPaths.toList
+    )
     val projectManager = new ProjectManager()
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =

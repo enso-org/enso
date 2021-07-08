@@ -6,6 +6,8 @@ distribution/launcher/THIRD-PARTY
 distribution/engine/THIRD-PARTY
 distribution/project-manager/THIRD-PARTY
 tools/legal-review
-distribution/std-lib/Base/THIRD-PARTY
-distribution/std-lib/Table/THIRD-PARTY
+distribution/lib/Standard/Base/0.1.0/THIRD-PARTY
+distribution/lib/Standard/Table/0.1.0/THIRD-PARTY
+distribution/lib/Standard/Image/0.1.0/THIRD-PARTY
+distribution/lib/Standard/Database/0.1.0/THIRD-PARTY
 built-distribution/

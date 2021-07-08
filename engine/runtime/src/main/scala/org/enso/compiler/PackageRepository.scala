@@ -2,14 +2,16 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.DistributionManager
-import org.enso.editions.{LibraryName, LibraryVersion}
+import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
+import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
 import org.enso.interpreter.runtime.{Context, Module}
-import org.enso.librarymanager.{ResolvedLibrary, ResolvingLibraryProvider}
-import org.enso.librarymanager.local.DefaultLocalLibraryProvider
+import org.enso.librarymanager.{
+  DefaultLibraryProvider,
+  ResolvingLibraryProvider
+}
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 
@@ -202,6 +204,18 @@ object PackageRepository {
       else {
         logger.trace(s"Resolving library $libraryName.")
         val resolvedLibrary = libraryProvider.findLibrary(libraryName)
+        logger.whenTraceEnabled {
+          resolvedLibrary match {
+            case Left(error) =>
+              logger.trace(s"Resolution failed with [$error].")
+            case Right(resolved) =>
+              logger.trace(
+                s"Found library ${resolved.name} @ ${resolved.version} " +
+                s"at [${MaskedPath(resolved.location).applyMasking()}]."
+              )
+          }
+        }
+
         this.synchronized {
           // We check again inside of the monitor, in case that some other
           // thread has just added this library.
@@ -323,41 +337,54 @@ object PackageRepository {
       toPreload ++= packages
   }
 
-  /** A temporary [[ResolvingLibraryProvider]] that ignores the edition and just
-    * provides the local libraries.
+  /** Creates a [[PackageRepository]] for the run.
     *
-    * TODO [RW] it should be removed once the editions are integrated
-    */
-  private class TemporaryLocalProvider(searchPaths: List[Path])
-      extends ResolvingLibraryProvider {
-
-    private val localRepo = new DefaultLocalLibraryProvider(searchPaths)
-
-    override def findLibrary(
-      name: LibraryName
-    ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary] =
-      localRepo
-        .findLibrary(name)
-        .map(ResolvedLibrary(name, LibraryVersion.Local, _))
-        .toRight {
-          ResolvingLibraryProvider.Error.RequestedLocalLibraryDoesNotExist
-        }
-  }
-
-  /** A temporary helper constructor for [[PackageRepository]] that does not
-    * need any edition configuration.
+    * It tries to load and resolve the edition used in the project (or the
+    * default edition), so that any libraries to be loaded can be resolved using
+    * that edition.
     *
-    * TODO [RW] it should be removed once the editions are integrated
+    * Edition and library search paths are based on the distribution and
+    * language home (if it is provided).
+    *
+    * @param projectPackage the package of the current project (if ran inside of a project)
+    * @param languageHome the language home (if set)
+    * @param distributionManager the distribution manager
+    * @param context the context reference, needed to add polyglot libraries to
+    *                the classpath
+    * @param builtins the builtins that are always preloaded
+    * @param notificationHandler a handler for library addition and progress
+    *                            notifications
+    * @return an initialized [[PackageRepository]]
     */
-  def makeLegacyRepository(
+  def initializeRepository(
+    projectPackage: Option[Package[TruffleFile]],
+    languageHome: Option[String],
     distributionManager: DistributionManager,
     context: Context,
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ): PackageRepository = {
-    val searchPaths = distributionManager.paths.localLibrariesSearchPaths.toList
+    val rawEdition = projectPackage
+      .flatMap(_.config.edition)
+      .getOrElse(DefaultEdition.getDefaultEdition)
+
+    val homeManager = languageHome.map { home => LanguageHome(Path.of(home)) }
+    val editionSearchPaths =
+      homeManager.map(_.editions).toList ++
+      distributionManager.paths.editionSearchPaths
+    val editionManager = new EditionManager(editionSearchPaths)
+    val edition        = editionManager.resolveEdition(rawEdition).get
+
+    val resolvingLibraryProvider =
+      new DefaultLibraryProvider(
+        distributionManager = distributionManager,
+        languageHome        = homeManager,
+        edition             = edition,
+        preferLocalLibraries =
+          projectPackage.map(_.config.preferLocalLibraries).getOrElse(false)
+      )
     new Default(
-      new TemporaryLocalProvider(searchPaths),
+      resolvingLibraryProvider,
       context,
       builtins,
       notificationHandler

@@ -70,8 +70,8 @@ package-lock.json
 
 javadoc/
 scaladoc/
-distribution/std-lib/docs
-distribution/std-lib/docs-js
+distribution/docs
+distribution/docs-js
 
 #######################
 ## Benchmark Reports ##
@@ -118,6 +118,6 @@ build-cache/
 ## Enso-Specific ##
 ###################
 
-distribution/std-lib/Examples/data/scratch_file
-distribution/std-lib/Examples/data/image.png
-
+distribution/lib/Standard/Examples/0.1.0/data/scratch_file
+distribution/lib/Standard/Examples/0.1.0/data/image.png
+distribution/editions
