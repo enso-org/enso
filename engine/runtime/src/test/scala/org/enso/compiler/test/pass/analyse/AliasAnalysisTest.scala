@@ -12,6 +12,8 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
+import scala.annotation.unused
+
 class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
@@ -830,6 +832,122 @@ class AliasAnalysisTest extends CompilerTest {
 
       blockChildBlockScope shouldEqual methodWithBlockGraph.rootScope
       blockChildLambdaScope shouldEqual methodWithBlockGraph.rootScope
+    }
+  }
+
+  "Alias analysis on conversion methods" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val conversionMethod =
+      """Bar.from (value : Foo) =
+        |    Bar value.get_thing here
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Method.Conversion]
+
+    val graph = conversionMethod
+      .unsafeGetMetadata(AliasAnalysis, "Missing aliasing info")
+      .unsafeAs[Info.Scope.Root]
+      .graph
+    val graphLinks = graph.links
+
+    val lambda     = conversionMethod.body.asInstanceOf[IR.Function.Lambda]
+    val lambdaBody = lambda.body.asInstanceOf[IR.Expression.Block]
+    val app        = lambdaBody.returnValue.asInstanceOf[IR.Application.Prefix]
+
+    "assign Info.Scope.Root metatata to the method" in {
+      val meta = conversionMethod.getMetadata(AliasAnalysis)
+
+      meta shouldBe defined
+      meta.get shouldBe an[Info.Scope.Root]
+    }
+
+    "assign Info.Scope.Child to all child scopes" in {
+      lambda.getMetadata(AliasAnalysis).get shouldBe an[Info.Scope.Child]
+      lambdaBody.getMetadata(AliasAnalysis).get shouldBe an[Info.Scope.Child]
+    }
+
+    "not allocate additional scopes unnecessarily" in {
+      graph.nesting shouldEqual 3
+      graph.numScopes shouldEqual 4
+
+      val topScope = graph.rootScope
+      val lambdaScope = lambda
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+      val blockScope = lambdaBody
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+
+      topScope shouldEqual lambdaScope
+      lambdaScope shouldEqual blockScope
+    }
+
+    "allocate new scopes where necessary" in {
+      val topScope = graph.rootScope
+      val arg1Scope = app.arguments.head
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+      @unused val arg2Scope = app
+        .arguments(1)
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
+
+      topScope.childScopes should contain(arg1Scope)
+      topScope.childScopes should contain(arg2Scope)
+    }
+
+    "assign Info.Occurrence to definitions and usages of symbols" in {
+      lambda.arguments.foreach(arg =>
+        arg.getMetadata(AliasAnalysis).get.as[Info.Occurrence] shouldBe defined
+      )
+      val firstAppArg =
+        app.arguments.head.value.asInstanceOf[IR.Application.Prefix]
+      val innerAppArg = firstAppArg.arguments.head.value
+      innerAppArg
+        .getMetadata(AliasAnalysis)
+        .get
+        .as[Info.Occurrence] shouldBe defined
+    }
+
+    "create the correct usage links for resolvable entities" in {
+      val valueDefId = lambda
+        .arguments(1)
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+      val valueUseId = app.arguments.head.value
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .value
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+
+      graphLinks should contain(Link(valueUseId, 2, valueDefId))
+    }
+
+    "not resolve links for unknown symbols" in {
+      val unknownHereId = app
+        .arguments(1)
+        .value
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+
+      graph.linksFor(unknownHereId) shouldBe empty
+      graph.getOccurrence(unknownHereId).get shouldBe an[Occurrence.Use]
     }
   }
 

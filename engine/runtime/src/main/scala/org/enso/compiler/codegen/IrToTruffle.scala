@@ -988,6 +988,11 @@ class IrToTruffle(
             .error()
             .compileError()
             .newInstance(Text.create(err.message))
+        case err: Error.Redefined.Conversion =>
+          context.getBuiltins
+            .error()
+            .compileError()
+            .newInstance(Text.create(err.message))
         case err: Error.Redefined.Atom =>
           context.getBuiltins
             .error()
