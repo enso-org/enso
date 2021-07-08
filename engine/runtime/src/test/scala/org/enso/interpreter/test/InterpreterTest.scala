@@ -26,6 +26,7 @@ import java.io.{
   PipedOutputStream,
   PrintStream
 }
+import java.nio.file.Paths
 import java.util.UUID
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
@@ -103,6 +104,10 @@ class InterpreterContext(
       .err(err)
       .logHandler(System.err)
       .in(in)
+      .option(
+        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+        Paths.get("../../distribution/component").toFile.getAbsolutePath
+      )
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
           new DebuggerSessionManagerEndpoint(sessionManager, peer)

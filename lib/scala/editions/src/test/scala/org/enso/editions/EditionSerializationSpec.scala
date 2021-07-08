@@ -47,13 +47,11 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
         edition.repositories("example").name shouldEqual "example"
         edition
           .repositories("example")
-          .url
-          .toString shouldEqual "https://example.com/"
+          .url shouldEqual "https://example.com/"
         edition.repositories("foo").name shouldEqual "foo"
         edition
           .repositories("foo")
-          .url
-          .toString shouldEqual "http://127.0.0.1:8080/root"
+          .url shouldEqual "http://127.0.0.1:8080/root"
 
         edition.libraries.values should contain theSameElementsAs Seq(
           Editions.Raw.LocalLibrary("Foo.Local"),
@@ -77,19 +75,6 @@ class EditionSerializationSpec extends AnyWordSpec with Matchers with Inside {
         exception.getMessage should include(
           "The edition must specify at least one of"
         )
-      }
-    }
-
-    "not allow invalid urls for repositories" in {
-      val parsed = EditionSerialization.parseYamlString(
-        """extends: foo
-          |repositories:
-          |- name: bar
-          |  url: baz
-          |""".stripMargin
-      )
-      inside(parsed) { case Failure(exception) =>
-        exception.getMessage should include("Cannot parse an URL")
       }
     }
 

@@ -11,6 +11,8 @@
   ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
   supports the loading of local libraries, but will be integrated with the
   editions system soon.
+- Integrated the library loading mechanism with the editions system
+  ([#1832](https://github.com/enso-org/enso/pull/1832)).
 
 ## Tooling
 

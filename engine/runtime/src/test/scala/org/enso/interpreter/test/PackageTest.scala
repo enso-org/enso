@@ -1,12 +1,13 @@
 package org.enso.interpreter.test
 
 import java.io.{ByteArrayOutputStream, File}
-
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.nio.file.Paths
 
 trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
   val output = new ByteArrayOutputStream()
@@ -22,6 +23,10 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.PROJECT_ROOT, pkgPath.getAbsolutePath)
+      .option(
+        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+        Paths.get("../../distribution/component").toFile.getAbsolutePath
+      )
       .option(RuntimeOptions.STRICT_ERRORS, "true")
       .out(output)
       .in(System.in)

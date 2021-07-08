@@ -10,14 +10,11 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
@@ -26,12 +23,13 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
+import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
-import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.OptionConverters;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -91,46 +89,30 @@ public class Context {
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.flatMap(
             file -> {
-              var result = packageManager.fromDirectory(projectRoot.get());
+              var result = packageManager.fromDirectory(file);
               if (result.isEmpty()) {
-                logger.warning("Could not load the project root package.");
+                var projectName = file.getName();
+                throw new ProjectLoadingFailure(projectName);
               }
               return ScalaConversions.asJava(result);
             });
 
+    var languageHome =
+        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
+
     packageRepository =
-        PackageRepository.makeLegacyRepository(
-            RuntimeDistributionManager$.MODULE$, this, builtins, notificationHandler);
+        PackageRepository.initializeRepository(
+            OptionConverters.toScala(projectPackage),
+            OptionConverters.toScala(languageHome),
+            RuntimeDistributionManager$.MODULE$,
+            this,
+            builtins,
+            notificationHandler);
     topScope = new TopLevelScope(builtins, packageRepository);
     this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
 
     projectPackage.ifPresent(
         pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
-
-    List<Package<TruffleFile>> packagesToPreload = new ArrayList<>();
-    // TODO [RW] This preloading mechanism should be replaced by prepending this special path to the
-    // local libraries search paths when switching to the actual edition-based resolution.
-    List<TruffleFile> preloadedPackagePaths = OptionsHelper.getPreloadedPackagesPaths(environment);
-    for (var packagePath : preloadedPackagePaths) {
-      Optional<Package<TruffleFile>> pkgOpt =
-          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
-      if (pkgOpt.isPresent()) {
-        var pkg = pkgOpt.get();
-        packagesToPreload.add(pkg);
-      } else {
-        logger.warning("Could not preload a package.");
-      }
-    }
-
-    // TODO [RW] this is left here temporarily, until the edition system takes over resolving the
-    // std-lib
-    if (home != null) {
-      HomeManager<TruffleFile> homeManager =
-          new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      homeManager.loadStdLib().forEach(packagesToPreload::add);
-    }
-
-    packageRepository.registerForPreload(CollectionConverters.asScala(packagesToPreload).toSeq());
   }
 
   public TruffleFile getTruffleFile(File file) {

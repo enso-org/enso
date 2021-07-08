@@ -15,7 +15,7 @@ class Project(
 ) {
 
   /** The edition associated with the project. */
-  def edition: Editions.RawEdition = pkg.config.edition
+  def edition: Option[Editions.RawEdition] = pkg.config.edition
 
   /** The package name of the project. */
   def name: String = pkg.name

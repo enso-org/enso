@@ -314,7 +314,7 @@ jobs:
       #        uses: andstor/copycat-action@v3
       #        with:
       #          personal_token: ${{ secrets.CI_PAT }}
-      #          src_path: ./distribution/std-lib/docs-js/
+      #          src_path: ./distribution/docs-js/
       #          dst_path: /docs/reference/.
       #          dst_branch: stdlib-update
       #          dst_owner: enso-org

@@ -49,7 +49,9 @@ object DefaultDistributionConfiguration
   lazy val resourceManager = new ResourceManager(lockManager)
 
   /** @inheritdoc */
-  lazy val editionManager = EditionManager(distributionManager)
+  lazy val editionManager = new EditionManager(
+    distributionManager.paths.editionSearchPaths.toList
+  )
 
   /** @inheritdoc */
   lazy val temporaryDirectoryManager =

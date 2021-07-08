@@ -1,15 +1,14 @@
 package org.enso.editions
 
 import cats.Show
-import io.circe.syntax.EncoderOps
 import io.circe._
+import io.circe.syntax.EncoderOps
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.{Raw, Repository}
 import org.enso.editions.SemVerJson._
 import org.enso.yaml.YamlHelper
 
 import java.io.FileReader
-import java.net.URL
 import java.nio.file.Path
 import scala.util.{Failure, Try, Using}
 
@@ -203,19 +202,6 @@ object EditionSerialization {
       )
   }
 
-  implicit private val urlEncoder: Encoder[URL] = { url => url.toString.asJson }
-
-  implicit private val urlDecoder: Decoder[URL] = { json =>
-    json.as[String].flatMap { str =>
-      Try(new URL(str)).toEither.left.map(throwable =>
-        DecodingFailure(
-          s"Cannot parse an URL: ${throwable.getMessage}",
-          json.history
-        )
-      )
-    }
-  }
-
   implicit private val repositoryEncoder: Encoder[Repository] = { repo =>
     Json.obj(
       Fields.name -> repo.name.asJson,
@@ -227,7 +213,7 @@ object EditionSerialization {
     val nameField = json.downField(Fields.name)
     for {
       name <- nameField.as[String]
-      url  <- json.get[URL](Fields.url)
+      url  <- json.get[String](Fields.url)
       res <-
         if (name == Fields.localRepositoryName)
           Left(

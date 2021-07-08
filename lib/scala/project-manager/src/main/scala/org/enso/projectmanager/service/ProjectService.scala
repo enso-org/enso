@@ -3,7 +3,7 @@ package org.enso.projectmanager.service
 import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
-import org.enso.editions.{DefaultEnsoVersion, EnsoVersion}
+import org.enso.editions.EnsoVersion
 import org.enso.pkg.Config
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{
@@ -89,16 +89,13 @@ class ProjectService[
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
-    defaultEdition = Config.makeCompatibilityEditionFromVersion(
-      DefaultEnsoVersion
-    )
     project = Project(
       id        = projectId,
       name      = name,
       namespace = Config.defaultNamespace,
       kind      = UserProject,
       created   = creationTime,
-      edition   = defaultEdition
+      edition   = None
     )
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
@@ -118,8 +115,7 @@ class ProjectService[
       "Project [{}] structure created with [{}, {}, {}].",
       projectId,
       path,
-      name,
-      engineVersion
+      name
     )
     _ <- repo
       .update(project.copy(path = Some(path.toString)))
