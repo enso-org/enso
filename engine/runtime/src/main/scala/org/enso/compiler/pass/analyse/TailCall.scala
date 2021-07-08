@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
@@ -83,7 +82,7 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
-      case method: Method.Conversion =>
+      case method: IR.Module.Scope.Definition.Method.Conversion =>
         method
           .copy(
             body = analyseExpression(method.body, isInTailPosition = true)

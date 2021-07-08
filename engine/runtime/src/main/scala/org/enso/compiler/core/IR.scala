@@ -6273,7 +6273,7 @@ object IR {
       /** An error representing the redefinition of a conversion in a given
         * module. This is also known as a method overload.
         *
-        * @param atomName the name of the atom the conversion was being
+        * @param targetType the name of the atom the conversion was being
         *                 redefined on
         * @param sourceType the source type for the conversion
         * @param location the location in the source to which this error
@@ -6282,7 +6282,7 @@ object IR {
         * @param diagnostics any diagnostics associated with this error.
         */
       sealed case class Conversion(
-        atomName: IR.Name,
+        targetType: IR.Name,
         sourceType: IR.Name,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
@@ -6295,7 +6295,7 @@ object IR {
 
         /** Creates a copy of `this`.
           *
-          * @param atomName the name of the atom the conversion was being
+          * @param targetType the name of the atom the conversion was being
           *                 redefined on
           * @param sourceType the source type for the conversion
           * @param location the location in the source to which this error
@@ -6306,15 +6306,15 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          atomName: IR.Name                    = atomName,
-          sourceType: IR.Name                  = sourceType,
-          location: Option[IdentifiedLocation] = location,
-          passData: MetadataStorage            = passData,
-          diagnostics: DiagnosticStorage       = diagnostics,
-          id: Identifier                       = id
+                  targetType: IR.Name                    = targetType,
+                  sourceType: IR.Name                  = sourceType,
+                  location: Option[IdentifiedLocation] = location,
+                  passData: MetadataStorage            = passData,
+                  diagnostics: DiagnosticStorage       = diagnostics,
+                  id: Identifier                       = id
         ): Conversion = {
           val res =
-            Conversion(atomName, sourceType, location, passData, diagnostics)
+            Conversion(targetType, sourceType, location, passData, diagnostics)
           res.id = id
           res
         }
@@ -6325,8 +6325,8 @@ object IR {
           keepDiagnostics: Boolean = true
         ): Conversion =
           copy(
-            atomName =
-              atomName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            targetType = targetType
+              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
             sourceType = sourceType
               .duplicate(keepLocations, keepMetadata, keepDiagnostics),
             location = if (keepLocations) location else None,
@@ -6343,7 +6343,7 @@ object IR {
           copy(location = location)
 
         override def message: String =
-          s"Method overloads are not supported: ${atomName.name}.from " +
+          s"Method overloads are not supported: ${targetType.name}.from " +
           s"${sourceType.showCode()} is defined multiple times in this module."
 
         override def mapExpressions(fn: Expression => Expression): Conversion =
@@ -6352,7 +6352,7 @@ object IR {
         override def toString: String =
           s"""
              |IR.Error.Redefined.Method(
-             |atomName = $atomName,
+             |targetType = $targetType,
              |sourceType = $sourceType,
              |location = $location,
              |passData = ${this.showPassData},
@@ -6361,10 +6361,10 @@ object IR {
              |)
              |""".stripMargin
 
-        override def children: List[IR] = List(atomName, sourceType)
+        override def children: List[IR] = List(targetType, sourceType)
 
         override def showCode(indent: Int): String =
-          s"(Redefined (Conversion $atomName.from $sourceType))"
+          s"(Redefined (Conversion $targetType.from $sourceType))"
       }
 
       /** An error representing the redefinition of a method in a given module.
