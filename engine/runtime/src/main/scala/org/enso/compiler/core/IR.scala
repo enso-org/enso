@@ -5620,6 +5620,11 @@ object IR {
           "A conversion definition must have at least one argument."
       }
 
+      case object UnsupportedSourceType extends Reason {
+        override def explain: String =
+          "Arbitrary expressions are not yet supported as source types."
+      }
+
       case class MissingSourceType(argName: String) extends Reason {
         override def explain: String =
           s"The argument `$argName` does not define a source type."
@@ -5631,6 +5636,11 @@ object IR {
           s"`$argName` does not."
       }
 
+      case class SuspendedSourceArgument(argName: String) extends Reason {
+        override def explain: String =
+          s"The source type argument in a conversion (here $argName) cannot " +
+          s"be suspended."
+      }
     }
 
     /** A representation of an error resulting from name resolution.
@@ -6258,6 +6268,103 @@ object IR {
         override def children: List[IR] = List()
 
         override def showCode(indent: Int): String = "(Redefined This_Arg)"
+      }
+
+      /** An error representing the redefinition of a conversion in a given
+        * module. This is also known as a method overload.
+        *
+        * @param targetType the name of the atom the conversion was being
+        *                 redefined on
+        * @param sourceType the source type for the conversion
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class Conversion(
+        targetType: IR.Name,
+        sourceType: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param targetType the name of the atom the conversion was being
+          *                 redefined on
+          * @param sourceType the source type for the conversion
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+                  targetType: IR.Name                    = targetType,
+                  sourceType: IR.Name                  = sourceType,
+                  location: Option[IdentifiedLocation] = location,
+                  passData: MetadataStorage            = passData,
+                  diagnostics: DiagnosticStorage       = diagnostics,
+                  id: Identifier                       = id
+        ): Conversion = {
+          val res =
+            Conversion(targetType, sourceType, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Conversion =
+          copy(
+            targetType = targetType
+              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            sourceType = sourceType
+              .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData =
+              if (keepMetadata) passData.duplicate else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+            id = randomId
+          )
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Conversion =
+          copy(location = location)
+
+        override def message: String =
+          s"Method overloads are not supported: ${targetType.name}.from " +
+          s"${sourceType.showCode()} is defined multiple times in this module."
+
+        override def mapExpressions(fn: Expression => Expression): Conversion =
+          this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Method(
+             |targetType = $targetType,
+             |sourceType = $sourceType,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        override def children: List[IR] = List(targetType, sourceType)
+
+        override def showCode(indent: Int): String =
+          s"(Redefined (Conversion $targetType.from $sourceType))"
       }
 
       /** An error representing the redefinition of a method in a given module.

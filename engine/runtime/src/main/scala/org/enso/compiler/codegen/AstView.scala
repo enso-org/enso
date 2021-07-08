@@ -409,8 +409,13 @@ object AstView {
               varName match {
                 case AST.Ident.Var.any(v) =>
                   Some((v, expr, Some(exprVal), false))
+                case AST.Ident.Blank.any(v) =>
+                  Some((v, expr, Some(exprVal), false))
                 case AST.App.Section
                       .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+                  Some((v, expr, Some(exprVal), true))
+                case AST.App.Section
+                      .Right(AST.Ident.Opr("~"), AST.Ident.Blank.any(v)) =>
                   Some((v, expr, Some(exprVal), true))
                 case _ => None
               }
@@ -420,8 +425,13 @@ object AstView {
           varName match {
             case AST.Ident.Var.any(v) =>
               Some((v, expr, None, false))
+            case AST.Ident.Blank.any(v) =>
+              Some((v, expr, None, false))
             case AST.App.Section
                   .Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)) =>
+              Some((v, expr, None, true))
+            case AST.App.Section
+            .Right(AST.Ident.Opr("~"), AST.Ident.Blank.any(v)) =>
               Some((v, expr, None, true))
             case _ => None
           }

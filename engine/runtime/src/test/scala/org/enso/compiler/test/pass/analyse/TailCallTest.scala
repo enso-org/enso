@@ -95,16 +95,20 @@ class TailCallTest extends CompilerTest {
         |      _ -> d
         |
         |type MyAtom a b c
+        |
+        |Foo.from (value : Bar) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "mark methods as tail" in {
-      ir.bindings.head
-        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      ir.bindings.head.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "mark atoms as tail" in {
-      ir.bindings(1)
-        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+      ir.bindings(1).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
+    }
+
+    "mark conversions as tail" in {
+      ir.bindings(2).getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
   }
 

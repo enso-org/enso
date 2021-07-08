@@ -3,7 +3,6 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Case.Branch
-import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -132,8 +131,11 @@ case object DocumentationComments extends IRPass {
     ir: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition =
     ir match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+      case _: IR.Module.Scope.Definition.Method.Conversion =>
+        throw new CompilerError(
+          "Conversion methods should not yet be present in the compiler " +
+          "pipeline."
+        )
       case method: IR.Module.Scope.Definition.Method.Binding =>
         method.copy(body = resolveExpression(method.body))
       case method: IR.Module.Scope.Definition.Method.Explicit =>

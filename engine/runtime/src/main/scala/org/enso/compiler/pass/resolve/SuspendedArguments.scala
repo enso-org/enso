@@ -102,8 +102,46 @@ case object SuspendedArguments extends IRPass {
     binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     binding match {
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+      case method: Method.Conversion =>
+        method.body match {
+          case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
+            method.getMetadata(TypeSignatures) match {
+              case Some(Signature(signature)) =>
+                val newArgs = computeSuspensions(args.drop(1), signature)
+                if (newArgs.head.suspended) {
+                  IR.Error.Conversion(
+                    method,
+                    IR.Error.Conversion.SuspendedSourceArgument(
+                      newArgs.head.name.name
+                    )
+                  )
+                } else {
+                  method.copy(body =
+                    lam.copy(
+                      arguments = args.head :: newArgs,
+                      body      = resolveExpression(body)
+                    )
+                  )
+                }
+              case None =>
+                if (args(1).suspended) {
+                  IR.Error.Conversion(
+                    method,
+                    IR.Error.Conversion.SuspendedSourceArgument(
+                      args(1).name.name
+                    )
+                  )
+                } else {
+                  method.copy(
+                    body = lam.copy(body = resolveExpression(body))
+                  )
+                }
+            }
+          case _ =>
+            throw new CompilerError(
+              "Method bodies must be lambdas at this point."
+            )
+        }
       case explicit @ Method.Explicit(_, body, _, _, _) =>
         body match {
           case lam @ IR.Function.Lambda(args, lamBody, _, _, _, _) =>
