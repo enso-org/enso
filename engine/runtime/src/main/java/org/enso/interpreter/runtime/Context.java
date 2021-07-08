@@ -23,6 +23,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
+import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
@@ -88,10 +89,10 @@ public class Context {
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.flatMap(
             file -> {
-              var result = packageManager.fromDirectory(projectRoot.get());
+              var result = packageManager.fromDirectory(file);
               if (result.isEmpty()) {
-                logger.warning("Could not load the project root package.");
-                // TODO [RW, MK] at this point we will fallback to the default edition which may not be the correct behaviour here, if we are run inside of a project and cannot load it, maybe should just throw?
+                var projectName = file.getName();
+                throw new ProjectLoadingFailure(projectName);
               }
               return ScalaConversions.asJava(result);
             });

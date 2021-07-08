@@ -137,6 +137,7 @@ object Main {
         .replace(path + "/", "")
         .replace(".enso", "")
         .replace("src/", "")
+        .replace("/0.1.0/", "/")
     )
     val allPrograms = allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
