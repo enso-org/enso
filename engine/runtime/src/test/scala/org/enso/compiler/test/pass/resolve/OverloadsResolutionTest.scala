@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -76,6 +77,34 @@ class OverloadsResolutionTest extends CompilerTest {
 
       redef1.methodName.name shouldEqual methodName
       redef2.methodName.name shouldEqual methodName
+    }
+  }
+
+  "Conversion overload resolution" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    "allow overloads on the source type" in {
+      val ir =
+        """Unit.from (value : Integer) = undefined
+          |Unit.from (value : Boolean) = undefined
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 2
+      ir.bindings.head shouldBe a[Method.Conversion]
+      ir.bindings(1) shouldBe a[Method.Conversion]
+    }
+
+    "raise an error if there are multiple definitions with the same source type" in {
+      val ir =
+        """Unit.from (value : Integer) = undefined
+          |Unit.from (value : Boolean) = undefined
+          |Unit.from (value : Boolean) = undefined
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 3
+      ir.bindings.head shouldBe a[Method.Conversion]
+      ir.bindings(1) shouldBe a[Method.Conversion]
+      ir.bindings(2) shouldBe an[IR.Error.Redefined.Conversion]
     }
   }
 

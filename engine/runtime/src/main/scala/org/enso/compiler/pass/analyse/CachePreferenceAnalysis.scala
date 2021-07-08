@@ -7,7 +7,14 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies,
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
+}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -85,8 +92,10 @@ case object CachePreferenceAnalysis extends IRPass {
             arguments.map(analyseDefinitionArgument(_, weights))
           )
           .updateMetadata(this -->> weights)
-      case _: Method.Conversion =>
-        throw new CompilerError("Conversion methods are not yet supported.")
+      case method: Method.Conversion =>
+        method
+          .copy(body = analyseExpression(method.body, weights))
+          .updateMetadata(this -->> weights)
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         method

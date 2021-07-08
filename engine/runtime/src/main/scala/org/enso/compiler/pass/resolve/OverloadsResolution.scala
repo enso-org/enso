@@ -6,6 +6,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
 import scala.annotation.unused
+import scala.collection.mutable
 
 /** This pass performs static detection of method overloads and emits errors
   * at the overload definition site if they are detected. It also checks for
@@ -63,7 +64,7 @@ case object OverloadsResolution extends IRPass {
     })
 
     val methods = ir.bindings.collect {
-      case meth: IR.Module.Scope.Definition.Method =>
+      case meth: IR.Module.Scope.Definition.Method.Explicit =>
         seenMethods = seenMethods + (meth.typeName.name -> Set())
         meth
     }
@@ -81,8 +82,30 @@ case object OverloadsResolution extends IRPass {
       }
     })
 
+    val conversionsForType: mutable.Map[String, Set[String]] = mutable.Map()
+
+    val conversions: List[IR.Module.Scope.Definition] = ir.bindings.collect {
+      case m: IR.Module.Scope.Definition.Method.Conversion =>
+        val fromName = m.sourceTypeName.asInstanceOf[IR.Name]
+        conversionsForType.get(m.typeName.name) match {
+          case Some(elems) =>
+            if (elems.contains(fromName.name)) {
+              IR.Error.Redefined.Conversion(m.typeName, fromName, m.location)
+            } else {
+              conversionsForType.update(
+                m.typeName.name,
+                conversionsForType(m.typeName.name) + fromName.name
+              )
+              m
+            }
+          case None =>
+            conversionsForType.put(m.typeName.name, Set(fromName.name))
+            m
+        }
+    }
+
     ir.copy(
-      bindings = newAtoms ::: newMethods
+      bindings = newAtoms ::: newMethods ::: conversions
     )
   }
 

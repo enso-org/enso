@@ -13,8 +13,8 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
-/** Resolves the correct `this` argument type for methods definitions
-  * and stores the resolution in the method's metadata.
+/** Resolves the correct `this` argument type for method definitions and stores
+  * the resolution in the method's metadata.
   */
 case object MethodDefinitions extends IRPass {
 
@@ -45,56 +45,99 @@ case object MethodDefinitions extends IRPass {
       "MethodDefinitionResolution is being run before BindingResolution"
     )
     val newDefs = ir.bindings.map {
-      case method: IR.Module.Scope.Definition.Method.Explicit =>
+      case method: IR.Module.Scope.Definition.Method =>
         val methodRef = method.methodReference
-        val resolvedTypeRef = methodRef.typePointer match {
-          case tp: IR.Name.Here =>
-            tp.updateMetadata(
-              this -->> BindingsMap.Resolution(
-                BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
-              )
-            )
-          case tp @ IR.Name.Qualified(names, _, _, _) =>
-            val items = names.map(_.name)
-            availableSymbolsMap.resolveQualifiedName(items) match {
-              case Left(err) =>
-                IR.Error.Resolution(tp, IR.Error.Resolution.ResolverError(err))
-              case Right(value: BindingsMap.ResolvedConstructor) =>
-                tp.updateMetadata(
-                  this -->> BindingsMap.Resolution(value)
-                )
-              case Right(value: BindingsMap.ResolvedModule) =>
-                tp.updateMetadata(
-                  this -->> BindingsMap.Resolution(value)
-                )
-              case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-                IR.Error.Resolution(
-                  tp,
-                  IR.Error.Resolution.UnexpectedPolyglot(
-                    "a method definition target"
-                  )
-                )
-              case Right(_: BindingsMap.ResolvedMethod) =>
-                IR.Error.Resolution(
-                  tp,
-                  IR.Error.Resolution.UnexpectedMethod(
-                    "a method definition target"
-                  )
+        val resolvedTypeRef =
+          resolveType(methodRef.typePointer, availableSymbolsMap)
+        val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
+
+        method match {
+          case method: IR.Module.Scope.Definition.Method.Explicit =>
+            val resolvedMethod =
+              method.copy(methodReference = resolvedMethodRef)
+            resolvedMethod
+          case method: IR.Module.Scope.Definition.Method.Conversion =>
+            val sourceTypeExpr = method.sourceTypeName
+
+            val resolvedName: IR.Name = sourceTypeExpr match {
+              case name: IR.Name => resolveType(name, availableSymbolsMap)
+              case _ =>
+                IR.Error.Conversion(
+                  sourceTypeExpr,
+                  IR.Error.Conversion.UnsupportedSourceType
                 )
             }
-          case tp: IR.Error.Resolution => tp
+
+            val resolvedMethod = method.copy(
+              methodReference = resolvedMethodRef,
+              sourceTypeName  = resolvedName
+            )
+            resolvedMethod
+
           case _ =>
             throw new CompilerError(
-              "Unexpected kind of name for method reference"
+              "Unexpected method type in MethodDefinitions pass."
             )
         }
-        val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
-        val resolvedMethod    = method.copy(methodReference = resolvedMethodRef)
-        resolvedMethod
       case other => other
     }
 
     ir.copy(bindings = newDefs)
+  }
+
+  private def resolveType(
+    typePointer: IR.Name,
+    availableSymbolsMap: BindingsMap
+  ): IR.Name = {
+    typePointer match {
+      case tp: IR.Name.Here =>
+        tp.updateMetadata(
+          this -->> BindingsMap.Resolution(
+            BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
+          )
+        )
+      case _: IR.Name.Qualified | _: IR.Name.Literal =>
+        val items = typePointer match {
+          case IR.Name.Qualified(names, _, _, _)    => names.map(_.name)
+          case IR.Name.Literal(name, _, _, _, _, _) => List(name)
+          case _ =>
+            throw new CompilerError("Impossible to reach.")
+        }
+        availableSymbolsMap.resolveQualifiedName(items) match {
+          case Left(err) =>
+            IR.Error.Resolution(
+              typePointer,
+              IR.Error.Resolution.ResolverError(err)
+            )
+          case Right(value: BindingsMap.ResolvedConstructor) =>
+            typePointer.updateMetadata(
+              this -->> BindingsMap.Resolution(value)
+            )
+          case Right(value: BindingsMap.ResolvedModule) =>
+            typePointer.updateMetadata(
+              this -->> BindingsMap.Resolution(value)
+            )
+          case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+            IR.Error.Resolution(
+              typePointer,
+              IR.Error.Resolution.UnexpectedPolyglot(
+                "a method definition target"
+              )
+            )
+          case Right(_: BindingsMap.ResolvedMethod) =>
+            IR.Error.Resolution(
+              typePointer,
+              IR.Error.Resolution.UnexpectedMethod(
+                "a method definition target"
+              )
+            )
+        }
+      case tp: IR.Error.Resolution => tp
+      case _ =>
+        throw new CompilerError(
+          "Unexpected kind of name for method reference"
+        )
+    }
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
