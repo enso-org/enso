@@ -370,7 +370,7 @@ function setupCrashDetection() {
     // (https://v8.dev/docs/stack-trace-api#compatibility)
     Error.stackTraceLimit = 100
 
-    window.addEventListener('error', function(event) {
+    window.addEventListener('error', function (event) {
         // We prefer stack traces over plain error messages but not all browsers produce traces.
         if (ok(event.error) && ok(event.error.stack)) {
             handleCrash(event.error.stack)
@@ -378,7 +378,7 @@ function setupCrashDetection() {
             handleCrash(event.message)
         }
     })
-    window.addEventListener('unhandledrejection', function(event) {
+    window.addEventListener('unhandledrejection', function (event) {
         // As above, we prefer stack traces.
         // But here, `event.reason` is not even guaranteed to be an `Error`.
         handleCrash(event.reason.stack || event.reason.message || 'Unhandled rejection')
@@ -463,7 +463,6 @@ async function reportCrash(message: string) {
 
 // An error with the payload.
 class ErrorDetails {
-
     public readonly message: string
     public readonly payload: any
 
@@ -475,7 +474,6 @@ class ErrorDetails {
 
 /// Utility methods helping to work with the versions.
 class Versions {
-
     /// Development version.
     static devVersion = semver.coerce('0.0.0')
     /// Version of the `client` js package.
@@ -494,17 +492,13 @@ class Versions {
                 if (ok(minVersion)) {
                     return semver.gte(appVersion, minVersion)
                 } else {
-                    throw new ErrorDetails(
-                        'Failed to parse app version.',
-                        { applicationVersion }
-                    )
+                    throw new ErrorDetails('Failed to parse app version.', { applicationVersion })
                 }
             }
         } else {
-            throw new ErrorDetails(
-                'Failed to parse minimum supported version.',
-                { minSupportedVersion }
-            )
+            throw new ErrorDetails('Failed to parse minimum supported version.', {
+                minSupportedVersion,
+            })
         }
     }
 
@@ -535,7 +529,7 @@ async function fetchApplicationConfig(url: string) {
             res.setEncoding('utf8')
             let rawData = ''
 
-            res.on('data', (chunk: any) => rawData += chunk)
+            res.on('data', (chunk: any) => (rawData += chunk))
 
             res.on('end', () => {
                 try {
@@ -564,10 +558,7 @@ async function checkMinSupportedVersion(config: Config) {
         const clientVersion = Versions.clientVersion
         const minSupportedVersion = appConfig.minimumSupportedVersion
 
-        console.log(
-            `Application version check.`,
-            { minSupportedVersion, clientVersion }
-        )
+        console.log(`Application version check.`, { minSupportedVersion, clientVersion })
         return Versions.compare(minSupportedVersion, clientVersion)
     } catch (e) {
         console.error('Minimum version check failed.', e)
@@ -580,7 +571,6 @@ async function checkMinSupportedVersion(config: Config) {
 // ======================
 
 class FirebaseAuthentication {
-
     protected readonly config: any
     public readonly firebaseui: any
     public readonly ui: any
@@ -627,18 +617,18 @@ class FirebaseAuthentication {
 
     protected hasEmailAuth(user: any): boolean {
         const emailProviderId = firebase.auth.EmailAuthProvider.PROVIDER_ID
-        const hasEmailProvider = user
-            .providerData
-            .some((data: any) => data.providerId === emailProviderId)
+        const hasEmailProvider = user.providerData.some(
+            (data: any) => data.providerId === emailProviderId
+        )
         const hasOneProvider = user.providerData.length === 1
         return hasOneProvider && hasEmailProvider
     }
 
     protected getUiConfig() {
         return {
-            'callbacks': {
+            callbacks: {
                 // Called when the user has been successfully signed in.
-                'signInSuccessWithAuthResult': (authResult: any, redirectUrl: any) => {
+                signInSuccessWithAuthResult: (authResult: any, redirectUrl: any) => {
                     if (ok(authResult.user)) {
                         switch (authResult.additionalUserInfo.providerId) {
                             case firebase.auth.EmailAuthProvider.PROVIDER_ID:
@@ -646,30 +636,32 @@ class FirebaseAuthentication {
                                     this.handleSignedInUser(authResult.user)
                                 } else {
                                     authResult.user.sendEmailVerification()
-                                    document.getElementById('user-email-not-verified').style.display = 'block'
+                                    document.getElementById(
+                                        'user-email-not-verified'
+                                    ).style.display = 'block'
                                     this.handleSignedOutUser()
                                 }
-                                break;
+                                break
 
                             default:
                         }
                     }
                     // Do not redirect.
-                    return false;
-                }
+                    return false
+                },
             },
-            'signInOptions': [
+            signInOptions: [
                 {
                     provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
                     // Required to enable ID token credentials for this provider.
-                    clientId: this.config.clientId
+                    clientId: this.config.clientId,
                 },
                 firebase.auth.GithubAuthProvider.PROVIDER_ID,
                 {
                     provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
                     // Whether the display name should be displayed in Sign Up page.
                     requireDisplayName: false,
-                }
+                },
             ],
         }
     }
@@ -718,9 +710,15 @@ class FirebaseAuthentication {
         const versionCheck = 'version-check'
 
         const authHeaderText = document.createTextNode('Sign in to Enso')
-        const authTextText = document.createTextNode('Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.')
-        const userEmailNotVerifiedText = document.createTextNode('Verification link is sent. You can sign in after verifying your email.')
-        const versionCheckText = document.createTextNode('This version is no longer supported. Please download a new one.')
+        const authTextText = document.createTextNode(
+            'Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.'
+        )
+        const userEmailNotVerifiedText = document.createTextNode(
+            'Verification link is sent. You can sign in after verifying your email.'
+        )
+        const versionCheckText = document.createTextNode(
+            'This version is no longer supported. Please download a new one.'
+        )
 
         let root = document.getElementById('root')
 
@@ -945,7 +943,7 @@ async function mainEntryPoint(config: any) {
     }
 }
 
-API.main = async function(inputConfig: any) {
+API.main = async function (inputConfig: any) {
     const urlParams = new URLSearchParams(window.location.search)
     // @ts-ignore
     const urlConfig = Object.fromEntries(urlParams.entries())
@@ -956,11 +954,10 @@ API.main = async function(inputConfig: any) {
 
     if (await checkMinSupportedVersion(config)) {
         if (config.authentication_enabled && !Versions.isDevVersion()) {
-            new FirebaseAuthentication(
-                function(user: any) {
-                    config.email = user.email
-                    mainEntryPoint(config)
-                })
+            new FirebaseAuthentication(function (user: any) {
+                config.email = user.email
+                mainEntryPoint(config)
+            })
         } else {
             await mainEntryPoint(config)
         }
