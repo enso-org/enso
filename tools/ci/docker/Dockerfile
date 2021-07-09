@@ -21,18 +21,18 @@ ADD component /opt/enso/component
 ADD lib /opt/enso/lib
 ADD editions /opt/enso/editions
 
+RUN mkdir /opt/enso/work
+RUN mkdir /opt/enso/logs
+
 ENV ENSO_DATA_DIRECTORY=/volumes/workspace/data_root
 ENV ENSO_CONFIG_DIRECTORY=/volumes/workspace/config
-ENV ENSO_RUNTIME_DIRECTORY=/opt/workdir/runtime
-ENV ENSO_LOG_DIRECTORY=/opt/workdir/log
+ENV ENSO_RUNTIME_DIRECTORY=/opt/enso/work
+ENV ENSO_LOG_DIRECTORY=/opt/enso/logs
 ENV ENSO_HOME=/volumes/workspace/home
 
 RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*
-
-RUN chown -hR ensodev:ensodev /opt/workdir
-RUN chmod -R u=rX,g=rX /opt/workdir
 
 RUN mkdir -p /volumes
 RUN chown -hR ensodev:ensodev /volumes
