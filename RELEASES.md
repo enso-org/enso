@@ -2,7 +2,7 @@
 
 ## Tooling
 
-- Implemented an HTTP endponint returning the Language Server idle time.
+- Implemented an HTTP endponint returning the time that the language server has spent idle
   [#1847](https://github.com/enso-org/enso/pull/1847).
 
 # Enso 0.2.13 (2021-07-09)
