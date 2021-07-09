@@ -1,6 +1,5 @@
 package org.enso.searcher.sql;
 
-import java.util.ArrayList;
 import org.enso.polyglot.Suggestion;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
@@ -11,15 +10,15 @@ import scala.collection.immutable.Seq;
 import scala.concurrent.Await;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.Duration;
+import scala.jdk.CollectionConverters;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
-
-import scala.jdk.CollectionConverters;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -42,7 +41,9 @@ public class SuggestionsRepoBenchmark {
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    repo = SqlSuggestionsRepo.apply(dbfile.toFile(), ExecutionContext.global());
+    repo =
+        new SqlSuggestionsRepo(
+            SqlDatabase.apply(dbfile.toFile(), none()), ExecutionContext.global());
     if (Files.notExists(dbfile)) {
       System.out.println("initializing " + dbfile.toString() + " ...");
       Await.ready(repo.init(), TIMEOUT);

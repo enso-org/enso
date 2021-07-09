@@ -1,5 +1,7 @@
 package org.enso.languageserver.search
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
@@ -40,7 +42,6 @@ import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
-import java.util.UUID
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
@@ -116,10 +117,6 @@ final class SuggestionsHandler(
       .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
     context.system.eventStream
       .subscribe(self, InitializedEvent.TruffleContextInitialized.getClass)
-
-    PackageManager.Default
-      .fromDirectory(config.projectContentRoot.file)
-      .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
   }
 
   override def receive: Receive =
@@ -152,6 +149,18 @@ final class SuggestionsHandler(
 
     case InitializedEvent.TruffleContextInitialized =>
       logger.info("Initializing: Truffle context initialized.")
+      PackageManager.Default
+        .loadPackage(config.projectContentRoot.file)
+        .fold(
+          t =>
+            logger.error(
+              "Failed to read the package definition from [{}]. {} {}",
+              MaskedPath(config.projectContentRoot.file.toPath),
+              t.getClass.getName,
+              t.getMessage
+            ),
+          pkg => self ! ProjectNameUpdated(pkg.config.name)
+        )
       val requestId = UUID.randomUUID()
       runtimeConnector
         .ask(Api.Request(requestId, Api.GetTypeGraphRequest()))(timeout, self)
