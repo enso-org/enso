@@ -1,5 +1,7 @@
 # Enso Next
 
+# Enso 0.2.13 (2021-07-09)
+
 ## Interpreter/Runtime
 
 - Implemented changes to the import and export syntax, requiring to provide the
@@ -30,6 +32,12 @@
   using a faster Scala-based generator instead of a ScalaJS-based one on IDE's
   side, also enabling us to connect many AST elements with docs. See
   ([#1744](https://github.com/enso-org/enso/pull/1744).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-09)
+  for issues opened before the release date.
 
 # Enso 0.2.12 (2021-06-24)
 
