@@ -33,6 +33,8 @@ ENV ENSO_HOME=/volumes/workspace/home
 RUN chown -hR ensodev:ensodev /opt/enso
 RUN chmod -R u=rX,g=rX /opt/enso
 RUN chmod a+x /opt/enso/bin/*
+RUN chmod a+rw /opt/enso/work
+RUN chmod a+rw /opt/enso/logs
 
 RUN mkdir -p /volumes
 RUN chown -hR ensodev:ensodev /volumes
