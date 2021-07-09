@@ -1,5 +1,7 @@
 package org.enso.searcher.sql
 
+import java.io.File
+
 import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.searcher.Database
 import org.enso.searcher.sqlite.LockingMode
@@ -42,22 +44,40 @@ object SqlDatabase {
   private val configPath: String =
     "searcher.db"
 
+  /** Create in-memory [[SqlDatabase]] instance.
+    *
+    * @return new sql database instance
+    */
+  def inmem(name: String): SqlDatabase =
+    fromUrl(inmemUrl(name))
+
   /** Create [[SqlDatabase]] instance.
     *
     * @param filename the database file path
+    * @param maybeLockingMode the locking mode
     * @return new sql database instance
     */
   def apply(
-    filename: String,
+    filename: File,
     maybeLockingMode: Option[LockingMode] = None
-  ): SqlDatabase = {
+  ): SqlDatabase =
+    fromUrl(jdbcUrl(filename.toString, maybeLockingMode))
+
+  /** Create [[SqlDatabase]] instance.
+    *
+    * @param url the database url
+    * @return new sql database instance
+    */
+  def fromUrl(url: String): SqlDatabase = {
     val config = ConfigFactory
-      .parseString(
-        s"""$configPath.url = "${jdbcUrl(filename, maybeLockingMode)}""""
-      )
+      .parseString(s"""$configPath.url = "$url"""")
       .withFallback(ConfigFactory.load())
     new SqlDatabase(Some(config))
   }
+
+  /** Create JDBC URL for in-memory database. */
+  private def inmemUrl(name: String): String =
+    s"jdbc:sqlite:file:$name?mode=memory&cache=shared"
 
   /** Create JDBC URL from the file path. */
   private def jdbcUrl(

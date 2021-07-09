@@ -102,9 +102,8 @@ class BaseServerTest
       InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
     )
 
-  val zioExec = ZioExec(zio.Runtime.default)
-  val sqlDatabase =
-    SqlDatabase(config.directories.suggestionsDatabaseFile.toString)
+  val zioExec         = ZioExec(zio.Runtime.default)
+  val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
 

@@ -230,9 +230,7 @@ class RepoInitializationSpec
   def withRepos(
     config: Config
   )(test: (SqlSuggestionsRepo, SqlVersionsRepo) => Any): Unit = {
-    val sqlDatabase = SqlDatabase(
-      config.directories.suggestionsDatabaseFile.toString
-    )
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 
