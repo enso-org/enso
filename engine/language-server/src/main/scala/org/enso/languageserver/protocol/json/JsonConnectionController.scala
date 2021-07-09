@@ -17,6 +17,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.event.{
+  InitializedEvent,
   JsonSessionInitialized,
   JsonSessionTerminated
 }
@@ -161,6 +162,9 @@ class JsonConnectionController(
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
+      context.system.eventStream.publish(
+        InitializedEvent.InitializationFinished
+      )
 
       val cancellable = context.system.scheduler.scheduleOnce(
         requestTimeout,
@@ -183,6 +187,7 @@ class JsonConnectionController(
     case Status.Failure(ex) =>
       logger.error("Failed to initialize the resources. {}", ex.getMessage)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
+      context.system.eventStream.publish(InitializedEvent.InitializationFailed)
       context.become(connected(webActor))
 
     case _ => stash()
