@@ -1,5 +1,11 @@
 package org.enso.languageserver.websocket.json
 
+import java.io.File
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{Files, Paths}
+import java.security.MessageDigest
+import java.util.UUID
+
 import io.circe.literal._
 import io.circe.parser.parse
 import org.apache.commons.io.FileUtils
@@ -8,11 +14,6 @@ import org.enso.languageserver.data._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 
-import java.io.File
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{Files, Paths}
-import java.security.MessageDigest
-import java.util.UUID
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -1808,7 +1809,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
   }
 
   def withCleanRoot[T](test: => T): T = {
-    FileUtils.cleanDirectory(testContentRoot.file)
+    FileUtils.deleteQuietly(testContentRoot.file)
     test
   }
 }

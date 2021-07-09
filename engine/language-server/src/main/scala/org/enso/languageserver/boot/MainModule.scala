@@ -44,7 +44,6 @@ import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.sqlite.LockingMode
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -104,15 +103,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {
       case Desktop =>
-        SqlDatabase(
-          languageServerConfig.directories.suggestionsDatabaseFile.toString
-        )
-
+        SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
       case Azure =>
-        SqlDatabase(
-          languageServerConfig.directories.suggestionsDatabaseFile.toString,
-          Some(LockingMode.UnixFlock)
-        )
+        SqlDatabase.inmem("memdb")
     }
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
