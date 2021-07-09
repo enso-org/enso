@@ -147,6 +147,17 @@ transport formats, please look [here](./protocol-architecture).
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
+- [Edition-Related Operations](#edition-related-operations)
+  - [`editions/listAvailable`](#editionslistavailable)
+  - [`editions/resolve`](#editionsresolve)
+  - [`editions/getProjectSettings`](#editionsgetprojectsettings)
+  - [`editions/setProjectParentEdition`](#editionssetprojectparentedition)
+  - [`editions/setProjectLocalLibrariesPreference`](#editionssetprojectlocallibrariespreference)
+  - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
+- [Library-Related Operations](#library-related-operations)
+  - [`library/create`](#librarycreate)
+  - [`library/publish`](#librarypublish)
+  - [`library/preinstall`](#librarypreinstall)
 - [Errors](#errors)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
@@ -3917,6 +3928,176 @@ standard input.
 ```typescript
 null;
 ```
+
+## Edition-Related Operations
+
+> TODO [RW] section descriptions TODO [RW] errors, in particular setting edition
+> should check if the name is valid (resolves correctly) etc.
+
+### `editions/listAvailable`
+
+Lists editions available on the system.
+
+Moreover, if `update` is set to `true`, it will download any new editions from
+the repositories and include them in the result as well.
+
+> Currently, if `update` was `true` but some downloads failed, the endpoint will
+> still return a success, just containing the editions that were already
+> available. In the future it should emit warnings using proper notification
+> channels.
+
+#### Parameters
+
+```typescript
+{
+  update: Boolean;
+}
+```
+
+#### Result
+
+```typescript
+{
+  editionNames: [String];
+}
+```
+
+### `editions/resolve`
+
+Resolves settings implied by the edition.
+
+Currently, it only resolves the engine version, as only it is needed, but other
+settings may be added if necesssary.
+
+#### Parameters
+
+```typescript
+{
+    editionName?: String;
+}
+```
+
+The `editionName` is optional, if it is not provided, the (unnamed) edition from
+currently open project's settings is resolved, taking into account both its
+parent edition and any locally set overrides.
+
+#### Result
+
+```typescript
+{
+  engineVersion: String;
+}
+```
+
+### `editions/getProjectSettings`
+
+Returns the currently set edition-related settings of the project.
+
+Currently, it only returns the parent edition and local library preference. Once
+more advanced edition settings are to be supported in the IDE, this endpoint
+will be extended.
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+{
+    parentEdition?: String;
+    preferLocalLibraries: Boolean;
+}
+```
+
+The `parentEdition` may be missing if it is not set. It is possible to manually
+edit the `pacakge.yaml` and generate a valid edition config that does not
+specify a parent edition.
+
+### `editions/setProjectParentEdition`
+
+Sets the parent edition of the project to a specific edition.
+
+This change may even change the version of the engine associated with the
+project, so for the changes to take effect, the language server may need to be
+restarted. The endpoint only modifies the `pacakge.yaml` file, which is
+preloaded in the Language Server, so it is IDE's responsibility to re-open the
+project.
+
+#### Parameters
+
+```typescript
+{
+  newEditionName: String;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+### `editions/setProjectLocalLibrariesPreference`
+
+Sets the `prefer-local-libraries` setting of the project, which specifies if
+libraries from `ENSO_HOME/libraries` should take precedence over the ones
+defined in the edition.
+
+> This may change which libraries should be loaded in the project. In the future
+> it may be possible that this reload could happen dynamically, however
+> currently, the language server needs to be restarted (in the same way as for
+> `editions/setProjectParentEdition`) for the changes to take effect.
+
+#### Parameters
+
+```typescript
+{
+  preferLocalLibraries: Boolean;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+### `editions/listDefinedLibraries`
+
+Lists all libraries defined in an edition (or all of its parents).
+
+This can be used to display which libraries can be downloaded / added to the
+project.
+
+#### Parameters
+
+> TODO [MM] do we need to also suport `null` to list libraries for the current
+> project that will include its local overrides?
+
+```typescript
+{
+  editionName: String;
+}
+```
+
+#### Result
+
+```typescript
+{
+  TODO;
+}
+```
+
+## Library-Related Operations
+
+### `library/create`
+
+### `library/publish`
+
+### `library/preinstall`
 
 ## Errors
 
