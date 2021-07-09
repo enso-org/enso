@@ -1,11 +1,13 @@
 package org.enso.librarymanager.published.bundles
 
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.cache.{
   LibraryCache,
   ReadOnlyLibraryCache
 }
+import org.enso.logger.masking.MaskedPath
 
 import java.nio.file.{Files, Path}
 
@@ -19,6 +21,7 @@ import java.nio.file.{Files, Path}
   * being copied into this repository.
   */
 class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
+  private val logger = Logger[LocalReadOnlyRepository]
 
   /** @inheritdoc */
   override def findCachedLibrary(
@@ -26,6 +29,16 @@ class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
     version: SemVer
   ): Option[Path] = {
     val path = LibraryCache.resolvePath(root, libraryName, version)
-    if (Files.exists(path)) Some(path) else None
+    if (Files.exists(path)) {
+      logger.trace(
+        s"$libraryName found at [${MaskedPath(path).applyMasking()}]."
+      )
+      Some(path)
+    } else {
+      logger.trace(
+        s"Did not find $libraryName at [${MaskedPath(path).applyMasking()}]."
+      )
+      None
+    }
   }
 }

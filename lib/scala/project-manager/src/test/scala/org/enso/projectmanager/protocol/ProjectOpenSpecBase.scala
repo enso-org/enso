@@ -1,7 +1,5 @@
 package org.enso.projectmanager.protocol
 
-import java.io.File
-import java.util.UUID
 import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
@@ -11,6 +9,9 @@ import org.enso.projectmanager.data.MissingComponentAction
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
 import zio.Runtime
+
+import java.io.File
+import java.util.UUID
 
 abstract class ProjectOpenSpecBase
     extends BaseServerSpec
@@ -46,13 +47,14 @@ abstract class ProjectOpenSpecBase
     val projectDir = new File(userProjectDir, brokenName)
     val pkgManager = org.enso.pkg.PackageManager.Default
     val pkg        = pkgManager.loadPackage(projectDir).get
-    pkg.updateConfig(config =>
+    pkg.updateConfig(config => {
+      val edition = config.edition.get
       config.copy(edition =
-        config.edition.copy(engineVersion =
-          Some(SemVerEnsoVersion(brokenVersion))
+        Some(
+          edition.copy(engineVersion = Some(SemVerEnsoVersion(brokenVersion)))
         )
       )
-    )
+    })
   }
 
   override def buildRequest(

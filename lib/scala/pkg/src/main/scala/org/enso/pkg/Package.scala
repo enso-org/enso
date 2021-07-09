@@ -1,7 +1,7 @@
 package org.enso.pkg
 
 import cats.Show
-import org.enso.editions.{DefaultEnsoVersion, EnsoVersion, LibraryName}
+import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
 
@@ -196,18 +196,20 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     * @param root  the root location of the package.
     * @param name the name for the new package.
     * @param version version of the newly-created package.
+    * @param edition the edition to use for the project; if not specified, it
+    *                will not specify any, meaning that the current default one
+    *                will be used
     * @return a package object representing the newly created package.
     */
   def create(
     root: F,
     name: String,
-    namespace: String          = "local",
-    version: String            = "0.0.1",
-    ensoVersion: EnsoVersion   = DefaultEnsoVersion,
-    authors: List[Contact]     = List(),
-    maintainers: List[Contact] = List()
+    namespace: String                    = "local",
+    version: String                      = "0.0.1",
+    edition: Option[Editions.RawEdition] = None,
+    authors: List[Contact]               = List(),
+    maintainers: List[Contact]           = List()
   ): Package[F] = {
-    val edition = Config.makeCompatibilityEditionFromVersion(ensoVersion)
     val config = Config(
       name                 = NameValidation.normalizeName(name),
       namespace            = namespace,

@@ -37,10 +37,6 @@ extracted correctly, make sure that under the path
 `~/enso/libraries/<namespace>/<Project_Name>/package.yaml` and that its
 `namespace` field has the same value as the name of the `<namespace>` directory.
 
-> The below step is not necessary yet, but it will be needed once the editions
-> system is fully integrated, so it is better to perform it for forwards
-> compatibility.
-
 Now you need to set up your project properly to be able to use this unpublished
 library. The simplest way to do that is to set `prefer-local-libraries` in your
 project's `package.yaml` to `true`. This will make all libraries from

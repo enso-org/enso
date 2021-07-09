@@ -2,10 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.interpreter.runtime.{Context => EnsoContext}
@@ -60,6 +59,10 @@ class RuntimeVisualisationsTest
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
+        )
         .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>

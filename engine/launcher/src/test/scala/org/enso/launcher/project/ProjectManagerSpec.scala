@@ -44,7 +44,7 @@ class ProjectManagerSpec
 
       val project = projectManager.loadProject(projectDir).get
       // TODO [RW] this test may change once we switch to deriving a particular edition by default
-      project.edition.engineVersion should contain(defaultEnsoVersion)
+      project.edition.value.engineVersion should contain(defaultEnsoVersion)
       project.config.authors.headOption.value shouldEqual author
       project.config.maintainers.headOption.value shouldEqual author
     }

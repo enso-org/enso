@@ -36,8 +36,8 @@ class RuntimeStdlibTest
       new LinkedBlockingQueue()
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
-    val stdlib: File =
-      Paths.get("../../distribution/std-lib/Base").toFile.getAbsoluteFile
+    val distributionHome: File =
+      Paths.get("../../distribution/component").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
       PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
@@ -48,7 +48,10 @@ class RuntimeStdlibTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.PRELOADED_PACKAGES_PATHS, stdlib.toString)
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          distributionHome.toString
+        )
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
@@ -216,7 +219,11 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    contentRootNotifications should contain(("Standard", "Base", "local"))
+    val libraryVersion =
+      "0.1.0" // buildinfo.Info.ensoVersion // TODO [RW] Change this once stdlib version starts being in-sync with engine version.
+    contentRootNotifications should contain(
+      ("Standard", "Base", libraryVersion)
+    )
 
     context.consumeOut shouldEqual List("Hello World!")
   }

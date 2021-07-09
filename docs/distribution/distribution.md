@@ -166,19 +166,22 @@ enso-1.0.0
 ├── native-libraries # Contains all shared libraries that are used by JVM components.
 │   └── parser.so    # The language parser. It is loaded by the runtime component.
 │                    # Alternative extensions are .dll Windows and .dylib on Mac.
-└── std-lib          # Contains all the libraries that are pre-installed within that compiler version.
-    ├── Http         # Every version sub-directory is just an Enso package containing the library.
-    │     ├── package.yaml
-    │     ├── polyglot
-    │     └── src
-    │         ├── Http.enso
-    │         └── Socket.enso
-    └── Base
-          ├── package.yaml
-          └── src
-              ├── List.enso
-              ├── Number.enso
-              └── Text.enso
+└── lib          # Contains all the libraries that are pre-installed within that compiler version.
+    └── Standard
+        ├── Http
+        │   └── 0.1.0     # Every version sub-directory is just an Enso package containing the library.
+        │       ├── package.yaml
+        │       ├── polyglot
+        │       └── src
+        │           ├── Http.enso
+        │           └── Socket.enso
+        └── Base
+            └── 0.1.0
+                ├── package.yaml
+                └── src
+                    ├── List.enso
+                    ├── Number.enso
+                    └── Text.enso
 ```
 
 > **Implementation Note:** This structure makes use of deep nesting, which may

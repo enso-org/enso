@@ -4,9 +4,20 @@ import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.file.Paths
+
 class ApiTest extends AnyFlatSpec with Matchers {
   import LanguageInfo._
-  val executionContext = new PolyglotContext(Context.newBuilder(ID).build())
+  val executionContext = new PolyglotContext(
+    Context
+      .newBuilder(ID)
+      .allowExperimentalOptions(true)
+      .option(
+        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+        Paths.get("../../distribution/component").toFile.getAbsolutePath
+      )
+      .build()
+  )
 
   "Parsing a file and calling a toplevel function defined in it" should "be possible" in {
     val code =

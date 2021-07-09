@@ -23,7 +23,7 @@ case class Project(
   namespace: String,
   kind: ProjectKind,
   created: OffsetDateTime,
-  edition: Editions.RawEdition,
+  edition: Option[Editions.RawEdition],
   lastOpened: Option[OffsetDateTime]      = None,
   path: Option[String]                    = None,
   directoryCreationTime: Option[FileTime] = None

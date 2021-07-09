@@ -33,7 +33,7 @@ these libraries, as well as notes on how they should be used.
 `Base` is the core library of Enso. It contains core types and data structures,
 as well as basic functionality for interacting with the outside world. It can be
 found in
-[`distribution/std-lib/Standard/src/Base.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Base/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Base/0.1.0/src/Main.enso).
 
 `Base` is intended to be imported unqualified at the top of the file:
 `from Standard.Base import all`. Items not included in this unqualified import
@@ -65,7 +65,7 @@ imported directly.
 `Database` is a library that provides utilities for accessing data in databases
 and processing that data efficiently. It is part of the Enso standard libraries
 and is located in
-[`distribution/std-lib/Standard/src/Database.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Database/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Database/0.1.0/src/Main.enso).
 
 It is designed to be imported _qualified_.
 
@@ -73,20 +73,20 @@ It is designed to be imported _qualified_.
 
 `Geo` is a library that contains very basic functionality for working with
 geographic data. We hope to expand it greatly in the future. It is located in
-[`distribution/std-lib/Standard/src/Geo.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Geo/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Geo/0.1.0/src/Main.enso).
 
 ## Image
 
 `Image` is a library that contains bindings to [OpenCV](https://opencv.org/)
 that allows users to work with image data. It is located in
-[`distribution/std-lib/Standard/src/Image.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Image/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Image/0.1.0/src/Main.enso).
 
 ## Table
 
 `Table` is Enso's dataframes library, providing functionality for loading and
 analysing tabular data. It is a core data-science toolkit, that integrates
 deeply with Enso and its IDE. It can be found in
-[`distribution/std-lib/Standard/src/Table.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Table/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Table/0.1.0/src/Main.enso).
 
 `Table` is designed to be imported qualified: `import Table`.
 
@@ -96,7 +96,7 @@ deeply with Enso and its IDE. It can be found in
 time it is _very_ rudimentary, and needs significant improvement before we can
 consider it an "official" part of the Enso standard libraries. It can be found
 in
-[`distribution/std-lib/Standard/src/Test.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Test/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Test/0.1.0/src/Main.enso).
 
 `Test` is intended to be imported qualified: `import Test`. This ensures that
 there aren't spurious name clashes between user-defined functionality and the
@@ -106,7 +106,7 @@ testing library.
 
 `Visualization` is a semi-internal library that provides visualization-specific
 utilities for displaying data in the IDE. It is located in
-[`distribution/std-lib/Standard/src/Visualization.enso`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src).
+[`distribution/lib/Standard/Visualization/0.1.0/src/Main.enso`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Visualization/0.1.0/src/Main.enso).
 
 ## Documentation
 
@@ -188,7 +188,7 @@ All examples assume that the prelude is imported using
 `from Standard.Base import all` in the file into which it is being pasted.
 
 The
-[`Standard.Examples`](https://github.com/enso-org/enso/tree/main/distribution/std-lib/Standard/src/Examples.enso)
+[`Standard.Examples`](https://github.com/enso-org/enso/tree/main/distribution/lib/Standard/Examples/0.1.0/src/Main.enso)
 file contains example data for use in examples. If an example requires
 non-trivial data on which to operate, it should be placed here.
 
