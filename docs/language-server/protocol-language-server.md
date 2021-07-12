@@ -4734,10 +4734,15 @@ Signals that the requested suggestion was not found.
 
 Signals that an edition could not be found.
 
+Its payload includes the name of the edition that could not be found.
+
 ```typescript
 "error" : {
   "code" : 8001,
-  "message" : "Edition [<name>] could not be found."
+  "message" : "Edition [<name>] could not be found.",
+  "payload" : {
+    "editionName": "<name>"
+  }
 }
 ```
 
