@@ -1,26 +1,26 @@
 package org.enso.runtimeversionmanager.test
 
-import java.nio.file.Path
-
 import nl.gn0s1s.bump.SemVer
-import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
-import org.enso.runtimeversionmanager._
+import org.enso.distribution.{
+  DistributionManager,
+  Environment,
+  PortableDistributionManager
+}
+import org.enso.pkg.{Config, PackageManager}
 import org.enso.runtimeversionmanager.components.{
   GraalVMComponentConfiguration,
   InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.distribution.{
-  DistributionManager,
-  PortableDistributionManager,
-  TemporaryDirectoryManager
-}
+import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
 import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.nio.file.Path
 
 /** Gathers helper methods for testing the [[RuntimeVersionManager]]. */
 class RuntimeVersionManagerTest
@@ -81,9 +81,9 @@ class RuntimeVersionManagerTest
     */
   def newProject(name: String, path: Path, version: SemVer): Unit = {
     PackageManager.Default.create(
-      root        = path.toFile,
-      name        = name,
-      ensoVersion = SemVerEnsoVersion(version)
+      root    = path.toFile,
+      name    = name,
+      edition = Some(Config.makeCompatibilityEditionFromVersion(version))
     )
   }
 }

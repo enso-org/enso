@@ -130,11 +130,13 @@ object Suggestion {
     *
     * @param module the fully qualified module name
     * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this module
     */
   case class Module(
     module: String,
     documentation: Option[String],
+    documentationHtml: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -163,6 +165,7 @@ object Suggestion {
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this atom
     */
   case class Atom(
@@ -172,6 +175,7 @@ object Suggestion {
     arguments: Seq[Argument],
     returnType: String,
     documentation: Option[String],
+    documentationHtml: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -183,8 +187,11 @@ object Suggestion {
       s"module=$module," +
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      s"returnType=$returnType" +
+      s",documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                            else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 
@@ -197,6 +204,7 @@ object Suggestion {
     * @param selfType the self type of a method
     * @param returnType the return type of a method
     * @param documentation the documentation string
+    * @param documentationHtml the documentation rendered as HTML
     * @param reexport the module re-exporting this method
     */
   case class Method(
@@ -207,6 +215,7 @@ object Suggestion {
     selfType: String,
     returnType: String,
     documentation: Option[String],
+    documentationHtml: Option[String],
     reexport: Option[String] = None
   ) extends Suggestion
       with ToLogString {
@@ -218,8 +227,11 @@ object Suggestion {
       s"name=$name," +
       s"arguments=${arguments.map(_.toLogString(shouldMask))}," +
       s"selfType=$selfType," +
-      s"returnType=$returnType,documentation=" +
-      (if (shouldMask) documentation.map(_ => STUB) else documentation) +
+      s"returnType=$returnType," +
+      s"documentation=" + (if (shouldMask) documentation.map(_ => STUB)
+                           else documentation) +
+      s",documentationHtml=" + (if (shouldMask) documentationHtml.map(_ => STUB)
+                                else documentationHtml) +
       s",reexport=$reexport)"
   }
 

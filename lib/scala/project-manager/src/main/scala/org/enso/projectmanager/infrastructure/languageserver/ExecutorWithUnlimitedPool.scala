@@ -1,20 +1,21 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.io.PrintWriter
-import java.lang.ProcessBuilder.Redirect
-import java.util.concurrent.Executors
-
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
+import java.io.PrintWriter
+import java.lang.ProcessBuilder.Redirect
+import java.util.concurrent.Executors
 import scala.util.Using
 
 object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
+  private lazy val logger = Logger[ExecutorWithUnlimitedPool.type]
 
   /** An executor that ensures each job runs in a separate thread.
     *
@@ -72,6 +73,8 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
     val versionManager = RuntimeVersionManagerFactory(distributionConfiguration)
       .makeRuntimeVersionManager(progressTracker)
 
+    versionManager.logAvailableComponentsForDebugging()
+
     val inheritedLogLevel =
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
@@ -80,11 +83,17 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       rpcPort   = rpcPort,
       dataPort  = dataPort
     )
-
-    val runner = new Runner(
+    val configurationManager = new GlobalConfigurationManager(
       versionManager,
-      distributionConfiguration.environment,
-      descriptor.deferredLoggingServiceEndpoint
+      distributionConfiguration.distributionManager
+    )
+    val runner = new Runner(
+      runtimeVersionManager      = versionManager,
+      distributionManager        = distributionConfiguration.distributionManager,
+      globalConfigurationManager = configurationManager,
+      editionManager             = distributionConfiguration.editionManager,
+      environment                = distributionConfiguration.environment,
+      loggerConnection           = descriptor.deferredLoggingServiceEndpoint
     )
     val runSettings = runner
       .startLanguageServer(
@@ -97,7 +106,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       )
       .get
     runner.withCommand(runSettings, descriptor.jvmSettings) { command =>
-      Logger[ExecutorWithUnlimitedPool.type].trace(
+      logger.trace(
         "Starting Language Server Process [{}]",
         command
       )

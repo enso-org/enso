@@ -23,7 +23,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"
-      val fooFile   = new File(testContentRoot.toFile, filename)
+      val fooFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       val client    = newWsClient()
       client.send(createSessionInitCmd())
@@ -55,7 +55,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
       val client = newWsClient()
@@ -88,7 +88,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Return the checksum for the provided byte range" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 
@@ -153,7 +153,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 
@@ -216,7 +216,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Write the provided bytes to the specified file" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 
@@ -260,7 +260,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Create the file from scratch if it doesn't exist" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
 
       val newBytes = Array[Byte](65, 66, 67)
       val expectedChecksum =
@@ -304,7 +304,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Return a `CannotOverwrite` error if `byteOffset < file.length`" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 
@@ -373,7 +373,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Read the specified bytes from the file" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 
@@ -447,7 +447,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
     "Return a `ReadOutOfBounds` error if the byte range is out of bounds" in {
       val requestId = UUID.randomUUID()
       val filename  = "bar.bin"
-      val barFile   = new File(testContentRoot.toFile, filename)
+      val barFile   = new File(testContentRoot.file, filename)
       val contents  = Array[Byte](65, 66, 67) //ABC
       FileUtils.writeByteArrayToFile(barFile, contents)
 

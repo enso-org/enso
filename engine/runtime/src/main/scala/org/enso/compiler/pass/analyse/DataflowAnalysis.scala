@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
@@ -102,6 +103,18 @@ case object DataflowAnalysis extends IRPass {
             arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
           .updateMetadata(this -->> info)
+      case m: Method.Conversion =>
+        val bodyDep       = asStatic(m.body)
+        val methodDep     = asStatic(m)
+        val sourceTypeDep = asStatic(m.sourceTypeName)
+        info.dependents.updateAt(sourceTypeDep, Set(methodDep))
+        info.dependents.updateAt(bodyDep, Set(methodDep))
+        info.dependencies.updateAt(methodDep, Set(bodyDep, sourceTypeDep))
+
+        m.copy(
+          body           = analyseExpression(m.body, info),
+          sourceTypeName = m.sourceTypeName.updateMetadata(this -->> info)
+        ).updateMetadata(this -->> info)
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         val bodyDep   = asStatic(body)
@@ -620,7 +633,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.DefinitionArgument = {
     argument match {
-      case spec @ IR.DefinitionArgument.Specified(_, defValue, _, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, _, defValue, _, _, _, _) =>
         val specDep = asStatic(spec)
         defValue.foreach(expr => {
           val exprDep = asStatic(expr)

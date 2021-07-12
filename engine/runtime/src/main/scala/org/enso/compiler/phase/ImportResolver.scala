@@ -3,7 +3,9 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.editions.LibraryName
 import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
@@ -51,16 +53,59 @@ class ImportResolver(compiler: Compiler) {
             current.getCompilationStage
               .isBefore(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
           ) {
-            val importedModules = ir.imports.flatMap {
-              case imp: IR.Module.Scope.Import.Module =>
-                val impName = imp.name.name
-                val exp     = ir.exports.find(_.name.name == impName)
-                compiler
-                  .getModule(impName)
-                  .map(BindingsMap.ResolvedImport(imp, exp, _))
-              case _ => None
-            }
-            currentLocal.resolvedImports = importedModules
+            val importedModules: List[
+              (IR.Module.Scope.Import, Option[BindingsMap.ResolvedImport])
+            ] =
+              ir.imports.map {
+                case imp: IR.Module.Scope.Import.Module =>
+                  val impName = imp.name.name
+                  val exp = ir.exports
+                    .collect { case ex: IR.Module.Scope.Export.Module => ex }
+                    .find(_.name.name == impName)
+                  val libraryName = imp.name.parts match {
+                    case namespace :: name :: _ =>
+                      LibraryName(namespace.name, name.name)
+                    case _ =>
+                      throw new CompilerError(
+                        "Imports should containt at least two segments after " +
+                        "desugaring."
+                      )
+                  }
+                  compiler.packageRepository
+                    .ensurePackageIsLoaded(libraryName) match {
+                    case Right(()) =>
+                      compiler.getModule(impName) match {
+                        case Some(module) =>
+                          (
+                            imp,
+                            Some(BindingsMap.ResolvedImport(imp, exp, module))
+                          )
+                        case None =>
+                          (
+                            IR.Error.ImportExport(
+                              imp,
+                              IR.Error.ImportExport.ModuleDoesNotExist(impName)
+                            ),
+                            None
+                          )
+                      }
+                    case Left(loadingError) =>
+                      (
+                        IR.Error.ImportExport(
+                          imp,
+                          IR.Error.ImportExport.PackageCouldNotBeLoaded(
+                            impName,
+                            loadingError.toString
+                          )
+                        ),
+                        None
+                      )
+                  }
+                case other => (other, None)
+              }
+            currentLocal.resolvedImports = importedModules.flatMap(_._2)
+            val newIr = ir.copy(imports = importedModules.map(_._1))
+            current.unsafeSetIr(newIr)
             current.unsafeSetCompilationStage(
               Module.CompilationStage.AFTER_IMPORT_RESOLUTION
             )

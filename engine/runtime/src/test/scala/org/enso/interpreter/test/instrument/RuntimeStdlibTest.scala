@@ -1,11 +1,5 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.nio.file.{Files, Paths}
-import java.util.UUID
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -13,19 +7,25 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+
+import java.io.{ByteArrayOutputStream, File}
+import java.nio.ByteBuffer
+import java.nio.file.{Files, Paths}
+import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 @scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeStdlibTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach
+    with BeforeAndAfterAll
     with OsSpec {
 
-  final val ContextPathSeparator: String =
-    if (isWindows) ";" else ":"
+  final val ContextPathSeparator: String = File.pathSeparator
 
   var context: TestContext = _
 
@@ -36,24 +36,26 @@ class RuntimeStdlibTest
       new LinkedBlockingQueue()
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
-    val stdlib: File =
-      Paths.get("../../distribution/std-lib/Standard").toFile.getAbsoluteFile
+    val distributionHome: File =
+      Paths.get("../../distribution/component").toFile.getAbsoluteFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(
-          RuntimeOptions.PACKAGES_PATH,
-          toPackagesPath(pkg.root.getAbsolutePath, stdlib.toString)
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          distributionHome.toString
         )
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {
@@ -77,7 +79,7 @@ class RuntimeStdlibTest
     executionContext.context.initialize(LanguageInfo.ID)
 
     def toPackagesPath(paths: String*): String =
-      paths.mkString(ContextPathSeparator)
+      paths.mkString(File.pathSeparator)
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -92,7 +94,7 @@ class RuntimeStdlibTest
 
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
 
-    def receiveNone: Option[Api.Response] = {
+    def receiveOne: Option[Api.Response] = {
       Option(messageQueue.poll())
     }
 
@@ -143,7 +145,7 @@ class RuntimeStdlibTest
   it should "import Base modules" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
 
@@ -165,7 +167,7 @@ class RuntimeStdlibTest
     context.send(
       Api.Request(Api.OpenFileNotification(mainFile, contents, true))
     )
-    context.receiveNone shouldEqual None
+    context.receiveOne shouldEqual None
 
     // push main
     context.send(
@@ -181,16 +183,17 @@ class RuntimeStdlibTest
         )
       )
     )
-    val response =
+    val responses =
       context.receiveAllUntil(
         context.executionComplete(contextId),
         timeout = 60
       )
-    response should contain allOf (
+    responses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    val suggestions = response.collect {
+
+    val suggestions = responses.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
@@ -199,7 +202,7 @@ class RuntimeStdlibTest
     }
     suggestions.isEmpty shouldBe false
 
-    val builtinsSuggestions = response.collect {
+    val builtinsSuggestions = responses.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, _, xs)
@@ -207,6 +210,20 @@ class RuntimeStdlibTest
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
     builtinsSuggestions.length shouldBe 1
+
+    val contentRootNotifications = responses.collect {
+      case Api.Response(
+            None,
+            Api.LibraryLoaded(namespace, name, version, _)
+          ) =>
+        (namespace, name, version)
+    }
+
+    val libraryVersion =
+      "0.1.0" // buildinfo.Info.ensoVersion // TODO [RW] Change this once stdlib version starts being in-sync with engine version.
+    contentRootNotifications should contain(
+      ("Standard", "Base", libraryVersion)
+    )
 
     context.consumeOut shouldEqual List("Hello World!")
   }

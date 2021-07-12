@@ -1,7 +1,6 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.util.UUID
 
 object FileManagerProtocol {
 
@@ -18,16 +17,6 @@ object FileManagerProtocol {
     * @param contents the binary contents
     */
   case class BinaryFileContent(path: File, contents: Array[Byte])
-
-  /** Gets all content roots.
-    */
-  case object GetContentRoots
-
-  /** Response containing all content roots.
-    *
-    * @param contentRoots content roots
-    */
-  case class ContentRootsResult(contentRoots: Set[UUID])
 
   /** Requests the Language Server write textual content to an arbitrary file.
     *

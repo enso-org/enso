@@ -1,5 +1,46 @@
 # Enso Next
 
+# Enso 0.2.13 (2021-07-09)
+
+## Interpreter/Runtime
+
+- Implemented changes to the import and export syntax, requiring to provide the
+  project namespace, or use the new `project` keyword to import from the current
+  project ([#1806](https://github.com/enso-org/enso/pull/1806)).
+- Fixed a bug where unresolved imports would crash the compiler
+  ([#1822](https://github.com/enso-org/enso/pull/1822)).
+- Implemented the ability to dynamically load local libraries
+  ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
+  supports the loading of local libraries, but will be integrated with the
+  editions system soon.
+- Integrated the library loading mechanism with the editions system
+  ([#1832](https://github.com/enso-org/enso/pull/1832)).
+
+## Tooling
+
+- Added namespace information to project manager messages
+  ([#1820](https://github.com/enso-org/enso/pull/1820)).
+- Fixed a bug where the Project Manager would not preinstall the Graal runtime
+  if the engine was already installed and only its runtime was missing
+  ([#1824](https://github.com/enso-org/enso/pull/1824)).
+- Extended content root mechanism to provide the home directory and filesystem
+  roots on startup ([#1821](https://github.com/enso-org/enso/pull/1821)). It now
+  also supports dynamically adding content roots and notifies the IDE when a new
+  content root is added.
+- Connected the documentation generator with Enso compiler and suggestion
+  database, making the documentation generated before being sent to the IDE,
+  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's
+  side, also enabling us to connect many AST elements with docs. See
+  ([#1744](https://github.com/enso-org/enso/pull/1744).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-09)
+  for issues opened before the release date.
+
+# Enso 0.2.12 (2021-06-24)
+
 ## Interpreter/Runtime
 
 - Upgraded the underlying runtime to
@@ -36,6 +77,25 @@
 - Added support for reading and writing byte ranges in files remotely
   ([#1795](https://github.com/enso-org/enso/pull/1795)). This allows the IDE to
   transfer files to a remote back-end in a streaming fashion.
+- Added support for multiple content roots in the language server
+  ([#1800](https://github.com/enso-org/enso/pull/1800/)). It is not yet exposed
+  to the IDE, as this will be done as part of future work.
+- Modified the `package.yaml` format in preparation for the library ecosystem
+  ([#1797](https://github.com/enso-org/enso/pull/1797)). The `engine-version`
+  field has been deprecated in favour of an `edition` field that allows to set
+  up the engine version and dependency resolution using the upcoming Edition
+  system. New tools will still be able to read the old format, but upon
+  modification, they will save changes in the new format. As the `edition` file
+  did not exist in the older version, old tools will actually correctly load the
+  migrated package file (as we allow for unknown fields), but they will not know
+  how to interpret the new `edition` field and so will fall back to using the
+  `default` engine version, which may be unexpected. Ideally, after migration,
+  the project should be used only with the new tools. The affected tools are the
+  Launcher and the Project Manager.
+- Added documentation and a minimal tool for hosting custom library repositories
+  ([#1804](https://github.com/enso-org/enso/pull/1804)).
+- Added `documentationHtml` field to Suggestions database entry
+  ([#1791](https://github.com/enso-org/enso/pull/1791))
 
 ## Libraries
 
@@ -68,6 +128,12 @@
   features, but they should not be relied on as they are not considered stable.
   Only the 3 latest nightly builds are kept, so the nightly versions become
   obsolete very quickly.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-06-24)
+  for issues opened before the release date.
 
 # Enso 0.2.11 (2021-04-28)
 

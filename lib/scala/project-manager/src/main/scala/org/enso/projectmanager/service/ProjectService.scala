@@ -1,16 +1,16 @@
 package org.enso.projectmanager.service
 
-import java.util.UUID
-
 import akka.actor.ActorRef
 import cats.MonadError
 import nl.gn0s1s.bump.SemVer
+import org.enso.editions.EnsoVersion
+import org.enso.pkg.Config
+import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{
   Applicative,
   CovariantFlatMap,
   Traverse
 }
-import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.data.{
@@ -47,6 +47,8 @@ import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.Configu
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
+
+import java.util.UUID
 
 /** Implementation of business logic for project management.
   *
@@ -87,7 +89,14 @@ class ProjectService[
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
-    project = Project(projectId, name, UserProject, creationTime)
+    project = Project(
+      id        = projectId,
+      name      = name,
+      namespace = Config.defaultNamespace,
+      kind      = UserProject,
+      created   = creationTime,
+      edition   = None
+    )
     path <- repo.findPathForNewProject(project).mapError(toServiceFailure)
     _ <- log.debug(
       "Found a path [{}] for a new project [{}, {}].",
@@ -106,8 +115,7 @@ class ProjectService[
       "Project [{}] structure created with [{}, {}, {}].",
       projectId,
       path,
-      name,
-      engineVersion
+      name
     )
     _ <- repo
       .update(project.copy(path = Some(path.toString)))
@@ -152,10 +160,13 @@ class ProjectService[
       _          <- checkIfProjectExists(projectId)
       _          <- checkIfNameExists(newPackage)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
-      _          <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
-      _          <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
-      _          <- refactorProjectName(projectId, oldPackage, newPackage)
-      _          <- log.info("Project renamed [{}].", projectId)
+      namespace <- repo
+        .getPackageNamespace(projectId)
+        .mapError(toServiceFailure)
+      _ <- repo.rename(projectId, newPackage).mapError(toServiceFailure)
+      _ <- renameProjectDirOrRegisterShutdownHook(projectId, newPackage)
+      _ <- refactorProjectName(projectId, namespace, oldPackage, newPackage)
+      _ <- log.info("Project renamed [{}].", projectId)
     } yield ()
   }
 
@@ -189,12 +200,14 @@ class ProjectService[
 
   private def refactorProjectName(
     projectId: UUID,
+    namespace: String,
     oldPackage: String,
     newPackage: String
   ): F[ProjectServiceFailure, Unit] =
     languageServerGateway
       .renameProject(
         projectId,
+        namespace,
         oldPackage,
         newPackage
       )
@@ -268,14 +281,18 @@ class ProjectService[
   ): F[ProjectServiceFailure, Unit] =
     Sync[F]
       .blockingOp {
-        RuntimeVersionManagerFactory(distributionConfiguration)
-          .makeRuntimeVersionManager(progressTracker, missingComponentAction)
-          .findOrInstallEngine(version)
+        val runtimeVersionManager =
+          RuntimeVersionManagerFactory(distributionConfiguration)
+            .makeRuntimeVersionManager(progressTracker, missingComponentAction)
+        runtimeVersionManager.logAvailableComponentsForDebugging()
+        val engine = runtimeVersionManager.findOrInstallEngine(version)
+        runtimeVersionManager.findOrInstallGraalRuntime(engine)
+        runtimeVersionManager.logAvailableComponentsForDebugging()
         ()
       }
       .mapRuntimeManagerErrors(th =>
         ProjectOpenFailed(
-          s"Cannot install the required engine. ${th.getMessage}"
+          s"Cannot install the required engine. $th"
         )
       )
 
@@ -285,8 +302,9 @@ class ProjectService[
     project: Project,
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
+    version <- resolveProjectVersion(project)
     version <- configurationService
-      .resolveEnsoVersion(project.engineVersion)
+      .resolveEnsoVersion(version)
       .mapError { case ConfigurationFileAccessFailure(message) =>
         ProjectOpenFailed(
           "Could not deduce the default version to use for the project: " +
@@ -311,7 +329,12 @@ class ProjectService[
             s"Language server boot failed. ${th.getMessage}"
           )
       }
-  } yield RunningLanguageServerInfo(version, sockets, project.name)
+  } yield RunningLanguageServerInfo(
+    version,
+    sockets,
+    project.name,
+    project.namespace
+  )
 
   /** @inheritdoc */
   override def closeProject(
@@ -345,15 +368,17 @@ class ProjectService[
   private def resolveProjectMetadata(
     project: Project
   ): F[ProjectServiceFailure, ProjectMetadata] =
-    configurationService
-      .resolveEnsoVersion(project.engineVersion)
-      .mapError { case ConfigurationFileAccessFailure(message) =>
-        GlobalConfigurationAccessFailure(
-          "Could not deduce the default version to use for the project: " +
-          message
-        )
-      }
-      .map(toProjectMetadata(_, project))
+    for {
+      version <- resolveProjectVersion(project)
+      version <- configurationService
+        .resolveEnsoVersion(version)
+        .mapError { case ConfigurationFileAccessFailure(message) =>
+          GlobalConfigurationAccessFailure(
+            "Could not deduce the default version to use for the project: " +
+            message
+          )
+        }
+    } yield toProjectMetadata(version, project)
 
   private def toProjectMetadata(
     engineVersion: SemVer,
@@ -361,6 +386,7 @@ class ProjectService[
   ): ProjectMetadata =
     ProjectMetadata(
       name          = project.name,
+      namespace     = project.namespace,
       id            = project.id,
       engineVersion = engineVersion,
       lastOpened    = project.lastOpened
@@ -437,6 +463,21 @@ class ProjectService[
       }
       .flatMap { _ =>
         log.debug("Project name [{}] validated by [{}].", name, validator)
+      }
+
+  private def resolveProjectVersion(
+    project: Project
+  ): F[ProjectServiceFailure, EnsoVersion] =
+    Sync[F]
+      .blockingOp {
+        distributionConfiguration.editionManager
+          .resolveEngineVersion(project.edition)
+          .get
+      }
+      .mapError { error =>
+        ProjectServiceFailure.GlobalConfigurationAccessFailure(
+          s"Could not resolve project engine version: ${error.getMessage}"
+        )
       }
 
 }

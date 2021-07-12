@@ -213,6 +213,7 @@ object SearchProtocol {
       * @param selfType the self type to update
       * @param returnType the return type to update
       * @param documentation the documentation string to update
+      * @param documentationHtml the HTML documentation to update
       * @param scope the scope to update
       * @param reexport the module reexporting the suggestion
       */
@@ -224,6 +225,7 @@ object SearchProtocol {
       selfType: Option[FieldUpdate[String]]                  = None,
       returnType: Option[FieldUpdate[String]]                = None,
       documentation: Option[FieldUpdate[String]]             = None,
+      documentationHtml: Option[FieldUpdate[String]]         = None,
       scope: Option[FieldUpdate[Suggestion.Scope]]           = None,
       reexport: Option[FieldUpdate[String]]                  = None
     ) extends SuggestionsDatabaseUpdate

@@ -106,9 +106,10 @@ class ProjectFileRepository[
       Project(
         id                    = meta.id,
         name                  = pkg.name,
+        namespace             = pkg.namespace,
         kind                  = meta.kind,
         created               = meta.created,
-        engineVersion         = pkg.config.ensoVersion,
+        edition               = pkg.config.edition,
         lastOpened            = meta.lastOpened,
         path                  = Some(directory.toString),
         directoryCreationTime = directoryCreationTime
@@ -156,6 +157,16 @@ class ProjectFileRepository[
       project        <- getProject(projectId)
       projectPackage <- getPackage(new File(project.path.get))
     } yield projectPackage.config.name
+  }
+
+  /** @inheritdoc */
+  def getPackageNamespace(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, String] = {
+    for {
+      project        <- getProject(projectId)
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.namespace
   }
 
   private def loadPackage(

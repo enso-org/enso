@@ -8,6 +8,8 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
+import org.enso.docs.generator.DocParserWrapper
+import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.Tree
@@ -147,14 +149,15 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId    = externalId,
-      module        = module.toString,
-      name          = name.name,
-      arguments     = methodArgs,
-      selfType      = selfType.toString,
-      returnType    = buildReturnType(returnTypeDef),
-      documentation = doc,
-      reexport      = None
+      externalId        = externalId,
+      module            = module.toString,
+      name              = name.name,
+      arguments         = methodArgs,
+      selfType          = selfType.toString,
+      returnType        = buildReturnType(returnTypeDef),
+      documentation     = doc,
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc),
+      reexport          = None
     )
   }
 
@@ -204,9 +207,10 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   /** Build an atom suggestion representing a module. */
   private def buildModule(module: QualifiedName): Suggestion =
     Suggestion.Module(
-      module        = module.toString,
-      documentation = None,
-      reexport      = None
+      module            = module.toString,
+      documentation     = None,
+      documentationHtml = None,
+      reexport          = None
     )
 
   /** Build suggestions for an atom definition. */
@@ -228,13 +232,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId    = None,
-      module        = module.toString,
-      name          = name,
-      arguments     = arguments.map(buildArgument),
-      returnType    = module.createChild(name).toString,
-      documentation = doc,
-      reexport      = None
+      externalId        = None,
+      module            = module.toString,
+      name              = name,
+      arguments         = arguments.map(buildArgument),
+      returnType        = module.createChild(name).toString,
+      documentation     = doc,
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc),
+      reexport          = None
     )
 
   /** Build getter methods from atom arguments. */
@@ -247,6 +252,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     arguments.map { argument =>
       val thisArg = IR.DefinitionArgument.Specified(
         name         = IR.Name.This(argument.name.location),
+        ascribedType = None,
         defaultValue = None,
         suspended    = false,
         location     = argument.location
@@ -384,6 +390,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         vargs match {
           case IR.DefinitionArgument.Specified(
                 name: IR.Name.This,
+                _,
                 defaultValue,
                 suspended,
                 _,
@@ -594,6 +601,6 @@ object SuggestionBuilder {
 
   }
 
-  val Any: String = "Builtins.Main.Any"
+  val Any: String = Constants.ANY
 
 }

@@ -13,7 +13,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
@@ -362,16 +362,18 @@ class SuggestionsHandlerSpec
 
         val moduleName = "Test.Foo"
         val fooAtom = Suggestion.Atom(
-          externalId    = None,
-          module        = moduleName,
-          name          = "Foo",
-          arguments     = Vector(),
-          returnType    = moduleName,
-          documentation = None
+          externalId        = None,
+          module            = moduleName,
+          name              = "Foo",
+          arguments         = Vector(),
+          returnType        = moduleName,
+          documentation     = None,
+          documentationHtml = None
         )
         val module = Suggestion.Module(
-          module        = moduleName,
-          documentation = None
+          module            = moduleName,
+          documentation     = None,
+          documentationHtml = None
         )
 
         val tree = Tree.Root(
@@ -972,10 +974,15 @@ class SuggestionsHandlerSpec
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future]
   ): ActorRef = {
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val handler =
       system.actorOf(
         SuggestionsHandler.props(
           config,
+          contentRootManagerWrapper,
           suggestionsRepo,
           fileVersionsRepo,
           sessionRouter.ref,
@@ -1005,18 +1012,18 @@ class SuggestionsHandlerSpec
     graph
   }
 
-  def newConfig(root: File): Config = {
+  def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(UUID.randomUUID() -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 
   def mkModulePath(config: Config, segments: String*): Path = {
-    val (rootId, _) = config.contentRoots.head
+    val rootId = config.projectContentRoot.id
     Path(rootId, "src" +: segments.toVector)
   }
 
@@ -1034,12 +1041,15 @@ class SuggestionsHandlerSpec
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config    = newConfig(testContentRoot.toFile)
-    val router    = TestProbe("session-router")
-    val connector = TestProbe("runtime-connector")
-    val sqlDatabase = SqlDatabase(
-      config.directories.suggestionsDatabaseFile.toString
+    val config = newConfig(
+      ContentRootWithFile(
+        ContentRoot.Project(UUID.randomUUID()),
+        testContentRoot.toFile
+      )
     )
+    val router          = TestProbe("session-router")
+    val connector       = TestProbe("runtime-connector")
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 

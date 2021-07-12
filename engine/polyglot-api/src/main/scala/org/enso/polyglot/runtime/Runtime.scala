@@ -1,9 +1,5 @@
 package org.enso.polyglot.runtime
 
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.UUID
-
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -18,6 +14,9 @@ import org.enso.text.ContentVersion
 import org.enso.text.editing.model
 import org.enso.text.editing.model.{Range, TextEdit}
 
+import java.io.File
+import java.nio.ByteBuffer
+import java.util.UUID
 import scala.util.Try
 
 object Runtime {
@@ -206,6 +205,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.GetTypeGraphResponse],
         name  = "getTypeGraphResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LibraryLoaded],
+        name  = "libraryLoaded"
       )
     )
   )
@@ -567,6 +570,7 @@ object Runtime {
         * @param arguments the arguments to update
         * @param returnType the return type to update
         * @param documentation the documentation string to update
+        * @param documentationHtml the HTML documentation to update
         * @param scope the scope to update
         * @param reexport the reexport field to update
         */
@@ -575,6 +579,7 @@ object Runtime {
         arguments: Option[Seq[SuggestionArgumentAction]]  = None,
         returnType: Option[String]                        = None,
         documentation: Option[Option[String]]             = None,
+        documentationHtml: Option[Option[String]]         = None,
         scope: Option[Suggestion.Scope]                   = None,
         reexport: Option[Option[String]]                  = None
       ) extends SuggestionAction
@@ -589,7 +594,10 @@ object Runtime {
           s"documentation=" +
           (if (shouldMask) documentation.map(_.map(_ => STUB))
            else documentation) +
-          s",scope=$scope," +
+          s"documentationHtml=" +
+          (if (shouldMask) documentationHtml.map(_.map(_ => STUB))
+           else documentationHtml) +
+          s",scope=$scope" +
           s"reexport=$reexport" +
           ")"
       }
@@ -1260,17 +1268,23 @@ object Runtime {
 
     /** A request for project renaming.
       *
+      * @param namespace the namespace the renamed project belongs to
       * @param oldName the old project name
       * @param newName the new project name
       */
-    case class RenameProject(oldName: String, newName: String)
-        extends ApiRequest
+    case class RenameProject(
+      namespace: String,
+      oldName: String,
+      newName: String
+    ) extends ApiRequest
 
     /** Signals that project has been renamed.
       *
+      * @param namespace the namespace of the project
       * @param newName the new project name
       */
-    case class ProjectRenamed(newName: String) extends ApiResponse
+    case class ProjectRenamed(namespace: String, newName: String)
+        extends ApiResponse
 
     /** A notification about the changes in the suggestions database.
       *
@@ -1353,6 +1367,22 @@ object Runtime {
       * @param graph the graph.
       */
     case class GetTypeGraphResponse(graph: TypeGraph) extends ApiResponse
+
+    /** Signals that a new library has been imported, which means its content
+      * root should be registered.
+      *
+      * @param namespace namespace of the loaded library
+      * @param name name of the loaded library
+      * @param version library version that was selected
+      * @param location location on disk of the project root belonging to the
+      *                 loaded library
+      */
+    case class LibraryLoaded(
+      namespace: String,
+      name: String,
+      version: String,
+      location: File
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()

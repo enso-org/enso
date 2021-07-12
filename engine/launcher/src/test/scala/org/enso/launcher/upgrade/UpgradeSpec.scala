@@ -1,13 +1,12 @@
 package org.enso.launcher.upgrade
 
 import java.nio.file.{Files, Path, StandardCopyOption}
-
 import io.circe.parser
 import nl.gn0s1s.bump.SemVer
-import org.enso.runtimeversionmanager.{FileSystem, OS}
-import org.enso.runtimeversionmanager.FileSystem.PathSyntax
+import org.enso.distribution.{FileSystem, OS}
+import org.enso.distribution.locking.{FileLockManager, LockType}
+import FileSystem.PathSyntax
 import org.enso.launcher._
-import org.enso.runtimeversionmanager.locking.{FileLockManager, LockType}
 import org.enso.runtimeversionmanager.test.WithTemporaryDirectory
 import org.enso.testkit.RetrySpec
 import org.scalatest.exceptions.TestFailedException
@@ -289,7 +288,7 @@ class UpgradeSpec
       val script  = getTestDirectory / "script.enso"
       val message = "Hello from test"
       val content =
-        s"""from Builtins import all
+        s"""from Standard.Builtins import all
            |main = IO.println "$message"
            |""".stripMargin
       FileSystem.writeTextFile(script, content)

@@ -1,6 +1,7 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -8,6 +9,7 @@ import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
+import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 
 import java.io.File;
@@ -53,10 +55,13 @@ public class ProgramRootNode extends RootNode {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       QualifiedName name = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
       Context ctx = lookupContextReference(Language.class).get();
-      module =
-          sourceCode.getPath() != null
-              ? new Module(name, ctx.getTruffleFile(new File(sourceCode.getPath())))
-              : new Module(name, sourceCode.getCharacters().toString());
+      if (sourceCode.getPath() != null) {
+        TruffleFile src = ctx.getTruffleFile(new File(sourceCode.getPath()));
+        Package<TruffleFile> pkg = ctx.getPackageOf(src).orElse(null);
+        module = new Module(name, pkg, src);
+      } else {
+        module = new Module(name, null, sourceCode.getCharacters().toString());
+      }
     }
     // Note [Static Passes]
     return module;

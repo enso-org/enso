@@ -23,7 +23,6 @@ import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 import java.io.StringReader
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
@@ -35,6 +34,7 @@ import scala.jdk.OptionConverters._
 class Compiler(
   val context: Context,
   val builtins: Builtins,
+  val packageRepository: PackageRepository,
   config: CompilerConfig
 ) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
@@ -122,13 +122,26 @@ class Compiler(
     }
   }
 
-  private def parseModule(module: Module): Unit = {
+  /** Runs part of the compiler to generate docs from Enso code.
+    * @param module - the scope from which docs are generated.
+    */
+  def generateDocs(module: Module): Module = {
+    initializeBuiltinsIr()
+    parseModule(module, isGenDocs = true)
+    module
+  }
+
+  private def parseModule(
+    module: Module,
+    isGenDocs: Boolean = false
+  ): Unit = {
     module.ensureScopeExists()
     module.getScope.reset()
     val moduleContext = ModuleContext(
-      module          = module,
-      freshNameSupply = Some(freshNameSupply),
-      compilerConfig  = config
+      module           = module,
+      freshNameSupply  = Some(freshNameSupply),
+      compilerConfig   = config,
+      isGeneratingDocs = isGenDocs
     )
     val parsedAST        = parse(module.getSource)
     val expr             = generateIR(parsedAST)
@@ -329,12 +342,6 @@ class Compiler(
   def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    val shadowed = context.getShadowedPackages.asScala
-    if (shadowed.nonEmpty) {
-      context.getOut.println("Modules were shadowed during loading:")
-    }
-    shadowed.foreach(s => context.getOut.println(s.toString))
-
     if (context.isStrictErrors) {
       val diagnostics = modules.map { module =>
         val errors = GatherDiagnostics

@@ -11,7 +11,7 @@ class WorkspaceOperationsTest extends BaseServerTest with FlakySpec {
 
   "workspace/projectInfo" must {
     val packageConfigName = Config.ensoPackageConfigName
-    val testYamlPath      = new File(testContentRoot.toFile, packageConfigName)
+    val testYamlPath      = new File(testContentRoot.file, packageConfigName)
 
     "return the project info" taggedAs Flaky in {
       testYamlPath.delete()

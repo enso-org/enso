@@ -5,7 +5,7 @@ import akka.testkit.TestDuration
 import io.circe.Json
 import io.circe.syntax._
 import io.circe.literal._
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.enso.projectmanager.data.{MissingComponentAction, Socket}
@@ -82,10 +82,11 @@ trait ProjectManagementOps { this: BaseServerSpec =>
       binHost   <- binAddr.downField("host").as[String]
       binPort   <- binAddr.downField("port").as[Int]
       name      <- result.downField("projectName").as[String]
+      namespace <- result.downField("projectNamespace").as[String]
     } yield {
       val jsonSock = Socket(jsonHost, jsonPort)
       val binSock  = Socket(binHost, binPort)
-      ProjectOpen.Result(engineVer, jsonSock, binSock, name)
+      ProjectOpen.Result(engineVer, jsonSock, binSock, name, namespace)
     }
     openResult.getOrElse(throw new Exception("Should have worked."))
   }

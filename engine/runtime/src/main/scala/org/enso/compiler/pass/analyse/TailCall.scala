@@ -82,6 +82,12 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
+      case method: IR.Module.Scope.Definition.Method.Conversion =>
+        method
+          .copy(
+            body = analyseExpression(method.body, isInTailPosition = true)
+          )
+          .updateMetadata(this -->> TailPosition.Tail)
       case method @ IR.Module.Scope.Definition.Method
             .Explicit(_, body, _, _, _) =>
         method
@@ -426,7 +432,7 @@ case object TailCall extends IRPass {
     */
   def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
     arg match {
-      case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>

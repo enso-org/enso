@@ -8,17 +8,19 @@ import org.enso.polyglot.Suggestion
 object Suggestions {
 
   val module: Suggestion.Module = Suggestion.Module(
-    module        = "Test.Main",
-    documentation = None
+    module            = "Test.Main",
+    documentation     = None,
+    documentationHtml = None
   )
 
   val atom: Suggestion.Atom = Suggestion.Atom(
-    externalId    = None,
-    module        = "Test.Main",
-    name          = "MyType",
-    arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
-    returnType    = "MyAtom",
-    documentation = None
+    externalId        = None,
+    module            = "Test.Main",
+    name              = "MyType",
+    arguments         = Vector(Suggestion.Argument("a", "Any", false, false, None)),
+    returnType        = "MyAtom",
+    documentation     = None,
+    documentationHtml = None
   )
 
   val method: Suggestion.Method = Suggestion.Method(
@@ -29,9 +31,10 @@ object Suggestions {
       Suggestion.Argument("this", "MyType", false, false, None),
       Suggestion.Argument("foo", "Number", false, true, Some("42"))
     ),
-    selfType      = "MyType",
-    returnType    = "Number",
-    documentation = Some("Lovely")
+    selfType          = "MyType",
+    returnType        = "Number",
+    documentation     = Some("Lovely"),
+    documentationHtml = Some("<p>Lovely</p>")
   )
 
   val function: Suggestion.Function = Suggestion.Function(
@@ -65,9 +68,10 @@ object Suggestions {
       Suggestion.Argument("this", "Any", false, false, None),
       Suggestion.Argument("that", "Any", false, false, None)
     ),
-    selfType      = "Any",
-    returnType    = "Any",
-    documentation = Some("Lovely")
+    selfType          = "Any",
+    returnType        = "Any",
+    documentation     = Some("Lovely"),
+    documentationHtml = Some("<p>Lovely</p>")
   )
 
   val methodOnNumber: Suggestion.Method = Suggestion.Method(
@@ -77,9 +81,10 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("this", "Number", false, false, None)
     ),
-    selfType      = "Number",
-    returnType    = "Number",
-    documentation = None
+    selfType          = "Number",
+    returnType        = "Number",
+    documentation     = None,
+    documentationHtml = None
   )
 
   val methodOnInteger: Suggestion.Method = Suggestion.Method(
@@ -89,9 +94,10 @@ object Suggestions {
     arguments = Vector(
       Suggestion.Argument("that", "Number", false, false, None)
     ),
-    selfType      = "Integer",
-    returnType    = "Number",
-    documentation = Some("Blah, blah")
+    selfType          = "Integer",
+    returnType        = "Number",
+    documentation     = Some("Blah, blah"),
+    documentationHtml = Some("<p>Blah, blah</p>")
   )
 
   val all = Seq(

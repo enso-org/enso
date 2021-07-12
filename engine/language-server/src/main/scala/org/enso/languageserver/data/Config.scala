@@ -1,16 +1,10 @@
 package org.enso.languageserver.data
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
-
-import org.enso.languageserver.filemanager.{
-  ContentRootNotFound,
-  FileSystemFailure,
-  Path
-}
+import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
+import java.io.File
+import java.nio.file.Files
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -78,15 +72,15 @@ object ExecutionContextConfig {
   *
   * @param root the root directory path
   */
-case class DirectoriesConfig(root: File) extends ToLogString {
+case class ProjectDirectoriesConfig(root: File) extends ToLogString {
 
   /** The data directory path. */
   val dataDirectory: File =
-    new File(root, DirectoriesConfig.DataDirectory)
+    new File(root, ProjectDirectoriesConfig.DataDirectory)
 
   /** The suggestions database file path. */
   val suggestionsDatabaseFile: File =
-    new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
+    new File(dataDirectory, ProjectDirectoriesConfig.SuggestionsDatabaseFile)
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
@@ -101,21 +95,21 @@ case class DirectoriesConfig(root: File) extends ToLogString {
     Files.createDirectories(dataDirectory.toPath)
 }
 
-object DirectoriesConfig {
+object ProjectDirectoriesConfig {
 
   val DataDirectory: String           = ".enso"
   val SuggestionsDatabaseFile: String = "suggestions.db"
 
-  def apply(root: String): DirectoriesConfig =
-    new DirectoriesConfig(new File(root))
+  def apply(root: String): ProjectDirectoriesConfig =
+    new ProjectDirectoriesConfig(new File(root))
 
   /** Create default data directory config, creating directories if not exist.
     *
     * @param root the root directory path
     * @return data directory config
     */
-  def initialize(root: File): DirectoriesConfig = {
-    val config = new DirectoriesConfig(root)
+  def initialize(root: File): ProjectDirectoriesConfig = {
+    val config = new ProjectDirectoriesConfig(root)
     config.createDirectories()
     config
   }
@@ -123,55 +117,36 @@ object DirectoriesConfig {
 
 /** The config of the running Language Server instance.
   *
-  * @param contentRoots a mapping between content root id and absolute path to
-  * the content root
+  * @param projectContentRoot project's main content root
   * @param fileManager the file manager config
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories
   */
 case class Config(
-  contentRoots: Map[UUID, File],
+  projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
-  directories: DirectoriesConfig
+  directories: ProjectDirectoriesConfig
 ) extends ToLogString {
 
   /** @inheritdoc */
   override def toLogString(shouldMask: Boolean): String = {
-    val maskedRoots =
+    val maskedRoot =
       if (shouldMask) {
-        contentRoots
-          .map { case (k, v) =>
-            k -> MaskingUtils.toMaskedPath(v.toPath)
-          }
+        MaskingUtils.toMaskedPath(projectContentRoot.file.toPath)
       } else {
-        contentRoots
+        projectContentRoot
       }
     s"Config(" +
-    s"contentRoots=$maskedRoots, " +
+    s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +
     s")"
   }
-
-  def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
-    contentRoots
-      .get(rootId)
-      .toRight(ContentRootNotFound)
-
-  def findRelativePath(path: File): Option[Path] =
-    contentRoots.view.flatMap { case (id, root) =>
-      if (path.toPath.startsWith(root.toPath)) {
-        Some(Path(id, root.toPath.relativize(path.toPath)))
-      } else {
-        None
-      }
-    }.headOption
-
 }
 object Config {
   def ensoPackageConfigName: String = "package.yaml"

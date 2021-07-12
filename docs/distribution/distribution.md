@@ -20,7 +20,7 @@ structured and how it should behave.
   - [Installing from a Portable Distribution](#installing-from-a-portable-distribution)
 - [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
   - [Standard Library](#standard-library)
-  - [Resolvers](#resolvers)
+- [Enso Home Layout](#enso-home-layout)
 
 <!-- /MarkdownTOC -->
 
@@ -64,19 +64,19 @@ extraction-location
 │   └── 1.2.0               # A full distribution of given Enso version, described below.
 │       └── <truncated>
 ├── runtime                 # A directory storing distributions of the JVM used by the Enso distributions.
-│   └── graalvm-ce-27.1.1
-├── lib
-│   └── src                 # Contains sources of downloaded libraries.
-│       └── Dataframe       # Each library may be stored in multiple version.
+│   └── graalvm-ce-java11-27.1.1
+├── lib                     # Contains sources of downloaded libraries.
+│   └── Standard            # Each prefix (usually corresponding to the author) is placed in a separate directory.
+│       └── Dataframe       # Each library may be stored in multiple versions.
 │           └── 1.7.0       # Each version contains a standard Enso package.
 │               ├── package.yaml
 │               └── src
 │                   ├── List.enso
 │                   ├── Number.enso
 │                   └── Text.enso
-├── resolvers               # Contains resolver specifications, described below.
-│   ├── lts-1.56.7.yaml
-│   └── lts-2.0.8.yaml
+├── editions                # Contains Edition specifications.
+│   ├── 2021.4.yaml
+│   └── nightly-2021-06-31.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
 ├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
 └── THIRD-PARTY             # Contains licences of distributed components, including the NOTICE file.
@@ -94,19 +94,19 @@ ENSO_DATA_DIRECTORY
 │   └── 1.2.0               # A full distribution of given Enso version, described below.
 │       └── <truncated>
 ├── runtime                 # A directory storing (optional) distributions of the JVM used by the Enso distributions.
-│   └── graalvm-ce-27.1.1
-├── lib
-│   └── src                 # Contains sources of downloaded libraries.
-│       └── Dataframe       # Each library may be stored in multiple version.
+│   └── graalvm-ce-java11-27.1.1
+├── lib                     # Contains sources of downloaded libraries.
+│   └── Standard            # Each prefix (usually corresponding to the author) is placed in a separate directory.
+│       └── Dataframe       # Each library may be stored in multiple versions.
 │           └── 1.7.0       # Each version contains a standard Enso package.
 │               ├── package.yaml
 │               └── src
 │                   ├── List.enso
 │                   ├── Number.enso
 │                   └── Text.enso
-└── resolvers               # Contains resolver specifications, described below.
-    ├── lts-1.56.7.yaml
-    └── lts-2.0.8.yaml
+└── editions                # Contains Edition specifications.
+    ├── 2021.4.yaml
+    └── nightly-2021-06-31.yaml
 
 ENSO_CONFIG_DIRECTORY
 └── global-config.yaml      # Global user configuration.
@@ -166,19 +166,22 @@ enso-1.0.0
 ├── native-libraries # Contains all shared libraries that are used by JVM components.
 │   └── parser.so    # The language parser. It is loaded by the runtime component.
 │                    # Alternative extensions are .dll Windows and .dylib on Mac.
-└── std-lib          # Contains all the libraries that are pre-installed within that compiler version.
-    ├── Http         # Every version sub-directory is just an Enso package containing the library.
-    │     ├── package.yaml
-    │     ├── polyglot
-    │     └── src
-    │         ├── Http.enso
-    │         └── Socket.enso
-    └── Base
-          ├── package.yaml
-          └── src
-              ├── List.enso
-              ├── Number.enso
-              └── Text.enso
+└── lib          # Contains all the libraries that are pre-installed within that compiler version.
+    └── Standard
+        ├── Http
+        │   └── 0.1.0     # Every version sub-directory is just an Enso package containing the library.
+        │       ├── package.yaml
+        │       ├── polyglot
+        │       └── src
+        │           ├── Http.enso
+        │           └── Socket.enso
+        └── Base
+            └── 0.1.0
+                ├── package.yaml
+                └── src
+                    ├── List.enso
+                    ├── Number.enso
+                    └── Text.enso
 ```
 
 > **Implementation Note:** This structure makes use of deep nesting, which may
@@ -202,20 +205,19 @@ but the following are some guidelines:
 3. Packages that the compiler relies on, e.g. compile error definitions, stack
    traces etc.
 
-### Resolvers
+## Enso Home Layout
 
-**Note** This system is not implemented yet.
+The location called in some places `<ENSO_HOME>` is the place where user's
+projects and similar files are stored. Currently it is specified to always be
+`$HOME/enso`.
 
-A resolver is a manifest containing library versions that are automatically
-available for import in any project using the resolver.
+It has the following structure:
 
-Example contents of a resolver file are as follows:
-
-```yaml
-enso-version: 1.0.7
-libraries:
-  - name: Base
-    version: 1.0.0
-  - name: Http
-    version: 5.3.5
+```
+<ENSO_HOME>
+├── projects             # Contains all user projects.
+├── libraries            # Contains all local libraries that can be edited by the user.
+│   └── Prefix1          # Contains libraries with the given prefix.
+│       └── Library_Name # Contains a package of a local library.
+└── editions             # Contains custom, user-defined editions that can be used as a base for project configurations.
 ```

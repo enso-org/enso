@@ -8,7 +8,7 @@ import org.enso.languageserver.boot.resource.{
   SequentialResourcesInitialization,
   TruffleContextInitialization
 }
-import org.enso.languageserver.data.DirectoriesConfig
+import org.enso.languageserver.data.ProjectDirectoriesConfig
 import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 
@@ -29,11 +29,11 @@ object ResourcesInitialization {
     * @return the initialization component
     */
   def apply(
-    eventStream: EventStream,
-    directoriesConfig: DirectoriesConfig,
-    suggestionsRepo: SqlSuggestionsRepo,
-    versionsRepo: SqlVersionsRepo,
-    truffleContext: Context
+             eventStream: EventStream,
+             directoriesConfig: ProjectDirectoriesConfig,
+             suggestionsRepo: SqlSuggestionsRepo,
+             versionsRepo: SqlVersionsRepo,
+             truffleContext: Context
   )(implicit ec: ExecutionContext): InitializationComponent = {
     val resources = Seq(
       new DirectoriesInitialization(directoriesConfig),

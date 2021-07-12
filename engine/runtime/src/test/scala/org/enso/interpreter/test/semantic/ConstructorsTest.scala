@@ -15,7 +15,7 @@ class ConstructorsTest extends InterpreterTest {
   ): Unit = {
     "dispatch to the proper match branch" in {
       val patternMatchingCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    x = Cons 1 Nil
@@ -28,7 +28,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "work with recursion" in {
       val testCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    genList = i -> if i == 0 then Nil else Cons i (genList (i - 1))
@@ -43,7 +43,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "behave correctly in non-tail positions" in {
       val testCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    add = x -> y -> x + y
@@ -59,7 +59,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "accept a catch-all fallback clause" in {
       val testCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    nil = Nil
@@ -72,7 +72,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "throw an exception when match fails" in {
       val testCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |main =
           |    nil = Nil
@@ -85,7 +85,7 @@ class ConstructorsTest extends InterpreterTest {
 
     "be usable in code, with arbitrary definition order" in {
       val testCode =
-        """from Builtins import all
+        """from Standard.Builtins import all
           |
           |type Cons2 a b
           |

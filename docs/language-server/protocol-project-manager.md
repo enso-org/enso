@@ -89,6 +89,11 @@ interface ProjectMetadata {
   name: String;
 
   /**
+   * The namespace of the project.
+   */
+  namespace: String;
+
+  /**
    * The project id.
    */
   id: UUID;
@@ -211,6 +216,9 @@ the action.
 
   // The name of the project as it is opened.
   projectName: String;
+
+  // The namespace of the project.
+  projectNamespace: String;
 }
 ```
 

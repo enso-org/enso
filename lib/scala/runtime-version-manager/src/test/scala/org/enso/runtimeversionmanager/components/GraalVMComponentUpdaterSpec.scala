@@ -1,8 +1,8 @@
 package org.enso.runtimeversionmanager.components
 
-import java.nio.file.Path
+import org.enso.distribution.OS
 
-import org.enso.runtimeversionmanager.OS
+import java.nio.file.Path
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

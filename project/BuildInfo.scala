@@ -17,6 +17,9 @@ object BuildInfo {
     * @param ensoVersion Enso version
     * @param scalacVersion Scala compiler version used in the project
     * @param graalVersion GraalVM version used in the project
+    * @param currentEdition name of the edition associated with the Enso
+    *                       version; this should be removed once #1831 is
+    *                       implemented
     * @return sequence of modified files
     */
   def writeBuildInfoFile(
@@ -24,7 +27,8 @@ object BuildInfo {
     log: ManagedLogger,
     ensoVersion: String,
     scalacVersion: String,
-    graalVersion: String
+    graalVersion: String,
+    currentEdition: String
   ): Seq[File] = {
     val gitInfo   = getGitInformation(log).getOrElse(fallbackGitInformation)
     val isRelease = isReleaseMode
@@ -38,6 +42,7 @@ object BuildInfo {
          |  val ensoVersion   = "$ensoVersion"
          |  val scalacVersion = "$scalacVersion"
          |  val graalVersion  = "$graalVersion"
+         |  val currentEdition = "$currentEdition"
          |
          |  // Git Info
          |  val commit            = "${gitInfo.commitHash}"

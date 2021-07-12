@@ -140,7 +140,8 @@ class SuspendedArgumentsTest extends CompilerTest {
         """
           |File.with_output_stream : Vector.Vector -> (Output_Stream -> Any ! File_Error) -> Any ! File_Error
           |File.with_output_stream open_options action = undefined
-          |""".stripMargin.preprocessModule.resolve.bindings.head.asInstanceOf[Method.Explicit]
+          |""".stripMargin.preprocessModule.resolve.bindings.head
+          .asInstanceOf[Method.Explicit]
 
       val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
 
@@ -148,6 +149,35 @@ class SuspendedArgumentsTest extends CompilerTest {
 
       assert(!bodyLam.arguments(1).suspended, "open_options was suspended")
       assert(!bodyLam.arguments(2).suspended, "action was suspended")
+    }
+
+    "work for conversion methods" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """File.from : Text -> Suspended -> Any
+          |File.from (value : Text) config=Nothing = undefined
+          |""".stripMargin.preprocessModule.resolve.bindings.head
+          .asInstanceOf[Method.Conversion]
+
+      val bodyLam = ir.body.asInstanceOf[IR.Function.Lambda]
+      val args    = bodyLam.arguments
+
+      args.length shouldEqual 3
+      assert(!args(1).suspended, "the source argument was suspended")
+      assert(args(2).suspended, "the config argument was not suspended")
+    }
+
+    "raise an error if a conversion method marks its source argument as suspended" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """File.from (~value : Text) = undefined
+          |""".stripMargin.preprocessModule.resolve.bindings.head
+
+      ir shouldBe an[IR.Error.Conversion]
+      ir.asInstanceOf[IR.Error.Conversion]
+        .reason shouldBe an[IR.Error.Conversion.SuspendedSourceArgument]
     }
   }
 

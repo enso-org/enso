@@ -143,23 +143,3 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     util.Arrays.equals(v1, v2)
 
 }
-
-object SqlVersionsRepo {
-
-  /** Create the in-memory file versions repo.
-    *
-    * @return the versions repo backed up by SQL database
-    */
-  def apply()(implicit ec: ExecutionContext): SqlVersionsRepo = {
-    new SqlVersionsRepo(new SqlDatabase())
-  }
-
-  /** Create the file versions repo.
-    *
-    * @param path the path to the database file
-    * @return the file versions repo backed up by SQL database
-    */
-  def apply(path: File)(implicit ec: ExecutionContext): SqlVersionsRepo = {
-    new SqlVersionsRepo(SqlDatabase(path.toString))
-  }
-}

@@ -32,6 +32,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: repo
+      - name: Configure Pagefile (Windows)
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+          minimum-size: 16GB
+          maximum-size: 16GB
+          disk-root: "C:"
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Disable TCP/UDP Offloading (macOS)
@@ -216,7 +223,10 @@ jobs:
           sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Standard ${{ env.ENGINE_DIST_DIR }}/std-lib/Standard/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Base/0.1.0/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Table/0.1.0/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Image/0.1.0/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/0.1.0/THIRD-PARTY"
 
       # Publish
       - name: Upload the Engine Artifact

@@ -2,9 +2,9 @@ from Standard.Base import all
 
 import Standard.Test
 
-import Table_Tests.Column_Spec
-import Table_Tests.Csv_Spec
-import Table_Tests.Table_Spec
+import project.Column_Spec
+import project.Csv_Spec
+import project.Table_Spec
 
 main = Test.Suite.run_main <|
     Column_Spec.spec

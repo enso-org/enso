@@ -131,7 +131,8 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
                 }
               }
             ],
@@ -308,10 +309,10 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         """)
 
       // get suggestions database
-      client.send(json.getSuggestionsDatabase(0))
+      client.send(json.getSuggestionsDatabase(3))
       client.expectJson(json"""
         { "jsonrpc" : "2.0",
-          "id" : 0,
+          "id" : 3,
           "result" : {
             "entries" : [
               {
@@ -376,26 +377,6 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                 }
               },
               {
-                "id" : 4,
-                "suggestion" : {
-                  "type" : "local",
-                  "externalId" : ${Suggestions.local.externalId.get},
-                  "module" : "Test.Main",
-                  "name" : "x",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : {
-                      "line" : 21,
-                      "character" : 0
-                    },
-                    "end" : {
-                      "line" : 89,
-                      "character" : 0
-                    }
-                  }
-                }
-              },
-              {
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
@@ -420,7 +401,28 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "Lovely"
+                  "documentation" : "Lovely",
+                  "documentationHtml" : "<p>Lovely</p>"
+                }
+              },
+              {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : ${Suggestions.local.externalId.get},
+                  "module" : "Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
                 }
               }
             ],

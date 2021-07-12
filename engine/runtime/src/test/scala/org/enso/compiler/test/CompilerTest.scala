@@ -206,6 +206,7 @@ trait CompilerRunner {
             .Specified(
               IR.Name
                 .Literal("arg", isReferent = false, isMethod = false, None),
+              None,
               Some(ir),
               suspended = false,
               None
@@ -240,13 +241,15 @@ trait CompilerRunner {
     moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None,
-    compilerConfig: CompilerConfig               = defaultConfig
+    compilerConfig: CompilerConfig               = defaultConfig,
+    isGeneratingDocs: Boolean                    = false
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(moduleName),
+      module            = Module.empty(moduleName, null),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
-      compilerConfig    = compilerConfig
+      compilerConfig    = compilerConfig,
+      isGeneratingDocs  = isGeneratingDocs
     )
   }
 
@@ -266,7 +269,7 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None,
     compilerConfig: CompilerConfig               = defaultConfig
   ): InlineContext = {
-    val mod = Module.empty(QualifiedName.simpleName("Test_Module"))
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"), null)
     mod.unsafeBuildIrStub()
     InlineContext(
       module            = mod,

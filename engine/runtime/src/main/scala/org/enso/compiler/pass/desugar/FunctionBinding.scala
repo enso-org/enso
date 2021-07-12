@@ -48,6 +48,9 @@ case object FunctionBinding extends IRPass {
     TailCall
   )
 
+  /** The name of the conversion method, as a reserved name for methods. */
+  val conversionMethodName: String = "from"
+
   /** Rusn desugaring of sugared method and function bindings on a module.
     *
     * @param ir the Enso IR to process
@@ -124,20 +127,72 @@ case object FunctionBinding extends IRPass {
           "Explicit method definitions should not exist during function " +
           "binding desugaring."
         )
-      case Method.Binding(methRef, args, body, loc, passData, diagnostics) =>
-        val newBody = args
-          .map(_.mapExpressions(desugarExpression))
-          .foldRight(desugarExpression(body))((arg, body) =>
-            IR.Function.Lambda(List(arg), body, None)
-          )
-
-        Method.Explicit(
-          methRef,
-          newBody,
-          loc,
-          passData,
-          diagnostics
+      case _: Method.Conversion =>
+        throw new CompilerError(
+          "Conversion method nodes should not exist during function binding " +
+          "desugaring."
         )
+      case meth @ Method.Binding(
+            methRef,
+            args,
+            body,
+            loc,
+            passData,
+            diagnostics
+          ) =>
+        val methodName = methRef.methodName.name
+
+        if (methodName != conversionMethodName) {
+          val newBody = args
+            .map(_.mapExpressions(desugarExpression))
+            .foldRight(desugarExpression(body))((arg, body) =>
+              IR.Function.Lambda(List(arg), body, None)
+            )
+
+          Method.Explicit(
+            methRef,
+            newBody,
+            loc,
+            passData,
+            diagnostics
+          )
+        } else {
+          if (args.isEmpty)
+            IR.Error.Conversion(meth, IR.Error.Conversion.MissingArgs)
+          else if (args.head.ascribedType.isEmpty) {
+            IR.Error.Conversion(
+              args.head,
+              IR.Error.Conversion.MissingSourceType(args.head.name.name)
+            )
+          } else {
+            val firstArgumentType = args.head.ascribedType.get
+            val nonDefaultedArg   = args.drop(1).find(_.defaultValue.isEmpty)
+
+            if (nonDefaultedArg.isEmpty) {
+              val newBody = args
+                .map(_.mapExpressions(desugarExpression))
+                .foldRight(desugarExpression(body))((arg, body) =>
+                  IR.Function.Lambda(List(arg), body, None)
+                )
+
+              Method.Conversion(
+                methRef,
+                firstArgumentType,
+                newBody,
+                loc,
+                passData,
+                diagnostics
+              )
+            } else {
+              IR.Error.Conversion(
+                nonDefaultedArg.get,
+                IR.Error.Conversion.NonDefaultedArgument(
+                  nonDefaultedArg.get.name.name
+                )
+              )
+            }
+          }
+        }
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -151,7 +206,7 @@ case object FunctionBinding extends IRPass {
       case _: IR.Name.Annotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
-            "function binding desugaring."
+          "function binding desugaring."
         )
       case a: IR.Type.Ascription => a
       case e: IR.Error           => e

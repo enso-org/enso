@@ -1,33 +1,18 @@
 package org.enso.languageserver.runtime
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.data.{
-  Config,
-  DirectoriesConfig,
-  ExecutionContextConfig,
-  FileManagerConfig,
-  PathWatcherConfig
-}
+import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.runtime.ContextRegistryProtocol.{
-  DetachVisualisation,
-  ExecutionDiagnostic,
-  ExecutionDiagnosticKind,
-  ExecutionDiagnosticNotification,
-  ExecutionFailedNotification,
-  ExecutionFailure,
-  ExpressionUpdatesNotification,
-  RegisterOneshotVisualisation,
-  VisualisationContext,
-  VisualisationEvaluationFailed,
-  VisualisationUpdate
+import org.enso.languageserver.filemanager.{
+  ContentRoot,
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
+  ContentRootWithFile
 }
+import org.enso.languageserver.runtime.ContextRegistryProtocol._
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.{
@@ -36,14 +21,16 @@ import org.enso.languageserver.session.SessionRouter.{
 }
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionsRepo
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.{Await, Future}
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
 class ContextEventsListenerSpec
@@ -448,13 +435,13 @@ class ContextEventsListenerSpec
     }
   }
 
-  def newConfig(root: File): Config = {
+  def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(UUID.randomUUID() -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
-      DirectoriesConfig.initialize(root)
+      ProjectDirectoriesConfig.initialize(root.file)
     )
   }
 
@@ -485,15 +472,26 @@ class ContextEventsListenerSpec
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config          = newConfig(testContentRoot.toFile)
+    val config = newConfig(
+      ContentRootWithFile(
+        ContentRoot.Project(UUID.randomUUID()),
+        testContentRoot.toFile
+      )
+    )
     val clientId        = UUID.randomUUID()
     val contextId       = UUID.randomUUID()
     val router          = TestProbe("session-router")
     val contextRegistry = TestProbe("context-registry")
-    val repo            = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
+    val db              = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val repo            = new SqlSuggestionsRepo(db)
+
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val listener = contextRegistry.childActorOf(
       ContextEventsListener.props(
-        config,
+        RuntimeFailureMapper(contentRootManagerWrapper),
         repo,
         newJsonSession(clientId),
         contextId,

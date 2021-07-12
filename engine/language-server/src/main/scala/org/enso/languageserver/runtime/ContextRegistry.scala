@@ -54,12 +54,14 @@ import scala.concurrent.Future
   *
   * @param repo the suggestions repo
   * @param config configuration
+  * @param runtimeFailureMapper mapper for runtime failures
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
   */
 final class ContextRegistry(
   repo: SuggestionsRepo[Future],
   config: Config,
+  runtimeFailureMapper: RuntimeFailureMapper,
   runtime: ActorRef,
   sessionRouter: ActorRef
 ) extends Actor
@@ -112,12 +114,13 @@ final class ContextRegistry(
 
       case CreateContextRequest(client) =>
         val contextId = UUID.randomUUID()
-        val handler =
-          context.actorOf(CreateContextHandler.props(config, timeout, runtime))
+        val handler = context.actorOf(
+          CreateContextHandler.props(runtimeFailureMapper, timeout, runtime)
+        )
         val listener =
           context.actorOf(
             ContextEventsListener.props(
-              config,
+              runtimeFailureMapper,
               repo,
               client,
               contextId,
@@ -133,10 +136,13 @@ final class ContextRegistry(
 
       case DestroyContextRequest(client, contextId) =>
         if (store.hasContext(client.clientId, contextId)) {
-          val handler =
-            context.actorOf(
-              DestroyContextHandler.props(config, timeout, runtime)
+          val handler = context.actorOf(
+            DestroyContextHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
             )
+          )
           store.getListener(contextId).foreach(context.stop)
           handler.forward(Api.DestroyContextRequest(contextId))
           context.become(
@@ -152,7 +158,9 @@ final class ContextRegistry(
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
           val handler =
-            context.actorOf(PushContextHandler.props(config, timeout, runtime))
+            context.actorOf(
+              PushContextHandler.props(runtimeFailureMapper, timeout, runtime)
+            )
           handler.forward(Api.PushContextRequest(contextId, item))
 
         } else {
@@ -161,8 +169,9 @@ final class ContextRegistry(
 
       case PopContextRequest(client, contextId) =>
         if (store.hasContext(client.clientId, contextId)) {
-          val handler =
-            context.actorOf(PopContextHandler.props(config, timeout, runtime))
+          val handler = context.actorOf(
+            PopContextHandler.props(runtimeFailureMapper, timeout, runtime)
+          )
           handler.forward(Api.PopContextRequest(contextId))
         } else {
           sender() ! AccessDenied
@@ -172,7 +181,11 @@ final class ContextRegistry(
         if (store.hasContext(client.clientId, contextId)) {
           val handler =
             context.actorOf(
-              RecomputeContextHandler.props(config, timeout, runtime)
+              RecomputeContextHandler.props(
+                runtimeFailureMapper,
+                timeout,
+                runtime
+              )
             )
           val invalidatedExpressions =
             expressions.map(toRuntimeInvalidatedExpressions)
@@ -193,10 +206,13 @@ final class ContextRegistry(
               expressionId
             )
           }
-          val handler =
-            context.actorOf(
-              AttachVisualisationHandler.props(config, timeout, runtime)
+          val handler = context.actorOf(
+            AttachVisualisationHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
             )
+          )
           handler.forward(
             Api.AttachVisualisation(
               visualisationId,
@@ -210,10 +226,13 @@ final class ContextRegistry(
 
       case AttachVisualisation(clientId, visualisationId, expressionId, cfg) =>
         if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler =
-            context.actorOf(
-              AttachVisualisationHandler.props(config, timeout, runtime)
+          val handler = context.actorOf(
+            AttachVisualisationHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
             )
+          )
           handler.forward(
             Api.AttachVisualisation(
               visualisationId,
@@ -232,10 +251,13 @@ final class ContextRegistry(
             expressionId
           ) =>
         if (store.hasContext(clientId, contextId)) {
-          val handler =
-            context.actorOf(
-              DetachVisualisationHandler.props(config, timeout, runtime)
+          val handler = context.actorOf(
+            DetachVisualisationHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
             )
+          )
           handler.forward(
             Api.DetachVisualisation(contextId, visualisationId, expressionId)
           )
@@ -245,10 +267,13 @@ final class ContextRegistry(
 
       case ModifyVisualisation(clientId, visualisationId, cfg) =>
         if (store.hasContext(clientId, cfg.executionContextId)) {
-          val handler =
-            context.actorOf(
-              ModifyVisualisationHandler.props(config, timeout, runtime)
+          val handler = context.actorOf(
+            ModifyVisualisationHandler.props(
+              runtimeFailureMapper,
+              timeout,
+              runtime
             )
+          )
 
           val configuration = convertVisualisationConfig(cfg)
 
@@ -345,14 +370,24 @@ object ContextRegistry {
     *
     * @param repo the suggestions repo
     * @param config language server configuration
+    * @param runtimeFailureMapper mapper for runtime failures
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
     */
   def props(
     repo: SuggestionsRepo[Future],
     config: Config,
+    runtimeFailureMapper: RuntimeFailureMapper,
     runtime: ActorRef,
     sessionRouter: ActorRef
   ): Props =
-    Props(new ContextRegistry(repo, config, runtime, sessionRouter))
+    Props(
+      new ContextRegistry(
+        repo,
+        config,
+        runtimeFailureMapper,
+        runtime,
+        sessionRouter
+      )
+    )
 }

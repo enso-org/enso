@@ -39,7 +39,7 @@ class MethodDefinitionsTest extends CompilerTest {
       * @param context the module context in which analysis takes place
       * @return [[ir]], with tail call analysis metadata attached
       */
-    def analyse(implicit context: ModuleContext) = {
+    def analyse(implicit context: ModuleContext): IR.Module = {
       MethodDefinitions.runModule(ir, context)
     }
   }
@@ -52,6 +52,7 @@ class MethodDefinitionsTest extends CompilerTest {
     val ir =
       """
         |type Foo a b c
+        |type Bar
         |
         |Foo.my_method a b c = a + b + c
         |
@@ -60,10 +61,16 @@ class MethodDefinitionsTest extends CompilerTest {
         |Test_Module.other_method = 11
         |
         |Does_Not_Exist.method = 32
+        |
+        |Foo.from (value : Bar) = undefined
+        |
+        |Bar.from (value : Does_Not_Exist) = undefined
+        |
+        |Does_Not_Exist.from (value : Foo) = undefined
         |""".stripMargin.preprocessModule.analyse
 
     "attach resolved atoms to the method definitions" in {
-      ir.bindings(1)
+      ir.bindings(2)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
@@ -73,15 +80,6 @@ class MethodDefinitionsTest extends CompilerTest {
             ctx.module,
             Cons("Foo", 3)
           )
-        )
-      )
-      ir.bindings(2)
-        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
-        .methodReference
-        .typePointer
-        .getMetadata(MethodDefinitions) shouldEqual Some(
-        BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(ctx.module)
         )
       )
       ir.bindings(3)
@@ -96,7 +94,54 @@ class MethodDefinitionsTest extends CompilerTest {
       ir.bindings(4)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
+        .typePointer
+        .getMetadata(MethodDefinitions) shouldEqual Some(
+        BindingsMap.Resolution(
+          BindingsMap.ResolvedModule(ctx.module)
+        )
+      )
+      ir.bindings(5)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .methodReference
         .typePointer shouldBe a[IR.Error.Resolution]
+
+      val conv1 = ir
+        .bindings(6)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+      conv1.methodReference.typePointer.getMetadata(
+        MethodDefinitions
+      ) shouldEqual Some(
+        BindingsMap.Resolution(
+          BindingsMap.ResolvedConstructor(ctx.module, Cons("Foo", 3))
+        )
+      )
+      conv1.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
+        BindingsMap.Resolution(
+          BindingsMap.ResolvedConstructor(ctx.module, Cons("Bar", 0))
+        )
+      )
+
+      val conv2 = ir
+        .bindings(7)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+      conv2.methodReference.typePointer.getMetadata(
+        MethodDefinitions
+      ) shouldEqual Some(
+        BindingsMap.Resolution(
+          BindingsMap.ResolvedConstructor(ctx.module, Cons("Bar", 0))
+        )
+      )
+      conv2.sourceTypeName shouldBe an[IR.Error.Resolution]
+
+      val conv3 = ir
+        .bindings(8)
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+      conv3.methodReference.typePointer shouldBe an[IR.Error.Resolution]
+      conv3.sourceTypeName.getMetadata(MethodDefinitions) shouldEqual Some(
+        BindingsMap.Resolution(
+          BindingsMap.ResolvedConstructor(ctx.module, Cons("Foo", 3))
+        )
+      )
     }
   }
 }

@@ -5,7 +5,7 @@ import Standard.Table.Data.Table
 import Standard.Test
 import Standard.Visualization.Scatter_Plot
 
-import Visualization_Tests
+import project
 
 spec =
     expect value axis_expected_text data_expected_text =

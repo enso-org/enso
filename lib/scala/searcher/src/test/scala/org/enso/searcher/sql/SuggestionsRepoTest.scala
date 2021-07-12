@@ -31,7 +31,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   def withRepo(test: SqlSuggestionsRepo => Any): Any = {
     val tmpdb = Files.createTempFile(tmpdir, "suggestions-repo", ".db")
-    val repo  = SqlSuggestionsRepo(tmpdb.toFile)
+    val repo  = new SqlSuggestionsRepo(SqlDatabase(tmpdb.toFile))
     Await.ready(repo.init, Timeout)
     try test(repo)
     finally {
@@ -433,6 +433,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -458,6 +459,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           (v2, id2) <- repo.update(
             suggestion.function,
             Some(None),
+            None,
             None,
             None,
             None,
@@ -491,6 +493,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Some(newReturnType),
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -520,6 +523,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           Some(Some(newDoc)),
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -528,6 +532,39 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       v1 should not equal v2
       id1 shouldEqual id2
       s shouldEqual Some(suggestion.atom.copy(documentation = Some(newDoc)))
+    }
+
+    "update suggestion atom HTML documentation" taggedAs Retry in withRepo {
+      repo =>
+        val newDoc = "My Doc"
+        val action = for {
+          (v1, Seq(_, id1, _, _, _)) <- repo.insertAll(
+            Seq(
+              suggestion.module,
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.atom,
+            None,
+            None,
+            None,
+            None,
+            Some(Some(newDoc)),
+            None,
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(
+          suggestion.atom.copy(documentationHtml = Some(newDoc))
+        )
     }
 
     "update suggestion module documentation" taggedAs Retry in withRepo {
@@ -550,6 +587,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             Some(Some(newDoc)),
             None,
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -558,6 +596,39 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         v1 should not equal v2
         id1 shouldEqual id2
         s shouldEqual Some(suggestion.module.copy(documentation = Some(newDoc)))
+    }
+
+    "update suggestion module HTML documentation" taggedAs Retry in withRepo {
+      repo =>
+        val newDoc = "My Doc"
+        val action = for {
+          (v1, Seq(id1, _, _, _, _)) <- repo.insertAll(
+            Seq(
+              suggestion.module,
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.module,
+            None,
+            None,
+            None,
+            None,
+            Some(Some(newDoc)),
+            None,
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(
+          suggestion.module.copy(documentationHtml = Some(newDoc))
+        )
     }
 
     "update suggestion removing documentation" taggedAs Retry in withRepo {
@@ -579,6 +650,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
             None,
             Some(None),
             None,
+            None,
             None
           )
           s <- repo.select(id1.get)
@@ -587,6 +659,36 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         v1 should not equal v2
         id1 shouldEqual id2
         s shouldEqual Some(suggestion.atom.copy(documentation = None))
+    }
+
+    "update suggestion removing HTML documentation" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          (v1, Seq(_, id1, _, _, _)) <- repo.insertAll(
+            Seq(
+              suggestion.module,
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.atom,
+            None,
+            None,
+            None,
+            None,
+            Some(None),
+            None,
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(suggestion.atom.copy(documentationHtml = None))
     }
 
     "update suggestion scope" taggedAs Retry in withRepo { repo =>
@@ -610,6 +712,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           Some(newScope),
           None
         )
@@ -619,64 +722,6 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       v1 should not equal v2
       id1 shouldEqual id2
       s shouldEqual Some(suggestion.local.copy(scope = newScope))
-    }
-
-    "update suggestion module reexport" taggedAs Retry in withRepo { repo =>
-      val reexport = "Test.Bar"
-      val action = for {
-        (v1, Seq(id1, _, _, _, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            suggestion.atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, id2) <- repo.update(
-          suggestion.module,
-          None,
-          None,
-          None,
-          None,
-          None,
-          Some(Some(reexport))
-        )
-        s <- repo.select(id1.get)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(suggestion.module.copy(reexport = Some(reexport)))
-    }
-
-    "update suggestion removing reexport" taggedAs Retry in withRepo { repo =>
-      val atom = suggestion.atom.copy(reexport = Some("Test.Bar"))
-      val action = for {
-        (v1, Seq(_, id1, _, _, _)) <- repo.insertAll(
-          Seq(
-            suggestion.module,
-            atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        (v2, id2) <- repo.update(
-          atom,
-          None,
-          None,
-          None,
-          None,
-          None,
-          Some(None)
-        )
-        s <- repo.select(id1.get)
-      } yield (v1, id1, v2, id2, s)
-      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-      v1 should not equal v2
-      id1 shouldEqual id2
-      s shouldEqual Some(atom.copy(reexport = None))
     }
 
     "remove suggestion arguments" taggedAs Retry in withRepo { repo =>
@@ -697,6 +742,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           suggestion.atom,
           None,
           Some(newArgs),
+          None,
           None,
           None,
           None,
@@ -731,6 +777,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           suggestion.atom,
           None,
           Some(newArgs),
+          None,
           None,
           None,
           None,
@@ -776,6 +823,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           None,
           None,
           None,
+          None,
           None
         )
         s <- repo.select(id1.get)
@@ -804,6 +852,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
         (v2, id2) <- repo.update(
           suggestion.method,
+          None,
           None,
           None,
           None,
@@ -1536,9 +1585,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
     val module: Suggestion.Module =
       Suggestion.Module(
-        module        = "Test.Main",
-        documentation = Some("This is a main module."),
-        reexport      = None
+        module            = "Test.Main",
+        documentation     = Some("This is a main module."),
+        documentationHtml = Some("<p>This is a main module.</p>"),
+        reexport          = None
       )
 
     val atom: Suggestion.Atom =
@@ -1550,21 +1600,23 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType    = "Pair",
-        documentation = Some("Awesome"),
-        reexport      = None
+        returnType        = "Pair",
+        documentation     = Some("Awesome"),
+        documentationHtml = Some("<p>Awesome</p>"),
+        reexport          = None
       )
 
     val method: Suggestion.Method =
       Suggestion.Method(
-        externalId    = Some(UUID.randomUUID()),
-        module        = "Test.Main",
-        name          = "main",
-        arguments     = Seq(),
-        selfType      = "Test.Main",
-        returnType    = "IO",
-        documentation = None,
-        reexport      = None
+        externalId        = Some(UUID.randomUUID()),
+        module            = "Test.Main",
+        name              = "main",
+        arguments         = Seq(),
+        selfType          = "Test.Main",
+        returnType        = "IO",
+        documentation     = None,
+        documentationHtml = None,
+        reexport          = None
       )
 
     val function: Suggestion.Function =

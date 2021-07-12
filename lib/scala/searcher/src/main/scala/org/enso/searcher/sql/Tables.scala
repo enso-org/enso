@@ -57,6 +57,7 @@ case class SuggestionRow(
   scopeEndLine: Int,
   scopeEndOffset: Int,
   documentation: Option[String],
+  documentationHtml: Option[String],
   reexport: Option[String]
 )
 
@@ -154,14 +155,14 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def externalIdLeast = column[Option[Long]]("external_id_least")
-  def externalIdMost  = column[Option[Long]]("external_id_most")
-  def kind            = column[Byte]("kind")
-  def module          = column[String]("module")
-  def name            = column[String]("name")
-  def selfType        = column[String]("self_type")
-  def returnType      = column[String]("return_type")
+  def id                = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast   = column[Option[Long]]("external_id_least")
+  def externalIdMost    = column[Option[Long]]("external_id_most")
+  def kind              = column[Byte]("kind")
+  def module            = column[String]("module")
+  def name              = column[String]("name")
+  def selfType          = column[String]("self_type")
+  def returnType        = column[String]("return_type")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -171,6 +172,7 @@ final class SuggestionsTable(tag: Tag)
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
   def documentation = column[Option[String]]("documentation")
+  def documentationHtml = column[Option[String]]("documentation_html")
   def reexport      = column[Option[String]]("reexport")
 
   def * =
@@ -188,6 +190,7 @@ final class SuggestionsTable(tag: Tag)
       scopeEndLine,
       scopeEndOffset,
       documentation,
+      documentationHtml,
       reexport
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)

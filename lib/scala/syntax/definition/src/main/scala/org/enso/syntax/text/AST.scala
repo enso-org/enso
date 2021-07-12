@@ -342,14 +342,14 @@ object Shape extends ShapeImplicit {
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
   final case class Import[T](
-    path: List1[AST.Ident.Cons],
+    path: List1[AST.Ident],
     rename: Option[AST.Ident.Cons],
     isAll: Boolean,
     onlyNames: Option[List1[AST.Ident.Cons]],
     hidingNames: Option[List1[AST.Ident.Cons]]
   ) extends SpacelessAST[T]
   final case class Export[T](
-    path: List1[AST.Ident.Cons],
+    path: List1[AST.Ident],
     rename: Option[AST.Ident.Cons],
     isAll: Boolean,
     onlyNames: Option[List1[AST.Ident]],
@@ -2392,7 +2392,7 @@ object AST {
 
   object Import {
     def apply(
-      path: List1[AST.Ident.Cons],
+      path: List1[AST.Ident],
       rename: Option[AST.Ident.Cons],
       isAll: Boolean,
       onlyNames: Option[List1[AST.Ident.Cons]],
@@ -2401,7 +2401,7 @@ object AST {
       Shape.Import[AST](path, rename, isAll, onlyNames, hidingNames)
     def unapply(t: AST): Option[
       (
-        List1[AST.Ident.Cons],
+        List1[AST.Ident],
         Option[AST.Ident.Cons],
         Boolean,
         Option[List1[AST.Ident.Cons]],
@@ -2422,7 +2422,7 @@ object AST {
 
   object Export {
     def apply(
-      path: List1[AST.Ident.Cons],
+      path: List1[AST.Ident],
       rename: Option[AST.Ident.Cons],
       isAll: Boolean,
       onlyNames: Option[List1[AST.Ident]],
@@ -2431,7 +2431,7 @@ object AST {
       Shape.Export[AST](path, rename, isAll, onlyNames, hidingNames)
     def unapply(t: AST): Option[
       (
-        List1[AST.Ident.Cons],
+        List1[AST.Ident],
         Option[AST.Ident.Cons],
         Boolean,
         Option[List1[AST.Ident]],

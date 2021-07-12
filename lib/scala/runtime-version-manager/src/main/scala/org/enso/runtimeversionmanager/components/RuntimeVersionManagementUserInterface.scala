@@ -2,7 +2,7 @@ package org.enso.runtimeversionmanager.components
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.ProgressReporter
-import org.enso.runtimeversionmanager.locking.LockUserInterface
+import org.enso.distribution.locking.LockUserInterface
 
 /** Encapsulates the communication between [[RuntimeVersionManager]] and its
   * user.

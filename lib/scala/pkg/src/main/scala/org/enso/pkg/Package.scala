@@ -1,14 +1,13 @@
 package org.enso.pkg
 
-import java.io.File
-
 import cats.Show
-
-import scala.jdk.CollectionConverters._
+import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
 
+import java.io.File
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
 
 object CouldNotCreateDirectory extends Exception
@@ -123,6 +122,11 @@ case class Package[F](
     */
   def name: String = config.name
 
+  def namespace: String = config.namespace
+
+  /** A [[LibraryName]] associated with the package. */
+  def libraryName: LibraryName = LibraryName(config.namespace, config.name)
+
   /** Parses a file path into a qualified module name belonging to this
     * package.
     *
@@ -133,7 +137,7 @@ case class Package[F](
     val segments                 = sourceDir.relativize(file).getSegments.asScala.toList
     val dirSegments              = segments.take(segments.length - 1)
     val fileNameWithoutExtension = file.getName.takeWhile(_ != '.')
-    QualifiedName(name :: dirSegments, fileNameWithoutExtension)
+    QualifiedName(namespace :: name :: dirSegments, fileNameWithoutExtension)
   }
 
   /** Lists the source files in this package.
@@ -192,24 +196,29 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     * @param root  the root location of the package.
     * @param name the name for the new package.
     * @param version version of the newly-created package.
+    * @param edition the edition to use for the project; if not specified, it
+    *                will not specify any, meaning that the current default one
+    *                will be used
     * @return a package object representing the newly created package.
     */
   def create(
     root: F,
     name: String,
-    version: String            = "0.0.1",
-    ensoVersion: EnsoVersion   = DefaultEnsoVersion,
-    authors: List[Contact]     = List(),
-    maintainers: List[Contact] = List()
+    namespace: String                    = "local",
+    version: String                      = "0.0.1",
+    edition: Option[Editions.RawEdition] = None,
+    authors: List[Contact]               = List(),
+    maintainers: List[Contact]           = List()
   ): Package[F] = {
     val config = Config(
-      name         = NameValidation.normalizeName(name),
-      version      = version,
-      ensoVersion  = ensoVersion,
-      license      = "",
-      authors      = authors,
-      maintainers  = maintainers,
-      dependencies = List()
+      name                 = NameValidation.normalizeName(name),
+      namespace            = namespace,
+      version              = version,
+      license              = "",
+      authors              = authors,
+      edition              = edition,
+      preferLocalLibraries = true,
+      maintainers          = maintainers
     )
     create(root, config)
   }

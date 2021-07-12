@@ -4,34 +4,32 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import com.oracle.truffle.api.TruffleLogger;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
+import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
+import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
-import org.enso.interpreter.runtime.util.ShadowedPackage;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
+import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import scala.jdk.javaapi.OptionConverters;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -41,28 +39,32 @@ public class Context {
 
   private final Language language;
   private final Env environment;
-  private final Compiler compiler;
+  private @CompilationFinal Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
   private final InputStream in;
   private final BufferedReader inReader;
-  private List<Package<TruffleFile>> packages;
+  private @CompilationFinal PackageRepository packageRepository;
   private @CompilationFinal TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final ResourceManager resourceManager;
   private final boolean isCachingDisabled;
   private final Builtins builtins;
   private final String home;
-  private final List<ShadowedPackage> shadowedPackages;
   private final CompilerConfig compilerConfig;
+  private final NotificationHandler notificationHandler;
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, Context.class);
 
   /**
    * Creates a new Enso context.
    *
    * @param language the language identifier
+   * @param home language home
    * @param environment the execution environment of the {@link TruffleLanguage}
+   * @param notificationHandler a handler for notifications
    */
-  public Context(Language language, String home, Env environment) {
+  public Context(
+      Language language, String home, Env environment, NotificationHandler notificationHandler) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
@@ -74,67 +76,43 @@ public class Context {
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     this.compilerConfig = new CompilerConfig(false, true);
     this.home = home;
-    this.shadowedPackages = new ArrayList<>();
-
-    builtins = new Builtins(this);
-
-    this.compiler = new Compiler(this, builtins, compilerConfig);
+    this.builtins = new Builtins(this);
+    this.notificationHandler = notificationHandler;
   }
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
     TruffleFileSystem fs = new TruffleFileSystem();
-    HashMap<String, Package<TruffleFile>> packageMap = new HashMap<>();
-    packages = new ArrayList<>();
-
-    if (home != null) {
-      HomeManager<TruffleFile> homeManager =
-          new HomeManager<>(environment.getInternalTruffleFile(home), fs);
-      packageMap.putAll(
-          homeManager.loadStdLib().collect(Collectors.toMap((Package::name), Function.identity())));
-    }
-
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
-    List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
 
-    // Add user packages one-by-one, shadowing previously added packages. It assumes that the
-    // standard library packages will not clash. In the future, we should be able to disambiguate
-    // packages that clash.
-    for (var packagePath : packagePaths) {
-      Optional<Package<TruffleFile>> asPackage =
-          ScalaConversions.asJava(packageManager.fromDirectory(packagePath));
-      if (asPackage.isPresent()) {
-        Package<TruffleFile> pkg = asPackage.get();
-        boolean nameExists = packageMap.containsKey(pkg.name());
+    Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
+    Optional<Package<TruffleFile>> projectPackage =
+        projectRoot.flatMap(
+            file -> {
+              var result = packageManager.fromDirectory(file);
+              if (result.isEmpty()) {
+                var projectName = file.getName();
+                throw new ProjectLoadingFailure(projectName);
+              }
+              return ScalaConversions.asJava(result);
+            });
 
-        if (nameExists) {
-          shadowedPackages.add(
-              new ShadowedPackage(
-                  packageMap.get(pkg.name()).root().getPath(), pkg.root().getPath(), pkg.name()));
-          packageMap.remove(pkg.name());
-        }
-        packageMap.put(pkg.name(), pkg);
-      }
-    }
+    var languageHome =
+        OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
 
-    packages.addAll(packageMap.values());
+    packageRepository =
+        PackageRepository.initializeRepository(
+            OptionConverters.toScala(projectPackage),
+            OptionConverters.toScala(languageHome),
+            RuntimeDistributionManager$.MODULE$,
+            this,
+            builtins,
+            notificationHandler);
+    topScope = new TopLevelScope(builtins, packageRepository);
+    this.compiler = new Compiler(this, builtins, packageRepository, compilerConfig);
 
-    packages.forEach(
-        pkg -> {
-          List<TruffleFile> classPathItems =
-              ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
-          classPathItems.forEach(environment::addToHostClassPath);
-        });
-
-    Map<String, Module> knownFiles =
-        packages.stream()
-            .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
-            .collect(
-                Collectors.toMap(
-                    srcFile -> srcFile.qualifiedName().toString(),
-                    srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
-
-    topScope = new TopLevelScope(builtins, knownFiles);
+    projectPackage.ifPresent(
+        pkg -> packageRepository.registerMainProjectPackage(pkg.libraryName(), pkg));
   }
 
   public TruffleFile getTruffleFile(File file) {
@@ -215,7 +193,7 @@ public class Context {
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     TruffleFile p = getTruffleFile(path);
-    return packages.stream()
+    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
         .filter(pkg -> p.startsWith(pkg.sourceDir()))
         .map(pkg -> pkg.moduleNameForFile(p))
         .findFirst();
@@ -224,26 +202,12 @@ public class Context {
   /**
    * Renames project in packages and modules.
    *
+   * @param namespace the namespace the renamed project belongs to
    * @param oldName the old project name
    * @param newName the new project name
    */
-  public void renameProject(String oldName, String newName) {
-    renamePackages(oldName, newName);
-    topScope.renameProjectInModules(oldName, newName);
-  }
-
-  private void renamePackages(String oldName, String newName) {
-    List<Package<TruffleFile>> toChange =
-        packages.stream()
-            .filter(p -> p.config().name().equals(oldName))
-            .collect(Collectors.toList());
-
-    packages.removeAll(toChange);
-
-    List<Package<TruffleFile>> renamed =
-        toChange.stream().map(p -> p.setPackageName(newName)).collect(Collectors.toList());
-
-    packages.addAll(renamed);
+  public void renameProject(String namespace, String oldName, String newName) {
+    packageRepository.renameProject(namespace, oldName, newName);
   }
 
   /**
@@ -286,14 +250,12 @@ public class Context {
    * @param module the module to find the package of
    * @return {@code module}'s package, if exists
    */
-  public Optional<Package<TruffleFile>> getPackageOf(Module module) {
-    if (module.getSourceFile() == null) {
+  public Optional<Package<TruffleFile>> getPackageOf(TruffleFile file) {
+    if (file == null) {
       return Optional.empty();
     }
-    return packages.stream()
-        .filter(
-            pkg ->
-                module.getSourceFile().getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
+    return ScalaConversions.asJava(packageRepository.getLoadedPackages()).stream()
+        .filter(pkg -> file.getAbsoluteFile().startsWith(pkg.root().getAbsoluteFile()))
         .findFirst();
   }
 
@@ -304,8 +266,9 @@ public class Context {
    * @return the newly created module, if the file is a source file.
    */
   public Optional<Module> createModuleForFile(File path) {
+    TruffleFile f = getTruffleFile(path);
     return getModuleNameForFile(path)
-        .map(name -> getTopScope().createModule(name, getTruffleFile(path)));
+        .map(name -> getTopScope().createModule(name, getPackageOf(f).orElse(null), f));
   }
 
   /**
@@ -314,7 +277,7 @@ public class Context {
    * @return an object containing the builtin functions
    */
   public Builtins getBuiltins() {
-    return getTopScope().getBuiltins();
+    return this.builtins;
   }
 
   /**
@@ -381,11 +344,6 @@ public class Context {
   /** @return whether inline caches should be disabled for this context. */
   public boolean isCachingDisabled() {
     return isCachingDisabled;
-  }
-
-  /** @return the list of shadowed packages */
-  public List<ShadowedPackage> getShadowedPackages() {
-    return shadowedPackages;
   }
 
   /** @return the compiler configuration for this language */

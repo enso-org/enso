@@ -21,7 +21,15 @@ object SuggestionDiff {
       .filter {
         case Api.SuggestionUpdate(
               _,
-              Api.SuggestionAction.Modify(None, None, None, None, None, None)
+              Api.SuggestionAction.Modify(
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None
+              )
             ) =>
           false
         case _ =>
@@ -160,6 +168,9 @@ object SuggestionDiff {
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
     }
+    if (e1.documentationHtml != e2.documentationHtml) {
+      op = op.copy(documentationHtml = Some(e2.documentationHtml))
+    }
     Api.SuggestionUpdate(e1, op)
   }
 
@@ -179,6 +190,9 @@ object SuggestionDiff {
     }
     if (e1.documentation != e2.documentation) {
       op = op.copy(documentation = Some(e2.documentation))
+    }
+    if (e1.documentationHtml != e2.documentationHtml) {
+      op = op.copy(documentationHtml = Some(e2.documentationHtml))
     }
     Api.SuggestionUpdate(e1, op)
   }

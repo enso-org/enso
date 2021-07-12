@@ -7,7 +7,7 @@ import java.util.UUID
 import io.circe.literal._
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
-import org.enso.pkg.SemVerJson._
+import org.enso.editions.SemVerJson._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.{FlakySpec, RetrySpec}
 
@@ -497,12 +497,14 @@ class ProjectManagementApiSpec
               "projects": [
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $projectId1,
                   "engineVersion": $engineToInstall,
                   "lastOpened": $projectOpenTime
                 },
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $projectId2,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
@@ -603,18 +605,21 @@ class ProjectManagementApiSpec
               "projects": [
                 {
                   "name": "Baz",
+                  "namespace": "local",
                   "id": $bazId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
                 },
                 {
                   "name": "Bar",
+                  "namespace": "local",
                   "id": $barId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
                 },
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
@@ -660,18 +665,21 @@ class ProjectManagementApiSpec
               "projects": [
                 {
                   "name": "Bar",
+                  "namespace": "local",
                   "id": $barId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": $barOpenTime
                 },
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $fooId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": $fooOpenTime
                 },
                 {
                   "name": "Baz",
+                  "namespace": "local",
                   "id": $bazId,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
@@ -718,12 +726,14 @@ class ProjectManagementApiSpec
               "projects": [
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $projectId1,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null
                 },
                 {
                   "name": "Foo",
+                  "namespace": "local",
                   "id": $projectId2,
                   "engineVersion": $engineToInstall,
                   "lastOpened": null

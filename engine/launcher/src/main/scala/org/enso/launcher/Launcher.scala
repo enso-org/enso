@@ -1,10 +1,10 @@
 package org.enso.launcher
 
 import java.nio.file.Path
-
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.config.{
   DefaultVersion,
@@ -38,16 +38,25 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
 
   private val logger = Logger[Launcher]
 
-  private lazy val componentsManager =
-    runtimeVersionManager(cliOptions, alwaysInstallMissing = false)
+  private lazy val componentsManager = {
+    val manager =
+      runtimeVersionManager(cliOptions, alwaysInstallMissing = false)
+    manager.logAvailableComponentsForDebugging()
+    manager
+  }
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, distributionManager)
-  private lazy val projectManager = new ProjectManager(configurationManager)
+  private lazy val editionManager = new EditionManager(
+    distributionManager.paths.editionSearchPaths.toList
+  )
+  private lazy val projectManager = new ProjectManager
   private lazy val runner =
     new LauncherRunner(
       projectManager,
+      distributionManager,
       configurationManager,
       componentsManager,
+      editionManager,
       LauncherEnvironment,
       LauncherLogging.loggingServiceEndpoint()
     )

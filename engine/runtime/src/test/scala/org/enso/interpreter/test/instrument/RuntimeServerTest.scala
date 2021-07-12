@@ -18,7 +18,7 @@ import org.scalatest.matchers.should.Matchers
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
@@ -46,7 +46,7 @@ class RuntimeServerTest
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
     val pkg: Package[File] =
-      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
@@ -54,12 +54,17 @@ class RuntimeServerTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
+        )
         .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -132,16 +137,16 @@ class RuntimeServerTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(42, 1)
-      val idMainY = metadata.addItem(52, 7)
-      val idMainZ = metadata.addItem(68, 5)
-      val idFooY  = metadata.addItem(107, 8)
-      val idFooZ  = metadata.addItem(124, 5)
+      val idMainX = metadata.addItem(51, 1)
+      val idMainY = metadata.addItem(61, 7)
+      val idMainZ = metadata.addItem(77, 5)
+      val idFooY  = metadata.addItem(116, 8)
+      val idFooZ  = metadata.addItem(133, 5)
 
       def code =
         metadata.appendToCode(
           """
-            |from Builtins import all
+            |from Standard.Builtins import all
             |
             |main =
             |    x = 6
@@ -183,7 +188,13 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", Constants.NUMBER, "foo")),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      Constants.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -248,12 +259,12 @@ class RuntimeServerTest
     object Main2 {
 
       val metadata = new Metadata
-      val idMainY  = metadata.addItem(174, 10)
-      val idMainZ  = metadata.addItem(193, 10)
+      val idMainY  = metadata.addItem(183, 10)
+      val idMainZ  = metadata.addItem(202, 10)
 
       val code = metadata.appendToCode(
         """
-          |from Builtins import all
+          |from Standard.Builtins import all
           |
           |foo = arg ->
           |    IO.println "I'm expensive!"
@@ -281,7 +292,13 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "foo")),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      "Enso_Test.Test.Main",
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   false,
                   Api.ExpressionUpdate.Payload.Value()
@@ -298,7 +315,13 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   idMainZ,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Test.Main", "Test.Main", "bar")),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      "Enso_Test.Test.Main",
+                      "bar"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   false,
                   Api.ExpressionUpdate.Payload.Value()
@@ -358,7 +381,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -387,7 +410,7 @@ class RuntimeServerTest
 
     // push method pointer on top of the non-empty stack
     val invalidExplicitCall = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -425,14 +448,14 @@ class RuntimeServerTest
   it should "push method with default arguments" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(49, 24)
-    val idMainFoo = metadata.addItem(65, 8)
+    val idMain    = metadata.addItem(58, 24)
+    val idMainFoo = metadata.addItem(74, 8)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo a=0 = a + 1
         |
@@ -461,7 +484,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -474,7 +497,7 @@ class RuntimeServerTest
         contextId,
         idMainFoo,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "foo")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -498,20 +521,20 @@ class RuntimeServerTest
   it should "send method pointer updates" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(94, 121)
-    val idMainX  = metadata.addItem(121, 8)
-    val idMainY  = metadata.addItem(138, 8)
-    val idMainM  = metadata.addItem(155, 5)
-    val idMainP  = metadata.addItem(169, 5)
-    val idMainQ  = metadata.addItem(183, 5)
-    val idMainF  = metadata.addItem(205, 9)
+    val idMain   = metadata.addItem(113, 121)
+    val idMainX  = metadata.addItem(140, 8)
+    val idMainY  = metadata.addItem(157, 8)
+    val idMainM  = metadata.addItem(174, 5)
+    val idMainP  = metadata.addItem(188, 5)
+    val idMainQ  = metadata.addItem(202, 5)
+    val idMainF  = metadata.addItem(224, 9)
 
     val code =
-      """from Builtins import all
-        |import Test.A
+      """from Standard.Builtins import all
+        |import Enso_Test.Test.A
         |
         |type Quux
         |    type Quux
@@ -533,7 +556,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(contents)
 
     val aCode =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |type A
         |    type A un_a
@@ -565,7 +588,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -578,26 +601,30 @@ class RuntimeServerTest
         contextId,
         idMainX,
         Constants.INTEGER,
-        Api.MethodPointer("Test.Main", "Test.Main.Quux", "foo")
+        Api.MethodPointer(
+          "Enso_Test.Test.Main",
+          "Enso_Test.Test.Main.Quux",
+          "foo"
+        )
       ),
       TestMessages.update(
         contextId,
         idMainY,
         Constants.INTEGER,
-        Api.MethodPointer("Test.Main", "Test.Main", "bar")
+        Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMainM, "Test.A.A"),
+      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.A"),
       TestMessages.update(
         contextId,
         idMainP,
         Constants.INTEGER,
-        Api.MethodPointer("Test.A", "Test.A.A", "foo")
+        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A.A", "foo")
       ),
       TestMessages.update(
         contextId,
         idMainQ,
         Constants.INTEGER,
-        Api.MethodPointer("Test.A", "Test.A", "bar")
+        Api.MethodPointer("Enso_Test.Test.A", "Enso_Test.Test.A", "bar")
       ),
       TestMessages.update(contextId, idMainF, Constants.INTEGER),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
@@ -609,14 +636,14 @@ class RuntimeServerTest
   it should "send updates from last line" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(49, 17)
-    val idMainFoo = metadata.addItem(54, 12)
+    val idMain    = metadata.addItem(58, 17)
+    val idMainFoo = metadata.addItem(63, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo a b = a + b
         |
@@ -645,7 +672,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -658,7 +685,7 @@ class RuntimeServerTest
         contextId,
         idMainFoo,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "foo")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
       context.executionComplete(contextId)
@@ -668,14 +695,14 @@ class RuntimeServerTest
   it should "compute side effects correctly from last line" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(49, 30)
-    val idMainFoo = metadata.addItem(66, 12)
+    val idMain    = metadata.addItem(58, 30)
+    val idMainFoo = metadata.addItem(75, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo a b = a + b
         |
@@ -704,7 +731,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -717,7 +744,7 @@ class RuntimeServerTest
         contextId,
         idMainFoo,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "foo")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -728,14 +755,14 @@ class RuntimeServerTest
   it should "run State getting the initial state" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(33, 41)
-    val idMainBar = metadata.addItem(65, 8)
+    val idMain    = metadata.addItem(42, 41)
+    val idMainBar = metadata.addItem(74, 8)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = IO.println (State.run Number 42 this.bar)
         |
@@ -763,7 +790,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -776,7 +803,7 @@ class RuntimeServerTest
         contextId,
         idMainBar,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "bar")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "bar")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -787,14 +814,14 @@ class RuntimeServerTest
   it should "run State setting the state" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(33, 40)
-    val idMainBar = metadata.addItem(64, 8)
+    val idMain    = metadata.addItem(42, 40)
+    val idMainBar = metadata.addItem(73, 8)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = IO.println (State.run Number 0 this.bar)
         |
@@ -824,7 +851,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -837,7 +864,7 @@ class RuntimeServerTest
         contextId,
         idMainBar,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "bar")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "bar")
       ),
       TestMessages.update(contextId, idMain, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -848,14 +875,14 @@ class RuntimeServerTest
   it should "send updates of a function call" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(49, 23)
-    val idMainFoo = metadata.addItem(54, 12)
+    val idMain    = metadata.addItem(58, 23)
+    val idMainFoo = metadata.addItem(63, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo a b = a + b
         |
@@ -885,7 +912,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -898,7 +925,7 @@ class RuntimeServerTest
         contextId,
         idMainFoo,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "foo")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "foo")
       ),
       TestMessages.update(contextId, idMain, Constants.INTEGER),
       context.executionComplete(contextId)
@@ -908,20 +935,20 @@ class RuntimeServerTest
   it should "send updates when function body is changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     // foo definition
-    metadata.addItem(26, 22)
+    metadata.addItem(35, 22)
     // foo name
-    metadata.addItem(26, 3)
-    val fooX    = metadata.addItem(40, 1)
-    val fooRes  = metadata.addItem(46, 1)
-    val mainFoo = metadata.addItem(64, 8)
-    val mainRes = metadata.addItem(77, 12)
+    metadata.addItem(35, 3)
+    val fooX    = metadata.addItem(49, 1)
+    val fooRes  = metadata.addItem(55, 1)
+    val mainFoo = metadata.addItem(73, 8)
+    val mainRes = metadata.addItem(86, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo =
         |    x = 4
@@ -953,7 +980,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -967,7 +994,7 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           Constants.INTEGER,
-          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
       TestMessages.update(contextId, mainRes, Constants.NOTHING),
       context.executionComplete(contextId)
@@ -1017,7 +1044,7 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           Constants.INTEGER,
-          Api.MethodPointer("Test.Main", "Test.Main", "foo")
+          Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
       context.executionComplete(contextId)
     )
@@ -1027,8 +1054,8 @@ class RuntimeServerTest
   it should "not send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val idMain     = context.Main.metadata.addItem(33, 47)
+    val moduleName = "Enso_Test.Test.Main"
+    val idMain     = context.Main.metadata.addItem(42, 47)
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1051,7 +1078,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1097,14 +1124,14 @@ class RuntimeServerTest
   it should "send updates when the type is changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata  = new Metadata
-    val idResult  = metadata.addItem(46, 4)
-    val idPrintln = metadata.addItem(55, 17)
-    val idMain    = metadata.addItem(32, 40)
+    val idResult  = metadata.addItem(55, 4)
+    val idPrintln = metadata.addItem(64, 17)
+    val idMain    = metadata.addItem(41, 40)
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    result = 1337
@@ -1132,7 +1159,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1172,22 +1199,22 @@ class RuntimeServerTest
   it should "send updates when the method pointer is changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(32, 35)
-    val idMainA  = metadata.addItem(41, 8)
-    val idMainP  = metadata.addItem(54, 12)
+    val idMain   = metadata.addItem(41, 35)
+    val idMainA  = metadata.addItem(50, 8)
+    val idMainP  = metadata.addItem(63, 12)
     // pie id
-    metadata.addItem(66 + 8, 1)
+    metadata.addItem(75 + 8, 1)
     // uwu id
-    metadata.addItem(74 + 8, 1)
+    metadata.addItem(83 + 8, 1)
     // hie id
-    metadata.addItem(82 + 8, 6)
+    metadata.addItem(91 + 8, 6)
     // Number.x id
-    metadata.addItem(102 + 8, 1)
+    metadata.addItem(111 + 8, 1)
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    a = 123 + 21
@@ -1220,7 +1247,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1297,7 +1324,7 @@ class RuntimeServerTest
         contextId,
         idMainA,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "pie")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "pie")
       ),
       context.executionComplete(contextId)
     )
@@ -1322,7 +1349,7 @@ class RuntimeServerTest
         contextId,
         idMainA,
         Constants.INTEGER,
-        Api.MethodPointer(moduleName, "Test.Main", "uwu")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "uwu")
       ),
       context.executionComplete(contextId)
     )
@@ -1347,7 +1374,7 @@ class RuntimeServerTest
         contextId,
         idMainA,
         Constants.TEXT,
-        Api.MethodPointer(moduleName, "Test.Main", "hie")
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "hie")
       ),
       context.executionComplete(contextId)
     )
@@ -1377,15 +1404,15 @@ class RuntimeServerTest
   it should "send updates for overloaded functions" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(32, 80)
-    val id1      = metadata.addItem(41, 15)
-    val id2      = metadata.addItem(61, 18)
-    val id3      = metadata.addItem(84, 15)
+    val idMain   = metadata.addItem(41, 80)
+    val id1      = metadata.addItem(50, 15)
+    val id2      = metadata.addItem(70, 18)
+    val id3      = metadata.addItem(93, 15)
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 15.overloaded 1
@@ -1418,7 +1445,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1576,14 +1603,14 @@ class RuntimeServerTest
   it should "send updates for a lambda" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
-    val xId     = metadata.addItem(41, 10)
-    val mainRes = metadata.addItem(56, 12)
+    val xId     = metadata.addItem(50, 10)
+    val mainRes = metadata.addItem(65, 12)
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = a -> a + 1
@@ -1611,7 +1638,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -1635,9 +1662,9 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
@@ -1658,7 +1685,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Test.Main", "main"),
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
               None,
               Vector()
             )
@@ -1698,7 +1725,7 @@ class RuntimeServerTest
   it should "support file modification operations with attached ids" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val idMain     = metadata.addItem(7, 2)
     val code       = metadata.appendToCode("main = 84")
@@ -1723,7 +1750,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Test.Main", "main"),
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
               None,
               Vector()
             )
@@ -1758,8 +1785,8 @@ class RuntimeServerTest
   it should "send suggestion notifications when file is executed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
-    val idMain     = context.Main.metadata.addItem(33, 47)
+    val moduleName = "Enso_Test.Test.Main"
+    val idMain     = context.Main.metadata.addItem(42, 47)
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -1777,7 +1804,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1829,7 +1856,7 @@ class RuntimeServerTest
   it should "send suggestion notifications when file is modified" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val newline    = System.lineSeparator()
 
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1838,7 +1865,7 @@ class RuntimeServerTest
     )
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = IO.println "I'm a file!"
         |""".stripMargin
@@ -1859,7 +1886,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(moduleName, "Test.Main", "main"),
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
               None,
               Vector()
             )
@@ -1874,7 +1901,7 @@ class RuntimeServerTest
 
     /*
       Modify the file:
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |Number.lucky = 42
         |
@@ -1912,7 +1939,7 @@ class RuntimeServerTest
   it should "recompute expressions without invalidation" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
 
@@ -1930,7 +1957,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -1958,7 +1985,7 @@ class RuntimeServerTest
   it should "recompute expressions invalidating all" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
 
@@ -1976,7 +2003,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -2010,7 +2037,7 @@ class RuntimeServerTest
   it should "recompute expressions invalidating some" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
 
@@ -2028,7 +2055,7 @@ class RuntimeServerTest
     context.receiveNone shouldEqual None
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(moduleName, "Test.Main", "main"),
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -2086,7 +2113,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Unnamed.Main", "Test.Main", "main"),
+            Api.MethodPointer("Unnamed.Main", "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2130,7 +2157,11 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Test.Unexpected", "main"),
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Unexpected",
+              "main"
+            ),
             None,
             Vector()
           )
@@ -2143,7 +2174,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Failure(
-            "Constructor Unexpected not found in module Test.Main.",
+            "Constructor Unexpected not found in module Enso_Test.Test.Main.",
             Some(mainFile)
           )
         )
@@ -2177,7 +2208,11 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Test.Main", "ooops"),
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main",
+              "ooops"
+            ),
             None,
             Vector()
           )
@@ -2190,7 +2225,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Failure(
-            "Object Main does not define method ooops in module Test.Main.",
+            "Object Main does not define method ooops in module Enso_Test.Test.Main.",
             Some(mainFile)
           )
         )
@@ -2202,7 +2237,7 @@ class RuntimeServerTest
   it should "return error not invocable" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
       """main = this.bar 40 2 123
@@ -2231,7 +2266,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2270,7 +2305,7 @@ class RuntimeServerTest
   it should "return error unresolved symbol" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
       """main = this.bar .x .y
@@ -2299,7 +2334,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2346,7 +2381,7 @@ class RuntimeServerTest
   it should "return error unexpected type" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
     val code =
       """main = this.bar "one" 2
@@ -2375,7 +2410,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2423,11 +2458,11 @@ class RuntimeServerTest
   it should "return error method does not exist" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = Number.pi
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2453,7 +2488,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2492,11 +2527,11 @@ class RuntimeServerTest
   it should "return error with a stack trace" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = this.foo
         |
@@ -2532,7 +2567,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2596,11 +2631,11 @@ class RuntimeServerTest
   it should "return compiler warning unused variable" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main = x = 1
         |""".stripMargin.linesIterator.mkString("\n")
@@ -2626,7 +2661,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2655,11 +2690,11 @@ class RuntimeServerTest
   it should "return compiler warning unused argument" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo x = 1
         |
@@ -2687,7 +2722,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2715,11 +2750,11 @@ class RuntimeServerTest
   it should "return compiler error variable redefined" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = 1
@@ -2747,7 +2782,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2779,11 +2814,11 @@ class RuntimeServerTest
   it should "return compiler error unrecognized token" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = Panic.recover @
@@ -2811,7 +2846,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2842,11 +2877,11 @@ class RuntimeServerTest
   it should "return compiler error syntax error" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |main =
         |    x = Panic.recover ()
@@ -2875,7 +2910,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2902,11 +2937,11 @@ class RuntimeServerTest
   it should "return compiler error method overloads are not supported" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
-    val moduleName = "Test.Main"
+    val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
 
     val code =
-      """from Builtins import all
+      """from Standard.Builtins import all
         |
         |foo = 1
         |foo = 2
@@ -2935,7 +2970,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(moduleName, "Test.Main", "main"),
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
             None,
             Vector()
           )
@@ -2979,7 +3014,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Test.Main", "main"),
+      Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "main"),
       None,
       Vector()
     )
@@ -3032,7 +3067,11 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Test.Main", "Test.Main", "main"),
+            Api.MethodPointer(
+              "Enso_Test.Test.Main",
+              "Enso_Test.Test.Main",
+              "main"
+            ),
             None,
             Vector()
           )
@@ -3049,9 +3088,11 @@ class RuntimeServerTest
 
     // rename Test -> Foo
     context.pkg.rename("Foo")
-    context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
+    context.send(
+      Api.Request(requestId, Api.RenameProject("Enso_Test", "Test", "Foo"))
+    )
     context.receive(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed("Foo"))
+      Api.Response(requestId, Api.ProjectRenamed("Enso_Test", "Foo"))
     )
 
     // recompute existing stack
@@ -3079,7 +3120,7 @@ class RuntimeServerTest
         contextId,
         context.Main.idMainY,
         Constants.INTEGER,
-        Api.MethodPointer("Foo.Main", Constants.NUMBER, "foo")
+        Api.MethodPointer("Enso_Test.Foo.Main", Constants.NUMBER, "foo")
       ),
       context.executionComplete(contextId)
     )

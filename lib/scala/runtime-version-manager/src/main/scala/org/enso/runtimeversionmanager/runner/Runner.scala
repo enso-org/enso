@@ -1,20 +1,21 @@
 package org.enso.runtimeversionmanager.runner
 
-import java.nio.file.Path
-
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.{DistributionManager, EditionManager, Environment}
+import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.logger.masking.MaskedString
-import org.enso.runtimeversionmanager.Environment
+import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
   GraalRuntime,
   RuntimeVersionManager
 }
-import org.enso.loggingservice.LogLevel
+import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 
+import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.Try
@@ -25,6 +26,9 @@ import scala.util.Try
   */
 class Runner(
   runtimeVersionManager: RuntimeVersionManager,
+  distributionManager: DistributionManager,
+  globalConfigurationManager: GlobalConfigurationManager,
+  editionManager: EditionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]
 ) {
@@ -77,7 +81,7 @@ class Runner(
     logMasking: Boolean,
     additionalArguments: Seq[String]
   ): Try[RunSettings] = {
-    val version     = versionOverride.getOrElse(project.version)
+    val version     = resolveVersion(versionOverride, Some(project))
     val projectPath = project.path.toAbsolutePath.normalize.toString
     startLanguageServer(
       options,
@@ -176,8 +180,12 @@ class Runner(
       val command = Seq(javaCommand.executableName) ++
         jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
+      val distributionSettings =
+        distributionManager.getEnvironmentToInheritSettings
       val extraEnvironmentOverrides =
-        javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
+        javaCommand.javaHomeOverride
+          .map("JAVA_HOME" -> _)
+          .toSeq ++ distributionSettings.toSeq
 
       action(Command(command, extraEnvironmentOverrides))
     }
@@ -225,6 +233,31 @@ class Runner(
     connectionSetting match {
       case Some(uri) => Seq("--logger-connect", uri.toString)
       case None      => Seq()
+    }
+  }
+
+  /** Resolves the engine version that should be used for the run.
+    *
+    * If `versionOverride` is defined it has the highest priority and its
+    * version is returned. Otherwise if the project is defined, the version from
+    * the project configuration (which may also fall back to default) is chosen.
+    * Otherwise, the default version is selected.
+    */
+  protected def resolveVersion(
+    versionOverride: Option[SemVer],
+    project: Option[Project]
+  ): SemVer = versionOverride.getOrElse {
+    project match {
+      case Some(project) =>
+        val edition = project.edition
+        val version = editionManager.resolveEngineVersion(edition).get
+        version match {
+          case DefaultEnsoVersion =>
+            globalConfigurationManager.defaultVersion
+          case SemVerEnsoVersion(version) => version
+        }
+      case None =>
+        globalConfigurationManager.defaultVersion
     }
   }
 }

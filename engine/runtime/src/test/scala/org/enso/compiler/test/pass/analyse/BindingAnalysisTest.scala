@@ -3,7 +3,6 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{Cons, ModuleMethod, PolyglotSymbol}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -60,17 +59,30 @@ class BindingAnalysisTest extends CompilerTest {
           |Baz.foo = 123
           |Bar.baz = Baz 1 2 . foo
           |
+          |from (_ : Bar) = Foo 0 0 0
+          |from (value : Baz) = Foo value.x value.x value.y
+          |
+          |Foo.from (_ : Bar) = undefined
+          |
           |foo = 123
           |""".stripMargin.preprocessModule.analyse
 
-      ir.getMetadata(BindingAnalysis) shouldEqual Some(
-        BindingsMap(
-          List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
-          List(PolyglotSymbol("MyClass"), PolyglotSymbol("Renamed_Class")),
-          List(ModuleMethod("enso_project"), ModuleMethod("foo")),
-          ctx.module
-        )
+      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+
+      metadata.types shouldEqual List(
+        Cons("Foo", 3),
+        Cons("Bar", 0),
+        Cons("Baz", 2)
       )
+      metadata.polyglotSymbols shouldEqual List(
+        PolyglotSymbol("MyClass"),
+        PolyglotSymbol("Renamed_Class")
+      )
+      metadata.moduleMethods shouldEqual List(
+        ModuleMethod("enso_project"),
+        ModuleMethod("foo")
+      )
+      metadata.currentModule shouldEqual ctx.module
     }
 
     "properly assign module-level methods when a type with the same name as module is defined" in {

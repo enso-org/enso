@@ -224,11 +224,13 @@ class LambdaConsolidateTest extends CompilerTest {
                 IR.Name
                   .Literal("a", isReferent = false, isMethod = false, None),
                 None,
+                None,
                 suspended = false,
                 None
               ),
             IR.DefinitionArgument.Specified(
               IR.Name.Literal("b", isReferent = false, isMethod = false, None),
+              None,
               None,
               suspended = false,
               None
@@ -239,6 +241,7 @@ class LambdaConsolidateTest extends CompilerTest {
               IR.DefinitionArgument.Specified(
                 IR.Name
                   .Literal("c", isReferent = false, isMethod = false, None),
+                None,
                 None,
                 suspended = false,
                 None

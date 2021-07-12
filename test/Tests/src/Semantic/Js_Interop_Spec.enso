@@ -165,7 +165,6 @@ spec = Test.group "Polyglot JS" <|
         array.groups.a . should_equal 1
         array.index . should_equal 0
 
-    length_pending_msg = ".length cannot currently be called due to a bug in GraalJS. Fixed in 21.1.0."
     Test.specify "allow access to the length property of a JS array in Enso" <|
         array = here.make_array
         array.length . should_equal 3

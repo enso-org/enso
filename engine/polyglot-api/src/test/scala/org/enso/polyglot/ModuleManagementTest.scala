@@ -1,8 +1,7 @@
 package org.enso.polyglot
 
 import java.io.File
-import java.nio.file.Files
-
+import java.nio.file.{Files, Paths}
 import org.enso.pkg.{Package, PackageManager}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -10,14 +9,20 @@ import org.scalatest.matchers.should.Matchers
 
 class ModuleManagementTest extends AnyFlatSpec with Matchers {
   class TestContext(packageName: String) {
-    val tmpDir: File       = Files.createTempDirectory("enso-test-packages").toFile
-    val pkg: Package[File] = PackageManager.Default.create(tmpDir, packageName)
+    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+    val pkg: Package[File] =
+      PackageManager.Default.create(tmpDir, packageName, "Enso_Test")
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
+        )
+        .option(RuntimeOptions.STRICT_ERRORS, "true")
         .build()
     )
 
@@ -42,9 +47,10 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |    12345
                     |""".stripMargin)
 
-    val mainModule = ctx.executionContext.getTopScope.getModule("Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun1   = mainModule.getMethod(assocCons, "main").get
+    val mainModule =
+      ctx.executionContext.getTopScope.getModule("Enso_Test.Test.Main")
+    val assocCons = mainModule.getAssociatedConstructor
+    val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute(assocCons).asLong() shouldEqual 12345L
 
@@ -64,9 +70,10 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
                     |main = 123
                     |""".stripMargin)
 
-    val mainModule = ctx.executionContext.getTopScope.getModule("Test.Main")
-    val assocCons  = mainModule.getAssociatedConstructor
-    val mainFun1   = mainModule.getMethod(assocCons, "main").get
+    val mainModule =
+      ctx.executionContext.getTopScope.getModule("Enso_Test.Test.Main")
+    val assocCons = mainModule.getAssociatedConstructor
+    val mainFun1  = mainModule.getMethod(assocCons, "main").get
 
     mainFun1.execute(assocCons).asLong() shouldEqual 123L
 
@@ -94,7 +101,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
   subject should "allow to create new, importable modules" in {
     val ctx = new TestContext("Test")
     ctx.writeMain("""
-                    |import MyLib.Foo
+                    |import Enso_Test.Test.Foo
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -107,9 +114,12 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     )
 
     val topScope = ctx.executionContext.getTopScope
-    topScope.registerModule("MyLib.Foo", ctx.mkFile("Foo.enso").getAbsolutePath)
+    topScope.registerModule(
+      "Enso_Test.Test.Foo",
+      ctx.mkFile("Foo.enso").getAbsolutePath
+    )
 
-    val mainModule = topScope.getModule("Test.Main")
+    val mainModule = topScope.getModule("Enso_Test.Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
     val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute(assocCons).asLong shouldEqual 11L
@@ -118,7 +128,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
   subject should "allow importing literal-source modules" in {
     val ctx = new TestContext("Test")
     ctx.writeMain("""
-                    |import MyLib.Foo
+                    |import Enso_Test.Test.Foo
                     |
                     |main = Foo.foo + 1
                     |""".stripMargin)
@@ -132,14 +142,14 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val topScope = ctx.executionContext.getTopScope
     val fooModule = topScope.registerModule(
-      "MyLib.Foo",
+      "Enso_Test.Test.Foo",
       ctx.mkFile("Foo.enso").getAbsolutePath
     )
     fooModule.setSource("""
                           |foo = 20
                           |""".stripMargin)
 
-    val mainModule = topScope.getModule("Test.Main")
+    val mainModule = topScope.getModule("Enso_Test.Test.Main")
     val assocCons  = mainModule.getAssociatedConstructor
     val mainFun    = mainModule.getMethod(assocCons, "main").get
     mainFun.execute(assocCons).asLong shouldEqual 21L
@@ -154,7 +164,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
 
     val mod1 = ctx.executionContext.evalModule(
       """
-        |import Test.Main
+        |import Enso_Test.Test.Main
         |
         |bar = Main.foo + 1
         |""".stripMargin,
@@ -164,11 +174,11 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     val mod1Main      = mod1.getMethod(mod1AssocCons, "bar").get
     mod1Main.execute(mod1AssocCons).asLong shouldEqual 124
 
-    ctx.executionContext.getTopScope.unregisterModule("Test.Main")
+    ctx.executionContext.getTopScope.unregisterModule("Enso_Test.Test.Main")
 
     val mod2 = ctx.executionContext.evalModule(
       """
-        |import Test.Main
+        |import Enso_Test.Test.Main
         |
         |bar = Main.foo + 1
         |""".stripMargin.replace("\r\n", "\n"),
@@ -176,9 +186,6 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
     )
     val exception =
       the[PolyglotException] thrownBy mod2.getAssociatedConstructor
-    exception.getMessage shouldEqual "org.enso.compiler.exception." +
-    "CompilerError: Compiler Internal Error: Attempted to import the " +
-    "unresolved module Test.Main during code generation. Defined at " +
-    "X2[2:1-2:16]."
+    exception.getMessage shouldEqual "Compilation aborted due to errors."
   }
 }
