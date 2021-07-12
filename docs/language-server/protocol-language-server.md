@@ -153,10 +153,11 @@ transport formats, please look [here](./protocol-architecture).
   - [`editions/setProjectParentEdition`](#editionssetprojectparentedition)
   - [`editions/setProjectLocalLibrariesPreference`](#editionssetprojectlocallibrariespreference)
   - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
+  - [`library/listLocal`](#librarylistlocal)
   - [`library/create`](#librarycreate)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
-- [Errors](#errors-64)
+- [Errors](#errors-72)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
@@ -188,6 +189,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`ProjectNotFoundError`](#projectnotfounderror)
   - [`ModuleNameNotResolvedError`](#modulenamenotresolvederror)
   - [`SuggestionNotFoundError`](#suggestionnotfounderror)
+  - [`EditionNotFoundError`](#editionnotfounderror)
+  - [`LibraryAlreadyExists`](#libraryalreadyexists)
+  - [`LibraryRepositoryAuthenticationError`](#libraryrepositoryauthenticationerror)
+  - [`LibraryPublishError`](#librarypublisherror)
+  - [`LibraryUploadError`](#libraryuploaderror)
+  - [`LibraryDownloadError`](#librarydownloaderror)
 
 <!-- /MarkdownTOC -->
 
@@ -3959,8 +3966,10 @@ null;
 
 ## Library-Related Operations
 
-> TODO [RW] section descriptions TODO [RW] errors, in particular setting edition
-> should check if the name is valid (resolves correctly) etc.
+The library-related operations provide the Language Server with capabilities to
+check and modify project's edition settings, list editions published in a given
+edition, create local library projects which can be imported in the currently
+opened project and publish them.
 
 ### `editions/listAvailable`
 
@@ -4017,6 +4026,14 @@ parent edition and any locally set overrides.
 }
 ```
 
+#### Errors
+
+- [`EditionNotFoundError`](#editionnotfounderror) indicates that the requested
+  edition, or some edition referenced in the ancestors of the edition being
+  resolved, could not be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `editions/getProjectSettings`
 
 Returns the currently set edition-related settings of the project.
@@ -4068,6 +4085,13 @@ project.
 null;
 ```
 
+#### Errors
+
+- [`EditionNotFoundError`](#editionnotfounderror) indicates that the requested
+  edition could not be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `editions/setProjectLocalLibrariesPreference`
 
 Sets the `prefer-local-libraries` setting of the project, which specifies if
@@ -4093,6 +4117,11 @@ defined in the edition.
 null;
 ```
 
+#### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `editions/listDefinedLibraries`
 
 Lists all libraries defined in an edition (or all of its parents).
@@ -4100,14 +4129,19 @@ Lists all libraries defined in an edition (or all of its parents).
 This can be used to display which libraries can be downloaded / added to the
 project.
 
-#### Parameters
+If `editionName` is not specified, it will list libraries defined in the edition
+associated with the current project, including any project-specific overrides.
 
-> TODO [MM] do we need to also suport `null` to list libraries for the current
-> project that will include its local overrides?
+This does not include local libraries not defined explicitly in the project's
+edition, even if they can be resolved as per `prefer-local-libraries` setting.
+To get local libraries that are not directly referenced in the edition, use
+[`library/listLocal`](#librarylistlocal) instead.
+
+#### Parameters
 
 ```typescript
 {
-  editionName: String;
+  editionName?: String;
 }
 ```
 
@@ -4118,6 +4152,36 @@ project.
   availableLibraries: [LibraryEntry];
 }
 ```
+
+#### Errors
+
+- [`EditionNotFoundError`](#editionnotfounderror) indicates that the requested
+  edition, or an edition referenced in one of its parents, could not be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
+### `library/listLocal`
+
+Lists all local libraries available in the system.
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+{
+  localLibraries: [LibraryEntry];
+}
+```
+
+#### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
 
 ### `library/create`
 
@@ -4154,6 +4218,13 @@ added, the library will be loaded and its content root will be sent in a
 null;
 ```
 
+#### Errors
+
+- [`LibraryAlreadyExists`](#libraryalreadyexists) to signal that a library with
+  the given namespace and name already exists.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `library/publish`
 
 Publishes a library located in the local libraries directory to the main Enso
@@ -4182,6 +4253,18 @@ version from the IDE.
 ```typescript
 null;
 ```
+
+#### Errors
+
+- [`LibraryPublishError`](#librarypublisherror) to signal that the server did
+  not accept to publish the library (for example because a library with the same
+  version already exists).
+- [`LibraryRepositoryAuthenticationError`](#libraryrepositoryauthenticationerror)
+  to signal an authentication failure.
+- [`LibraryUploadError`](#libraryuploaderror) to signal that the upload
+  operation has failed, for network-related reasons.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
 
 ### `library/preinstall`
 
@@ -4215,6 +4298,14 @@ installed.
 ```typescript
 null;
 ```
+
+#### Errors
+
+- [`LibraryDownloadError`](#librarydownloaderror) to signal that the download
+  operation has failed, for network-related reasons, or because the library was
+  missing in the repository.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
 
 ## Errors
 
@@ -4615,5 +4706,73 @@ Signals that the requested suggestion was not found.
 "error" : {
   "code" : 7004,
   "message" : "Requested suggestion was not found"
+}
+```
+
+### `EditionNotFoundError`
+
+Signals that an edition could not be found.
+
+```typescript
+"error" : {
+  "code" : 8001,
+  "message" : "Edition [<name>] could not be found."
+}
+```
+
+### `LibraryAlreadyExists`
+
+Signals that a local library with the specified namespace and name combination
+already exists, so it cannot be created again.
+
+```typescript
+"error" : {
+  "code" : 8002,
+  "message" : "Library [<namespace>.<name>] already exists."
+}
+```
+
+### `LibraryRepositoryAuthenticationError`
+
+Signals that authentication to the library repository was declined.
+
+```typescript
+"error" : {
+  "code" : 8003,
+  "message" : "Authentication failed: [message]"
+}
+```
+
+### `LibraryPublishError`
+
+Signals that a request to the library repository failed.
+
+```typescript
+"error" : {
+  "code" : 8004,
+  "message" : "Could not publish the library: [message]"
+}
+```
+
+### `LibraryUploadError`
+
+Signals that uploading the library failed for network-related reasons.
+
+```typescript
+"error" : {
+  "code" : 8005,
+  "message" : "Could not upload the library: [message]"
+}
+```
+
+### `LibraryDownloadError`
+
+Signals that downloading the library failed for network-related reasons or that
+it was not available in the repository.
+
+```typescript
+"error" : {
+  "code" : 8006,
+  "message" : "Could not download the library: [message]"
 }
 ```
