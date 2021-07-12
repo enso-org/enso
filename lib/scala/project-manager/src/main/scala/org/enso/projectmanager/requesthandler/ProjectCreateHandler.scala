@@ -52,7 +52,6 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
           )
         }
       _ = logger.trace(s"Creating project using engine $actualVersion")
-      _ = println(s"Using $actualVersion")
       projectId <- projectService.createUserProject(
         progressTracker        = self,
         name                   = params.name,

@@ -27,8 +27,8 @@ object Editions {
 
     for (file <- IO.listFiles(editions)) {
       if (file.getName != edition.getName) {
-        log.warn(s"Removed spurious file in editions directory: $file")
         IO.delete(file)
+        log.warn(s"Removed spurious file in editions directory: $file")
       }
     }
 
