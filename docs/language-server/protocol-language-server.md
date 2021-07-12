@@ -58,6 +58,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`EnsoDigest`](#ensodigest)
   - [`FileSegment`](#filesegment)
   - [`ContentRoot`](#contentroot)
+  - [`LibraryEntry`](#libraryentry)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -90,8 +91,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/checksum`](#filechecksum)
   - [`file/checksumBytes`](#filechecksumbytes)
   - [`file/event`](#fileevent)
-  - [`file/addRoot`](#fileaddroot)
-  - [`file/removeRoot`](#fileremoveroot)
   - [`file/rootAdded`](#filerootadded)
   - [`file/rootRemoved`](#filerootremoved)
 - [Text Editing Operations](#text-editing-operations)
@@ -147,24 +146,23 @@ transport formats, please look [here](./protocol-architecture).
   - [`io/standardErrorAppended`](#iostandarderrorappended)
   - [`io/feedStandardInput`](#iofeedstandardinput)
   - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
-- [Edition-Related Operations](#edition-related-operations)
+- [Library-Related Operations](#library-related-operations)
   - [`editions/listAvailable`](#editionslistavailable)
   - [`editions/resolve`](#editionsresolve)
   - [`editions/getProjectSettings`](#editionsgetprojectsettings)
   - [`editions/setProjectParentEdition`](#editionssetprojectparentedition)
   - [`editions/setProjectLocalLibrariesPreference`](#editionssetprojectlocallibrariespreference)
   - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
-- [Library-Related Operations](#library-related-operations)
   - [`library/create`](#librarycreate)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
-- [Errors](#errors)
+- [Errors](#errors-64)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
   - [`ContentRootNotFoundError`](#contentrootnotfounderror)
   - [`FileNotFound`](#filenotfound)
-  - [`FileExists`](#fileexists-1)
+  - [`FileExists`](#fileexists)
   - [`OperationTimeoutError`](#operationtimeouterror)
   - [`NotDirectory`](#notdirectory)
   - [`NotFile`](#notfile)
@@ -1221,6 +1219,36 @@ interface Custom {
   // A unique identifier for the content root.
   id: UUID;
 }
+```
+
+### `LibraryEntry`
+
+Represents a library available in a resolved edition.
+
+```typescript
+interface LibraryEntry {
+  namespace: String;
+  name: String;
+  version: LibraryVersion;
+}
+```
+
+```typescript
+type LibraryVersion = LocalLibraryVersion | PublishedLibraryVersion;
+
+/** A library version that references a version of the library published in some
+ * repository.
+ */
+interface PublishedLibraryVersion {
+  // A semver-compliant version of the library.
+  version: String;
+
+  // URL to the repository that this library will be downloaded from.
+  repositoryUrl: String;
+}
+
+// A library version that references a locally editable version of the library.
+interface LocalLibraryVersion {}
 ```
 
 ## Connection Management
@@ -3929,7 +3957,7 @@ standard input.
 null;
 ```
 
-## Edition-Related Operations
+## Library-Related Operations
 
 > TODO [RW] section descriptions TODO [RW] errors, in particular setting edition
 > should check if the name is valid (resolves correctly) etc.
@@ -3966,8 +3994,8 @@ the repositories and include them in the result as well.
 
 Resolves settings implied by the edition.
 
-Currently, it only resolves the engine version, as only it is needed, but other
-settings may be added if necesssary.
+> Currently, it only resolves the engine version, as only it is needed, but
+> other settings may be added if necesssary.
 
 #### Parameters
 
@@ -4087,17 +4115,106 @@ project.
 
 ```typescript
 {
-  TODO;
+  availableLibraries: [LibraryEntry];
 }
 ```
 
-## Library-Related Operations
-
 ### `library/create`
+
+Creates a new project package, but placed not in the projects directory, but in
+the local libraries directory, so that other projects (including the current
+one) that can resolve local libraries will be able to import it.
+
+The created library package inherits all edition settings from the current
+project.
+
+The endpoint just returns an empty message at success. Once this operation
+finishes, the IDE can add the import `import <namespace>.<name>` to the open
+file which will import the newly created library (the IDE must also ensure that
+`prefer-local-libraries` is set to `true` or otherwise, it must add a proper
+override to its own edition file to see this local library). Once the import is
+added, the library will be loaded and its content root will be sent in a
+[`file/rootAdded`](#filerootadded) notification.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+  authors: [String];
+  maintainers: [String];
+  license: String;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
 
 ### `library/publish`
 
+Publishes a library located in the local libraries directory to the main Enso
+library repository.
+
+If `bumpVersionAfterPublish` is set to true, after publishing the library, its
+version is bumped automatically, so that future publications will not clash
+versions. This is a temporary solution and in the longer-term it should be
+replaced with separate settings allowing to arbitrarily modify the library
+version from the IDE.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+  authToken: String;
+
+  bumpVersionAfterPublish?: Boolean;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
 ### `library/preinstall`
+
+Ensures that the requested library and all of its (transitive) dependencies, at
+versions as resolved by the current project's edition, are downloaded.
+
+Once this operation completes, the library import can be added to the project
+and it is guaranteed that (unless there were unexpected changes to the system,
+like files being manually deleted) no further downloads will be needed, so that
+the import should load quickly.
+
+This can be used by the IDE to predownload the library that is about to be added
+to a project, to avoid freezing the compiler for the time the dependencies are
+being downloaded.
+
+While this operation is in progress, mutiple series of `task/*` notifications
+may be sent, indicating progress of particular components being downloaded and
+installed.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
 
 ## Errors
 
