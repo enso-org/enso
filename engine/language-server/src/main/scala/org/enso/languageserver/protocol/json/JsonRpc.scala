@@ -17,6 +17,7 @@ import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
+import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
 object JsonRpc {
@@ -65,6 +66,16 @@ object JsonRpc {
     .registerRequest(Import)
     .registerRequest(RenameProject)
     .registerRequest(ProjectInfo)
+    .registerRequest(EditionsListAvailable)
+    .registerRequest(EditionsResolve)
+    .registerRequest(EditionsGetProjectSettings)
+    .registerRequest(EditionsSetParentEdition)
+    .registerRequest(EditionsSetLocalLibrariesPreference)
+    .registerRequest(EditionsListDefinedLibraries)
+    .registerRequest(LibraryListLocal)
+    .registerRequest(LibraryCreate)
+    .registerRequest(LibraryPublish)
+    .registerRequest(LibraryPreinstall)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

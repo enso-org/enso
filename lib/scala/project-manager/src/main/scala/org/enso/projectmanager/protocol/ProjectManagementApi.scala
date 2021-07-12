@@ -117,6 +117,7 @@ object ProjectManagementApi {
     }
   }
 
+  // TODO [RW] move these to a shared library so that both LS and PM can use them
   case object TaskStarted extends Method("task/started") {
 
     case class Params(
