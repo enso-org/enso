@@ -449,28 +449,9 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     def depth(module: String): Int =
       module.count(_ == '.')
 
-    def selectSuggestionReexportUpdates(
-      module: String,
-      symbol: ExportedSymbol
-    ) = {
-      val moduleDepth = depth(module)
-      sql"""
-          select id
-          from suggestions
-          where module = ${symbol.module}
-            and name = ${symbol.name}
-            and kind = ${SuggestionKind(symbol.kind)}
-            and (
-              reexport is null or
-              length(reexport) - length(replace(reexport, '.', '')) > $moduleDepth
-            )
-         """.as[Long]
-    }
-
-    // TODO [DB] SQLite 3.35 supports RETURNING clause
     def updateSuggestionReexport(module: String, symbol: ExportedSymbol) = {
       val moduleDepth = depth(module)
-      sqlu"""
+      sql"""
           update suggestions
           set reexport = $module
           where module = ${symbol.module}
@@ -480,27 +461,20 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               reexport is null or
               length(reexport) - length(replace(reexport, '.', '')) > $moduleDepth
             )
-         """
+          returning id
+         """.as[Long]
     }
 
-    def selectSuggestionReexportUnset(module: String, symbol: ExportedSymbol) =
-      Suggestions
-        .filter(_.module === symbol.module)
-        .filter(_.name === symbol.name)
-        .filter(_.kind === SuggestionKind(symbol.kind))
-        .filter(_.reexport === module)
-        .map(_.id)
-
-    // TODO [DB] SQLite 3.35 supports RETURNING clause
     def unsetSuggestionReexport(module: String, symbol: ExportedSymbol) =
-      sqlu"""
+      sql"""
           update suggestions
           set reexport = null
           where module = ${symbol.module}
             and name = ${symbol.name}
             and kind = ${SuggestionKind(symbol.kind)}
             and reexport = $module
-         """
+          returning id
+         """.as[Long]
 
     val actions = updates.flatMap { update =>
       val symbols = update.exports.symbols.toSeq
@@ -508,21 +482,13 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
         case ExportsAction.Add() =>
           symbols.map { symbol =>
             for {
-              ids <- selectSuggestionReexportUpdates(
-                update.exports.module,
-                symbol
-              )
-              _ <- updateSuggestionReexport(update.exports.module, symbol)
+              ids <- updateSuggestionReexport(update.exports.module, symbol)
             } yield QueryResult(ids, update)
           }
         case ExportsAction.Remove() =>
           symbols.map { symbol =>
             for {
-              ids <- selectSuggestionReexportUnset(
-                update.exports.module,
-                symbol
-              ).result
-              _ <- unsetSuggestionReexport(update.exports.module, symbol)
+              ids <- unsetSuggestionReexport(update.exports.module, symbol)
             } yield QueryResult(ids, update)
           }
       }
