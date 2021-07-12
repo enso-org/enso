@@ -1258,6 +1258,13 @@ interface PublishedLibraryVersion {
 interface LocalLibraryVersion {}
 ```
 
+The local libraries do not have metadata associated with them by default, as for
+the published libraries, the canonical way to access the metadata is to download
+the manifest, as described in the
+[library repository structure](../libraries/repositories.md#libraries-repository).
+So the manifest URL can be found by combining the repository URL and library
+name and version: `<repositoryUrl>/<namespace>/<name>/<version>/manifest.yaml`.
+
 ## Connection Management
 
 In order to properly set-up and tear-down the language server connection, we
@@ -4071,6 +4078,11 @@ restarted. The endpoint only modifies the `pacakge.yaml` file, which is
 preloaded in the Language Server, so it is IDE's responsibility to re-open the
 project.
 
+It returns an optional field `needsRestart` which specifies whether the Language
+Server needs to be restarted for the change to take effect. If the field is
+missing, it should be treated as set to `false`. In the current version it is
+always set to `true`.
+
 #### Parameters
 
 ```typescript
@@ -4082,7 +4094,9 @@ project.
 #### Result
 
 ```typescript
-null;
+{
+    needsRestart?: Boolean;
+}
 ```
 
 #### Errors
@@ -4103,6 +4117,11 @@ defined in the edition.
 > currently, the language server needs to be restarted (in the same way as for
 > `editions/setProjectParentEdition`) for the changes to take effect.
 
+It returns an optional field `needsRestart` which specifies whether the Language
+Server needs to be restarted for the change to take effect. If the field is
+missing, it should be treated as set to `false`. In the current version it is
+always set to `true`.
+
 #### Parameters
 
 ```typescript
@@ -4114,7 +4133,9 @@ defined in the edition.
 #### Result
 
 ```typescript
-null;
+{
+    needsRestart?: Boolean;
+}
 ```
 
 #### Errors
