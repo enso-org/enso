@@ -26,6 +26,7 @@ class JsonConnectionControllerFactory(
   stdErrController: ActorRef,
   stdInController: ActorRef,
   runtimeConnector: ActorRef,
+  idlenessMonitor: ActorRef,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -50,6 +51,7 @@ class JsonConnectionControllerFactory(
         stdErrController,
         stdInController,
         runtimeConnector,
+        idlenessMonitor,
         config
       )
     )

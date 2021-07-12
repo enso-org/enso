@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
+import java.time.Clock
 
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
@@ -21,7 +22,11 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
-import org.enso.languageserver.monitoring.HealthCheckEndpoint
+import org.enso.languageserver.monitoring.{
+  HealthCheckEndpoint,
+  IdlenessEndpoint,
+  IdlenessMonitor
+}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -59,6 +64,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     serverConfig,
     logLevel
   )
+
+  private val utcClock = Clock.systemUTC()
 
   val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
@@ -104,6 +111,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
   log.trace("Created SQL repos: [{}. {}].", suggestionsRepo, versionsRepo)
+
+  val idlenessMonitor =
+    system.actorOf(IdlenessMonitor.props(utcClock))
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -272,6 +282,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     stdErrController,
     stdInController,
     runtimeConnector,
+    idlenessMonitor,
     languageServerConfig
   )
   log.trace(
@@ -296,13 +307,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       serverConfig.computeExecutionContext
     )
 
+  val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
   val jsonRpcServer =
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
-      List(healthCheckEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 

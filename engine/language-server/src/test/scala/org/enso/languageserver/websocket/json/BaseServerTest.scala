@@ -1,5 +1,8 @@
 package org.enso.languageserver.websocket.json
 
+import java.nio.file.Files
+import java.util.UUID
+
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
@@ -18,6 +21,7 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
+import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
@@ -26,6 +30,7 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
+import org.enso.languageserver.TestClock
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -34,8 +39,6 @@ import org.enso.testkit.EitherValue
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 
-import java.nio.file.Files
-import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -56,6 +59,7 @@ class BaseServerTest
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
   val versionCalculator     = Sha3_224VersionCalculator
+  val clock                 = TestClock()
 
   val typeGraph: TypeGraph = {
     val graph = TypeGraph("Any")
@@ -150,6 +154,10 @@ class BaseServerTest
       )
     )
 
+    val idlenessMonitor = system.actorOf(
+      IdlenessMonitor.props(clock)
+    )
+
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(
@@ -209,6 +217,7 @@ class BaseServerTest
       stdErrController,
       stdInController,
       runtimeConnectorProbe.ref,
+      idlenessMonitor,
       config
     )
   }
