@@ -31,12 +31,13 @@ fn slider_area_width(size:&Vector2) -> f32 {
 
 
 
-// ===============
+// ===========
 // === Frp ===
-// ===============
+// ===========
 
 /// Frp endpoints provided for general information about mouse interactions and shape properties
 /// of the `common::Model`.
+#[derive(Debug)]
 pub struct Frp {
     /// Current maximum extent of the track in scene coordinate space.
     pub track_max_width            : frp::Stream<f32>,
@@ -67,6 +68,7 @@ pub struct Frp {
 }
 
 impl Frp {
+    /// Constructor.
     pub fn new
     (model:&Model, style:&StyleWatchFrp, network:&Network, size:frp::Stream<Vector2>, mouse:&Mouse)
     -> Frp {

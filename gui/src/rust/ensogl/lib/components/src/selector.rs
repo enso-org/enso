@@ -16,7 +16,7 @@ mod decimal_aligned;
 mod frp;
 mod number;
 mod range;
-mod shape;
+pub mod shape;
 
 use ensogl_core::application;
 use ensogl_core::application::Application;
