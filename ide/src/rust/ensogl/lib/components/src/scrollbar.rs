@@ -63,6 +63,7 @@ ensogl_core::define_endpoints! {
         /// Jumps to the given position in scroll units without animation and without revealing the
         /// scrollbar.
         jump_to         (f32),
+        scroll_to_range (Bounds),
     }
     Output {
         /// Scroll position in scroll units.
@@ -98,7 +99,7 @@ impl component::Frp<Model> for Frp {
         let network           = &frp.network;
         let scene             = app.display.scene();
         let mouse             = &scene.mouse.frp;
-        let thumb_position    = Animation::new(network);
+        let thumb_position    = Animation::<f32>::new(network);
         let thumb_color       = color::Animation::new(network);
         let activity_cool_off = DelayedAnimation::new(network);
         activity_cool_off.frp.set_delay(HIDE_DELAY);
@@ -125,6 +126,14 @@ impl component::Frp<Model> for Frp {
             // Scrolling and Jumping
 
             frp.scroll_to <+ frp.scroll_by.map2(&thumb_position.target,|delta,pos| *pos+*delta);
+            frp.scroll_to <+ frp.scroll_to_range.map3(&thumb_position.target,&frp.set_thumb_size,
+                |target,pos,size| {
+                    if target.end - target.start >= *size {
+                        pos.max(target.start).min(target.end-*size)
+                    } else {
+                        pos.max(target.end-*size).min(target.start)
+                    }
+                });
 
             // We will use this to reveal the scrollbar on scrolling. It has to be defined before
             // the following nodes that update `thumb_position.target`.

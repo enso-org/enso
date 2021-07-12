@@ -11,6 +11,20 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::control::callback;
+use crate::selector::Bounds;
+
+
+// =============
+// === Model ===
+// =============
+
+#[derive(Debug)]
+struct Model {
+    content        : display::object::Instance,
+    display_object : display::object::Instance,
+    h_scrollbar    : Scrollbar,
+    v_scrollbar    : Scrollbar,
+}
 
 
 
@@ -34,6 +48,8 @@ ensogl_core::define_endpoints! {
         jump_to_x          (f32),
         /// Jumps instantly to the given y coordinate, without animation.
         jump_to_y          (f32),
+        scroll_to_x_range  (Bounds),
+        scroll_to_y_range  (Bounds),
     }
     Output {
         /// The content's x coordinate at the left edge of the area.
@@ -57,12 +73,7 @@ ensogl_core::define_endpoints! {
 /// respective axis.
 #[derive(Debug,Clone,CloneRef)]
 pub struct ScrollArea {
-    /// All objects that should be inside the scroll area and affected by the scrolling, have to be
-    /// added as children to `content`.
-    pub content           : display::object::Instance,
-    display_object        : display::object::Instance,
-    h_scrollbar           : Scrollbar,
-    v_scrollbar           : Scrollbar,
+    model                 : Rc<Model>,
     scroll_handler_handle : callback::Handle,
     frp                   : Frp,
 }
@@ -77,7 +88,7 @@ impl Deref for ScrollArea {
 
 impl display::Object for ScrollArea {
     fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
+        &self.model.display_object
     }
 }
 
@@ -98,8 +109,12 @@ impl ScrollArea {
         display_object.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 
-        let frp     = Frp::new();
-        let network = &frp.network;
+        let model      = Rc::new(Model {content:content.clone(),
+            display_object:display_object.clone(),h_scrollbar:h_scrollbar.clone(),
+            v_scrollbar:v_scrollbar.clone()});
+        let weak_model = Rc::downgrade(&model);
+        let frp        = Frp::new();
+        let network    = &frp.network;
 
         frp::extend! { network
 
@@ -122,10 +137,12 @@ impl ScrollArea {
 
             // === Scrolling ===
 
-            h_scrollbar.scroll_to <+ frp.scroll_to_x;
-            v_scrollbar.scroll_to <+ frp.scroll_to_y;
-            h_scrollbar.jump_to   <+ frp.jump_to_x;
-            v_scrollbar.jump_to   <+ frp.jump_to_y;
+            h_scrollbar.scroll_to       <+ frp.scroll_to_x;
+            v_scrollbar.scroll_to       <+ frp.scroll_to_y;
+            h_scrollbar.jump_to         <+ frp.jump_to_x;
+            v_scrollbar.jump_to         <+ frp.jump_to_y;
+            h_scrollbar.scroll_to_range <+ frp.scroll_to_x_range;
+            v_scrollbar.scroll_to_range <+ frp.scroll_to_y_range;
 
             frp.source.scroll_position_x <+ h_scrollbar.thumb_position.map(|x| -x);
             frp.source.scroll_position_y <+ v_scrollbar.thumb_position;
@@ -148,15 +165,26 @@ impl ScrollArea {
         }
 
         let mouse_manager  = &mouse.mouse_manager;
-        let scroll_handler = f!([v_scrollbar,h_scrollbar](event:&mouse::OnWheel)
-            if hovering.value() {
-                h_scrollbar.scroll_by(event.delta_x() as f32);
-                v_scrollbar.scroll_by(event.delta_y() as f32);
+        // It is important to take a weak reference to the model here, because we cannot control,
+        // when exactly the closure gets dropped. Otherwise, the model would stay alive for too
+        // long.
+        let scroll_handler = f!([weak_model](event:&mouse::OnWheel)
+            if let Some(model) = weak_model.upgrade() {
+                if hovering.value() {
+                    model.h_scrollbar.scroll_by(event.delta_x() as f32);
+                    model.v_scrollbar.scroll_by(event.delta_y() as f32);
+                }
             }
         );
         let scroll_handler_handle = mouse_manager.on_wheel.add(scroll_handler);
 
 
-        ScrollArea {content,display_object,h_scrollbar,v_scrollbar,scroll_handler_handle,frp}
+        ScrollArea {model,scroll_handler_handle,frp}
+    }
+
+    /// All objects that should be inside the scroll area and affected by the scrolling, have to be
+    /// added as children to the object returne by `content()`.
+    pub fn content(&self) -> &impl display::Object {
+        &self.model.content
     }
 }

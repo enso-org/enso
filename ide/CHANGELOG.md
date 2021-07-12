@@ -4,6 +4,11 @@
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
+#### Visual Environment
+
+- [File browser component][1677]. A basic file browser component has been
+  implemented, but is not integrated into the user interface yet.
+
 #### Enso Compiler
 
 - [Updated Enso engine to version 0.2.12][1640]. If you're interested in the
@@ -43,7 +48,7 @@
 
 #### Visual Environment
 
-- [Profling mode.][1546] The IDE contains a profiling mode now which can be
+- [Profiling mode.][1546] The IDE contains a profiling mode now which can be
   entered through a button in the top-right corner or through the keybinding
   <kbd>ctrl</kbd>+<kbd>p</kbd>. This mode does not display any information yet.
   In the future, it will display the running times of nodes and maybe more
