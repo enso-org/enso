@@ -155,9 +155,11 @@ transport formats, please look [here](./protocol-architecture).
   - [`editions/listDefinedLibraries`](#editionslistdefinedlibraries)
   - [`library/listLocal`](#librarylistlocal)
   - [`library/create`](#librarycreate)
+  - [`library/getMetadata`](#librarygetmetadata)
+  - [`library/setMetadata`](#librarysetmetadata)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
-- [Errors](#errors-72)
+- [Errors](#errors-74)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
@@ -195,6 +197,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryPublishError`](#librarypublisherror)
   - [`LibraryUploadError`](#libraryuploaderror)
   - [`LibraryDownloadError`](#librarydownloaderror)
+  - [`LocalLibraryNotFound`](#locallibrarynotfound)
+  - [`LibraryNotResolved`](#librarynotresolved)
 
 <!-- /MarkdownTOC -->
 
@@ -3990,11 +3994,13 @@ the repositories and include them in the result as well.
 > available. In the future it should emit warnings using proper notification
 > channels.
 
+The `update` field is optional and if it is not provided, it defaults to false.
+
 #### Parameters
 
 ```typescript
 {
-  update: Boolean;
+  update?: Boolean;
 }
 ```
 
@@ -4246,6 +4252,68 @@ null;
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
+### `library/getMetadata`
+
+Gets metadata associated with a local library that will be used for publishing.
+
+All returned fields are optional, as they may be missing.
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+}
+```
+
+#### Results
+
+```typescript
+{
+  description?: String;
+  tagLine?: String;
+}
+```
+
+#### Errors
+
+- [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
+  with the given name does not exist on the local libraries path.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
+### `library/setMetadata`
+
+Sets metadata associated with a local library that will be used for publishing.
+
+All metadata fields are optional. If a field is not set in the parameters, it
+will be removed from the metadata (if it was present before).
+
+#### Parameters
+
+```typescript
+{
+  namespace: String;
+  name: String;
+  description?: String;
+  tagLine?: String;
+}
+```
+
+#### Results
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
+  with the given name does not exist on the local libraries path.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+
 ### `library/publish`
 
 Publishes a library located in the local libraries directory to the main Enso
@@ -4256,6 +4324,10 @@ version is bumped automatically, so that future publications will not clash
 versions. This is a temporary solution and in the longer-term it should be
 replaced with separate settings allowing to arbitrarily modify the library
 version from the IDE.
+
+The metadata for publishing the library can be set with
+[`library/setMetadata`](#librarysetmetadata). If it was not set, the publish
+operation will still proceed, but that metadata will be missing.
 
 #### Parameters
 
@@ -4301,7 +4373,7 @@ This can be used by the IDE to predownload the library that is about to be added
 to a project, to avoid freezing the compiler for the time the dependencies are
 being downloaded.
 
-While this operation is in progress, mutiple series of `task/*` notifications
+While this operation is in progress, multiple series of `task/*` notifications
 may be sent, indicating progress of particular components being downloaded and
 installed.
 
@@ -4322,9 +4394,14 @@ null;
 
 #### Errors
 
+- [`LibraryNotResolved`](#librarynotresolved) to signal that the requested
+  library or one of its dependencies could not be resolved.
 - [`LibraryDownloadError`](#librarydownloaderror) to signal that the download
   operation has failed, for network-related reasons, or because the library was
-  missing in the repository.
+  missing in the repository. The error includes the name and version of the
+  library that failed to download - as when preinstalling a specific library the
+  failure may be tied not to that library itself but also one of its
+  dependencies.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 
@@ -4799,6 +4876,40 @@ it was not available in the repository.
 ```typescript
 "error" : {
   "code" : 8006,
-  "message" : "Could not download the library: [message]"
+  "message" : "Could not download the library: [message]",
+  "payload" : {
+    "namespace" : "<namespace>",
+    "name" : "<name>",
+    "version": "<version>"
+  }
+}
+```
+
+### `LocalLibraryNotFound`
+
+Signals that a local library with the specified namespace and name combination
+was not found on the local libraries path.
+
+```typescript
+"error" : {
+  "code" : 8007,
+  "message" : "Local library [<namespace>.<name>] has not been found."
+}
+```
+
+### `LibraryNotResolved`
+
+Signals that a library could not be resolved - it was not defined in the edition
+and the settings did not allow to resolve local libraries or it did not exist
+there either.
+
+```typescript
+"error" : {
+  "code" : 8008,
+  "message" : "Could not resolve [<namespace>.<name>].",
+  "payload" : {
+    "namespace" : "<namespace>",
+    "name" : "<name>"
+  }
 }
 ```
