@@ -716,6 +716,20 @@ lazy val cli = project
     Test / parallelExecution := false
   )
 
+lazy val `task-progress-notifications` = project
+  .in(file("lib/scala/task-progress-notifications"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "com.beachape"  %% "enumeratum-circe" % enumeratumCirceVersion,
+      "org.scalatest" %% "scalatest"        % scalatestVersion % Test
+    ),
+    Test / parallelExecution := false
+  )
+  .dependsOn(cli)
+  .dependsOn(`json-rpc-server`)
+
 lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     version := "0.1"
@@ -798,6 +812,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`version-output`)
   .dependsOn(editions)
   .dependsOn(cli)
+  .dependsOn(`task-progress-notifications`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
@@ -991,6 +1006,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`json-rpc-server`)
+  .dependsOn(`task-progress-notifications`)
+  .dependsOn(`library-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)

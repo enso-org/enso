@@ -3,19 +3,11 @@ package org.enso.projectmanager.requesthandler
 import akka.actor.{Actor, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.{LazyLogging, Logger}
+import org.enso.cli.task.notifications.ProgressNotification
+import org.enso.cli.task.notifications.ProgressNotification.translateProgressNotification
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{
-  HasParams,
-  HasResult,
-  Id,
-  Method,
-  Request,
-  ResponseError,
-  ResponseResult
-}
+import org.enso.jsonrpc._
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.service.versionmanagement.ProgressNotification
-import org.enso.projectmanager.service.versionmanagement.ProgressNotification.translateProgressNotification
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.annotation.unused

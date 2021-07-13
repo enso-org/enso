@@ -1,10 +1,8 @@
-package org.enso.projectmanager.service.versionmanagement
-
-import java.util.UUID
+package org.enso.cli.task.notifications
 
 import org.enso.jsonrpc.Notification
-import org.enso.projectmanager.data.ProgressUnit
-import org.enso.projectmanager.protocol.ProjectManagementApi
+
+import java.util.UUID
 
 /** Internal representation of progress notifications that are sent by the
   * [[ControllerInterface]].
@@ -19,7 +17,7 @@ object ProgressNotification {
   case class TaskStarted(
     taskId: UUID,
     total: Option[Long],
-    unit: ProgressUnit
+    unit: SerializableProgressUnit
   ) extends ProgressNotification
 
   /** Singals an update to task's progress. */
@@ -40,8 +38,8 @@ object ProgressNotification {
   ): Notification[_, _] = progressNotification match {
     case TaskStarted(taskId, total, unit) =>
       Notification(
-        ProjectManagementApi.TaskStarted,
-        ProjectManagementApi.TaskStarted.Params(
+        TaskNotificationApi.TaskStarted,
+        TaskNotificationApi.TaskStarted.Params(
           taskId           = taskId,
           relatedOperation = relatedOperationName,
           unit             = unit,
@@ -50,18 +48,18 @@ object ProgressNotification {
       )
     case TaskUpdate(taskId, message, done) =>
       Notification(
-        ProjectManagementApi.TaskProgressUpdate,
-        ProjectManagementApi.TaskProgressUpdate.Params(taskId, message, done)
+        TaskNotificationApi.TaskProgressUpdate,
+        TaskNotificationApi.TaskProgressUpdate.Params(taskId, message, done)
       )
     case TaskSuccess(taskId) =>
       Notification(
-        ProjectManagementApi.TaskFinished,
-        ProjectManagementApi.TaskFinished.Params(taskId, None, success = true)
+        TaskNotificationApi.TaskFinished,
+        TaskNotificationApi.TaskFinished.Params(taskId, None, success = true)
       )
     case TaskFailure(taskId, throwable) =>
       Notification(
-        ProjectManagementApi.TaskFinished,
-        ProjectManagementApi.TaskFinished
+        TaskNotificationApi.TaskFinished,
+        TaskNotificationApi.TaskFinished
           .Params(taskId, Some(throwable.getMessage), success = false)
       )
   }

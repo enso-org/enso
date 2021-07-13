@@ -1,17 +1,20 @@
 package org.enso.projectmanager.service.versionmanagement
 
-import java.util.UUID
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.task.notifications.{
+  ProgressNotification,
+  SerializableProgressUnit
+}
 import org.enso.cli.task.{ProgressListener, TaskProgress}
 import org.enso.distribution.locking.Resource
-import org.enso.projectmanager.data.ProgressUnit
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
 
+import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 /** A [[RuntimeVersionManagementUserInterface]] that sends
@@ -41,7 +44,7 @@ class ControllerInterface(
       case None =>
         val generated = UUID.randomUUID()
         uuid = Some(generated)
-        val unit = ProgressUnit.fromTask(task)
+        val unit = SerializableProgressUnit.fromTask(task)
         progressTracker ! ProgressNotification.TaskStarted(
           generated,
           total,
@@ -101,7 +104,7 @@ class ControllerInterface(
     progressTracker ! ProgressNotification.TaskStarted(
       uuid,
       None,
-      ProgressUnit.Other
+      SerializableProgressUnit.Other
     )
     progressTracker ! ProgressNotification.TaskUpdate(
       uuid,
