@@ -345,6 +345,37 @@ class ProjectManagementApiSpec
           """)
     }
 
+    "fail when project's edition could not be resolved" in {
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("Foo")
+      setProjectParentEdition(
+        "Foo",
+        "some_weird_edition_name_that-surely-does-not-exist"
+      )
+
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": $projectId
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code" : 4011,
+              "message" : "Could not resolve project engine version: Cannot load the edition: Could not find edition `some_weird_edition_name_that-surely-does-not-exist`."
+            }
+          }
+          """)
+
+      deleteProject(projectId)
+    }
+
     "start the Language Server if not running" taggedAs Flaky in {
       //given
       val projectName     = "To_Remove"
