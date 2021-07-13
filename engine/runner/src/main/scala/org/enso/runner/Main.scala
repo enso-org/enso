@@ -2,6 +2,7 @@ package org.enso.runner
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
@@ -11,6 +12,7 @@ import org.enso.pkg.{Contact, PackageManager}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
+
 import java.io.File
 import java.util.UUID
 import scala.Console.err
@@ -41,6 +43,8 @@ object Main {
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
+
+  private lazy val logger = Logger[Main.type]
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -258,10 +262,18 @@ object Main {
     val authors =
       if (authorName.isEmpty && authorEmail.isEmpty) List()
       else List(Contact(name = authorName, email = authorEmail))
+
+    val edition = DefaultEdition.getDefaultEdition
+    logger.whenTraceEnabled {
+      val baseEdition = edition.parent.getOrElse("<no-base>")
+      logger.trace(
+        s"Creating a new project $name based on edition [$baseEdition]."
+      )
+    }
     PackageManager.Default.create(
       root        = root,
       name        = name,
-      edition     = Some(DefaultEdition.getDefaultEdition),
+      edition     = Some(edition),
       authors     = authors,
       maintainers = authors
     )
