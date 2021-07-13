@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -258,16 +259,6 @@ public class ExecutionService {
   public void resetModuleSources(File path) {
     Optional<Module> module = context.getModuleForFile(path);
     module.ifPresent(Module::unsetLiteralSource);
-  }
-
-  /**
-   * Finds a module by qualified name.
-   *
-   * @param moduleName the qualified name of the module
-   * @return the relevant module, if exists
-   */
-  public Optional<Module> findModule(String moduleName) {
-    return context.findModule(moduleName);
   }
 
   /**
