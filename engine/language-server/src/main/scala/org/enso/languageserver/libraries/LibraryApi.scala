@@ -2,14 +2,13 @@ package org.enso.languageserver.libraries
 
 import io.circe.Json
 import io.circe.literal.JsonStringContext
-import org.enso.editions.LibraryName
+import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
     self =>
 
-    // TODO [RW] Option or not?
     case class Params(update: Option[Boolean])
 
     case class Result(editionNames: Seq[String])
@@ -25,7 +24,7 @@ object LibraryApi {
   case object EditionsResolve extends Method("editions/resolve") {
     self =>
 
-    case class Params(editionName: Option[String])
+    case class Params(edition: EditionReference)
 
     case class Result(engineVersion: String)
 
@@ -86,7 +85,7 @@ object LibraryApi {
   case object EditionsListDefinedLibraries
       extends Method("editions/listDefinedLibraries") { self =>
 
-    case class Params(editionName: Option[String])
+    case class Params(edition: EditionReference)
 
     case class Result(availableLibraries: Seq[LibraryEntry])
 
@@ -118,6 +117,37 @@ object LibraryApi {
       authors: Seq[String],
       maintainers: Seq[String],
       license: String
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = self.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object LibraryGetMetadata extends Method("library/getMetadata") { self =>
+
+    case class Params(namespace: String, name: String)
+
+    case class Result(description: Option[String], tagLine: Option[String])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = self.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = self.Result
+    }
+  }
+
+  case object LibrarySetMetadata extends Method("library/setMetadata") { self =>
+
+    case class Params(
+      namespace: String,
+      name: String,
+      description: Option[String],
+      tagLine: Option[String]
     )
 
     implicit val hasParams = new HasParams[this.type] {
@@ -176,6 +206,30 @@ object LibraryApi {
   case class LibraryUploadError(reason: String)
       extends Error(8005, s"Could not upload the library: $reason.")
 
-  case class LibraryDownloadError(reason: String)
-      extends Error(8006, s"Could not download the library: $reason.")
+  case class LibraryDownloadError(
+    name: LibraryName,
+    version: LibraryVersion,
+    reason: String
+  ) extends Error(8006, s"Could not download the library: $reason.") {
+    override def payload: Option[Json] = Some(
+      json""" {
+            "namespace" : ${name.namespace},
+            "name" : ${name.name},
+            "version" : ${version.toString}
+            } """
+    )
+  }
+
+  case class LocalLibraryNotFound(libraryName: LibraryName)
+      extends Error(8007, s"Local library [$libraryName] has not been found.")
+
+  case class LibraryNotResolved(name: LibraryName)
+      extends Error(8008, s"Could not resolve [$name].") {
+    override def payload: Option[Json] = Some(
+      json""" { 
+            "namespace" : ${name.namespace},
+            "name" : ${name.name}
+            } """
+    )
+  }
 }

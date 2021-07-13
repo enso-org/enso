@@ -1,6 +1,11 @@
 package org.enso.languageserver.protocol.json
 
 import io.circe.generic.auto._
+import org.enso.cli.task.notifications.TaskNotificationApi.{
+  TaskFinished,
+  TaskProgressUpdate,
+  TaskStarted
+}
 import org.enso.jsonrpc.Protocol
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
@@ -76,6 +81,9 @@ object JsonRpc {
     .registerRequest(LibraryCreate)
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
+    .registerNotification(TaskStarted)
+    .registerNotification(TaskProgressUpdate)
+    .registerNotification(TaskFinished)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
