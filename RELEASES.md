@@ -10,6 +10,9 @@
 
 - Implemented an HTTP endponint returning the time that the language server has
   spent idle ([#1847](https://github.com/enso-org/enso/pull/1847)).
+- Fix a bug where the `project/list` endpoint would fail if any of the projects
+  referenced an edition that does not exist anymore
+  ([#1858](https://github.com/enso-org/enso/pull/1858)).
 
 # Enso 0.2.13 (2021-07-09)
 
