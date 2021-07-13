@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.ChangesetBuilder;
-import org.enso.editions.LibraryName;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;

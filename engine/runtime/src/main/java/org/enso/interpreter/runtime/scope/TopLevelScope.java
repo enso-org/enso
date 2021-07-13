@@ -16,8 +16,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import org.enso.compiler.PackageRepository;
-import org.enso.editions.LibraryName;
-import org.enso.editions.LibraryName$;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
