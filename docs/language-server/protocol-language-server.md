@@ -59,6 +59,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`FileSegment`](#filesegment)
   - [`ContentRoot`](#contentroot)
   - [`LibraryEntry`](#libraryentry)
+  - [`EditionReference`](#editionreference)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
   - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
@@ -1268,6 +1269,25 @@ the manifest, as described in the
 [library repository structure](../libraries/repositories.md#libraries-repository).
 So the manifest URL can be found by combining the repository URL and library
 name and version: `<repositoryUrl>/<namespace>/<name>/<version>/manifest.yaml`.
+
+### `EditionReference`
+
+A reference to a specific edition.
+
+Currently, it can either reference an edition by its name, or reference the
+edition associated with the currently open project.
+
+```typescript
+type EditionReference = NamedEdition | CurrentProjectEdition;
+
+// The edition associated with the current project, with all of its overrides.
+interface CurrentProjectEdition {}
+
+// An edition stored under a given name.
+interface NamedEdition {
+  editionName: String;
+}
+```
 
 ## Connection Management
 
@@ -4017,19 +4037,15 @@ The `update` field is optional and if it is not provided, it defaults to false.
 Resolves settings implied by the edition.
 
 > Currently, it only resolves the engine version, as only it is needed, but
-> other settings may be added if necesssary.
+> other settings may be added if necessary.
 
 #### Parameters
 
 ```typescript
 {
-    editionName?: String;
+  edition: EditionReference;
 }
 ```
-
-The `editionName` is optional, if it is not provided, the (unnamed) edition from
-currently open project's settings is resolved, taking into account both its
-parent edition and any locally set overrides.
 
 #### Result
 
@@ -4156,9 +4172,6 @@ Lists all libraries defined in an edition (or all of its parents).
 This can be used to display which libraries can be downloaded / added to the
 project.
 
-If `editionName` is not specified, it will list libraries defined in the edition
-associated with the current project, including any project-specific overrides.
-
 This does not include local libraries not defined explicitly in the project's
 edition, even if they can be resolved as per `prefer-local-libraries` setting.
 To get local libraries that are not directly referenced in the edition, use
@@ -4168,7 +4181,7 @@ To get local libraries that are not directly referenced in the edition, use
 
 ```typescript
 {
-  editionName?: String;
+  edition: EditionReference;
 }
 ```
 
