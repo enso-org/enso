@@ -1381,17 +1381,11 @@ class RuntimeVisualisationsTest
 
     val attachVisualisationResponses =
       context.receive(n = 5, timeoutSeconds = 60)
-    val loadedLibraries = attachVisualisationResponses.collect {
-      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
-        (namespace, name)
-    }
-
-    loadedLibraries should contain(("Standard", "Visualization"))
-
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
     )
+
     val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
             None,
@@ -1408,6 +1402,13 @@ class RuntimeVisualisationsTest
     }
 
     data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
+
+    val loadedLibraries = attachVisualisationResponses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+
+    loadedLibraries should contain(("Standard", "Visualization"))
   }
 
   it should "return VisualisationExpressionFailed error when attaching visualisation" in {
