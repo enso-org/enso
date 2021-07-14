@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 /** An implementation of [[EditionProvider]] that looks for the edition files in
   *  a list of filesystem paths.
   */
-case class FileSystemEditionProvider(searchPaths: List[Path])
+class FileSystemEditionProvider(searchPaths: List[Path])
     extends EditionProvider {
 
   /** @inheritdoc */

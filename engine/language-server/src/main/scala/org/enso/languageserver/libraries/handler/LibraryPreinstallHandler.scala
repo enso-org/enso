@@ -13,6 +13,7 @@ class LibraryPreinstallHandler
     with UnhandledLogging {
   override def receive: Receive = {
     case Request(LibraryPreinstall, id, _: LibraryPreinstall.Params) =>
+      // TODO [RW] fake progress bar
       // TODO [RW] actual implementation
       sender() ! ResponseError(
         Some(id),

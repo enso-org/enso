@@ -12,14 +12,15 @@ object LocalLibraryManagerProtocol {
   )
 
   case object Success
+
   case class SetMetadata(
     libraryName: LibraryName,
     description: Option[String],
     tagLine: Option[String]
   ) extends Request
 
-  case object List extends Request
-  case class ListResponse(libraries: Seq[LibraryName])
+  case object ListLocalLibraries extends Request
+  case class ListLocalLibrariesResponse(libraries: Seq[LibraryName])
 
   case class Publish(
     libraryName: LibraryName,
