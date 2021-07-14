@@ -2,6 +2,7 @@ package org.enso.projectmanager.service
 
 import akka.actor.ActorRef
 import cats.MonadError
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.EnsoVersion
 import org.enso.pkg.Config
@@ -74,6 +75,8 @@ class ProjectService[
   distributionConfiguration: DistributionConfiguration
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
+
+  private lazy val logger = Logger[ProjectService[F]]
 
   import E._
 
@@ -367,8 +370,8 @@ class ProjectService[
 
   private def resolveProjectMetadata(
     project: Project
-  ): F[ProjectServiceFailure, ProjectMetadata] =
-    for {
+  ): F[ProjectServiceFailure, ProjectMetadata] = {
+    val version = for {
       version <- resolveProjectVersion(project)
       version <- configurationService
         .resolveEnsoVersion(version)
@@ -378,10 +381,23 @@ class ProjectService[
             message
           )
         }
+    } yield version
+
+    for {
+      version <- version.map(Some(_)).recover { error =>
+        // TODO [RW] We may consider sending this warning to the IDE once
+        //  a warning protocol is implemented (#1860).
+        logger.warn(
+          s"Could not resolve engine version for project ${project.name}: " +
+          s"$error"
+        )
+        None
+      }
     } yield toProjectMetadata(version, project)
+  }
 
   private def toProjectMetadata(
-    engineVersion: SemVer,
+    engineVersion: Option[SemVer],
     project: Project
   ): ProjectMetadata =
     ProjectMetadata(
