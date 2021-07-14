@@ -385,7 +385,8 @@ class ProjectService[
 
     for {
       version <- version.map(Some(_)).recover { error =>
-        // TODO [RW] we may consider sending this warning to the IDE once a warning protocol is implemented
+        // TODO [RW] We may consider sending this warning to the IDE once
+        //  a warning protocol is implemented (#1860).
         logger.warn(
           s"Could not resolve engine version for project ${project.name}: " +
           s"$error"
