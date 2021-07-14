@@ -1,16 +1,12 @@
 package org.enso.distribution
 
+import nl.gn0s1s.bump.SemVer
 import org.enso.editions
 import org.enso.editions.provider.FileSystemEditionProvider
-import org.enso.editions.{
-  DefaultEnsoVersion,
-  EditionResolver,
-  Editions,
-  EnsoVersion
-}
+import org.enso.editions.{EditionResolver, Editions}
 
 import java.nio.file.Path
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /** A helper class for resolving editions. */
 class EditionManager(searchPaths: List[Path]) {
@@ -38,10 +34,6 @@ class EditionManager(searchPaths: List[Path]) {
     *                engine version
     * @return the resolved engine version
     */
-  def resolveEngineVersion(
-    edition: Option[Editions.RawEdition]
-  ): Try[EnsoVersion] =
-    edition
-      .map(engineVersionResolver.resolveEnsoVersion(_).toTry)
-      .getOrElse(Success(DefaultEnsoVersion))
+  def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
+    engineVersionResolver.resolveEnsoVersion(edition).toTry
 }

@@ -2,12 +2,7 @@ package org.enso.librarymanager
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
-import org.enso.editions.{
-  DefaultEnsoVersion,
-  Editions,
-  LibraryName,
-  LibraryVersion
-}
+import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.testkit.EitherValue
 import org.scalatest.Inside
@@ -25,7 +20,7 @@ class LibraryResolverSpec
     val mainRepo = Repository.make("main", "https://example.com/main").get
     val parentEdition = Editions.Resolved.Edition(
       parent        = None,
-      engineVersion = Some(DefaultEnsoVersion),
+      engineVersion = Some(SemVer(0, 0, 0)),
       repositories  = Map("main" -> mainRepo),
       libraries = Map(
         "Standard.Base" -> Editions.Resolved

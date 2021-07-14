@@ -48,7 +48,7 @@ object EditionSerialization {
   implicit val editionDecoder: Decoder[Raw.Edition] = { json =>
     for {
       parent        <- json.get[Option[EditionName]](Fields.parent)
-      engineVersion <- json.get[Option[EnsoVersion]](Fields.engineVersion)
+      engineVersion <- json.get[Option[SemVer]](Fields.engineVersion)
       _ <-
         if (parent.isEmpty && engineVersion.isEmpty)
           Left(

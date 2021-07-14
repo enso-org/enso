@@ -75,7 +75,7 @@ trait Editions {
     */
   case class Edition(
     parent: Option[NestedEditionType]              = None,
-    engineVersion: Option[EnsoVersion]             = None,
+    engineVersion: Option[SemVer]                  = None,
     repositories: Map[String, Editions.Repository] = Map.empty,
     libraries: Map[String, Library]                = Map.empty
   ) {
@@ -134,7 +134,7 @@ object Editions {
       * is either the version override directly specified in the edition or the
       * version implied by its parent.
       */
-    def getEngineVersion: EnsoVersion = edition.engineVersion.getOrElse {
+    def getEngineVersion: SemVer = edition.engineVersion.getOrElse {
       val parent = edition.parent.getOrElse {
         throw new IllegalStateException(
           "Internal error: Resolved edition does not imply an engine version."

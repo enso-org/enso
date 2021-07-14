@@ -20,7 +20,7 @@ class EditionResolverSpec
     val editions: Map[String, Editions.RawEdition] = Map(
       "2021.0" -> Editions.Raw.Edition(
         parent        = None,
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories = Map(
           "main" -> mainRepo
         ),
@@ -31,13 +31,13 @@ class EditionResolverSpec
       ),
       "cycleA" -> Editions.Raw.Edition(
         parent        = Some("cycleB"),
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories  = Map(),
         libraries     = Map()
       ),
       "cycleB" -> Editions.Raw.Edition(
         parent        = Some("cycleA"),
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories  = Map(),
         libraries     = Map()
       )
@@ -59,7 +59,7 @@ class EditionResolverSpec
       val repo = Repository.make("foo", "http://example.com").get
       val edition = Editions.Raw.Edition(
         parent        = None,
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories  = Map("foo" -> repo),
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
@@ -83,7 +83,7 @@ class EditionResolverSpec
     "resolve a nested edition" in {
       val edition = Editions.Raw.Edition(
         parent        = Some("2021.0"),
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories  = Map(),
         libraries = Map(
           "bar.baz" -> Editions.Raw.LocalLibrary("bar.baz"),
@@ -143,7 +143,7 @@ class EditionResolverSpec
     "avoid cycles in the resolution" in {
       val edition = Editions.Raw.Edition(
         parent        = Some("cycleA"),
-        engineVersion = Some(SemVerEnsoVersion(SemVer(1, 2, 3))),
+        engineVersion = Some(SemVer(1, 2, 3)),
         repositories  = Map(),
         libraries     = Map()
       )

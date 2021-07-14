@@ -229,7 +229,7 @@ object Config {
     ensoVersion: SemVer
   ): Editions.RawEdition = Editions.Raw.Edition(
     parent        = None,
-    engineVersion = Some(SemVerEnsoVersion(ensoVersion)),
+    engineVersion = Some(ensoVersion),
     repositories  = Map(),
     libraries     = Map()
   )
