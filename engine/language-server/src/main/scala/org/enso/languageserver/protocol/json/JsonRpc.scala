@@ -79,6 +79,8 @@ object JsonRpc {
     .registerRequest(EditionsListDefinedLibraries)
     .registerRequest(LibraryListLocal)
     .registerRequest(LibraryCreate)
+    .registerRequest(LibraryGetMetadata)
+    .registerRequest(LibrarySetMetadata)
     .registerRequest(LibraryPublish)
     .registerRequest(LibraryPreinstall)
     .registerNotification(TaskStarted)
