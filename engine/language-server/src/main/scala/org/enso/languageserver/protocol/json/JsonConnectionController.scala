@@ -1,7 +1,6 @@
 package org.enso.languageserver.protocol.json
 
 import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
@@ -26,6 +25,8 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
+import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
@@ -457,8 +458,21 @@ class JsonConnectionController(
         .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
-      FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
-      ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig)
+      FeedStandardInput          -> FeedStandardInputHandler.props(stdInController),
+      ProjectInfo                -> ProjectInfoHandler.props(languageServerConfig),
+      EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler.props(),
+      EditionsListAvailable      -> EditionsListAvailableHandler.props(),
+      EditionsListDefinedLibraries -> EditionsListDefinedLibrariesHandler
+        .props(),
+      EditionsResolve          -> EditionsResolveHandler.props(),
+      EditionsSetParentEdition -> EditionsSetParentEditionHandler.props(),
+      EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
+        .props(),
+      LibraryCreate      -> LibraryCreateHandler.props(),
+      LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
+      LibraryPreinstall  -> LibraryPreinstallHandler.props(),
+      LibraryPublish     -> LibraryPublishHandler.props(),
+      LibrarySetMetadata -> LibrarySetMetadataHandler.props()
     )
   }
 
