@@ -130,7 +130,7 @@ class UpsertVisualisationJob(
     expression: String
   )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] = {
     val context = ctx.executionService.getContext
-    // TODO [RW] more specific error when the module cannot be installed
+    // TODO [RW] more specific error when the module cannot be installed (#1861)
     context.ensureModuleIsLoaded(moduleName)
     val maybeModule = context.findModule(moduleName)
 
