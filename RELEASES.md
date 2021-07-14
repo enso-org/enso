@@ -1,5 +1,11 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Ensure that the module used by a visualization is preloaded when the
+  visualization is being attached
+  ([#1857](https://github.com/enso-org/enso/pull/1857)).
+
 ## Tooling
 
 - Implemented an HTTP endponint returning the time that the language server has

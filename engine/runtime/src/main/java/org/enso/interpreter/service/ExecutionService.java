@@ -261,16 +261,6 @@ public class ExecutionService {
   }
 
   /**
-   * Finds a module by qualified name.
-   *
-   * @param moduleName the qualified name of the module
-   * @return the relevant module, if exists
-   */
-  public Optional<Module> findModule(String moduleName) {
-    return context.findModule(moduleName);
-  }
-
-  /**
    * Applies modifications to literal module sources.
    *
    * @param path the module to edit.
