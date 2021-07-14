@@ -57,11 +57,6 @@ trait PackageRepository {
 
   /** Modifies package and module names to reflect the project name change. */
   def renameProject(namespace: String, oldName: String, newName: String): Unit
-
-  /** This is a temporary workaround that should be removed once we get
-    * integrated with the editions.
-    */
-  def registerForPreload(packages: Seq[Package[TruffleFile]]): Unit
 }
 
 object PackageRepository {
@@ -198,8 +193,7 @@ object PackageRepository {
     /** @inheritdoc */
     override def ensurePackageIsLoaded(
       libraryName: LibraryName
-    ): Either[Error, Unit] = {
-      runPreload()
+    ): Either[Error, Unit] =
       if (loadedPackages.contains(libraryName)) Right(())
       else {
         logger.trace(s"Resolving library $libraryName.")
@@ -239,25 +233,18 @@ object PackageRepository {
               }
         }
       }
-    }
 
     /** @inheritdoc */
-    override def getLoadedModules(): Seq[Module] = {
-      runPreload()
+    override def getLoadedModules(): Seq[Module] =
       loadedModules.values.toSeq
-    }
 
     /** @inheritdoc */
-    override def getLoadedPackages(): Seq[Package[TruffleFile]] = {
-      runPreload()
+    override def getLoadedPackages(): Seq[Package[TruffleFile]] =
       loadedPackages.values.toSeq.flatten
-    }
 
     /** @inheritdoc */
-    override def getLoadedModule(qualifiedName: String): Option[Module] = {
-      runPreload()
+    override def getLoadedModule(qualifiedName: String): Option[Module] =
       loadedModules.get(qualifiedName)
-    }
 
     /** @inheritdoc */
     override def registerModuleCreatedInRuntime(module: Module): Unit =
@@ -317,24 +304,6 @@ object PackageRepository {
         loadedModules.put(module.getName.toString, module)
       }
     }
-
-    /** Temporary workaround, will be removed once editions are integrated. */
-    private var toPreload: List[Package[TruffleFile]] = Nil
-    private def runPreload(): Unit = {
-      for (pkg <- toPreload) {
-        registerPackageInternal(
-          libraryName    = pkg.libraryName,
-          pkg            = pkg,
-          libraryVersion = LibraryVersion.Local,
-          isLibrary      = true
-        )
-      }
-      toPreload = Nil
-    }
-
-    /** @inheritdoc */
-    override def registerForPreload(packages: Seq[Package[TruffleFile]]): Unit =
-      toPreload ++= packages
   }
 
   /** Creates a [[PackageRepository]] for the run.

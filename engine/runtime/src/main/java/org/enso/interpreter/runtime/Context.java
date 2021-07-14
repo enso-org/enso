@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.instrument.NotificationHandler;
@@ -218,6 +219,15 @@ public class Context {
    */
   public Optional<Module> getModuleForFile(File path) {
     return getModuleNameForFile(path).flatMap(n -> getTopScope().getModule(n.toString()));
+  }
+
+  /**
+   * Ensures that a module is preloaded if it can be loaded at all.
+   *
+   * @param moduleName name of the module to preload
+   */
+  public void ensureModuleIsLoaded(String moduleName) {
+    LibraryName.fromModuleName(moduleName).foreach(packageRepository::ensurePackageIsLoaded);
   }
 
   /**
