@@ -30,6 +30,7 @@ class JsonConnectionControllerFactory(
   runtimeConnector: ActorRef,
   idlenessMonitor: ActorRef,
   projectSettingsManager: ActorRef,
+  localLibraryManager: ActorRef,
   editionReferenceResolver: EditionReferenceResolver,
   editionManager: EditionManager,
   config: Config
@@ -58,6 +59,7 @@ class JsonConnectionControllerFactory(
         runtimeConnector         = runtimeConnector,
         idlenessMonitor          = idlenessMonitor,
         projectSettingsManager   = projectSettingsManager,
+        localLibraryManager      = localLibraryManager,
         editionReferenceResolver = editionReferenceResolver,
         editionManager           = editionManager,
         languageServerConfig     = config

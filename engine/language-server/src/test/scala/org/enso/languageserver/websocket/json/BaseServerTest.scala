@@ -23,6 +23,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
+  LocalLibraryManager,
   ProjectSettingsManager
 }
 import org.enso.languageserver.monitoring.IdlenessMonitor
@@ -243,6 +244,13 @@ class BaseServerTest
       )
     )
 
+    val localLibraryManager = system.actorOf(
+      LocalLibraryManager.props(
+        config.projectContentRoot.file,
+        distributionManager
+      )
+    )
+
     new JsonConnectionControllerFactory(
       mainComponent            = initializationComponent,
       bufferRegistry           = bufferRegistry,
@@ -257,6 +265,7 @@ class BaseServerTest
       runtimeConnector         = runtimeConnectorProbe.ref,
       idlenessMonitor          = idlenessMonitor,
       projectSettingsManager   = projectSettingsManager,
+      localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
       editionManager           = editionManager,
       config                   = config

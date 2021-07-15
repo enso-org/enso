@@ -102,6 +102,7 @@ class JsonConnectionController(
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
   val projectSettingsManager: ActorRef,
+  val localLibraryManager: ActorRef,
   val editionReferenceResolver: EditionReferenceResolver,
   val editionManager: EditionManager,
   val languageServerConfig: Config,
@@ -479,7 +480,10 @@ class JsonConnectionController(
         .props(requestTimeout, projectSettingsManager),
       EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
         .props(requestTimeout, projectSettingsManager),
-      LibraryCreate      -> LibraryCreateHandler.props(),
+      LibraryCreate -> LibraryCreateHandler
+        .props(requestTimeout, localLibraryManager),
+      LibraryListLocal -> LibraryListLocalHandler
+        .props(requestTimeout, localLibraryManager),
       LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
       LibraryPreinstall  -> LibraryPreinstallHandler.props(),
       LibraryPublish     -> LibraryPublishHandler.props(),
@@ -519,6 +523,7 @@ object JsonConnectionController {
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
     projectSettingsManager: ActorRef,
+    localLibraryManager: ActorRef,
     editionReferenceResolver: EditionReferenceResolver,
     editionManager: EditionManager,
     languageServerConfig: Config,
@@ -526,24 +531,25 @@ object JsonConnectionController {
   ): Props =
     Props(
       new JsonConnectionController(
-        connectionId,
-        mainComponent,
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contentRootManager,
-        contextRegistry,
-        suggestionsHandler,
-        stdOutController,
-        stdErrController,
-        stdInController,
-        runtimeConnector,
-        idlenessMonitor,
-        projectSettingsManager,
-        editionReferenceResolver,
-        editionManager,
-        languageServerConfig,
-        requestTimeout
+        connectionId             = connectionId,
+        mainComponent            = mainComponent,
+        bufferRegistry           = bufferRegistry,
+        capabilityRouter         = capabilityRouter,
+        fileManager              = fileManager,
+        contentRootManager       = contentRootManager,
+        contextRegistry          = contextRegistry,
+        suggestionsHandler       = suggestionsHandler,
+        stdOutController         = stdOutController,
+        stdErrController         = stdErrController,
+        stdInController          = stdInController,
+        runtimeConnector         = runtimeConnector,
+        idlenessMonitor          = idlenessMonitor,
+        projectSettingsManager   = projectSettingsManager,
+        localLibraryManager      = localLibraryManager,
+        editionReferenceResolver = editionReferenceResolver,
+        editionManager           = editionManager,
+        languageServerConfig     = languageServerConfig,
+        requestTimeout           = requestTimeout
       )
     )
 

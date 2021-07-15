@@ -18,6 +18,7 @@ import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
+  LocalLibraryManager,
   ProjectSettingsManager
 }
 import org.enso.languageserver.monitoring.{
@@ -286,7 +287,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val editionManager = EditionManager(distributionManager, Some(languageHome))
 
   val projectSettingsManager = system.actorOf(
-    ProjectSettingsManager.props(contentRoot.file, editionResolver)
+    ProjectSettingsManager.props(contentRoot.file, editionResolver),
+    "project-settings-manager"
+  )
+
+  val localLibraryManager = system.actorOf(
+    LocalLibraryManager.props(contentRoot.file, distributionManager),
+    "local-library-manager"
   )
 
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
@@ -303,6 +310,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     runtimeConnector         = runtimeConnector,
     idlenessMonitor          = idlenessMonitor,
     projectSettingsManager   = projectSettingsManager,
+    localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
     config                   = languageServerConfig

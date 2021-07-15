@@ -2,33 +2,31 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
-import org.enso.languageserver.libraries.ProjectSettingsManager
+import org.enso.languageserver.libraries.LocalLibraryManagerProtocol
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
-class EditionsGetProjectSettingsHandler(
+class LibraryListLocalHandler(
   timeout: FiniteDuration,
-  projectSettingsManager: ActorRef
+  localLibraryManager: ActorRef
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
-
   import context.dispatcher
 
   override def receive: Receive = requestStage
 
-  private def requestStage: Receive = {
-    case Request(EditionsGetProjectSettings, id, _) =>
-      projectSettingsManager ! ProjectSettingsManager.GetSettings
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+  private def requestStage: Receive = { case Request(LibraryListLocal, id, _) =>
+    localLibraryManager ! LocalLibraryManagerProtocol.ListLocalLibraries
+    val cancellable =
+      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+    context.become(responseStage(id, sender(), cancellable))
   }
 
   private def responseStage(
@@ -40,14 +38,13 @@ class EditionsGetProjectSettingsHandler(
       replyTo ! RequestTimeout
       context.stop(self)
 
-    case Success(settings: ProjectSettingsManager.SettingsResponse) =>
+    case Success(
+          LocalLibraryManagerProtocol.ListLocalLibrariesResponse(libraries)
+        ) =>
       replyTo ! ResponseResult(
-        EditionsGetProjectSettings,
+        LibraryListLocal,
         id,
-        EditionsGetProjectSettings.Result(
-          parentEdition        = settings.parentEdition,
-          preferLocalLibraries = settings.preferLocalLibraries
-        )
+        LibraryListLocal.Result(libraries)
       )
       cancellable.cancel()
       context.stop(self)
@@ -57,12 +54,10 @@ class EditionsGetProjectSettingsHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
 }
-
-object EditionsGetProjectSettingsHandler {
-  def props(timeout: FiniteDuration, projectSettingsManager: ActorRef): Props =
+object LibraryListLocalHandler {
+  def props(timeout: FiniteDuration, localLibraryManager: ActorRef): Props =
     Props(
-      new EditionsGetProjectSettingsHandler(timeout, projectSettingsManager)
+      new LibraryListLocalHandler(timeout, localLibraryManager)
     )
 }

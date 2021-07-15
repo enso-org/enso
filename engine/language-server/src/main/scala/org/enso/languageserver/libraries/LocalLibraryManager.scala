@@ -1,8 +1,8 @@
 package org.enso.languageserver.libraries
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.DistributionManager
+import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
 import org.enso.librarymanager.local.LocalLibraryProvider
@@ -30,7 +30,7 @@ class LocalLibraryManager(
         )
         sender() ! Failure(new NotImplementedError())
       case ListLocalLibraries =>
-        sender() ! Failure(new NotImplementedError())
+        sender() ! listLocalLibraries()
       case Create(libraryName, authors, maintainers, license) =>
         sender() ! createLibrary(libraryName, authors, maintainers, license)
       case Publish(_, _, _) =>
@@ -69,8 +69,38 @@ class LocalLibraryManager(
     )
   }
 
+  private def listLocalLibraries(): Try[ListLocalLibrariesResponse] = for {
+    libraryNames <- findLocalLibraries()
+    libraryEntries = libraryNames.distinct.map { name =>
+      LibraryEntry(name.namespace, name.name, LibraryEntry.LocalLibraryVersion)
+    }
+  } yield ListLocalLibrariesResponse(libraryEntries)
+
+  private def findLocalLibraries(): Try[Seq[LibraryName]] = Try {
+    for {
+      searchPathRoot <- distributionManager.paths.localLibrariesSearchPaths
+      namespaceDir <- FileSystem
+        .listDirectory(searchPathRoot)
+        .filter(Files.isDirectory(_))
+      nameDir <- FileSystem
+        .listDirectory(namespaceDir)
+        .filter(Files.isDirectory(_))
+      namespace = namespaceDir.getFileName.toString
+      name      = nameDir.getFileName.toString
+    } yield LibraryName(namespace, name)
+  }
+
   private def findCurrentProjectEdition(): Option[Editions.RawEdition] = {
     val pkg = PackageManager.Default.loadPackage(currentProjectRoot).get
     pkg.config.edition
   }
+}
+
+object LocalLibraryManager {
+  def props(
+    currentProjectRoot: File,
+    distributionManager: DistributionManager
+  ): Props = Props(
+    new LocalLibraryManager(currentProjectRoot, distributionManager)
+  )
 }
