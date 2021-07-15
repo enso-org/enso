@@ -25,6 +25,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
+import org.enso.languageserver.libraries.EditionReferenceResolver
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
@@ -82,6 +83,7 @@ import scala.concurrent.duration._
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
   * @param idlenessMonitor a reference to the idleness monitor actor
+  * @param projectSettingsManager a reference to the project settings manager
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -98,6 +100,8 @@ class JsonConnectionController(
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
+  val projectSettingsManager: ActorRef,
+  val editionReferenceResolver: EditionReferenceResolver,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -458,16 +462,19 @@ class JsonConnectionController(
         .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
-      FeedStandardInput          -> FeedStandardInputHandler.props(stdInController),
-      ProjectInfo                -> ProjectInfoHandler.props(languageServerConfig),
-      EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler.props(),
-      EditionsListAvailable      -> EditionsListAvailableHandler.props(),
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
+      ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig),
+      EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler
+        .props(requestTimeout, projectSettingsManager),
+      EditionsListAvailable -> EditionsListAvailableHandler.props(),
       EditionsListDefinedLibraries -> EditionsListDefinedLibrariesHandler
         .props(),
-      EditionsResolve          -> EditionsResolveHandler.props(),
-      EditionsSetParentEdition -> EditionsSetParentEditionHandler.props(),
+      EditionsResolve -> EditionsResolveHandler
+        .props(editionReferenceResolver),
+      EditionsSetParentEdition -> EditionsSetParentEditionHandler
+        .props(requestTimeout, projectSettingsManager),
       EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
-        .props(),
+        .props(requestTimeout, projectSettingsManager),
       LibraryCreate      -> LibraryCreateHandler.props(),
       LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
       LibraryPreinstall  -> LibraryPreinstallHandler.props(),
@@ -507,6 +514,8 @@ object JsonConnectionController {
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
+    projectSettingsManager: ActorRef,
+    editionReferenceResolver: EditionReferenceResolver,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
@@ -525,6 +534,8 @@ object JsonConnectionController {
         stdInController,
         runtimeConnector,
         idlenessMonitor,
+        projectSettingsManager,
+        editionReferenceResolver,
         languageServerConfig,
         requestTimeout
       )

@@ -1,16 +1,21 @@
 package org.enso.languageserver.libraries
 
-import org.enso.editions.{DefaultEdition, Editions}
 import org.enso.editions.provider.EditionProvider
-import org.enso.pkg.Package
+import org.enso.editions.{DefaultEdition, EditionResolver, Editions}
+import org.enso.languageserver.libraries.EditionReference.NamedEdition
+import org.enso.pkg.PackageManager
 
 import java.io.File
 import scala.util.Try
 
 class EditionReferenceResolver(
-  projectPackage: Package[File],
-  editionProvider: EditionProvider
+  projectRoot: File,
+  editionProvider: EditionProvider,
+  editionResolver: EditionResolver
 ) {
+  private lazy val projectPackage =
+    PackageManager.Default.loadPackage(projectRoot).get
+
   def resolveReference(
     editionReference: EditionReference
   ): Try[Editions.RawEdition] = editionReference match {
@@ -24,4 +29,14 @@ class EditionReferenceResolver(
         }
       }
   }
+
+  def resolveEdition(
+    editionReference: EditionReference
+  ): Try[Editions.ResolvedEdition] = for {
+    raw      <- resolveReference(editionReference)
+    resolved <- editionResolver.resolve(raw).toTry
+  } yield resolved
+
+  def resolveEdition(name: String): Try[Editions.ResolvedEdition] =
+    resolveEdition(NamedEdition(name))
 }

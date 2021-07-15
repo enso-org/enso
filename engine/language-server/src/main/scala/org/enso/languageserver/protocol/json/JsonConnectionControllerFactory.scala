@@ -4,6 +4,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.data.Config
+import org.enso.languageserver.libraries.EditionReferenceResolver
 
 import java.util.UUID
 
@@ -27,6 +28,8 @@ class JsonConnectionControllerFactory(
   stdInController: ActorRef,
   runtimeConnector: ActorRef,
   idlenessMonitor: ActorRef,
+  projectSettingsManager: ActorRef,
+  editionReferenceResolver: EditionReferenceResolver,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -39,20 +42,22 @@ class JsonConnectionControllerFactory(
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
       JsonConnectionController.props(
-        clientId,
-        mainComponent,
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contentRootManager,
-        contextRegistry,
-        suggestionsHandler,
-        stdOutController,
-        stdErrController,
-        stdInController,
-        runtimeConnector,
-        idlenessMonitor,
-        config
+        connectionId             = clientId,
+        mainComponent            = mainComponent,
+        bufferRegistry           = bufferRegistry,
+        capabilityRouter         = capabilityRouter,
+        fileManager              = fileManager,
+        contentRootManager       = contentRootManager,
+        contextRegistry          = contextRegistry,
+        suggestionsHandler       = suggestionsHandler,
+        stdOutController         = stdOutController,
+        stdErrController         = stdErrController,
+        stdInController          = stdInController,
+        runtimeConnector         = runtimeConnector,
+        idlenessMonitor          = idlenessMonitor,
+        projectSettingsManager   = projectSettingsManager,
+        editionReferenceResolver = editionReferenceResolver,
+        languageServerConfig     = config
       )
     )
 }

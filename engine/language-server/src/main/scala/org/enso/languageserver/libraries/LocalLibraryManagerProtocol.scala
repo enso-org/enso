@@ -22,6 +22,13 @@ object LocalLibraryManagerProtocol {
   case object ListLocalLibraries extends Request
   case class ListLocalLibrariesResponse(libraries: Seq[LibraryName])
 
+  case class Create(
+    libraryName: LibraryName,
+    authors: Seq[String],
+    maintainers: Seq[String],
+    license: String
+  ) extends Request
+
   case class Publish(
     libraryName: LibraryName,
     authToken: String,

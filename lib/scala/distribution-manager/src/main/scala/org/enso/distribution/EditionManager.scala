@@ -5,14 +5,10 @@ import org.enso.editions
 import org.enso.editions.provider.{EditionProvider, FileSystemEditionProvider}
 import org.enso.editions.{EditionResolver, Editions}
 
-import java.nio.file.Path
 import scala.util.Try
 
 /** A helper class for resolving editions. */
 class EditionManager(editionProvider: EditionProvider) {
-  def this(searchPaths: List[Path]) =
-    this(new FileSystemEditionProvider(searchPaths))
-
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
@@ -37,4 +33,22 @@ class EditionManager(editionProvider: EditionProvider) {
     */
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
+}
+
+object EditionManager {
+  def makeEditionProvider(
+    distributionManager: DistributionManager,
+    languageHome: Option[LanguageHome]
+  ): EditionProvider = {
+    val searchPaths = languageHome.map(_.editions).toList ++
+      distributionManager.paths.editionSearchPaths
+    new FileSystemEditionProvider(searchPaths)
+  }
+
+  def apply(
+    distributionManager: DistributionManager,
+    languageHome: Option[LanguageHome]
+  ): EditionManager = new EditionManager(
+    makeEditionProvider(distributionManager, languageHome)
+  )
 }

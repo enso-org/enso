@@ -208,13 +208,14 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     version: String                      = "0.0.1",
     edition: Option[Editions.RawEdition] = None,
     authors: List[Contact]               = List(),
-    maintainers: List[Contact]           = List()
+    maintainers: List[Contact]           = List(),
+    license: String                      = ""
   ): Package[F] = {
     val config = Config(
       name                 = NameValidation.normalizeName(name),
       namespace            = namespace,
       version              = version,
-      license              = "",
+      license              = license,
       authors              = authors,
       edition              = edition,
       preferLocalLibraries = true,

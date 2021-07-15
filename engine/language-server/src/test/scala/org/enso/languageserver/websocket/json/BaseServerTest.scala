@@ -1,15 +1,15 @@
 package org.enso.languageserver.websocket.json
 
-import java.nio.file.Files
-import java.util.UUID
-
 import akka.testkit.TestProbe
 import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
+import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
+import org.enso.editions.EditionResolver
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.languageserver.TestClock
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   RepoInitialization,
@@ -21,6 +21,10 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
+import org.enso.languageserver.libraries.{
+  EditionReferenceResolver,
+  ProjectSettingsManager
+}
 import org.enso.languageserver.monitoring.IdlenessMonitor
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
@@ -30,22 +34,27 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
-import org.enso.languageserver.TestClock
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.runtimeversionmanager.test.{FakeEnvironment, HasTestDirectory}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.testkit.EitherValue
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 
+import java.nio.file
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest
     extends JsonRpcServerTestKit
     with EitherValue
-    with OptionValues {
+    with OptionValues
+    with HasTestDirectory
+    with FakeEnvironment {
 
   import system.dispatcher
 
@@ -68,7 +77,12 @@ class BaseServerTest
     graph
   }
 
+  private val testDirectory =
+    Files.createTempDirectory("enso-test").toRealPath()
+  override def getTestDirectory: file.Path = testDirectory
+
   sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.file))
+  sys.addShutdownHook(FileUtils.deleteQuietly(testDirectory.toFile))
 
   def mkConfig: Config =
     Config(
@@ -205,20 +219,45 @@ class BaseServerTest
       Api.VerifyModulesIndexResponse(Seq())
     )
 
+    val environment         = fakeInstalledEnvironment()
+    val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+    val distributionManager = new DistributionManager(environment)
+
+    val editionProvider =
+      EditionManager.makeEditionProvider(
+        distributionManager,
+        Some(languageHome)
+      )
+    val editionResolver = EditionResolver(editionProvider)
+    val editionReferenceResolver = new EditionReferenceResolver(
+      config.projectContentRoot.file,
+      editionProvider,
+      editionResolver
+    )
+
+    val projectSettingsManager = system.actorOf(
+      ProjectSettingsManager.props(
+        config.projectContentRoot.file,
+        editionResolver
+      )
+    )
+
     new JsonConnectionControllerFactory(
-      initializationComponent,
-      bufferRegistry,
-      capabilityRouter,
-      fileManager,
-      contentRootManagerActor,
-      contextRegistry,
-      suggestionsHandler,
-      stdOutController,
-      stdErrController,
-      stdInController,
-      runtimeConnectorProbe.ref,
-      idlenessMonitor,
-      config
+      mainComponent            = initializationComponent,
+      bufferRegistry           = bufferRegistry,
+      capabilityRouter         = capabilityRouter,
+      fileManager              = fileManager,
+      contentRootManager       = contentRootManagerActor,
+      contextRegistry          = contextRegistry,
+      suggestionsHandler       = suggestionsHandler,
+      stdOutController         = stdOutController,
+      stdErrController         = stdErrController,
+      stdInController          = stdInController,
+      runtimeConnector         = runtimeConnectorProbe.ref,
+      idlenessMonitor          = idlenessMonitor,
+      projectSettingsManager   = projectSettingsManager,
+      editionReferenceResolver = editionReferenceResolver,
+      config                   = config
     )
   }
 
@@ -253,5 +292,4 @@ class BaseServerTest
     )
     clientId
   }
-
 }

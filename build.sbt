@@ -1015,6 +1015,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(testkit % Test)
+  .dependsOn(`runtime-version-manager-test` % Test)
 
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(

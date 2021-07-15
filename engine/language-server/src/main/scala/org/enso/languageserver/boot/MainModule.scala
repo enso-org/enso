@@ -1,27 +1,25 @@
 package org.enso.languageserver.boot
 
-import java.io.File
-import java.net.URI
-import java.time.Clock
-
 import akka.actor.ActorSystem
+import org.enso.distribution.{
+  DistributionManager,
+  EditionManager,
+  Environment,
+  LanguageHome
+}
+import org.enso.editions.EditionResolver
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.filemanager.{
-  ContentRoot,
-  ContentRootManager,
-  ContentRootManagerActor,
-  ContentRootManagerWrapper,
-  ContentRootWithFile,
-  FileManager,
-  FileSystem,
-  ReceivesTreeUpdatesHandler
-}
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
+import org.enso.languageserver.libraries.{
+  EditionReferenceResolver,
+  ProjectSettingsManager
+}
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
@@ -49,6 +47,9 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.LoggerFactory
 
+import java.io.File
+import java.net.URI
+import java.time.Clock
 import scala.concurrent.duration._
 
 /** A main module containing all components of the server.
@@ -270,20 +271,39 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     context
   )(system.dispatcher)
 
+  val environment         = new Environment {}
+  val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
+  val distributionManager = new DistributionManager(environment)
+
+  val editionProvider =
+    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+  val editionResolver = EditionResolver(editionProvider)
+  val editionReferenceResolver = new EditionReferenceResolver(
+    contentRoot.file,
+    editionProvider,
+    editionResolver
+  )
+
+  val projectSettingsManager = system.actorOf(
+    ProjectSettingsManager.props(contentRoot.file, editionResolver)
+  )
+
   val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
-    initializationComponent,
-    bufferRegistry,
-    capabilityRouter,
-    fileManager,
-    contentRootManagerActor,
-    contextRegistry,
-    suggestionsHandler,
-    stdOutController,
-    stdErrController,
-    stdInController,
-    runtimeConnector,
-    idlenessMonitor,
-    languageServerConfig
+    mainComponent            = initializationComponent,
+    bufferRegistry           = bufferRegistry,
+    capabilityRouter         = capabilityRouter,
+    fileManager              = fileManager,
+    contentRootManager       = contentRootManagerActor,
+    contextRegistry          = contextRegistry,
+    suggestionsHandler       = suggestionsHandler,
+    stdOutController         = stdOutController,
+    stdErrController         = stdErrController,
+    stdInController          = stdInController,
+    runtimeConnector         = runtimeConnector,
+    idlenessMonitor          = idlenessMonitor,
+    projectSettingsManager   = projectSettingsManager,
+    editionReferenceResolver = editionReferenceResolver,
+    config                   = languageServerConfig
   )
   log.trace(
     "Created JSON connection controller factory [{}].",
