@@ -1,6 +1,9 @@
 package org.enso.languageserver.websocket.json
 
+import io.circe.Json
 import io.circe.literal._
+import org.enso.languageserver.libraries.LibraryEntry
+import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 
 class LibrariesTest extends BaseServerTest {
   "LocalLibraryManager" should {
@@ -75,11 +78,97 @@ class LibrariesTest extends BaseServerTest {
   }
 
   "editions/listDefinedLibraries" should {
-    "include Standard.Base in the list" in {}
+    "include Standard.Base in the list" in {
+      def containsBase(response: Json): Unit = {
+        val result = response.asObject.value("result").value
+        val libs   = result.asObject.value("availableLibraries").value
+        val parsed = libs.asArray.value.map(_.as[LibraryEntry])
+        val bases = parsed.collect {
+          case Right(
+                LibraryEntry("Standard", "Base", PublishedLibraryVersion(_, _))
+              ) =>
+            ()
+        }
+        bases should have size 1
+      }
+
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listDefinedLibraries",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "CurrentProjectEdition"
+              }
+            }
+          }
+          """)
+      containsBase(client.expectSomeJson())
+
+      val currentEditionName = buildinfo.Info.currentEdition
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listDefinedLibraries",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "NamedEdition",
+                "editionName": $currentEditionName
+              }
+            }
+          }
+          """)
+      containsBase(client.expectSomeJson())
+    }
   }
 
   "editions/resolve" should {
-    "resolve the engine version associated with an edition" in {}
+    "resolve the engine version associated with an edition" in {
+      val currentVersion = buildinfo.Info.ensoVersion
+
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/resolve",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "CurrentProjectEdition"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "engineVersion": $currentVersion
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/resolve",
+            "id": 0,
+            "params": {
+              "edition": {
+                "type": "NamedEdition",
+                "editionName": ${buildinfo.Info.currentEdition}
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "engineVersion": $currentVersion
+            }
+          }
+          """)
+    }
   }
 
   "ProjectSettingsManager" should {

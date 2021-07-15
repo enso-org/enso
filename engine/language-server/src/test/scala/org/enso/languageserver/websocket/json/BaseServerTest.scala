@@ -221,6 +221,21 @@ class BaseServerTest
       Api.VerifyModulesIndexResponse(Seq())
     )
 
+    locally {
+      val dataRoot = getTestDirectory.resolve("test_data")
+      val editions = dataRoot.resolve("editions")
+      Files.createDirectories(editions)
+      val distribution   = file.Path.of("distribution")
+      val currentEdition = buildinfo.Info.currentEdition + ".yaml"
+      val dest           = editions.resolve(currentEdition)
+      if (Files.notExists(dest)) {
+        Files.copy(
+          distribution.resolve("editions").resolve(currentEdition),
+          dest
+        )
+      }
+    }
+
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
     val distributionManager = new DistributionManager(environment)
