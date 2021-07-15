@@ -9,6 +9,10 @@ import org.enso.cli.task.{
 
 import scala.util.Success
 
+/** A temporary helper for mocked parts of the API.
+  *
+  * It should be removed soon, when the missing parts are implemented.
+  */
 object FakeDownload {
 
   /** Creates a [[TaskProgress]] which reports progress updates for a few seconds.
@@ -28,6 +32,9 @@ object FakeDownload {
     tracker
   }
 
+  /** Simulates a download operation reporting progress updates to the
+    * [[ProgressReporter]].
+    */
   def simulateDownload(
     message: String,
     progressReporter: ProgressReporter

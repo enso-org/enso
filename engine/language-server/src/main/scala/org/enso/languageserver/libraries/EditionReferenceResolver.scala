@@ -8,6 +8,7 @@ import org.enso.pkg.PackageManager
 import java.io.File
 import scala.util.Try
 
+/** Resolves [[EditionReference]] to a raw or resolved edition. */
 class EditionReferenceResolver(
   projectRoot: File,
   editionProvider: EditionProvider,
@@ -16,6 +17,7 @@ class EditionReferenceResolver(
   private lazy val projectPackage =
     PackageManager.Default.loadPackage(projectRoot).get
 
+  /** Loads the raw edition corresponding to the given [[EditionReference]]. */
   def resolveReference(
     editionReference: EditionReference
   ): Try[Editions.RawEdition] = editionReference match {
@@ -30,6 +32,9 @@ class EditionReferenceResolver(
       }
   }
 
+  /** Resolves all edition dependencies of an edition identified by
+    * [[EditionReference]].
+    */
   def resolveEdition(
     editionReference: EditionReference
   ): Try[Editions.ResolvedEdition] = for {
@@ -37,6 +42,7 @@ class EditionReferenceResolver(
     resolved <- editionResolver.resolve(raw).toTry
   } yield resolved
 
+  /** Resolves all edition dependencies of an edition identified by its name. */
   def resolveEdition(name: String): Try[Editions.ResolvedEdition] =
     resolveEdition(NamedEdition(name))
 }

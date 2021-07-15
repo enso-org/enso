@@ -15,6 +15,10 @@ trait LocalLibraryProvider {
 }
 
 object LocalLibraryProvider {
+
+  /** Resolve a path to the package root of a particular library located in one
+    * of the local library roots.
+    */
   def resolveLibraryPath(root: Path, libraryName: LibraryName): Path =
     root / libraryName.namespace / libraryName.name
 }

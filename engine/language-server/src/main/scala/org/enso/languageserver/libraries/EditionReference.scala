@@ -4,10 +4,17 @@ import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.syntax._
 import io.circe.generic.auto._
 
+/** A reference to an edition - either a named edition or an unnamed one
+  * associated with the current project.
+  */
 sealed trait EditionReference
 object EditionReference {
+
+  /** An edition identified by its name. */
   case class NamedEdition(editionName: String) extends EditionReference
-  case object CurrentProjectEdition            extends EditionReference
+
+  /** The edition associated with the current project. */
+  case object CurrentProjectEdition extends EditionReference
 
   object CodecField {
     val Type        = "type"

@@ -12,6 +12,7 @@ import java.io.File
 import java.nio.file.Files
 import scala.util.{Failure, Success, Try}
 
+/** An Actor that manages local libraries. */
 class LocalLibraryManager(
   currentProjectRoot: File,
   distributionManager: DistributionManager
@@ -39,6 +40,11 @@ class LocalLibraryManager(
     }
   }
 
+  /** Creates a new local library project.
+    *
+    * The project is created in the first directory of the local library search
+    * path that is writable.
+    */
   private def createLibrary(
     libraryName: LibraryName,
     authors: Seq[String],
@@ -49,10 +55,14 @@ class LocalLibraryManager(
     val _ = (authors, maintainers)
 
     // TODO [RW] make the exceptions more relevant
-    val librariesRoot =
-      distributionManager.paths.localLibrariesSearchPaths.headOption.getOrElse {
-        throw new RuntimeException("Cannot find local library path")
-      }
+    val possibleRoots = LazyList
+      .from(distributionManager.paths.localLibrariesSearchPaths)
+      .filter(Files.isWritable)
+    val librariesRoot = possibleRoots.headOption.getOrElse {
+      throw new RuntimeException(
+        "Cannot find a writable directory on local library path."
+      )
+    }
 
     val libraryPath =
       LocalLibraryProvider.resolveLibraryPath(librariesRoot, libraryName)
@@ -69,6 +79,7 @@ class LocalLibraryManager(
     )
   }
 
+  /** Lists all local libraries. */
   private def listLocalLibraries(): Try[ListLocalLibrariesResponse] = for {
     libraryNames <- findLocalLibraries()
     libraryEntries = libraryNames.distinct.map { name =>
@@ -90,6 +101,9 @@ class LocalLibraryManager(
     } yield LibraryName(namespace, name)
   }
 
+  /** Finds the edition associated with the current project, if specified in its
+    * config.
+    */
   private def findCurrentProjectEdition(): Option[Editions.RawEdition] = {
     val pkg = PackageManager.Default.loadPackage(currentProjectRoot).get
     pkg.config.edition

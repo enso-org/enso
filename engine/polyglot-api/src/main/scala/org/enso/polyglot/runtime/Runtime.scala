@@ -209,6 +209,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.LibraryLoaded],
         name  = "libraryLoaded"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ProgressNotification],
+        name  = "progressNotification"
       )
     )
   )
@@ -1353,12 +1357,18 @@ object Runtime {
       location: File
     ) extends ApiNotification
 
+    /** A notification containing updates on the progress of long-running tasks.
+      *
+      * @param payload the actual update contained within this notification
+      */
     case class ProgressNotification(
       payload: ProgressNotification.NotificationType
     ) extends ApiNotification
 
     object ProgressNotification {
       sealed trait NotificationType
+
+      /** Indicates that a new task has been started. */
       case class TaskStarted(
         taskId: UUID,
         relatedOperation: String,
@@ -1366,12 +1376,14 @@ object Runtime {
         total: Option[Long]
       ) extends NotificationType
 
+      /** Indicates that the task has progressed. */
       case class TaskProgressUpdate(
         taskId: UUID,
         message: Option[String],
         done: Long
       ) extends NotificationType
 
+      /** Indicates that the task has been finished. */
       case class TaskFinished(
         taskId: UUID,
         message: Option[String],

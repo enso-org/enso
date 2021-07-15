@@ -63,6 +63,7 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     } else Left(EditionNotFound)
   }
 
+  /** Finds all editions available on the [[searchPaths]]. */
   def findAvailableEditions(): Seq[String] =
     searchPaths.flatMap(findEditionsAt).distinct
 

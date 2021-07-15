@@ -3,9 +3,15 @@ package org.enso.cli.task
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
+/** A [[ProgressReporter]] implementation that tracks tasks and sends
+  * [[ProgressNotification]]s using a generic interface.
+  */
 trait ProgressNotificationForwarder extends ProgressReporter {
+
+  /** The callback that is used to send the progress notification. */
   def sendProgressNotification(notification: ProgressNotification): Unit
 
+  /** @inheritdoc */
   override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
     var uuid: Option[UUID] = None
 

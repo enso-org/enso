@@ -46,11 +46,16 @@ class EditionManager(@unused primaryCachePath: Path, searchPaths: List[Path]) {
 
   // TODO [RW] download edition updates
 
+  /** Find all editions available in the [[searchPaths]]. */
   def findAllAvailableEditions(): Seq[String] =
     editionProvider.findAvailableEditions()
 }
 
 object EditionManager {
+
+  /** Create an [[EditionProvider]] that can locate editions from the
+    * distribution and the language home.
+    */
   def makeEditionProvider(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
@@ -58,12 +63,19 @@ object EditionManager {
     getSearchPaths(distributionManager, languageHome)
   )
 
+  /** Get search paths associated with the distribution and language home. */
   private def getSearchPaths(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
-  ): List[Path] = languageHome.map(_.editions).toList ++
-    distributionManager.paths.editionSearchPaths
+  ): List[Path] = {
+    val paths = languageHome.map(_.editions).toList ++
+      distributionManager.paths.editionSearchPaths
+    paths.distinct
+  }
 
+  /** Create an [[EditionManager]] that can locate editions from the
+    * distribution and the language home.
+    */
   def apply(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome] = None

@@ -7,6 +7,7 @@ import org.enso.pkg.PackageManager
 import java.io.File
 import scala.util.Try
 
+/** An Actor that manages edition-related settings of the current project. */
 class ProjectSettingsManager(
   projectRoot: File,
   editionResolver: EditionResolver
@@ -56,16 +57,22 @@ object ProjectSettingsManager {
     new ProjectSettingsManager(projectRoot, editionResolver)
   )
 
+  /** A request to the [[ProjectSettingsManager]]. */
   sealed trait Request
 
+  /** A request to get the current project settings. */
   case object GetSettings extends Request
+
+  /** Response to [[GetSettings]]. */
   case class SettingsResponse(
     parentEdition: Option[String],
     preferLocalLibraries: Boolean
   )
 
+  /** A request to set the parent edition for the project. */
   case class SetParentEdition(editionName: String) extends Request
 
+  /** A request to set the local libraries preference. */
   case class SetPreferLocalLibraries(preferLocalLibraries: Boolean)
       extends Request
 }

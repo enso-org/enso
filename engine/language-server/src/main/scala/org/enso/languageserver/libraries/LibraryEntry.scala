@@ -5,6 +5,12 @@ import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import org.enso.editions
 
+/** An entry in library lists sent to the client.
+  *
+  * @param namespace namespace of the library
+  * @param name name of the library
+  * @param version version of the library
+  */
 case class LibraryEntry(
   namespace: String,
   name: String,
@@ -12,11 +18,24 @@ case class LibraryEntry(
 )
 
 object LibraryEntry {
+
+  /** Version of a library. */
   sealed trait LibraryVersion
+
+  /** A library version that references a locally editable version of the
+    * library.
+    */
   case object LocalLibraryVersion extends LibraryVersion
+
+  /** A library version that references a version of the library published in
+    * some repository.
+    */
   case class PublishedLibraryVersion(version: String, repositoryUrl: String)
       extends LibraryVersion
 
+  /** Converts an instance of [[editions.LibraryVersion]] into one that is used
+    * in the Language Server protocol.
+    */
   implicit def convertLibraryVersion(
     libraryVersion: editions.LibraryVersion
   ): LibraryVersion = libraryVersion match {
