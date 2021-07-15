@@ -53,8 +53,8 @@ as _late_ in the compiler pipeline as possible. This means serialising it just
 before the code generation step that generates Truffle nodes (before the
 `RuntimeStubsGenerator` and `IrToTruffle` run).
 
-This serialisation should take place in an _offloaded thread_ so that
-serialisation doesn't block codegen from occurring.
+This serialisation should take place in an _offloaded thread_ so that it doesn't
+block the compiler from continuing.
 
 ### Breaking Links
 
@@ -72,8 +72,8 @@ problem. Instead, we solve it using a preprocessing step:
 
 - We can modify `BindingsMap` and its child types to be able to contain an
   unlinked module pointer
-  `case class ModulePointer(namespace: String, qualifiedName: List[String])` in
-  place of a `Module`.
+  `case class ModulePointer(qualifiedName: List[String])` in place of a
+  `Module`.
 - As the `MetadataStorage` type that holds the `BindingsMap` is mutable it can
   be updated in place without having to reassemble the entire IR graph.
 - Hence, we can traverse all the nodes in the `ir.preorder` that have metadata
@@ -84,6 +84,11 @@ problem. Instead, we solve it using a preprocessing step:
 Having done this, we have broken any links that the IR may hold between modules,
 and can serialise each module individually.
 
+This serialisation must take place _after_ codegen has happened as it modifies
+the IR in place. The compiler can handle giving it to the offloaded
+serialisation thread. It _may_ be necessary to `duplicate` the IR before handing
+it to this thread, but this should be checked during development.
+
 ## Storing the IR
 
 The serialized IR needs to be stored in a location that is tied to the library
@@ -93,26 +98,27 @@ locations for the cache.
 
 1. **With the Library:** As libraries can have a hidden `.enso` directory, we
    can use a path within that for caching. This should be
-   `$package/.enso/cache/ir/enso-$version/`, and can be got at by extending the
-   `pkg` library to be aware of the cache directories.
-2. **Globally:** As some library locations may not be writable, we need to have
-   a global out-of-line cache that is used if the first one is not writable.
+   `$package/.enso/cache/ir/enso-$version/`, and can be accessed by extending
+   the `pkg` library to be aware of the cache directories.
+2. **Globally:** As some library locations may not be writeable, we need to have
+   a global out-of-line cache that is used if the first one is not writeable.
    This is located under `$ENSO_DATA` (whose location can be obtained from the
    `RuntimeDistributionManager`), and is located under the path
    `$ENSO_DATA/cache/ir/$hash/enso-$version/`, where `$hash` is the `SHA3-224`
    hash of the tuple `(namespace, library_name, version)`, where
-   `version = SemVer | "local"`.
+   `version = SemVer | "local"`. This hash is computed by concatenating the
+   string representations of these fields.
 
 In each location, the IR is stored with the following assumptions:
 
 - The IR file is located in a directory modelled after its module path, followed
   by a file named after the module itself with the extension `.ir` (e.g. the IR
-  for `Standard.Base.Data.Vector.enso` is stored in
-  `Standard/Base/Data/Vector.ir`).
+  for `Standard.Base.Data.Vector` is stored in `Standard/Base/Data/Vector.ir`).
 - The [metadata](#metadata-format) file is located in a directory modelled after
   its module path, followed by a file named after the module itself with the
   extension `.meta` (e.g. the metadata for `Standard.Base.Data.Vector.enso` is
-  stored in `Standard/Base/Data/Vector.meta`).
+  stored in `Standard/Base/Data/Vector.meta`). This is right next to the
+  corresponding `.ir` file.
 
 Storage of the IR only takes place iff the intended location for that IR is
 _empty_.
@@ -120,9 +126,9 @@ _empty_.
 ### Metadata Format
 
 The metadata is used for integrity checking of the cached IR to prevent loading
-corrupted or out of date data from the cache. It is _exceedingly_ important to
-make the cache decoding forwards-compatible. It should be able to ignore unknown
-fields when loading, allowing us to update the logic in the future if needed.
+corrupted or out of date data from the cache. Due to the fact that engines can
+only load IR created by their versions, and cached IR is located in a directory
+named after the engine version, this format need not be forward compatible.
 
 It is a JSON file as follows:
 
@@ -142,8 +148,6 @@ to be explicitly specified in the metadata.
 
 As part of this design we provide only the following portability guarantees:
 
-- The metadata format must be _extensible_, and be read by _all_ future versions
-  of Enso.
 - The serialised IR must be able to be deserialised by _the same version of
   Enso_ that wrote the original blob.
 
@@ -152,10 +156,10 @@ As part of this design we provide only the following portability guarantees:
 Loading the IR is a multi-stage process that involves performing integrity
 checking on the loaded cache. It works as follows.
 
-1. **Find the Cache:** Look in the library's `.cache` folder first, checking if
-   there is IR for the module that is valid for the current configuration. If
-   there is no cache here, instead check in the global cache directory under
-   `$ENSO_DATA`. This should be hooked into in `Compiler::parseModule`.
+1. **Find the Cache:** Look in the global cache directory under `$ENSO_DATA`. If
+   there is no cached IR here that is valid for the current configuration, check
+   the ibrary's `.enso/cache` folder. This should be hooked into in
+   `Compiler::parseModule`.
 2. **Check Integrity:** Check the module's [metadata](#metadata-format) for
    validity according to the [integrity rules](#integrity-checking).
 3. **Load:** If the cache passes the integrity check, load the `.ir` file. If
@@ -168,7 +172,7 @@ The main subtlety here is handling the dependencies between modules. We need to
 ensure that, when loading multiple cached libraries, we properly handle them
 one-by-one. Doing this is as simple as hooking into `Compiler::parseModule` and
 setting `AFTER_STATIC_PASSES` as the compilation state after loading the module.
-his will tie into the current `ImportsResolver` and `ExportsResolver` which are
+This will tie into the current `ImportsResolver` and `ExportsResolver` which are
 run in an un-gated fashion in `Compiler::run`.
 
 In order to prevent the execution of malicious code when deserialising we should
@@ -181,7 +185,8 @@ For a cache to be usable, the following properties need to be satisfied:
 1. The `sourceHash` must match the hash of the corresponding source file.
 2. The `blobHash` must match the hash of the corresponding `.ir` file.
 
-If any of these fail, the cache file should be deleted.
+If any of these fail, the cache file should be deleted where possible, or
+ignored if it is in a read-only location.
 
 ### Error Handling
 
