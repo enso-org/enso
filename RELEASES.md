@@ -5,6 +5,8 @@
 - Ensure that the module used by a visualization is preloaded when the
   visualization is being attached
   ([#1857](https://github.com/enso-org/enso/pull/1857)).
+- Fix an issue with the `HostClassLoader` getting into a broken state
+  ([#1867](https://github.com/enso-org/enso/pull/1867)).
 
 ## Tooling
 
