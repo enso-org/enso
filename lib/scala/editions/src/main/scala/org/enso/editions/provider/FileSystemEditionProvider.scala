@@ -75,7 +75,10 @@ class FileSystemEditionProvider(searchPaths: List[Path])
   }
 
   private def findEditionsAt(path: Path): Seq[String] =
-    Using(Files.list(path))(_.toScala(Factory.arrayFactory).toSeq).get
-      .filter(Files.isRegularFile(_))
-      .flatMap(findEditionName)
+    listDir(path).filter(Files.isRegularFile(_)).flatMap(findEditionName)
+
+  private def listDir(dir: Path): Seq[Path] =
+    if (Files.exists(dir))
+      Using(Files.list(dir))(_.toScala(Factory.arrayFactory).toSeq).get
+    else Seq()
 }

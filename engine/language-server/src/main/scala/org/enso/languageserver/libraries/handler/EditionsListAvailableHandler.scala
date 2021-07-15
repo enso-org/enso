@@ -27,7 +27,7 @@ class EditionsListAvailableHandler(editionManager: EditionManager)
         case Failure(exception) =>
           sender() ! ResponseError(
             Some(id),
-            FileSystemError(exception.getMessage)
+            FileSystemError(exception.toString)
           )
       }
   }

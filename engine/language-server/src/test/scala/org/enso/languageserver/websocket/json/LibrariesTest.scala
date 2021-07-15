@@ -70,11 +70,37 @@ class LibrariesTest extends BaseServerTest {
   }
 
   "mocked library/preinstall" should {
-    "send progress notifications" in {}
+    "send progress notifications" ignore {}
   }
 
   "editions/listAvailable" should {
-    "list editions on the search path" in {}
+    "list editions on the search path" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listAvailable",
+            "id": 0,
+            "params": {
+              "update": false
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "editionNames": [
+                ${buildinfo.Info.currentEdition}
+              ]
+            }
+          }
+          """)
+    }
+
+    "update the list of editions if requested" ignore {}
+
+    // TODO [RW] do we need to support that?
+    "work if the update field is missing" ignore {}
   }
 
   "editions/listDefinedLibraries" should {
@@ -172,12 +198,12 @@ class LibrariesTest extends BaseServerTest {
   }
 
   "ProjectSettingsManager" should {
-    "get default settings" in {}
+    "get default settings" ignore {}
 
-    "allow to set local libraries preference" in {}
+    "allow to set local libraries preference" ignore {}
 
-    "allow to override parent edition" in {}
+    "allow to override parent edition" ignore {}
 
-    "fail if the provided parent edition is not resolvable" in {}
+    "fail if the provided parent edition is not resolvable" ignore {}
   }
 }
