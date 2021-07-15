@@ -234,6 +234,7 @@ class BaseServerTest
       editionProvider,
       editionResolver
     )
+    val editionManager = EditionManager(distributionManager, Some(languageHome))
 
     val projectSettingsManager = system.actorOf(
       ProjectSettingsManager.props(
@@ -257,6 +258,7 @@ class BaseServerTest
       idlenessMonitor          = idlenessMonitor,
       projectSettingsManager   = projectSettingsManager,
       editionReferenceResolver = editionReferenceResolver,
+      editionManager           = editionManager,
       config                   = config
     )
   }

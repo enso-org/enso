@@ -1,6 +1,7 @@
 package org.enso.languageserver.protocol.json
 
 import akka.actor.{ActorRef, ActorSystem}
+import org.enso.distribution.EditionManager
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.data.Config
@@ -30,6 +31,7 @@ class JsonConnectionControllerFactory(
   idlenessMonitor: ActorRef,
   projectSettingsManager: ActorRef,
   editionReferenceResolver: EditionReferenceResolver,
+  editionManager: EditionManager,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -57,6 +59,7 @@ class JsonConnectionControllerFactory(
         idlenessMonitor          = idlenessMonitor,
         projectSettingsManager   = projectSettingsManager,
         editionReferenceResolver = editionReferenceResolver,
+        editionManager           = editionManager,
         languageServerConfig     = config
       )
     )

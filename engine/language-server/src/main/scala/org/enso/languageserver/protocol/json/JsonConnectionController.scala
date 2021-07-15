@@ -5,6 +5,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.distribution.EditionManager
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
@@ -102,6 +103,7 @@ class JsonConnectionController(
   val idlenessMonitor: ActorRef,
   val projectSettingsManager: ActorRef,
   val editionReferenceResolver: EditionReferenceResolver,
+  val editionManager: EditionManager,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -466,9 +468,11 @@ class JsonConnectionController(
       ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig),
       EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler
         .props(requestTimeout, projectSettingsManager),
-      EditionsListAvailable -> EditionsListAvailableHandler.props(),
+      EditionsListAvailable -> EditionsListAvailableHandler.props(
+        editionManager
+      ),
       EditionsListDefinedLibraries -> EditionsListDefinedLibrariesHandler
-        .props(),
+        .props(editionReferenceResolver),
       EditionsResolve -> EditionsResolveHandler
         .props(editionReferenceResolver),
       EditionsSetParentEdition -> EditionsSetParentEditionHandler
@@ -516,6 +520,7 @@ object JsonConnectionController {
     idlenessMonitor: ActorRef,
     projectSettingsManager: ActorRef,
     editionReferenceResolver: EditionReferenceResolver,
+    editionManager: EditionManager,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
@@ -536,6 +541,7 @@ object JsonConnectionController {
         idlenessMonitor,
         projectSettingsManager,
         editionReferenceResolver,
+        editionManager,
         languageServerConfig,
         requestTimeout
       )

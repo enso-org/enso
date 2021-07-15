@@ -5,10 +5,20 @@ import org.enso.editions
 import org.enso.editions.provider.{EditionProvider, FileSystemEditionProvider}
 import org.enso.editions.{EditionResolver, Editions}
 
+import java.nio.file.Path
+import scala.annotation.unused
 import scala.util.Try
 
-/** A helper class for resolving editions. */
-class EditionManager(editionProvider: EditionProvider) {
+/** A helper class for resolving editions.
+  *
+  * @param primaryCachePath will be used for updating editions
+  * @param searchPaths all paths to search for editions, should include
+  *                    [[primaryCachePath]]
+  */
+class EditionManager(@unused primaryCachePath: Path, searchPaths: List[Path]) {
+  private val editionProvider = new FileSystemEditionProvider(
+    searchPaths
+  )
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
@@ -33,22 +43,32 @@ class EditionManager(editionProvider: EditionProvider) {
     */
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
+
+  // TODO [RW] download edition updates
+
+  def findAllAvailableEditions(): Seq[String] =
+    editionProvider.findAvailableEditions()
 }
 
 object EditionManager {
   def makeEditionProvider(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
-  ): EditionProvider = {
-    val searchPaths = languageHome.map(_.editions).toList ++
-      distributionManager.paths.editionSearchPaths
-    new FileSystemEditionProvider(searchPaths)
-  }
+  ): EditionProvider = new FileSystemEditionProvider(
+    getSearchPaths(distributionManager, languageHome)
+  )
+
+  private def getSearchPaths(
+    distributionManager: DistributionManager,
+    languageHome: Option[LanguageHome]
+  ): List[Path] = languageHome.map(_.editions).toList ++
+    distributionManager.paths.editionSearchPaths
 
   def apply(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome] = None
   ): EditionManager = new EditionManager(
-    makeEditionProvider(distributionManager, languageHome)
+    distributionManager.paths.cachedEditions,
+    getSearchPaths(distributionManager, languageHome)
   )
 }

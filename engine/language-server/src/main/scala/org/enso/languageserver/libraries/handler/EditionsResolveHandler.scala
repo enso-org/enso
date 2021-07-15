@@ -21,17 +21,18 @@ class EditionsResolveHandler(editionReferenceResolver: EditionReferenceResolver)
       } yield edition.getEngineVersion
 
       result match {
-        case Failure(exception) =>
-          // TODO [RW] more detailed errors
-          sender() ! ResponseError(
-            Some(id),
-            FileSystemError(exception.getMessage)
-          )
         case Success(engineVersion) =>
           sender() ! ResponseResult(
             EditionsResolve,
             id,
             EditionsResolve.Result(engineVersion.toString)
+          )
+
+        case Failure(exception) =>
+          // TODO [RW] more detailed errors
+          sender() ! ResponseError(
+            Some(id),
+            FileSystemError(exception.getMessage)
           )
       }
   }

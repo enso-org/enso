@@ -1,8 +1,9 @@
 package org.enso.languageserver.libraries
 
-import io.circe.{Decoder, DecodingFailure, Encoder, Json}
-import io.circe.syntax._
 import io.circe.generic.semiauto._
+import io.circe.syntax._
+import io.circe.{Decoder, DecodingFailure, Encoder, Json}
+import org.enso.editions
 
 case class LibraryEntry(
   namespace: String,
@@ -11,11 +12,18 @@ case class LibraryEntry(
 )
 
 object LibraryEntry {
-  // TODO [RW] proper case serialization
   sealed trait LibraryVersion
   case object LocalLibraryVersion extends LibraryVersion
   case class PublishedLibraryVersion(version: String, repositoryUrl: String)
       extends LibraryVersion
+
+  implicit def convertLibraryVersion(
+    libraryVersion: editions.LibraryVersion
+  ): LibraryVersion = libraryVersion match {
+    case editions.LibraryVersion.Local => LocalLibraryVersion
+    case editions.LibraryVersion.Published(version, repository) =>
+      PublishedLibraryVersion(version.toString, repository.url)
+  }
 
   implicit val encoder: Encoder[LibraryEntry] = deriveEncoder[LibraryEntry]
   implicit val decoder: Decoder[LibraryEntry] = deriveDecoder[LibraryEntry]

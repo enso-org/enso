@@ -283,6 +283,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     editionProvider,
     editionResolver
   )
+  val editionManager = EditionManager(distributionManager, Some(languageHome))
 
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver)
@@ -303,6 +304,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     idlenessMonitor          = idlenessMonitor,
     projectSettingsManager   = projectSettingsManager,
     editionReferenceResolver = editionReferenceResolver,
+    editionManager           = editionManager,
     config                   = languageServerConfig
   )
   log.trace(
