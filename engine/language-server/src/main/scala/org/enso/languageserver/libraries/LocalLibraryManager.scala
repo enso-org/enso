@@ -57,7 +57,10 @@ class LocalLibraryManager(
     // TODO [RW] make the exceptions more relevant
     val possibleRoots = LazyList
       .from(distributionManager.paths.localLibrariesSearchPaths)
-      .filter(Files.isWritable)
+      .filter { path =>
+        Try { if (Files.notExists(path)) Files.createDirectories(path) }
+        Files.isWritable(path)
+      }
     val librariesRoot = possibleRoots.headOption.getOrElse {
       throw new RuntimeException(
         "Cannot find a writable directory on local library path."

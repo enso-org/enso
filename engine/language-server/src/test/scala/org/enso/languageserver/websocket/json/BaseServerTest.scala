@@ -36,6 +36,7 @@ import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.runtimeversionmanager.test.{FakeEnvironment, HasTestDirectory}
@@ -272,6 +273,13 @@ class BaseServerTest
     )
   }
 
+  lazy val initPackage: Unit = {
+    PackageManager.Default.create(
+      config.projectContentRoot.file,
+      name = "TestProject"
+    )
+  }
+
   def getInitialisedWsClient(): WsTestClient = {
     val client = new WsTestClient(address)
     initSession(client)
@@ -279,6 +287,7 @@ class BaseServerTest
   }
 
   private def initSession(client: WsTestClient): UUID = {
+    initPackage
     val clientId = UUID.randomUUID()
     client.send(json"""
           { "jsonrpc": "2.0",

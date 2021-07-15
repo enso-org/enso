@@ -992,6 +992,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
+    Test / envVars ++= distributionEnvironmentOverrides,
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
