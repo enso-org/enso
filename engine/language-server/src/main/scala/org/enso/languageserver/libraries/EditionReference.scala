@@ -2,6 +2,7 @@ package org.enso.languageserver.libraries
 
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.syntax._
+import io.circe.generic.auto._
 
 sealed trait EditionReference
 object EditionReference {
@@ -32,9 +33,7 @@ object EditionReference {
     val typeCursor = json.downField(CodecField.Type)
     typeCursor.as[String].flatMap {
       case CodecType.NamedEdition =>
-        for {
-          editionName <- json.get[String](CodecField.EditionName)
-        } yield NamedEdition(editionName)
+        Decoder[NamedEdition].tryDecode(json)
       case CodecType.CurrentProjectEdition => Right(CurrentProjectEdition)
       case unknownType =>
         Left(
