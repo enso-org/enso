@@ -73,10 +73,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
+    val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val modulesInScope =
       getModulesInScope.filterNot(m => modules.exists(_ == m))
-    val moduleCompilationStatus = modules.map(ensureCompiledModule)
-    val scopeCompilationStatus  = ensureCompiledScope(modulesInScope)
+    val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -439,12 +439,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /** Get all modules in the current compiler scope. */
   private def getModulesInScope(implicit
     ctx: RuntimeContext
-  ): Iterable[Module] = {
-    val topScope       = ctx.executionService.getContext.getTopScope
-    val modulesInScope = topScope.getModules.asScala
-    val builtins       = topScope.getBuiltins.getModule
-    modulesInScope ++ Seq(builtins)
-  }
+  ): Iterable[Module] =
+    ctx.executionService.getContext.getTopScope.getModules.asScala
 
   /** Get the module path for suggestions database indexing.
     *
