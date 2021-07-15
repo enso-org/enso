@@ -3,12 +3,10 @@ package org.enso.projectmanager.service.versionmanagement
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.notifications.SerializableProgressUnit
 import org.enso.cli.task.{
-  ProgressListener,
   ProgressNotification,
   ProgressNotificationForwarder,
-  TaskProgress
+  ProgressUnit
 }
 import org.enso.distribution.locking.Resource
 import org.enso.runtimeversionmanager.components.{
@@ -17,7 +15,6 @@ import org.enso.runtimeversionmanager.components.{
 }
 
 import java.util.UUID
-import scala.util.{Failure, Success, Try}
 
 /** A [[RuntimeVersionManagementUserInterface]] that sends
   * [[ProgressNotification]] to the specified actors (both for usual tasks and
@@ -60,7 +57,7 @@ class ControllerInterface(
     progressTracker ! ProgressNotification.TaskStarted(
       uuid,
       None,
-      SerializableProgressUnit.Other
+      ProgressUnit.Unspecified
     )
     progressTracker ! ProgressNotification.TaskUpdate(
       uuid,

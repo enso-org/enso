@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.{LazyLogging, Logger}
 import org.enso.cli.task.ProgressNotification
-import org.enso.cli.task.notifications.ProgressNotification.translateProgressNotification
+import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.projectmanager.control.effect.Exec
@@ -110,7 +110,8 @@ abstract class RequestHandler[
           abandonTimeout(id, replyTo, timeoutCancellable)
         case _ =>
       }
-      replyTo ! translateProgressNotification(method.name, notification)
+      replyTo ! ActorProgressNotificationForwarder
+        .translateProgressNotification(method.name, notification)
   }
 
   /** Cancels the timeout operation.
