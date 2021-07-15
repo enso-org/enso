@@ -288,11 +288,16 @@ class BaseServerTest
     )
   }
 
+  /** Specifies if the `package.yaml` at project root should be auto-created. */
+  protected def initializeProjectPackage: Boolean = true
+
   lazy val initPackage: Unit = {
-    PackageManager.Default.create(
-      config.projectContentRoot.file,
-      name = "TestProject"
-    )
+    if (initializeProjectPackage) {
+      PackageManager.Default.create(
+        config.projectContentRoot.file,
+        name = "TestProject"
+      )
+    }
   }
 
   def getInitialisedWsClient(): WsTestClient = {
