@@ -3,12 +3,7 @@ package org.enso.distribution
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions
 import org.enso.editions.provider.{EditionProvider, FileSystemEditionProvider}
-import org.enso.editions.{
-  EditionResolver,
-  Editions,
-  LibraryName,
-  LibraryVersion
-}
+import org.enso.editions.{EditionResolver, Editions}
 
 import java.nio.file.Path
 import scala.util.Try
@@ -42,10 +37,4 @@ class EditionManager(editionProvider: EditionProvider) {
     */
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
-
-  def findAllDefinedLibraries(
-    edition: Editions.RawEdition
-  ): Try[Seq[(LibraryName, LibraryVersion)]] = for {
-    resolved <- editionResolver.resolve(edition).toTry
-  } yield resolved.getAllDefinedLibraries.toSeq
 }
