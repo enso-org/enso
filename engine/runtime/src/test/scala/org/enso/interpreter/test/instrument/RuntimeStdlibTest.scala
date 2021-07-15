@@ -204,13 +204,14 @@ class RuntimeStdlibTest
     }
     suggestions.isEmpty shouldBe false
 
-    // check that the library is indexed
+    // check that the Standard.Base library is indexed
     val stdlibSuggestions = responses.collect {
       case Api.Response(
             None,
             Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
           ) if file.getPath.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
+        xs.toVector.head.suggestion.module shouldEqual "Standard.Base.Data.Vector"
     }
     stdlibSuggestions.nonEmpty shouldBe true
 
