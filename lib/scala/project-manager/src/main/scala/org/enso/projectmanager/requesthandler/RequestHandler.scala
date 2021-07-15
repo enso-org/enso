@@ -3,7 +3,7 @@ package org.enso.projectmanager.requesthandler
 import akka.actor.{Actor, ActorRef, Cancellable, Stash, Status}
 import akka.pattern.pipe
 import com.typesafe.scalalogging.{LazyLogging, Logger}
-import org.enso.cli.task.notifications.ProgressNotification
+import org.enso.cli.task.ProgressNotification
 import org.enso.cli.task.notifications.ProgressNotification.translateProgressNotification
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._

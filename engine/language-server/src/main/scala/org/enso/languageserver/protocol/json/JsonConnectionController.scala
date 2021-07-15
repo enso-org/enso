@@ -1,10 +1,11 @@
 package org.enso.languageserver.protocol.json
 
-import java.util.UUID
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.cli.task.ProgressUnit
+import org.enso.cli.task.notifications.TaskNotificationApi
 import org.enso.distribution.EditionManager
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
@@ -69,7 +70,10 @@ import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -238,8 +242,7 @@ class JsonConnectionController(
           InitProtocolConnection.Result(allRoots.map(_.toContentRoot).toSet)
         )
 
-        val requestHandlers = createRequestHandlers(rpcSession)
-        context.become(initialised(webActor, rpcSession, requestHandlers))
+        initialize(webActor, rpcSession)
       } else {
         context.become(
           waitingForContentRoots(
@@ -260,6 +263,17 @@ class JsonConnectionController(
 
     case _ =>
       stash()
+  }
+
+  private def initialize(
+    webActor: ActorRef,
+    rpcSession: JsonSession
+  ): Unit = {
+    val requestHandlers = createRequestHandlers(rpcSession)
+    context.become(initialised(webActor, rpcSession, requestHandlers))
+
+    context.system.eventStream
+      .subscribe(self, classOf[Api.ProgressNotification])
   }
 
   private def initialised(
@@ -371,6 +385,11 @@ class JsonConnectionController(
           FileManagerApi.ContentRootAdded.Params(root.toContentRoot)
         )
       }
+
+    case Api.ProgressNotification(payload) =>
+      val translated: Notification[_, _] =
+        translateProgressNotification(payload)
+      webActor ! translated
 
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
       refreshIdleTime(method)
@@ -491,6 +510,32 @@ class JsonConnectionController(
     )
   }
 
+  private def translateProgressNotification(
+    progressNotification: ProgressNotification.NotificationType
+  ): Notification[_, _] = progressNotification match {
+    case ProgressNotification.TaskStarted(
+          taskId,
+          relatedOperation,
+          unitStr,
+          total
+        ) =>
+      val unit = ProgressUnit.fromString(unitStr)
+      Notification(
+        TaskNotificationApi.TaskStarted,
+        TaskNotificationApi.TaskStarted
+          .Params(taskId, relatedOperation, unit, total)
+      )
+    case ProgressNotification.TaskProgressUpdate(taskId, message, done) =>
+      Notification(
+        TaskNotificationApi.TaskProgressUpdate,
+        TaskNotificationApi.TaskProgressUpdate.Params(taskId, message, done)
+      )
+    case ProgressNotification.TaskFinished(taskId, message, success) =>
+      Notification(
+        TaskNotificationApi.TaskFinished,
+        TaskNotificationApi.TaskFinished.Params(taskId, message, success)
+      )
+  }
 }
 
 object JsonConnectionController {

@@ -2,8 +2,10 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.cli.task.notifications.ActorProgressNotificationForwarder
 import org.enso.jsonrpc.{Request, ResponseError}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
+import org.enso.languageserver.libraries.FakeDownload
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -13,8 +15,20 @@ class LibraryPreinstallHandler
     with UnhandledLogging {
   override def receive: Receive = {
     case Request(LibraryPreinstall, id, _: LibraryPreinstall.Params) =>
-      // TODO [RW] fake progress bar
       // TODO [RW] actual implementation
+      val progressReporter =
+        ActorProgressNotificationForwarder.translateAndForward(
+          LibraryPreinstall.name,
+          sender()
+        )
+      FakeDownload.simulateDownload(
+        "Downloading something...",
+        progressReporter
+      )
+      FakeDownload.simulateDownload(
+        "Downloading something else...",
+        progressReporter
+      )
       sender() ! ResponseError(
         Some(id),
         FileSystemError("Feature not implemented")

@@ -2,7 +2,12 @@ package org.enso.interpreter.instrument
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
-import org.enso.cli.task.{ProgressReporter, TaskProgress}
+import org.enso.cli.task.{
+  ProgressNotification,
+  ProgressNotificationForwarder,
+  ProgressReporter,
+  TaskProgress
+}
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
@@ -15,9 +20,9 @@ trait NotificationHandler extends ProgressReporter {
 
   /** Called when a library has been loaded.
     *
-    * @param libraryName name of the added library
+    * @param libraryName    name of the added library
     * @param libraryVersion selected version
-    * @param location path to the location from which the library is loaded
+    * @param location       path to the location from which the library is loaded
     */
   def addedLibrary(
     libraryName: LibraryName,
@@ -80,7 +85,9 @@ object NotificationHandler {
     * notifications to the Language Server, which then should forward them to
     * the IDE.
     */
-  class InteractiveMode(endpoint: Endpoint) extends NotificationHandler {
+  class InteractiveMode(endpoint: Endpoint)
+      extends NotificationHandler
+      with ProgressNotificationForwarder {
     private val logger = Logger[InteractiveMode]
 
     private def sendMessage(message: ApiResponse): Unit = {
@@ -105,7 +112,16 @@ object NotificationHandler {
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
       logger.info(message)
-      // TODO [RW] this should be implemented once progress tracking is used by downloads
+      super.trackProgress(message, task)
     }
+
+    override def sendProgressNotification(
+      notification: ProgressNotification
+    ): Unit = sendMessage(
+      ProgressNotificationTranslator.translate(
+        "compiler/downloadingDependencies",
+        notification
+      )
+    )
   }
 }

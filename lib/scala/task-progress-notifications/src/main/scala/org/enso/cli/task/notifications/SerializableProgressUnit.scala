@@ -1,7 +1,7 @@
 package org.enso.cli.task.notifications
 
 import enumeratum._
-import org.enso.cli.task.{TaskProgress, ProgressUnit => TaskProgressUnit}
+import org.enso.cli.task.{ProgressUnit => TaskProgressUnit}
 
 /** Represents the unit used by progress updates. */
 sealed trait SerializableProgressUnit extends EnumEntry
@@ -19,10 +19,10 @@ object SerializableProgressUnit
 
   override val values = findValues
 
-  /** Creates a [[ProgressUnit]] from the unit associated with [[TaskProgress]].
+  /** Converts a [[TaskProgressUnit]] to [[SerializableProgressUnit]].
     */
-  def fromTask(task: TaskProgress[_]): SerializableProgressUnit =
-    task.unit match {
+  implicit def fromUnit(unit: TaskProgressUnit): SerializableProgressUnit =
+    unit match {
       case TaskProgressUnit.Bytes       => Bytes
       case TaskProgressUnit.Unspecified => Other
     }

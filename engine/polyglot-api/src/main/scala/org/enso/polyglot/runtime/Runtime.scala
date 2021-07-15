@@ -1353,6 +1353,32 @@ object Runtime {
       location: File
     ) extends ApiNotification
 
+    case class ProgressNotification(
+      payload: ProgressNotification.NotificationType
+    ) extends ApiNotification
+
+    object ProgressNotification {
+      sealed trait NotificationType
+      case class TaskStarted(
+        taskId: UUID,
+        relatedOperation: String,
+        unit: String,
+        total: Option[Long]
+      ) extends NotificationType
+
+      case class TaskProgressUpdate(
+        taskId: UUID,
+        message: Option[String],
+        done: Long
+      ) extends NotificationType
+
+      case class TaskFinished(
+        taskId: UUID,
+        message: Option[String],
+        success: Boolean
+      ) extends NotificationType
+    }
+
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
