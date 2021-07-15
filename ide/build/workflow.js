@@ -326,6 +326,7 @@ let uploadGitHubRelease = [
             tag_name:   "v${{fromJson(steps.changelog.outputs.content).version}}",
             body:       "${{fromJson(steps.changelog.outputs.content).body}}",
             prerelease: "${{fromJson(steps.changelog.outputs.content).prerelease}}",
+            draft: true,
         },
     }
 ]
