@@ -123,26 +123,9 @@ object TestMessages {
     expressionId: UUID,
     payload: Api.ExpressionUpdate.Payload
   ): Api.Response =
-    error(contextId, expressionId, Constants.ERROR, payload)
-
-  /** Create an error update response.
-    *
-    * @param contextId an identifier of the context
-    * @param expressionId an identifier of the expression
-    * @param expressionType a type of the expression
-    * @param payload the error payload
-    * @return the expression update response
-    */
-  def error(
-    contextId: UUID,
-    expressionId: UUID,
-    expressionType: String,
-    payload: Api.ExpressionUpdate.Payload
-  ): Api.Response =
     errorBuilder(
       contextId,
       expressionId,
-      Some(expressionType),
       None,
       false,
       payload
@@ -152,7 +135,28 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param expressionType a type of the expression
+    * @param methodPointer a pointer to the method definition
+    * @param payload the error payload
+    * @return the expression update response
+    */
+  def error(
+    contextId: UUID,
+    expressionId: UUID,
+    methodPointer: Api.MethodPointer,
+    payload: Api.ExpressionUpdate.Payload
+  ): Api.Response =
+    error(
+      contextId,
+      expressionId,
+      methodPointer,
+      false,
+      payload
+    )
+
+  /** Create an error update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
     * @param methodPointer a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
@@ -162,7 +166,6 @@ object TestMessages {
   def error(
     contextId: UUID,
     expressionId: UUID,
-    expressionType: String,
     methodPointer: Api.MethodPointer,
     fromCache: Boolean,
     payload: Api.ExpressionUpdate.Payload
@@ -170,7 +173,6 @@ object TestMessages {
     errorBuilder(
       contextId,
       expressionId,
-      Some(expressionType),
       Some(methodPointer),
       fromCache,
       payload
@@ -180,7 +182,6 @@ object TestMessages {
     *
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
-    * @param expressionTypeOpt a type of the expression
     * @param methodPointerOpt a pointer to the method definition
     * @param fromCache whether or not the value for this expression came
     * from the cache
@@ -190,7 +191,6 @@ object TestMessages {
   private def errorBuilder(
     contextId: UUID,
     expressionId: UUID,
-    expressionTypeOpt: Option[String],
     methodPointerOpt: Option[Api.MethodPointer],
     fromCache: Boolean,
     payload: Api.ExpressionUpdate.Payload
@@ -201,7 +201,7 @@ object TestMessages {
         Set(
           Api.ExpressionUpdate(
             expressionId,
-            expressionTypeOpt,
+            Some(Constants.ERROR),
             methodPointerOpt,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             fromCache,
