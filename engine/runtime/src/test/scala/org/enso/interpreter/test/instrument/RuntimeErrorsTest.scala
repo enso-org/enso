@@ -130,53 +130,6 @@ class RuntimeErrorsTest
       Api.Response(Api.ExecutionComplete(contextId))
   }
 
-  object Update {
-
-    def panic(
-      contextId: UUID,
-      expressionId: UUID,
-      payload: Api.ExpressionUpdate.Payload
-    ): Api.Response =
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              expressionId,
-              Some(Constants.PANIC),
-              None,
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              payload
-            )
-          )
-        )
-      )
-
-    def panic(
-      contextId: UUID,
-      expressionId: UUID,
-      methodPointer: Api.MethodPointer,
-      payload: Api.ExpressionUpdate.Payload
-    ): Api.Response =
-      Api.Response(
-        Api.ExpressionUpdates(
-          contextId,
-          Set(
-            Api.ExpressionUpdate(
-              expressionId,
-              Some(Constants.PANIC),
-              Some(methodPointer),
-              Vector(Api.ProfilingInfo.ExecutionTime(0)),
-              false,
-              payload
-            )
-          )
-        )
-      )
-
-  }
-
   def contentsVersion(content: String): ContentVersion =
     Sha3_224VersionCalculator.evalVersion(content)
 
@@ -247,7 +200,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -255,7 +208,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -263,7 +216,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -331,7 +284,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainBodyId,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
@@ -482,7 +435,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -936,7 +889,7 @@ class RuntimeErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -944,7 +897,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -952,7 +905,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1048,7 +1001,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1056,7 +1009,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1064,7 +1017,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1151,7 +1104,7 @@ class RuntimeErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1159,7 +1112,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1167,7 +1120,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1194,7 +1147,7 @@ class RuntimeErrorsTest
       )
     )
     context.receive(4) should contain theSameElementsAs Seq(
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1202,7 +1155,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1210,7 +1163,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1274,7 +1227,7 @@ class RuntimeErrorsTest
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.MethodPointer(moduleName, moduleName, "foo"),
@@ -1283,7 +1236,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1291,7 +1244,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1490,7 +1443,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
@@ -1498,7 +1451,7 @@ class RuntimeErrorsTest
           Seq(xId)
         )
       ),
-      Update.panic(
+      TestMessages.panic(
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(

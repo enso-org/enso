@@ -211,4 +211,64 @@ object TestMessages {
       )
     )
 
+  /** Create a panic update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param payload the error payload
+    * @return the expression update response
+    */
+  def panic(
+    contextId: UUID,
+    expressionId: UUID,
+    payload: Api.ExpressionUpdate.Payload
+  ): Api.Response =
+    panicBuilder(contextId, expressionId, None, payload)
+
+  /** Create a panic update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param methodPointer a pointer to the method definition
+    * @param payload the error payload
+    * @return the expression update response
+    */
+  def panic(
+    contextId: UUID,
+    expressionId: UUID,
+    methodPointer: Api.MethodPointer,
+    payload: Api.ExpressionUpdate.Payload
+  ): Api.Response =
+    panicBuilder(contextId, expressionId, Some(methodPointer), payload)
+
+  /** Create a panic update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param methodPointer a pointer to the method definition
+    * @param payload the error payload
+    * @return the expression update response
+    */
+  private def panicBuilder(
+    contextId: UUID,
+    expressionId: UUID,
+    methodPointer: Option[Api.MethodPointer],
+    payload: Api.ExpressionUpdate.Payload
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        Set(
+          Api.ExpressionUpdate(
+            expressionId,
+            Some(Constants.PANIC),
+            methodPointer,
+            Vector(Api.ProfilingInfo.ExecutionTime(0)),
+            false,
+            payload
+          )
+        )
+      )
+    )
+
 }
