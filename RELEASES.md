@@ -1,5 +1,29 @@
 # Enso Next
 
+# Enso 0.2.14 (2021-07-15)
+
+## Interpreter/Runtime
+
+- Ensure that the module used by a visualization is preloaded when the
+  visualization is being attached
+  ([#1857](https://github.com/enso-org/enso/pull/1857)).
+- Fix an issue with the `HostClassLoader` getting into a broken state
+  ([#1867](https://github.com/enso-org/enso/pull/1867)).
+
+## Tooling
+
+- Implemented an HTTP endpoint returning the time that the language server has
+  spent idle ([#1847](https://github.com/enso-org/enso/pull/1847)).
+- Fix a bug where the `project/list` endpoint would fail if any of the projects
+  referenced an edition that does not exist anymore
+  ([#1858](https://github.com/enso-org/enso/pull/1858)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-15)
+  for issues opened before the release date.
+
 # Enso 0.2.13 (2021-07-09)
 
 ## Interpreter/Runtime

@@ -1,5 +1,7 @@
 package org.enso.languageserver.protocol.json
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
@@ -15,6 +17,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.event.{
+  InitializedEvent,
   JsonSessionInitialized,
   JsonSessionTerminated
 }
@@ -24,6 +27,7 @@ import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
+import org.enso.languageserver.monitoring.MonitoringProtocol
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
@@ -63,7 +67,6 @@ import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
-import java.util.UUID
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -77,6 +80,7 @@ import scala.concurrent.duration._
   * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param idlenessMonitor a reference to the idleness monitor actor
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -92,6 +96,7 @@ class JsonConnectionController(
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
+  val idlenessMonitor: ActorRef,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -157,6 +162,9 @@ class JsonConnectionController(
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
+      context.system.eventStream.publish(
+        InitializedEvent.InitializationFinished
+      )
 
       val cancellable = context.system.scheduler.scheduleOnce(
         requestTimeout,
@@ -179,6 +187,7 @@ class JsonConnectionController(
     case Status.Failure(ex) =>
       logger.error("Failed to initialize the resources. {}", ex.getMessage)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
+      context.system.eventStream.publish(InitializedEvent.InitializationFailed)
       context.become(connected(webActor))
 
     case _ => stash()
@@ -356,11 +365,21 @@ class JsonConnectionController(
       }
 
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
+      refreshIdleTime(method)
       val handler = context.actorOf(
         requestHandlers(method),
         s"request-handler-$method-${UUID.randomUUID()}"
       )
       handler.forward(req)
+  }
+
+  private def refreshIdleTime(method: Method): Unit = {
+    method match {
+      case InitialPing | Ping =>
+      // ignore
+      case _ =>
+        idlenessMonitor ! MonitoringProtocol.ResetIdleTime
+    }
   }
 
   private def createRequestHandlers(
@@ -473,6 +492,7 @@ object JsonConnectionController {
     stdErrController: ActorRef,
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
+    idlenessMonitor: ActorRef,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
@@ -490,6 +510,7 @@ object JsonConnectionController {
         stdErrController,
         stdInController,
         runtimeConnector,
+        idlenessMonitor,
         languageServerConfig,
         requestTimeout
       )

@@ -1,7 +1,5 @@
 package org.enso.languageserver.websocket.json
 
-import java.io.File
-
 import io.circe.literal._
 import org.enso.languageserver.search.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
@@ -25,7 +23,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // add atom
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("1"),
           Vector(),
           Vector(),
@@ -75,7 +73,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // add method
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("2"),
           Vector(),
           Vector(),
@@ -144,7 +142,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // add function
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("3"),
           Vector(),
           Vector(),
@@ -235,7 +233,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // add local
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("4"),
           Vector(),
           Vector(),
@@ -434,7 +432,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // update items
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("5"),
           Vector(),
           Vector(),
@@ -553,7 +551,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // update exports
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("6"),
           Vector(),
           Vector(
@@ -594,7 +592,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
       // remove items
       system.eventStream.publish(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           versionCalculator.evalVersion("7"),
           Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
           Vector(),

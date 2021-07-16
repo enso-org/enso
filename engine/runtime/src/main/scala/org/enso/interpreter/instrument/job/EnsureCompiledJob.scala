@@ -80,10 +80,10 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     val modules = files.flatMap { file =>
       ctx.executionService.getContext.getModuleForFile(file).toScala
     }
+    val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val modulesInScope =
       getModulesInScope.filterNot(m => modules.exists(_ == m))
-    val moduleCompilationStatus = modules.map(ensureCompiledModule)
-    val scopeCompilationStatus  = ensureCompiledScope(modulesInScope)
+    val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
     (moduleCompilationStatus ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -169,7 +169,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(module.getName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = getIndexingPath(module),
+        module  = moduleName.toString,
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
@@ -201,7 +201,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val newExports  = exportsBuilder.build(moduleName, module.getIr)
       val exportsDiff = ModuleExportsDiff.compute(prevExports, newExports)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = new File(module.getPath),
+        module  = moduleName.toString,
         version = version,
         actions = Vector(),
         exports = exportsDiff,
@@ -217,7 +217,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val prevExports = ModuleExports(moduleName.toString, Set())
       val newExports  = exportsBuilder.build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = new File(module.getPath),
+        module  = moduleName.toString,
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
@@ -450,7 +450,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   private def getCacheMetadata(
     stack: Iterable[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
-    stack.lastOption flatMap {
+    stack.lastOption.flatMap {
       case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _, _) =>
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
@@ -466,12 +466,8 @@ class EnsureCompiledJob(protected val files: Iterable[File])
   /** Get all modules in the current compiler scope. */
   private def getModulesInScope(implicit
     ctx: RuntimeContext
-  ): Iterable[Module] = {
-    val topScope       = ctx.executionService.getContext.getTopScope
-    val modulesInScope = topScope.getModules.asScala
-    val builtins       = topScope.getBuiltins.getModule
-    modulesInScope ++ Seq(builtins)
-  }
+  ): Iterable[Module] =
+    ctx.executionService.getContext.getTopScope.getModules.asScala
 
   private def getCompiledModules(moduleScope: ModuleScope): Seq[Module] = {
     @scala.annotation.tailrec
@@ -500,16 +496,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     }
     go(queue, mutable.LinkedHashSet.empty)
   }
-
-  /** Get the module path for suggestions database indexing.
-    *
-    * If the module is synthetic (i.e. Builtins), uses its name as a path.
-    */
-  private def getIndexingPath(module: Module): File =
-    if (module.getPath eq null) {
-      new File(s"/${module.getName}")
-    } else
-      new File(module.getPath)
 
   private def rootName(name: QualifiedName): String =
     name.path.headOption.getOrElse(name.item)
