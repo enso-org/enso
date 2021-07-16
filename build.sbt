@@ -233,6 +233,7 @@ lazy val enso = (project in file("."))
     logger.jvm,
     pkg,
     cli,
+    `task-progress-notifications`,
     `logging-utils`,
     `logging-service`,
     `akka-native`,

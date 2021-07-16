@@ -44,7 +44,7 @@ class EditionManager(@unused primaryCachePath: Path, searchPaths: List[Path]) {
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
 
-  // TODO [RW] download edition updates
+  // TODO [RW] download edition updates, part of #1772
 
   /** Find all editions available in the [[searchPaths]]. */
   def findAllAvailableEditions(): Seq[String] =

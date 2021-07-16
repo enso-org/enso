@@ -4,7 +4,8 @@
 
 - Implement parts of the new Language Server API related to library support
   ([#1875](https://github.com/enso-org/enso/pull/1875)). Parts of the API are
-  still mocked, but they are supported too for testing purposes.
+  still mocked internally, but they are supported externally for testing
+  purposes.
 
 # Enso 0.2.14 (2021-07-15)
 
