@@ -36,7 +36,7 @@ jobs:
           disk-root: "C:"
       - name: debug
         shell: bash
-        run: echo ${{ github.event }}
+        run: echo ${{ github.event.name }}
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Setup Go
