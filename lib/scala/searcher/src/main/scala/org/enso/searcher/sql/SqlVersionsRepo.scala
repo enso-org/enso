@@ -44,6 +44,10 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(removeQuery(module))
 
   /** @inheritdoc */
+  override def remove(modules: Seq[String]): Future[Unit] =
+    db.run(removeModulesQuery(modules))
+
+  /** @inheritdoc */
   override def clean: Future[Unit] =
     db.run(cleanQuery)
 
@@ -139,6 +143,19 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
       if row.module === module
     } yield row
     query.delete >> DBIO.successful(())
+  }
+
+  /** The query to remove multiple module versions.
+    *
+    * @param modules the list of module names
+    */
+  private def removeModulesQuery(modules: Seq[String]): DBIO[Unit] = {
+    val deleteQuery = ModuleVersions
+      .filter(_.module.inSet(modules))
+      .delete
+    for {
+      _ <- deleteQuery
+    } yield ()
   }
 
   private def compareVersions(v1: Array[Byte], v2: Array[Byte]): Boolean =

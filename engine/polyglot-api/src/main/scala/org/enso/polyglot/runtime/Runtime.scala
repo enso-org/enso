@@ -1104,12 +1104,10 @@ object Runtime {
       *
       * @param path the file being moved to memory.
       * @param contents the current file contents.
-      * @param isIndexed the flag specifying whether the file is indexed
       */
     case class OpenFileNotification(
       path: File,
-      contents: String,
-      isIndexed: Boolean
+      contents: String
     ) extends ApiRequest
         with ToLogString {
 
@@ -1118,7 +1116,6 @@ object Runtime {
         "OpenFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
-        s"isIndexed=$isIndexed" +
         ")"
     }
 

@@ -26,7 +26,6 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.duration._
@@ -78,7 +77,7 @@ class SuggestionsHandlerSpec
 
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           Tree.Root(Suggestions.all.toVector.map { suggestion =>
@@ -123,7 +122,7 @@ class SuggestionsHandlerSpec
 
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           Tree.Root(
@@ -217,7 +216,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree1
@@ -291,7 +290,7 @@ class SuggestionsHandlerSpec
         )
         // update tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion("1"),
           Vector(),
           tree2
@@ -380,7 +379,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree
@@ -458,7 +457,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree1
@@ -482,7 +481,7 @@ class SuggestionsHandlerSpec
 
         // clean module
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion("1"),
           Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
           Tree.Root(Vector())

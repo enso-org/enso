@@ -41,6 +41,12 @@ trait ModuleVersionsRepo[F[_]] {
     */
   def remove(module: String): F[Unit]
 
+  /** Remove the version record.
+    *
+    * @param modules the list of modules to remove
+    */
+  def remove(modules: Seq[String]): F[Unit]
+
   /** Clean the repo. */
   def clean: F[Unit]
 }

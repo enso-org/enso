@@ -80,6 +80,7 @@ import scala.util.{Failure, Success}
   * @param config the server configuration
   * @param contentRootManager the content root manager
   * @param suggestionsRepo the suggestions repo
+  * @param versionsRepo the versions repo
   * @param sessionRouter the session router
   * @param runtimeConnector the runtime connector
   */
@@ -87,7 +88,7 @@ final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  fileVersionsRepo: ModuleVersionsRepo[Future],
+  versionsRepo: ModuleVersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -105,7 +106,7 @@ final class SuggestionsHandler(
       "Starting suggestions handler from [{}, {}, {}].",
       config,
       suggestionsRepo,
-      fileVersionsRepo
+      versionsRepo
     )
     context.system.eventStream
       .subscribe(self, classOf[Api.ExpressionUpdates])
@@ -179,13 +180,11 @@ final class SuggestionsHandler(
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
       logger.info("Verifying: got verification response.")
-      for {
+      val removeAction = for {
         _ <- suggestionsRepo.removeModules(toRemove)
-        _ <- fileVersionsRepo.remove()
-      } suggestionsRepo
-        .removeModules(toRemove)
-        .map(_ => SuggestionsHandler.Verified)
-        .pipeTo(self)
+        _ <- versionsRepo.remove(toRemove)
+      } yield SuggestionsHandler.Verified
+      removeAction.pipeTo(self)
 
     case SuggestionsHandler.Verified =>
       logger.info("Verified.")
@@ -217,7 +216,7 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseModuleUpdateNotification =>
       val isVersionChanged =
-        fileVersionsRepo.getVersion(msg.file).map { digestOpt =>
+        versionsRepo.getVersion(msg.module).map { digestOpt =>
           !digestOpt.map(ContentVersion(_)).contains(msg.version)
         }
       val applyUpdatesIfVersionChanged =
@@ -237,7 +236,7 @@ final class SuggestionsHandler(
           case Failure(ex) =>
             logger.error(
               "Error applying suggestion database updates [{}, {}]. {}",
-              MaskedPath(msg.file.toPath),
+              msg.module,
               msg.version,
               ex.getMessage
             )
@@ -369,7 +368,7 @@ final class SuggestionsHandler(
     case InvalidateSuggestionsDatabase =>
       val action = for {
         _ <- suggestionsRepo.clean
-        _ <- fileVersionsRepo.clean
+        _ <- versionsRepo.clean
       } yield SearchProtocol.InvalidateModulesIndex
 
       val runtimeFailureMapper = RuntimeFailureMapper(contentRootManager)
@@ -471,7 +470,7 @@ final class SuggestionsHandler(
     for {
       actionResults      <- suggestionsRepo.applyActions(msg.actions)
       (version, results) <- suggestionsRepo.applyTree(msg.updates)
-      _                  <- fileVersionsRepo.setVersion(msg.file, msg.version.toDigest)
+      _                  <- versionsRepo.setVersion(msg.module, msg.version.toDigest)
     } yield {
       val actionUpdates = actionResults.flatMap {
         case QueryResult(ids, Api.SuggestionsDatabaseAction.Clean(_)) =>
