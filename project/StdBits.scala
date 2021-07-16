@@ -43,12 +43,6 @@ object StdBits {
             module        = DependencyFilter.moduleFilter(organization = -graalOrg),
             artifact      = DependencyFilter.artifactFilter()
           )
-//          .map { file =>
-//            if (unpackedDeps.contains(file.getParentFile.getParentFile.getName)) {
-//              val name = file.getName
-//              file.getParentFile / name.substring(0, name.lastIndexOf('.'))
-//            } else file
-//          }
 
       val dependencyStore =
         streams.value.cacheStoreFactory.make("std-bits-dependencies")
