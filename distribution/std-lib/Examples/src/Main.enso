@@ -34,6 +34,14 @@ csv = Enso_Project.data / "food_shop_inventory.csv"
 csv_path : Text
 csv_path = here.csv.path
 
+## An example XLS file for experimenting with Table and its APIs.
+xls : File
+xls = Enso_Project.data / 'spreadsheet.xls'
+
+## An example XLSX file for experimenting with Table and its APIs.
+xlsx : File
+xlsx = Enso_Project.data / 'spreadsheet.xlsx'
+
 ## A file that is used for writing temporary data as part of tests.
 scratch_file : File
 scratch_file =

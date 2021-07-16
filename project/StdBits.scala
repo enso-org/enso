@@ -3,6 +3,8 @@ import sbt._
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
+import scala.sys.process.Process
+
 object StdBits {
 
   /** Discovers dependencies of a project and copies them into the destination
@@ -19,7 +21,8 @@ object StdBits {
   def copyDependencies(
     destination: File,
     baseJarName: Option[String],
-    ignoreScalaLibrary: Boolean
+    ignoreScalaLibrary: Boolean,
+    unpackedDeps: Set[String] = Set()
   ): Def.Initialize[Task[Unit]] =
     Def.task {
       val libraryUpdates = (Compile / update).value
@@ -29,16 +32,32 @@ object StdBits {
         if (ignoreScalaLibrary)
           new ExactFilter(Configurations.ScalaTool.name)
         else NothingFilter
-      val filter: ConfigurationFilter =
+      val configFilter: ConfigurationFilter =
         DependencyFilter.configurationFilter(-ignoredConfigurations)
-      val relevantFiles = libraryUpdates.select(filter)
+
+      val graalOrg = new ExactFilter("org.graalvm.sdk")
+      val relevantFiles =
+        libraryUpdates
+          .select(
+            configuration = configFilter,
+            module        = DependencyFilter.moduleFilter(organization = -graalOrg),
+            artifact      = DependencyFilter.artifactFilter()
+          )
+//          .map { file =>
+//            if (unpackedDeps.contains(file.getParentFile.getParentFile.getName)) {
+//              val name = file.getName
+//              file.getParentFile / name.substring(0, name.lastIndexOf('.'))
+//            } else file
+//          }
 
       val dependencyStore =
         streams.value.cacheStoreFactory.make("std-bits-dependencies")
       Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
         report =>
           val expectedFileNames =
-            report.checked.map(_.getName) ++ baseJarName.toSeq
+            report.checked.map(
+              getDestinationFileName(_, unpackedDeps)
+            ) ++ baseJarName.toSeq
           for (existing <- IO.listFiles(destination)) {
             if (!expectedFileNames.contains(existing.getName)) {
               log.info(
@@ -51,15 +70,42 @@ object StdBits {
             log.info(
               s"Updating changed std-bits dependency ${changed.getName}."
             )
-            IO.copyFile(changed, destination / changed.getName)
+            updateDependency(changed, unpackedDeps, destination)
           }
           for (file <- report.unmodified) {
-            val dest = destination / file.getName
+            val dest = destination / getDestinationFileName(file, unpackedDeps)
             if (!dest.exists()) {
               log.info(s"Adding missing std-bits dependency ${file.getName}.")
-              IO.copyFile(file, dest)
+              updateDependency(file, unpackedDeps, destination)
             }
           }
       }
     }
+
+  private def shouldUnpack(jar: File, unpacked: Set[String]): Boolean =
+    unpacked.contains(jar.getParentFile.getParentFile.getName)
+
+  private def updateDependency(
+    jar: File,
+    unpacked: Set[String],
+    destinationDir: File
+  ): Unit = {
+    val destination = destinationDir / getDestinationFileName(jar, unpacked)
+    if (shouldUnpack(jar, unpacked)) {
+      destination.mkdirs()
+      Process(s"jar xf ${jar.getAbsolutePath}", destination)!
+    } else {
+      IO.copyFile(jar, destination)
+    }
+  }
+
+  private def getDestinationFileName(
+    file: File,
+    unpacked: Set[String]
+  ): String = {
+    if (shouldUnpack(file, unpacked)) {
+      val name = file.getName
+      name.substring(0, name.lastIndexOf('.'))
+    } else file.getName
+  }
 }
