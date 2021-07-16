@@ -1260,13 +1260,13 @@ object Runtime {
 
     /** A notification about the changes in the suggestions database.
       *
-      * @param file the module file path
+      * @param module the module name
       * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
-      file: File,
+      module: String,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
       updates: Tree[SuggestionUpdate]
@@ -1276,7 +1276,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
-        s"file=${MaskedPath(file.toPath).toLogString(shouldMask)}," +
+        s"module=$module," +
         s"version=$version," +
         s"actions=$actions," +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +

@@ -20,7 +20,7 @@ import org.enso.languageserver.text.TextProtocol.{
   OpenFile,
   SaveFile
 }
-import org.enso.searcher.FileVersionsRepo
+import org.enso.searcher.ModuleVersionsRepo
 import org.enso.text.ContentBasedVersioning
 
 import scala.concurrent.Future
@@ -62,7 +62,7 @@ import scala.concurrent.Future
   * @param versionCalculator a content based version calculator
   */
 class BufferRegistry(
-  versionsRepo: FileVersionsRepo[Future],
+  versionsRepo: ModuleVersionsRepo[Future],
   fileManager: ActorRef,
   runtimeConnector: ActorRef
 )(implicit
@@ -164,7 +164,7 @@ object BufferRegistry {
     * @return a configuration object
     */
   def props(
-    versionsRepo: FileVersionsRepo[Future],
+    versionsRepo: ModuleVersionsRepo[Future],
     fileManager: ActorRef,
     runtimeConnector: ActorRef
   )(implicit

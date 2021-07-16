@@ -38,7 +38,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.{ModuleVersionsRepo, SuggestionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
@@ -87,7 +87,7 @@ final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  fileVersionsRepo: FileVersionsRepo[Future],
+  fileVersionsRepo: ModuleVersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -179,7 +179,10 @@ final class SuggestionsHandler(
   ): Receive = {
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
       logger.info("Verifying: got verification response.")
-      suggestionsRepo
+      for {
+        _ <- suggestionsRepo.removeModules(toRemove)
+        _ <- fileVersionsRepo.remove()
+      } suggestionsRepo
         .removeModules(toRemove)
         .map(_ => SuggestionsHandler.Verified)
         .pipeTo(self)
@@ -644,7 +647,7 @@ object SuggestionsHandler {
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: FileVersionsRepo[Future],
+    fileVersionsRepo: ModuleVersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
   ): Props =

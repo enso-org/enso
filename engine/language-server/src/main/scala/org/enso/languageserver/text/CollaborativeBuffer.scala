@@ -26,7 +26,7 @@ import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.FileVersionsRepo
+import org.enso.searcher.ModuleVersionsRepo
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
@@ -46,7 +46,7 @@ import scala.language.postfixOps
   */
 class CollaborativeBuffer(
   bufferPath: Path,
-  versionsRepo: FileVersionsRepo[Future],
+  versionsRepo: ModuleVersionsRepo[Future],
   fileManager: ActorRef,
   runtimeConnector: ActorRef,
   timeout: FiniteDuration
@@ -434,7 +434,7 @@ object CollaborativeBuffer {
     */
   def props(
     bufferPath: Path,
-    versionsRepo: FileVersionsRepo[Future],
+    versionsRepo: ModuleVersionsRepo[Future],
     fileManager: ActorRef,
     runtimeConnector: ActorRef,
     timeout: FiniteDuration = 10 seconds

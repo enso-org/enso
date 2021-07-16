@@ -18,7 +18,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.{ModuleVersionsRepo, SuggestionsRepo}
 import org.enso.testkit.RetrySpec
 import org.enso.text.editing.model.Position
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -761,7 +761,7 @@ class SuggestionsHandlerSpec
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: FileVersionsRepo[Future]
+    fileVersionsRepo: ModuleVersionsRepo[Future]
   ): ActorRef = {
     val contentRootManagerActor =
       system.actorOf(ContentRootManagerActor.props(config))
@@ -836,9 +836,9 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router    = TestProbe("session-router")
-    val connector = TestProbe("runtime-connector")
-    val sqlDatabase = SqlDatabase( config.directories.suggestionsDatabaseFile)
+    val router          = TestProbe("session-router")
+    val connector       = TestProbe("runtime-connector")
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 
