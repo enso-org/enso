@@ -1,6 +1,18 @@
 # Next Release
 
-# Enso 2.0.0-alpha.8 (2021-06-09)
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [Improved undo-reddo][1653]. Several new operations are now supported by
+  undo-redo:
+  - node selection;
+  - enabling and disabling a visualization;
+  - entering and leaving a node.
+
+<br/>
+  
+# Enso 2.0.0-alpha.8 (2021-07-09)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
@@ -16,7 +28,8 @@
   details in
   [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
-[1640]: https://github.com/enso-org/ide/pull/1664
+[1640]: https://github.com/enso-org/ide/pull/1640
+[1677]: https://github.com/enso-org/ide/pull/1677
 
 <br/>
 
@@ -48,7 +61,7 @@
 
 #### Visual Environment
 
-- [Profiling mode.][1546] The IDE contains a profiling mode now which can be
+- [Profling mode.][1546] The IDE contains a profiling mode now which can be
   entered through a button in the top-right corner or through the keybinding
   <kbd>ctrl</kbd>+<kbd>p</kbd>. This mode does not display any information yet.
   In the future, it will display the running times of nodes and maybe more

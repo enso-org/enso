@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::executed::Notification as GraphNotification;
 use crate::controller::ide::StatusNotificationPublisher;
+use crate::model::traits::*;
 
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
@@ -56,6 +57,13 @@ pub fn main_method_ptr(project_name:impl Str, module_path:&model::module::Path) 
     module_path.method_pointer(project_name,MAIN_DEFINITION_NAME)
 }
 
+/// The identifier of the project's main module.
+pub fn main_module_id() -> model::module::Id {
+    // We can just assume that `INITIAL_MODULE_NAME` is valid. This is verified by a test.
+    model::module::Id::try_new([INITIAL_MODULE_NAME]).unwrap()
+}
+
+
 
 
 // =================
@@ -86,7 +94,9 @@ pub fn package_yaml_path(project_name:&str) -> String {
 pub struct InitializationResult {
     /// The Text Controller for Main module code to be displayed in Code Editor.
     pub main_module_text:controller::Text,
-    /// The Graph Controller for main definition's graph, to be displayed in Graph Editor.
+    /// The model of the project's Main module.
+    pub main_module_model:model::Module,
+    /// The Graph Controller for main method's definition graph, to be displayed in Graph Editor.
     pub main_graph:controller::ExecutedGraph,
 }
 
@@ -126,8 +136,8 @@ impl Project {
         //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
         self.recreate_if_missing(&file_path,default_main_method_code()).await?;
         let method = main_method_ptr(project.name(),&module_path);
-        let module = self.model.module(module_path).await?;
-        Self::add_main_if_missing(project.name().as_ref(),&module,&method,&parser)?;
+        let main_module_model = self.model.module(module_path).await?;
+        Self::add_main_if_missing(project.name().as_ref(), &main_module_model, &method, &parser)?;
 
         // Here, we should be relatively certain (except race conditions in case of multiple
         // clients that we currently do not support) that main module exists and contains main
@@ -135,10 +145,11 @@ impl Project {
         let main_module_text = controller::Text::new(&self.logger,&project,file_path).await?;
         let main_graph       = controller::ExecutedGraph::new(&self.logger,project,method).await?;
 
+        self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
         self.notify_about_compiling_process(&main_graph);
         self.display_warning_on_unsupported_engine_version()?;
 
-        Ok(InitializationResult {main_module_text,main_graph})
+        Ok(InitializationResult {main_module_text,main_module_model,main_graph})
     }
 }
 
@@ -174,6 +185,20 @@ impl Project {
             module.update_ast(info.ast)?;
         }
         Ok(())
+    }
+
+    async fn init_call_stack_from_metadata
+    (&self, main_module:&model::Module, main_graph:&controller::ExecutedGraph) {
+        // Restore the call stack from the metadata.
+        let initial_call_stack = main_module.with_project_metadata(|m| m.call_stack.clone());
+        for frame in initial_call_stack {
+            // Push as many frames as possible. We should not be too concerned about failure here.
+            // It is to be assumed that metadata can get broken.
+            if let Err(e) = main_graph.enter_method_pointer(&frame).await {
+                warning!(self.logger, "Failed to push initial stack frame: {frame:?}: {e}");
+                break;
+            }
+        }
     }
 
     fn notify_about_compiling_process(&self, graph:&controller::ExecutedGraph) {
@@ -212,6 +237,13 @@ mod tests {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
+
+    #[test]
+    fn main_module_id_test() {
+        // Should not panic.
+        main_module_id();
+    }
 
     #[test]
     fn new_project_engine_version_fills_requirements() {

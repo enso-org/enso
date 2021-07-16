@@ -22,6 +22,12 @@ pub const PROJECTS_MAIN_MODULE:&str = "Main";
 /// Visualization folder where IDE can look for user-defined visualizations per project.
 pub const VISUALIZATION_DIRECTORY:&str = "visualization";
 
+/// How many times IDE will try to attach initial visualization on loading project.
+///
+/// This is necessary, because the request will be timing out for a while, until the stdlib
+/// compilation is done.
+pub const INITIAL_VISUALIZATION_ATTACH_ATTEMPTS:usize = 10;
+
 /// A module with language-specific constants.
 pub mod keywords {
     /// A keyword indicating current module.

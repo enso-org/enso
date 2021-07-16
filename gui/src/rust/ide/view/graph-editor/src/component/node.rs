@@ -283,7 +283,11 @@ ensogl::define_endpoints! {
         freeze                (bool),
         hover                 (bool),
         error                 (Option<Error>),
+        /// Whether visualization was permanently enabled (e.g. by pressing the button).
         visualization_enabled (bool),
+        /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
+        visualization_visible (bool),
+        visualization_path    (Option<visualization::Path>),
         tooltip               (tooltip::Style),
         bounding_box          (BoundingBox)
     }
@@ -556,7 +560,6 @@ impl Node {
         let style            = StyleWatch::new(&app.display.scene().style_sheet);
         let style_frp        = &model.style;
         let action_bar       = &model.action_bar.frp;
-
         // Hook up the display object position updates to the node's FRP. Required to calculate the
         // bounding box.
         frp::extend! { network
@@ -694,10 +697,15 @@ impl Node {
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
-            frp.source.visualization_enabled <+ visualization_enabled || preview_visible;
+            frp.source.visualization_visible <+ visualization_visible;
+            frp.source.visualization_enabled <+ visualization_enabled;
             eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
             );
+            init <- source::<()>();
+            frp.source.visualization_path <+ model.visualization.frp.visualisation.all_with(&init,|def_opt,_| {
+                def_opt.as_ref().map(|def| def.signature.path.clone_ref())
+            });
 
             // Ensure the preview is visible above all other elements, but the normal visualisation
             // is below nodes.
@@ -795,6 +803,7 @@ impl Node {
         }
 
         // Init defaults.
+        init.emit(());
         model.error_visualization.set_layer(visualization::Layer::Front);
         frp.set_error.emit(None);
         frp.set_disabled.emit(false);

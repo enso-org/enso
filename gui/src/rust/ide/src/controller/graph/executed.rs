@@ -248,6 +248,11 @@ impl Handle {
         Ok(())
     }
 
+    /// Get the current call stack frames.
+    pub fn call_stack(&self) -> Vec<LocalCall> {
+        self.execution_ctx.stack_items().collect()
+    }
+
     /// Get the controller for the currently active graph.
     ///
     /// Note that the controller returned by this method may change as the nodes are stepped into.
@@ -416,9 +421,8 @@ pub mod tests {
 
         // Check that if we set metadata, executed graph can see this info.
         module.set_node_metadata(id,NodeMetadata {
-            position        : None,
             intended_method : entry1.method_id(),
-            uploading_file  : None,
+            ..default()
         }).unwrap();
         let info = get_invocation_info().unwrap();
         assert_call_info(info,&entry1);

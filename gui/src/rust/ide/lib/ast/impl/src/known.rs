@@ -120,6 +120,12 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
     }
 }
 
+impl<T> AsRef<Ast> for KnownAst<T> {
+    fn as_ref(&self) -> &Ast {
+        &self.ast
+    }
+}
+
 impl<T,E> TryFrom<&Ast> for KnownAst<T>
 where for<'t> &'t Shape<Ast>:TryInto<&'t T,Error=E> {
     type Error = E;

@@ -40,12 +40,14 @@ impl Model {
         executor::global::spawn(async move {
             match project.initialize().await {
                 Ok(result) => {
-                    let view    = self.view.clone_ref();
-                    let text    = result.main_module_text;
-                    let graph   = result.main_graph;
-                    let ide     = self.controller.clone_ref();
-                    let project = project.model;
-                    let integration = project::Integration::new(view,graph,text,ide,project);
+                    let view        = self.view.clone_ref();
+                    let text        = result.main_module_text;
+                    let graph       = result.main_graph;
+                    let ide         = self.controller.clone_ref();
+                    let project     = project.model;
+                    let main_module = result.main_module_model;
+                    let integration = project::Integration::new(view,graph,text,ide,project,
+                        main_module);
                     // We don't want any initialization-related changes to appear on undo stack.
                     integration.graph_controller().undo_redo_repository().clear_all();
                     *self.project_integration.borrow_mut() = Some(integration);

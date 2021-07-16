@@ -76,6 +76,11 @@ impl Definition {
     pub fn new_instance(&self, scene:&Scene) -> InstantiationResult {
         (self.constructor)(scene)
     }
+
+    /// Get the path identifying this visualization definition.
+    pub fn path(&self) -> visualization::Path {
+        self.signature.path.clone_ref()
+    }
 }
 
 
