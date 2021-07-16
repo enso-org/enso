@@ -5,9 +5,10 @@ use crate::prelude::*;
 use crate::model::module::Metadata;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
-use crate::model::module::Path;
 use crate::model::module::NotificationKind;
 use crate::model::module::Notification;
+use crate::model::module::Path;
+use crate::model::module::ProjectMetadata;
 use crate::notification;
 use crate::double_representation::definition::DefinitionInfo;
 use crate::model::module::Content;
@@ -57,10 +58,11 @@ impl Module {
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
     fn set_content(&self, new_content:Content, kind:NotificationKind) -> FallibleResult {
-        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
         if new_content == *self.content.borrow() {
+            debug!(self.logger, "Ignoring spurious update.");
             return Ok(())
         }
+        trace!(self.logger, "Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(),self.content.borrow().clone());
 
@@ -175,6 +177,24 @@ impl model::module::API for Module {
             let mut data = lookup.unwrap_or_default();
             fun(&mut data);
             content.metadata.ide.node.insert(id, data);
+        })
+    }
+
+    fn boxed_with_project_metadata(&self, fun:Box<dyn FnOnce(&ProjectMetadata) + '_>) {
+        let content  = self.content.borrow();
+        if let Some(metadata) = content.metadata.ide.project.as_ref() {
+            fun(metadata)
+        } else {
+            fun(&default())
+        }
+    }
+
+    fn boxed_update_project_metadata
+    (&self, fun:Box<dyn FnOnce(&mut ProjectMetadata) + '_>) -> FallibleResult {
+        self.update_content(NotificationKind::MetadataChanged, |content| {
+            let mut data = content.metadata.ide.project.clone().unwrap_or_default();
+            fun(&mut data);
+            content.metadata.ide.project = Some(data);
         })
     }
 }

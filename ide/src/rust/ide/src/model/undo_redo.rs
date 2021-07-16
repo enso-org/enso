@@ -103,7 +103,7 @@ impl Transaction {
     /// up or not.
     pub fn fill_content(&self, id:model::module::Id, content:model::module::Content) {
         with(self.frame.borrow_mut(), |mut data| {
-            debug!(self.logger, "Filling transaction '{data.name}' with snapshit of module '{id}':\
+            debug!(self.logger, "Filling transaction '{data.name}' with snapshot of module '{id}':\
             \n{content}");
             if data.snapshots.try_insert(id, content).is_err() {
                 debug!(self.logger, "Skipping this snapshot, as module's state was already saved.")

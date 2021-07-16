@@ -93,6 +93,14 @@ impl Identifier {
     pub fn normalized(&self) -> NormalizedName {
         NormalizedName::new(self.name())
     }
+
+    /// Get the identifier's node with a newly assigned, unique id.
+    ///
+    /// This is needed if the identifier from AST is to be reused in a different part of the tree.
+    /// Cloning it without generating a new ID would introduce two nodes with same id.
+    pub fn with_new_id(&self) -> Self {
+        Self(self.0.with_new_id())
+    }
 }
 
 

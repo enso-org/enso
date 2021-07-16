@@ -315,12 +315,23 @@ impl Default for Metadata {
     }
 }
 
+/// Project-level metadata. It is stored as part of the project's main module's metadata.
+#[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
+pub struct ProjectMetadata {
+    /// The execution context of the displayed graph editor.
+    #[serde(default,deserialize_with="utils::serde::deserialize_or_default")]
+    pub call_stack : Vec<model::execution_context::LocalCall>,
+}
+
 /// Metadata that belongs to ide.
 #[derive(Clone,Debug,Default,Deserialize,PartialEq,Serialize)]
 pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
     #[serde(deserialize_with="utils::serde::deserialize_or_default")]
-    node : HashMap<ast::Id,NodeMetadata>
+    node : HashMap<ast::Id,NodeMetadata>,
+    /// The project metadata. This is stored only in the main module's metadata.
+    #[serde(default,deserialize_with="utils::serde::deserialize_or_default")]
+    project : Option<ProjectMetadata>,
 }
 
 /// Metadata of specific node.
@@ -341,6 +352,12 @@ pub struct NodeMetadata {
     /// information about file and upload progress.
     #[serde(default,deserialize_with="utils::serde::deserialize_or_default")]
     pub uploading_file:Option<UploadingFile>,
+    /// Was node selected in the view.
+    #[serde(default)]
+    pub selected:bool,
+    /// Was node selected in the view.
+    #[serde(default)]
+    pub visualization:serde_json::Value,
 }
 
 /// Used for storing node position.
@@ -503,6 +520,20 @@ pub trait API:Debug+model::undo_redo::Aware {
     fn with_node_metadata
     (&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) -> FallibleResult;
 
+    /// This method exists as a monomorphication for [`with_project_metadata`]. Users are encouraged
+    /// to use it rather then this method.
+    ///
+    /// Access project's metadata with a given function. Fails, if the project's metadata are not
+    /// set in this module.
+    fn boxed_with_project_metadata(&self, fun:Box<dyn FnOnce(&ProjectMetadata) + '_>);
+
+    /// This method exists as a monomorphication for [`update_project_metadata`]. Users are
+    /// encouraged to use it rather then this method.
+    ///
+    /// Borrow mutably the project's metadata and update it with a given function.
+    fn boxed_update_project_metadata
+    (&self, fun:Box<dyn FnOnce(&mut ProjectMetadata) + '_>) -> FallibleResult;
+
 
 // === Utils ===
 
@@ -528,6 +559,31 @@ pub trait API:Debug+model::undo_redo::Aware {
         double_representation::module::Info::from(self.ast())
     }
 }
+
+/// Trait for methods that cannot be defined in `API` because it is a trait object.
+pub trait APIExt : API {
+    /// Access project's metadata with a given function.
+    ///
+    /// Fails, if the project's metadata are not set in this module.
+    fn with_project_metadata<R>
+    (&self, fun:impl FnOnce(&ProjectMetadata) -> R) -> R {
+        let mut ret = None;
+        self.boxed_with_project_metadata(Box::new(|metadata| {
+            ret = Some(fun(metadata));
+        }));
+        // The `with_project_metadata_internal` always calls the callback once, so it must fill
+        // `ret` with necessary data.
+        ret.unwrap()
+    }
+
+    /// Borrow mutably the project's metadata and update it with a given function.
+    fn update_project_metadata
+    (&self, fun:impl FnOnce(&mut ProjectMetadata)) -> FallibleResult {
+        self.boxed_update_project_metadata(Box::new(fun))
+    }
+}
+
+impl<T:API + ?Sized> APIExt for T {}
 
 /// The general, shared Module Model handle.
 pub type Module = Rc<dyn API>;

@@ -243,8 +243,8 @@ impl Extracted {
     /// Generate AST of a line that needs to be appended to the extracted nodes' Asts.
     /// None if there is no such need.
     pub fn return_line(&self) -> Option<Ast> {
-        // To return value we just utter its identifier.
-        self.output.as_ref().map(|out| out.identifier.clone().into())
+        // To return value we just utter its identifier. But the expression needs a new ID.
+        self.output.as_ref().map(|out| out.identifier.with_new_id().into())
     }
 
     /// Generate the description for the new method's definition with the extracted nodes.
@@ -347,7 +347,7 @@ impl Collapser {
             let mut new_node = NodeInfo::new_expression(expression.clone_ref()).ok_or(no_node_err)?;
             new_node.set_id(self.collapsed_node);
             if let Some(Output{identifier,..}) = &self.extracted.output {
-                new_node.set_pattern(identifier.into())
+                new_node.set_pattern(identifier.with_new_id().into())
             }
             Ok(LineDisposition::Replace(new_node.ast().clone_ref()))
         } else {
@@ -400,6 +400,7 @@ mod tests {
             let graph        = graph::GraphInfo::from_definition(main.item.clone());
             let nodes        = graph.nodes();
             let run_internal = |selection:&Vec<node::Id>| {
+                ast::test_utils::assert_unique_ids(ast.as_ref());
                 let selection  = selection.iter().copied();
                 let new_name   = self.introduced_name.clone();
                 let collapsed  = collapse(&graph,selection,new_name,parser).unwrap();
@@ -412,6 +413,7 @@ mod tests {
                 let main_crumb = Crumb::from(main.crumb());
                 module.ast     = module.ast.set(&main_crumb, new_main.ast().clone()).unwrap();
                 module.add_method(collapsed.new_method, placement, parser).unwrap();
+                ast::test_utils::assert_unique_ids(&module.ast.as_ref());
                 info!(logger,"Updated method:\n{&module.ast}");
                 assert_eq!(new_method.repr(),self.expected_generated);
                 assert_eq!(new_main.repr(),self.expected_refactored);

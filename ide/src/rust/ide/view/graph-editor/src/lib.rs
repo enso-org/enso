@@ -153,6 +153,12 @@ impl<T> SharedVec<T> {
     pub fn mem_take(&self) -> Vec<T> {
         mem::take(&mut self.raw.borrow_mut())
     }
+
+    /// Return the number of items in the vector.
+    pub fn len(&self) -> usize { self.raw.borrow().len() }
+
+    /// Check if the container is empty.
+    pub fn is_empty(&self) -> bool { self.raw.borrow().is_empty() }
 }
 
 impl<T:Clone> SharedVec<T> {
@@ -486,6 +492,7 @@ ensogl::define_endpoints! {
         set_visualization_data       ((NodeId,visualization::Data)),
         set_error_visualization_data ((NodeId,visualization::Data)),
         enable_visualization         (NodeId),
+        disable_visualization        (NodeId),
 
         /// Remove from visualization registry all non-default visualizations.
         reset_visualization_registry (),
@@ -558,8 +565,10 @@ ensogl::define_endpoints! {
         nodes_labels_visible      (bool),
 
 
-        visualization_enabled                   (NodeId,visualization::Metadata),
-        visualization_disabled                  (NodeId),
+        /// `None` value as a visualization path denotes a disabled visualization.
+        enabled_visualization_path              (NodeId,Option<visualization::Path>),
+        visualization_shown                     (NodeId,visualization::Metadata),
+        visualization_hidden                    (NodeId),
         visualization_fullscreen                (Option<NodeId>),
         is_fs_visualization_displayed           (bool),
         visualization_preprocessor_changed      ((NodeId,PreprocessorConfiguration)),
@@ -1166,7 +1175,6 @@ impl GraphEditorModelWithNetwork {
 
         let touch      = &self.touch_state;
         let model      = &self.model;
-
         let NodeCreationContext {pointer_style,tooltip_update,output_press,input_press,output} = ctx;
 
         frp::new_bridge_network! { [self.network, node.frp.network] graph_node_bridge
@@ -1234,9 +1242,8 @@ impl GraphEditorModelWithNetwork {
 
             // === Visualizations ===
 
-            let vis_changed =  node.model.visualization.frp.visualisation.clone_ref();
-            vis_enabled     <- node.visualization_enabled.gate(&node.visualization_enabled);
-            vis_disabled    <- node.visualization_enabled.gate_not(&node.visualization_enabled);
+            visualization_shown  <- node.visualization_visible.gate(&node.visualization_visible);
+            visualization_hidden <- node.visualization_visible.gate_not(&node.visualization_visible);
 
             let vis_is_selected = node.model.visualization.frp.is_selected.clone_ref();
 
@@ -1248,23 +1255,26 @@ impl GraphEditorModelWithNetwork {
             output.source.on_visualization_select <+ selected.constant(Switch::On(node_id));
             output.source.on_visualization_select <+ deselected.constant(Switch::Off(node_id));
 
-            metadata  <- any(...);
-            metadata <+ node.model.visualization.frp.preprocessor.map(move |preprocessor| {
-                let preprocessor = preprocessor.clone();
-                visualization::Metadata{preprocessor}
-            });
+            metadata <- any(...);
+            metadata <+ node.model.visualization.frp.preprocessor.map(visualization::Metadata::new);
+
             // Ensure the graph editor knows about internal changes to the visualisation. If the
             // visualisation changes that should indicate that the old one has been disabled and a
             // new one has been enabled.
             // TODO: Create a better API for updating the controller about visualisation changes
             // (see #896)
-            output.source.visualization_disabled <+ vis_changed.constant(node_id);
-            output.source.visualization_enabled  <+
-                vis_changed.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
+            visualization_hidden_changed       <- visualization_hidden.on_change();
+            output.source.visualization_hidden <+ visualization_hidden_changed.constant(node_id);
+            output.source.visualization_shown  <+
+                visualization_shown.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
 
-            output.source.visualization_enabled <+
-                vis_enabled.map2(&metadata,move |_,metadata| (node_id,metadata.clone()));
-            output.source.visualization_disabled <+ vis_disabled.constant(node_id);
+
+            init <- source::<()>();
+            enabled_visualization_path <- init.all_with3(
+                &node.visualization_enabled, &node.visualization_path,
+                move |_init, is_enabled, path| (node_id, is_enabled.and_option(path.clone()))
+            );
+            output.source.enabled_visualization_path <+ enabled_visualization_path;
 
 
             // === View Mode ===
@@ -1284,9 +1294,10 @@ impl GraphEditorModelWithNetwork {
 
         node.set_view_mode(self.model.frp.view_mode.value());
         let initial_metadata = visualization::Metadata {
-            preprocessor : node.model.visualization.frp.preprocessor.value()
+            preprocessor : node.model.visualization.frp.preprocessor.value(),
         };
         metadata.emit(initial_metadata);
+        init.emit(&());
         self.nodes.insert(node_id,node);
         node_id
     }
@@ -1517,6 +1528,14 @@ impl GraphEditorModel {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.model.visualization.frp.disable_fullscreen.emit(());
         }
+    }
+
+    /// Get the visualization on the node, if it is enabled.
+    pub fn enabled_visualization(&self, node_id:impl Into<NodeId>) -> Option<visualization::Metadata> {
+        let frp = &self.nodes.all.get_cloned_ref(&node_id.into())?.model.visualization.frp;
+        frp.visible.value().then(|| {
+            visualization::Metadata::new(&frp.preprocessor.value())
+        })
     }
 
     /// Warning! This function does not remove connected edges. It needs to be handled by the
@@ -2882,7 +2901,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_tgt_nodes_all_on <- viz_tgt_nodes_off.map(|t| t.is_empty());
     viz_enable_by_press  <= viz_tgt_nodes.gate_not(&viz_tgt_nodes_all_on);
     viz_enable           <- any(viz_enable_by_press,inputs.enable_visualization);
-    viz_disable          <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
+    viz_disable_by_press <= viz_tgt_nodes.gate(&viz_tgt_nodes_all_on);
+    viz_disable          <- any(viz_disable_by_press,inputs.disable_visualization);
     viz_preview_disable  <= viz_tgt_nodes_off.sample(&viz_preview_mode_end);
     viz_fullscreen_on    <= viz_d_press_ev.map(f_!(model.nodes.last_selected()));
 

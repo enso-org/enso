@@ -10,6 +10,7 @@ use crate::model::module::Content;
 use crate::model::module::Notification;
 use crate::model::module::NodeMetadata;
 use crate::model::module::Path;
+use crate::model::module::ProjectMetadata;
 
 use ast::IdMap;
 use data::text::TextChange;
@@ -217,6 +218,15 @@ impl API for Module {
     fn with_node_metadata
     (&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>) -> FallibleResult {
         self.model.with_node_metadata(id,fun)
+    }
+
+    fn boxed_with_project_metadata(&self, fun:Box<dyn FnOnce(&ProjectMetadata) + '_>) {
+        self.model.boxed_with_project_metadata(fun)
+    }
+
+    fn boxed_update_project_metadata
+    (&self, fun:Box<dyn FnOnce(&mut ProjectMetadata) + '_>) -> FallibleResult {
+        self.model.boxed_update_project_metadata(fun)
     }
 }
 

@@ -673,7 +673,7 @@ impl Handle {
         let source_info              = self.source_info(connection,context)?;
         let destination_info         = self.destination_info(connection,context)?;
         let source_identifier        = source_info.target_ast()?.clone();
-        let updated_target_node_expr = destination_info.set(source_identifier)?;
+        let updated_target_node_expr = destination_info.set(source_identifier.with_new_id())?;
         self.set_expression_ast(connection.destination.node,updated_target_node_expr)?;
 
         // Reorder node lines, so the connection target is after connection source.
@@ -827,8 +827,8 @@ impl Handle {
         let graph   = self.graph_info()?;
         let my_name = graph.source.name.item;
         module.add_method(new_method,module::Placement::Before(my_name),&self.parser)?;
+        module.update_definition(&self.id,|_| Ok(updated_definition))?;
         self.module.update_ast(module.ast)?;
-        self.update_definition_ast(|_| Ok(updated_definition))?;
         let position = Some(model::module::Position::mean(collapsed_positions));
         let metadata = NodeMetadata {position,..default()};
         self.module.set_node_metadata(collapsed_node,metadata)?;
@@ -1115,9 +1115,8 @@ main =
             assert_eq!(nodes.len(),1);
             let id = nodes[0].info.id();
             graph.module.set_node_metadata(id,NodeMetadata {
-                position        : None,
                 intended_method : entry.method_id(),
-                uploading_file  : None,
+                ..default()
             }).unwrap();
 
             let get_invocation_info = || {

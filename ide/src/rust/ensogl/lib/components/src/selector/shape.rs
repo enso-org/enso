@@ -246,7 +246,6 @@ mod tests {
     use enso_frp::io::mouse::Button;
     use enso_frp::stream::EventEmitter;
     use enso_frp::stream::ValueProvider;
-    use float_eq::assert_float_eq;
 
     #[test]
     fn test_shape_is_dragged() {

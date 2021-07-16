@@ -28,7 +28,7 @@ pub const DEFAULT_VISUALIZATION_EXPRESSION:&str = "x -> x.to_default_visualizati
 // === ContextModule ===
 
 /// Designation of the module to be used as a context for preprocessor evaluation.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Debug,PartialEq,Eq)]
 pub enum ContextModule {
     /// Current project's `Main` module.
     ProjectMain,
@@ -55,7 +55,7 @@ impl ContextModule {
 // === PreprocessorConfiguration ===
 
 /// Information on how the preprocessor should be set up for the visualization.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Debug,PartialEq,Eq)]
 pub struct PreprocessorConfiguration {
     /// The code of the preprocessor. Should be a lambda that transforms node value into whatever
     /// that visualizations expect.

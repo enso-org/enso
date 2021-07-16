@@ -545,6 +545,19 @@ impl Info {
         self.add_ast(definition_ast,location)
     }
 
+    /// Updates the given definition using the passed invokable.
+    pub fn update_definition
+    ( &mut self
+    , id : &definition::Id
+    , f  : impl FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo>
+    ) -> FallibleResult {
+        let definition     = locate(&self.ast,id)?;
+        let new_definition = f(definition.item)?;
+        let new_ast        = new_definition.ast.into();
+        self.ast           = self.ast.set_traversing(&definition.crumbs,new_ast)?;
+        Ok(())
+    }
+
     #[cfg(test)]
     pub fn expect_code(&self,expected_code:impl AsRef<str>) {
         assert_eq!(self.ast.repr(),expected_code.as_ref());
