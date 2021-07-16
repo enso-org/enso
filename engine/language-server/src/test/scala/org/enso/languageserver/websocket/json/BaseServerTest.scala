@@ -300,8 +300,8 @@ class BaseServerTest
     }
   }
 
-  def getInitialisedWsClient(): WsTestClient = {
-    val client = new WsTestClient(address)
+  def getInitialisedWsClient(debug: Boolean = false): WsTestClient = {
+    val client = new WsTestClient(address, debugMessages = debug)
     initSession(client)
     client
   }

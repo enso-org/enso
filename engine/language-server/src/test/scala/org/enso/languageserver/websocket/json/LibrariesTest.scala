@@ -223,7 +223,7 @@ class LibrariesTest extends BaseServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "editions/resolve",
-            "id": 0,
+            "id": 1,
             "params": {
               "edition": {
                 "type": "NamedEdition",
@@ -234,39 +234,12 @@ class LibrariesTest extends BaseServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 0,
+            "id": 1,
             "result": {
               "engineVersion": $currentVersion
             }
           }
           """)
     }
-  }
-
-  "ProjectSettingsManager" should {
-    "get default settings" in {
-      val client = getInitialisedWsClient()
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/getProjectSettings",
-            "id": 0
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 0,
-            "result": {
-              "parentEdition": ${buildinfo.Info.currentEdition},
-              "preferLocalLibraries": true
-            }
-          }
-          """)
-    }
-
-    "allow to set local libraries preference" ignore {}
-
-    "allow to override parent edition" ignore {}
-
-    "fail if the provided parent edition is not resolvable" ignore {}
   }
 }

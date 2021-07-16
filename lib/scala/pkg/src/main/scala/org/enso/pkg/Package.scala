@@ -48,11 +48,13 @@ case class Package[F](
   /** Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */
-  def save(): Unit = {
-    if (!root.exists) createDirectories()
-    if (!sourceDir.exists) createSourceDir()
-    saveConfig()
-  }
+  def save(): Try[Unit] = for {
+    _ <- Try {
+      if (!root.exists) createDirectories()
+      if (!sourceDir.exists) createSourceDir()
+    }
+    _ <- saveConfig()
+  } yield ()
 
   /** Creates the package directory structure.
     */
@@ -97,11 +99,10 @@ case class Package[F](
 
   /** Saves the config metadata into the package configuration file.
     */
-  def saveConfig(): Unit = {
-    val writer = configFile.newBufferedWriter
-    Try(writer.write(config.toYaml))
-    writer.close()
-  }
+  def saveConfig(): Try[Unit] =
+    Using(configFile.newBufferedWriter) { writer =>
+      writer.write(config.toYaml)
+    }
 
   /** Gets the location of the package's Main file.
     *

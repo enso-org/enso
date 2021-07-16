@@ -40,7 +40,8 @@ class ProjectSettingsManager(
     updated = pkg.updateConfig { config =>
       config.copy(edition = Some(newEdition))
     }
-  } yield updated.save()
+    _ <- updated.save()
+  } yield ()
 
   private def setPreferLocalLibraries(
     preferLocalLibraries: Boolean
@@ -49,7 +50,8 @@ class ProjectSettingsManager(
     updated = pkg.updateConfig { config =>
       config.copy(preferLocalLibraries = preferLocalLibraries)
     }
-  } yield updated.save()
+    _ <- updated.save()
+  } yield ()
 }
 
 object ProjectSettingsManager {
