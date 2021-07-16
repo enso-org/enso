@@ -165,7 +165,7 @@ class RuntimeStdlibTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveOne shouldEqual None
 
@@ -208,8 +208,8 @@ class RuntimeStdlibTest
     val stdlibSuggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
-          ) if file.getPath.contains("Vector") =>
+            Api.SuggestionsDatabaseModuleUpdateNotification(module, _, as, xs)
+          ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
         xs.toVector.head.suggestion.module shouldEqual "Standard.Base.Data.Vector"
     }
@@ -219,8 +219,8 @@ class RuntimeStdlibTest
     val builtinsSuggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(file, _, as, xs)
-          ) if file.getPath.contains("Builtins") =>
+            Api.SuggestionsDatabaseModuleUpdateNotification(module, _, as, xs)
+          ) if module.contains("Builtins") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
     builtinsSuggestions.length shouldBe 1

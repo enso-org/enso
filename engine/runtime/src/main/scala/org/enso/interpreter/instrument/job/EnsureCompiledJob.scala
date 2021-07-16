@@ -157,7 +157,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         .filter(isSuggestionGlobal)
       val version = ctx.versioning.evalVersion(module.getLiteralSource.toString)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = getIndexingPath(module),
+        module  = moduleName.toString,
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
@@ -185,7 +185,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
       val diff = SuggestionDiff
         .compute(prevSuggestions, newSuggestions)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = new File(module.getPath),
+        module  = moduleName.toString,
         version = version,
         actions = Vector(),
         updates = diff
@@ -198,7 +198,7 @@ class EnsureCompiledJob(protected val files: Iterable[File])
         SuggestionBuilder(module.getLiteralSource)
           .build(moduleName, module.getIr)
       val notification = Api.SuggestionsDatabaseModuleUpdateNotification(
-        file    = new File(module.getPath),
+        module  = moduleName.toString,
         version = version,
         actions =
           Vector(Api.SuggestionsDatabaseAction.Clean(moduleName.toString)),
@@ -441,17 +441,6 @@ class EnsureCompiledJob(protected val files: Iterable[File])
     ctx: RuntimeContext
   ): Iterable[Module] =
     ctx.executionService.getContext.getTopScope.getModules.asScala
-
-  /** Get the module path for suggestions database indexing.
-    *
-    * If the module is synthetic (i.e. Builtins), uses its name as a path.
-    */
-  private def getIndexingPath(module: Module): File =
-    if (module.getPath eq null) {
-      new File(s"/${module.getName}")
-    } else
-      new File(module.getPath)
-
 }
 
 object EnsureCompiledJob {

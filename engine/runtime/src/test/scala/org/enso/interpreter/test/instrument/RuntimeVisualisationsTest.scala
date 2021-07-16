@@ -288,8 +288,7 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
@@ -306,7 +305,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -402,8 +401,7 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
@@ -420,7 +418,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -536,14 +534,13 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -659,14 +656,13 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -774,15 +770,14 @@ class RuntimeVisualisationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
@@ -896,15 +891,14 @@ class RuntimeVisualisationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
@@ -1038,14 +1032,13 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1137,15 +1130,14 @@ class RuntimeVisualisationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          context.Visualisation.code,
-          true
+          context.Visualisation.code
         )
       )
     )
@@ -1281,7 +1273,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1341,7 +1333,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1429,7 +1421,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1503,7 +1495,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1591,8 +1583,7 @@ class RuntimeVisualisationsTest
       Api.Request(
         Api.OpenFileNotification(
           visualisationFile,
-          visualisationCode,
-          true
+          visualisationCode
         )
       )
     )
@@ -1609,7 +1600,7 @@ class RuntimeVisualisationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
