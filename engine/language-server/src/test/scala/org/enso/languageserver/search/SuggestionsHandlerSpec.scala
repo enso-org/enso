@@ -82,6 +82,12 @@ class SuggestionsHandlerSpec
           UUID.randomUUID(),
           Api.VerifyModulesIndexResponse(Seq(TestSuggestion.atom.module))
         )
+        // wait for initialization
+        handler ! AcquireCapability(
+          newJsonSession(UUID.randomUUID()),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
         // check
         val (_, entries) = Await.result(suggestions.getAll, Timeout)
         entries.map(_.suggestion) should contain theSameElementsAs Seq(
