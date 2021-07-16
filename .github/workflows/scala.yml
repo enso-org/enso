@@ -34,9 +34,6 @@ jobs:
           minimum-size: 16GB
           maximum-size: 16GB
           disk-root: "C:"
-      - name: debug
-        shell: bash
-        run: echo ${{ github.event_name }}
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.9.0
       - name: Setup Go
@@ -350,7 +347,7 @@ jobs:
         shell: bash
         if: runner.os == 'Linux' && ${{ github.event_name == 'pull_request' }}
         run: |
-          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/${{ github.head_ref }} --profile s3-upload --acl public-read --delete
       - name: Upload FlatBuffers Schemas to S3
         shell: bash
         if: runner.os == 'Linux' && ${{ github.event_name != 'pull_request' }}
@@ -360,7 +357,7 @@ jobs:
         shell: bash
         if: runner.os == 'Linux' && ${{ github.event_name == 'pull_request' }}
         run: |
-          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/${{ github.head_ref }} --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         shell: bash
         if: runner.os == 'Linux'
