@@ -13,6 +13,10 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.util.{Failure, Success}
 
+/** A request handler for the `editions/listDefinedLibraries` endpoint.
+  *
+  * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
+  */
 class EditionsListDefinedLibrariesHandler(
   editionReferenceResolver: EditionReferenceResolver
 ) extends Actor
@@ -53,6 +57,12 @@ class EditionsListDefinedLibrariesHandler(
 }
 
 object EditionsListDefinedLibrariesHandler {
+
+  /** Creates a configuration object to create
+    * [[EditionsListDefinedLibrariesHandler]].
+    *
+    * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
+    */
   def props(editionReferenceResolver: EditionReferenceResolver): Props = Props(
     new EditionsListDefinedLibrariesHandler(editionReferenceResolver)
   )

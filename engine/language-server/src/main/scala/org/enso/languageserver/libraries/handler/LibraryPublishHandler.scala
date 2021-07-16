@@ -7,6 +7,10 @@ import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
 
+/** A request handler for the `library/publish` endpoint.
+  *
+  * It is currently a stub implementation which will be refined later on.
+  */
 class LibraryPublishHandler
     extends Actor
     with LazyLogging
@@ -22,5 +26,7 @@ class LibraryPublishHandler
 }
 
 object LibraryPublishHandler {
+
+  /** Creates a configuration object to create [[LibraryPublishHandler]]. */
   def props(): Props = Props(new LibraryPublishHandler)
 }

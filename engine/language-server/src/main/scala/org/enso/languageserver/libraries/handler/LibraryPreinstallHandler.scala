@@ -9,6 +9,10 @@ import org.enso.languageserver.libraries.FakeDownload
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
 
+/** A request handler for the `library/preinstall` endpoint.
+  *
+  * It is currently a stub implementation which will be refined later on.
+  */
 class LibraryPreinstallHandler
     extends Actor
     with LazyLogging
@@ -37,5 +41,7 @@ class LibraryPreinstallHandler
 }
 
 object LibraryPreinstallHandler {
+
+  /** Creates a configuration object to create [[LibraryPreinstallHandler]]. */
   def props(): Props = Props(new LibraryPreinstallHandler)
 }

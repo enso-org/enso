@@ -10,6 +10,10 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.util.{Failure, Success}
 
+/** A request handler for the `editions/resolve` endpoint.
+  *
+  * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
+  */
 class EditionsResolveHandler(editionReferenceResolver: EditionReferenceResolver)
     extends Actor
     with LazyLogging
@@ -39,6 +43,11 @@ class EditionsResolveHandler(editionReferenceResolver: EditionReferenceResolver)
 }
 
 object EditionsResolveHandler {
+
+  /** Creates a configuration object to create [[EditionsResolveHandler]].
+    *
+    * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
+    */
   def props(editionReferenceResolver: EditionReferenceResolver): Props = Props(
     new EditionsResolveHandler(editionReferenceResolver)
   )

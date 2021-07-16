@@ -13,6 +13,11 @@ import org.enso.languageserver.util.UnhandledLogging
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
+/** A request handler for the `library/create` endpoint.
+  *
+  * @param timeout request timeout
+  * @param localLibraryManager a reference to the LocalLibraryManager
+  */
 class LibraryCreateHandler(
   timeout: FiniteDuration,
   localLibraryManager: ActorRef
@@ -63,6 +68,12 @@ class LibraryCreateHandler(
 }
 
 object LibraryCreateHandler {
+
+  /** Creates a configuration object to create [[LibraryCreateHandler]].
+    *
+    * @param timeout request timeout
+    * @param localLibraryManager a reference to the LocalLibraryManager
+    */
   def props(timeout: FiniteDuration, localLibraryManager: ActorRef): Props =
     Props(
       new LibraryCreateHandler(timeout, localLibraryManager)

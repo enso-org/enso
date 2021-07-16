@@ -10,6 +10,13 @@ import org.enso.languageserver.util.UnhandledLogging
 
 import scala.util.{Failure, Success, Try}
 
+/** A request handler for the `editions/listAvailable` endpoint.
+  *
+  * It is a partial implementation - it already allows to list existing
+  * editions, but updating is not yet implemented.
+  *
+  * @param editionManager an edition manager instance
+  */
 class EditionsListAvailableHandler(editionManager: EditionManager)
     extends Actor
     with LazyLogging
@@ -34,6 +41,11 @@ class EditionsListAvailableHandler(editionManager: EditionManager)
 }
 
 object EditionsListAvailableHandler {
+
+  /** Creates a configuration object to create [[EditionsListAvailableHandler]].
+    *
+    * @param editionManager an edition manager instance
+    */
   def props(editionManager: EditionManager): Props = Props(
     new EditionsListAvailableHandler(editionManager)
   )

@@ -6,6 +6,10 @@ import org.enso.jsonrpc.{Request, ResponseResult}
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
 
+/** A request handler for the `library/create` endpoint.
+  *
+  * It is currently a stub implementation which will be refined later on.
+  */
 class LibraryGetMetadataHandler
     extends Actor
     with LazyLogging
@@ -22,5 +26,7 @@ class LibraryGetMetadataHandler
 }
 
 object LibraryGetMetadataHandler {
+
+  /** Creates a configuration object to create [[LibraryGetMetadataHandler]]. */
   def props(): Props = Props(new LibraryGetMetadataHandler)
 }

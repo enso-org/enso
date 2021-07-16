@@ -7,6 +7,10 @@ import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
 
+/** A request handler for the `library/setMetadata` endpoint.
+  *
+  * It is currently a stub implementation which will be refined later on.
+  */
 class LibrarySetMetadataHandler
     extends Actor
     with LazyLogging
@@ -22,5 +26,7 @@ class LibrarySetMetadataHandler
 }
 
 object LibrarySetMetadataHandler {
+
+  /** Creates a configuration object to create [[LibrarySetMetadataHandler]]. */
   def props(): Props = Props(new LibrarySetMetadataHandler)
 }

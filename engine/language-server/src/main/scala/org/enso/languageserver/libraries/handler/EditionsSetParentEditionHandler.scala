@@ -12,6 +12,11 @@ import org.enso.languageserver.util.UnhandledLogging
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
+/** A request handler for the `editions/setParentEdition` endpoint.
+  *
+  * @param timeout request timeout
+  * @param projectSettingsManager a reference to the [[ProjectSettingsManager]]
+  */
 class EditionsSetParentEditionHandler(
   timeout: FiniteDuration,
   projectSettingsManager: ActorRef
@@ -68,6 +73,14 @@ class EditionsSetParentEditionHandler(
 }
 
 object EditionsSetParentEditionHandler {
+
+  /** Creates a configuration object to create
+    * [[EditionsSetParentEditionHandler]].
+    *
+    * @param timeout request timeout
+    * @param projectSettingsManager a reference to the
+    *                               [[ProjectSettingsManager]]
+    */
   def props(timeout: FiniteDuration, projectSettingsManager: ActorRef): Props =
     Props(
       new EditionsSetParentEditionHandler(timeout, projectSettingsManager)
