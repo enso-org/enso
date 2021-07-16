@@ -1,7 +1,7 @@
 package org.enso.languageserver.websocket.json
 
-import io.circe.Json
 import io.circe.literal._
+import io.circe.{Json, JsonObject}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 
@@ -67,10 +67,57 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
     }
+
+    "fail with LibraryAlreadyExists when creating a library that already " +
+    "existed" ignore {
+      // TODO [RW] error handling (#1877)
+    }
   }
 
   "mocked library/preinstall" should {
-    "send progress notifications" ignore {}
+    "send progress notifications" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/preinstall",
+            "id": 0,
+            "params": {
+              "namespace": "Foo",
+              "name": "Test"
+            }
+          }
+          """)
+      val messages =
+        for (_ <- 0 to 3) yield {
+          val msg    = client.expectSomeJson().asObject.value
+          val method = msg("method").map(_.asString.value).getOrElse("error")
+          val params =
+            msg("params").map(_.asObject.value).getOrElse(JsonObject())
+          (method, params)
+        }
+
+      val taskStart = messages.find(_._1 == "task/started").value
+      val taskId    = taskStart._2("taskId").value.asString.value
+      taskStart
+        ._2("relatedOperation")
+        .value
+        .asString
+        .value shouldEqual "library/preinstall"
+
+      taskStart._2("unit").value.asString.value shouldEqual "Bytes"
+
+      val updates = messages.filter { case (method, params) =>
+        method == "task/progress-update" &&
+        params("taskId").value.asString.value == taskId
+      }
+
+      updates should not be empty
+      updates.head
+        ._2("message")
+        .value
+        .asString
+        .value shouldEqual "Download Test"
+    }
   }
 
   "editions/listAvailable" should {
@@ -97,10 +144,9 @@ class LibrariesTest extends BaseServerTest {
           """)
     }
 
-    "update the list of editions if requested" ignore {}
-
-    // TODO [RW] do we need to support that?
-    "work if the update field is missing" ignore {}
+    "update the list of editions if requested" ignore {
+      // TODO [RW] updating editions
+    }
   }
 
   "editions/listDefinedLibraries" should {
@@ -198,7 +244,24 @@ class LibrariesTest extends BaseServerTest {
   }
 
   "ProjectSettingsManager" should {
-    "get default settings" ignore {}
+    "get default settings" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/getProjectSettings",
+            "id": 0
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "parentEdition": ${buildinfo.Info.currentEdition},
+              "preferLocalLibraries": true
+            }
+          }
+          """)
+    }
 
     "allow to set local libraries preference" ignore {}
 

@@ -18,21 +18,30 @@ class LibraryPreinstallHandler
     with LazyLogging
     with UnhandledLogging {
   override def receive: Receive = {
-    case Request(LibraryPreinstall, id, _: LibraryPreinstall.Params) =>
+    case Request(LibraryPreinstall, id, LibraryPreinstall.Params(_, name)) =>
       // TODO [RW] actual implementation
       val progressReporter =
         ActorProgressNotificationForwarder.translateAndForward(
           LibraryPreinstall.name,
           sender()
         )
-      FakeDownload.simulateDownload(
-        "Downloading something...",
-        progressReporter
-      )
-      FakeDownload.simulateDownload(
-        "Downloading something else...",
-        progressReporter
-      )
+
+      if (name == "Test") {
+        FakeDownload.simulateDownload(
+          "Download Test",
+          progressReporter,
+          seconds = 1
+        )
+      } else {
+        FakeDownload.simulateDownload(
+          "Downloading something...",
+          progressReporter
+        )
+        FakeDownload.simulateDownload(
+          "Downloading something else...",
+          progressReporter
+        )
+      }
       sender() ! ResponseError(
         Some(id),
         FileSystemError("Feature not implemented")

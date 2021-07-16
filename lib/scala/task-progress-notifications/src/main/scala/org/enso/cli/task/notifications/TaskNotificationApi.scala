@@ -33,7 +33,7 @@ object TaskNotificationApi {
     }
   }
 
-  case object TaskFinished extends Method("task/progress-update") {
+  case object TaskFinished extends Method("task/finished") {
 
     case class Params(
       taskId: UUID,

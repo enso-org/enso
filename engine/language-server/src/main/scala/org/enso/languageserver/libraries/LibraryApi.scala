@@ -9,7 +9,7 @@ object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
     self =>
 
-    case class Params(update: Option[Boolean])
+    case class Params(update: Boolean)
 
     case class Result(editionNames: Seq[String])
 

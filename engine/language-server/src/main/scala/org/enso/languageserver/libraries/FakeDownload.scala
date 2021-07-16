@@ -25,6 +25,7 @@ object FakeDownload {
       val n = (seconds * 10).toLong
       for (i <- 0L to n) {
         tracker.reportProgress(i, Some(n))
+        Thread.sleep(100)
       }
       tracker.setComplete(Success(()))
     })
@@ -37,9 +38,10 @@ object FakeDownload {
     */
   def simulateDownload(
     message: String,
-    progressReporter: ProgressReporter
+    progressReporter: ProgressReporter,
+    seconds: Int = 10
   ): Unit = {
-    val download = make()
+    val download = make(seconds = seconds)
     progressReporter.trackProgress(message, download)
     download.force()
   }
