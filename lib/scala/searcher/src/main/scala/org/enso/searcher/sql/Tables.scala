@@ -74,10 +74,10 @@ case class SchemaVersionRow(id: Option[Long])
 
 /** A row in the file_versions table
   *
-  * @param path the file path
+  * @param module the module name
   * @param digest the file version
   */
-case class FileVersionRow(path: String, digest: Array[Byte])
+case class ModuleVersionRow(module: String, digest: Array[Byte])
 
 /** The type of a suggestion. */
 object SuggestionKind {
@@ -215,15 +215,16 @@ final class SuggestionsTable(tag: Tag)
     )
 }
 
-/** The schema of the file_versions table. */
+/** The schema of the module_versions table. */
 @nowarn("msg=multiarg infix syntax")
-final class FileVersionsTable(tag: Tag)
-    extends Table[FileVersionRow](tag, "file_versions") {
+final class ModuleVersionsTable(tag: Tag)
+    extends Table[ModuleVersionRow](tag, "module_versions") {
 
-  def path   = column[String]("path", O.PrimaryKey)
+  def module = column[String]("module", O.PrimaryKey)
   def digest = column[Array[Byte]]("digest")
 
-  def * = (path, digest) <> (FileVersionRow.tupled, FileVersionRow.unapply)
+  def * =
+    (module, digest) <> (ModuleVersionRow.tupled, ModuleVersionRow.unapply)
 }
 
 /** The schema of the suggestions_version table. */
@@ -250,12 +251,12 @@ object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
-object FileVersions extends TableQuery(new FileVersionsTable(_))
+object ModuleVersions extends TableQuery(new ModuleVersionsTable(_))
 
-object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
+object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 2
+  val CurrentVersion: Long = 3
 }

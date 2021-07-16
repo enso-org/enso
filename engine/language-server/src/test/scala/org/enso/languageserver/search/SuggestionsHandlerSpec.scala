@@ -18,7 +18,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
 import org.enso.testkit.RetrySpec
 import org.enso.text.editing.model.Position
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -26,7 +26,6 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 import scala.concurrent.duration._
@@ -54,6 +53,60 @@ class SuggestionsHandlerSpec
 
   "SuggestionsHandler" should {
 
+    "prune stale modules" in withDbs { (config, suggestions, versions) =>
+      // setup database
+      val version1 = Array[Byte](1, 2, 3)
+      val version2 = Array[Byte](2, 3, 4)
+      val setupAction = for {
+        _ <- suggestions.insert(TestSuggestion.atom)
+        _ <- suggestions.insert(TestSuggestion.method)
+        _ <- versions.setVersion(TestSuggestion.atom.module, version1)
+        _ <- versions.setVersion(TestSuggestion.method.module, version2)
+      } yield ()
+      Await.ready(setupAction, Timeout)
+
+      withHandler(config, suggestions, versions) { (_, connector, handler) =>
+        // initialize
+        handler ! SuggestionsHandler.ProjectNameUpdated("Test")
+        handler ! InitializedEvent.TruffleContextInitialized
+        handler ! InitializedEvent.SuggestionsRepoInitialized
+        handler ! InitializedEvent.FileVersionsRepoInitialized
+        connector.receiveN(1)
+        handler ! Api.Response(
+          UUID.randomUUID(),
+          Api.GetTypeGraphResponse(buildTestTypeGraph)
+        )
+        connector.receiveN(1)
+        // prune atom module
+        handler ! Api.Response(
+          UUID.randomUUID(),
+          Api.VerifyModulesIndexResponse(Seq(TestSuggestion.atom.module))
+        )
+        // wait for initialization
+        handler ! AcquireCapability(
+          newJsonSession(UUID.randomUUID()),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
+        // check
+        val (_, entries) = Await.result(suggestions.getAll, Timeout)
+        entries.map(_.suggestion) should contain theSameElementsAs Seq(
+          TestSuggestion.method
+        )
+        val module1Version = Await.result(
+          versions.getVersion(TestSuggestion.atom.module),
+          Timeout
+        )
+        module1Version.isEmpty shouldBe true
+        val module2Version = Await.result(
+          versions.getVersion(TestSuggestion.method.module),
+          Timeout
+        )
+        module2Version.isEmpty shouldBe false
+        module2Version.get should contain theSameElementsInOrderAs version2
+      }
+    }
+
     "subscribe to notification updates" taggedAs Retry in withDb {
       (_, _, _, _, handler) =>
         val clientId = UUID.randomUUID()
@@ -78,7 +131,7 @@ class SuggestionsHandlerSpec
 
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           Tree.Root(Suggestions.all.toVector.map { suggestion =>
@@ -123,7 +176,7 @@ class SuggestionsHandlerSpec
 
         // receive updates
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           Tree.Root(
@@ -217,7 +270,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree1
@@ -291,7 +344,7 @@ class SuggestionsHandlerSpec
         )
         // update tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion("1"),
           Vector(),
           tree2
@@ -380,7 +433,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree
@@ -458,7 +511,7 @@ class SuggestionsHandlerSpec
 
         // add tree
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion(""),
           Vector(),
           tree1
@@ -482,7 +535,7 @@ class SuggestionsHandlerSpec
 
         // clean module
         handler ! Api.SuggestionsDatabaseModuleUpdateNotification(
-          new File("/tmp/foo"),
+          "Foo.Main",
           contentsVersion("1"),
           Vector(Api.SuggestionsDatabaseAction.Clean(Suggestions.atom.module)),
           Tree.Root(Vector())
@@ -761,22 +814,38 @@ class SuggestionsHandlerSpec
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: FileVersionsRepo[Future]
+    fileVersionsRepo: VersionsRepo[Future]
   ): ActorRef = {
     val contentRootManagerActor =
       system.actorOf(ContentRootManagerActor.props(config))
     val contentRootManagerWrapper: ContentRootManager =
       new ContentRootManagerWrapper(config, contentRootManagerActor)
+    system.actorOf(
+      SuggestionsHandler.props(
+        config,
+        contentRootManagerWrapper,
+        suggestionsRepo,
+        fileVersionsRepo,
+        sessionRouter.ref,
+        runtimeConnector.ref
+      )
+    )
+  }
+
+  def newInitializedSuggestionsHandler(
+    config: Config,
+    sessionRouter: TestProbe,
+    runtimeConnector: TestProbe,
+    suggestionsRepo: SuggestionsRepo[Future],
+    fileVersionsRepo: VersionsRepo[Future]
+  ): ActorRef = {
     val handler =
-      system.actorOf(
-        SuggestionsHandler.props(
-          config,
-          contentRootManagerWrapper,
-          suggestionsRepo,
-          fileVersionsRepo,
-          sessionRouter.ref,
-          runtimeConnector.ref
-        )
+      newSuggestionsHandler(
+        config,
+        sessionRouter,
+        runtimeConnector,
+        suggestionsRepo,
+        fileVersionsRepo
       )
     handler ! SuggestionsHandler.ProjectNameUpdated("Test")
     handler ! InitializedEvent.TruffleContextInitialized
@@ -819,6 +888,69 @@ class SuggestionsHandlerSpec
   def newJsonSession(clientId: UUID): JsonSession =
     JsonSession(clientId, TestProbe().ref)
 
+  def withDbs(
+    test: (Config, SuggestionsRepo[Future], VersionsRepo[Future]) => Any
+  ): Unit = {
+    val testContentRoot = Files.createTempDirectory(null).toRealPath()
+    sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
+    val config = newConfig(
+      ContentRootWithFile(
+        ContentRoot.Project(UUID.randomUUID()),
+        testContentRoot.toFile
+      )
+    )
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
+    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
+
+    val suggestionsInit = suggestionsRepo.init
+    val versionsInit    = versionsRepo.init
+    suggestionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }
+    versionsInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }
+
+    Await.ready(suggestionsInit, Timeout)
+    Await.ready(versionsInit, Timeout)
+
+    try test(config, suggestionsRepo, versionsRepo)
+    finally {
+      versionsRepo.close()
+      suggestionsRepo.close()
+    }
+  }
+
+  def withHandler(
+    config: Config,
+    suggestionsRepo: SuggestionsRepo[Future],
+    versionsRepo: VersionsRepo[Future]
+  )(
+    test: (TestProbe, TestProbe, ActorRef) => Any
+  ): Unit = {
+    val router    = TestProbe("session-router")
+    val connector = TestProbe("runtime-connector")
+    val handler = newSuggestionsHandler(
+      config,
+      router,
+      connector,
+      suggestionsRepo,
+      versionsRepo
+    )
+
+    try test(router, connector, handler)
+    finally {
+      system.stop(handler)
+    }
+  }
+
   def withDb(
     test: (
       Config,
@@ -836,9 +968,9 @@ class SuggestionsHandlerSpec
         testContentRoot.toFile
       )
     )
-    val router    = TestProbe("session-router")
-    val connector = TestProbe("runtime-connector")
-    val sqlDatabase = SqlDatabase( config.directories.suggestionsDatabaseFile)
+    val router          = TestProbe("session-router")
+    val connector       = TestProbe("runtime-connector")
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 
@@ -855,7 +987,7 @@ class SuggestionsHandlerSpec
         system.log.error(ex, "Failed to initialize FileVersions repo")
     }
 
-    val handler = newSuggestionsHandler(
+    val handler = newInitializedSuggestionsHandler(
       config,
       router,
       connector,
@@ -868,6 +1000,35 @@ class SuggestionsHandlerSpec
       system.stop(handler)
       sqlDatabase.close()
     }
+  }
+
+  object TestSuggestion {
+
+    val atom: Suggestion.Atom =
+      Suggestion.Atom(
+        externalId = None,
+        module     = "Test.Pair",
+        name       = "Pair",
+        arguments = Seq(
+          Suggestion.Argument("a", "Any", false, false, None),
+          Suggestion.Argument("b", "Any", false, false, None)
+        ),
+        returnType        = "Pair",
+        documentation     = Some("Awesome"),
+        documentationHtml = Some("")
+      )
+
+    val method: Suggestion.Method =
+      Suggestion.Method(
+        externalId        = Some(UUID.randomUUID()),
+        module            = "Test.Main",
+        name              = "main",
+        arguments         = Seq(),
+        selfType          = "Test.Main",
+        returnType        = "IO",
+        documentation     = None,
+        documentationHtml = None
+      )
   }
 
 }

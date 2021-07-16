@@ -142,7 +142,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(versionsRepo, fileManager, runtimeConnector),
+      BufferRegistry.props(fileManager, runtimeConnector),
       "buffer-registry"
     )
 

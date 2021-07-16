@@ -1,6 +1,5 @@
 package org.enso.searcher.sql
 
-import java.io.File
 import java.nio.file.{Files, Path}
 import java.util
 
@@ -13,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Random
 
-class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
+class VersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   val Timeout: FiniteDuration = 20.seconds
 
@@ -49,12 +48,12 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "insert digest" taggedAs Retry in withRepo { repo =>
-      val file   = new File("/foo/bar")
+      val module = "Foo.Bar"
       val digest = nextDigest()
       val action =
         for {
-          v1 <- repo.setVersion(file, digest)
-          v2 <- repo.getVersion(file)
+          v1 <- repo.setVersion(module, digest)
+          v2 <- repo.getVersion(module)
         } yield (v1, v2)
 
       val (v1, v2) = Await.result(action, Timeout)
@@ -64,14 +63,14 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "set digest" taggedAs Retry in withRepo { repo =>
-      val file    = new File("/foo/bar")
+      val module  = "Foo.Bar"
       val digest1 = nextDigest()
       val digest2 = nextDigest()
       val action =
         for {
-          v1 <- repo.setVersion(file, digest1)
-          v2 <- repo.setVersion(file, digest2)
-          v3 <- repo.getVersion(file)
+          v1 <- repo.setVersion(module, digest1)
+          v2 <- repo.setVersion(module, digest2)
+          v3 <- repo.getVersion(module)
         } yield (v1, v2, v3)
 
       val (v1, v2, v3) = Await.result(action, Timeout)
@@ -83,18 +82,18 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "update digest" taggedAs Retry in withRepo { repo =>
-      val file    = new File("/foo/bazz")
+      val module  = "Foo.Bar"
       val digest1 = nextDigest()
       val digest2 = nextDigest()
       val digest3 = nextDigest()
       val action =
         for {
-          b1 <- repo.updateVersion(file, digest1)
-          v2 <- repo.setVersion(file, digest2)
-          b2 <- repo.updateVersion(file, digest2)
-          b3 <- repo.updateVersion(file, digest3)
-          b4 <- repo.updateVersion(file, digest3)
-          v3 <- repo.getVersion(file)
+          b1 <- repo.updateVersion(module, digest1)
+          v2 <- repo.setVersion(module, digest2)
+          b2 <- repo.updateVersion(module, digest2)
+          b3 <- repo.updateVersion(module, digest3)
+          b4 <- repo.updateVersion(module, digest3)
+          v3 <- repo.getVersion(module)
         } yield (v2, v3, b1, b2, b3, b4)
 
       val (v2, v3, b1, b2, b3, b4) = Await.result(action, Timeout)
@@ -109,18 +108,18 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "batch update digest" taggedAs Retry in withRepo { repo =>
-      val file1   = new File("/foo/1")
-      val file2   = new File("/foo/2")
+      val module1 = "Foo.Bar"
+      val module2 = "Foo.Baz"
       val digest0 = nextDigest()
       val digest1 = nextDigest()
       val digest2 = nextDigest()
-      val input   = Seq(file1 -> digest1, file2 -> digest2)
+      val input   = Seq(module1 -> digest1, module2 -> digest2)
       val action =
         for {
-          _  <- repo.setVersion(file1, digest0)
+          _  <- repo.setVersion(module1, digest0)
           _  <- repo.updateVersions(input)
-          v1 <- repo.getVersion(file1)
-          v2 <- repo.getVersion(file2)
+          v1 <- repo.getVersion(module1)
+          v2 <- repo.getVersion(module2)
         } yield (v1, v2)
 
       val (v1, v2) = Await.result(action, Timeout)
@@ -131,13 +130,13 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     }
 
     "delete digest" taggedAs Retry in withRepo { repo =>
-      val file   = new File("/foo/bar")
+      val module = "Foo.Bar"
       val digest = nextDigest()
       val action =
         for {
-          v1 <- repo.setVersion(file, digest)
-          _  <- repo.remove(file)
-          v2 <- repo.getVersion(file)
+          v1 <- repo.setVersion(module, digest)
+          _  <- repo.remove(module)
+          v2 <- repo.getVersion(module)
         } yield (v1, v2)
 
       val (v1, v2) = Await.result(action, Timeout)
