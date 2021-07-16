@@ -2,7 +2,7 @@ package org.enso.languageserver.search
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash, Status}
 import akka.pattern.{ask, pipe}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -171,6 +171,13 @@ final class SuggestionsHandler(
       logger.info("Initializing: got type graph response.")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
+    case Status.Failure(ex) =>
+      logger.error(
+        "Initialization failure [{}]. {}",
+        ex.getClass,
+        ex.getMessage
+      )
+
     case _ => stash()
   }
 
@@ -181,8 +188,8 @@ final class SuggestionsHandler(
     case Api.Response(_, Api.VerifyModulesIndexResponse(toRemove)) =>
       logger.info("Verifying: got verification response.")
       val removeAction = for {
-        _ <- suggestionsRepo.removeModules(toRemove)
         _ <- versionsRepo.remove(toRemove)
+        _ <- suggestionsRepo.removeModules(toRemove)
       } yield SuggestionsHandler.Verified
       removeAction.pipeTo(self)
 
@@ -190,6 +197,13 @@ final class SuggestionsHandler(
       logger.info("Verified.")
       context.become(initialized(projectName, graph, Set()))
       unstashAll()
+
+    case Status.Failure(ex) =>
+      logger.error(
+        "Database verification failure [{}]. {}",
+        ex.getClass,
+        ex.getMessage
+      )
 
     case _ =>
       stash()
