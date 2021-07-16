@@ -18,7 +18,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.{Tree, TypeGraph}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.{ModuleVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
 import org.enso.testkit.RetrySpec
 import org.enso.text.editing.model.Position
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
@@ -808,7 +808,7 @@ class SuggestionsHandlerSpec
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: ModuleVersionsRepo[Future]
+    fileVersionsRepo: VersionsRepo[Future]
   ): ActorRef = {
     val contentRootManagerActor =
       system.actorOf(ContentRootManagerActor.props(config))
@@ -831,7 +831,7 @@ class SuggestionsHandlerSpec
     sessionRouter: TestProbe,
     runtimeConnector: TestProbe,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: ModuleVersionsRepo[Future]
+    fileVersionsRepo: VersionsRepo[Future]
   ): ActorRef = {
     val handler =
       newSuggestionsHandler(
@@ -883,7 +883,7 @@ class SuggestionsHandlerSpec
     JsonSession(clientId, TestProbe().ref)
 
   def withDbs(
-    test: (Config, SuggestionsRepo[Future], ModuleVersionsRepo[Future]) => Any
+    test: (Config, SuggestionsRepo[Future], VersionsRepo[Future]) => Any
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
@@ -925,7 +925,7 @@ class SuggestionsHandlerSpec
   def withHandler(
     config: Config,
     suggestionsRepo: SuggestionsRepo[Future],
-    versionsRepo: ModuleVersionsRepo[Future]
+    versionsRepo: VersionsRepo[Future]
   )(
     test: (TestProbe, TestProbe, ActorRef) => Any
   ): Unit = {

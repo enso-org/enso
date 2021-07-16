@@ -1,7 +1,7 @@
 package org.enso.searcher
 
 /** The object for accessing the database containing the module versions. */
-trait ModuleVersionsRepo[F[_]] {
+trait VersionsRepo[F[_]] {
 
   /** Initialize the repo. */
   def init: F[Unit]
@@ -41,7 +41,7 @@ trait ModuleVersionsRepo[F[_]] {
     */
   def remove(module: String): F[Unit]
 
-  /** Remove the version record.
+  /** Remove a list of version records.
     *
     * @param modules the list of modules to remove
     */

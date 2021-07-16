@@ -38,7 +38,7 @@ import org.enso.polyglot.Suggestion
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.data.QueryResult
-import org.enso.searcher.{ModuleVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.{SuggestionsRepo, VersionsRepo}
 import org.enso.text.ContentVersion
 import org.enso.text.editing.model.Position
 
@@ -88,7 +88,7 @@ final class SuggestionsHandler(
   config: Config,
   contentRootManager: ContentRootManager,
   suggestionsRepo: SuggestionsRepo[Future],
-  versionsRepo: ModuleVersionsRepo[Future],
+  versionsRepo: VersionsRepo[Future],
   sessionRouter: ActorRef,
   runtimeConnector: ActorRef
 ) extends Actor
@@ -646,7 +646,7 @@ object SuggestionsHandler {
     config: Config,
     contentRootManager: ContentRootManager,
     suggestionsRepo: SuggestionsRepo[Future],
-    fileVersionsRepo: ModuleVersionsRepo[Future],
+    fileVersionsRepo: VersionsRepo[Future],
     sessionRouter: ActorRef,
     runtimeConnector: ActorRef
   ): Props =

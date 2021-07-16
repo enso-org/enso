@@ -2,14 +2,14 @@ package org.enso.searcher.sql
 
 import java.util
 
-import org.enso.searcher.ModuleVersionsRepo
+import org.enso.searcher.VersionsRepo
 import slick.jdbc.SQLiteProfile.api._
 import slick.jdbc.meta.MTable
 
 import scala.concurrent.{ExecutionContext, Future}
 
 final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
-    extends ModuleVersionsRepo[Future] {
+    extends VersionsRepo[Future] {
 
   /** Initialize the repo. */
   override def init: Future[Unit] =

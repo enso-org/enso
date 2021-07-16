@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Random
 
-class ModuleVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
+class VersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   val Timeout: FiniteDuration = 20.seconds
 
