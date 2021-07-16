@@ -138,7 +138,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code, false))
+      Api.Request(Api.OpenFileNotification(mainFile, code))
     )
     context.receiveNone shouldEqual None
 
@@ -764,7 +764,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
