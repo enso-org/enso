@@ -155,14 +155,14 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id                = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def externalIdLeast   = column[Option[Long]]("external_id_least")
-  def externalIdMost    = column[Option[Long]]("external_id_most")
-  def kind              = column[Byte]("kind")
-  def module            = column[String]("module")
-  def name              = column[String]("name")
-  def selfType          = column[String]("self_type")
-  def returnType        = column[String]("return_type")
+  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast = column[Option[Long]]("external_id_least")
+  def externalIdMost  = column[Option[Long]]("external_id_most")
+  def kind            = column[Byte]("kind")
+  def module          = column[String]("module")
+  def name            = column[String]("name")
+  def selfType        = column[String]("self_type")
+  def returnType      = column[String]("return_type")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -171,9 +171,9 @@ final class SuggestionsTable(tag: Tag)
     column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
-  def documentation = column[Option[String]]("documentation")
+  def documentation     = column[Option[String]]("documentation")
   def documentationHtml = column[Option[String]]("documentation_html")
-  def reexport      = column[Option[String]]("reexport")
+  def reexport          = column[Option[String]]("reexport")
 
   def * =
     (
@@ -264,5 +264,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 3
+  val CurrentVersion: Long = 4
 }
