@@ -8,7 +8,7 @@ import org.enso.compiler.pass.resolve.{
   MethodDefinitions,
   TypeSignatures
 }
-import org.enso.docs.generator.DocsGenerator
+import org.enso.docs.generator.DocParserWrapper
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.Suggestion
@@ -156,7 +156,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       selfType          = selfType.toString,
       returnType        = buildReturnType(returnTypeDef),
       documentation     = doc,
-      documentationHtml = doc.map(DocsGenerator.runOnPureDoc)
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc)
     )
   }
 
@@ -240,7 +240,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       arguments         = arguments.map(buildArgument),
       returnType        = module.createChild(name).toString,
       documentation     = doc,
-      documentationHtml = doc.map(DocsGenerator.runOnPureDoc)
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc)
     )
 
   /** Build getter methods from atom arguments. */

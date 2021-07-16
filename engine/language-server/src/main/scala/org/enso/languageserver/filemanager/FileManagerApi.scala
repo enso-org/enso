@@ -4,6 +4,8 @@ import io.circe.Json
 import io.circe.literal.JsonStringContext
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
+import java.util.UUID
+
 /** The file manager JSON RPC API provided by the language server.
   * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
@@ -158,6 +160,22 @@ object FileManagerApi {
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = EventFile.Params
+    }
+  }
+
+  case object ContentRootAdded extends Method("file/rootAdded") {
+    case class Params(root: ContentRoot)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ContentRootAdded.Params
+    }
+  }
+
+  case object ContentRootRemoved extends Method("file/rootRemoved") {
+    case class Params(id: UUID)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ContentRootRemoved.Params
     }
   }
 

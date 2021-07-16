@@ -6,7 +6,10 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
-  ContentRootType,
+  ContentRoot,
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootWithFile
 }
 import org.enso.languageserver.runtime.ContextRegistryProtocol._
@@ -18,7 +21,7 @@ import org.enso.languageserver.session.SessionRouter.{
 }
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionsRepo
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -434,7 +437,7 @@ class ContextEventsListenerSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -471,9 +474,7 @@ class ContextEventsListenerSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )
@@ -481,10 +482,16 @@ class ContextEventsListenerSpec
     val contextId       = UUID.randomUUID()
     val router          = TestProbe("session-router")
     val contextRegistry = TestProbe("context-registry")
-    val repo            = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
+    val db              = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val repo            = new SqlSuggestionsRepo(db)
+
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val listener = contextRegistry.childActorOf(
       ContextEventsListener.props(
-        config,
+        RuntimeFailureMapper(contentRootManagerWrapper),
         repo,
         newJsonSession(clientId),
         contextId,

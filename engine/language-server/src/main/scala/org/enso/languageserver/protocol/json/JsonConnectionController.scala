@@ -1,6 +1,8 @@
 package org.enso.languageserver.protocol.json
 
-import akka.actor.{Actor, ActorRef, Props, Stash, Status}
+import java.util.UUID
+
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
@@ -15,15 +17,17 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.event.{
+  InitializedEvent,
   JsonSessionInitialized,
   JsonSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
-import org.enso.languageserver.filemanager.PathWatcherProtocol
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
+import org.enso.languageserver.monitoring.MonitoringProtocol
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
@@ -33,7 +37,6 @@ import org.enso.languageserver.requesthandler.monitoring.{
   PingHandler
 }
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
-import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
   AttachVisualisationHandler,
@@ -64,7 +67,6 @@ import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 
-import java.util.UUID
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -75,8 +77,10 @@ import scala.concurrent.duration._
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
+  * @param contentRootManager manages the available content roots
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
+  * @param idlenessMonitor a reference to the idleness monitor actor
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -85,12 +89,14 @@ class JsonConnectionController(
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
+  val contentRootManager: ActorRef,
   val contextRegistry: ActorRef,
   val suggestionsHandler: ActorRef,
   val stdOutController: ActorRef,
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
+  val idlenessMonitor: ActorRef,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -156,20 +162,96 @@ class JsonConnectionController(
       logger.info("RPC session initialized for client [{}].", clientId)
       val session = JsonSession(clientId, self)
       context.system.eventStream.publish(JsonSessionInitialized(session))
-      val requestHandlers = createRequestHandlers(session)
-      val handler = context.actorOf(
-        InitProtocolConnectionHandler.props(fileManager, requestTimeout)
+      context.system.eventStream.publish(
+        InitializedEvent.InitializationFinished
       )
-      handler.tell(request, receiver)
-      unstashAll()
-      context.become(initialised(webActor, session, requestHandlers))
 
+      val cancellable = context.system.scheduler.scheduleOnce(
+        requestTimeout,
+        self,
+        RequestTimeout
+      )
+
+      contentRootManager ! ContentRootManagerProtocol.SubscribeToNotifications
+
+      context.become(
+        waitingForContentRoots(
+          webActor    = webActor,
+          rpcSession  = session,
+          request     = request,
+          receiver    = receiver,
+          cancellable = cancellable,
+          rootsSoFar  = Nil
+        )
+      )
     case Status.Failure(ex) =>
       logger.error("Failed to initialize the resources. {}", ex.getMessage)
       receiver ! ResponseError(Some(request.id), ResourcesInitializationError)
+      context.system.eventStream.publish(InitializedEvent.InitializationFailed)
       context.become(connected(webActor))
 
     case _ => stash()
+  }
+
+  /** Waits for the ContentRootsAddedNotification that will contain the project
+    *  root and finalizes the initialization.
+    *
+    * Normally just after subscription is registered, a first notification is
+    * sent containing all available roots (so including the initial root).
+    * However, it may so happen that a root is added just right after that and
+    * the messages are reordered, making the other notification processed first.
+    * However, our first reply to the IDE must contain the main project root, so
+    * to ensure that this is the case we check if the roots contain it and if
+    * not, wait for another notification (which must happen, because the project
+    * root is always present and so must be sent to the subscriber in one of the
+    * messages after the subscription is established).
+    */
+  private def waitingForContentRoots(
+    webActor: ActorRef,
+    rpcSession: JsonSession,
+    request: Request[_, _],
+    receiver: ActorRef,
+    cancellable: Cancellable,
+    rootsSoFar: List[ContentRootWithFile]
+  ): Receive = {
+    case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
+      val allRoots = roots ++ rootsSoFar
+      val hasProject = roots.exists {
+        case ContentRootWithFile(ContentRoot.Project(_), _) => true
+        case _                                              => false
+      }
+      if (hasProject) {
+        cancellable.cancel()
+        unstashAll()
+
+        receiver ! ResponseResult(
+          InitProtocolConnection,
+          request.id,
+          InitProtocolConnection.Result(allRoots.map(_.toContentRoot).toSet)
+        )
+
+        val requestHandlers = createRequestHandlers(rpcSession)
+        context.become(initialised(webActor, rpcSession, requestHandlers))
+      } else {
+        context.become(
+          waitingForContentRoots(
+            webActor    = webActor,
+            rpcSession  = rpcSession,
+            request     = request,
+            receiver    = receiver,
+            cancellable = cancellable,
+            rootsSoFar  = roots ++ rootsSoFar
+          )
+        )
+      }
+
+    case RequestTimeout =>
+      logger.error("Getting content roots request [{}] timed out.", request.id)
+      receiver ! ResponseError(Some(request.id), Errors.RequestTimeout)
+      context.stop(self)
+
+    case _ =>
+      stash()
   }
 
   private def initialised(
@@ -274,12 +356,30 @@ class JsonConnectionController(
     case InputOutputProtocol.WaitingForStandardInput =>
       webActor ! Notification(InputOutputApi.WaitingForStandardInput, Unused)
 
+    case ContentRootManagerProtocol.ContentRootsAddedNotification(roots) =>
+      roots.foreach { root =>
+        webActor ! Notification(
+          FileManagerApi.ContentRootAdded,
+          FileManagerApi.ContentRootAdded.Params(root.toContentRoot)
+        )
+      }
+
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
+      refreshIdleTime(method)
       val handler = context.actorOf(
         requestHandlers(method),
         s"request-handler-$method-${UUID.randomUUID()}"
       )
       handler.forward(req)
+  }
+
+  private def refreshIdleTime(method: Method): Unit = {
+    method match {
+      case InitialPing | Ping =>
+      // ignore
+      case _ =>
+        idlenessMonitor ! MonitoringProtocol.ResetIdleTime
+    }
   }
 
   private def createRequestHandlers(
@@ -373,6 +473,7 @@ object JsonConnectionController {
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
+    * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
     * @param requestTimeout a request timeout
@@ -384,12 +485,14 @@ object JsonConnectionController {
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
+    contentRootManager: ActorRef,
     contextRegistry: ActorRef,
     suggestionsHandler: ActorRef,
     stdOutController: ActorRef,
     stdErrController: ActorRef,
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
+    idlenessMonitor: ActorRef,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
@@ -400,12 +503,14 @@ object JsonConnectionController {
         bufferRegistry,
         capabilityRouter,
         fileManager,
+        contentRootManager,
         contextRegistry,
         suggestionsHandler,
         stdOutController,
         stdErrController,
         stdInController,
         runtimeConnector,
+        idlenessMonitor,
         languageServerConfig,
         requestTimeout
       )

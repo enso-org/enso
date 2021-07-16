@@ -4,14 +4,16 @@ import io.circe.{Decoder, DecodingFailure}
 
 /** Represents a library name that should uniquely identify the library.
   *
-  * The prefix is either a special prefix or a username.
+  * @param namespace library's namespace - either a special reserved prefix or
+  *                  the username of the main author
+  * @param name library's name
   */
-case class LibraryName(prefix: String, name: String) {
+case class LibraryName(namespace: String, name: String) {
 
   /** The qualified name of the library consists of its prefix and name
     * separated with a dot.
     */
-  def qualifiedName: String = s"$prefix.$name"
+  def qualifiedName: String = s"$namespace.$name"
 
   /** @inheritdoc */
   override def toString: String = qualifiedName
@@ -29,14 +31,23 @@ object LibraryName {
     } yield name
   }
 
+  private val separator = '.'
+
   /** Creates a [[LibraryName]] from its string representation.
     *
     * Returns an error message on failure.
     */
   def fromString(str: String): Either[String, LibraryName] = {
-    str.split('.') match {
-      case Array(prefix, name) => Right(LibraryName(prefix, name))
-      case _                   => Left(s"`$str` is not a valid library name.")
+    str.split(separator) match {
+      case Array(namespace, name) => Right(LibraryName(namespace, name))
+      case _                      => Left(s"`$str` is not a valid library name.")
     }
   }
+
+  /** Extracts the [[LibraryName]] from a full name of a module. */
+  def fromModuleName(module: String): Option[LibraryName] =
+    module.split(separator) match {
+      case Array(namespace, name, _ @_*) => Some(LibraryName(namespace, name))
+      case _                             => None
+    }
 }

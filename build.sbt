@@ -3,6 +3,10 @@ import org.enso.build.WithDebugCommand
 import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+import src.main.scala.licenses.{
+  DistributionDescription,
+  SBTDistributionComponent
+}
 
 import java.io.File
 
@@ -10,11 +14,13 @@ import java.io.File
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.6"
-val rustVersion   = "1.54.0-nightly"
-val graalVersion  = "21.1.0"
-val javaVersion   = "11"
-val ensoVersion   = "0.2.13-SNAPSHOT" // Note [Engine And Launcher Version]
+val scalacVersion  = "2.13.6"
+val rustVersion    = "1.54.0-nightly"
+val graalVersion   = "21.1.0"
+val javaVersion    = "11"
+val ensoVersion    = "0.2.15-SNAPSHOT" // Note [Engine And Launcher Version]
+val currentEdition = "2021.3-SNAPSHOT" // Note [Default Editions]
+val stdLibVersion  = "0.1.0"           // Note [Standard Library Version]
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,6 +28,31 @@ val ensoVersion   = "0.2.13-SNAPSHOT" // Note [Engine And Launcher Version]
  * releases contains the Engine and the Launcher and thus the version number is
  * shared. If the version numbers ever diverge, make sure to update the build
  * scripts at .github/workflows accordingly.
+ */
+
+/* Note [Default Editions]
+ * ~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently, the default edition to use is inferred based on the engine
+ * version. Each Enso version has an associated default edition name and the
+ * `currentEdition` field specifies the default edition name for the upcoming
+ * release.
+ *
+ * Thus the `library-manager` needs to depend on the `version-output` to get
+ * this defaults from the build metadata.
+ *
+ * In the future we may automate generating this edition number when cutting a
+ * release.
+ */
+
+/* Note [Standard Library Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently the Standard library version is fixed at 0.1.0.
+ *
+ * Once the library repository is up and we start releasing the libraries, this
+ * version will need to be bumped, so for now the best way to achieve that will
+ * be to keep it in-sync with the engine version. However this will require
+ * creating a tool which will bump these version numbers in all standard library
+ * packages.
  */
 
 ThisBuild / organization := "org.enso"
@@ -45,6 +76,16 @@ lazy val verifyGeneratedPackage =
   )
 verifyGeneratedPackage := GatherLicenses.verifyGeneratedPackage.evaluated
 
+def makeStdLibDistribution(
+  name: String,
+  components: Seq[SBTDistributionComponent]
+): DistributionDescription =
+  Distribution(
+    name,
+    file(s"distribution/lib/Standard/$name/$stdLibVersion/THIRD-PARTY"),
+    components
+  )
+
 GatherLicenses.distributions := Seq(
   Distribution(
     "launcher",
@@ -65,27 +106,12 @@ GatherLicenses.distributions := Seq(
     file("distribution/project-manager/THIRD-PARTY"),
     Distribution.sbtProjects(`project-manager`)
   ),
-  Distribution(
-    "Base",
-    file("distribution/std-lib/Base/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-base`)
-  ),
-  Distribution(
-    "Table",
-    file("distribution/std-lib/Table/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-table`)
-  ),
-  Distribution(
-    "Database",
-    file("distribution/std-lib/Database/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-database`)
-  ),
-  Distribution(
-    "Image",
-    file("distribution/std-lib/Image/THIRD-PARTY"),
-    Distribution.sbtProjects(`std-image`)
-  )
+  makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
+  makeStdLibDistribution("Table", Distribution.sbtProjects(`std-table`)),
+  makeStdLibDistribution("Database", Distribution.sbtProjects(`std-database`)),
+  makeStdLibDistribution("Image", Distribution.sbtProjects(`std-image`))
 )
+
 GatherLicenses.licenseConfigurations := Set("compile")
 GatherLicenses.configurationRoot := file("tools/legal-review")
 
@@ -217,6 +243,9 @@ lazy val enso = (project in file("."))
     launcher,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
+    editions,
+    `distribution-manager`,
+    `library-manager`,
     syntax.jvm,
     testkit
   )
@@ -550,11 +579,22 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
+  .configs(Benchmark)
   .settings(
     libraryDependencies ++= Seq(
       "commons-cli" % "commons-cli" % commonsCliVersion
     ),
-    mainClass := Some("org.enso.docs.generator.Main")
+    mainClass := Some("org.enso.docs.generator.Main"),
+    inConfig(Benchmark)(Defaults.testSettings),
+    Benchmark / unmanagedSourceDirectories +=
+      baseDirectory.value.getParentFile / "bench" / "scala",
+    libraryDependencies +=
+      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
+    bench := (Benchmark / test).tag(Exclusive).value
   )
 
 lazy val `text-buffer` = project
@@ -652,6 +692,18 @@ lazy val `logging-service` = project
   .dependsOn(`akka-native`)
   .dependsOn(`logging-utils`)
 
+lazy val `logging-truffle-connector` = project
+  .in(file("lib/scala/logging-truffle-connector"))
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.slf4j"           % "slf4j-api"   % slf4jVersion,
+      "org.graalvm.truffle" % "truffle-api" % graalVersion % "provided"
+    )
+  )
+  .dependsOn(`logging-utils`)
+  .dependsOn(`polyglot-api`)
+
 lazy val cli = project
   .in(file("lib/scala/cli"))
   .configs(Test)
@@ -673,11 +725,12 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(
-          file,
-          state.value.log,
-          ensoVersion,
-          scalacVersion,
-          graalVersion
+          file           = file,
+          log            = state.value.log,
+          ensoVersion    = ensoVersion,
+          scalacVersion  = scalacVersion,
+          graalVersion   = graalVersion,
+          currentEdition = currentEdition
         )
     }.taskValue
   )
@@ -852,6 +905,7 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`docs-generator`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -877,6 +931,7 @@ lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
     Test / fork := true,
+    Test / envVars ++= distributionEnvironmentOverrides,
     Test / javaOptions ++= {
       // Note [Classpath Separation]
       val runtimeClasspath =
@@ -977,6 +1032,24 @@ lazy val cleanInstruments = taskKey[Unit](
   "Cleans fragile class files to force a full recompilation and preserve" +
   "consistency of instrumentation configuration."
 )
+
+/** Overrides for the environment variables related to the distribution, so that
+  * a local installation does not interfere with runtime tests.
+  */
+val distributionEnvironmentOverrides = {
+  val fakeDir = file("target/fake_dir").getAbsolutePath
+  Map(
+    "ENSO_DATA_DIRECTORY"           -> fakeDir,
+    "ENSO_CONFIG_DIRECTORY"         -> fakeDir,
+    "ENSO_RUNTIME_DIRECTORY"        -> file("target/run").getAbsolutePath,
+    "ENSO_LOG_DIRECTORY"            -> file("target/logs").getAbsolutePath,
+    "ENSO_HOME"                     -> fakeDir,
+    "ENSO_EDITION_PATH"             -> "",
+    "ENSO_LIBRARY_PATH"             -> "",
+    "ENSO_AUXILIARY_LIBRARY_CACHES" -> ""
+  )
+}
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1021,6 +1094,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "-Dgraalvm.locatorDisabled=true",
       s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
     ),
+    Test / fork := true,
+    Test / envVars ++= distributionEnvironmentOverrides,
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
       graalVersion,
@@ -1077,6 +1152,22 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            ensoVersion = ensoVersion,
+            editionName = currentEdition,
+            libraryVersion =
+              "0.1.0", // TODO [RW] Once we start releasing the standard libraries, this will be synced with engine version.
+            log = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
@@ -1084,8 +1175,10 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
+  .dependsOn(`library-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-utils`)
+  .dependsOn(`logging-truffle-connector`)
   .dependsOn(`docs-generator`)
 
 /* Note [Unmanaged Classpath]
@@ -1151,6 +1244,7 @@ lazy val `engine-runner` = project
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`logging-service`)
@@ -1250,6 +1344,7 @@ lazy val `library-manager` = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
@@ -1304,12 +1399,14 @@ lazy val `locking-test-helper` = project
     assembly / assemblyOutputPath := file("locking-test-helper.jar")
   )
 
-val `std-lib-root`           = file("distribution/std-lib/")
-val `standard-polyglot-root` = `std-lib-root` / "Standard" / "polyglot" / "java"
-val `base-polyglot-root`     = `std-lib-root` / "Base" / "polyglot" / "java"
-val `table-polyglot-root`    = `std-lib-root` / "Table" / "polyglot" / "java"
-val `image-polyglot-root`    = `std-lib-root` / "Image" / "polyglot" / "java"
-val `database-polyglot-root` = `std-lib-root` / "Database" / "polyglot" / "java"
+val `std-lib-root` = file("distribution/lib/Standard/")
+def stdLibComponentRoot(name: String): File =
+  `std-lib-root` / name / stdLibVersion
+val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
+val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
+val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
+val `database-polyglot-root` =
+  stdLibComponentRoot("Database") / "polyglot" / "java"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")

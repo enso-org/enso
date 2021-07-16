@@ -15,5 +15,6 @@ case class ModuleContext(
   module: Module,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
+  isGeneratingDocs: Boolean                    = false,
   compilerConfig: CompilerConfig
 )

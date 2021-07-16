@@ -2,7 +2,12 @@ package org.enso.librarymanager
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
-import org.enso.editions.{DefaultEnsoVersion, Editions, LibraryName}
+import org.enso.editions.{
+  DefaultEnsoVersion,
+  Editions,
+  LibraryName,
+  LibraryVersion
+}
 import org.enso.librarymanager.local.LocalLibraryProvider
 import org.enso.testkit.EitherValue
 import org.scalatest.Inside

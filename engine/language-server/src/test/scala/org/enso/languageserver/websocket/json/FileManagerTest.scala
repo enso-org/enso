@@ -1,15 +1,19 @@
 package org.enso.languageserver.websocket.json
 
+import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
+import java.security.MessageDigest
 import java.util.UUID
+
 import io.circe.literal._
+import io.circe.parser.parse
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.util.encoders.Hex
 import org.enso.languageserver.data._
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.RetrySpec
 
-import java.security.MessageDigest
 import scala.concurrent.duration._
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
@@ -18,7 +22,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
-      Map(testContentRootId -> testContentRoot),
+      testContentRoot,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -1652,7 +1656,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "return FileNotFound when getting info of nonexistent file" in {
       val client = getInitialisedWsClient()
-      val file   = Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
+      val file =
+        Paths.get(testContentRoot.file.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1783,8 +1788,28 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
     }
   }
 
+  "Content root management" must {
+    "notify the IDE when a new root is added" in {
+      val client   = getInitialisedWsClient()
+      val rootPath = new File("foobar")
+      system.eventStream.publish(
+        Api.LibraryLoaded("Foo", "Bar", "1.2.3", rootPath)
+      )
+
+      val parsed = parse(client.expectMessage())
+      inside(parsed) { case Right(json) =>
+        val params = json.asObject.value("params").value.asObject.value
+        val root   = params("root").value.asObject.value
+        root("type").value.asString.value shouldEqual "Library"
+        root("namespace").value.asString.value shouldEqual "Foo"
+        root("name").value.asString.value shouldEqual "Bar"
+        root("version").value.asString.value shouldEqual "1.2.3"
+      }
+    }
+  }
+
   def withCleanRoot[T](test: => T): T = {
-    FileUtils.cleanDirectory(testContentRoot.file)
+    FileUtils.deleteQuietly(testContentRoot.file)
     test
   }
 }

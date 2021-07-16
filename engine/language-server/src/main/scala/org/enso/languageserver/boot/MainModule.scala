@@ -2,6 +2,8 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
+import java.time.Clock
+
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
@@ -9,7 +11,10 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
-  ContentRootType,
+  ContentRoot,
+  ContentRootManager,
+  ContentRootManagerActor,
+  ContentRootManagerWrapper,
   ContentRootWithFile,
   FileManager,
   FileSystem,
@@ -17,7 +22,11 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
-import org.enso.languageserver.monitoring.HealthCheckEndpoint
+import org.enso.languageserver.monitoring.{
+  HealthCheckEndpoint,
+  IdlenessEndpoint,
+  IdlenessMonitor
+}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -35,7 +44,6 @@ import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.searcher.sqlite.LockingMode
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -57,15 +65,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     logLevel
   )
 
+  private val utcClock = Clock.systemUTC()
+
   val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
-    serverConfig.contentRootUuid,
-    ContentRootType.Project,
-    "Project",
+    ContentRoot.Project(serverConfig.contentRootUuid),
     new File(serverConfig.contentRootPath)
   )
   val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> contentRoot),
+    contentRoot,
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
@@ -95,20 +103,17 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   val sqlDatabase =
     DeploymentType.fromEnvironment() match {
       case Desktop =>
-        SqlDatabase(
-          languageServerConfig.directories.suggestionsDatabaseFile.toString
-        )
-
+        SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
       case Azure =>
-        SqlDatabase(
-          languageServerConfig.directories.suggestionsDatabaseFile.toString,
-          Some(LockingMode.UnixFlock)
-        )
+        SqlDatabase.inmem("memdb")
     }
 
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
   log.trace("Created SQL repos: [{}. {}].", suggestionsRepo, versionsRepo)
+
+  val idlenessMonitor =
+    system.actorOf(IdlenessMonitor.props(utcClock))
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -116,8 +121,22 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  lazy val contentRootManagerActor =
+    system.actorOf(
+      ContentRootManagerActor.props(languageServerConfig),
+      "content-root-manager"
+    )
+
+  lazy val contentRootManagerWrapper: ContentRootManager =
+    new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
+
   lazy val fileManager = system.actorOf(
-    FileManager.pool(languageServerConfig, fileSystem, zioExec),
+    FileManager.pool(
+      languageServerConfig.fileManager,
+      contentRootManagerWrapper,
+      fileSystem,
+      zioExec
+    ),
     "file-manager"
   )
 
@@ -129,8 +148,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
 
   lazy val receivesTreeUpdatesHandler =
     system.actorOf(
-      ReceivesTreeUpdatesHandler
-        .props(languageServerConfig, fileSystem, zioExec),
+      ReceivesTreeUpdatesHandler.props(
+        languageServerConfig,
+        contentRootManagerWrapper,
+        fileSystem,
+        zioExec
+      ),
       "file-event-registry"
     )
 
@@ -139,6 +162,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       SuggestionsHandler
         .props(
           languageServerConfig,
+          contentRootManagerWrapper,
           suggestionsRepo,
           versionsRepo,
           sessionRouter,
@@ -163,6 +187,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
         .props(
           suggestionsRepo,
           languageServerConfig,
+          RuntimeFailureMapper(contentRootManagerWrapper),
           runtimeConnector,
           sessionRouter
         ),
@@ -179,7 +204,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-    .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+    .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
     .option(
       RuntimeOptions.LOG_LEVEL,
       JavaLoggingLogHandler.getJavaLogLevelFor(logLevel).getName
@@ -249,12 +275,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     bufferRegistry,
     capabilityRouter,
     fileManager,
+    contentRootManagerActor,
     contextRegistry,
     suggestionsHandler,
     stdOutController,
     stdErrController,
     stdInController,
     runtimeConnector,
+    idlenessMonitor,
     languageServerConfig
   )
   log.trace(
@@ -279,13 +307,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
       serverConfig.computeExecutionContext
     )
 
+  val idlenessEndpoint =
+    new IdlenessEndpoint(idlenessMonitor)
+
   val jsonRpcServer =
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds),
-      List(healthCheckEndpoint)
+      List(healthCheckEndpoint, idlenessEndpoint)
     )
   log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
 

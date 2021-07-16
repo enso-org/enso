@@ -19,12 +19,14 @@ class JsonConnectionControllerFactory(
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
+  contentRootManager: ActorRef,
   contextRegistry: ActorRef,
   suggestionsHandler: ActorRef,
   stdOutController: ActorRef,
   stdErrController: ActorRef,
   stdInController: ActorRef,
   runtimeConnector: ActorRef,
+  idlenessMonitor: ActorRef,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -42,12 +44,14 @@ class JsonConnectionControllerFactory(
         bufferRegistry,
         capabilityRouter,
         fileManager,
+        contentRootManager,
         contextRegistry,
         suggestionsHandler,
         stdOutController,
         stdErrController,
         stdInController,
         runtimeConnector,
+        idlenessMonitor,
         config
       )
     )

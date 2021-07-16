@@ -2,10 +2,9 @@ package org.enso.interpreter.test.instrument
 
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.Constants
 import org.enso.interpreter.runtime.{Context => EnsoContext}
@@ -53,12 +52,17 @@ class RuntimeVisualisationsTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+        .option(
+          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+          Paths.get("../../distribution/component").toFile.getAbsolutePath
+        )
         .logHandler(logOut)
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -106,13 +110,18 @@ class RuntimeVisualisationsTest
       Option(messageQueue.poll())
     }
 
-    def receive: Option[Api.Response] = {
-      Option(messageQueue.poll(10, TimeUnit.SECONDS))
-    }
+    def receive: Option[Api.Response] =
+      receiveTimeout(10)
 
-    def receive(n: Int): List[Api.Response] = {
-      Iterator.continually(receive).take(n).flatten.toList
-    }
+    def receiveTimeout(timeoutSeconds: Int): Option[Api.Response] =
+      Option(messageQueue.poll(timeoutSeconds.toLong, TimeUnit.SECONDS))
+
+    def receive(n: Int, timeoutSeconds: Int = 10): List[Api.Response] =
+      Iterator
+        .continually(receiveTimeout(timeoutSeconds))
+        .take(n)
+        .flatten
+        .toList
 
     def consumeOut: List[String] = {
       val result = out.toString
@@ -180,7 +189,13 @@ class RuntimeVisualisationsTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(Constants.INTEGER),
-                  Some(Api.MethodPointer("Enso_Test.Test.Main", Constants.NUMBER, "foo")),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      Constants.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -1306,6 +1321,94 @@ class RuntimeVisualisationsTest
     context.receive(1) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ModuleNotFound("Test.Undefined"))
     )
+  }
+
+  it should "be able to use external libraries if they are needed by the visualisation" in {
+    val idMain     = context.Main.metadata.addItem(87, 1)
+    val contents   = context.Main.code
+    val mainFile   = context.writeMain(context.Main.code)
+    val moduleName = "Enso_Test.Test.Main"
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, true))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      TestMessages.update(contextId, idMain, Constants.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idMain,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Standard.Visualization.Id",
+            "x -> x.default_visualization.to_text"
+          )
+        )
+      )
+    )
+
+    val attachVisualisationResponses =
+      context.receive(n = 5, timeoutSeconds = 60)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idMain`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+
+    data.sameElements("(Builtin 'JSON')".getBytes) shouldBe true
+
+    val loadedLibraries = attachVisualisationResponses.collect {
+      case Api.Response(None, Api.LibraryLoaded(namespace, name, _, _)) =>
+        (namespace, name)
+    }
+
+    loadedLibraries should contain(("Standard", "Visualization"))
   }
 
   it should "return VisualisationExpressionFailed error when attaching visualisation" in {

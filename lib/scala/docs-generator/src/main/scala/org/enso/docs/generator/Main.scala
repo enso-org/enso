@@ -6,7 +6,7 @@ import scala.util.{Try, Using}
 import scala.io.Source
 import scalatags.Text.{all => HTML}
 import TreeOfCommonPrefixes._
-import DocsGenerator._
+import DocParserWrapper._
 import Constants._
 import HTML._
 
@@ -137,6 +137,7 @@ object Main {
         .replace(path + "/", "")
         .replace(".enso", "")
         .replace("src/", "")
+        .replace("/0.1.0/", "/")
     )
     val allPrograms = allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
@@ -157,8 +158,10 @@ object Main {
     val allDocJSFiles = allFiles.map { x =>
       val name = x.getPath
         .replace(".enso", ".js")
-        .replace("std-lib/", "std-lib/" + outDir + "/")
+        .replace("lib/Standard/", outDir + "/")
         .replace("Main.js", "index.js")
+        // TODO [RW] update this once library versions are changing
+        .replace("/0.1.0/", "/")
         .replace("src/", "")
       val ending = name.split(outDir + "/").tail.head
       name.replace(ending, ending.replace('/', '-'))

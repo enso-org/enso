@@ -5,10 +5,7 @@ import akka.testkit._
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{
-  ContentRootType,
-  ContentRootWithFile
-}
+import org.enso.languageserver.filemanager.{ContentRoot, ContentRootWithFile}
 import org.enso.searcher.sql.{
   SchemaVersion,
   SqlDatabase,
@@ -209,7 +206,7 @@ class RepoInitializationSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds.dilated),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds.dilated),
@@ -222,9 +219,7 @@ class RepoInitializationSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )
@@ -235,9 +230,7 @@ class RepoInitializationSpec
   def withRepos(
     config: Config
   )(test: (SqlSuggestionsRepo, SqlVersionsRepo) => Any): Unit = {
-    val sqlDatabase = SqlDatabase(
-      config.directories.suggestionsDatabaseFile.toString
-    )
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 

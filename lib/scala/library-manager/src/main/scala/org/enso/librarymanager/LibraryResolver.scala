@@ -1,6 +1,6 @@
 package org.enso.librarymanager
 
-import org.enso.editions.{Editions, LibraryName}
+import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
 
 /** A helper class that figures out which library version should be used in a
@@ -24,7 +24,7 @@ case class LibraryResolver(
     * @param preferLocalLibraries the flag indicating whether to prefer local
     *                             libraries that are present over what the
     *                             edition defines
-    * @return
+    * @return either a resolved library version or a resolution error
     */
   def resolveLibraryVersion(
     libraryName: LibraryName,

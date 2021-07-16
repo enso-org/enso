@@ -1,8 +1,5 @@
 package org.enso.languageserver.search
 
-import java.io.File
-import java.nio.file.Files
-import java.util.UUID
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
@@ -12,11 +9,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
-import org.enso.languageserver.filemanager.{
-  ContentRootType,
-  ContentRootWithFile,
-  Path
-}
+import org.enso.languageserver.filemanager._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
@@ -33,6 +26,9 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.io.File
+import java.nio.file.Files
+import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
@@ -767,10 +763,15 @@ class SuggestionsHandlerSpec
     suggestionsRepo: SuggestionsRepo[Future],
     fileVersionsRepo: FileVersionsRepo[Future]
   ): ActorRef = {
+    val contentRootManagerActor =
+      system.actorOf(ContentRootManagerActor.props(config))
+    val contentRootManagerWrapper: ContentRootManager =
+      new ContentRootManagerWrapper(config, contentRootManagerActor)
     val handler =
       system.actorOf(
         SuggestionsHandler.props(
           config,
+          contentRootManagerWrapper,
           suggestionsRepo,
           fileVersionsRepo,
           sessionRouter.ref,
@@ -802,7 +803,7 @@ class SuggestionsHandlerSpec
 
   def newConfig(root: ContentRootWithFile): Config = {
     Config(
-      Map(root.id -> root),
+      root,
       FileManagerConfig(timeout = 3.seconds),
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds),
@@ -811,7 +812,7 @@ class SuggestionsHandlerSpec
   }
 
   def mkModulePath(config: Config, segments: String*): Path = {
-    val (rootId, _) = config.contentRoots.head
+    val rootId = config.projectContentRoot.id
     Path(rootId, "src" +: segments.toVector)
   }
 
@@ -831,17 +832,13 @@ class SuggestionsHandlerSpec
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config = newConfig(
       ContentRootWithFile(
-        UUID.randomUUID(),
-        ContentRootType.Project,
-        "Project",
+        ContentRoot.Project(UUID.randomUUID()),
         testContentRoot.toFile
       )
     )
     val router    = TestProbe("session-router")
     val connector = TestProbe("runtime-connector")
-    val sqlDatabase = SqlDatabase(
-      config.directories.suggestionsDatabaseFile.toString
-    )
+    val sqlDatabase = SqlDatabase( config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
 

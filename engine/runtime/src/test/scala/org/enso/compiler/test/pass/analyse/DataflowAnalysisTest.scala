@@ -3,14 +3,15 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.DataflowAnalysis.{
   DependencyInfo,
   DependencyMapping
 }
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
@@ -1585,6 +1586,112 @@ class DataflowAnalysisTest extends CompilerTest {
         .get shouldEqual Set(
         aBindId
       )
+    }
+  }
+
+  "Dataflow analysis of conversions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val ir =
+      """
+        |Foo.from (value : Bar) =
+        |    Foo value 1
+        |""".stripMargin.preprocessModule.analyse
+
+    val depInfo = ir.getMetadata(DataflowAnalysis).get
+
+    // The method and its body
+    val conversion = ir.bindings.head.asInstanceOf[Method.Conversion]
+    val sourceType = conversion.sourceTypeName.asInstanceOf[IR.Name]
+    val lambda     = conversion.body.asInstanceOf[IR.Function.Lambda]
+    val fnArgThis =
+      lambda.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgValue =
+      lambda.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnBody = lambda.body.asInstanceOf[IR.Expression.Block]
+
+    // The `Foo` application
+    val fooExpr     = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val fooFunction = fooExpr.function.asInstanceOf[IR.Name]
+    val fooArg1     = fooExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+    val fooArg1Expr = fooArg1.value.asInstanceOf[IR.Name]
+    val fooArg2     = fooExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val fooArg2Expr = fooArg2.value.asInstanceOf[IR.Literal.Number]
+
+    // The global symbols
+    val fooSymbol = mkDynamicDep("Foo")
+
+    // The identifiers
+    val conversionId  = mkStaticDep(conversion.getId)
+    val sourceTypeId  = mkStaticDep(sourceType.getId)
+    val lambdaId      = mkStaticDep(lambda.getId)
+    val fnArgThisId   = mkStaticDep(fnArgThis.getId)
+    val fnArgValueId  = mkStaticDep(fnArgValue.getId)
+    val fnBodyId      = mkStaticDep(fnBody.getId)
+    val fooExprId     = mkStaticDep(fooExpr.getId)
+    val fooFunctionId = mkStaticDep(fooFunction.getId)
+    val fooArg1Id     = mkStaticDep(fooArg1.getId)
+    val fooArg1ExprId = mkStaticDep(fooArg1Expr.getId)
+    val fooArg2Id     = mkStaticDep(fooArg2.getId)
+    val fooArg2ExprId = mkStaticDep(fooArg2Expr.getId)
+
+    // The info
+    val dependents   = depInfo.dependents
+    val dependencies = depInfo.dependencies
+
+    "correctly identify global symbol direct dependents" in {
+      dependents.getDirect(fooSymbol) shouldEqual Some(Set(fooFunctionId))
+    }
+
+    "correctly identify global symbol direct dependencies" in {
+      dependencies.getDirect(fooSymbol) shouldBe empty
+    }
+
+    "correctly identify local direct dependents" in {
+      dependents.getDirect(conversionId) shouldBe empty
+      dependents.getDirect(sourceTypeId) shouldEqual Some(Set(conversionId))
+      dependents.getDirect(lambdaId) shouldEqual Some(Set(conversionId))
+      dependents.getDirect(fnArgThisId) shouldBe empty
+      dependents.getDirect(fnArgValueId) shouldBe Some(Set(fooArg1ExprId))
+      dependents.getDirect(fnBodyId) shouldBe Some(Set(lambdaId))
+      dependents.getDirect(fooExprId) shouldBe Some(Set(fnBodyId))
+      dependents.getDirect(fooFunctionId) shouldBe Some(Set(fooExprId))
+      dependents.getDirect(fooArg1Id) shouldBe Some(Set(fooExprId))
+      dependents.getDirect(fooArg1ExprId) shouldBe Some(Set(fooArg1Id))
+      dependents.getDirect(fooArg2Id) shouldBe Some(Set(fooExprId))
+      dependents.getDirect(fooArg2ExprId) shouldBe Some(Set(fooArg2Id))
+    }
+
+    "correctly identify local direct dependencies" in {
+      dependencies.getDirect(conversionId) shouldEqual Some(
+        Set(sourceTypeId, lambdaId)
+      )
+      dependencies.getDirect(sourceTypeId) shouldBe empty
+      dependencies.getDirect(lambdaId) shouldEqual Some(Set(fnBodyId))
+      dependencies.getDirect(fnBodyId) shouldEqual Some(Set(fooExprId))
+      dependencies.getDirect(fooExprId) shouldEqual Some(
+        Set(fooFunctionId, fooArg1Id, fooArg2Id)
+      )
+      dependencies.getDirect(fooFunctionId) shouldEqual Some(Set(fooSymbol))
+      dependencies.getDirect(fooArg1Id) shouldEqual Some(Set(fooArg1ExprId))
+      dependencies.getDirect(fooArg2Id) shouldEqual Some(Set(fooArg2ExprId))
+      dependencies.getDirect(fooArg1ExprId) shouldEqual Some(Set(fnArgValueId))
+      dependencies.getDirect(fooArg2ExprId) shouldBe empty
+    }
+
+    "associate the dependency info with every node in the IR" in {
+      conversion.hasDependencyInfo
+      sourceType.hasDependencyInfo
+      lambda.hasDependencyInfo
+      fnArgThis.hasDependencyInfo
+      fnArgValue.hasDependencyInfo
+      fnBody.hasDependencyInfo
+      fooExpr.hasDependencyInfo
+      fooFunction.hasDependencyInfo
+      fooArg1.hasDependencyInfo
+      fooArg1Expr.hasDependencyInfo
+      fooArg2.hasDependencyInfo
+      fooArg2Expr.hasDependencyInfo
     }
   }
 }

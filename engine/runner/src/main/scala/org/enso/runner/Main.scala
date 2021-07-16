@@ -2,8 +2,9 @@ package org.enso.runner
 
 import akka.http.scaladsl.model.{IllegalUriException, Uri}
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.cli.{Option => CliOption, _}
-import org.enso.editions.SemVerEnsoVersion
+import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.loggingservice.LogLevel
@@ -28,6 +29,7 @@ object Main {
   private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
   private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
   private val REPL_OPTION                 = "repl"
+  private val DOCS_OPTION                 = "docs"
   private val LANGUAGE_SERVER_OPTION      = "server"
   private val DAEMONIZE_OPTION            = "daemon"
   private val INTERFACE_OPTION            = "interface"
@@ -41,6 +43,8 @@ object Main {
   private val LOG_LEVEL                   = "log-level"
   private val LOGGER_CONNECT              = "logger-connect"
   private val NO_LOG_MASKING              = "no-log-masking"
+
+  private lazy val logger = Logger[Main.type]
 
   /** Builds the [[Options]] object representing the CLI syntax.
     *
@@ -62,6 +66,10 @@ object Main {
       .argName("file")
       .longOpt(RUN_OPTION)
       .desc("Runs a specified Enso file.")
+      .build
+    val docs = CliOption.builder
+      .longOpt(DOCS_OPTION)
+      .desc("Runs the Enso documentation generator.")
       .build
     val newOpt = CliOption.builder
       .hasArg(true)
@@ -191,6 +199,7 @@ object Main {
       .addOption(help)
       .addOption(repl)
       .addOption(run)
+      .addOption(docs)
       .addOption(newOpt)
       .addOption(newProjectNameOpt)
       .addOption(newProjectAuthorNameOpt)
@@ -253,10 +262,18 @@ object Main {
     val authors =
       if (authorName.isEmpty && authorEmail.isEmpty) List()
       else List(Contact(name = authorName, email = authorEmail))
+
+    val edition = DefaultEdition.getDefaultEdition
+    logger.whenTraceEnabled {
+      val baseEdition = edition.parent.getOrElse("<no-base>")
+      logger.trace(
+        s"Creating a new project $name based on edition [$baseEdition]."
+      )
+    }
     PackageManager.Default.create(
       root        = root,
       name        = name,
-      ensoVersion = SemVerEnsoVersion(CurrentVersion.version),
+      edition     = Some(edition),
       authors     = authors,
       maintainers = authors
     )
@@ -284,7 +301,7 @@ object Main {
       exitFail()
     }
     val projectMode = file.isDirectory
-    val packagePath =
+    val projectRoot =
       if (projectMode) {
         projectPath match {
           case Some(inProject) if inProject != path =>
@@ -299,7 +316,7 @@ object Main {
         file.getAbsolutePath
       } else projectPath.getOrElse("")
     val context = new ContextFactory().create(
-      packagePath,
+      projectRoot,
       System.in,
       System.out,
       Repl(TerminalIO()),
@@ -320,6 +337,57 @@ object Main {
       runSingleFile(context, file)
     }
     exitSuccess()
+  }
+
+  /** Handles the `--docs` CLI option.
+    *
+    * Generates reference website from standard library.
+    *
+    * @param projectPath if specified, the docs is generated for a project
+    *                    at the given path
+    * @param logLevel log level to set for the engine runtime
+    */
+  private def genDocs(
+    projectPath: Option[String],
+    logLevel: LogLevel
+  ): Unit = {
+    if (projectPath.isEmpty) {
+      println("Path hasn't been provided.")
+      exitFail()
+    }
+    generateDocsFrom(projectPath.get, logLevel)
+    exitSuccess()
+  }
+
+  /** Subroutine of `genDocs` function.
+    * Generates the documentation for given Enso project at given path.
+    */
+  def generateDocsFrom(path: String, logLevel: LogLevel): Unit = {
+    val executionContext = new ContextFactory().create(
+      path,
+      System.in,
+      System.out,
+      Repl(TerminalIO()),
+      logLevel = logLevel
+    )
+
+    val file = new File(path)
+    val pkg  = PackageManager.Default.fromDirectory(file)
+    val main = pkg.map(_.mainFile)
+
+    if (main.exists(_.exists())) {
+      val mainFile       = main.get
+      val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
+      val topScope       = executionContext.getTopScope
+      val mainModule     = topScope.getModule(mainModuleName)
+      val generated      = mainModule.generateDocs()
+      print(generated)
+
+      // TODO:
+      // - go through executed code and get all HTML docs
+      //   with their corresponding atoms/methods etc.
+      // - Save those to files
+    }
   }
 
   private def runPackage(
@@ -426,10 +494,10 @@ object Main {
          |$mainMethodName = Debug.breakpoint
          |""".stripMargin
     val replModuleName = "Internal_Repl_Module___"
-    val packagePath    = projectPath.getOrElse("")
+    val projectRoot    = projectPath.getOrElse("")
     val context =
       new ContextFactory().create(
-        packagePath,
+        projectRoot,
         System.in,
         System.out,
         Repl(TerminalIO()),
@@ -577,6 +645,9 @@ object Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
+    }
+    if (line.hasOption(DOCS_OPTION)) {
+      genDocs(Option(line.getOptionValue(IN_PROJECT_OPTION)), logLevel)
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line, logLevel)

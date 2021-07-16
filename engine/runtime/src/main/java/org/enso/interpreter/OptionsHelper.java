@@ -5,24 +5,38 @@ import com.oracle.truffle.api.TruffleLanguage;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.enso.polyglot.RuntimeOptions;
 
 public class OptionsHelper {
   /**
-   * Gets the list of locations of known modules that can be imported in the current run.
+   * Gets the location of the project that is the context of the current run.
    *
    * @param env the current run environment
-   * @return the list of locations of known modules that can be imported in the current run
+   * @return the project path (can be empty if running outside of the project)
    */
-  public static List<TruffleFile> getPackagesPaths(TruffleLanguage.Env env) {
-    if (env.getOptions().get(RuntimeOptions.PACKAGES_PATH_KEY).equals("")) {
-      return Collections.emptyList();
+  public static Optional<TruffleFile> getProjectRoot(TruffleLanguage.Env env) {
+    String option = env.getOptions().get(RuntimeOptions.PROJECT_ROOT_KEY);
+    if (option.equals("")) {
+      return Optional.empty();
     } else {
-      return Arrays.stream(
-              env.getOptions().get(RuntimeOptions.PACKAGES_PATH_KEY).split(env.getPathSeparator()))
-          .map(env::getInternalTruffleFile)
-          .collect(Collectors.toList());
+      return Optional.of(env.getInternalTruffleFile(option));
+    }
+  }
+
+  /**
+   * Gets an optional override for the language home directory.
+   *
+   * This is used mostly for the runtime tests, as language home is not normally
+   * defined there.
+   */
+  public static Optional<String> getLanguageHomeOverride(TruffleLanguage.Env env) {
+    String option = env.getOptions().get(RuntimeOptions.LANGUAGE_HOME_OVERRIDE_KEY);
+    if (option.equals("")) {
+      return Optional.empty();
+    } else {
+      return Optional.of(option);
     }
   }
 }

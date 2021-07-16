@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.desugar.FunctionBinding
+import org.enso.compiler.pass.resolve.{DocumentationComments, ModuleAnnotations}
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -170,6 +171,30 @@ class FunctionBindingTest extends CompilerTest {
       subArguments.head.ascribedType should not be defined
       subArguments.head.defaultValue shouldBe defined
       subArguments.head.suspended shouldBe true
+    }
+
+    "retain documentation comments and annotations associated with them" in {
+      val ir =
+        s"""
+           |## My documentation for this conversion.
+           |@My_Annotation
+           |My_Type.$from (that : Value) = that
+           |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Conversion]
+      val conversion = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Conversion]
+
+      val annotations =
+        conversion.unsafeGetMetadata(ModuleAnnotations, "Should be present.")
+      annotations.annotations.length shouldEqual 1
+      annotations.annotations.head.name shouldEqual "@My_Annotation"
+
+      val doc = conversion.unsafeGetMetadata(
+        DocumentationComments,
+        "Should be present."
+      )
+      doc.documentation shouldEqual " My documentation for this conversion."
     }
 
     "return an error if the conversion has no arguments" in {

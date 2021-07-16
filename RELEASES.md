@@ -1,5 +1,31 @@
 # Enso Next
 
+# Enso 0.2.14 (2021-07-15)
+
+## Interpreter/Runtime
+
+- Ensure that the module used by a visualization is preloaded when the
+  visualization is being attached
+  ([#1857](https://github.com/enso-org/enso/pull/1857)).
+- Fix an issue with the `HostClassLoader` getting into a broken state
+  ([#1867](https://github.com/enso-org/enso/pull/1867)).
+
+## Tooling
+
+- Implemented an HTTP endpoint returning the time that the language server has
+  spent idle ([#1847](https://github.com/enso-org/enso/pull/1847)).
+- Fix a bug where the `project/list` endpoint would fail if any of the projects
+  referenced an edition that does not exist anymore
+  ([#1858](https://github.com/enso-org/enso/pull/1858)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-15)
+  for issues opened before the release date.
+
+# Enso 0.2.13 (2021-07-09)
+
 ## Interpreter/Runtime
 
 - Implemented changes to the import and export syntax, requiring to provide the
@@ -7,6 +33,12 @@
   project ([#1806](https://github.com/enso-org/enso/pull/1806)).
 - Fixed a bug where unresolved imports would crash the compiler
   ([#1822](https://github.com/enso-org/enso/pull/1822)).
+- Implemented the ability to dynamically load local libraries
+  ([#1826](https://github.com/enso-org/enso/pull/1826)). Currently, it only
+  supports the loading of local libraries, but will be integrated with the
+  editions system soon.
+- Integrated the library loading mechanism with the editions system
+  ([#1832](https://github.com/enso-org/enso/pull/1832)).
 
 ## Tooling
 
@@ -15,6 +47,21 @@
 - Fixed a bug where the Project Manager would not preinstall the Graal runtime
   if the engine was already installed and only its runtime was missing
   ([#1824](https://github.com/enso-org/enso/pull/1824)).
+- Extended content root mechanism to provide the home directory and filesystem
+  roots on startup ([#1821](https://github.com/enso-org/enso/pull/1821)). It now
+  also supports dynamically adding content roots and notifies the IDE when a new
+  content root is added.
+- Connected the documentation generator with Enso compiler and suggestion
+  database, making the documentation generated before being sent to the IDE,
+  using a faster Scala-based generator instead of a ScalaJS-based one on IDE's
+  side, also enabling us to connect many AST elements with docs. See
+  ([#1744](https://github.com/enso-org/enso/pull/1744).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-09)
+  for issues opened before the release date.
 
 # Enso 0.2.12 (2021-06-24)
 
