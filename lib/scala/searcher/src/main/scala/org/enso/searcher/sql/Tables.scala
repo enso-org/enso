@@ -253,7 +253,7 @@ object Suggestions extends TableQuery(new SuggestionsTable(_))
 
 object ModuleVersions extends TableQuery(new ModuleVersionsTable(_))
 
-object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
+object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
