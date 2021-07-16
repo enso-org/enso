@@ -342,22 +342,12 @@ jobs:
         shell: bash
         if: runner.os == 'Linux'
         run: |
-          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Parser JS Bundle to S3 (PR)
-        shell: bash
-        if: (runner.os == 'Linux') && (github.event == 'pull_request')
-        run: |
-          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/${{ github.sha }} --profile s3-upload --acl public-read --delete
       - name: Upload FlatBuffers Schemas to S3
         shell: bash
         if: runner.os == 'Linux'
         run: |
-          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload FlatBuffers Schemas to S3 (PR)
-        shell: bash
-        if: (runner.os == 'Linux') && (github.event == 'pull_request')
-        run: |
-          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/${{ github.sha }} --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         shell: bash
         if: runner.os == 'Linux'
