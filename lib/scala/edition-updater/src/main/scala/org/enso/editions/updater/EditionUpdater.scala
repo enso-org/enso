@@ -1,7 +1,6 @@
 package org.enso.editions.updater
 
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 import org.enso.editions.EditionName
 import org.enso.editions.repository.Manifest
@@ -70,7 +69,7 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
     repositoryRoot: URIBuilder,
     editionName: EditionName
   ): Try[Unit] = Try {
-    val destinationPath = cachePath / editionName.toFileName
+    val destinationPath = cachePath.resolve(editionName.toFileName)
 
     val uri     = repositoryRoot.addPathSegment(editionName.toFileName).build()
     val request = HTTPRequestBuilder.fromURI(uri).GET
@@ -79,5 +78,5 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
   }
 
   private def isEditionAlreadyCached(editionName: EditionName): Boolean =
-    Files.exists(cachePath / editionName.toFileName)
+    Files.exists(cachePath.resolve(editionName.toFileName))
 }

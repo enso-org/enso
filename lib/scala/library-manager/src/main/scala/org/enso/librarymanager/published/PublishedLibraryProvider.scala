@@ -7,9 +7,6 @@ import org.enso.editions.{LibraryName, LibraryVersion}
 import java.nio.file.Path
 import scala.util.Try
 
-import java.nio.file.Path
-import scala.util.Try
-
 /** A provider of published libraries.
   *
   * It usually should use some kind of a cache to keep already downloaded

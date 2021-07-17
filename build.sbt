@@ -242,10 +242,12 @@ lazy val enso = (project in file("."))
     runtime,
     searcher,
     launcher,
+    downloader,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
     `distribution-manager`,
+    `edition-updater`,
     `library-manager`,
     syntax.jvm,
     testkit
