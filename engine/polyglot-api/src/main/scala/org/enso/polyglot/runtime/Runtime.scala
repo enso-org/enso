@@ -1108,12 +1108,10 @@ object Runtime {
       *
       * @param path the file being moved to memory.
       * @param contents the current file contents.
-      * @param isIndexed the flag specifying whether the file is indexed
       */
     case class OpenFileNotification(
       path: File,
-      contents: String,
-      isIndexed: Boolean
+      contents: String
     ) extends ApiRequest
         with ToLogString {
 
@@ -1122,7 +1120,6 @@ object Runtime {
         "OpenFileNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
-        s"isIndexed=$isIndexed" +
         ")"
     }
 
@@ -1264,13 +1261,13 @@ object Runtime {
 
     /** A notification about the changes in the suggestions database.
       *
-      * @param file the module file path
+      * @param module the module name
       * @param version the version of the module
       * @param actions the list of actions to apply to the suggestions database
       * @param updates the list of suggestions extracted from module
       */
     case class SuggestionsDatabaseModuleUpdateNotification(
-      file: File,
+      module: String,
       version: ContentVersion,
       actions: Vector[SuggestionsDatabaseAction],
       updates: Tree[SuggestionUpdate]
@@ -1280,7 +1277,7 @@ object Runtime {
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
         "SuggestionsDatabaseModuleUpdateNotification(" +
-        s"file=${MaskedPath(file.toPath).toLogString(shouldMask)}," +
+        s"module=$module," +
         s"version=$version," +
         s"actions=$actions," +
         s"updates=${updates.map(_.toLogString(shouldMask))}" +

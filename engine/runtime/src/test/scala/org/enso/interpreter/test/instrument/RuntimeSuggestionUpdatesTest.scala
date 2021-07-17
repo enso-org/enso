@@ -138,7 +138,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code, false))
+      Api.Request(Api.OpenFileNotification(mainFile, code))
     )
     context.receiveNone shouldEqual None
 
@@ -160,7 +160,7 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
+          module  = moduleName,
           version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(
@@ -230,7 +230,7 @@ class RuntimeSuggestionUpdatesTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file = mainFile,
+          module = moduleName,
           version = contentsVersion(
             """from Standard.Builtins import all
               |
@@ -313,7 +313,7 @@ class RuntimeSuggestionUpdatesTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file = mainFile,
+          module = moduleName,
           version = contentsVersion(
             """from Standard.Builtins import all
               |
@@ -416,7 +416,7 @@ class RuntimeSuggestionUpdatesTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file = mainFile,
+          module = moduleName,
           version = contentsVersion(
             """from Standard.Builtins import all
               |
@@ -528,7 +528,7 @@ class RuntimeSuggestionUpdatesTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file = mainFile,
+          module = moduleName,
           version = contentsVersion(
             """from Standard.Builtins import all
               |
@@ -668,7 +668,7 @@ class RuntimeSuggestionUpdatesTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file = mainFile,
+          module = moduleName,
           version = contentsVersion(
             """from Standard.Builtins import all
               |
@@ -764,7 +764,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -786,7 +786,7 @@ class RuntimeSuggestionUpdatesTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.SuggestionsDatabaseModuleUpdateNotification(
-          file    = mainFile,
+          module  = moduleName,
           version = version,
           actions = Vector(Api.SuggestionsDatabaseAction.Clean(moduleName)),
           updates = Tree.Root(

@@ -154,7 +154,6 @@ class BaseServerTest
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(
-          versionsRepo,
           fileManager,
           runtimeConnectorProbe.ref
         )(
