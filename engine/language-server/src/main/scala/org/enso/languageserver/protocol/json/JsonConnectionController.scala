@@ -1,11 +1,12 @@
 package org.enso.languageserver.protocol.json
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import akka.pattern.pipe
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.cli.task.ProgressUnit
+import org.enso.cli.task.notifications.TaskNotificationApi
+import org.enso.distribution.EditionManager
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
@@ -26,6 +27,9 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
+import org.enso.languageserver.libraries.EditionReferenceResolver
+import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
@@ -66,7 +70,10 @@ import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ProgressNotification
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 /** An actor handling communications between a single client and the language
@@ -81,6 +88,7 @@ import scala.concurrent.duration._
   * @param contextRegistry a router that dispatches execution context requests
   * @param suggestionsHandler a reference to the suggestions requests handler
   * @param idlenessMonitor a reference to the idleness monitor actor
+  * @param projectSettingsManager a reference to the project settings manager
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -97,6 +105,10 @@ class JsonConnectionController(
   val stdInController: ActorRef,
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
+  val projectSettingsManager: ActorRef,
+  val localLibraryManager: ActorRef,
+  val editionReferenceResolver: EditionReferenceResolver,
+  val editionManager: EditionManager,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -230,8 +242,7 @@ class JsonConnectionController(
           InitProtocolConnection.Result(allRoots.map(_.toContentRoot).toSet)
         )
 
-        val requestHandlers = createRequestHandlers(rpcSession)
-        context.become(initialised(webActor, rpcSession, requestHandlers))
+        initialize(webActor, rpcSession)
       } else {
         context.become(
           waitingForContentRoots(
@@ -252,6 +263,17 @@ class JsonConnectionController(
 
     case _ =>
       stash()
+  }
+
+  private def initialize(
+    webActor: ActorRef,
+    rpcSession: JsonSession
+  ): Unit = {
+    val requestHandlers = createRequestHandlers(rpcSession)
+    context.become(initialised(webActor, rpcSession, requestHandlers))
+
+    context.system.eventStream
+      .subscribe(self, classOf[Api.ProgressNotification])
   }
 
   private def initialised(
@@ -364,6 +386,11 @@ class JsonConnectionController(
         )
       }
 
+    case Api.ProgressNotification(payload) =>
+      val translated: Notification[_, _] =
+        translateProgressNotification(payload)
+      webActor ! translated
+
     case req @ Request(method, _, _) if requestHandlers.contains(method) =>
       refreshIdleTime(method)
       val handler = context.actorOf(
@@ -458,10 +485,57 @@ class JsonConnectionController(
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
       FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
-      ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig)
+      ProjectInfo       -> ProjectInfoHandler.props(languageServerConfig),
+      EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler
+        .props(requestTimeout, projectSettingsManager),
+      EditionsListAvailable -> EditionsListAvailableHandler.props(
+        editionManager
+      ),
+      EditionsListDefinedLibraries -> EditionsListDefinedLibrariesHandler
+        .props(editionReferenceResolver),
+      EditionsResolve -> EditionsResolveHandler
+        .props(editionReferenceResolver),
+      EditionsSetParentEdition -> EditionsSetParentEditionHandler
+        .props(requestTimeout, projectSettingsManager),
+      EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
+        .props(requestTimeout, projectSettingsManager),
+      LibraryCreate -> LibraryCreateHandler
+        .props(requestTimeout, localLibraryManager),
+      LibraryListLocal -> LibraryListLocalHandler
+        .props(requestTimeout, localLibraryManager),
+      LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
+      LibraryPreinstall  -> LibraryPreinstallHandler.props(),
+      LibraryPublish     -> LibraryPublishHandler.props(),
+      LibrarySetMetadata -> LibrarySetMetadataHandler.props()
     )
   }
 
+  private def translateProgressNotification(
+    progressNotification: ProgressNotification.NotificationType
+  ): Notification[_, _] = progressNotification match {
+    case ProgressNotification.TaskStarted(
+          taskId,
+          relatedOperation,
+          unitStr,
+          total
+        ) =>
+      val unit = ProgressUnit.fromString(unitStr)
+      Notification(
+        TaskNotificationApi.TaskStarted,
+        TaskNotificationApi.TaskStarted
+          .Params(taskId, relatedOperation, unit, total)
+      )
+    case ProgressNotification.TaskProgressUpdate(taskId, message, done) =>
+      Notification(
+        TaskNotificationApi.TaskProgressUpdate,
+        TaskNotificationApi.TaskProgressUpdate.Params(taskId, message, done)
+      )
+    case ProgressNotification.TaskFinished(taskId, message, success) =>
+      Notification(
+        TaskNotificationApi.TaskFinished,
+        TaskNotificationApi.TaskFinished.Params(taskId, message, success)
+      )
+  }
 }
 
 object JsonConnectionController {
@@ -493,26 +567,34 @@ object JsonConnectionController {
     stdInController: ActorRef,
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
+    projectSettingsManager: ActorRef,
+    localLibraryManager: ActorRef,
+    editionReferenceResolver: EditionReferenceResolver,
+    editionManager: EditionManager,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
       new JsonConnectionController(
-        connectionId,
-        mainComponent,
-        bufferRegistry,
-        capabilityRouter,
-        fileManager,
-        contentRootManager,
-        contextRegistry,
-        suggestionsHandler,
-        stdOutController,
-        stdErrController,
-        stdInController,
-        runtimeConnector,
-        idlenessMonitor,
-        languageServerConfig,
-        requestTimeout
+        connectionId             = connectionId,
+        mainComponent            = mainComponent,
+        bufferRegistry           = bufferRegistry,
+        capabilityRouter         = capabilityRouter,
+        fileManager              = fileManager,
+        contentRootManager       = contentRootManager,
+        contextRegistry          = contextRegistry,
+        suggestionsHandler       = suggestionsHandler,
+        stdOutController         = stdOutController,
+        stdErrController         = stdErrController,
+        stdInController          = stdInController,
+        runtimeConnector         = runtimeConnector,
+        idlenessMonitor          = idlenessMonitor,
+        projectSettingsManager   = projectSettingsManager,
+        localLibraryManager      = localLibraryManager,
+        editionReferenceResolver = editionReferenceResolver,
+        editionManager           = editionManager,
+        languageServerConfig     = languageServerConfig,
+        requestTimeout           = requestTimeout
       )
     )
 

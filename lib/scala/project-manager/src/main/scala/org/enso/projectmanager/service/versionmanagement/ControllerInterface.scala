@@ -1,18 +1,20 @@
 package org.enso.projectmanager.service.versionmanagement
 
-import java.util.UUID
 import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.{ProgressListener, TaskProgress}
+import org.enso.cli.task.{
+  ProgressNotification,
+  ProgressNotificationForwarder,
+  ProgressUnit
+}
 import org.enso.distribution.locking.Resource
-import org.enso.projectmanager.data.ProgressUnit
 import org.enso.runtimeversionmanager.components.{
   GraalVMVersion,
   RuntimeVersionManagementUserInterface
 }
 
-import scala.util.{Failure, Success, Try}
+import java.util.UUID
 
 /** A [[RuntimeVersionManagementUserInterface]] that sends
   * [[ProgressNotification]] to the specified actors (both for usual tasks and
@@ -27,54 +29,8 @@ class ControllerInterface(
   progressTracker: ActorRef,
   allowMissingComponents: Boolean,
   allowBrokenComponents: Boolean
-) extends RuntimeVersionManagementUserInterface {
-
-  /** @inheritdoc */
-  override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
-    var uuid: Option[UUID] = None
-
-    /** Initializes the task on first invocation and just returns the
-      * generated UUID on further invocations.
-      */
-    def initializeTask(total: Option[Long]): UUID = uuid match {
-      case Some(value) => value
-      case None =>
-        val generated = UUID.randomUUID()
-        uuid = Some(generated)
-        val unit = ProgressUnit.fromTask(task)
-        progressTracker ! ProgressNotification.TaskStarted(
-          generated,
-          total,
-          unit
-        )
-        generated
-    }
-    task.addProgressListener(new ProgressListener[Any] {
-
-      /** @inheritdoc */
-      override def progressUpdate(
-        done: Long,
-        total: Option[Long]
-      ): Unit = {
-        val uuid = initializeTask(total)
-        progressTracker ! ProgressNotification.TaskUpdate(
-          uuid,
-          Some(message),
-          done
-        )
-      }
-
-      /** @inheritdoc */
-      override def done(result: Try[Any]): Unit = result match {
-        case Failure(exception) =>
-          val uuid = initializeTask(None)
-          progressTracker ! ProgressNotification.TaskFailure(uuid, exception)
-        case Success(_) =>
-          val uuid = initializeTask(None)
-          progressTracker ! ProgressNotification.TaskSuccess(uuid)
-      }
-    })
-  }
+) extends RuntimeVersionManagementUserInterface
+    with ProgressNotificationForwarder {
 
   /** @inheritdoc */
   override def shouldInstallMissingEngine(version: SemVer): Boolean =
@@ -101,7 +57,7 @@ class ControllerInterface(
     progressTracker ! ProgressNotification.TaskStarted(
       uuid,
       None,
-      ProgressUnit.Other
+      ProgressUnit.Unspecified
     )
     progressTracker ! ProgressNotification.TaskUpdate(
       uuid,
@@ -117,4 +73,10 @@ class ControllerInterface(
       progressTracker ! ProgressNotification.TaskSuccess(uuid)
     }
   }
+
+  /** @inheritdoc */
+  override def sendProgressNotification(
+    notification: ProgressNotification
+  ): Unit =
+    progressTracker ! notification
 }
