@@ -1,23 +1,94 @@
 package org.enso.librarymanager.published.cache
+import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.task.ProgressReporter
+import org.enso.distribution.locking.{
+  LockType,
+  LockUserInterface,
+  ResourceManager
+}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
+import org.enso.logger.masking.MaskedPath
 
-import java.nio.file.Path
-import scala.util.Try
+import java.nio.file.{Files, Path}
+import scala.util.{Success, Try}
 
 /** A [[LibraryCache]] that will try to download missing libraries. */
-class DownloadingLibraryCache extends LibraryCache {
+class DownloadingLibraryCache(
+  cacheRoot: Path,
+  resourceManager: ResourceManager,
+  lockUserInterface: LockUserInterface,
+  progressReporter: ProgressReporter
+) extends LibraryCache {
+  private val logger = Logger[DownloadingLibraryCache]
+
+  /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,
     version: SemVer
-  ): Option[Path] = ???
+  ): Option[Path] = {
+    val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
+    resourceManager.withResource(
+      lockUserInterface,
+      LibraryResource(libraryName, version),
+      LockType.Shared
+    ) {
+      if (Files.isDirectory(path)) {
+        logger.trace(
+          s"Library [$libraryName:$version] found cached at " +
+          s"[${MaskedPath(path).applyMasking()}]."
+        )
+        Some(path)
+      } else None
+    }
+  }
 
+  // TODO dependency resolution should be a whole separate mechanism from this, remove that for now
+  /** @inheritdoc */
   override def findOrInstallLibrary(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): Try[Path] = ???
+  ): Try[Path] = {
+    val _      = progressReporter // TODO
+    val cached = findCachedLibrary(libraryName, version)
+    cached match {
+      case Some(result) => Success(result)
+      case None =>
+        installLibrary(
+          libraryName,
+          version,
+          recommendedRepository,
+          dependencyResolver
+        )
+    }
+  }
+
+  private def installLibrary(
+    libraryName: LibraryName,
+    version: SemVer,
+    recommendedRepository: Editions.Repository,
+    dependencyResolver: LibraryName => Option[LibraryVersion]
+  ): Try[Path] = {
+    logger.trace(s"Trying to install [$libraryName:$version].")
+    resourceManager.withResource(
+      lockUserInterface,
+      LibraryResource(libraryName, version),
+      LockType.Shared
+    ) {
+      val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
+      if (Files.exists(path)) {
+        logger.info(
+          s"Another process has just installed [$libraryName:$version]."
+        )
+        Success(path)
+      } else {
+        // TODO download and install
+        ???
+      }
+    }
+  }
 }
 
 /* Note [Library Cache Concurrency Model]

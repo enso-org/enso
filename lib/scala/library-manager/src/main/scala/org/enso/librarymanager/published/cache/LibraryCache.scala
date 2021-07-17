@@ -11,7 +11,7 @@ import scala.util.Try
   */
 trait LibraryCache extends ReadOnlyLibraryCache {
 
-  /** Returns the path to the library it is already cached.
+  /** Returns the path to the library if it is already cached.
     *
     * This method should not attempt to download the library if it is missing,
     * because other providers may have it.

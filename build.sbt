@@ -236,6 +236,8 @@ lazy val enso = (project in file("."))
     `task-progress-notifications`,
     `logging-utils`,
     `logging-service`,
+    `logging-truffle-connector`,
+    `locking-test-helper`,
     `akka-native`,
     `version-output`,
     `engine-runner`,
