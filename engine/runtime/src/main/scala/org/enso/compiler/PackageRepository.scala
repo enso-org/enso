@@ -67,7 +67,7 @@ object PackageRepository {
   object Error {
 
     /** Indicates that a resolution error has happened, for example the package
-      *  was not defined in the selected edition.
+      * was not defined in the selected edition.
       */
     case class PackageCouldNotBeResolved(cause: Throwable) extends Error {
       override def toString: String =
@@ -95,11 +95,11 @@ object PackageRepository {
 
   /** The default [[PackageRepository]] implementation.
     *
-    * @param libraryProvider the [[ResolvingLibraryProvider]] which resolves
-    *                        which library version should be imported and
-    *                        locates them (or downloads if they are missing)
-    * @param context the language context
-    * @param builtins the builtins module
+    * @param libraryProvider     the [[ResolvingLibraryProvider]] which resolves
+    *                            which library version should be imported and
+    *                            locates them (or downloads if they are missing)
+    * @param context             the language context
+    * @param builtins            the builtins module
     * @param notificationHandler a notification handler
     */
   class Default(
@@ -315,12 +315,12 @@ object PackageRepository {
     * Edition and library search paths are based on the distribution and
     * language home (if it is provided).
     *
-    * @param projectPackage the package of the current project (if ran inside of a project)
-    * @param languageHome the language home (if set)
+    * @param projectPackage      the package of the current project (if ran inside of a project)
+    * @param languageHome        the language home (if set)
     * @param distributionManager the distribution manager
-    * @param context the context reference, needed to add polyglot libraries to
-    *                the classpath
-    * @param builtins the builtins that are always preloaded
+    * @param context             the context reference, needed to add polyglot libraries to
+    *                            the classpath
+    * @param builtins            the builtins that are always preloaded
     * @param notificationHandler a handler for library addition and progress
     *                            notifications
     * @return an initialized [[PackageRepository]]
@@ -337,11 +337,8 @@ object PackageRepository {
       .flatMap(_.config.edition)
       .getOrElse(DefaultEdition.getDefaultEdition)
 
-    val homeManager = languageHome.map { home => LanguageHome(Path.of(home)) }
-    val editionSearchPaths =
-      homeManager.map(_.editions).toList ++
-      distributionManager.paths.editionSearchPaths
-    val editionManager = new EditionManager(editionSearchPaths)
+    val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }
+    val editionManager = EditionManager(distributionManager, homeManager)
     val edition        = editionManager.resolveEdition(rawEdition).get
 
     val resolvingLibraryProvider =

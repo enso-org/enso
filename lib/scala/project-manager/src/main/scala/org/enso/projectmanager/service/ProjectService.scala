@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import cats.MonadError
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.editions.EnsoVersion
+import org.enso.editions.DefaultEdition
 import org.enso.pkg.Config
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.core.{
@@ -44,7 +44,6 @@ import org.enso.projectmanager.service.ValidationFailure.{
   NameShouldStartWithCapitalLetter
 }
 import org.enso.projectmanager.service.config.GlobalConfigServiceApi
-import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
@@ -306,15 +305,7 @@ class ProjectService[
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, RunningLanguageServerInfo] = for {
     version <- resolveProjectVersion(project)
-    version <- configurationService
-      .resolveEnsoVersion(version)
-      .mapError { case ConfigurationFileAccessFailure(message) =>
-        ProjectOpenFailed(
-          "Could not deduce the default version to use for the project: " +
-          message
-        )
-      }
-    _ <- preinstallEngine(progressTracker, version, missingComponentAction)
+    _       <- preinstallEngine(progressTracker, version, missingComponentAction)
     sockets <- languageServerGateway
       .start(progressTracker, clientId, project, version)
       .mapError {
@@ -371,18 +362,7 @@ class ProjectService[
   private def resolveProjectMetadata(
     project: Project
   ): F[ProjectServiceFailure, ProjectMetadata] = {
-    val version = for {
-      version <- resolveProjectVersion(project)
-      version <- configurationService
-        .resolveEnsoVersion(version)
-        .mapError { case ConfigurationFileAccessFailure(message) =>
-          GlobalConfigurationAccessFailure(
-            "Could not deduce the default version to use for the project: " +
-            message
-          )
-        }
-    } yield version
-
+    val version = resolveProjectVersion(project)
     for {
       version <- version.map(Some(_)).recover { error =>
         // TODO [RW] We may consider sending this warning to the IDE once
@@ -483,11 +463,16 @@ class ProjectService[
 
   private def resolveProjectVersion(
     project: Project
-  ): F[ProjectServiceFailure, EnsoVersion] =
+  ): F[ProjectServiceFailure, SemVer] =
     Sync[F]
       .blockingOp {
+        // TODO [RW] at some point we will need to use the configuration service to get the actual default version, see #1864
+        val _ = configurationService
+
+        val edition =
+          project.edition.getOrElse(DefaultEdition.getDefaultEdition)
         distributionConfiguration.editionManager
-          .resolveEngineVersion(project.edition)
+          .resolveEngineVersion(edition)
           .get
       }
       .mapError { error =>

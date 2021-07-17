@@ -4014,13 +4014,11 @@ the repositories and include them in the result as well.
 > available. In the future it should emit warnings using proper notification
 > channels.
 
-The `update` field is optional and if it is not provided, it defaults to false.
-
 #### Parameters
 
 ```typescript
 {
-  update?: Boolean;
+  update: Boolean;
 }
 ```
 

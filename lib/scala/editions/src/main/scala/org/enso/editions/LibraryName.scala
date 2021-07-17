@@ -1,6 +1,7 @@
 package org.enso.editions
 
-import io.circe.{Decoder, DecodingFailure}
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, DecodingFailure, Encoder}
 
 /** Represents a library name that should uniquely identify the library.
   *
@@ -29,6 +30,10 @@ object LibraryName {
         DecodingFailure(errorMessage, json.history)
       }
     } yield name
+  }
+
+  implicit val encoder: Encoder[LibraryName] = { libraryName =>
+    libraryName.toString.asJson
   }
 
   private val separator = '.'
