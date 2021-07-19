@@ -7,6 +7,7 @@ import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Value;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class Reader {
   /**
    * Reads the specified XLSX file into a table.
    *
-   * @param is an {@link InputStream} allowing to read the XLSX file contents.
+   * @param inputStream an {@link InputStream} allowing to read the XLSX file contents.
    * @param sheetIdx specifies which sheet should be read. If the value is a {@link Long}, it is
    *     used as a 0-based index of the sheet. If it is a {@link String}, it is used as a sheet
    *     name. Otherwise, the active sheet is read.
@@ -35,13 +36,14 @@ public class Reader {
    * @throws IOException when the input stream cannot be read.
    */
   public static Table read_xlsx(
-      InputStream is,
+      InputStream inputStream,
       Object sheetIdx,
       boolean hasHeaders,
       String unnamedColumnPrefix,
       Function<LocalDate, Value> mkDate)
       throws IOException {
-    return read_table(new XSSFWorkbook(is), sheetIdx, hasHeaders, unnamedColumnPrefix, mkDate);
+    return read_table(
+        new XSSFWorkbook(inputStream), sheetIdx, hasHeaders, unnamedColumnPrefix, mkDate);
   }
 
   /**
@@ -123,6 +125,7 @@ public class Reader {
         colNames.add(unnamedColumnPrefix + (i - minCol));
       }
     }
+    var deduplicatedColumnNames = NameDeduplicator.deduplicate(colNames);
 
     List<Builder> builders = new ArrayList<>();
     for (int i = minCol; i < maxCol; i++) {
@@ -146,7 +149,7 @@ public class Reader {
     }
     Column[] columns =
         IntStream.range(0, maxCol - minCol)
-            .mapToObj(idx -> new Column(colNames.get(idx), builders.get(idx).seal()))
+            .mapToObj(idx -> new Column(deduplicatedColumnNames.get(idx), builders.get(idx).seal()))
             .toArray(Column[]::new);
     return new Table(columns);
   }

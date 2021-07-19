@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbt._
+import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
@@ -64,30 +65,40 @@ object StdBits {
             log.info(
               s"Updating changed std-bits dependency ${changed.getName}."
             )
-            updateDependency(changed, unpackedDeps, destination)
+            updateDependency(changed, unpackedDeps, destination, log)
           }
           for (file <- report.unmodified) {
             val dest = destination / getDestinationFileName(file, unpackedDeps)
             if (!dest.exists()) {
               log.info(s"Adding missing std-bits dependency ${file.getName}.")
-              updateDependency(file, unpackedDeps, destination)
+              updateDependency(file, unpackedDeps, destination, log)
             }
           }
       }
     }
 
-  private def shouldUnpack(jar: File, unpacked: Set[String]): Boolean =
+  private def shouldUnpack(jar: File, unpacked: Set[String]): Boolean = {
+    // Maven stores dependencies like this:
+    // .../repo1.maven.org/maven2/org/apache/xmlbeans/xmlbeans/5.0.1/xmlbeans-5.0.1.jar
+    // therefore, the parent of the parent of the jar file is the directory
+    // named with the un-versioned library name.
     unpacked.contains(jar.getParentFile.getParentFile.getName)
+  }
 
   private def updateDependency(
     jar: File,
     unpacked: Set[String],
-    destinationDir: File
+    destinationDir: File,
+    logger: ManagedLogger
   ): Unit = {
     val destination = destinationDir / getDestinationFileName(jar, unpacked)
     if (shouldUnpack(jar, unpacked)) {
       destination.mkdirs()
-      Process(s"jar xf ${jar.getAbsolutePath}", destination)!
+      val exitCode = Process(s"jar xf ${jar.getAbsolutePath}", destination).!
+      if (exitCode != 0) {
+        logger.err(s"Could not unpack a dependency jar: $jar.")
+        throw new RuntimeException(s"Could not unpack a dependency jar: $jar.")
+      }
     } else {
       IO.copyFile(jar, destination)
     }
@@ -99,7 +110,7 @@ object StdBits {
   ): String = {
     if (shouldUnpack(file, unpacked)) {
       val name = file.getName
-      name.substring(0, name.lastIndexOf('.'))
+      name.stripSuffix(".jar")
     } else file.getName
   }
 }

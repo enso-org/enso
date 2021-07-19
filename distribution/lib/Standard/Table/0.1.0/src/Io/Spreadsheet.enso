@@ -30,6 +30,7 @@ polyglot java import org.enso.table.format.xlsx.Reader
 
    > Example
      Read the sheet named `Dates` from an XLSX and convert it to a table.
+
          import Standard.Table
          import Standard.Examples
 
@@ -64,6 +65,7 @@ File.File.read_xlsx sheet=Nothing has_header=True prefix='C' =
 
    > Example
      Read the sheet named `Dates` from an XLSX and convert it to a table.
+
          import Standard.Table
          import Standard.Examples
 
@@ -99,6 +101,7 @@ from_xlsx file sheet=Nothing has_header=True prefix='C' =
 
    > Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
+
          import Standard.Table
          import Standard.Examples
 
@@ -133,6 +136,7 @@ File.File.read_xls sheet=Nothing has_header=True prefix='C' =
 
    > Example
      Read the sheet named `Dates` from an XLS and convert it to a table.
+
          import Standard.Table
          import Standard.Examples
 
