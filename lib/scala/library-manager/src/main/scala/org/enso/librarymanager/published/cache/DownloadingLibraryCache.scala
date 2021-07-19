@@ -2,6 +2,7 @@ package org.enso.librarymanager.published.cache
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.ProgressReporter
+import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.{
   LockType,
   LockUserInterface,
@@ -98,9 +99,12 @@ class DownloadingLibraryCache(
           manifestDownload
         )
         val manifest = manifestDownload.force()
-
-        // TODO download and install
-        ???
+        // See [Temporary Directories for Installation]
+        FileSystem.withTemporaryDirectory(s"enso-$libraryName") {
+          globalTmpDir =>
+            // TODO download and install
+            ???
+        }
       }
     }
   }
@@ -166,4 +170,27 @@ class DownloadingLibraryCache(
  * A single LockManager (and its locks directory) should be associated with at
  * most one library cache directory, as it makes sense for the distribution to
  * have only one cache, so the lock entries are not disambiguated in any way.
+ */
+
+/* Note [Temporary Directories for Installation]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * When installing libraries (however the system is very similar for engines and
+ * runtimes too), we extract the files to a temporary directory, to minimize the
+ * risk of another process seeing a library in an invalid semi-installed state.
+ * To achieve that, we extract the archives into a temporary directory that
+ * resides next to the actual libraries directory, to ensure that they are on
+ * the same disk partition - this way, after the extraction is complete, the
+ * move from the temporary location to the final location is likely to be
+ * atomic. (However even if the move is not atomic, everything should be
+ * correct, as we also use file locks.)
+ *
+ * The temporary directory that is next to the destination directory is called
+ * local temporary directory.
+ *
+ * However we also need a place to download the archives too, and as this place
+ * does not necessarily need to be on the same partition as the destination, we
+ * can use the default system-provided temporary directory. This one is called
+ * the global temporary directory. The benefit of using it is that it is usually
+ * automatically cleaned by the OS, so we do not need to be as careful about
+ * cleanup in failure scenarios as with the local temporary directory.
  */
