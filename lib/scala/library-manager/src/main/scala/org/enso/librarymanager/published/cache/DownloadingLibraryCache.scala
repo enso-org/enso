@@ -1,24 +1,26 @@
 package org.enso.librarymanager.published.cache
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.ProgressReporter
-import org.enso.distribution.FileSystem
+import org.enso.cli.task.{ProgressReporter, TaskProgress}
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.locking.{
   LockType,
   LockUserInterface,
   ResourceManager
 }
-import org.enso.downloader.http.{HTTPDownload, URIBuilder}
+import org.enso.distribution.{FileSystem, TemporaryDirectoryManager}
+import org.enso.downloader.archive.Archive
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.published.repository.RepositoryHelper.{
-  manifestFilename,
+  LibraryAccess,
   RepositoryMethods
 }
 import org.enso.logger.masking.MaskedPath
-import org.enso.yaml.YamlHelper
+import org.enso.pkg.PackageManager
 
 import java.nio.file.{Files, Path}
+import scala.util.control.NonFatal
 import scala.util.{Success, Try}
 
 /** A [[LibraryCache]] that will try to download missing libraries.
@@ -31,7 +33,7 @@ import scala.util.{Success, Try}
   */
 class DownloadingLibraryCache(
   cacheRoot: Path,
-  temporaryDirectoryRoot: Path,
+  temporaryDirectoryManager: TemporaryDirectoryManager,
   resourceManager: ResourceManager,
   lockUserInterface: LockUserInterface,
   progressReporter: ProgressReporter
@@ -85,28 +87,133 @@ class DownloadingLibraryCache(
       LibraryResource(libraryName, version),
       LockType.Shared
     ) {
-      val path = LibraryCache.resolvePath(cacheRoot, libraryName, version)
-      if (Files.exists(path)) {
+      val cachedLibraryPath =
+        LibraryCache.resolvePath(cacheRoot, libraryName, version)
+      if (Files.exists(cachedLibraryPath)) {
         logger.info(
           s"Another process has just installed [$libraryName:$version]."
         )
-        Success(path)
+        cachedLibraryPath
       } else {
-        val access           = recommendedRepository.accessLibrary(libraryName, version)
-        val manifestDownload = access.downloadManifest()
-        progressReporter.trackProgress(
-          s"Downloading library manifest of [$libraryName].",
-          manifestDownload
-        )
-        val manifest = manifestDownload.force()
+        val access   = recommendedRepository.accessLibrary(libraryName, version)
+        val manifest = downloadManifest(libraryName, access)
+
         // See [Temporary Directories for Installation]
-        FileSystem.withTemporaryDirectory(s"enso-$libraryName") {
-          globalTmpDir =>
-            // TODO download and install
-            ???
+        val localTmpDir = temporaryDirectoryManager.temporarySubdirectory(
+          s"$libraryName-$version"
+        )
+
+        try {
+          downloadLooseFiles(libraryName, version, access, localTmpDir)
+          downloadAndExtractArchives(libraryName, access, manifest, localTmpDir)
+          verifyPackageIntegrity(localTmpDir)
+
+          FileSystem.atomicMove(
+            source      = localTmpDir,
+            destination = cachedLibraryPath
+          )
+
+          cachedLibraryPath
+        } catch {
+          case NonFatal(exception) =>
+            logger.error(
+              s"Installation of library [$libraryName:$version] failed with " +
+              s"error: [$exception].",
+              exception
+            )
+            FileSystem.removeDirectoryIfExists(localTmpDir)
+            throw exception
         }
       }
     }
+  }
+
+  private def downloadManifest(
+    libraryName: LibraryName,
+    access: LibraryAccess
+  ): LibraryManifest = {
+    val manifestDownload = access.downloadManifest()
+    progressReporter.trackProgress(
+      s"Downloading library manifest of [$libraryName].",
+      manifestDownload
+    )
+    manifestDownload.force()
+  }
+
+  /** Verifies that the downloaded package can even be loaded.
+    *
+    * For now it only checks if the `package.yaml` file is not corrupted.
+    *
+    * In the future, additional checks, like checksums, could be added.
+    */
+  private def verifyPackageIntegrity(packageRoot: Path): Unit =
+    PackageManager.Default.loadPackage(packageRoot.toFile).get
+
+  private def downloadLooseFiles(
+    libraryName: LibraryName,
+    version: SemVer,
+    access: LibraryAccess,
+    localTmpDir: Path
+  ): Unit = {
+    val pkgDownload = access.downloadPackageConfig(localTmpDir)
+    progressReporter.trackProgress(
+      s"Downloading package file of [$libraryName].",
+      pkgDownload
+    )
+    pkgDownload.force()
+
+    val licenseDownload = access.downloadLicense(localTmpDir)
+    progressReporter.trackProgress(
+      s"Downloading license of [$libraryName].",
+      licenseDownload
+    )
+    TaskProgress.waitForTask(licenseDownload).getOrElse {
+      // TODO [RW] Once warnings are reported to the IDE (#1860),
+      //  inform that the license file is missing.
+      logger.warn(
+        s"License file for library [$libraryName:$version] was missing."
+      )
+    }
+  }
+
+  private def downloadAndExtractArchives(
+    libraryName: LibraryName,
+    access: LibraryAccess,
+    manifest: LibraryManifest,
+    destinationDirectory: Path
+  ): Unit = FileSystem.withTemporaryDirectory(s"enso-$libraryName") {
+    // See [Temporary Directories for Installation]
+    globalTmpDir =>
+      for (archiveName <- manifest.archives) {
+        if (shouldDownloadArchive(archiveName)) {
+          val tmpArchivePath = globalTmpDir / archiveName
+
+          val download = access.downloadArchive(
+            archiveName,
+            tmpArchivePath / archiveName
+          )
+          progressReporter.trackProgress(
+            s"Downloading [$archiveName] of [$libraryName].",
+            download
+          )
+          download.force()
+
+          val extraction =
+            Archive.extractArchive(tmpArchivePath, destinationDirectory, None)
+          progressReporter.trackProgress(
+            s"Extracting [$archiveName] of [$libraryName].",
+            extraction
+          )
+          extraction.force()
+
+          Files.delete(tmpArchivePath)
+        } else {
+          logger.info(
+            s"Sub-package [$archiveName] of [$libraryName] is " +
+            s"skipped, as it is optional."
+          )
+        }
+      }
   }
 
   private def shouldDownloadArchive(archiveName: String): Boolean = {

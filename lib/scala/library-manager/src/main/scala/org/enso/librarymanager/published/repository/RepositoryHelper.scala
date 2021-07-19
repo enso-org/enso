@@ -2,13 +2,14 @@ package org.enso.librarymanager.published.repository
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
-import org.enso.downloader.http.{APIResponse, HTTPDownload, URIBuilder}
+import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.downloader.http.{HTTPDownload, URIBuilder}
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.yaml.YamlHelper
 
 import java.nio.file.Path
-import scala.util.{Failure, Success}
+import scala.util.Failure
 
 object RepositoryHelper {
   class LibraryAccess(
@@ -42,16 +43,16 @@ object RepositoryHelper {
       HTTPDownload.download(url, destination).map(_ => ())
     }
 
-    def downloadLicense(destination: Path): TaskProgress[Unit] =
-      downloadArtifact(licenseFilename, destination)
+    def downloadLicense(destinationDirectory: Path): TaskProgress[Unit] =
+      downloadArtifact(licenseFilename, destinationDirectory / licenseFilename)
 
-    def downloadPackageConfig(destination: Path): TaskProgress[Unit] =
-      downloadArtifact(packageFileName, destination)
+    def downloadPackageConfig(destinationDirectory: Path): TaskProgress[Unit] =
+      downloadArtifact(packageFileName, destinationDirectory / packageFileName)
 
     def downloadArchive(
       archiveName: String,
-      destination: Path
-    ): TaskProgress[Unit] = downloadArtifact(archiveName, destination)
+      destinationDirectory: Path
+    ): TaskProgress[Unit] = downloadArtifact(archiveName, destinationDirectory)
   }
 
   implicit class RepositoryMethods(val repository: Repository) {
@@ -63,7 +64,7 @@ object RepositoryHelper {
         .addPathSegment(version.toString)
 
     def accessLibrary(name: LibraryName, version: SemVer): LibraryAccess =
-      new LibraryAccess(resolveLibraryRoot(name, version))
+      new LibraryAccess(name, version, resolveLibraryRoot(name, version))
   }
 
   val manifestFilename = "manifest.yaml"
