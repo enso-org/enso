@@ -1,6 +1,10 @@
 package org.enso.projectmanager
 
-import org.enso.distribution.{DistributionManager, EditionManager}
+import org.enso.distribution.{
+  DistributionManager,
+  EditionManager,
+  TemporaryDirectoryManager
+}
 import org.enso.distribution.locking.ResourceManager
 
 import java.nio.file.Path
@@ -11,7 +15,6 @@ import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider

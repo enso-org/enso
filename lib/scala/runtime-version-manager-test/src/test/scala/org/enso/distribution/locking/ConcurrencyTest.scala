@@ -3,7 +3,11 @@ package org.enso.distribution.locking
 import java.nio.file.{Files, Path}
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
-import org.enso.distribution.{DistributionManager, FileSystem}
+import org.enso.distribution.{
+  DistributionManager,
+  FileSystem,
+  TemporaryDirectoryManager
+}
 import org.enso.distribution.locking.{
   LockManager,
   LockType,
@@ -19,7 +23,6 @@ import org.enso.runtimeversionmanager.components.{
   Manifest,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.distribution.TemporaryDirectoryManager
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,
   EngineReleaseProvider

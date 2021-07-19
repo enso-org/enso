@@ -95,19 +95,8 @@ class DefaultLibraryProvider(
           }
 
       case Right(version @ LibraryVersion.Published(semver, repository)) =>
-        val dependencyResolver = { name: LibraryName =>
-          resolver
-            .resolveLibraryVersion(name, edition, preferLocalLibraries)
-            .toOption
-        }
-
         publishedLibraryProvider
-          .findLibrary(
-            libraryName,
-            semver,
-            repository,
-            dependencyResolver
-          )
+          .findLibrary(libraryName, semver, repository)
           .map(ResolvedLibrary(libraryName, version, _))
           .toEither
           .left

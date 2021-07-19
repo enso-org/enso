@@ -3,7 +3,7 @@ package org.enso.downloader.http
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.headers.Location
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
 import akka.stream.scaladsl.{FileIO, Sink}
 import akka.util.ByteString
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
@@ -35,15 +35,13 @@ case class Header(name: String, value: String) {
   * @param content the response decoded as a string
   * @param headers sequence of headers included in the response
   */
-case class APIResponse(content: String, headers: Seq[Header])
+case class APIResponse(content: String, headers: Seq[Header], statusCode: Int)
 
-/** Contains utility functions for fetching data using the HTTP(S) protocol.
-  */
+/** Contains utility functions for fetching data using the HTTP(S) protocol. */
 object HTTPDownload {
   private val logger = Logger[HTTPDownload.type]
 
-  /** Determines how many redirects are taken until an error is thrown.
-    */
+  /** Determines how many redirects are taken until an error is thrown. */
   val maximumRedirects: Int = 20
 
   /** Fetches the `request` and tries to decode is as a [[String]].
@@ -79,9 +77,24 @@ object HTTPDownload {
       (response, chunks: Seq[ByteString]) =>
         APIResponse(
           combineChunks(chunks),
-          response.headers.map(header => Header(header.name, header.value))
+          response.headers.map(header => Header(header.name, header.value)),
+          response.status.intValue()
         )
     )
+  }
+
+  /** Fetches the `uri` and tries to decode is as a [[String]].
+    *
+    * It is a shorthand for the other variant of [[fetchString]] that creates a
+    * simple GET request from the URI.
+    *
+    * @param uri the URI to query
+    * @return a [[TaskProgress]] that tracks progress of the download and can
+    *         be used to get the final result
+    */
+  def fetchString(uri: Uri): TaskProgress[APIResponse] = {
+    val request = HTTPRequestBuilder.fromURI(uri).GET
+    fetchString(request)
   }
 
   /** Downloads the `request` and saves the response in the file pointed by the
@@ -118,6 +131,21 @@ object HTTPDownload {
       FileIO.toPath(destination),
       (_, _: Any) => destination
     )
+  }
+
+  /** Downloads the `uri` and saves the response in the file pointed by the
+    * `destination`.
+    *
+    * It is a shorthand for the other variant of [[download]] that creates a
+    * simple GET request from the URI.
+    *
+    * @param uri the uri to download
+    * @return a [[TaskProgress]] that tracks progress of the download and can
+    *         be used to wait for the completion of the download.
+    */
+  def download(uri: Uri, destination: Path): TaskProgress[Path] = {
+    val request = HTTPRequestBuilder.fromURI(uri).GET
+    download(request, destination)
   }
 
   implicit private lazy val actorSystem: ActorSystem = {

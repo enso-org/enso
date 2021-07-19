@@ -31,6 +31,25 @@ trait LibraryCache extends ReadOnlyLibraryCache {
   /** If the cache contains the library, it is returned immediately, otherwise,
     * it tries to download the missing library.
     *
+    * It does not need to install the library's dependencies. However once the
+    * library is being compiled, installation of its dependencies will be
+    * triggered automatically by the compiler.
+    *
+    * @param libraryName the name of the library to search for
+    * @param version the library version
+    * @param recommendedRepository the repository that should be used to
+    *                              download the library from, if it is missing
+    * @return the path to the library or a failure if the library could not be
+    *         installed
+    */
+  def findOrInstallLibrary(
+    libraryName: LibraryName,
+    version: SemVer,
+    recommendedRepository: Editions.Repository
+  ): Try[Path]
+
+  /** Ensures that the given library and all of its dependencies are installed.
+    *
     * @param libraryName the name of the library to search for
     * @param version the library version
     * @param recommendedRepository the repository that should be used to
@@ -38,16 +57,13 @@ trait LibraryCache extends ReadOnlyLibraryCache {
     * @param dependencyResolver a function that will specify what versions of
     *                           dependencies should be also downloaded when
     *                           installing the missing library (if any)
-    *                           TODO [RW] the design of this function should be refined in #1772
-    * @return the path to the library or a failure if the library could not be
-    *         installed
     */
-  def findOrInstallLibrary(
+  def preinstallLibrary(
     libraryName: LibraryName,
     version: SemVer,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): Try[Path]
+  ): Try[Unit]
 }
 
 object LibraryCache {

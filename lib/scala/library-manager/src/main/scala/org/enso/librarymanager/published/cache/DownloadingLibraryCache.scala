@@ -7,15 +7,30 @@ import org.enso.distribution.locking.{
   LockUserInterface,
   ResourceManager
 }
+import org.enso.downloader.http.{HTTPDownload, URIBuilder}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
+import org.enso.librarymanager.published.repository.LibraryManifest
+import org.enso.librarymanager.published.repository.RepositoryHelper.{
+  manifestFilename,
+  RepositoryMethods
+}
 import org.enso.logger.masking.MaskedPath
+import org.enso.yaml.YamlHelper
 
 import java.nio.file.{Files, Path}
 import scala.util.{Success, Try}
 
-/** A [[LibraryCache]] that will try to download missing libraries. */
+/** A [[LibraryCache]] that will try to download missing libraries.
+  *
+  * @param cacheRoot
+  * @param temporaryDirectoryRoot
+  * @param resourceManager
+  * @param lockUserInterface
+  * @param progressReporter
+  */
 class DownloadingLibraryCache(
   cacheRoot: Path,
+  temporaryDirectoryRoot: Path,
   resourceManager: ResourceManager,
   lockUserInterface: LockUserInterface,
   progressReporter: ProgressReporter
@@ -43,34 +58,26 @@ class DownloadingLibraryCache(
     }
   }
 
-  // TODO dependency resolution should be a whole separate mechanism from this, remove that for now
   /** @inheritdoc */
   override def findOrInstallLibrary(
     libraryName: LibraryName,
     version: SemVer,
-    recommendedRepository: Editions.Repository,
-    dependencyResolver: LibraryName => Option[LibraryVersion]
+    recommendedRepository: Editions.Repository
   ): Try[Path] = {
     val _      = progressReporter // TODO
     val cached = findCachedLibrary(libraryName, version)
     cached match {
       case Some(result) => Success(result)
       case None =>
-        installLibrary(
-          libraryName,
-          version,
-          recommendedRepository,
-          dependencyResolver
-        )
+        installLibrary(libraryName, version, recommendedRepository)
     }
   }
 
   private def installLibrary(
     libraryName: LibraryName,
     version: SemVer,
-    recommendedRepository: Editions.Repository,
-    dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): Try[Path] = {
+    recommendedRepository: Editions.Repository
+  ): Try[Path] = Try {
     logger.trace(s"Trying to install [$libraryName:$version].")
     resourceManager.withResource(
       lockUserInterface,
@@ -84,10 +91,35 @@ class DownloadingLibraryCache(
         )
         Success(path)
       } else {
+        val access           = recommendedRepository.accessLibrary(libraryName, version)
+        val manifestDownload = access.downloadManifest()
+        progressReporter.trackProgress(
+          s"Downloading library manifest of [$libraryName].",
+          manifestDownload
+        )
+        val manifest = manifestDownload.force()
+
         // TODO download and install
         ???
       }
     }
+  }
+
+  private def shouldDownloadArchive(archiveName: String): Boolean = {
+    val isTestData = archiveName.startsWith("tests")
+    !isTestData
+  }
+
+  override def preinstallLibrary(
+    libraryName: LibraryName,
+    version: SemVer,
+    recommendedRepository: Editions.Repository,
+    dependencyResolver: LibraryName => Option[LibraryVersion]
+  ): Try[Unit] = {
+    logger.warn("Predownloading dependencies is not yet implemented.")
+    val _ = dependencyResolver
+    findOrInstallLibrary(libraryName, version, recommendedRepository)
+      .map(_ => ())
   }
 }
 

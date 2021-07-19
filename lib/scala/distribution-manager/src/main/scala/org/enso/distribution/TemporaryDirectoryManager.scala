@@ -1,22 +1,47 @@
-package org.enso.runtimeversionmanager.distribution
+package org.enso.distribution
 
-import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.distribution.locking.ResourceManager
 
-/** Manages safe access to the temporary directory.
+import java.nio.file.{FileAlreadyExistsException, Files, Path}
+import scala.util.Random
+
+/** Manages safe access to the local temporary directory.
   *
   * The temporary directory is created on demand and automatically removed if it
   * is empty. Temporary files from previous runs are removed when the temporary
   * directory is first accessed. Locking mechanism is used to ensure that the
   * old files are no longer used by any other instances running in parallel.
+  *
+  * The local temporary directory is located inside of ENSO_DATA_ROOT, which
+  * means it should be on the same disk partition as directories keeping
+  * engines, runtimes and cached libraries.
+  *
+  * This directory is used as a destination for extracting component packages,
+  * so that they can be moved all at once at the last step of the installation.
   */
 class TemporaryDirectoryManager(
   distribution: DistributionManager,
   resourceManager: ResourceManager
 ) {
   private val logger = Logger[TemporaryDirectoryManager]
+  private val random = new Random()
+
+  /** Creates a unique temporary subdirectory. */
+  def temporarySubdirectory(prefix: String = ""): Path = {
+    val path =
+      safeTemporaryDirectory.resolve(prefix + random.nextInt().toString)
+    if (Files.exists(path))
+      temporarySubdirectory(prefix)
+    else {
+      try {
+        Files.createDirectory(path)
+      } catch {
+        case _: FileAlreadyExistsException =>
+          temporarySubdirectory(prefix)
+      }
+    }
+  }
 
   /** Returns path to a directory for storing temporary files that is located on
     * the same filesystem as `runtimes` and `engines`.
@@ -29,11 +54,11 @@ class TemporaryDirectoryManager(
     * should ensure that). If that fails, it is also cleaned before any future
     * accesses.
     */
-  def accessTemporaryDirectory(): Path = safeTemporaryDirectory
-
   private lazy val safeTemporaryDirectory = {
     resourceManager.startUsingTemporaryDirectory()
-    distribution.paths.unsafeTemporaryDirectory
+    val path = distribution.paths.unsafeTemporaryDirectory
+    Files.createDirectories(path)
+    path
   }
 
   /** Tries to clean the temporary files directory.

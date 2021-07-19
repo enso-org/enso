@@ -22,9 +22,17 @@ class NoOpCache extends LibraryCache {
   override def findOrInstallLibrary(
     libraryName: LibraryName,
     version: SemVer,
+    recommendedRepository: Editions.Repository
+  ): Try[Path] = Failure(
+    new NotImplementedError("Downloading libraries is not yet implemented.")
+  )
+
+  override def preinstallLibrary(
+    libraryName: LibraryName,
+    version: SemVer,
     recommendedRepository: Editions.Repository,
     dependencyResolver: LibraryName => Option[LibraryVersion]
-  ): Try[Path] = Failure(
+  ): Try[Unit] = Failure(
     new NotImplementedError("Downloading libraries is not yet implemented.")
   )
 }
