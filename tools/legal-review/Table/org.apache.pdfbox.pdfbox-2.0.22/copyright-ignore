@@ -1,0 +1,27 @@
+! this work for additional information regarding copyright ownership.
+C -1 ; WX 600 ; N copyright ; B 0 -18 600 580 ;
+<td width="300">This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, and distributed for any purpose and without charge, with or without modification, provided that all copyright notices are retained; that the AFM files are not distributed without this file; that all modifications to this file or any of the AFM files are prominently noted in the modified file(s); and that this paragraph is not modified. Adobe Systems has no responsibility or obligation to support the use of the AFM files. <font color="white">Col</font></td>
+C -1 ; WX 600 ; N copyright ; B 53 -18 667 580 ;
+C -1 ; WX 737 ; N copyright ; B -11 -19 749 737 ;
+C -1 ; WX 737 ; N copyright ; B 54 -19 837 737 ;
+C -1 ; WX 737 ; N copyright ; B -14 -19 752 737 ;
+C -1 ; WX 737 ; N copyright ; B 56 -19 835 737 ;
+C -1 ; WX 747 ; N copyright ; B 26 -19 721 691 ;
+C -1 ; WX 747 ; N copyright ; B 30 -18 718 685 ;
+C -1 ; WX 760 ; N copyright ; B 38 -14 722 676 ;
+C 211 ; WX 790 ; N copyrightserif ; B 51 -15 741 675 ;
+C -1 ; WX 760 ; N copyright ; B 41 -18 719 666 ;
+C 227 ; WX 790 ; N copyrightsans ; B 49 -15 739 675 ;
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+Redistributions in binary form must reproduce the above copyright
+Redistributions of source code must retain the above copyright
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+copyright;00A9
+copyright notice, this list of conditions and the following
+copyrightsans;F8E9
+this work for additional information regarding copyright ownership.
+copyrightserif;F6D9
+{0251, "copyright"},
+{0343, "copyrightsans"},
+{0323, "copyrightserif"},
+~ this work for additional information regarding copyright ownership.
