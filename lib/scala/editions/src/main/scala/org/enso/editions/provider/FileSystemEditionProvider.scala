@@ -5,12 +5,14 @@ import org.enso.editions.{EditionSerialization, Editions}
 import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
-import scala.util.{Failure, Success, Try}
+import scala.collection.Factory
+import scala.jdk.StreamConverters.StreamHasToScala
+import scala.util.{Failure, Success, Try, Using}
 
 /** An implementation of [[EditionProvider]] that looks for the edition files in
   *  a list of filesystem paths.
   */
-case class FileSystemEditionProvider(searchPaths: List[Path])
+class FileSystemEditionProvider(searchPaths: List[Path])
     extends EditionProvider {
 
   /** @inheritdoc */
@@ -60,4 +62,23 @@ case class FileSystemEditionProvider(searchPaths: List[Path])
         .map(EditionReadError)
     } else Left(EditionNotFound)
   }
+
+  /** Finds all editions available on the [[searchPaths]]. */
+  def findAvailableEditions(): Seq[String] =
+    searchPaths.flatMap(findEditionsAt).distinct
+
+  private def findEditionName(path: Path): Option[String] = {
+    val name = path.getFileName.toString
+    if (name.endsWith(editionSuffix)) {
+      Some(name.stripSuffix(editionSuffix))
+    } else None
+  }
+
+  private def findEditionsAt(path: Path): Seq[String] =
+    listDir(path).filter(Files.isRegularFile(_)).flatMap(findEditionName)
+
+  private def listDir(dir: Path): Seq[Path] =
+    if (Files.exists(dir))
+      Using(Files.list(dir))(_.toScala(Factory.arrayFactory).toSeq).get
+    else Seq()
 }

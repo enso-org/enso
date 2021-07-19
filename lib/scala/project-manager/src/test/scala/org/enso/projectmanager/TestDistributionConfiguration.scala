@@ -64,9 +64,7 @@ class TestDistributionConfiguration(
 
   lazy val resourceManager = new ResourceManager(lockManager)
 
-  lazy val editionManager: EditionManager = new EditionManager(
-    distributionManager.paths.editionSearchPaths.toList
-  )
+  lazy val editionManager: EditionManager = EditionManager(distributionManager)
 
   lazy val temporaryDirectoryManager =
     new TemporaryDirectoryManager(distributionManager, resourceManager)
