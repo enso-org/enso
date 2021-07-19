@@ -4,7 +4,6 @@
 
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
-#![feature(hash_drain_filter)]
 
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -17,10 +16,8 @@
 
 #![recursion_limit="512"]
 
-pub mod card;
 pub mod component;
 pub mod drop_down_menu;
-pub mod file_browser;
 pub mod label;
 pub mod list_view;
 pub mod scroll_area;

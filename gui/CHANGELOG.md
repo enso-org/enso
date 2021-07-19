@@ -16,11 +16,6 @@
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
-#### Visual Environment
-
-- [File browser component][1677]. A basic file browser component has been
-  implemented, but is not integrated into the user interface yet.
-
 #### Enso Compiler
 
 - [Updated Enso engine to version 0.2.12][1640]. If you're interested in the

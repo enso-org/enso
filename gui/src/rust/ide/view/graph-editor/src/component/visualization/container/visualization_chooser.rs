@@ -15,6 +15,7 @@ use enso_frp as frp;
 use enso_frp;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl_gui_components::list_view;
 use ensogl_gui_components::drop_down_menu;
 
 
@@ -150,9 +151,9 @@ impl VisualizationChooser {
             input_type_changed <- frp.set_vis_input_type.gate(&menu.menu_visible).constant(());
             refresh_entries    <- any(menu_appears,input_type_changed);
             frp.source.entries <+ refresh_entries.map2(&frp.vis_input_type,f!([model] ((),input_type){
-                let entries = Rc::new(model.entries(input_type));
-                let labels  = entries.iter().map(|e| e.to_string()).collect_vec();
-                model.selection_menu.set_entries(Rc::new(labels));
+                let entries  = Rc::new(model.entries(input_type));
+                let provider = list_view::entry::AnyModelProvider::from(entries.clone_ref());
+                model.selection_menu.set_entries(provider);
                 entries
             }));
         }

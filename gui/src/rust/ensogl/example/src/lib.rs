@@ -31,7 +31,6 @@ pub mod complex_shape_system;
 pub mod dom_symbols;
 pub mod drop_manager;
 pub mod easing_animator;
-pub mod file_browser;
 pub mod glyph_system;
 pub mod list_view;
 pub mod mouse_events;
@@ -41,7 +40,6 @@ pub mod slider;
 pub mod sprite_system;
 pub mod sprite_system_benchmark;
 pub mod text_area;
-pub mod icons;
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {
