@@ -3,10 +3,11 @@ use crate::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
+use ensogl_core::display::scene::layer::LayerId;
 use ensogl_core::display::shape::StyleWatch;
 use ensogl_text as text;
 use ensogl_theme;
-use ensogl_core::data::color;
+
 
 
 // =================
@@ -19,6 +20,200 @@ pub const PADDING:f32 = 14.0;
 pub const HEIGHT:f32 = 30.0;
 /// The text size of entry's labe.
 pub const LABEL_SIZE:f32 = 12.0;
+/// The size in pixels of icons inside entries.
+pub const ICON_SIZE:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
+/// The gap between icon and label.
+pub const ICON_LABEL_GAP:f32 = 0.0; // TODO[ao] restore when we create icons for the searcher.
+
+
+
+// ===================
+// === Entry Model ===
+// ===================
+
+/// Entry id. 0 is the first entry in component.
+pub type Id = usize;
+
+/// A model on which the view bases.
+#[allow(missing_docs)]
+#[derive(Clone,Debug,Default)]
+pub struct Model {
+    pub label       : String,
+    pub highlighted : Vec<text::Range<text::Bytes>>,
+    pub icon        : Option<display::object::Any>,
+}
+
+impl Model {
+    /// Create model of simple entry with given label.
+    ///
+    /// The model won't have icon nor higlighting, but those can be set using `highlight` and
+    /// `with_icon`.
+    pub fn new(label:impl Str) -> Self {
+        Self {
+            label       : label.into(),
+            highlighted : default(),
+            icon        : default(),
+        }
+    }
+
+    /// Add highlighting to the entry and return it.
+    pub fn highlight(mut self, bytes:impl IntoIterator<Item=text::Range<text::Bytes>>) -> Self {
+        self.highlighted.extend(bytes.into_iter());
+        self
+    }
+
+    /// Add icon to the entry and return it.
+    pub fn with_icon(mut self, icon:impl display::Object + 'static) -> Self {
+        self.icon = Some(icon.into_any());
+        self
+    }
+}
+
+impl<T:Display> From<T> for Model {
+    fn from(item: T) -> Self {
+        Model::new(item.to_string())
+    }
+}
+
+
+// === Entry Model Provider ===
+
+/// The Entry Model Provider for select component.
+///
+/// The select does not display all entries at once, instead it lazily ask for models of entries
+/// when they're about to be displayed. So setting the select content is essentially providing
+/// implementor of this trait.
+pub trait ModelProvider : Debug {
+    /// Number of all entries.
+    fn entry_count(&self) -> usize;
+
+    /// Get the model of entry with given id. The implementors should return `None` onlt when
+    /// requested id greater or equal to entries count.
+    fn get(&self, id:Id) -> Option<Model>;
+}
+
+/// A wrapper for shared instance of some ModelProvider.
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+pub struct AnyModelProvider(Rc<dyn ModelProvider>);
+
+impl<T:ModelProvider + 'static> From<T> for AnyModelProvider {
+    fn from(provider:T) -> Self { Self(Rc::new(provider)) }
+}
+
+impl<T:ModelProvider + 'static> From<Rc<T>> for AnyModelProvider {
+    fn from(provider:Rc<T>) -> Self { Self(provider) }
+}
+
+impl Default for AnyModelProvider {
+    fn default() -> Self {EmptyProvider.into()}
+}
+
+
+// === Empty Model Provider ===
+
+/// An Entry Model Provider giving no entries.
+///
+/// This is the default provider for new select components.
+#[derive(Clone,CloneRef,Copy,Debug)]
+pub struct EmptyProvider;
+
+impl ModelProvider for EmptyProvider {
+    fn entry_count(&self)          -> usize         { 0    }
+    fn get        (&self, _:usize) -> Option<Model> { None }
+}
+
+
+// === Model Provider for Vectors ===
+
+impl<T:Into<Model> + Debug + Clone> ModelProvider for Vec<T> {
+    fn entry_count(&self) -> usize {
+        self.len()
+    }
+
+    fn get(&self, id:usize) -> Option<Model> {
+       Some(<[T]>::get(self, id)?.clone().into())
+    }
+}
+
+
+// === Masked Model Provider ===
+
+/// An Entry Model Provider that wraps a `AnyModelProvider` and allows the masking of a single item.
+#[derive(Clone,Debug)]
+pub struct SingleMaskedProvider {
+    content : AnyModelProvider,
+    mask    : Cell<Option<Id>>,
+}
+
+impl ModelProvider for SingleMaskedProvider {
+    fn entry_count(&self) -> usize {
+        match self.mask.get() {
+            None    => self.content.entry_count(),
+            Some(_) => self.content.entry_count().saturating_sub(1),
+        }
+    }
+
+    fn get(&self, ix:usize) -> Option<Model> {
+        let internal_ix = self.unmasked_index(ix);
+        self.content.get(internal_ix)
+    }
+}
+
+impl SingleMaskedProvider {
+
+    /// Return the index to the unmasked underlying data. Will only be valid to use after
+    /// calling `clear_mask`.
+    ///
+    /// Transform index of an element visible in the menu, to the index of the all the objects,
+    /// accounting for the removal of the selected item.
+    ///
+    /// Example:
+    /// ```text
+    /// Mask              `Some(1)`
+    /// Masked indices    [0,     1, 2]
+    /// Unmasked Index    [0, 1,  2, 3]
+    /// -------------------------------
+    /// Mask              `None`
+    /// Masked indices    [0, 1, 2, 3]
+    /// Unmasked Index    [0, 1, 2, 3]
+    /// ```
+    pub fn unmasked_index(&self, ix:Id) -> Id {
+        match self.mask.get() {
+            None                 => ix,
+            Some(id) if ix < id  => ix,
+            Some(_)              => ix+1,
+        }
+    }
+
+    /// Mask out the given index. All methods will now skip this item and the `SingleMaskedProvider`
+    /// will behave as if it was not there.
+    ///
+    /// *Important:* The index is interpreted according to the _masked_ position of elements.
+    pub fn set_mask(&self, ix:Id) {
+        let internal_ix = self.unmasked_index(ix);
+        self.mask.set(Some(internal_ix));
+    }
+
+    /// Mask out the given index. All methods will now skip this item and the `SingleMaskedProvider`
+    /// will behave as if it was not there.
+    ///
+    /// *Important:* The index is interpreted according to the _unmasked_ position of elements.
+    pub fn set_mask_raw(&self, ix:Id) {
+        self.mask.set(Some(ix));
+    }
+
+    /// Clear the masked item.
+    pub fn clear_mask(&self) {
+        self.mask.set(None)
+    }
+}
+
+impl From<AnyModelProvider> for SingleMaskedProvider {
+    fn from(content:AnyModelProvider) -> Self {
+        let mask = default();
+        SingleMaskedProvider{content,mask}
+    }
+}
 
 
 
@@ -26,171 +221,65 @@ pub const LABEL_SIZE:f32 = 12.0;
 // === Entry ===
 // =============
 
-/// Entry id. 0 is the first entry in component.
-pub type Id = usize;
-
-
-/// Display objects should implement this trait to be usable as list entries. The origin should be
-/// at the center left of the object. The intended height of entries is given by [`Height`].
-pub trait Entry: display::Object + Debug {
-
-    /// Sets whether this entry is focused, which means that it is selected and the list view has
-    /// focus. In this case, the entry can change its color or visual weight.
-    fn set_focused(&self, selected:bool);
-
-    /// Sets the width of the entry.
-    fn set_width(&self, width:f32);
-}
-
-/// A wrapper around `Rc<dyn Entry>`.
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
-pub struct AnyEntry(Rc<dyn Entry>);
-
-impl<T: Entry + 'static> From<T> for AnyEntry {
-    fn from(entry:T) -> Self { Self(Rc::new(entry)) }
-}
-
-impl<T: Entry + 'static> From<Rc<T>> for AnyEntry {
-    fn from(entry:Rc<T>) -> Self { Self(entry) }
-}
-
-impl display::Object for AnyEntry {
-    fn display_object(&self) -> &display::object::Instance {
-        self.0.display_object()
-    }
-}
-
-
-
-// === Entry Provider ===
-
-/// The Entry Provider for [`ListView`] component.
+/// A displayed entry in select component.
 ///
-/// The select does not display all entries at once, instead it lazily ask for entries when they're
-/// about to be displayed. So setting the select content is essentially providing implementor of
-/// this trait.
-pub trait EntryProvider: Debug {
-    /// Number of all entries.
-    fn entry_count(&self) -> usize;
-
-    /// Get the entry with given id. The implementors should return `None` only when the requested
-    /// id is greater or equal to the entry count.
-    fn get(&self, app:&Application, id:Id) -> Option<AnyEntry>;
-}
-
-/// A wrapper for shared instance of some EntryProvider.
-#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
-pub struct AnyEntryProvider(Rc<dyn EntryProvider>);
-
-impl<T: EntryProvider + 'static> From<T> for AnyEntryProvider {
-    fn from(provider:T) -> Self { Self(Rc::new(provider)) }
-}
-
-impl<T: EntryProvider + 'static> From<Rc<T>> for AnyEntryProvider {
-    fn from(provider:Rc<T>) -> Self { Self(provider) }
-}
-
-impl Default for AnyEntryProvider {
-    fn default() -> Self {EmptyProvider.into()}
-}
-
-
-// === Empty Entry Provider ===
-
-/// An Entry Provider giving no entries.
-///
-/// This is the default provider for new select components.
-#[derive(Clone,CloneRef,Copy,Debug)]
-pub struct EmptyProvider;
-
-#[derive(Debug,Copy,Clone)]
-enum EmptyProviderEntry {}
-
-impl display::Object for EmptyProviderEntry {
-    fn display_object(&self) -> &display::object::Instance {
-        match *self {}
-    }
-}
-
-impl Entry for EmptyProviderEntry {
-    fn set_focused(&self, _selected: bool) {}
-
-    fn set_width(&self, _width: f32) {}
-}
-
-impl EntryProvider for EmptyProvider {
-    fn entry_count(&self) -> usize {
-        0
-    }
-
-    fn get(&self, _:&Application, _:usize) -> Option<AnyEntry> {
-        None
-    }
-}
-
-
-// === StringEntry ===
-
-#[derive(Debug)]
-struct StringEntry {
-    display_object : display::object::Instance,
+/// The Display Object position of this component is docked to the middle of left entry's boundary.
+/// It differs from usual behaviour of EnsoGl components, but makes the entries alignment much
+/// simpler.
+#[derive(Clone,CloneRef,Debug)]
+pub struct Entry {
+    app            : Application,
+    id             : Rc<Cell<Option<Id>>>,
     label          : text::Area,
+    icon           : Rc<CloneCell<Option<display::object::Any>>>,
+    display_object : display::object::Instance,
 }
 
-impl StringEntry {
-    fn new(app:&Application, string:&str) -> Self {
-        let logger = Logger::new("StringEntry");
+impl Entry {
+    /// Create new entry view.
+    pub fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let app            = app.clone_ref();
+        let id             = default();
+        let label          = app.new_view::<text::Area>();
+        let icon           = Rc::new(CloneCell::new(None));
         let display_object = display::object::Instance::new(logger);
-
-        let label = text::Area::new(app);
-        label.add_to_scene_layer(&app.display.scene().layers.label);
         display_object.add_child(&label);
-        let styles = StyleWatch::new(&app.display.scene().style_sheet);
+        label.set_position_xy(Vector2(PADDING + ICON_SIZE + ICON_LABEL_GAP, LABEL_SIZE/2.0));
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
+        let styles     = StyleWatch::new(&app.display.scene().style_sheet);
         let text_color = styles.get_color(ensogl_theme::widget::list_view::text);
         label.set_default_color(text_color);
         label.set_default_text_size(text::Size(LABEL_SIZE));
-        label.set_position_xy(Vector2(PADDING,LABEL_SIZE/2.0));
-        label.set_content(string);
+        Entry{app,id,label,icon,display_object}
+    }
 
-        Self {display_object,label}
+    /// Set the new model for this view.
+    ///
+    /// This function updates icon and label.
+    pub fn set_model(&self, id:Id, model:&Model) {
+        if let Some(old_icon) = self.icon.get() {
+            self.remove_child(&old_icon);
+        }
+        if let Some(new_icon) = &model.icon {
+            self.add_child(&new_icon);
+            new_icon.set_position_xy(Vector2(PADDING + ICON_SIZE/2.0, 0.0));
+        }
+        self.id.set(Some(id));
+        self.icon.set(model.icon.clone());
+        self.label.set_content(&model.label);
+
+        // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
+        // system (#795)
+        let styles    = StyleWatch::new(&self.app.display.scene().style_sheet);
+        let highlight = styles.get_color(ensogl_theme::widget::list_view::text::highlight);
+        for highlighted in &model.highlighted {
+            self.label.set_color_bytes(highlighted,highlight);
+        }
     }
 }
 
-impl display::Object for StringEntry {
-    fn display_object(&self) -> &display::object::Instance {
-        &self.display_object
-    }
-}
-
-impl Entry for StringEntry {
-    fn set_focused(&self, focused: bool) {
-        self.label.set_color_all(if focused {color::Rgba::white()} else {color::Rgba::black()});
-    }
-
-    fn set_width(&self, _width: f32) {}
-}
-
-
-// === VecEntryProvider ===
-
-#[derive(Debug,Shrinkwrap)]
-struct VecEntryProvider(Rc<Vec<String>>);
-
-impl EntryProvider for VecEntryProvider {
-    fn entry_count(&self) -> usize {
-        self.len()
-    }
-
-    fn get(&self, app:&Application, id:usize) -> Option<AnyEntry> {
-        let string = self.0.get(id)?;
-        Some(StringEntry::new(app,string).into())
-    }
-}
-
-impl From<Rc<Vec<String>>> for AnyEntryProvider {
-    fn from(entries: Rc<Vec<String>>) -> Self {
-        VecEntryProvider(entries).into()
-    }
+impl display::Object for Entry {
+    fn display_object(&self) -> &display::object::Instance { &self.display_object }
 }
 
 
@@ -217,36 +306,28 @@ impl IdAtYPosition {
 /// A view containing an entry list, arranged in column.
 ///
 /// Not all entries are displayed at once, only those visible.
-///
-/// [`set_selection`] can be used to set one entry as selected. [`set_focused`] can be used to mark
-/// if this list has focus. The selected entry can change it's appearance based on this status.
 #[derive(Clone,CloneRef,Debug)]
 pub struct List {
-    logger          : Logger,
-    app             : Application,
-    display_object  : display::object::Instance,
-    visible_entries : Rc<RefCell<HashMap<Id,AnyEntry>>>,
-    visible_range   : Rc<CloneCell<Range<f32>>>,
-    provider        : Rc<CloneRefCell<AnyEntryProvider>>,
-    selected_id     : Rc<Cell<Option<Id>>>,
-    entry_width     : Rc<Cell<f32>>,
-    focused         : Rc<Cell<bool>>,
+    logger         : Logger,
+    app            : Application,
+    display_object : display::object::Instance,
+    entries        : Rc<RefCell<Vec<Entry>>>,
+    entries_range  : Rc<CloneCell<Range<Id>>>,
+    provider       : Rc<CloneRefCell<AnyModelProvider>>,
+    label_layer    : Rc<Cell<LayerId>>,
 }
 
 impl List {
     /// Entry List View constructor.
     pub fn new(parent:impl AnyLogger, app:&Application) -> Self {
-        let app             = app.clone_ref();
-        let logger          = Logger::sub(parent,"entry::List");
-        let visible_entries = default();
-        let visible_range   = Rc::new(CloneCell::new(default()..default()));
-        let display_object  = display::object::Instance::new(&logger);
-        let provider        = default();
-        let selected_id     = default();
-        let entry_width     = default();
-        let focused         = default();
-        List {logger,app,display_object,visible_entries,visible_range,provider,selected_id,
-            entry_width,focused}
+        let app            = app.clone_ref();
+        let logger         = Logger::sub(parent,"entry::List");
+        let entries        = default();
+        let entries_range  = Rc::new(CloneCell::new(default()..default()));
+        let display_object = display::object::Instance::new(&logger);
+        let provider       = default();
+        let label_layer    = Rc::new(Cell::new(app.display.scene().layers.label.id));
+        List {logger,app,display_object,entries,entries_range,provider,label_layer}
     }
 
     /// The number of all entries in List, including not displayed.
@@ -256,13 +337,11 @@ impl List {
 
     /// The number of all displayed entries in List.
     pub fn visible_entry_count(&self) -> usize {
-        ((self.visible_range.get().end - self.visible_range.get().start) / HEIGHT) as usize
+        self.entries_range.get().len()
     }
 
     /// Y position of entry with given id, relative to Entry List position.
-    pub fn position_y_of_entry(id:Id) -> f32 {
-        id as f32 * -HEIGHT - 0.5 * HEIGHT
-    }
+    pub fn position_y_of_entry(id:Id) -> f32 { id as f32 * -HEIGHT }
 
     /// Y range of entry with given id, relative to Entry List position.
     pub fn y_range_of_entry(id:Id) -> Range<f32> {
@@ -271,112 +350,156 @@ impl List {
     }
 
     /// Y range of all entries in this list, including not displayed.
-    pub fn total_height(entry_count:usize) -> f32 {
-        entry_count as f32 * HEIGHT
+    pub fn y_range_of_all_entries(entry_count:usize) -> Range<f32> {
+        let start = if entry_count > 0 {
+            Self::position_y_of_entry(entry_count - 1) - HEIGHT / 2.0
+        } else {
+            HEIGHT / 2.0
+        };
+        let end   = HEIGHT / 2.0;
+        start..end
     }
 
     /// Get the entry id which lays on given y coordinate.
     pub fn entry_at_y_position(y:f32, entry_count:usize) -> IdAtYPosition {
         use IdAtYPosition::*;
-        let height = Self::total_height(entry_count);
-        if y > 0.0          { AboveFirst               }
-        else if y < -height { UnderLast                }
-        else                { Entry((-y/HEIGHT) as Id) }
-    }
-
-    /// Set y range of the list that is visible.
-    pub fn set_visible_range(&self, range:Range<f32>) {
-        self.visible_range.set(range);
-        self.update_visible_entries();
+        let all_entries_start = Self::y_range_of_all_entries(entry_count).start;
+        if y > HEIGHT/2.0             { AboveFirst                     }
+        else if y < all_entries_start { UnderLast                      }
+        else                          { Entry((-y/HEIGHT + 0.5) as Id) }
     }
 
     /// Update displayed entries to show the given range.
-    fn update_visible_entries(&self) {
-        let entry_at_y_saturating = |y:f32| {
-            match Self::entry_at_y_position(y,self.entry_count()) {
-                IdAtYPosition::AboveFirst => 0,
-                IdAtYPosition::UnderLast  => self.entry_count().saturating_sub(1),
-                IdAtYPosition::Entry(id)  => id,
-            }
-        };
-        let first_visible          = entry_at_y_saturating(self.visible_range.get().end);
-        let last_visible           = entry_at_y_saturating(self.visible_range.get().start);
-        let visible_ids: Range<Id> = first_visible..(last_visible +1);
-
-        // It can be extremely slow to create or destroy objects, in particular text areas.
-        // Therefore, we only destroy or create those that enter or leave the visible area.
-
-        {  // Remove entries that went out of sight
-            let mut visible_entries = self.visible_entries.borrow_mut();
-
-            let removed_entries = visible_entries.drain_filter(|id, _| !visible_ids.contains(id));
-            for (_, entry) in removed_entries {
-                self.display_object.remove_child(&entry);
-            }
-        }
-
-        // Add entries that came into sight
-        for id in visible_ids {
-            let needs_to_be_created = !self.visible_entries.borrow().contains_key(&id);
-            if needs_to_be_created {
-                if let Some(new_entry) = self.provider.get().get(&self.app,id) {
-                    self.display_object.add_child(&new_entry);
-                    self.visible_entries.borrow_mut().insert(id, new_entry);
-                    self.update_entry_appearance(id);
+    pub fn update_entries(&self, mut range:Range<Id>) {
+        range.end = range.end.min(self.provider.get().entry_count());
+        if range != self.entries_range.get() {
+            debug!(self.logger, "Update entries for {range:?}");
+            let provider = self.provider.get();
+            let current_entries:HashSet<Id> = with(self.entries.borrow_mut(), |mut entries| {
+                entries.resize_with(range.len(),|| self.create_new_entry());
+                entries.iter().filter_map(|entry| entry.id.get()).collect()
+            });
+            let missing = range.clone().filter(|id| !current_entries.contains(id));
+            // The provider is provided by user, so we should not keep any borrow when calling its
+            // methods.
+            let models = missing.map(|id| (id,provider.get(id)));
+            with(self.entries.borrow(), |entries| {
+                let is_outdated = |e:&Entry| e.id.get().map_or(true, |i| !range.contains(&i));
+                let outdated    = entries.iter().filter(|e| is_outdated(e));
+                for (entry,(id,model)) in outdated.zip(models) {
+                    Self::update_entry(&self.logger,entry,id,&model);
                 }
-            }
-        }
-    }
-
-    fn update_entry_appearance(&self, id:Id) {
-        if let Some(entry) = self.visible_entries.borrow().get(&id) {
-            entry.set_position_y(Self::position_y_of_entry(id));
-            entry.set_width(self.entry_width.get());
-            entry.set_focused(self.selected_id.get() == Some(id) && self.focused.get());
+            });
+            self.entries_range.set(range);
         }
     }
 
     /// Update displayed entries, giving new provider.
-    pub fn set_provider(&self, provider:AnyEntryProvider) {
+    pub fn update_entries_new_provider
+    (&self, provider:impl Into<AnyModelProvider> + 'static, mut range:Range<Id>) {
         const MAX_SAFE_ENTRIES_COUNT:usize = 1000;
+        let provider = provider.into();
         if provider.entry_count() > MAX_SAFE_ENTRIES_COUNT {
             error!(self.logger, "ListView entry count exceed {MAX_SAFE_ENTRIES_COUNT} - so big \
             number of entries can cause visual glitches, e.g. https://github.com/enso-org/ide/\
             issues/757 or https://github.com/enso-org/ide/issues/758");
         }
-        self.visible_entries.borrow_mut().clear();
+        range.end       = range.end.min(provider.entry_count());
+        let models      = range.clone().map(|id| (id,provider.get(id)));
+        let mut entries = self.entries.borrow_mut();
+        entries.resize_with(range.len(),|| self.create_new_entry());
+        for (entry,(id,model)) in entries.iter().zip(models) {
+            Self::update_entry(&self.logger,entry,id,&model);
+        }
+        self.entries_range.set(range);
         self.provider.set(provider);
-        self.update_visible_entries()
     }
 
-    /// Set the selected entry.
-    pub fn set_selection(&self, id:Option<Id>) {
-        let old = self.selected_id.replace(id);
-        if let Some(old) = old {
-            self.update_entry_appearance(old);
+    /// Sets the scene layer where the labels will be placed.
+    pub fn set_label_layer(&self, label_layer:LayerId) {
+        if let Some(layer) = self.app.display.scene().layers.get(self.label_layer.get()) {
+            for entry in &*self.entries.borrow() {
+                entry.label.remove_from_scene_layer(&self.app.display.scene().layers.label);
+                entry.label.add_to_scene_layer(&layer);
+            }
+        } else {
+            error!(self.logger, "Cannot set layer {label_layer:?} for labels: the layer does not \
+                exist in the scene");
         }
-        if let Some(id) = id {
-            self.update_entry_appearance(id);
-        }
+        self.label_layer.set(label_layer);
     }
 
-    /// Set the width for all entries.
-    pub fn set_entry_width(&self, width:f32) {
-        self.entry_width.set(width);
-        for entry in self.visible_entries.deref().borrow().values() {
-            entry.set_width(width);
+    fn create_new_entry(&self) -> Entry {
+        let entry = Entry::new(&self.logger,&self.app);
+        if let Some(layer) = self.app.display.scene().layers.get(self.label_layer.get()) {
+            entry.label.remove_from_scene_layer(&self.app.display.scene().layers.label);
+            entry.label.add_to_scene_layer(&layer);
+        } else {
+            error!(self.logger, "Cannot set layer {self.label_layer:?} for labels: the layer does \
+                not exist in the scene");
         }
+        self.add_child(&entry);
+        entry
     }
 
-    /// Set whether the list is focused.
-    pub fn set_focused(&self, focused:bool) {
-        self.focused.set(focused);
-        if let Some(selection) = self.selected_id.get() {
-            self.update_entry_appearance(selection);
-        }
+    fn update_entry(logger:&Logger, entry:&Entry, id:Id, model:&Option<Model>) {
+        debug!(logger, "Setting new model {model:?} for entry {id}; \
+                        old entry: {entry.id.get():?}.");
+        match model {
+            Some(model) => entry.set_model(id,&model),
+            None        => {
+                error!(logger, "Model provider didn't return model for id {id}.");
+                entry.set_model(id,&default())
+            }
+        };
+        entry.set_position_y(Self::position_y_of_entry(id));
     }
 }
 
 impl display::Object for List {
     fn display_object(&self) -> &display::object::Instance { &self.display_object }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_masked_provider() {
+        let test_data   = vec!["A", "B", "C", "D"];
+        let test_models = test_data.into_iter().map(|label| Model::new(label)).collect_vec();
+        let provider:AnyModelProvider     = test_models.into();
+        let provider:SingleMaskedProvider = provider.into();
+
+        assert_eq!(provider.entry_count(), 4);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "C");
+        assert_eq!(provider.get(3).unwrap().label, "D");
+
+        provider.set_mask_raw(0);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "B");
+        assert_eq!(provider.get(1).unwrap().label, "C");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(1);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "C");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(2);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "D");
+
+        provider.set_mask_raw(3);
+        assert_eq!(provider.entry_count(), 3);
+        assert_eq!(provider.get(0).unwrap().label, "A");
+        assert_eq!(provider.get(1).unwrap().label, "B");
+        assert_eq!(provider.get(2).unwrap().label, "C");
+    }
 }

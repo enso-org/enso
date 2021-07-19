@@ -782,7 +782,7 @@ impl<Host> Object<Host> for Instance<Host> {
     }
 }
 
-impl<Host,T:?Sized+Object<Host>> Object<Host> for &T {
+impl<Host,T:Object<Host>> Object<Host> for &T {
     fn display_object(&self) -> &Instance<Host> {
         let t : &T = *self;
         t.display_object()
@@ -811,7 +811,7 @@ pub trait ObjectOps<Host=Scene> : Object<Host> {
 
     /// Add another display object as a child to this display object. Children will inherit all
     /// transformations of their parents.
-    fn add_child<T:?Sized+Object<Host>>(&self, child:&T) {
+    fn add_child<T:Object<Host>>(&self, child:&T) {
         self.display_object()._add_child(child.display_object());
     }
 

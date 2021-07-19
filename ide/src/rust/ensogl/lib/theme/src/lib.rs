@@ -166,10 +166,13 @@ define_themes! { [light:0, dark:1]
         }
         searcher {
             action_list_gap = 10.0, 10.0;
-        }
-        file_browser {
-            background           = graph_editor::node::background , graph_editor::node::background;
-            toolbar_border_color = Rgba(0.808,0.808,0.808,1.0)    , Rgba(0.808,0.808,0.808,1.0);
+            padding = 5.0, 5.0;
+            selection {
+                padding {
+                    horizontal = 2.0, 2.0;
+                    vertical   = 2.0, 2.0
+                }
+            }
         }
 
         window_control_buttons {
@@ -395,20 +398,12 @@ define_themes! { [light:0, dark:1]
     }
     widget {
         list_view {
-            padding {
-                horizontal = 12.0 , 12.0;
-                vertical   = 10.0 , 10.0;
-            }
-            selection {
-                focused   = Rgba(0.12,0.451,0.973,1.0)  , Rgba(0.12,0.451,0.973,1.0);
-                unfocused = Rgba(0.933,0.933,0.933,1.0) , Rgba(0.933,0.933,0.933,1.0);
-            }
+            background = graph_editor::node::background , graph_editor::node::background;
+            highlight  = Rgba(0.906,0.914,0.922,1.0) , Lcha(1.0,0.0,0.0,0.15); // rgb(231,233,235)
             text = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             text {
-                highlight       = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
-                focus           = Lcha(1.0,0.0,0.0,1.0)   , Lcha(0.0,0.0,0.0,1.0);
-                focus_highlight = Lcha(0.2,0.0,0.0,1.0)   , Lcha(1.0,0.0,0.0,1.0);
-                selection       = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
+                highlight = selection, Rgba(0.275,0.549,0.839,1.0); // ... , rgb(70 140 214)
+                selection = Lcha(0.7,0.0,0.125,0.7) , Lcha(0.7,0.0,0.125,0.7);
             }
         }
     }
@@ -469,8 +464,5 @@ define_themes! { [light:0, dark:1]
     text = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
     text {
         size   = 12.0, 12.0;
-    }
-    card {
-        background = graph_editor::node::background , graph_editor::node::background;
     }
 }

@@ -29,7 +29,6 @@ const LABEL_OFFSET : f32 = 13.0;
 // === Model ===
 // =============
 
-/// The display object and visual state of a selector.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Model {
     /// Background shape that the other UI elements are placed on.
@@ -72,7 +71,6 @@ pub struct Model {
     background_right_corner_roundness : Rc<Cell<bool>>,
     padding                           : Rc<Cell<f32>>,
 
-    /// The application in which this selector is used.
     pub app : Application,
 }
 
@@ -187,7 +185,6 @@ impl Model {
         self.track.right.set(value);
     }
 
-    /// Set the the background color.
     pub fn set_background_color(&self, color:color::Rgba) {
         self.background_color.as_ref().replace(color);
         self.background.color.set(color.into());
@@ -220,19 +217,16 @@ impl Model {
         self.label_right.frp.set_content.emit(format!("{:.2}", value))
     }
 
-    /// Set the caption on the left end of the selector.
     pub fn set_caption_left(&self, caption:Option<String>) {
         let caption = caption.unwrap_or_default();
         self.caption_left.frp.set_content.emit(caption);
     }
 
-    /// Set the caption on the right end of the selector.
     pub fn set_caption_center(&self, caption:Option<String>) {
         let caption = caption.unwrap_or_default();
         self.caption_center.frp.set_content.emit(caption);
     }
 
-    /// Set the visibility of an indicator for overflow on the left.
     pub fn show_left_overflow(&self, value:bool) {
         if value {
             self.root.add_child(&self.left_overflow);
@@ -241,7 +235,6 @@ impl Model {
         }
     }
 
-    /// Set the visibility of an indicator for overflow on the right.
     pub fn show_right_overflow(&self, value:bool) {
         if value {
             self.root.add_child(&self.right_overflow);
@@ -250,7 +243,6 @@ impl Model {
         }
     }
 
-    /// Set whether the left corner should be rounded.
     pub fn left_corner_round(&self,value:bool) {
         let corner_roundness = if value { 1.0 } else { 0.0 };
         self.background.corner_left.set(corner_roundness);
@@ -258,7 +250,6 @@ impl Model {
         self.background_left_corner_roundness.set(value);
     }
 
-    /// Set whether the right corner should be rounded.
     pub fn right_corner_round(&self,value:bool) {
         let corner_roundness = if value { 1.0 } else { 0.0 };
         self.background.corner_right.set(corner_roundness);
@@ -266,23 +257,19 @@ impl Model {
         self.background_right_corner_roundness.set(value);
     }
 
-    /// Set the track color.
     pub fn set_track_color(&self, color:color::Rgba) {
         self.track.track_color.set(color.into());
     }
 
-    /// Set the track's corner radius.
     pub fn set_track_corner_round(&self, value:bool) {
         let corner_roundness = if value { 1.0 } else { 0.0 };
         self.track.corner_inner.set(corner_roundness)
     }
 
-    /// Set the amount of padding on all sides.
     pub fn set_padding(&self, padding:f32) {
         self.padding.set(padding);
     }
 
-    /// Set the visibility of the background.
     pub fn show_background(&self, value:bool) {
         if value {
             self.background.show_shadow.set(1.0);
