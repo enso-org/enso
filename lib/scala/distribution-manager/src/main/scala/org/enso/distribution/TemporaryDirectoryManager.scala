@@ -21,7 +21,7 @@ import scala.util.Random
   * so that they can be moved all at once at the last step of the installation.
   */
 class TemporaryDirectoryManager(
-  distribution: DistributionManager,
+  unsafeRoot: Path,
   resourceManager: ResourceManager
 ) {
   private val logger = Logger[TemporaryDirectoryManager]
@@ -54,11 +54,10 @@ class TemporaryDirectoryManager(
     * should ensure that). If that fails, it is also cleaned before any future
     * accesses.
     */
-  private lazy val safeTemporaryDirectory = {
+  private lazy val safeTemporaryDirectory: Path = {
     resourceManager.startUsingTemporaryDirectory()
-    val path = distribution.paths.unsafeTemporaryDirectory
-    Files.createDirectories(path)
-    path
+    Files.createDirectories(unsafeRoot)
+    unsafeRoot
   }
 
   /** Tries to clean the temporary files directory.
@@ -70,18 +69,27 @@ class TemporaryDirectoryManager(
     * marked as in-use and will not be cleaned.
     */
   def tryCleaningTemporaryDirectory(): Unit = {
-    val tmp = distribution.paths.unsafeTemporaryDirectory
-    if (Files.exists(tmp)) {
+    if (Files.exists(unsafeRoot)) {
       resourceManager.tryWithExclusiveTemporaryDirectory {
-        if (!FileSystem.isDirectoryEmpty(tmp)) {
+        if (!FileSystem.isDirectoryEmpty(unsafeRoot)) {
           logger.info(
             "Cleaning up temporary files from a previous installation."
           )
         }
-        FileSystem.removeDirectory(tmp)
-        Files.createDirectories(tmp)
-        FileSystem.removeEmptyDirectoryOnExit(tmp)
+        FileSystem.removeDirectory(unsafeRoot)
+        Files.createDirectories(unsafeRoot)
+        FileSystem.removeEmptyDirectoryOnExit(unsafeRoot)
       }
     }
   }
+}
+
+object TemporaryDirectoryManager {
+  def apply(
+    distribution: DistributionManager,
+    resourceManager: ResourceManager
+  ): TemporaryDirectoryManager = new TemporaryDirectoryManager(
+    distribution.paths.unsafeTemporaryDirectory,
+    resourceManager
+  )
 }

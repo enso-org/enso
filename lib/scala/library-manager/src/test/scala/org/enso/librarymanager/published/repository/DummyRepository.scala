@@ -29,11 +29,12 @@ abstract class DummyRepository {
         .resolve(lib.libraryName.name)
         .resolve(lib.version.toString)
       Files.createDirectories(libraryRoot)
-      val pkg = createLibraryProject(libraryRoot, lib)
-      FileSystem.writeTextFile(
-        pkg.sourceDir.toPath.resolve("Main.enso"),
-        lib.mainContent
+      createLibraryProject(libraryRoot, lib)
+      val files = Seq(
+        ArchiveWriter.TextFile("src/Main.enso", lib.mainContent)
       )
+      ArchiveWriter.writeTarArchive(libraryRoot.resolve("main.tgz"), files)
+      createManifest(libraryRoot)
     }
   }
 
@@ -51,6 +52,15 @@ abstract class DummyRepository {
     pkg
   }
 
+  private def createManifest(path: Path): Unit = {
+    FileSystem.writeTextFile(
+      path.resolve("manifest.yaml"),
+      s"""archives:
+         | - main.tgz
+         |""".stripMargin
+    )
+  }
+
   def createEdition(repoUrl: String): RawEdition = {
     Editions.Raw.Edition(
       parent       = Some(buildinfo.Info.currentEdition),
@@ -62,8 +72,9 @@ abstract class DummyRepository {
     )
   }
 
-  def runServer(port: Int, root: Path): Process = {
-    val serverDirectory = Path.of("../../../tools/simple-library-server")
+  def startServer(port: Int, root: Path): Process = {
+    val serverDirectory =
+      Path.of("tools/simple-library-server").toAbsolutePath.normalize
     (new ProcessBuilder)
       .command(
         "node",

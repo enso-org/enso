@@ -70,7 +70,7 @@ class TestDistributionConfiguration(
   lazy val editionManager: EditionManager = EditionManager(distributionManager)
 
   lazy val temporaryDirectoryManager =
-    new TemporaryDirectoryManager(distributionManager, resourceManager)
+    TemporaryDirectoryManager(distributionManager, resourceManager)
 
   lazy val componentConfig = new GraalVMComponentConfiguration
 

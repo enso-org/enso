@@ -152,7 +152,7 @@ class ConcurrencyTest
     }
 
     val temporaryDirectoryManager =
-      new TemporaryDirectoryManager(distributionManager, resourceManager)
+      TemporaryDirectoryManager(distributionManager, resourceManager)
     val componentConfig = new GraalVMComponentConfiguration
     val componentsManager = new RuntimeVersionManager(
       TestRuntimeVersionManagementUserInterface.default,

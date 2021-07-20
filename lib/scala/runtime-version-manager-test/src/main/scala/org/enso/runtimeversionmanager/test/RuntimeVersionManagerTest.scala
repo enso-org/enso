@@ -53,7 +53,7 @@ class RuntimeVersionManagerTest
 
     val resourceManager = TestLocalResourceManager.create()
     val temporaryDirectoryManager =
-      new TemporaryDirectoryManager(distributionManager, resourceManager)
+      TemporaryDirectoryManager(distributionManager, resourceManager)
     val componentConfig = new GraalVMComponentConfiguration
 
     val runtimeVersionManager = new RuntimeVersionManager(

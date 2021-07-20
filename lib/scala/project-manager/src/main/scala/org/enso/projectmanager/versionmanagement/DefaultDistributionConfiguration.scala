@@ -57,7 +57,7 @@ object DefaultDistributionConfiguration
 
   /** @inheritdoc */
   lazy val temporaryDirectoryManager =
-    new TemporaryDirectoryManager(distributionManager, resourceManager)
+    TemporaryDirectoryManager(distributionManager, resourceManager)
 
   lazy val componentConfiguration: RuntimeComponentConfiguration =
     new GraalVMComponentConfiguration

@@ -188,10 +188,7 @@ class DownloadingLibraryCache(
         if (shouldDownloadArchive(archiveName)) {
           val tmpArchivePath = globalTmpDir / archiveName
 
-          val download = access.downloadArchive(
-            archiveName,
-            tmpArchivePath / archiveName
-          )
+          val download = access.downloadArchive(archiveName, tmpArchivePath)
           progressReporter.trackProgress(
             s"Downloading [$archiveName] of [$libraryName].",
             download

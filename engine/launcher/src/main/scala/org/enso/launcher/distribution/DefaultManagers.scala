@@ -44,7 +44,7 @@ object DefaultManagers {
 
   /** Default [[TemporaryDirectoryManager]]. */
   lazy val temporaryDirectoryManager =
-    new TemporaryDirectoryManager(distributionManager, defaultResourceManager)
+    TemporaryDirectoryManager(distributionManager, defaultResourceManager)
 
   /** Default [[RuntimeComponentConfiguration]]. */
   lazy val componentConfig: RuntimeComponentConfiguration =
