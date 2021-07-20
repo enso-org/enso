@@ -1370,7 +1370,8 @@ lazy val downloader = (project in file("lib/scala/downloader"))
       "org.scalatest"              %% "scalatest"        % scalatestVersion % Test,
       akkaActor,
       akkaStream,
-      akkaHttp
+      akkaHttp,
+      akkaSLF4J
     )
   )
   .dependsOn(cli)

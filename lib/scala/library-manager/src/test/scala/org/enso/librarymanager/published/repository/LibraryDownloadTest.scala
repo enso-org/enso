@@ -66,6 +66,7 @@ class LibraryDownloadTest extends AnyWordSpec with Matchers {
           val sources = pkg.listSources
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
+          // TODO [RW] check that the license is missing
         } finally {
           server.destroy()
           server.waitFor()

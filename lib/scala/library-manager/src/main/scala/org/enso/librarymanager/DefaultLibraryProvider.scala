@@ -110,12 +110,18 @@ class DefaultLibraryProvider(
           }
 
       case Right(version @ LibraryVersion.Published(semver, repository)) =>
-        publishedLibraryProvider
-          .findLibrary(libraryName, semver, repository)
-          .map(ResolvedLibrary(libraryName, version, _))
-          .toEither
-          .left
-          .map(ResolvingLibraryProvider.Error.DownloadFailed)
+        val res =
+          publishedLibraryProvider
+            .findLibrary(libraryName, semver, repository)
+            .map(ResolvedLibrary(libraryName, version, _))
+            .toEither
+        res match {
+          case Left(value) =>
+            println(s"Download error: $value")
+            value.printStackTrace()
+          case Right(_) =>
+        }
+        res.left.map(ResolvingLibraryProvider.Error.DownloadFailed)
     }
   }
 }

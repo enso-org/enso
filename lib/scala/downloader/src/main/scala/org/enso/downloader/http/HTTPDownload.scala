@@ -17,6 +17,7 @@ import org.enso.cli.task.{
 import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.IterableHasAsJava
 
 /** Represents a HTTP header. */
 case class Header(name: String, value: String) {
@@ -149,12 +150,29 @@ object HTTPDownload {
   }
 
   implicit private lazy val actorSystem: ActorSystem = {
+    val loggers: java.lang.Iterable[String] =
+      Seq("akka.event.slf4j.Slf4jLogger").asJava
     val config = ConfigFactory
       .load()
+      .withValue(
+        "akka.extensions",
+        ConfigValueFactory.fromAnyRef(Seq.empty.asJava)
+      )
+      .withValue(
+        "akka.library-extensions",
+        ConfigValueFactory.fromAnyRef(Seq.empty.asJava)
+      )
+      .withValue("akka.loggers", ConfigValueFactory.fromAnyRef(loggers))
+      .withValue(
+        "akka.logging-filter",
+        ConfigValueFactory.fromAnyRef("akka.event.DefaultLoggingFilter")
+      )
       .withValue("akka.loglevel", ConfigValueFactory.fromAnyRef("WARNING"))
+
     ActorSystem(
       "http-requests-actor-system",
-      config
+      config,
+      classLoader = getClass.getClassLoader // Note [Actor System Class Loader]
     )
   }
 
