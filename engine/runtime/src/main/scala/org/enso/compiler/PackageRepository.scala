@@ -2,6 +2,7 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
+import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
 import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
@@ -329,6 +330,7 @@ object PackageRepository {
     projectPackage: Option[Package[TruffleFile]],
     languageHome: Option[String],
     distributionManager: DistributionManager,
+    resourceManager: ResourceManager,
     context: Context,
     builtins: Builtins,
     notificationHandler: NotificationHandler
@@ -344,6 +346,9 @@ object PackageRepository {
     val resolvingLibraryProvider =
       new DefaultLibraryProvider(
         distributionManager = distributionManager,
+        resourceManager     = resourceManager,
+        lockUserInterface   = notificationHandler,
+        progressReporter    = notificationHandler,
         languageHome        = homeManager,
         edition             = edition,
         preferLocalLibraries =

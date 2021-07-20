@@ -1,11 +1,17 @@
 package org.enso.librarymanager
 
 import com.typesafe.scalalogging.Logger
-import org.enso.distribution.{DistributionManager, LanguageHome}
+import org.enso.cli.task.ProgressReporter
+import org.enso.distribution.locking.{LockUserInterface, ResourceManager}
+import org.enso.distribution.{
+  DistributionManager,
+  LanguageHome,
+  TemporaryDirectoryManager
+}
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
-import org.enso.librarymanager.published.cache.NoOpCache
+import org.enso.librarymanager.published.cache.DownloadingLibraryCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
   PublishedLibraryProvider
@@ -17,12 +23,16 @@ import java.nio.file.Path
 /** A helper class for loading libraries.
   *
   * @param distributionManager  a distribution manager
+  * @param resourceManager      a resource manager
   * @param languageHome         a language home which may contain bundled libraries
   * @param edition              the edition used in the project
   * @param preferLocalLibraries project setting whether to use local libraries
   */
 class DefaultLibraryProvider(
   distributionManager: DistributionManager,
+  resourceManager: ResourceManager,
+  lockUserInterface: LockUserInterface,
+  progressReporter: ProgressReporter,
   languageHome: Option[LanguageHome],
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
@@ -36,8 +46,13 @@ class DefaultLibraryProvider(
 
   private val resolver = LibraryResolver(localLibraryProvider)
 
-  // TODO [RW] actual cache that can download libraries will be implemented in #1772
-  private val primaryCache = new NoOpCache
+  private val primaryCache = new DownloadingLibraryCache(
+    cacheRoot = distributionManager.paths.cachedLibraries,
+    TemporaryDirectoryManager(distributionManager, resourceManager),
+    resourceManager,
+    lockUserInterface,
+    progressReporter
+  )
   private val additionalCacheLocations = {
     val engineBundleRoot = languageHome.map(_.libraries)
     val locations =
