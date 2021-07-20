@@ -1,5 +1,10 @@
 # Enso Next
 
+## Libraries
+
+- Added support for reading XLS and XLSX spreadsheets
+  ([#1879](https://github.com/enso-org/enso/pull/1879)).
+
 # Enso 0.2.15 (2021-07-19)
 
 ## Tooling
