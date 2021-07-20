@@ -1457,7 +1457,10 @@ lazy val `std-table` = project
     Compile / packageBin / artifactPath :=
       `table-polyglot-root` / "std-table.jar",
     libraryDependencies ++= Seq(
-      "com.univocity" % "univocity-parsers" % "2.9.0"
+      "com.univocity"       % "univocity-parsers" % "2.9.0",
+      "org.graalvm.sdk"     % "graal-sdk"         % graalVersion % "provided",
+      "org.apache.poi"      % "poi-ooxml"         % "5.0.0",
+      "org.apache.xmlbeans" % "xmlbeans"          % "5.0.1"
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -1465,7 +1468,8 @@ lazy val `std-table` = project
         .copyDependencies(
           `table-polyglot-root`,
           Some("std-table.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          unpackedDeps       = Set("xmlbeans")
         )
         .value
       result
