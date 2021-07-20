@@ -89,7 +89,7 @@ fn init(app:&Application) {
     let world     = &app.display;
     let scene     = world.scene();
     let camera    = scene.camera();
-    let navigator = Navigator::new(&scene,&camera);
+    let navigator = Navigator::new(scene,&camera);
 
     app.views.register::<project::View>();
     app.views.register::<text::Area>();

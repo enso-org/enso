@@ -122,7 +122,7 @@ impl View {
 }
 
 impl display::Object for View {
-    fn display_object(&self) -> &display::object::Instance { &self.model.display_object() }
+    fn display_object(&self) -> &display::object::Instance { self.model.display_object() }
 }
 
 impl application::command::FrpNetworkProvider for View {
@@ -135,7 +135,7 @@ impl application::View for View {
     fn new(app: &Application) -> Self { Self::new(app) }
 
     fn app(&self) -> &Application {
-        &self.model.app()
+        self.model.app()
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {

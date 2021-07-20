@@ -1026,7 +1026,7 @@ impl Crumbable for crate::Match<Ast> {
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item=Self::Crumb> + 'a> {
         let mut crumbs   = vec![];
         if let Some(pat) = &self.pfx {
-            for crumb in pattern_subcrumbs(&pat) {
+            for crumb in pattern_subcrumbs(pat) {
                 crumbs.push(MatchCrumb::Pfx{val:crumb});
             }
         }
@@ -1051,7 +1051,7 @@ impl Crumbable for crate::Ambiguous<Ast> {
             AmbiguousSegmentCrumb::Body =>
                 &seg.body.as_ref().ok_or_else(|| NotPresent("body".into()))?.wrapped,
         };
-        Ok(&ast)
+        Ok(ast)
     }
 
     fn set(&self, crumb:&Self::Crumb, new_ast:Ast) -> FallibleResult<Self> {

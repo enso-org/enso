@@ -77,7 +77,7 @@ impl<M:Model,F:Frp<M>> Component<M,F> {
 
 impl<M: display::Object,F> display::Object for Component<M,F> {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object()
+        self.model.display_object()
     }
 }
 

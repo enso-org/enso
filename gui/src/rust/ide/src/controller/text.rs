@@ -84,7 +84,7 @@ impl Handle {
         use FileHandle::*;
         match &self.file {
             PlainText {path,language_server} => {
-                let response = language_server.read_file(&path).await;
+                let response = language_server.read_file(path).await;
                 response.map(|response| response.contents)
             },
             Module{controller} => Ok(controller.code())

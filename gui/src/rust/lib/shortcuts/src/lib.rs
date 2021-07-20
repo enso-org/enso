@@ -252,7 +252,7 @@ impl<T:Clone> AutomataRegistryModel<T> {
                     self.states.insert(alt_repr.clone(),out);
                 } else {
                     let key = name;
-                    path.push(&key);
+                    path.push(key);
                     path.sort_unstable();
                     let repr = path.join(" ");
                     state = match self.states.get(&repr) {

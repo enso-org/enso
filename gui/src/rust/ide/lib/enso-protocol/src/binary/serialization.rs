@@ -308,7 +308,7 @@ impl SerializableUnion for FromServerPayloadOwned {
                 Success::create(builder, &SuccessArgs {}).as_union_value()
             }
             FromServerPayloadOwned::Error {code,message,data} => {
-                let message         = builder.create_string(&message);
+                let message         = builder.create_string(message);
                 let data_serialized = data.serialize(builder);
                 Error::create(builder, &ErrorArgs {
                     code      : *code,
@@ -318,13 +318,13 @@ impl SerializableUnion for FromServerPayloadOwned {
                 }).as_union_value()
             }
             FromServerPayloadOwned::FileContentsReply {contents} => {
-                let contents = builder.create_vector(&contents);
+                let contents = builder.create_vector(contents);
                 FileContentsReply::create(builder, &FileContentsReplyArgs {
                     contents : Some(contents)
                 }).as_union_value()
             }
             FromServerPayloadOwned::VisualizationUpdate {data,context} => {
-                let data    = builder.create_vector(&data);
+                let data    = builder.create_vector(data);
                 let context = context.serialize(builder);
                 VisualisationUpdate::create(builder, &VisualisationUpdateArgs {
                     data                 : Some(data),

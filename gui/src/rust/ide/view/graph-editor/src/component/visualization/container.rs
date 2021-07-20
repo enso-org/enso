@@ -265,7 +265,7 @@ impl ContainerModel {
         let scene              = scene.clone_ref();
         let is_fullscreen      = default();
         let size               = default();
-        let action_bar         = ActionBar::new(&app,registry.clone_ref());
+        let action_bar         = ActionBar::new(app,registry.clone_ref());
         view.add_child(&action_bar);
 
         Self {logger,display_object,drag_root,visualization,vis_frp_connection,scene,view
@@ -308,7 +308,7 @@ impl ContainerModel {
         if let Some(viz) = &*self.visualization.borrow() {
             self.fullscreen_view.add_child(viz);
             if let Some(dom) = viz.root_dom() {
-                self.scene.dom.layers.fullscreen_vis.manage(&dom);
+                self.scene.dom.layers.fullscreen_vis.manage(dom);
             }
             viz.inputs.activate.emit(());
         }
@@ -319,7 +319,7 @@ impl ContainerModel {
         if let Some(viz) = &*self.visualization.borrow() {
             self.view.add_child(viz);
             if let Some(dom) = viz.root_dom() {
-                self.scene.dom.layers.back.manage(&dom);
+                self.scene.dom.layers.back.manage(dom);
             }
             viz.inputs.deactivate.emit(());
         }
@@ -479,7 +479,7 @@ impl Container {
         let logger      = &self.model.logger;
         let action_bar  = &model.action_bar.frp;
         let registry    = &model.registry;
-        let selection   = Animation::new(&network);
+        let selection   = Animation::new(network);
 
         frp::extend! { network
             eval  frp.set_visibility    ((v) model.set_visibility(*v));

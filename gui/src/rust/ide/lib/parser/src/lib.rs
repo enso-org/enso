@@ -130,7 +130,7 @@ impl Parser {
 /// deeply nested ASTs.
 pub fn from_json_str_without_recursion_limit<'de, Value:serde::Deserialize<'de>>(json_text:&'de str)
 -> Result<Value,serde_json::Error> {
-    let mut de = serde_json::Deserializer::from_str(&json_text);
+    let mut de = serde_json::Deserializer::from_str(json_text);
     de.disable_recursion_limit();
     Value::deserialize(&mut de)
 }

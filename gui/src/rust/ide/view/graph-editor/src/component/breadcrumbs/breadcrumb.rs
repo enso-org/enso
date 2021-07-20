@@ -126,9 +126,9 @@ pub struct Animations {
 impl Animations {
     /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
-        let color           = DEPRECATED_Animation::new(&network);
-        let fade_in         = DEPRECATED_Animation::new(&network);
-        let separator_color = DEPRECATED_Animation::new(&network);
+        let color           = DEPRECATED_Animation::new(network);
+        let fade_in         = DEPRECATED_Animation::new(network);
+        let separator_color = DEPRECATED_Animation::new(network);
         Self{color,separator_color,fade_in}
     }
 }

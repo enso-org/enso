@@ -196,7 +196,7 @@ impl AliasAnalyzer {
 
     /// Processes the given AST, while crumb is temporarily pushed to the current location.
     fn process_located_ast(&mut self, located_ast:&Located<impl Borrow<Ast>>) {
-        self.in_location_of(&located_ast, |this| this.process_ast(located_ast.item.borrow()))
+        self.in_location_of(located_ast, |this| this.process_ast(located_ast.item.borrow()))
     }
 
     /// Processes subtrees of the given AST denoted by given crumbs
@@ -223,7 +223,7 @@ impl AliasAnalyzer {
     ///
     /// This is the primary function that is recursively being called as the AST is being traversed.
     pub fn process_ast(&mut self, ast:&Ast) {
-        if let Some(definition) = DefinitionInfo::from_line_ast(&ast,ScopeKind::NonRoot,default()) {
+        if let Some(definition) = DefinitionInfo::from_line_ast(ast,ScopeKind::NonRoot,default()) {
             self.process_definition(&definition)
         } else if let Some(assignment) = ast::opr::to_assignment(ast) {
             self.process_assignment(&assignment);

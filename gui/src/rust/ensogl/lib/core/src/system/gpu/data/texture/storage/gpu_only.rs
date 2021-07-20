@@ -58,7 +58,7 @@ TextureReload for Texture<GpuOnly,I,T> {
         let format          = Self::gl_format().into();
         let elem_type       = Self::gl_elem_type();
 
-        self.context().bind_texture(target,Some(&self.gl_texture()));
+        self.context().bind_texture(target,Some(self.gl_texture()));
         self.context().tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array
         (target,level,internal_format,width,height,border,format,elem_type,None).unwrap();
 

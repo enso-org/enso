@@ -56,7 +56,7 @@ impl<'a,T:Payload> Iterator for LeafIterator<'a,T> {
 impl<'a,T> LeafIterator<'a,T> {
     /// Create iterator iterating over leafs of subtree rooted  on `node`.
     pub fn new(node: node::Ref<'a,T>, fragment:TreeFragment) -> Self {
-        let stack     = vec![StackFrame {node:&node.node, child_being_visited:0}];
+        let stack     = vec![StackFrame {node:node.node, child_being_visited:0}];
         let next_node = node.node.children.first().map(|ch| &ch.node);
         let base_node = node;
         let mut this = Self {stack,next_node,base_node,fragment};
@@ -81,8 +81,8 @@ impl<'a,T> LeafIterator<'a,T> {
 
     fn descend_to_leaf(&mut self) {
         if let Some(mut current) = std::mem::take(&mut self.next_node) {
-            while self.can_descend(&current) && !current.children.is_empty() {
-                self.stack.push(StackFrame { node: &current, child_being_visited: 0 });
+            while self.can_descend(current) && !current.children.is_empty() {
+                self.stack.push(StackFrame { node: current, child_being_visited: 0 });
                 current = &current.children.first().unwrap().node;
             }
             self.next_node = Some(current);

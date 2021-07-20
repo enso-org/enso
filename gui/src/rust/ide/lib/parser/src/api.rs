@@ -112,13 +112,13 @@ impl SourceFile {
     }
 
     /// Get fragment of serialized string with code.
-    pub fn code_slice(&self) -> &str { &self.slice(&self.code) }
+    pub fn code_slice(&self) -> &str { self.slice(&self.code) }
 
     /// Get fragment of serialized string with id map.
-    pub fn id_map_slice  (&self) -> &str { &self.slice(&self.id_map) }
+    pub fn id_map_slice  (&self) -> &str { self.slice(&self.id_map) }
 
     /// Get fragment of serialized string with metadata.
-    pub fn metadata_slice(&self) -> &str { &self.slice(&self.metadata) }
+    pub fn metadata_slice(&self) -> &str { self.slice(&self.metadata) }
 
     fn slice(&self, range:&Range<ByteIndex>) -> &str {
         &self.content[range.start.value..range.end.value]

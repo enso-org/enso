@@ -64,7 +64,7 @@ impl Definition {
         let source       = source.as_ref();
         let source       = source;
         let context      = JsValue::NULL;
-        let function     = Function::new_with_args(binding::JS_CLASS_NAME,&source)
+        let function     = Function::new_with_args(binding::JS_CLASS_NAME,source)
                                .map_err(Error::InvalidFunction)?;
         let js_class     = binding::js_class();
         let class        = function.call1(&context,&js_class).map_err(Error::InvalidFunction)?;

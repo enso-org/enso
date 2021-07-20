@@ -147,6 +147,6 @@ impl From<BubbleChart> for Instance {
 
 impl display::Object for BubbleChart {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object.display_object()
+        self.model.display_object.display_object()
     }
 }

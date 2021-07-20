@@ -69,7 +69,7 @@ fn auto_hue(tp:&Type, styles:&StyleWatch) -> f32 {
     // Defines how many hue values we can have based on our incoming type name.
     let hue_steps = styles.get_number_or(theme::code::types::hue_steps,512.0);
     let hue_shift = styles.get_number_or(theme::code::types::hue_shift,0.0);
-    (hash(&tp) % (hue_steps as u64)) as f32 / hue_steps + hue_shift
+    (hash(tp) % (hue_steps as u64)) as f32 / hue_steps + hue_shift
 }
 
 /// Compute the hash of the type for use in the `compute` function.

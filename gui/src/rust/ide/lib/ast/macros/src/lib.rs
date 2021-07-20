@@ -237,7 +237,7 @@ pub fn to_variant_types
     let variant_decls  = variant_idents.iter().zip(structs.iter())
         .map(|(i,v)| gen_variant_decl(i,v));
     let variant_froms  = variant_idents.iter().zip(structs.iter())
-        .map(|(i,v)| gen_from_impls(i, &decl, &v));
+        .map(|(i,v)| gen_from_impls(i, &decl, v));
 
     // Handle single value, unnamed params as created by user.
     let structs = structs.iter().filter(|v| match &v.fields {
@@ -267,7 +267,7 @@ pub fn derive_has_tokens
 (input:proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
-        syn::Data::Enum(ref e) => token::derive_for_enum(&decl, &e),
+        syn::Data::Enum(ref e) => token::derive_for_enum(&decl, e),
         _       => quote! {},
     };
     proc_macro::TokenStream::from(ret)

@@ -115,7 +115,7 @@ impl model::execution_context::API for ExecutionContext {
 
     /// Access the registry of computed values information, like types or called method pointers.
     fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry> {
-        &self.model.computed_value_info_registry()
+        self.model.computed_value_info_registry()
     }
 
     fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item=LocalCall> + 'a> {

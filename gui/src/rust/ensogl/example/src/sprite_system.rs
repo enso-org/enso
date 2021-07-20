@@ -18,7 +18,7 @@ pub fn entry_point_sprite_system() {
     let world         = World::new(&web::get_html_element_by_id("root").unwrap());
     let scene         = world.scene();
     let camera        = scene.camera().clone_ref();
-    let navigator     = Navigator::new(&scene,&camera);
+    let navigator     = Navigator::new(scene,&camera);
     let sprite_system = SpriteSystem::new(&world);
 
     let sprite2       = sprite_system.new_instance();

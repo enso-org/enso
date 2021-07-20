@@ -306,7 +306,7 @@ impl Area {
         let mouse    = &scene.mouse.frp;
         let input    = &self.frp.input;
         let out      = &self.frp.output;
-        let pos      = DEPRECATED_Animation :: <Vector2> :: new(&network);
+        let pos      = DEPRECATED_Animation :: <Vector2> :: new(network);
         let keyboard = &scene.keyboard;
         let m        = &model;
         pos.update_spring(|spring| spring*2.0);

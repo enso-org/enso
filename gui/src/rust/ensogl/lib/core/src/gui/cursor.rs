@@ -261,17 +261,17 @@ impl Cursor {
         //     host during the movement. After it is fully attached, cursor moves with the same
         //     speed as the scene when panning.
         //
-        let press                       = Animation            :: <f32>     :: new(&network);
-        let radius                      = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let size                        = DEPRECATED_Animation :: <Vector2> :: new(&network);
-        let offset                      = DEPRECATED_Animation :: <Vector2> :: new(&network);
-        let color_lab                   = DEPRECATED_Animation :: <Vector3> :: new(&network);
-        let color_alpha                 = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let inactive_fade               = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let host_position               = DEPRECATED_Animation :: <Vector3> :: new(&network);
-        let host_follow_weight          = DEPRECATED_Animation :: <f32>     :: new(&network);
-        let host_attached_weight        = DEPRECATED_Tween                  :: new(&network);
-        let port_selection_layer_weight = Animation            :: <f32>     :: new(&network);
+        let press                       = Animation            :: <f32>     :: new(network);
+        let radius                      = DEPRECATED_Animation :: <f32>     :: new(network);
+        let size                        = DEPRECATED_Animation :: <Vector2> :: new(network);
+        let offset                      = DEPRECATED_Animation :: <Vector2> :: new(network);
+        let color_lab                   = DEPRECATED_Animation :: <Vector3> :: new(network);
+        let color_alpha                 = DEPRECATED_Animation :: <f32>     :: new(network);
+        let inactive_fade               = DEPRECATED_Animation :: <f32>     :: new(network);
+        let host_position               = DEPRECATED_Animation :: <Vector3> :: new(network);
+        let host_follow_weight          = DEPRECATED_Animation :: <f32>     :: new(network);
+        let host_attached_weight        = DEPRECATED_Tween                  :: new(network);
+        let port_selection_layer_weight = Animation            :: <f32>     :: new(network);
 
         host_attached_weight.set_duration(300.0);
         color_lab.set_target_value(DEFAULT_COLOR.opaque.into());

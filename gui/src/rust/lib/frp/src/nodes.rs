@@ -2119,7 +2119,7 @@ impl<T1,T2,F,Out> stream::EventConsumer<Output<T1>> for OwnedMap2<T1,T2,F>
 where T1:EventOutput, T2:EventOutput, Out:Data, F:'static+Fn(&Output<T1>,&Output<T2>)->Out {
     fn on_event(&self, stack:CallStack, value1:&Output<T1>) {
         let value2 = self.src2.value();
-        let out    = (self.function)(&value1,&value2);
+        let out    = (self.function)(value1,&value2);
         self.emit_event(stack,&out);
     }
 }
@@ -2176,7 +2176,7 @@ where T1:EventOutput, T2:EventOutput, T3:EventOutput, Out:Data,
     fn on_event(&self, stack:CallStack, value1:&Output<T1>) {
         let value2 = self.src2.value();
         let value3 = self.src3.value();
-        let out    = (self.function)(&value1,&value2,&value3);
+        let out    = (self.function)(value1,&value2,&value3);
         self.emit_event(stack,&out);
     }
 }
@@ -2236,7 +2236,7 @@ impl<T1,T2,T3,T4,F,Out> stream::EventConsumer<Output<T1>> for OwnedMap4<T1,T2,T3
         let value2 = self.src2.value();
         let value3 = self.src3.value();
         let value4 = self.src4.value();
-        let out    = (self.function)(&value1,&value2,&value3,&value4);
+        let out    = (self.function)(value1,&value2,&value3,&value4);
         self.emit_event(stack,&out);
     }
 }

@@ -39,6 +39,7 @@ pub const PORT_VAR:     &str = "ENSO_PARSER_PORT";
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Failed to parse given address url: {}", _0)]
@@ -88,6 +89,7 @@ impl From<serde_json::error::Error> for Error {
 // ==============
 
 /// All request supported by the Parser Service.
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
     ParseRequest                 { program : String, ids : IdMap },

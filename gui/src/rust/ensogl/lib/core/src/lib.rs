@@ -13,7 +13,6 @@
 #![feature(fn_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]
-#![feature(try_trait)]
 #![feature(marker_trait_attr)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(unboxed_closures)]

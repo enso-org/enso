@@ -220,7 +220,7 @@ impl ParsedInput {
     }
 
     fn new_from_ast(ast:&Ast) -> Self {
-        let prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
+        let prefix = ast::prefix::Chain::from_ast_non_strict(ast);
         ParsedInput {
             expression     : Some(ast::Shifted::new(default(),prefix)),
             pattern_offset : 0,
@@ -335,7 +335,7 @@ impl ThisNode {
             //   form. If we wanted to support pattern subparts, the engine would need to send us
             //   value updates for matched pattern pieces. See the issue:
             //   https://github.com/enso-org/enso/issues/1038
-            (ast::identifier::as_var(&ast)?.to_owned(),false)
+            (ast::identifier::as_var(ast)?.to_owned(),false)
         } else {
             (graph.variable_name_for(&node.info).ok()?.repr(),true)
         };
@@ -392,7 +392,7 @@ impl FragmentAddedByPickingSuggestion {
 
     fn code_to_insert(&self, current_module:&QualifiedName, this_node:&Option<ThisNode>) -> CodeToInsert {
         let generate_this = self.id != CompletedFragmentId::Function || this_node.is_none();
-        self.picked_suggestion.code_to_insert(Some(&current_module),generate_this)
+        self.picked_suggestion.code_to_insert(Some(current_module),generate_this)
     }
 }
 
@@ -542,7 +542,7 @@ impl Searcher {
     /// in a new action list (the appropriate notification will be emitted).
     pub fn set_input(&self, new_input:String) -> FallibleResult {
         debug!(self.logger, "Manually setting input to {new_input}.");
-        let parsed_input = ParsedInput::new(new_input,&self.ide.parser())?;
+        let parsed_input = ParsedInput::new(new_input,self.ide.parser())?;
         let old_expr     = self.data.borrow().input.expression.repr();
         let new_expr     = parsed_input.expression.repr();
 

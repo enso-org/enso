@@ -115,7 +115,7 @@ impl<'a,T> Implementation for node::Ref<'a,T> {
                 let kind           = &ins_point.kind;
                 let ast            = root.get_traversing(&self.ast_crumbs)?;
                 let expect_arg     = matches!(kind, ExpectedArgument(_));
-                let extended_infix = (!expect_arg).and_option_from(|| ast::opr::Chain::try_new(&ast));
+                let extended_infix = (!expect_arg).and_option_from(|| ast::opr::Chain::try_new(ast));
                 let new_ast        = modify_preserving_id(ast, |ast|
                     if let Some(mut infix) = extended_infix {
                         let item       = ArgWithOffset {arg:new, offset:DEFAULT_OFFSET};

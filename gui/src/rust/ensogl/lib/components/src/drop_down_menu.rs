@@ -224,7 +224,7 @@ impl DropDownMenu {
 
             // === Layouting ===
 
-            let menu_height = DEPRECATED_Animation::<f32>::new(&network);
+            let menu_height = DEPRECATED_Animation::<f32>::new(network);
 
 
             eval menu_height.value ([model](height) {

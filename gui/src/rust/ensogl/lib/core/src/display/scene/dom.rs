@@ -68,7 +68,7 @@ fn setup_camera_perspective(dom:&web::JsValue, near:f32, matrix:&Matrix4<f32>) {
     // details.
     unsafe {
         let matrix_array = matrix.js_buffer_view();
-        js::setup_camera_perspective(&dom,&near.into(),&matrix_array)
+        js::setup_camera_perspective(dom,&near.into(),&matrix_array)
     }
 }
 
@@ -79,7 +79,7 @@ fn setup_camera_orthographic(dom:&web::JsValue, matrix:&Matrix4<f32>) {
     // details.
     unsafe {
         let matrix_array = matrix.js_buffer_view();
-        js::setup_camera_orthographic(&dom,&matrix_array)
+        js::setup_camera_orthographic(dom,&matrix_array)
     }
 }
 
@@ -186,7 +186,7 @@ impl DomScene {
         let dom  = object.dom();
         let data = &self.data;
         if object.is_visible() {
-            self.view_projection_dom.append_or_panic(&dom);
+            self.view_projection_dom.append_or_panic(dom);
         }
         object.display_object().set_on_hide(f_!(dom.remove()));
         object.display_object().set_on_show(f__!([data,dom] {

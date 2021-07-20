@@ -220,7 +220,7 @@ impl ProfilingLabel {
             // === Color ===
 
             let styles = StyleWatchFrp::new(&scene.style_sheet);
-            let theme  = Theme::from_styles(&styles,&network);
+            let theme  = Theme::from_styles(&styles,network);
             color.target_color <+ all_with4
                 (&frp.set_status,&frp.set_min_global_duration,&frp.set_max_global_duration,&theme,
                     |&status,&min,&max,&theme| status.display_color(min,max,theme)

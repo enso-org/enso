@@ -220,7 +220,7 @@ impl View {
 
         let style        = StyleWatchFrp::new(&app.display.scene().style_sheet);
         let style_frp    = LayoutParams::from_theme(&style);
-        let layout_style = style_frp.flatten(&network);
+        let layout_style = style_frp.flatten(network);
 
         frp::extend! { network
             // Layout

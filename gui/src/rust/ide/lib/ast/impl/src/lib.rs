@@ -314,7 +314,7 @@ impl Ast {
     /// Returned index is the position of the first character of child's text representation within
     /// the text representation of this AST node.
     pub fn child_offset(&self, child:&Ast) -> FallibleResult<Index> {
-        let searched_token  = Token::Ast(&child);
+        let searched_token  = Token::Ast(child);
         let mut found_child = false;
         let mut position    = 0;
         self.shape().feed_to(&mut |token:Token| {

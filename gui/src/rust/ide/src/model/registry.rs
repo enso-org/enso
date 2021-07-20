@@ -113,7 +113,7 @@ where K : Clone + Eq + Hash {
 
     async fn get(&self, key:&K) -> Result<Option<Rc<V>>,LoadingError> {
         loop {
-            let entry = self.registry.borrow_mut().get(&key);
+            let entry = self.registry.borrow_mut().get(key);
             match entry {
                 Some(Entry::Loaded(state)) => { break Ok(Some(state)); },
                 Some(Entry::Loading(mut sub)) => {

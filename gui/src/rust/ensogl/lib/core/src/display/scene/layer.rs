@@ -467,7 +467,7 @@ impl LayerModel {
         graph.extend(self.depth_order.borrow().clone().into_iter());
         for element in &*self.elements.borrow() {
             if let LayerElement::ShapeSystem(id) = element {
-                if let Some(info) = self.shape_system_to_symbol_info_map.borrow().get(&id) {
+                if let Some(info) = self.shape_system_to_symbol_info_map.borrow().get(id) {
                     for &id2 in &info.below { graph.insert_dependency(*element,id2.into()); }
                     for &id2 in &info.above { graph.insert_dependency(id2.into(),*element); }
                 }

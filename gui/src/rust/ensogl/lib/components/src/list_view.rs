@@ -263,9 +263,9 @@ impl ListView {
         let model            = &self.model;
         let scene            = app.display.scene();
         let mouse            = &scene.mouse.frp;
-        let view_y           = DEPRECATED_Animation::<f32>::new(&network);
-        let selection_y      = DEPRECATED_Animation::<f32>::new(&network);
-        let selection_height = DEPRECATED_Animation::<f32>::new(&network);
+        let view_y           = DEPRECATED_Animation::<f32>::new(network);
+        let selection_y      = DEPRECATED_Animation::<f32>::new(network);
+        let selection_height = DEPRECATED_Animation::<f32>::new(network);
 
         frp::extend!{ network
 

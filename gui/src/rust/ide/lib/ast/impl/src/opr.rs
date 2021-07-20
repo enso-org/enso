@@ -346,12 +346,12 @@ impl Chain {
     /// If this is infix, it flattens whole chain and returns result.
     /// Otherwise, returns None.
     pub fn try_new(ast:&Ast) -> Option<Chain> {
-        GeneralizedInfix::try_new(&ast).map(|infix| infix.flatten())
+        GeneralizedInfix::try_new(ast).map(|infix| infix.flatten())
     }
 
     /// Flattens infix chain if this is infix application of given operator.
     pub fn try_new_of(ast:&Ast, operator:&str) -> Option<Chain> {
-        let infix = GeneralizedInfix::try_new(&ast)?;
+        let infix = GeneralizedInfix::try_new(ast)?;
         (infix.name() == operator).as_some_from(|| infix.flatten())
     }
 

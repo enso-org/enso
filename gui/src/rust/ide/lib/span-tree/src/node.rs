@@ -502,7 +502,7 @@ impl<'a,T:Payload> Ref<'a,T> {
             Some(self)
         } else {
             self.children_iter().find_map(|ch|
-                ch.span().contains_span(span).and_option_from(|| ch.find_by_span(&span))
+                ch.span().contains_span(span).and_option_from(|| ch.find_by_span(span))
             )
         }
     }
@@ -511,7 +511,7 @@ impl<'a,T:Payload> Ref<'a,T> {
 impl<'a,T> Deref for Ref<'a,T> {
     type Target = Node<T>;
     fn deref(&self) -> &Self::Target {
-        &self.node
+        self.node
     }
 }
 
@@ -671,7 +671,7 @@ impl<'a,T:Payload> RefMut<'a,T> {
 impl<'a,T> Deref for RefMut<'a,T> {
     type Target = Node<T>;
     fn deref(&self) -> &Self::Target {
-        &self.node
+        self.node
     }
 }
 

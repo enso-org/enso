@@ -79,7 +79,7 @@ impl Statuses {
             }));
 
             min_and_max_from_remove <- frp.remove.map(f!([durations](node) {
-                durations.borrow_mut().remove_by_left(&node);
+                durations.borrow_mut().remove_by_left(node);
                 Self::min_and_max(&*durations.borrow())
             }));
 

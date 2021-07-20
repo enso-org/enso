@@ -446,7 +446,7 @@ impl List {
         debug!(logger, "Setting new model {model:?} for entry {id}; \
                         old entry: {entry.id.get():?}.");
         match model {
-            Some(model) => entry.set_model(id,&model),
+            Some(model) => entry.set_model(id,model),
             None        => {
                 error!(logger, "Model provider didn't return model for id {id}.");
                 entry.set_model(id,&default())

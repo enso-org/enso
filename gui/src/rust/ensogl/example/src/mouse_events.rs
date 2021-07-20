@@ -140,7 +140,7 @@ pub fn entry_point_mouse_events() {
 
         let scene     = app.display.scene();
         let camera    = scene.camera().clone_ref();
-        let navigator = Navigator::new(&scene,&camera);
+        let navigator = Navigator::new(scene,&camera);
 
         std::mem::forget(shape);
         std::mem::forget(navigator);
