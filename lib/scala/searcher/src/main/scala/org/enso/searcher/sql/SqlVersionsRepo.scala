@@ -17,21 +17,21 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** @inheritdoc */
   override def getVersion(module: String): Future[Option[Array[Byte]]] =
-    db.run(getVersionQuery(module).transactionally)
+    db.run(getVersionQuery(module))
 
   /** @inheritdoc */
   override def setVersion(
     module: String,
     digest: Array[Byte]
   ): Future[Option[Array[Byte]]] =
-    db.run(setVersionQuery(module, digest).transactionally)
+    db.run(setVersionQuery(module, digest))
 
   /** @inheritdoc */
   override def updateVersion(
     module: String,
     digest: Array[Byte]
   ): Future[Boolean] =
-    db.run(updateVersionQuery(module, digest).transactionally)
+    db.run(updateVersionQuery(module, digest))
 
   /** @inheritdoc */
   override def updateVersions(
@@ -41,15 +41,15 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
 
   /** @inheritdoc */
   override def remove(module: String): Future[Unit] =
-    db.run(removeQuery(module).transactionally)
+    db.run(removeQuery(module))
 
   /** @inheritdoc */
   override def remove(modules: Seq[String]): Future[Unit] =
-    db.run(removeModulesQuery(modules).transactionally)
+    db.run(removeModulesQuery(modules))
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
-    db.run(cleanQuery.transactionally)
+    db.run(cleanQuery)
 
   /** Close the database. */
   def close(): Unit =

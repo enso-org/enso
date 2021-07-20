@@ -107,10 +107,20 @@ class EnsureCompiledJob(protected val files: Iterable[File])
             moduleScope.getModule.getLiteralSource
           )
         runInvalidationCommands(cacheInvalidationCommands)
+        // There are two runtime flags that can disable suggestions for project
+        // and global modules (libraries). They are used primarily in tests to
+        // disable the suggestion updates and reduce the number of messages that
+        // runtime sends.
         if (ctx.executionService.getContext.isProjectSuggestionsEnabled) {
+          // When the project module is compiled it can involve compilation of
+          // global (library) modules, so we need to check if the global
+          // suggestions are enabled as well.
           if (ctx.executionService.getContext.isGlobalSuggestionsEnabled) {
             getCompiledModules(moduleScope).foreach(analyzeModuleInScope)
           } else {
+            // When the global suggestions are disabled, we will skip indexing
+            // of external libraries, but still want to index the modules that
+            // belongs to the project.
             val projectModules = getCompiledModules(moduleScope)
               .filter(m => rootName(m.getName) == rootName(module.getName))
             projectModules.foreach(analyzeModuleInScope)

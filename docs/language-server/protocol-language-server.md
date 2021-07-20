@@ -434,161 +434,103 @@ type SuggestionEntry =
   | SuggestionEntryLocal;
 
 interface SuggestionEntryModule {
-  /**
-   * The fully qualified module name.
-   */
+  /** The fully qualified module name. */
   module: string;
 
-  /**
-   * The documentation string.
-   */
+  /** The documentation string. */
   documentation?: string;
 
-  /**
-   * The module name re-exporting this module.
-   */
+  /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 }
 
 interface SuggestionEntryAtom {
-  /**
-   * The external id.
-   */
+  /** The external id. */
   externalId?: UUID;
 
-  /**
-   * The atom name.
-   */
+  /** The atom name. */
   name: string;
 
-  /**
-   * The module name where the atom is defined.
-   */
+  /** The module name where the atom is defined. */
   module: string;
 
-  /**
-   * The list of arguments.
-   */
+  /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
 
-  /**
-   * The type of an atom.
-   */
+  /** The type of an atom. */
   returnType: string;
 
-  /**
-   * The documentation string.
-   */
+  /** The documentation string. */
   documentation?: string;
 
-  /**
-   *The module re-exporting this atom.
-   */
+  /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
   documentationHtml?: string;
 }
 
 interface SuggestionEntryMethod {
-  /**
-   * The external id.
-   */
+  /** The external id. */
   externalId?: UUID;
 
-  /**
-   * The method name.
-   */
+  /** The method name. */
   name: string;
 
-  /**
-   * The module name where this method is defined.
-   */
+  /** The module name where this method is defined. */
   module: string;
 
-  /**
-   * The list of arguments.
-   */
+  /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
 
-  /**
-   * The method self type.
-   */
+  /** The method self type. */
   selfType: string;
 
-  /**
-   * The return type of this method.
-   */
+  /** The return type of this method. */
   returnType: string;
 
-  /**
-   * The documentation string.
-   */
+  /** The documentation string. */
   documentation?: string;
 
-  /**
-   * The module re-exporting this method.
-   */
+  /** The fully qualified module name re-exporting this module. */
   reexport?: string;
 
   documentationHtml?: string;
 }
 
 interface SuggestionEntryFunction {
-  /**
-   * The external id.
-   */
+  /** The external id. */
   externalId?: UUID;
 
-  /**
-   * The function name.
-   */
+  /** The function name. */
   name: string;
 
-  /**
-   * The module name where this function is defined.
-   */
+  /** The module name where this function is defined. */
   module: string;
 
-  /**
-   * The list of arguments.
-   */
+  /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
 
-  /**
-   * The function return type.
-   */
+  /** The function return type. */
   returnType: string;
 
-  /**
-   * The scope where the function is defined.
-   */
+  /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
 }
 
 interface SuggestionEntryLocal {
-  /**
-   * The external id.
-   */
+  /** The external id. */
   externalId?: UUID;
 
-  /**
-   * The name of a value.
-   */
+  /** The name of a value. */
   name: string;
 
-  /**
-   * The module where this value is defined.
-   */
+  /** The module where this value is defined. */
   module: string;
 
-  /**
-   * The type of a value.
-   */
+  /** The type of a value. */
   returnType: string;
 
-  /**
-   * The scope where the value is defined.
-   */
+  /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
 }
 ```

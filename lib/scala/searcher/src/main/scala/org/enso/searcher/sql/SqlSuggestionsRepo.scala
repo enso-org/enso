@@ -45,20 +45,20 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def clean: Future[Unit] =
-    db.run(cleanQuery.transactionally)
+    db.run(cleanQuery)
 
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
-    db.run(getAllQuery.transactionally)
+    db.run(getAllQuery)
 
   /** @inheritdoc */
   override def getAllMethods(
     calls: Seq[(String, String, String)]
   ): Future[Seq[Option[Long]]] =
-    db.run(getAllMethodsQuery(calls).transactionally)
+    db.run(getAllMethodsQuery(calls))
 
   override def getAllModules: Future[Seq[String]] =
-    db.run(getAllModulesQuery.transactionally)
+    db.run(getAllModulesQuery)
 
   /** @inheritdoc */
   override def search(
@@ -69,16 +69,16 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
     db.run(
-      searchQuery(module, selfType, returnType, kinds, position).transactionally
+      searchQuery(module, selfType, returnType, kinds, position)
     )
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
-    db.run(selectQuery(id).transactionally)
+    db.run(selectQuery(id))
 
   /** @inheritdoc */
   override def insert(suggestion: Suggestion): Future[Option[Long]] =
-    db.run(insertQuery(suggestion).transactionally)
+    db.run(insertQuery(suggestion))
 
   /** @inheritdoc */
   override def insertAll(
@@ -106,11 +106,11 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def remove(suggestion: Suggestion): Future[Option[Long]] =
-    db.run(removeQuery(suggestion).transactionally)
+    db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
   override def removeModules(modules: Seq[String]): Future[(Long, Seq[Long])] =
-    db.run(removeByModuleQuery(modules).transactionally)
+    db.run(removeByModuleQuery(modules))
 
   /** @inheritdoc */
   override def removeAll(
@@ -165,7 +165,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
-    db.run(currentVersionQuery.transactionally)
+    db.run(currentVersionQuery)
 
   /** Close the database. */
   def close(): Unit =
