@@ -202,7 +202,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
       } yield ()
 
     val tables: Seq[TableQuery[RelationalTable[_]]] =
-      Seq(Suggestions, Arguments, SuggestionsVersions, SchemaVersion)
+      Seq(Suggestions, Arguments, SuggestionsVersion, SchemaVersion)
         .asInstanceOf[Seq[TableQuery[RelationalTable[_]]]]
     val initSchemas =
       for {
@@ -222,7 +222,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
-      _ <- SuggestionsVersions.delete
+      _ <- SuggestionsVersion.delete
     } yield ()
   }
 
@@ -758,17 +758,17 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
   /** The query to get current version of the repo. */
   private def currentVersionQuery: DBIO[Long] = {
     for {
-      versionOpt <- SuggestionsVersions.result.headOption
+      versionOpt <- SuggestionsVersion.result.headOption
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
     val incrementQuery = for {
-      version <- SuggestionsVersions.returning(
-        SuggestionsVersions.map(_.id)
+      version <- SuggestionsVersion.returning(
+        SuggestionsVersion.map(_.id)
       ) += SuggestionsVersionRow(None)
-      _ <- SuggestionsVersions.filterNot(_.id === version).delete
+      _ <- SuggestionsVersion.filterNot(_.id === version).delete
     } yield version
     incrementQuery
   }
