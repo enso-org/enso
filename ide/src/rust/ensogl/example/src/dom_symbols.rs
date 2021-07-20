@@ -85,7 +85,7 @@ pub fn entry_point_dom_symbols() {
             iter_to_change = 50;
             i = (i + 1) % 2;
             for (j, object) in css3d_objects.iter_mut().enumerate() {
-                layers[(i + j) % 2].manage(&object);
+                layers[(i + j) % 2].manage(object);
             }
         }
         iter_to_change -= 1;

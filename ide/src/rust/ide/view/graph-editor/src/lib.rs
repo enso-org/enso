@@ -631,7 +631,7 @@ impl Node {
 
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
-        &self.view.display_object()
+        self.view.display_object()
     }
 }
 
@@ -705,7 +705,7 @@ impl Edge {
 
 impl display::Object for Edge {
     fn display_object(&self) -> &display::object::Instance {
-        &self.view.display_object()
+        self.view.display_object()
     }
 }
 
@@ -1110,8 +1110,8 @@ pub struct TouchState {
 
 impl TouchState {
     pub fn new(network:&frp::Network, mouse:&frp::io::Mouse) -> Self {
-        let nodes      = TouchNetwork::<NodeId>::new(&network,mouse);
-        let background = TouchNetwork::<()>::new(&network,mouse);
+        let nodes      = TouchNetwork::<NodeId>::new(network,mouse);
+        let background = TouchNetwork::<()>::new(network,mouse);
         Self {nodes,background}
     }
 }
@@ -1163,7 +1163,7 @@ struct NodeCreationContext<'a> {
 impl GraphEditorModelWithNetwork {
     pub fn new(app:&Application, cursor:cursor::Cursor, frp:&Frp) -> Self {
         let network = frp.network.clone_ref(); // FIXME make weak
-        let model   = GraphEditorModel::new(app,cursor,&frp);
+        let model   = GraphEditorModel::new(app,cursor,frp);
         Self {model,network}
     }
 
@@ -1428,7 +1428,7 @@ impl GraphEditorModel {
         let breadcrumbs        = component::Breadcrumbs::new(app.clone_ref());
         let app                = app.clone_ref();
         let frp                = frp.output.clone_ref();
-        let navigator          = Navigator::new(&scene,&scene.camera());
+        let navigator          = Navigator::new(scene,&scene.camera());
         let tooltip            = Tooltip::new(&app);
         let profiling_statuses = profiling::Statuses::new();
         let profiling_button   = component::profiling::Button::new(&app);
@@ -2316,12 +2316,12 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         out.source.nodes_labels_visible <+ out.node_edit_mode || node_in_edit_mode;
 
         eval out.node_editing_started ([model] (id) {
-            if let Some(node) = model.nodes.get_cloned_ref(&id) {
+            if let Some(node) = model.nodes.get_cloned_ref(id) {
                 node.model.input.frp.set_edit_mode(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
-            if let Some(node) = model.nodes.get_cloned_ref(&id) {
+            if let Some(node) = model.nodes.get_cloned_ref(id) {
                 node.model.input.set_edit_mode(false);
             }
         });
@@ -2333,8 +2333,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     node_pointer_style <- source::<cursor::Style>();
     node_tooltip       <- source::<tooltip::Style>();
 
-    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
-    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(&network,&mouse);
+    let node_input_touch  = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
+    let node_output_touch = TouchNetwork::<EdgeEndpoint>::new(network,mouse);
     node_expression_set <- source();
     out.source.node_expression_set <+ node_expression_set;
 
@@ -2648,9 +2648,9 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Snapping ===
 
     eval drag_tgts ((ids) model.disable_grid_snapping_for(ids));
-    let node_tgt_pos_anim = DEPRECATED_Animation::<Vector2<f32>>::new(&network);
-    let x_snap_strength   = DEPRECATED_Tween::new(&network);
-    let y_snap_strength   = DEPRECATED_Tween::new(&network);
+    let node_tgt_pos_anim = DEPRECATED_Animation::<Vector2<f32>>::new(network);
+    let x_snap_strength   = DEPRECATED_Tween::new(network);
+    let y_snap_strength   = DEPRECATED_Tween::new(network);
     x_snap_strength.set_duration(300.0);
     y_snap_strength.set_duration(300.0);
 

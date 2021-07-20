@@ -114,7 +114,7 @@ impl Shape {
 
 impl display::Object for Shape {
     fn display_object(&self) -> &display::object::Instance {
-        &self.root.display_object()
+        self.root.display_object()
     }
 }
 

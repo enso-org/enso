@@ -72,21 +72,21 @@ pub trait CompilationTarget {
 
 impl CompilationTarget for Shader {
     fn check(&self, ctx: &Context) -> bool {
-        ctx.get_shader_parameter(&self, Context::COMPILE_STATUS).as_bool().unwrap_or(false)
+        ctx.get_shader_parameter(self, Context::COMPILE_STATUS).as_bool().unwrap_or(false)
     }
 
     fn logs(&self, ctx: &Context) -> String {
-        unwrap_error(ctx.get_shader_info_log(&self))
+        unwrap_error(ctx.get_shader_info_log(self))
     }
 }
 
 impl CompilationTarget for Program {
     fn check(&self, ctx: &Context) -> bool {
-        ctx.get_program_parameter(&self, Context::LINK_STATUS).as_bool().unwrap_or(false)
+        ctx.get_program_parameter(self, Context::LINK_STATUS).as_bool().unwrap_or(false)
     }
 
     fn logs(&self, ctx: &Context) -> String {
-        unwrap_error(ctx.get_program_info_log(&self))
+        unwrap_error(ctx.get_program_info_log(self))
     }
 }
 
@@ -160,7 +160,7 @@ pub fn link_program(ctx:&Context, vert_shader:&Shader, frag_shader:&Shader) -> R
 /// Set the array buffer data with floats.
 pub fn set_buffer_data(gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
     let target = Context::ARRAY_BUFFER;
-    gl_context.bind_buffer(target,Some(&buffer));
+    gl_context.bind_buffer(target,Some(buffer));
     set_bound_buffer_data(gl_context,target,data);
 }
 
@@ -175,7 +175,7 @@ pub fn set_buffer_data(gl_context:&Context, buffer:&WebGlBuffer, data:&[f32]) {
 fn set_bound_buffer_data(gl_context:&Context, target:u32, data:&[f32]) {
     let usage = Context::STATIC_DRAW;
     unsafe {
-        let float_array = Float32Array::view(&data);
+        let float_array = Float32Array::view(data);
         gl_context.buffer_data_with_array_buffer_view(target,&float_array,usage);
     }
 }
@@ -183,7 +183,7 @@ fn set_bound_buffer_data(gl_context:&Context, target:u32, data:&[f32]) {
 /// Set the array buffer fragment with with floats.
 pub fn set_buffer_subdata(gl_context:&Context, buffer:&WebGlBuffer, offset:usize, data:&[f32]) {
     let target = Context::ARRAY_BUFFER;
-    gl_context.bind_buffer(target,Some(&buffer));
+    gl_context.bind_buffer(target,Some(buffer));
     set_bound_buffer_subdata(gl_context,target,offset as i32,data);
 }
 
@@ -197,7 +197,7 @@ pub fn set_buffer_subdata(gl_context:&Context, buffer:&WebGlBuffer, offset:usize
 #[allow(unsafe_code)]
 fn set_bound_buffer_subdata(gl_context:&Context, target:u32, offset:i32, data:&[f32]) {
     unsafe {
-        let float_array = Float32Array::view(&data);
+        let float_array = Float32Array::view(data);
         gl_context.buffer_sub_data_with_i32_and_array_buffer_view(target,offset,&float_array);
     }
 }

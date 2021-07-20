@@ -49,7 +49,7 @@ pub fn entry_point_complex_shape_system() {
     let world     = World::new(&web::get_html_element_by_id("root").unwrap());
     let scene     = world.scene();
     let camera    = scene.camera().clone_ref();
-    let navigator = Navigator::new(&scene,&camera);
+    let navigator = Navigator::new(scene,&camera);
     let logger    = Logger::new("ShapeView");
 
     let theme_manager = theme::Manager::from(&scene.style_sheet);

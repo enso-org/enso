@@ -69,7 +69,7 @@ where Callback : RawLoopCallback {
         let weak_data = Rc::downgrade(&data);
         let on_frame  = move |time| weak_data.upgrade().for_each(|t| t.borrow_mut().run(time));
         data.borrow_mut().on_frame = Some(Closure::new(on_frame));
-        let handle_id = web::request_animation_frame(&data.borrow_mut().on_frame.as_ref().unwrap());
+        let handle_id = web::request_animation_frame(data.borrow_mut().on_frame.as_ref().unwrap());
         data.borrow_mut().handle_id = handle_id;
         Self {data}
     }

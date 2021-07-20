@@ -921,7 +921,7 @@ impl Model {
             Some(Panic         { message,trace }) => Some((Kind::Panic   , Some(message),trace)),
         }?;
         let propagated = if kind == Kind::Panic {
-            let root_cause = self.get_node_causing_error_on_current_graph(&trace);
+            let root_cause = self.get_node_causing_error_on_current_graph(trace);
             !root_cause.contains(&node_id)
         } else {
             // TODO[ao]: traces are not available for Dataflow errors.
@@ -939,7 +939,7 @@ impl Model {
     fn get_node_causing_error_on_current_graph
     (&self, trace:&[ExpressionId]) -> Option<graph_editor::NodeId> {
         let node_view_by_expression = self.node_view_by_expression.borrow();
-        trace.iter().find_map(|expr_id| node_view_by_expression.get(&expr_id).copied())
+        trace.iter().find_map(|expr_id| node_view_by_expression.get(expr_id).copied())
     }
 
     fn refresh_connection_views
@@ -1031,7 +1031,7 @@ impl Model {
             self.view.show_prompt();
             self.prompt_was_shown.set(true);
         }
-        self.refresh_computed_infos(&expressions)
+        self.refresh_computed_infos(expressions)
     }
 
     /// Request controller to detach all attached visualizations.
@@ -1200,7 +1200,7 @@ impl Model {
     fn searcher_opened_in_ui(weak_self:Weak<Self>)
     -> impl Fn(&Self,&graph_editor::NodeId) -> FallibleResult {
         move |this,displayed_id| {
-            let node_view = this.view.graph().model.nodes.get_cloned_ref(&displayed_id);
+            let node_view = this.view.graph().model.nodes.get_cloned_ref(displayed_id);
             let position  = node_view.map(|node| node.position().xy());
             let position  = position.map(|vector| model::module::Position{vector});
             let mode      = controller::searcher::Mode::NewNode {position};
@@ -1309,7 +1309,7 @@ impl Model {
 
     fn connection_created_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult {
         debug!(self.logger, "Creating connection.");
-        let displayed = self.view.graph().model.edges.get_cloned(&edge_id).ok_or(GraphEditorInconsistency)?;
+        let displayed = self.view.graph().model.edges.get_cloned(edge_id).ok_or(GraphEditorInconsistency)?;
         let con       = self.controller_connection_from_displayed(&displayed)?;
         let inserting = self.connection_views.borrow_mut().insert(con.clone(), *edge_id);
         if inserting.did_overwrite() {

@@ -311,6 +311,6 @@ impl ActionBar {
 
 impl display::Object for ActionBar {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object()
+        self.model.display_object()
     }
 }

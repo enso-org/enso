@@ -402,7 +402,7 @@ impl Area {
         let label_color = color::Animation::new(network);
 
         let hysteretic_transition = HystereticAnimation::new(
-            &network,SHOW_DELAY_DURATION_MS,HIDE_DELAY_DURATION_MS);
+            network,SHOW_DELAY_DURATION_MS,HIDE_DELAY_DURATION_MS);
 
         frp::extend! { network
 

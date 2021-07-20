@@ -159,7 +159,7 @@ impl FrpInputs {
 impl Frp {
     /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
-        let inputs = FrpInputs::new(&network);
+        let inputs = FrpInputs::new(network);
         frp::extend! { network
             def preprocessor_change = source();
             on_preprocessor_change  <- preprocessor_change.sampler();

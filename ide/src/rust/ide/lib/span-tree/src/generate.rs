@@ -376,7 +376,7 @@ fn generate_node_for_known_match<T:Payload>
     let children_kind = node::Kind::argument().with_removable(removable);
     let mut gen       = ChildGenerator::default();
     if let Some(pat) = &this.pfx {
-        for macros::AstInPattern {ast,crumbs} in macros::all_ast_nodes_in_pattern(&pat) {
+        for macros::AstInPattern {ast,crumbs} in macros::all_ast_nodes_in_pattern(pat) {
             let ast_crumb   = ast::crumbs::MatchCrumb::Pfx {val:crumbs};
             let located_ast = Located::new(ast_crumb,ast.wrapped);
             gen.generate_ast_node(located_ast,children_kind.clone(),context)?;

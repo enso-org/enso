@@ -64,18 +64,18 @@ impl<'a> PatternDfs<'a> {
     fn push_children_to_visit(&mut self, pattern:&LocatedPattern<'a>) {
         use ast::MacroPatternMatchRaw::*;
         match pattern.pattern.deref() {
-            Except(pat) => self.push_child_to_visit(&pattern,&pat.elem,PatternMatchCrumb::Except),
-            Tag(pat)    => self.push_child_to_visit(&pattern,&pat.elem,PatternMatchCrumb::Tag),
-            Cls(pat)    => self.push_child_to_visit(&pattern,&pat.elem,PatternMatchCrumb::Cls),
-            Or(pat)     => self.push_child_to_visit(&pattern,&pat.elem,PatternMatchCrumb::Or),
+            Except(pat) => self.push_child_to_visit(pattern,&pat.elem,PatternMatchCrumb::Except),
+            Tag(pat)    => self.push_child_to_visit(pattern,&pat.elem,PatternMatchCrumb::Tag),
+            Cls(pat)    => self.push_child_to_visit(pattern,&pat.elem,PatternMatchCrumb::Cls),
+            Or(pat)     => self.push_child_to_visit(pattern,&pat.elem,PatternMatchCrumb::Or),
             Seq(pat)    => {
                 let (left_elem,right_elem) = &pat.elem;
-                self.push_child_to_visit(&pattern,right_elem,PatternMatchCrumb::Seq{right:true});
-                self.push_child_to_visit(&pattern,left_elem ,PatternMatchCrumb::Seq{right:false});
+                self.push_child_to_visit(pattern,right_elem,PatternMatchCrumb::Seq{right:true});
+                self.push_child_to_visit(pattern,left_elem ,PatternMatchCrumb::Seq{right:false});
             },
             Many(pat) => {
                 for (index,elem) in pat.elem.iter().enumerate().rev() {
-                    self.push_child_to_visit(&pattern,elem,PatternMatchCrumb::Many {index});
+                    self.push_child_to_visit(pattern,elem,PatternMatchCrumb::Many {index});
                 }
             }
             // Other patterns does not have children.

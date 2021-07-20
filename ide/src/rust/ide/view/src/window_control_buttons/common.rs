@@ -228,14 +228,14 @@ impl<Shape:ButtonShape> View<Shape> {
         // Icon color initialization
         let default_icon_color_path = Shape::icon_color_path(State::Unconcerned);
         let default_icon_color      = style.get_color(default_icon_color_path).value();
-        let icon_color              = color::Animation::new(&network);
+        let icon_color              = color::Animation::new(network);
         icon_color.target(color::Lcha::from(default_icon_color));
         model.set_icon_color(default_icon_color);
 
         // Background color initialization
         let default_background_color_path = Shape::background_color_path(State::Unconcerned);
         let default_background_color      = style.get_color(default_background_color_path).value();
-        let background_color              = color::Animation::new(&network);
+        let background_color              = color::Animation::new(network);
         background_color.target(color::Lcha::from(default_background_color));
         model.set_icon_color(default_background_color);
 

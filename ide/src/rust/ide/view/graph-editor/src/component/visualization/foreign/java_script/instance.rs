@@ -145,7 +145,7 @@ impl InstanceModel {
     -> result::Result<java_script::binding::Visualization,Error> {
         let js_new  = js_sys::Function::new_with_args("cls,arg", "return new cls(arg)");
         let context = JsValue::NULL;
-        let object  = js_new.call2(&context,&class,&args.into())
+        let object  = js_new.call2(&context,class,&args.into())
             .map_err(|js_error|Error::ConstructorError {js_error})?;
         if !object.is_object() {
             return Err(Error::ValueIsNotAnObject { object } )
@@ -164,7 +164,7 @@ impl InstanceModel {
         let object                        = Self::instantiate_class_with_args(class,init_data)?;
         let on_data_received              = get_method(object.as_ref(),method::ON_DATA_RECEIVED).ok();
         let on_data_received              = Rc::new(on_data_received);
-        let set_size                      = get_method(&object.as_ref(),method::SET_SIZE).ok();
+        let set_size                      = get_method(object.as_ref(),method::SET_SIZE).ok();
         let set_size                      = Rc::new(set_size);
         let object                        = Rc::new(object);
         let scene                         = scene.clone_ref();
@@ -245,7 +245,7 @@ impl Instance {
         let frp     = visualization::instance::Frp::new(&network);
         let model   = InstanceModel::from_class(class,scene)?;
         model.set_dom_layer(&scene.dom.layers.back);
-        Ok(Instance{model,frp,network}.init_frp(&scene).init_preprocessor_change_callback())
+        Ok(Instance{model,frp,network}.init_frp(scene).init_preprocessor_change_callback())
     }
 
     fn init_frp(self, scene:&Scene) -> Self {
@@ -292,7 +292,7 @@ impl From<Instance> for visualization::Instance {
 
 impl display::Object for Instance {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.root_node.display_object()
+        self.model.root_node.display_object()
     }
 }
 

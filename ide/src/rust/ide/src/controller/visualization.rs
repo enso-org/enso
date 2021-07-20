@@ -150,7 +150,7 @@ impl Handle {
             },
             VisualizationPath::File(path) => {
                 let project    = visualization::path::Project::CurrentProject;
-                let js_code    = self.language_server_rpc.read_file(&path).await?.contents;
+                let js_code    = self.language_server_rpc.read_file(path).await?.contents;
                 let wrap_error = |err| {
                     Error::js_preparation_error(visualization.clone(),err).into()
                 };

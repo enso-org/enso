@@ -39,7 +39,7 @@ impl NavigatorModel {
         let max_zoom               = 10000.0;
         let disable_events         = Rc::new(Cell::new(true));
         let (simulator,resize_callback,_events) = Self::start_navigator_events
-            (&scene,camera,min_zoom,max_zoom,Rc::clone(&zoom_speed),Rc::clone(&pan_speed),
+            (scene,camera,min_zoom,max_zoom,Rc::clone(&zoom_speed),Rc::clone(&pan_speed),
              Rc::clone(&disable_events));
         Self {_events,simulator,resize_callback,zoom_speed,pan_speed,disable_events}
     }
@@ -64,7 +64,7 @@ impl NavigatorModel {
     , pan_speed      : SharedSwitch<f32>
     , disable_events : Rc<Cell<bool>>
     ) -> (physics::inertia::DynSimulator<Vector3>,callback::Handle,NavigatorEvents) {
-        let simulator        = Self::create_simulator(&camera);
+        let simulator        = Self::create_simulator(camera);
         let panning_callback = enclose!((scene,camera,mut simulator,pan_speed) move |pan: PanEvent| {
             let fovy_slope                  = camera.half_fovy_slope();
             let distance                    = camera.position().z;

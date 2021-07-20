@@ -92,7 +92,7 @@ mod deja_vu {
 
     pub fn download_and_extract_all_fonts(out_dir : &path::Path) {
         let package_path = out_dir.join(PACKAGE.filename);
-        PACKAGE.download(&out_dir);
+        PACKAGE.download(out_dir);
         extract_all_fonts(package_path.as_path());
     }
 

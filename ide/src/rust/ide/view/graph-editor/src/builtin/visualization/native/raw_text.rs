@@ -155,6 +155,6 @@ impl From<RawText> for Instance {
 
 impl display::Object for RawText {
     fn display_object(&self) -> &display::object::Instance {
-        &self.dom.display_object()
+        self.dom.display_object()
     }
 }

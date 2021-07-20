@@ -91,7 +91,7 @@ fn init(app:&Application) {
     let world     = &app.display;
     let scene     = world.scene();
     let camera    = scene.camera();
-    let navigator = Navigator::new(&scene,&camera);
+    let navigator = Navigator::new(scene,&camera);
     let registry  = Registry::new();
 
     registry.add(constructor_graph());
@@ -100,7 +100,7 @@ fn init(app:&Application) {
     let vis_class     = vis_factories.iter().find(|class| {
         &*class.signature.name == "Graph"
     }).expect("Couldn't find Graph class.");
-    let visualization = vis_class.new_instance(&scene).expect("Couldn't create visualiser.");
+    let visualization = vis_class.new_instance(scene).expect("Couldn't create visualiser.");
     visualization.activate.emit(());
 
     let network = enso_frp::Network::new("VisualizationExample");

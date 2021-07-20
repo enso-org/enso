@@ -216,7 +216,7 @@ pub fn decode_incoming_message
     use serde_json::Value;
     use serde_json::from_str;
     use serde_json::from_value;
-    let message = from_str::<Message<Value>>(&message)?;
+    let message = from_str::<Message<Value>>(message)?;
     from_value::<IncomingMessage>(message.payload)
 }
 

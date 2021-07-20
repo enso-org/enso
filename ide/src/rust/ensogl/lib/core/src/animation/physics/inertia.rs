@@ -606,7 +606,7 @@ where T:Value, OnStep:Callback1<T>, OnStart:Callback0, OnEnd:Callback1<EndStatus
     fn start(&self) {
         if self.animation_loop.get().is_none() {
             let frame_rate     = self.frame_rate.get();
-            let step           = step(&self);
+            let step           = step(self);
             let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate,step);
             self.animation_loop.set(Some(animation_loop));
             self.on_start.call();

@@ -74,10 +74,10 @@ pub fn from_shape_with_parameters_and_alpha
     let shadow        = shadow.translate((parameters.offset_x.px(),parameters.offset_y.px()));
 
     let base_color    = Var::<color::Rgba>::from(parameters.base_color);
-    let base_color    = base_color.multiply_alpha(&alpha);
+    let base_color    = base_color.multiply_alpha(alpha);
 
     let fading_color  = Var::<color::Rgba>::from(parameters.fading);
-    let fading_color  = fading_color.multiply_alpha(&alpha);
+    let fading_color  = fading_color.multiply_alpha(alpha);
 
     let shadow_color  = color::gradient::Linear::<Var<color::LinearRgba>>
     ::new(fading_color.into_linear(),base_color.into_linear());
@@ -95,7 +95,7 @@ pub fn add_to_dom_element(element:&DomSymbol, style:&StyleWatch,logger:&Logger) 
     let blur   = style.get_number(ensogl_theme::shadow::html::blur);
     let spread = style.get_number(ensogl_theme::shadow::html::spread);
     let shadow = format!("{}px {}px {}px {}px rgba(0,0,0,{})",off_x,off_y,blur,spread,alpha);
-    element.dom().set_style_or_warn("box-shadow",shadow,&logger);
+    element.dom().set_style_or_warn("box-shadow",shadow,logger);
 }
 
 

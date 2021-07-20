@@ -34,7 +34,7 @@ pub fn is_node_by_id(line:&ast::BlockLine<Option<Ast>>, id:ast::Id) -> bool {
 /// Searches for `NodeInfo` with the associated `id` index in `lines`. Returns an error if
 /// the Id is not found.
 pub fn index_in_lines(lines:&[ast::BlockLine<Option<Ast>>], id:ast::Id) -> FallibleResult<usize> {
-    let position = lines.iter().position(|line| is_node_by_id(&line,id));
+    let position = lines.iter().position(|line| is_node_by_id(line,id));
     position.ok_or_else(|| IdNotFound{id}.into())
 }
 
@@ -109,7 +109,7 @@ impl NodeInfo {
     pub fn expression(&self) -> &Ast {
         match self {
             NodeInfo::Binding   {infix} => &infix.rarg,
-            NodeInfo::Expression{ast}   => &ast,
+            NodeInfo::Expression{ast}   => ast,
         }
     }
 

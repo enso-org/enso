@@ -292,8 +292,8 @@ impl Symbol {
             let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
             let surface_on_mut    = Box::new(f!(surface_dirty.set()));
             let shader_on_mut     = Box::new(f!(shader_dirty.set()));
-            let shader            = Shader::new(shader_logger,&stats,shader_on_mut);
-            let surface           = Mesh::new(surface_logger,&stats,surface_on_mut);
+            let shader            = Shader::new(shader_logger,stats,shader_on_mut);
+            let surface           = Mesh::new(surface_logger,stats,surface_on_mut);
             let variables         = UniformScope::new(Logger::sub(&logger,"uniform_scope"));
             let global_variables  = global_variables.clone_ref();
             let bindings          = default();
@@ -540,10 +540,10 @@ impl Symbol {
     /// is executed, both program and VAO are bound to None.
     fn with_program<F:FnOnce(&WebGlProgram)>(&self, context:&Context, f:F) {
         if let Some(program) = self.shader.program().as_ref() {
-            context.use_program(Some(&program));
+            context.use_program(Some(program));
             let bindings = self.bindings.borrow();
             if let Some(vao) = bindings.vao.as_ref() {
-                vao.with(|| { f(&program) });
+                vao.with(|| { f(program) });
             }
             context.use_program(None);
         }

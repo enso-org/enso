@@ -192,7 +192,7 @@ impl Tooltip {
             ensogl_theme::application::tooltip::show_delay_duration_ms,0.0);
 
         let hysteretic_transition = HystereticAnimation::new(
-            &network,hide_delay_duration_ms,show_delay_duration_ms);
+            network,hide_delay_duration_ms,show_delay_duration_ms);
 
         frp::extend! { network
 
@@ -240,6 +240,6 @@ impl Tooltip {
 
 impl display::Object for Tooltip {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.root.display_object()
+        self.model.root.display_object()
     }
 }

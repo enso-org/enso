@@ -436,11 +436,11 @@ impl NodeModel {
 
         // Disable shadows to allow interaction with the output port.
         let shape_system = scene.layers.main.shape_system_registry.shape_system
-            (&scene,PhantomData::<backdrop::DynamicShape>);
+            (scene,PhantomData::<backdrop::DynamicShape>);
         shape_system.shape_system.set_pointer_events(false);
 
         let input = input::Area::new(&logger,app);
-        let visualization = visualization::Container::new(&logger,&app,registry);
+        let visualization = visualization::Container::new(&logger,app,registry);
 
         display_object.add_child(&visualization);
         display_object.add_child(&input);
@@ -449,7 +449,7 @@ impl NodeModel {
         let (x,y)               = ERROR_VISUALIZATION_SIZE;
         error_visualization.set_size.emit(Vector2(x,y));
 
-        let action_bar = action_bar::ActionBar::new(&logger,&app);
+        let action_bar = action_bar::ActionBar::new(&logger,app);
         display_object.add_child(&action_bar);
 
         let output = output::Area::new(&logger,app);
@@ -745,7 +745,7 @@ impl Node {
             // === Color Handling ===
 
             let bgg = style_frp.get_color(ensogl_theme::graph_editor::node::background);
-            let profiling_theme = profiling::Theme::from_styles(&style_frp,&network);
+            let profiling_theme = profiling::Theme::from_styles(style_frp,network);
 
             profiling_color <- all_with5
                 (&frp.set_profiling_status,&frp.set_profiling_min_global_duration,

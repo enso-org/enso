@@ -256,6 +256,6 @@ impl<Shape:ColorableShape+'static> ToggleButton<Shape>{
 
 impl<T:display::Object> display::Object for ToggleButton<T> {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.icon.display_object()
+        self.model.icon.display_object()
     }
 }

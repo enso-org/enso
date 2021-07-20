@@ -100,7 +100,7 @@ impl Model {
         let logger         = Logger::new("SearcherView");
         let display_object = display::object::Instance::new(&logger);
         let list           = app.new_view::<ListView>();
-        let documentation  = documentation::View::new(&scene);
+        let documentation  = documentation::View::new(scene);
         let doc_provider   = default();
         scene.layers.above_nodes.add_exclusive(&list);
         display_object.add_child(&documentation);
@@ -199,7 +199,7 @@ impl View {
         let frp     = &self.frp;
         let source  = &self.frp.source;
 
-        let height = DEPRECATED_Animation::<f32>::new(&network);
+        let height = DEPRECATED_Animation::<f32>::new(network);
 
         frp::extend! { network
             eval frp.set_actions ([model] ((entries,docs)) {

@@ -269,7 +269,7 @@ impl View {
     /// Create new StatusBar view.
     pub fn new(app:&Application) -> Self {
         let frp         = Frp::new();
-        let model       = Model::new(&app);
+        let model       = Model::new(app);
         let network     = &frp.network;
         let scene       = app.display.scene();
 

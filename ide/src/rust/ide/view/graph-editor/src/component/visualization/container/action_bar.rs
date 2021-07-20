@@ -266,7 +266,7 @@ impl Model {
         let logger                = Logger::new("ActionBarModel");
         let background            = background::View::new(&logger);
         let hover_area            = hover_area::View::new(&logger);
-        let visualization_chooser = VisualizationChooser::new(&app,vis_registry);
+        let visualization_chooser = VisualizationChooser::new(app,vis_registry);
         let display_object        = display::object::Instance::new(&logger);
         let size                  = default();
         let icons                 = Icons::new(logger);
@@ -415,6 +415,6 @@ impl ActionBar {
 
 impl display::Object for ActionBar {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.display_object()
+        self.model.display_object()
     }
 }

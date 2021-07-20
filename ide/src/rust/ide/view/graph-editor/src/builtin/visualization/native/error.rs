@@ -256,6 +256,6 @@ impl From<Error> for Instance {
 
 impl display::Object for Error {
     fn display_object(&self) -> &display::object::Instance {
-        &self.model.dom.display_object()
+        self.model.dom.display_object()
     }
 }

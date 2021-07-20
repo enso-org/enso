@@ -91,10 +91,10 @@ impl ScrollArea {
         let content = display::object::Instance::new(&logger);
         display_object.add_child(&content);
 
-        let h_scrollbar = Scrollbar::new(&app);
+        let h_scrollbar = Scrollbar::new(app);
         display_object.add_child(&h_scrollbar);
 
-        let v_scrollbar = Scrollbar::new(&app);
+        let v_scrollbar = Scrollbar::new(app);
         display_object.add_child(&v_scrollbar);
         v_scrollbar.set_rotation_z(-90.0_f32.to_radians());
 

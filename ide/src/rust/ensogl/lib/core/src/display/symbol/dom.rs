@@ -47,7 +47,7 @@ pub fn set_object_transform(dom:&web::JsValue, matrix:&Matrix4<f32>) {
     // details.
     unsafe {
         let matrix_array = matrix.js_buffer_view();
-        js::set_object_transform(&dom,&matrix_array);
+        js::set_object_transform(dom,&matrix_array);
     }
 }
 

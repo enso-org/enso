@@ -234,7 +234,7 @@ where F:AnyFnEasing, OnStep:Callback<T>, OnEnd:Callback<EndStatus> {
     /// Start the animator.
     pub fn start(&self) {
         if self.animation_loop.get().is_none() {
-            let animation_loop = animation::Loop::new(step(&self));
+            let animation_loop = animation::Loop::new(step(self));
             self.animation_loop.set(Some(animation_loop));
             self.data.active.set(true);
         }

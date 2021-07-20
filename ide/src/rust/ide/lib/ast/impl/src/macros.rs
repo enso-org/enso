@@ -83,7 +83,7 @@ pub fn as_lambda(ast:&Ast) -> Option<LambdaInfo> {
     let arg            = ast.get_located(child_iter.next()?).ok()?;
     let opr            = ast.get_located(child_iter.next()?).ok()?;
     let body           = ast.get_located(child_iter.next()?).ok()?;
-    let is_arrow       = crate::opr::is_arrow_opr(&opr.item);
+    let is_arrow       = crate::opr::is_arrow_opr(opr.item);
     is_arrow.then_some(LambdaInfo {arg,opr,body})
 }
 

@@ -64,7 +64,7 @@ fn init(app:&Application) {
 
     // === Scroll Area ===
 
-    let scroll_area = ScrollArea::new(&app);
+    let scroll_area = ScrollArea::new(app);
     app.display.add_child(&scroll_area);
     scroll_area.resize(Vector2(200.0,200.0));
     scroll_area.set_content_width(300.0);

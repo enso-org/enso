@@ -430,7 +430,7 @@ impl Dom {
     /// Constructor.
     pub fn new(logger:&Logger) -> Self {
         let root   = web::create_div();
-        let layers = DomLayers::new(&logger,&root);
+        let layers = DomLayers::new(logger,&root);
         root.set_class_name("scene");
         root.set_style_or_panic("height"  , "100vh");
         root.set_style_or_panic("width"   , "100vw");
@@ -478,20 +478,20 @@ impl DomLayers {
         let front          = DomScene::new(logger);
         let fullscreen_vis = DomScene::new(logger);
         let back           = DomScene::new(logger);
-        canvas.set_style_or_warn("height"        , "100vh"   , &logger);
-        canvas.set_style_or_warn("width"         , "100vw"   , &logger);
-        canvas.set_style_or_warn("display"       , "block"   , &logger);
+        canvas.set_style_or_warn("height"        , "100vh"   , logger);
+        canvas.set_style_or_warn("width"         , "100vw"   , logger);
+        canvas.set_style_or_warn("display"       , "block"   , logger);
         // Position must not be "static" to have z-index working.
-        canvas.set_style_or_warn("position"      , "absolute", &logger);
-        canvas.set_style_or_warn("z-index"       , "2"       , &logger);
-        canvas.set_style_or_warn("pointer-events", "none"    , &logger);
+        canvas.set_style_or_warn("position"      , "absolute", logger);
+        canvas.set_style_or_warn("z-index"       , "2"       , logger);
+        canvas.set_style_or_warn("pointer-events", "none"    , logger);
         front.dom.set_class_name("front");
-        front.dom.set_style_or_warn("z-index", "3", &logger);
+        front.dom.set_style_or_warn("z-index", "3", logger);
         back.dom.set_class_name("back");
-        back.dom.set_style_or_warn("pointer-events", "auto", &logger);
-        back.dom.set_style_or_warn("z-index"       , "0"   , &logger);
+        back.dom.set_style_or_warn("pointer-events", "auto", logger);
+        back.dom.set_style_or_warn("z-index"       , "0"   , logger);
         fullscreen_vis.dom.set_class_name("fullscreen_vis");
-        fullscreen_vis.dom.set_style_or_warn("z-index"       , "1"   , &logger);
+        fullscreen_vis.dom.set_style_or_warn("z-index"       , "1"   , logger);
         dom.append_or_panic(&canvas);
         dom.append_or_panic(&front.dom);
         dom.append_or_panic(&back.dom);
@@ -779,7 +779,7 @@ impl SceneData {
         let on_change            = enclose!((dirty_flag) move || dirty_flag.set());
         let var_logger           = Logger::sub(&logger,"global_variables");
         let variables            = UniformScope::new(var_logger);
-        let symbols              = SymbolRegistry::mk(&variables,&stats,&logger,on_change);
+        let symbols              = SymbolRegistry::mk(&variables,stats,&logger,on_change);
         // FIXME: This should be abstracted away and should also handle context loss when Symbol
         //        definition will be finally refactored in such way, that it would not require
         //        Scene instance to be created.
