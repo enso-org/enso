@@ -196,7 +196,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
     * @return the current database size
     */
   private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
-    db.run(insertBatchQuery(suggestions).transaction)
+    db.run(insertBatchQuery(suggestions).transactionally)
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] = {
