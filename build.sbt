@@ -428,7 +428,7 @@ val scalatestVersion        = "3.3.0-SNAP2"
 val shapelessVersion        = "2.4.0-M1"
 val slf4jVersion            = "1.7.30"
 val slickVersion            = "3.3.2"
-val sqliteVersion           = "3.31.1"
+val sqliteVersion           = "3.36.0.1"
 val tikaVersion             = "1.24.1"
 val typesafeConfigVersion   = "1.4.1"
 

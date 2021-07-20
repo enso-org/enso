@@ -36,11 +36,6 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.fasterxml.jackson.core.jackson-annotations-2.11.1`.
 
 
-'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
-The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.31.1`.
-
-
 'shapeless_2.13', licensed under the Apache 2, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `com.chuusai.shapeless_2.13-2.3.3`.
@@ -114,6 +109,11 @@ Copyright notices related to this dependency can be found in the directory `dev.
 'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `org.yaml.snakeyaml-1.26`.
+
+
+'sqlite-jdbc', licensed under the The Apache Software License, Version 2.0, is distributed with the engine.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `org.xerial.sqlite-jdbc-3.36.0.1`.
 
 
 'slick_2.13', licensed under the Two-clause BSD-style license, is distributed with the engine.
