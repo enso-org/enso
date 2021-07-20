@@ -1,11 +1,19 @@
 # Enso Next
 
+# Enso 0.2.15 (2021-07-19)
+
 ## Tooling
 
 - Implement parts of the new Language Server API related to library support
   ([#1875](https://github.com/enso-org/enso/pull/1875)). Parts of the API are
   still mocked internally, but they are supported externally for testing
   purposes.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-19)
+  for issues opened before the release date.
 
 # Enso 0.2.14 (2021-07-15)
 
