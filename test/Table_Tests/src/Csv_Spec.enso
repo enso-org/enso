@@ -60,3 +60,10 @@ spec =
             expected = Json.from_pairs [["columns", [c_1, c_2, c_3, c_4, c_5, c_6]]]
             varied_column.to_json.should_equal expected
 
+        Test.specify "should handle duplicated columns" <|
+            csv = """
+                name,x,y,x,y
+                foo,10,20,30,20
+            t = Table.from_csv csv
+            t.columns.map .name . should_equal ['name', 'x', 'y', 'x 1', 'y 1']
+
