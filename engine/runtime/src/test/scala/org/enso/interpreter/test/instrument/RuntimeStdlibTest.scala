@@ -198,7 +198,7 @@ class RuntimeStdlibTest
     val suggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(_, _, as, _, xs)
           ) =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }
@@ -208,7 +208,13 @@ class RuntimeStdlibTest
     val stdlibSuggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(module, _, as, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(
+              module,
+              _,
+              as,
+              _,
+              xs
+            )
           ) if module.contains("Vector") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
         xs.toVector.head.suggestion.module shouldEqual "Standard.Base.Data.Vector"
@@ -219,7 +225,13 @@ class RuntimeStdlibTest
     val builtinsSuggestions = responses.collect {
       case Api.Response(
             None,
-            Api.SuggestionsDatabaseModuleUpdateNotification(module, _, as, xs)
+            Api.SuggestionsDatabaseModuleUpdateNotification(
+              module,
+              _,
+              as,
+              _,
+              xs
+            )
           ) if module.contains("Builtins") =>
         (xs.nonEmpty || as.nonEmpty) shouldBe true
     }

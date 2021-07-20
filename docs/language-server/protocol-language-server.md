@@ -422,6 +422,8 @@ interface SuggestionEntryScope {
 
 // A type of suggestion entries.
 type SuggestionEntry =
+  // A module
+  | SuggestionEntryModule
   // A value constructor
   | SuggestionEntryAtom
   // A method defined on a type
@@ -431,41 +433,104 @@ type SuggestionEntry =
   // A local value
   | SuggestionEntryLocal;
 
-interface SuggestionEntryAtom {
-  externalId?: UUID;
-  name: string;
+interface SuggestionEntryModule {
+  /** The fully qualified module name. */
   module: string;
-  arguments: SuggestionEntryArgument[];
-  returnType: string;
+
+  /** The documentation string. */
   documentation?: string;
+
+  /** The fully qualified module name re-exporting this module. */
+  reexport?: string;
+}
+
+interface SuggestionEntryAtom {
+  /** The external id. */
+  externalId?: UUID;
+
+  /** The atom name. */
+  name: string;
+
+  /** The module name where the atom is defined. */
+  module: string;
+
+  /** The list of arguments. */
+  arguments: SuggestionEntryArgument[];
+
+  /** The type of an atom. */
+  returnType: string;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The fully qualified module name re-exporting this module. */
+  reexport?: string;
+
   documentationHtml?: string;
 }
 
 interface SuggestionEntryMethod {
+  /** The external id. */
   externalId?: UUID;
+
+  /** The method name. */
   name: string;
+
+  /** The module name where this method is defined. */
   module: string;
+
+  /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
+
+  /** The method self type. */
   selfType: string;
+
+  /** The return type of this method. */
   returnType: string;
+
+  /** The documentation string. */
   documentation?: string;
+
+  /** The fully qualified module name re-exporting this module. */
+  reexport?: string;
+
   documentationHtml?: string;
 }
 
 interface SuggestionEntryFunction {
+  /** The external id. */
   externalId?: UUID;
+
+  /** The function name. */
   name: string;
+
+  /** The module name where this function is defined. */
   module: string;
+
+  /** The list of arguments. */
   arguments: SuggestionEntryArgument[];
+
+  /** The function return type. */
   returnType: string;
+
+  /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
 }
 
 interface SuggestionEntryLocal {
+  /** The external id. */
   externalId?: UUID;
+
+  /** The name of a value. */
   name: string;
+
+  /** The module where this value is defined. */
   module: string;
+
+  /** The type of a value. */
   returnType: string;
+
+  /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
 }
 ```
@@ -478,7 +543,7 @@ The suggestion entry type that is used as a filter in search requests.
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType = Atom | Method | Function | Local;
+type SuggestionEntryType = Module | Atom | Method | Function | Local;
 ```
 
 ### `SuggestionId`
@@ -699,6 +764,11 @@ interface Modify {
    * The scope to update.
    */
   scope?: FieldUpdate<SuggestionEntryScope>;
+
+  /**
+   * The reexport field to update.
+   */
+  reexport?: FieldUpdate<String>;
 }
 ```
 

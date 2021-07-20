@@ -37,11 +37,11 @@ case class ArgumentRow(
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
-  * @param documentation the documentation string
   * @param scopeStartLine the line of the start position of the scope
   * @param scopeStartOffset the offset of the start position of the scope
   * @param scopeEndLine the line of the end position of the scope
   * @param scopeEndOffset the offset of the end position of the scope
+  * @param documentation the documentation string
   */
 case class SuggestionRow(
   id: Option[Long],
@@ -52,12 +52,13 @@ case class SuggestionRow(
   name: String,
   selfType: String,
   returnType: String,
-  documentation: Option[String],
-  documentationHtml: Option[String],
   scopeStartLine: Int,
   scopeStartOffset: Int,
   scopeEndLine: Int,
-  scopeEndOffset: Int
+  scopeEndOffset: Int,
+  documentation: Option[String],
+  documentationHtml: Option[String],
+  reexport: Option[String]
 )
 
 /** A row in the suggestions_version table.
@@ -82,10 +83,11 @@ case class ModuleVersionRow(module: String, digest: Array[Byte])
 /** The type of a suggestion. */
 object SuggestionKind {
 
-  val ATOM: Byte     = 0
-  val METHOD: Byte   = 1
-  val FUNCTION: Byte = 2
-  val LOCAL: Byte    = 3
+  val MODULE: Byte   = 0
+  val ATOM: Byte     = 1
+  val METHOD: Byte   = 2
+  val FUNCTION: Byte = 3
+  val LOCAL: Byte    = 4
 
   /** Create a database suggestion kind.
     *
@@ -94,6 +96,7 @@ object SuggestionKind {
     */
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
+      case Suggestion.Kind.Module   => MODULE
       case Suggestion.Kind.Atom     => ATOM
       case Suggestion.Kind.Method   => METHOD
       case Suggestion.Kind.Function => FUNCTION
@@ -152,16 +155,14 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id                = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def externalIdLeast   = column[Option[Long]]("external_id_least")
-  def externalIdMost    = column[Option[Long]]("external_id_most")
-  def kind              = column[Byte]("kind")
-  def module            = column[String]("module")
-  def name              = column[String]("name")
-  def selfType          = column[String]("self_type")
-  def returnType        = column[String]("return_type")
-  def documentation     = column[Option[String]]("documentation")
-  def documentationHtml = column[Option[String]]("documentation_html")
+  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast = column[Option[Long]]("external_id_least")
+  def externalIdMost  = column[Option[Long]]("external_id_most")
+  def kind            = column[Byte]("kind")
+  def module          = column[String]("module")
+  def name            = column[String]("name")
+  def selfType        = column[String]("self_type")
+  def returnType      = column[String]("return_type")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -170,6 +171,10 @@ final class SuggestionsTable(tag: Tag)
     column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
   def scopeEndOffset =
     column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
+  def documentation     = column[Option[String]]("documentation")
+  def documentationHtml = column[Option[String]]("documentation_html")
+  def reexport          = column[Option[String]]("reexport")
+
   def * =
     (
       id.?,
@@ -180,12 +185,13 @@ final class SuggestionsTable(tag: Tag)
       name,
       selfType,
       returnType,
-      documentation,
-      documentationHtml,
       scopeStartLine,
       scopeStartOffset,
       scopeEndLine,
-      scopeEndOffset
+      scopeEndOffset,
+      documentation,
+      documentationHtml,
+      reexport
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
@@ -195,6 +201,7 @@ final class SuggestionsTable(tag: Tag)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
   def externalIdIdx =
     index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
+  def reexportIdx = index("suggestions_reexport_idx", reexport)
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =
@@ -205,7 +212,6 @@ final class SuggestionsTable(tag: Tag)
         module,
         name,
         selfType,
-        returnType,
         scopeStartLine,
         scopeStartOffset,
         scopeEndLine,
@@ -258,5 +264,5 @@ object SuggestionsVersion extends TableQuery(new SuggestionsVersionTable(_))
 object SchemaVersion extends TableQuery(new SchemaVersionTable(_)) {
 
   /** The current schema version. */
-  val CurrentVersion: Long = 3
+  val CurrentVersion: Long = 4
 }
