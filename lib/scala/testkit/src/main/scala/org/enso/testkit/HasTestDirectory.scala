@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.test
+package org.enso.testkit
 
 import java.nio.file.Path
 

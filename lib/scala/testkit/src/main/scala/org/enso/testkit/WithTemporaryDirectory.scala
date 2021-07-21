@@ -1,10 +1,10 @@
-package org.enso.runtimeversionmanager.test
-
-import java.io.{File, IOException}
-import java.nio.file.{Files, Path}
+package org.enso.testkit
 
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterEach, Suite}
+
+import java.io.{File, IOException}
+import java.nio.file.{Files, Path}
 
 /** Creates a separate temporary directory for each test.
   */

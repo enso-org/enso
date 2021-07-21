@@ -880,6 +880,7 @@ lazy val testkit = project
   .settings(
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-lang3" % commonsLangVersion,
+      "commons-io"         % "commons-io"    % commonsIoVersion,
       "org.scalatest"     %% "scalatest"     % scalatestVersion
     )
   )

@@ -30,7 +30,7 @@ import org.enso.runtimeversionmanager.releases.engine.{
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 import org.enso.runtimeversionmanager.releases.testing.FakeReleaseProvider
 import org.enso.runtimeversionmanager.test._
-import org.enso.testkit.{FlakySpec, RetrySpec}
+import org.enso.testkit.{FlakySpec, RetrySpec, WithTemporaryDirectory}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.matchers.should.Matchers

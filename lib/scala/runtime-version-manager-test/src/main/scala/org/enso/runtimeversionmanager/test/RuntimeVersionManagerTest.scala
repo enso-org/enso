@@ -16,6 +16,7 @@ import org.enso.runtimeversionmanager.components.{
 }
 import org.enso.runtimeversionmanager.releases.engine.EngineReleaseProvider
 import org.enso.runtimeversionmanager.releases.graalvm.GraalVMRuntimeReleaseProvider
+import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

@@ -31,10 +31,10 @@ import org.enso.runtimeversionmanager.releases.{
 import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
-  HasTestDirectory,
   NoopComponentUpdaterFactory,
   TestLocalLockManager
 }
+import org.enso.testkit.HasTestDirectory
 
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
