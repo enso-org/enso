@@ -304,6 +304,13 @@ class DownloadingLibraryCache(
  * A single LockManager (and its locks directory) should be associated with at
  * most one library cache directory, as it makes sense for the distribution to
  * have only one cache, so the lock entries are not disambiguated in any way.
+ *
+ * Additional note: currently, in the cloud, the library cache is stored in the
+ * user's workspace, so only a single Language Server will be running at the
+ * same time; the locking mechanism is still needed to ensure library
+ * installations of the compiler and preinstalls by user's request do not
+ * conflict. The same lock manager can be used in the cloud environment, the
+ * lock files are stored in a local, transient directory of the server.
  */
 
 /* Note [Temporary Directories for Installation]
