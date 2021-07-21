@@ -1,6 +1,7 @@
 package org.enso.librarymanager.published.repository
 
-import io.circe.Decoder
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder, Json}
 import org.enso.editions.LibraryName
 
 /** The manifest file containing metadata related to a published library.
@@ -19,6 +20,8 @@ case class LibraryManifest(
 )
 
 object LibraryManifest {
+  def empty: LibraryManifest = LibraryManifest(Seq.empty, Seq.empty, None, None)
+
   object Fields {
     val archives     = "archives"
     val dependencies = "dependencies"
@@ -41,6 +44,20 @@ object LibraryManifest {
       tagLine      = tagLine,
       description  = description
     )
+  }
+
+  /** An [[Encoder]] instance for parsing [[LibraryManifest]]. */
+  implicit val encoder: Encoder[LibraryManifest] = { manifest =>
+    val baseFields = Seq(
+      Fields.archives     -> manifest.archives.asJson,
+      Fields.dependencies -> manifest.dependencies.asJson
+    )
+
+    val allFields = baseFields ++
+      manifest.tagLine.map(Fields.tagLine -> _.asJson).toSeq ++
+      manifest.description.map(Fields.description -> _.asJson).toSeq
+
+    Json.obj(allFields: _*)
   }
 
   /** The name of the manifest file as included in the directory associated with
