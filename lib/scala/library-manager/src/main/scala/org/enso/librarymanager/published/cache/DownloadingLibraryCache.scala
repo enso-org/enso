@@ -1,4 +1,5 @@
 package org.enso.librarymanager.published.cache
+
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.{ProgressReporter, TaskProgress}
@@ -26,11 +27,14 @@ import scala.util.{Success, Try}
 
 /** A [[LibraryCache]] that will try to download missing libraries.
   *
-  * @param cacheRoot
-  * @param temporaryDirectoryRoot
-  * @param resourceManager
-  * @param lockUserInterface
-  * @param progressReporter
+  * @param cacheRoot                 the root of the library cache
+  * @param temporaryDirectoryManager a local temporary directory used to store
+  *                                  intermediate files during installation
+  * @param resourceManager           the resource manager instance
+  * @param lockUserInterface         an interface that will handle notifications
+  *                                  about waiting on locks
+  * @param progressReporter          an interface that will handle progress
+  *                                  notifications
   */
 class DownloadingLibraryCache(
   cacheRoot: Path,
@@ -129,6 +133,7 @@ class DownloadingLibraryCache(
     }
   }
 
+  /** Downloads and parses the library manifest. */
   private def downloadManifest(
     libraryName: LibraryName,
     access: LibraryAccess
@@ -150,6 +155,12 @@ class DownloadingLibraryCache(
   private def verifyPackageIntegrity(packageRoot: Path): Unit =
     PackageManager.Default.loadPackage(packageRoot.toFile).get
 
+  /** Downloads the package config and license file.
+    *
+    * If the license file does not exist, a warning is issued, but the
+    * installation proceeds. However if it fails to download for other reasons,
+    * the installation fails in the same way as it would for any other file.
+    */
   private def downloadLooseFiles(
     libraryName: LibraryName,
     version: SemVer,
@@ -181,6 +192,11 @@ class DownloadingLibraryCache(
       .get
   }
 
+  /** Downloads relevant library sub-archvies and extracts them to the library
+    * root.
+    *
+    * All archives are assumed to be gzipped TAR archives.
+    */
   private def downloadAndExtractArchives(
     libraryName: LibraryName,
     access: LibraryAccess,
@@ -218,11 +234,17 @@ class DownloadingLibraryCache(
       }
   }
 
+  /** Checks if a given sub-archive should be downloaded.
+    *
+    * Currently all archives, apart from the ones starting with `tests`, are
+    * downloaded.
+    */
   private def shouldDownloadArchive(archiveName: String): Boolean = {
     val isTestData = archiveName.startsWith("tests")
     !isTestData
   }
 
+  /** @inheritdoc */
   override def preinstallLibrary(
     libraryName: LibraryName,
     version: SemVer,
@@ -230,6 +252,9 @@ class DownloadingLibraryCache(
     dependencyResolver: LibraryName => Option[LibraryVersion]
   ): Try[Unit] = {
     logger.warn("Predownloading dependencies is not yet implemented.")
+    // TODO [RW] until fully fledged dependency preinstall is implemented, it
+    //  just preinstalls the library itself; if the library has any
+    //  dependencies, they will be downloaded by the compiler
     val _ = dependencyResolver
     findOrInstallLibrary(libraryName, version, recommendedRepository)
       .map(_ => ())
@@ -249,17 +274,19 @@ class DownloadingLibraryCache(
  *
  * Thanks to the mentioned assumption, once a library is present in the cache,
  * we can assume that it will not disappear, so we do not need to synchronize
- * read access. The only thing that needs to be synchronized is installing
- * libraries - to make sure that if two processes try to install the same
- * library, only one of them actually performs the action. We also need to be
- * sure that when one process checks if the library exists, and if another
- * process is in the middle of installing it, it will not yet report it as
- * existing (as this could lead to loading an only-partially installed library).
- * The primary way of ensuring that will be to install the libraries to a
- * temporary cache directory next to the true cache and atomically move it at
- * the end of the operation. However as we do not have real guarantees that the
- * filesystem move is atomic (although most of the time it should be if it is
- * within a single filesystem), we will use locking to ensure consistency.
+ * read access (after checking that the library does indeed exist). What needs
+ * to be synchronized is installing libraries - to make sure that if two
+ * processes try to install the same library, only one of them actually performs
+ * the action. We also need to be sure that when one process checks if the
+ * library exists, and if another process is in the middle of installing it, it
+ * will not yet report it as existing (as this could lead to loading an
+ * only-partially installed library). The primary way of ensuring that will be
+ * to install the libraries to a temporary cache directory next to the true
+ * cache and atomically move it at the end of the operation. However as we do
+ * not have real guarantees that the filesystem move is atomic (although most of
+ * the time it should be if it is within a single filesystem), we will use
+ * locking to ensure consistency.
+ *
  * Obviously, every client that tries to install a library will acquire a write
  * lock for it, so that only one client is actually installing; but also every
  * client checking for the existence of the library will briefly acquire a read
@@ -272,9 +299,7 @@ class DownloadingLibraryCache(
  * other process installed it in the meantime. This solution is efficient
  * because every library is locked independently and read locks can be acquired
  * by multiple clients at the same time, so the synchronization overhead for
- * already installed libraries is negligible, and for libraries that need to be
- * installed it is too negligible in comparison to the time required to download
- * the libraries.
+ * already installed libraries is negligible.
  *
  * A single LockManager (and its locks directory) should be associated with at
  * most one library cache directory, as it makes sense for the distribution to
