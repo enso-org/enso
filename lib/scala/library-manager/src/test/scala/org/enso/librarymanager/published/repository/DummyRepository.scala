@@ -103,6 +103,19 @@ abstract class DummyRepository {
   def startServer(port: Int, root: Path): WrappedProcess = {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
+
+    val preinstallExitCode = (new ProcessBuilder())
+      .command("npm", "install")
+      .directory(serverDirectory.toFile)
+      .inheritIO()
+      .start()
+      .waitFor()
+
+    if (preinstallExitCode != 0)
+      throw new RuntimeException(
+        "Failed to preinstall the Library Repository Server dependencies."
+      )
+
     val command = Seq(
       "node",
       "main.js",
@@ -118,7 +131,11 @@ abstract class DummyRepository {
     val process = new WrappedProcess(command, rawProcess)
     try {
       process.printIO()
-      process.waitForMessage("Serving the repository", 5, process.StdOut)
+      process.waitForMessage(
+        "Serving the repository",
+        timeoutSeconds = 15,
+        process.StdOut
+      )
     } catch {
       case NonFatal(e) =>
         process.kill()

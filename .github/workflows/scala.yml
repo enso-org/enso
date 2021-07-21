@@ -86,6 +86,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ env.nodeVersion }}
+      - name: Install Dependencies of the Simple Library Server
+        shell: bash
+        working-directory: tools/simple-library-server
+        run: |
+          npm install
       - name: Set Up SBT
         shell: bash
         run: |
