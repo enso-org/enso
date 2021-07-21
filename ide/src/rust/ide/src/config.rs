@@ -41,6 +41,7 @@ pub enum BackendService {
     LanguageServer {
         json_endpoint   : String,
         binary_endpoint : String,
+        namespace       : String,
     }
 }
 
@@ -62,15 +63,17 @@ impl BackendService {
                 Ok(Self::ProjectManager {endpoint})
             }
         } else {
-            match (&args.language_server_rpc,&args.language_server_data) {
-                (Some(json_endpoint),Some(binary_endpoint)) => {
+            match (&args.language_server_rpc,&args.language_server_data,&args.namespace) {
+                (Some(json_endpoint),Some(binary_endpoint),Some(namespace)) => {
                     let json_endpoint   = json_endpoint.clone();
                     let binary_endpoint = binary_endpoint.clone();
-                    Ok(Self::LanguageServer {json_endpoint,binary_endpoint})
+                    let namespace       = namespace.clone();
+                    Ok(Self::LanguageServer {json_endpoint,binary_endpoint,namespace})
                 }
-                (None,None)    => Ok(default()),
-                (Some(_),None) => Err(MissingOption(args.names().language_server_data()).into()),
-                (None,Some(_)) => Err(MissingOption(args.names().language_server_rpc()).into())
+                (None,None,None) => Ok(default()),
+                (None,_,_)       => Err(MissingOption(args.names().language_server_rpc()).into()),
+                (_,None,_)       => Err(MissingOption(args.names().language_server_data()).into()),
+                (_,_,None)       => Err(MissingOption(args.names().namespace()).into()),
             }
         }
     }

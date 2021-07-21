@@ -14,6 +14,7 @@ use crate::constants::SOURCE_DIRECTORY;
 use crate::controller::FilePath;
 use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::definition::DefinitionInfo;
+use crate::double_representation::project;
 
 use data::text::TextChange;
 use data::text::TextLocation;
@@ -192,7 +193,8 @@ impl Path {
     /// Obtain a pointer to a method of the module (i.e. extending the module's atom).
     ///
     /// Note that this cannot be used for a method extending other atom than this module.
-    pub fn method_pointer(&self, project_name:impl Str, method_name:impl Str) -> MethodPointer {
+    pub fn method_pointer
+    (&self, project_name:project::QualifiedName, method_name:impl Str) -> MethodPointer {
         let module          = String::from(self.qualified_module_name(project_name));
         let defined_on_type = module.clone();
         let name            = method_name.into();
@@ -208,10 +210,10 @@ impl Path {
     ///
     /// let path = Path::from_name_segments(default(),&["Main"]).unwrap();
     /// assert_eq!(path.to_string(),"//00000000-0000-0000-0000-000000000000/src/Main.enso");
-    /// let name = path.qualified_module_name("Project");
-    /// assert_eq!(name.to_string(),"Project.Main");
+    /// let name = path.qualified_module_name("local.Project".try_into().unwrap());
+    /// assert_eq!(name.to_string(),"local.Project.Main");
     /// ```
-    pub fn qualified_module_name(&self, project_name:impl Str) -> QualifiedName {
+    pub fn qualified_module_name(&self, project_name:project::QualifiedName) -> QualifiedName {
         let non_src_directories = &self.file_path.segments[1..self.file_path.segments.len()-1];
         let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
         let module_name         = self.module_name();
@@ -547,7 +549,7 @@ pub trait API:Debug+model::undo_redo::Aware {
     /// The module is assumed to be in the file identified by the `method.file` (for the purpose of
     /// desugaring implicit extensions methods for modules).
     fn lookup_method
-    (&self, project_name:&str, method:&MethodPointer)
+    (&self, project_name:project::QualifiedName, method:&MethodPointer)
     -> FallibleResult<double_representation::definition::Id> {
         let name = self.path().qualified_module_name(project_name);
         let ast  = self.ast();
@@ -669,12 +671,14 @@ pub mod test {
 
     #[test]
     fn module_qualified_name() {
+        let namespace    = "n";
         let project_name = "P";
+        let project_name = project::QualifiedName::from_segments(namespace,project_name).unwrap();
         let root_id      = default();
         let file_path    = FilePath::new(root_id, &["src", "Foo", "Bar.enso"]);
         let module_path  = Path::from_file_path(file_path).unwrap();
         let qualified    = module_path.qualified_module_name(project_name);
-        assert_eq!(qualified.to_string(), "P.Foo.Bar");
+        assert_eq!(qualified.to_string(), "n.P.Foo.Bar");
     }
 
     #[wasm_bindgen_test]

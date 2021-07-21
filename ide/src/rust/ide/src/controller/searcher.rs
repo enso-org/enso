@@ -10,6 +10,7 @@ use crate::double_representation::graph::GraphInfo;
 use crate::double_representation::graph::LocationHint;
 use crate::double_representation::module::QualifiedName;
 use crate::double_representation::node::NodeInfo;
+use crate::double_representation::project;
 use crate::double_representation::tp;
 use crate::model::module::MethodId;
 use crate::model::module::NodeMetadata;
@@ -416,7 +417,7 @@ impl Data {
     /// Additionally searcher should restore information about intended method, so we will be able
     /// to suggest arguments.
     fn new_with_edited_node
-    ( project_name   : &str
+    ( project_name   : project::QualifiedName
     , graph          : &controller::Graph
     , database       : &model::SuggestionDatabase
     , edited_node_id : ast::Id
@@ -501,7 +502,7 @@ impl Searcher {
         let logger   = Logger::sub(parent,"Searcher Controller");
         let database = project.suggestion_db();
         let data     = if let Mode::EditNode{node_id} = mode {
-            Data::new_with_edited_node(&*project.name(),&graph.graph(),&*database,node_id)?
+            Data::new_with_edited_node(project.qualified_name(),&graph.graph(),&*database,node_id)?
         } else {
             default()
         };
@@ -587,6 +588,7 @@ impl Searcher {
         let id                = self.data.borrow().input.next_completion_id();
         let picked_completion = FragmentAddedByPickingSuggestion {id,picked_suggestion};
         let code_to_insert    = self.code_to_insert(&picked_completion).code;
+        debug!(self.logger, "Code to insert: \"{code_to_insert}\"");
         let added_ast         = self.ide.parser().parse_line(&code_to_insert)?;
         let pattern_offset    = self.data.borrow().input.pattern_offset;
         let new_expression    = match self.data.borrow_mut().input.expression.take() {
@@ -655,8 +657,8 @@ impl Searcher {
                             let result = match action {
                                 action::ProjectManagement::CreateNewProject =>
                                     manage_projects.create_new_project(),
-                                action::ProjectManagement::OpenProject {id,name} =>
-                                    manage_projects.open_project(*id,name.to_string().into()),
+                                action::ProjectManagement::OpenProject {id,..} =>
+                                    manage_projects.open_project(*id),
                             };
                             if let Err(err) = result.await {
                                 error!(logger, "Error when creating new project: {err}");
@@ -996,7 +998,8 @@ impl Searcher {
     }
 
     fn module_qualified_name(&self) -> QualifiedName {
-        self.graph.graph().module.path().qualified_module_name(&*self.ide.current_project().name())
+        let project_name = self.ide.current_project().qualified_name();
+        self.graph.graph().module.path().qualified_module_name(project_name)
     }
 
     /// Get the user action basing of current input (see `UserAction` docs).
@@ -1127,7 +1130,7 @@ pub mod test {
     use crate::model::suggestion_database::entry::Scope;
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
-    use crate::test::mock::data::PROJECT_NAME;
+    use crate::test::mock::data::project_qualified_name;
 
     use enso_protocol::language_server::types::test::value_update_with_type;
     use json_rpc::expect_call;
@@ -1207,23 +1210,25 @@ pub mod test {
             let mut client = language_server::MockClient::default();
             client.require_all_calls();
             client_setup(&mut data,&mut client);
-            let end_of_code  = TextLocation::at_document_end(&data.graph.module.code);
-            let code_range   = TextLocation::at_document_begin()..=end_of_code;
-            let graph        = data.graph.controller();
-            let node         = &graph.graph().nodes().unwrap()[0];
-            let this         = ThisNode::new(vec![node.info.id()],&graph.graph());
-            let this         = data.selected_node.and_option(this);
-            let logger       = Logger::new("Searcher");// new_empty
-            let database     = Rc::new(SuggestionDatabase::new_empty(&logger));
-            let mut ide      = controller::ide::MockAPI::new();
-            let mut project  = model::project::MockAPI::new();
-            let project_name = ImString::new(&data.graph.graph.project_name);
-            project.expect_name().returning_st(move || project_name.clone_ref());
+            let end_of_code   = TextLocation::at_document_end(&data.graph.module.code);
+            let code_range    = TextLocation::at_document_begin()..=end_of_code;
+            let graph         = data.graph.controller();
+            let node          = &graph.graph().nodes().unwrap()[0];
+            let this          = ThisNode::new(vec![node.info.id()],&graph.graph());
+            let this          = data.selected_node.and_option(this);
+            let logger        = Logger::new("Searcher");// new_empty
+            let database      = Rc::new(SuggestionDatabase::new_empty(&logger));
+            let mut ide       = controller::ide::MockAPI::new();
+            let mut project   = model::project::MockAPI::new();
+            let project_qname = project_qualified_name();
+            let project_name  = project_qname.project.clone();
+            project.expect_qualified_name().returning_st(move || project_qname.clone());
+            project.expect_name().returning_st(move || project_name.clone());
             let project     = Rc::new(project);
             ide.expect_parser().return_const(Parser::new_or_panic());
             ide.expect_current_project().returning_st(move || project.clone_ref());
             ide.expect_manage_projects().returning_st(move || Err(ProjectOperationsNotSupported.into()));
-            let module_name = QualifiedName::from_segments(PROJECT_NAME, &[MODULE_NAME]).unwrap();
+            let module_name = QualifiedName::from_segments(data.graph.graph.project_name.clone(), &[MODULE_NAME]).unwrap();
             let searcher = Searcher {
                 graph,logger,database,
                 ide              : Rc::new(ide),
@@ -1273,8 +1278,8 @@ pub mod test {
                 ..entry1.clone()
             };
             let entry4 = model::suggestion_database::Entry {
-                self_type : Some("Test.Test".to_owned().try_into().unwrap()),
-                module    : "Test.Test".to_owned().try_into().unwrap(),
+                self_type : Some("test.Test.Test".to_owned().try_into().unwrap()),
+                module    : "test.Test.Test".to_owned().try_into().unwrap(),
                 arguments : vec![
                     Argument {
                         repr_type     : "Any".to_string(),
@@ -1315,7 +1320,7 @@ pub mod test {
             };
             let entry10 = model::suggestion_database::Entry {
                 name   : "testFunction3".to_string(),
-                module : "Test.Other".to_owned().try_into().unwrap(),
+                module : "test.Test.Other".to_owned().try_into().unwrap(),
                 scope  : Scope::Everywhere,
                 ..entry9.clone()
             };
@@ -1438,7 +1443,7 @@ pub mod test {
     #[wasm_bindgen_test]
     fn non_picked_function_arg_suggestions() {
         let mut fixture = Fixture::new_custom(|data,client| {
-            data.graph.module.code.insert_str(0,"import Test.Test\n\n");
+            data.graph.module.code.insert_str(0,"import test.Test.Test\n\n");
             data.code_location.line += 2;
             data.expect_completion(client,None,Some("String"),&[1]);
             data.expect_completion(client,None,Some("Number"),&[]);
@@ -1467,7 +1472,7 @@ pub mod test {
             let requested_types:Rc<RefCell<HashSet<Option<String>>>> = default();
             let requested_types2                                     = requested_types.clone();
             let mut fixture = Fixture::new_custom(move |data,client| {
-                data.graph.module.code.insert_str(0,"import Test.Test\n\n");
+                data.graph.module.code.insert_str(0,"import test.Test.Test\n\n");
                 data.code_location.line += 2;
                 for _ in 0..EXPECTED_REQUESTS {
                     let requested_types = requested_types2.clone();
@@ -1792,12 +1797,12 @@ pub mod test {
         searcher.mode = Immutable(Mode::NewNode {position});
         searcher.commit_node().unwrap();
 
-        let expected_code = "import Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
+        let expected_code = "import test.Test.Test\nmain = \n    2 + 2\n    operator1 = Test.testMethod1";
         assert_eq!(module.ast().repr(), expected_code);
         let (node1,node2) = searcher.graph.graph().nodes().unwrap().expect_tuple();
         let expected_intended_method = Some(MethodId {
-            module          : "Test.Test".to_string().try_into().unwrap(),
-            defined_on_type : "Test.Test".to_string().try_into().unwrap(),
+            module          : "test.Test.Test".to_string().try_into().unwrap(),
+            defined_on_type : "test.Test.Test".to_string().try_into().unwrap(),
             name            : "testMethod1".to_string(),
         });
         assert_eq!(node2.metadata.unwrap().intended_method, expected_intended_method);
@@ -1805,7 +1810,7 @@ pub mod test {
         // Edit existing node.
         searcher.mode = Immutable(Mode::EditNode {node_id:node1.info.id()});
         searcher.commit_node().unwrap();
-        let expected_code = "import Test.Test\nmain = \n    Test.testMethod1\n    operator1 = Test.testMethod1";
+        let expected_code = "import test.Test.Test\nmain = \n    Test.testMethod1\n    operator1 = Test.testMethod1";
         let (node1,_)     = searcher.graph.graph().nodes().unwrap().expect_tuple();
         assert_eq!(node1.metadata.unwrap().intended_method, expected_intended_method);
         assert_eq!(module.ast().repr(), expected_code);
@@ -1821,21 +1826,21 @@ pub mod test {
         let database = searcher.database;
 
         // Node had not intended method.
-        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(project_qualified_name(),&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.actions.is_loading());
 
         // Node had intended method, but it's outdated.
         let intended_method = MethodId {
-            module          : "Test.Test".to_string().try_into().unwrap(),
-            defined_on_type : "Test.Test".to_string().try_into().unwrap(),
+            module          : "test.Test.Test".to_string().try_into().unwrap(),
+            defined_on_type : "test.Test.Test".to_string().try_into().unwrap(),
             name            : "testMethod1".to_string()
         };
         graph.module.with_node_metadata(node_id, Box::new(|md| {
             md.intended_method = Some(intended_method);
         })).unwrap();
-        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(project_qualified_name(),&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), node.info.expression().repr());
         assert!(searcher_data.fragments_added_by_picking.is_empty());
         assert!(searcher_data.actions.is_loading());
@@ -1843,7 +1848,7 @@ pub mod test {
         // Node had up-to-date intended method.
         graph.set_expression(node_id,"Test.testMethod1 12").unwrap();
         // We set metadata in previous section.
-        let searcher_data = Data::new_with_edited_node(PROJECT_NAME,&graph,&database,node_id).unwrap();
+        let searcher_data = Data::new_with_edited_node(project_qualified_name(),&graph,&database,node_id).unwrap();
         assert_eq!(searcher_data.input.repr(), "Test.testMethod1 12");
         assert!(searcher_data.actions.is_loading());
         let (initial_fragment,) = searcher_data.fragments_added_by_picking.expect_tuple();
@@ -1902,10 +1907,10 @@ pub mod test {
         let example                         = model::suggestion_database::example::Example {
             name          : "Test Example".to_owned(),
             code          : "[1,2,3,4,5]".to_owned(),
-            imports       : vec!["Base.Network.Http".to_owned()],
+            imports       : vec!["std.Base.Network.Http".to_owned()],
             documentation : "Lorem ipsum".to_owned()
         };
-        let expected_code = "import Base.Network.Http\n\
+        let expected_code = "import std.Base.Network.Http\n\
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\
             main = \n    2 + 2\n    here.test_example1\n    here.test_example2";
         let example = Rc::new(example);

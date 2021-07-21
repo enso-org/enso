@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::double_representation::module;
+use crate::double_representation::project;
 use crate::model::suggestion_database;
 use crate::model::undo_redo;
 use crate::executor::test_utils::TestWithLocalPoolExecutor;
@@ -34,11 +35,12 @@ pub mod mock {
         use uuid::Uuid;
 
         pub const ROOT_ID         : Uuid     = Uuid::from_u128(100);
-        pub const PROJECT_NAME    : &str     = "MockProject";
+        pub const NAMESPACE_NAME  : &str     = "mock_namespace";
+        pub const PROJECT_NAME    : &str     = "Mock_Project";
         pub const MODULE_NAME     : &str     = "Mock_Module";
         pub const CODE            : &str     = "main = \n    2 + 2";
         pub const DEFINITION_NAME : &str     = "main";
-        pub const TYPE_NAME       : &str     = "MockProject.Mock_Module.Mock_Type";
+        pub const TYPE_NAME       : &str     = "mock_namespace.MockProject.Mock_Module.Mock_Type";
         pub const MAIN_FINISH     : Position = Position {line:1, character:9};
         pub const CONTEXT_ID      : Uuid     = Uuid::from_u128(0xFE);
 
@@ -46,8 +48,12 @@ pub mod mock {
             crate::model::module::Path::from_name_segments(ROOT_ID, &[MODULE_NAME]).unwrap()
         }
 
+        pub fn project_qualified_name() -> project::QualifiedName {
+            project::QualifiedName::from_segments(NAMESPACE_NAME,PROJECT_NAME).unwrap()
+        }
+
         pub fn module_qualified_name() -> module::QualifiedName {
-            module_path().qualified_module_name(PROJECT_NAME)
+            module_path().qualified_module_name(project_qualified_name())
         }
 
         pub fn definition_name() -> crate::double_representation::definition::DefinitionName {
@@ -89,10 +95,11 @@ pub mod mock {
         }
 
         pub fn suggestion_entry_foo() -> suggestion_database::Entry {
+            let project_name = project::QualifiedName::from_segments("std","Base").unwrap();
             suggestion_database::Entry {
                 name      : "foo".to_owned(),
-                module    : module::QualifiedName::from_segments("Std",&["Base"]).unwrap(),
-                self_type : Some("Std.Base".to_owned().try_into().unwrap()),
+                module    : module::QualifiedName::from_segments(project_name,&["Main"]).unwrap(),
+                self_type : Some("std.Base.Main".to_owned().try_into().unwrap()),
                 arguments : vec![foo_method_parameter(),foo_method_parameter2()],
                 return_type   : "Any".to_owned(),
                 kind          : suggestion_database::entry::Kind::Method,
@@ -102,10 +109,11 @@ pub mod mock {
         }
 
         pub fn suggestion_entry_bar() -> suggestion_database::Entry {
+            let project_name = project::QualifiedName::from_segments("std","Base").unwrap();
             suggestion_database::Entry {
                 name      : "bar".to_owned(),
-                module    : module::QualifiedName::from_segments("Std",&["Other"]).unwrap(),
-                self_type : Some("Std.Other".to_owned().try_into().unwrap()),
+                module    : module::QualifiedName::from_segments(project_name,&["Other"]).unwrap(),
+                self_type : Some("std.Base.Other".to_owned().try_into().unwrap()),
                 arguments : vec![bar_method_parameter()],
                 return_type   : "Any".to_owned(),
                 kind          : suggestion_database::entry::Kind::Method,
@@ -121,7 +129,7 @@ pub mod mock {
     #[derive(Clone,Debug)]
     pub struct Unified {
         pub logger        : Logger,
-        pub project_name  : String,
+        pub project_name  : project::QualifiedName,
         pub module_path   : model::module::Path,
         pub suggestions   : HashMap<suggestion_database::entry::Id,suggestion_database::Entry>,
         pub context_id    : model::execution_context::Id,
@@ -156,7 +164,7 @@ pub mod mock {
             let logger = Logger::new("UnifiedMock");
             Unified {
                 suggestions,
-                project_name    : PROJECT_NAME.to_owned(),
+                project_name    : project_qualified_name(),
                 module_path     : module_path(),
                 code            : CODE.to_owned(),
                 id_map          : default(),
@@ -184,7 +192,7 @@ pub mod mock {
         }
 
         pub fn module_qualified_name(&self) -> module::QualifiedName {
-            self.module_path.qualified_module_name(&self.project_name)
+            self.module_path.qualified_module_name(self.project_name.clone())
         }
 
         pub fn definition_id(&self) -> double_representation::definition::Id {
@@ -205,7 +213,7 @@ pub mod mock {
          -> crate::controller::Graph {
             let parser      = self.parser.clone_ref();
             let method      = self.method_pointer();
-            let definition  = module.lookup_method(&self.project_name,&method).expect("Lookup failed.");
+            let definition  = module.lookup_method(self.project_name.clone(),&method).expect("Lookup failed.");
             crate::controller::Graph::new(logger,module,db,parser,definition).expect("Graph could not be created")
         }
 
@@ -224,7 +232,8 @@ pub mod mock {
         , binary_client       : binary::MockClient
         ) -> model::Project {
             let mut project = model::project::MockAPI::new();
-            model::project::test::expect_name(&mut project,&self.project_name);
+            model::project::test::expect_name(&mut project,&self.project_name.project);
+            model::project::test::expect_qualified_name(&mut project,&self.project_name);
             model::project::test::expect_parser(&mut project,&self.parser);
             model::project::test::expect_module(&mut project,module);
             model::project::test::expect_execution_ctx(&mut project,execution_context);

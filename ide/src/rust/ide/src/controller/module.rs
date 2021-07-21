@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::text::apply_code_change_to_id_map;
 use crate::double_representation::module;
+use crate::double_representation::project;
 use crate::model::module::Path;
 
 use ast;
@@ -111,7 +111,7 @@ impl Handle {
     }
 
     /// Get the module's qualified name.
-    pub fn qualified_name(&self, project_name:ReferentName) -> module::QualifiedName {
+    pub fn qualified_name(&self, project_name:project::QualifiedName) -> module::QualifiedName {
         module::QualifiedName::new(project_name,self.model.id())
     }
 

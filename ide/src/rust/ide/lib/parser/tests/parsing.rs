@@ -395,7 +395,6 @@ impl Fixture {
         let macro_usages = vec!
             [ "[]", "[1,2,3]"
             , "{x}"
-            , "unsafe x", "private x"
             , "polyglot java import com.example.MyClass"
             , "foo -> bar"
             , "()"

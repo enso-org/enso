@@ -8,6 +8,7 @@ pub mod graph;
 pub mod identifier;
 pub mod module;
 pub mod node;
+pub mod project;
 pub mod refactorings;
 pub mod text;
 pub mod tp;

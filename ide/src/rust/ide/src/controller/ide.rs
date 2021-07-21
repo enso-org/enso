@@ -118,7 +118,7 @@ pub trait ManagingProjectAPI {
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;
 
     /// Open the project with given id and name.
-    fn open_project(&self, id:Uuid, name:ProjectName) -> BoxFuture<FallibleResult>;
+    fn open_project(&self, id:Uuid) -> BoxFuture<FallibleResult>;
 }
 
 

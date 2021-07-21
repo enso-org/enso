@@ -27,6 +27,7 @@ ensogl::read_args! {
         project_manager      : String,
         language_server_rpc  : String,
         language_server_data : String,
+        namespace            : String,
         platform             : web::platform::Platform,
         frame                : bool,
         theme                : String,

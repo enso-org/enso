@@ -116,15 +116,16 @@ impl Initializer {
                     (project_manager,project_name).await?;
                 Ok(Rc::new(controller))
             }
-            LanguageServer {json_endpoint,binary_endpoint} => {
+            LanguageServer {json_endpoint,binary_endpoint,namespace} => {
                 let json_endpoint   = json_endpoint.clone();
                 let binary_endpoint = binary_endpoint.clone();
+                let namespace       = namespace.clone();
                 let project_name    = self.config.project_name.clone();
                 // TODO[ao]: we should think how to handle engine's versions in cloud.
                 //     https://github.com/enso-org/ide/issues/1195
                 let version    = semver::Version::parse(ENGINE_VERSION_FOR_NEW_PROJECTS)?;
                 let controller = controller::ide::Plain::from_ls_endpoints
-                    (project_name,version,json_endpoint,binary_endpoint).await?;
+                    (namespace,project_name,version,json_endpoint,binary_endpoint).await?;
                 Ok(Rc::new(controller))
             }
         }
@@ -179,9 +180,7 @@ impl WithProjectManager {
         let project_id      = self.get_project_or_create_new().await?;
         let logger          = &self.logger;
         let project_manager = self.project_manager;
-        let project_name    = self.project_name;
-        model::project::Synchronized::new_opened(logger,project_manager,project_id,project_name)
-            .await
+        model::project::Synchronized::new_opened(logger,project_manager,project_id).await
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.
@@ -249,9 +248,11 @@ mod test {
         let mock_client  = project_manager::MockClient::default();
         let project_name = ProjectName::new("TestProject");
         let project      = project_manager::ProjectMetadata {
-            name        : project_name.clone(),
-            id          : uuid::Uuid::new_v4(),
-            last_opened : default(),
+            name           : project_name.clone(),
+            id             : uuid::Uuid::new_v4(),
+            last_opened    : default(),
+            engine_version : "127.0.01".to_owned(),
+            namespace      : "local".to_owned(),
         };
         let expected_id      = project.id;
         let projects         = vec![project];

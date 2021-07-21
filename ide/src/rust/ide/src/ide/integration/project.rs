@@ -1464,7 +1464,7 @@ impl Model {
     -> FallibleResult<model::module::QualifiedName> {
         use visualization::instance::ContextModule::*;
         match context {
-            ProjectMain           => Ok(self.project.main_module()),
+            ProjectMain           => Ok(self.project.main_module()?),
             Specific(module_name) => model::module::QualifiedName::from_text(module_name),
         }
     }
