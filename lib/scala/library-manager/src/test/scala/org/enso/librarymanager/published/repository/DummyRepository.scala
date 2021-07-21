@@ -1,6 +1,7 @@
 package org.enso.librarymanager.published.repository
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
@@ -94,6 +95,9 @@ abstract class DummyRepository {
     )
   }
 
+  private def npmCommand: String  = if (OS.isWindows) "npm.cmd" else "npm"
+  private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
+
   /** Starts a server for the library repository.
     *
     * @param port port to listen on
@@ -105,7 +109,7 @@ abstract class DummyRepository {
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
     val preinstallExitCode = (new ProcessBuilder())
-      .command("npm", "install")
+      .command(npmCommand, "install")
       .directory(serverDirectory.toFile)
       .inheritIO()
       .start()
@@ -117,7 +121,7 @@ abstract class DummyRepository {
       )
 
     val command = Seq(
-      "node",
+      nodeCommand,
       "main.js",
       "--port",
       port.toString,

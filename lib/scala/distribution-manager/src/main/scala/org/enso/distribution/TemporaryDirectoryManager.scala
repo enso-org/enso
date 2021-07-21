@@ -30,7 +30,7 @@ class TemporaryDirectoryManager(
   /** Creates a unique temporary subdirectory. */
   def temporarySubdirectory(prefix: String = ""): Path = {
     val paddedPrefix = if (prefix != "") prefix + "-" else prefix
-    val randomSuffix = random.nextLong().toString.stripPrefix("-")
+    val randomSuffix = random.nextInt().toString.stripPrefix("-")
     val path =
       safeTemporaryDirectory.resolve(paddedPrefix + randomSuffix)
     if (Files.exists(path))

@@ -850,7 +850,7 @@ class RuntimeVersionManager(
   private def safelyRemoveComponent(path: Path): Unit = {
     val temporaryPath =
       temporaryDirectoryManager.temporarySubdirectory(path.getFileName.toString)
-    FileSystem.atomicMove(path, temporaryPath)
+    FileSystem.atomicMove(path, temporaryPath / "tmp")
     FileSystem.removeDirectory(temporaryPath)
   }
 
