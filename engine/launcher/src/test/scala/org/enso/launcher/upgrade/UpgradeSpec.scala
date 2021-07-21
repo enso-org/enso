@@ -10,6 +10,7 @@ import org.enso.cli.OS
 import org.enso.launcher._
 import org.enso.runtimeversionmanager.test.WithTemporaryDirectory
 import org.enso.testkit.RetrySpec
+import org.enso.testkit.process.{RunResult, WrappedProcess}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 

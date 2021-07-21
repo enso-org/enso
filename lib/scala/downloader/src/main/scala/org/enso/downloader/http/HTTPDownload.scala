@@ -18,6 +18,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters.IterableHasAsJava
+import scala.util.{Failure, Success, Try}
 
 /** Represents a HTTP header. */
 case class Header(name: String, value: String) {
@@ -72,14 +73,17 @@ object HTTPDownload {
     def combineChunks(chunks: Seq[ByteString]): String =
       chunks.reduceOption(_ ++ _).map(_.decodeString(encoding)).getOrElse("")
     runRequest(
-      request.requestImpl,
-      sizeHint,
-      Sink.seq,
-      (response, chunks: Seq[ByteString]) =>
-        APIResponse(
-          combineChunks(chunks),
-          response.headers.map(header => Header(header.name, header.value)),
-          response.status.intValue()
+      request              = request.requestImpl,
+      sizeHint             = sizeHint,
+      earlyResponseMapping = response => Success(response),
+      sink                 = Sink.seq,
+      resultMapping = (response, chunks: Seq[ByteString]) =>
+        Success(
+          APIResponse(
+            combineChunks(chunks),
+            response.headers.map(header => Header(header.name, header.value)),
+            response.status.intValue()
+          )
         )
     )
   }
@@ -127,10 +131,20 @@ object HTTPDownload {
       destination
     )
     runRequest(
-      request.requestImpl,
-      sizeHint,
-      FileIO.toPath(destination),
-      (_, _: Any) => destination
+      request  = request.requestImpl,
+      sizeHint = sizeHint,
+      earlyResponseMapping = { response =>
+        if (response.status.isSuccess)
+          Success(response)
+        else if (response.status.intValue == 404)
+          Failure(ResourceNotFound())
+        else
+          Failure(
+            HTTPException(s"Server responded with: [${response.status.value}].")
+          )
+      },
+      sink          = FileIO.toPath(destination),
+      resultMapping = (_, _: Any) => Success(destination)
     )
   }
 
@@ -186,6 +200,11 @@ object HTTPDownload {
     * @param sizeHint an optional hint indicating the expected size of the
     *                  response. It is used if the response does not include
     *                  explicit Content-Length header.
+    * @param earlyResponseMapping a mapping that can be used to alter the
+    *                             response or handle any early errors; it is run
+    *                             before passing the response through the
+    *                             `sink`; thus it can be used to avoid creating
+    *                             downloaded files on failure
     * @param sink specifies how the response content should be handled, it
     *             receives chunks of [[ByteString]] and should produce a
     *             [[Future]] with some result
@@ -199,8 +218,9 @@ object HTTPDownload {
   private def runRequest[A, B](
     request: HttpRequest,
     sizeHint: Option[Long],
+    earlyResponseMapping: HttpResponse => Try[HttpResponse],
     sink: Sink[ByteString, Future[A]],
-    resultMapping: (HttpResponse, A) => B
+    resultMapping: (HttpResponse, A) => Try[B]
   ): TaskProgress[B] = {
     // TODO [RW] Add optional stream encoding allowing for compression -
     //  add headers and decode the stream if necessary (#1805).
@@ -265,8 +285,9 @@ object HTTPDownload {
     http
       .singleRequest(request)
       .flatMap(handleRedirects(maximumRedirects))
+      .flatMap(earlyResponseMapping andThen Future.fromTry)
       .flatMap(handleFinalResponse)
-      .map(resultMapping.tupled)
+      .flatMap(resultMapping.tupled andThen Future.fromTry)
       .onComplete(taskProgress.setComplete)
     taskProgress
   }

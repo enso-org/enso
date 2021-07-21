@@ -22,13 +22,14 @@ const argv = yargs
   .help()
   .alias("help", "h").argv;
 
+const app = express();
+app.use(compression({ filter: shouldCompress }));
+app.use(express.static(argv.root));
+
 console.log(
   `Serving the repository located under ${argv.root} on port ${argv.port}.`
 );
 
-const app = express();
-app.use(compression({ filter: shouldCompress }));
-app.use(express.static(argv.root));
 app.listen(argv.port);
 
 function shouldCompress(req, res) {

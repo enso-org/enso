@@ -10,13 +10,17 @@ import org.enso.distribution.locking.{
 import org.enso.distribution.{FileSystem, TemporaryDirectoryManager}
 import org.enso.editions.Editions
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
+import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.pkg.PackageManager
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.nio.file.Files
+
 class LibraryDownloadTest extends AnyWordSpec with Matchers {
 
-  val port: Int = 54325
+  val port: Int = 47306
 
   "DownloadingLibraryCache" should {
     "be able to download and install libraries from a repository" in {
@@ -53,23 +57,35 @@ class LibraryDownloadTest extends AnyWordSpec with Matchers {
             repo.testLib.version
           ) shouldBe empty
 
-          val libPath = cache
-            .findOrInstallLibrary(
-              repo.testLib.libraryName,
-              repo.testLib.version,
-              Editions
-                .Repository("test_repo", s"http://localhost:$port/libraries")
-            )
-            .get
+          val (libPath, logs) = TestLogger.gatherLogs {
+            cache
+              .findOrInstallLibrary(
+                repo.testLib.libraryName,
+                repo.testLib.version,
+                Editions
+                  .Repository("test_repo", s"http://localhost:$port/libraries")
+              )
+              .get
+          }
           val pkg = PackageManager.Default.loadPackage(libPath.toFile).get
           pkg.name shouldEqual "Bar"
           val sources = pkg.listSources
           sources should have size 1
           sources.head.file.getName shouldEqual "Main.enso"
-          // TODO [RW] check that the license is missing
+          assert(
+            Files.notExists(libPath.resolve("LICENSE.md")),
+            "The license file should not exist as it was not provided " +
+            "in the repository."
+          )
+          logs should contain(
+            TestLogMessage(
+              LogLevel.Warning,
+              "License file for library [Foo.Bar:1.0.0] was missing."
+            )
+          )
         } finally {
-          server.destroy()
-          server.waitFor()
+          server.kill()
+          server.join()
         }
       }
     }

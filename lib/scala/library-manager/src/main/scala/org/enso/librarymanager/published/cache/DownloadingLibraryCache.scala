@@ -10,6 +10,7 @@ import org.enso.distribution.locking.{
 }
 import org.enso.distribution.{FileSystem, TemporaryDirectoryManager}
 import org.enso.downloader.archive.Archive
+import org.enso.downloader.http.ResourceNotFound
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.published.repository.RepositoryHelper.{
@@ -167,13 +168,17 @@ class DownloadingLibraryCache(
       s"Downloading license of [$libraryName].",
       licenseDownload
     )
-    TaskProgress.waitForTask(licenseDownload).getOrElse {
-      // TODO [RW] Once warnings are reported to the IDE (#1860),
-      //  inform that the license file is missing.
-      logger.warn(
-        s"License file for library [$libraryName:$version] was missing."
-      )
-    }
+    TaskProgress
+      .waitForTask(licenseDownload)
+      .recoverWith { case ResourceNotFound() =>
+        // TODO [RW] Once warnings are reported to the IDE (#1860),
+        //  inform that the license file is missing.
+        logger.warn(
+          s"License file for library [$libraryName:$version] was missing."
+        )
+        Success(())
+      }
+      .get
   }
 
   private def downloadAndExtractArchives(

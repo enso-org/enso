@@ -1403,6 +1403,7 @@ lazy val `library-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
   .dependsOn(testkit % Test)
+  .dependsOn(`logging-service` % Test)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))

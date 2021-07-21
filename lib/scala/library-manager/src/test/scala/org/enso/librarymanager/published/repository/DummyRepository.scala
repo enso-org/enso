@@ -5,9 +5,11 @@ import org.enso.distribution.FileSystem
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.testkit.process.WrappedProcess
 
 import java.io.File
 import java.nio.file.{Files, Path}
+import scala.util.control.NonFatal
 
 abstract class DummyRepository {
 
@@ -72,19 +74,30 @@ abstract class DummyRepository {
     )
   }
 
-  def startServer(port: Int, root: Path): Process = {
+  def startServer(port: Int, root: Path): WrappedProcess = {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
-    (new ProcessBuilder)
-      .command(
-        "node",
-        "main.js",
-        "--port",
-        port.toString,
-        "--root",
-        root.toAbsolutePath.normalize.toString
-      )
+    val command = Seq(
+      "node",
+      "main.js",
+      "--port",
+      port.toString,
+      "--root",
+      root.toAbsolutePath.normalize.toString
+    )
+    val rawProcess = (new ProcessBuilder)
+      .command(command: _*)
       .directory(serverDirectory.toFile)
       .start()
+    val process = new WrappedProcess(command, rawProcess)
+    try {
+      process.printIO()
+      process.waitForMessage("Serving the repository", 5, process.StdOut)
+    } catch {
+      case NonFatal(e) =>
+        process.kill()
+        throw e
+    }
+    process
   }
 }
