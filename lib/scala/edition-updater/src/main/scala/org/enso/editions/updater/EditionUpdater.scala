@@ -59,7 +59,7 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
     repositoryRoot: URIBuilder
   ): Try[Manifest] =
     Try {
-      val uri      = repositoryRoot.addPathSegment(Manifest.fileName).build()
+      val uri      = repositoryRoot.addPathSegment(Manifest.filename).build()
       val request  = HTTPRequestBuilder.fromURI(uri).GET
       val response = HTTPDownload.fetchString(request).force()
       YamlHelper.parseString[Manifest](response.content).toTry.get

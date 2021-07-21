@@ -11,7 +11,7 @@ import io.circe.Decoder
 case class EditionName(name: String) extends AnyVal {
 
   /** Returns the name of the file that is associated with the edition name. */
-  def toFileName: String = s"$name.yaml"
+  def toFileName: String = name + EditionName.editionSuffix
 }
 
 object EditionName {
@@ -29,4 +29,18 @@ object EditionName {
       .orElse(json.as[Float].map(_.toString))
       .map(EditionName(_))
   }
+
+  /** The filename suffix that is used to create a filename corresponding to a
+    * named edition.
+    */
+  val editionSuffix = ".yaml"
+
+  /** Creates an [[EditionName]] from the corresponding filename.
+    *
+    * Returns None if the filename does not correspond to an edition.
+    */
+  def fromFilename(filename: String): Option[EditionName] =
+    if (filename.endsWith(editionSuffix))
+      Some(EditionName(filename.stripSuffix(editionSuffix)))
+    else None
 }

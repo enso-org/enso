@@ -20,25 +20,6 @@ import scala.concurrent.Future
 import scala.jdk.CollectionConverters.IterableHasAsJava
 import scala.util.{Failure, Success, Try}
 
-/** Represents a HTTP header. */
-case class Header(name: String, value: String) {
-
-  /** Checks if this header instance corresponds to a `headerName`.
-    *
-    * The check is case-insensitive.
-    */
-  def is(headerName: String): Boolean =
-    name.toLowerCase == headerName.toLowerCase
-}
-
-/** Contains the response contents as a string alongside with the headers
-  * included in the response.
-  *
-  * @param content the response decoded as a string
-  * @param headers sequence of headers included in the response
-  */
-case class APIResponse(content: String, headers: Seq[Header], statusCode: Int)
-
 /** Contains utility functions for fetching data using the HTTP(S) protocol. */
 object HTTPDownload {
   private val logger = Logger[HTTPDownload.type]
@@ -204,7 +185,7 @@ object HTTPDownload {
     *                             response or handle any early errors; it is run
     *                             before passing the response through the
     *                             `sink`; thus it can be used to avoid creating
-    *                             downloaded files on failure
+    *                             downloaded files if the request fails
     * @param sink specifies how the response content should be handled, it
     *             receives chunks of [[ByteString]] and should produce a
     *             [[Future]] with some result

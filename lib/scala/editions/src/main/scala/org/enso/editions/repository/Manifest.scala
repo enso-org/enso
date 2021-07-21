@@ -23,5 +23,5 @@ object Manifest {
   /** The name of the manifest file that should be present at the root of
     * editions repository.
     */
-  val fileName = "manifest.yaml"
+  val filename = "manifest.yaml"
 }

@@ -24,6 +24,10 @@ import java.nio.file.Path
   *
   * @param distributionManager  a distribution manager
   * @param resourceManager      a resource manager
+  * @param lockUserInterface    an interface that will handle notifications
+  *                             about waiting on locks
+  * @param progressReporter     an interface that will handle progress
+  *                             notifications
   * @param languageHome         a language home which may contain bundled libraries
   * @param edition              the edition used in the project
   * @param preferLocalLibraries project setting whether to use local libraries
@@ -110,18 +114,12 @@ class DefaultLibraryProvider(
           }
 
       case Right(version @ LibraryVersion.Published(semver, repository)) =>
-        val res =
-          publishedLibraryProvider
-            .findLibrary(libraryName, semver, repository)
-            .map(ResolvedLibrary(libraryName, version, _))
-            .toEither
-        res match {
-          case Left(value) =>
-            println(s"Download error: $value")
-            value.printStackTrace()
-          case Right(_) =>
-        }
-        res.left.map(ResolvingLibraryProvider.Error.DownloadFailed)
+        publishedLibraryProvider
+          .findLibrary(libraryName, semver, repository)
+          .map(ResolvedLibrary(libraryName, version, _))
+          .toEither
+          .left
+          .map(ResolvingLibraryProvider.Error.DownloadFailed)
     }
   }
 }

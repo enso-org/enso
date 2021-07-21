@@ -4,6 +4,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.locking.Resource
 import org.enso.editions.LibraryName
 
+/** A resource that synchronizes installation of a library in the cache. */
 case class LibraryResource(libraryName: LibraryName, version: SemVer)
     extends Resource {
   override def name: String =

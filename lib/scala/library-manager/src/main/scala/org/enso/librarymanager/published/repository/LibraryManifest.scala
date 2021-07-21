@@ -46,5 +46,5 @@ object LibraryManifest {
   /** The name of the manifest file as included in the directory associated with
     * a given library in the library repository.
     */
-  val fileName = "manifest.yaml"
+  val filename = "manifest.yaml"
 }

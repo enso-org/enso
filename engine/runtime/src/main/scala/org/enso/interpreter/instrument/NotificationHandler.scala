@@ -10,8 +10,8 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import java.nio.file.Path
 
-/** A class that forwards notifications about loaded libraries and long-running
-  * tasks to the user interface.
+/** A class that forwards notifications about loaded libraries, locks and
+  * long-running tasks to the user interface.
   */
 trait NotificationHandler extends ProgressReporter with LockUserInterface {
 
@@ -56,9 +56,11 @@ object NotificationHandler {
       }
     }
 
+    /** @inheritdoc */
     override def startWaitingForResource(resource: Resource): Unit =
       logger.warn(resource.waitMessage)
 
+    /** @inheritdoc */
     override def finishWaitingForResource(resource: Resource): Unit = ()
   }
 

@@ -85,6 +85,11 @@ class TemporaryDirectoryManager(
 }
 
 object TemporaryDirectoryManager {
+
+  /** A helper constructor that creates a [[TemporaryDirectoryManager]] using
+    * the temporary directory inside of the distribution managed by the provided
+    * [[DistributionManager]].
+    */
   def apply(
     distribution: DistributionManager,
     resourceManager: ResourceManager

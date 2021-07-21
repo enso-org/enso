@@ -199,16 +199,14 @@ object PackageRepository {
       else {
         logger.trace(s"Resolving library $libraryName.")
         val resolvedLibrary = libraryProvider.findLibrary(libraryName)
-        logger.whenTraceEnabled {
-          resolvedLibrary match {
-            case Left(error) =>
-              logger.trace(s"Resolution failed with [$error].")
-            case Right(resolved) =>
-              logger.trace(
-                s"Found library ${resolved.name} @ ${resolved.version} " +
-                s"at [${MaskedPath(resolved.location).applyMasking()}]."
-              )
-          }
+        resolvedLibrary match {
+          case Left(error) =>
+            logger.error(s"Resolution failed with [$error].", error)
+          case Right(resolved) =>
+            logger.trace(
+              s"Found library ${resolved.name} @ ${resolved.version} " +
+              s"at [${MaskedPath(resolved.location).applyMasking()}]."
+            )
         }
 
         this.synchronized {
@@ -319,6 +317,7 @@ object PackageRepository {
     * @param projectPackage      the package of the current project (if ran inside of a project)
     * @param languageHome        the language home (if set)
     * @param distributionManager the distribution manager
+    * @param resourceManager     the resource manager instance
     * @param context             the context reference, needed to add polyglot libraries to
     *                            the classpath
     * @param builtins            the builtins that are always preloaded

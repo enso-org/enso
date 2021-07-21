@@ -9,6 +9,13 @@ import org.enso.distribution.locking.{LockUserInterface, Resource}
 
 import java.util.UUID
 
+/** A helper class that provides an implementation of
+  * [[ProgressNotificationForwarder]] and [[LockUserInterface]] which are also
+  * forwarded as progress notifications with indeterminate progress amounts.
+  *
+  * All it needs to function is for the user to define the
+  * `sendProgressNotification` method.
+  */
 abstract class ProgressAndLockNotificationForwarder
     extends ProgressNotificationForwarder
     with LockUserInterface {
