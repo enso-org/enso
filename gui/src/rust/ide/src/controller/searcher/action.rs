@@ -46,7 +46,7 @@ impl Display for Action {
                 let should_put_project_name = self_type.name == constants::PROJECTS_MAIN_MODULE
                     && self_type.module_segments.is_empty();
                 let self_type_name = if should_put_project_name {
-                    self_type.project_name.as_ref()
+                    self_type.project_name.project.as_ref()
                 } else { &self_type.name };
                 write!(f,"{}.{}",self_type_name,completion.name)
             } else {

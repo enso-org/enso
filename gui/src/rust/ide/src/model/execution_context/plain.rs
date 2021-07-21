@@ -215,6 +215,7 @@ pub mod test {
     use super::*;
 
     use crate::double_representation::definition::DefinitionName;
+    use crate::double_representation::project;
 
     #[derive(Clone,Derivative)]
     #[derivative(Debug)]
@@ -222,6 +223,7 @@ pub mod test {
         pub module_path     : model::module::Path,
         pub context_id      : model::execution_context::Id,
         pub root_definition : DefinitionName,
+        pub namespace       : String,
         pub project_name    : String,
     }
 
@@ -237,12 +239,14 @@ pub mod test {
                 context_id      : model::execution_context::Id::new_v4(),
                 module_path     : crate::test::mock::data::module_path(),
                 root_definition : crate::test::mock::data::definition_name(),
+                namespace       : crate::test::mock::data::NAMESPACE_NAME.to_owned(),
                 project_name    : crate::test::mock::data::PROJECT_NAME.to_owned(),
             }
         }
 
         pub fn module_qualified_name(&self) -> model::module::QualifiedName {
-            self.module_path.qualified_module_name(&self.project_name)
+            let project_name = project::QualifiedName::from_segments(&self.namespace,&self.project_name);
+            self.module_path.qualified_module_name(project_name.unwrap())
         }
 
         pub fn definition_id(&self) -> model::execution_context::DefinitionId {

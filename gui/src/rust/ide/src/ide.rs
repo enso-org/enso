@@ -88,5 +88,5 @@ impl Ide {
 
 /// The Path of the module initially opened after opening project in IDE.
 pub fn initial_module_path(project:&model::Project) -> FallibleResult<model::module::Path> {
-    model::module::Path::from_name_segments(project.content_root_id(),&[INITIAL_MODULE_NAME])
+    model::module::Path::from_name_segments(project.project_content_root_id(),&[INITIAL_MODULE_NAME])
 }

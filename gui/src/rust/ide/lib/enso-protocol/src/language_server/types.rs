@@ -390,32 +390,56 @@ impl FileSystemObject {
 // === Content Roots ===
 // =====================
 
-/// The type of the annotated content root.
-#[derive(Clone,Copy,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
-pub enum ContentRootType {
-    /// The project home.
-    Project,
-    /// System root `/` on unix systems, or drive root on Windows. In Windows’ case, there may be
-    /// multiple [`Root`] entries corresponding to the various drives.
-    Root,
-    /// The user’s home directory.
-    Home,
-    /// An Enso library location.
-    Library,
-    /// A content root that has been added by the IDE (unused for now).
-    Custom
-}
-
 /// A content root represents a location on a real file-system that has been virtualized for use in
 /// the Cloud.
 #[allow(missing_docs)]
 #[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
-#[serde(rename_all="camelCase")]
-pub struct ContentRoot {
-    pub id:Uuid,
-    #[serde(rename="type")]
-    pub content_root_type : ContentRootType,
-    pub name              : String,
+#[serde(tag="type")]
+pub enum ContentRoot {
+    /// Points to the project home.
+    #[serde(rename_all="camelCase")]
+    Project {
+        id : Uuid,
+    },
+    /// This content root points to the system root (`/`) on unix systems, or to a drive root on
+    /// Windows. In Windows' case, there may be multiple `Root` entries corresponding to the various
+    /// drives.
+    #[serde(rename_all="camelCase")]
+    FileSystemRoot {
+        id   : Uuid,
+        path : String,
+    },
+    /// The user's home directory
+    #[serde(rename_all="camelCase")]
+    Home {
+        id : Uuid,
+    },
+    /// An Enso library location.
+    #[serde(rename_all="camelCase")]
+    Library {
+        id        : Uuid,
+        namespace : String,
+        name      : String,
+        version   : String,
+    },
+    /// A content root that has been added by the IDE.
+    #[serde(rename_all="camelCase")]
+    Custom {
+        id : Uuid,
+    }
+}
+
+impl ContentRoot {
+    /// The content root's id.
+    pub fn id(&self) -> Uuid {
+        match self {
+            ContentRoot::Project        {id   } => *id,
+            ContentRoot::FileSystemRoot {id,..} => *id,
+            ContentRoot::Home           {id   } => *id,
+            ContentRoot::Library        {id,..} => *id,
+            ContentRoot::Custom         {id   } => *id,
+        }
+    }
 }
 
 

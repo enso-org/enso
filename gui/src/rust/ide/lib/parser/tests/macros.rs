@@ -15,7 +15,7 @@ fn import_utilities() {
     let parser = Parser::new_or_panic();
     let expect_import = |code:&str| {
         let ast = parser.parse_line(code).unwrap();
-        assert!(is_ast_import(&ast));
+        assert!(is_ast_import(&ast), "Not Ast import: {:?}", ast);
         let ast_match = ast_as_import_match(&ast).unwrap();
         assert_eq!(&ast,ast_match.ast());
         assert!(is_match_import(&ast_match));
@@ -29,10 +29,12 @@ fn import_utilities() {
 
     expect_import("import");
     expect_import("import Foo");
+    expect_import("import foo.Foo.Bar");
+    expect_import("import foo.Foo.Bar");
     expect_import("import Foo.Bar");
     expect_import("import Foo.Bar.Baz");
     expect_import("from Foo import Bar");
-    expect_import("from Foo import all hiding Bar");
+    expect_import("from foo.Foo import all hiding Bar");
     expect_import("from Base.Data.List import all hiding Cons, Nil");
 
     expect_not_import("type Foo");

@@ -5,7 +5,6 @@ use crate::prelude::*;
 use crate::language_server::API;
 use crate::language_server::MockClient;
 use crate::language_server::types::ContentRoot;
-use crate::language_server::types::ContentRootType;
 
 use uuid::Uuid;
 use utils::fail::FallibleResult;
@@ -59,8 +58,7 @@ impl Connection {
     }
 
     fn extract_project_root(content_roots:&mut Vec<ContentRoot>) -> FallibleResult<ContentRoot> {
-        use ContentRootType::*;
-        let opt_index = content_roots.iter().position(|cr| cr.content_root_type == Project);
+        let opt_index = content_roots.iter().position(|cr| matches!(cr, ContentRoot::Project {..}));
         let index     = opt_index.ok_or(MissingContentRoots)?;
         Ok(content_roots.drain(index..=index).next().unwrap())
     }
@@ -70,11 +68,7 @@ impl Connection {
         Connection {
             client       : Box::new(client),
             client_id    : default(),
-            project_root : ContentRoot {
-                id                : default(),
-                content_root_type : ContentRootType::Project,
-                name              : "Project".to_owned()
-            },
+            project_root : ContentRoot::Project {id:default()},
             content_roots : default(),
         }
     }

@@ -343,7 +343,9 @@ pub mod tests {
             let method      = self.graph.method();
             let mut project = model::project::MockAPI::new();
             let ctx         = Rc::new(self.ctx.create());
+            let proj_name   = test::mock::data::project_qualified_name();
             model::project::test::expect_name(&mut project,test::mock::data::PROJECT_NAME);
+            model::project::test::expect_qualified_name(&mut project,&proj_name);
             model::project::test::expect_parser(&mut project,&parser);
             model::project::test::expect_module(&mut project,module);
             model::project::test::expect_execution_ctx(&mut project,ctx);

@@ -14,7 +14,6 @@ use ide::prelude::*;
 
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
-use ide::double_representation::identifier::ReferentName;
 use ide::model::module;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
@@ -63,12 +62,13 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-    let _guard   = ide::initializer::setup_global_executor();
-    let ide      = setup_ide().await;
-    let project  = ide.current_project();
-    let client   = project.json_rpc();
-    let root_id  = project.content_root_id();
-    let project_name = ReferentName::new(project.name()).unwrap();
+
+    let _guard       = ide::initializer::setup_global_executor();
+    let ide          = setup_ide().await;
+    let project      = ide.current_project();
+    let client       = project.json_rpc();
+    let root_id      = project.project_content_root_id();
+    let project_name = project.qualified_name();
 
     // Initialize files.
     let file      = Path::new(root_id,&["src","Main.enso"]);
@@ -240,7 +240,7 @@ async fn file_events() {
     let client_id = uuid::Uuid::default();
     let session   = client.init_protocol_connection(&client_id).await;
     let session   = session.expect("Couldn't initialize session.");
-    let root_id   = session.content_roots[0].id;
+    let root_id   = session.content_roots[0].id();
 
     let path      = Path{root_id,segments:vec!["test.txt".into()]};
     let file      = client.file_exists(&path).await;
@@ -298,7 +298,7 @@ async fn file_operations_test() {
     let project = ide.current_project();
     info!(logger,"Got project: {project:?}");
     // Edit file using the text protocol
-    let path     = Path::new(project.json_rpc().project_root().id, &["test_file.txt"]);
+    let path     = Path::new(project.json_rpc().project_root().id(), &["test_file.txt"]);
     let contents = "Hello, 世界!".to_string();
     let written  = project.json_rpc().write_file(&path,&contents).await.unwrap();
     info!(logger,"Written: {written:?}");
@@ -333,7 +333,7 @@ async fn binary_visualization_updates_test_hlp() {
 
     let logger                = Logger::new("Test");
     let module_path           = ide::initial_module_path(&project).unwrap();
-    let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
+    let method                = module_path.method_pointer(project.qualified_name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
     info!(logger,"Got module: {module:?}");

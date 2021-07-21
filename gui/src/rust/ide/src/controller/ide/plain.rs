@@ -3,9 +3,12 @@
 //! See [`crate::controller::ide`] for more detailed description of IDE Controller API.
 
 use crate::prelude::*;
+
 use crate::controller::ide::ManagingProjectAPI;
 use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
+use crate::double_representation::project;
+use crate::model::project::synchronized::Properties;
 
 use enso_protocol::project_manager::ProjectName;
 use parser::Parser;
@@ -51,17 +54,22 @@ impl Handle {
 
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
     pub async fn from_ls_endpoints
-    ( project_name    : ProjectName
+    ( namespace       : String
+    , project_name    : ProjectName
     , version         : semver::Version
     , json_endpoint   : String
     , binary_endpoint : String
     ) -> FallibleResult<Self> {
         let logger     = Logger::new("controller::ide::Plain");
+        let properties = Properties {
         //TODO [ao]: this should be not the default; instead project model should not need the id.
         //    See https://github.com/enso-org/ide/issues/1572
-        let project_id = default();
+            id             : default(),
+            name           : project::QualifiedName::from_segments(namespace,project_name)?,
+            engine_version : version
+        };
         let project    = model::project::Synchronized::new_connected
-            (&logger,None,json_endpoint,binary_endpoint,version,project_id,project_name).await?;
+            (&logger,None,json_endpoint,binary_endpoint,properties).await?;
         let status_notifications = default();
         let parser               = Parser::new_or_panic();
         Ok(Self{logger,status_notifications,parser,project})

@@ -150,7 +150,7 @@ impl Entry {
                 None
             }
         } else {
-            // No this expression unless we have been requested to add one.
+            // No "this" expression unless we have been requested to add one.
             None
         };
 
@@ -439,8 +439,8 @@ mod test {
 
     #[test]
     fn code_from_entry() {
-        let main_module    = module::QualifiedName::from_text("Project.Main").unwrap();
-        let another_module = module::QualifiedName::from_text("Project.Another_Module").unwrap();
+        let main_module    = module::QualifiedName::from_text("local.Project.Main").unwrap();
+        let another_module = module::QualifiedName::from_text("local.Project.Another_Module").unwrap();
         let atom = Entry {
             name          : "Atom".to_owned(),
             kind          : Kind::Atom,
@@ -454,7 +454,7 @@ mod test {
         let method = Entry {
             name      : "method".to_string(),
             kind      : Kind::Method,
-            self_type : Some("Base.Main.Number".to_string().try_into().unwrap()),
+            self_type : Some("std.Base.Main.Number".to_string().try_into().unwrap()),
             ..atom.clone()
         };
         let module_method = Entry {

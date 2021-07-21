@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::module;
+use crate::double_representation::project;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -19,6 +20,8 @@ use serde::Serialize;
 pub enum InvalidQualifiedName {
     #[fail(display="The qualified name is empty.")]
     EmptyName{source:String},
+    #[fail(display="The qualified name has no namespace.")]
+    NoNamespaceName{source:String},
     #[fail(display="No module in type qualified name.")]
     NoModuleName{source:String},
 }
@@ -42,7 +45,7 @@ pub enum InvalidQualifiedName {
 #[serde(try_from="String")]
 pub struct QualifiedName {
     /// The first segment in the full qualified name.
-    pub project_name    : ReferentName,
+    pub project_name    : project::QualifiedName,
     /// All segments between the project name (the first) and the entity name (the last).
     pub module_segments : Vec<ReferentName>,
     /// The last segment in the full qualified name.
@@ -69,11 +72,13 @@ impl QualifiedName {
     /// Create from a text representation. May fail if the text is not valid Qualified name of any
     /// type.
     pub fn from_text(text:impl Str) -> FallibleResult<Self> {
+        use InvalidQualifiedName::*;
         let text:String         = text.into();
         let mut all_segments    = text.split('.');
-        let project_name_str    = all_segments.next().ok_or_else(|| InvalidQualifiedName::EmptyName{source:text.clone()})?;
-        let project_name        = ReferentName::new(project_name_str)?;
-        let name_str            = all_segments.next_back().ok_or_else(||InvalidQualifiedName::NoModuleName{source:text.clone()})?;
+        let namespace           = all_segments.next().ok_or_else(|| EmptyName{source:text.clone()})?;
+        let project_name        = all_segments.next().ok_or_else(|| NoNamespaceName{source:text.clone()})?;
+        let project_name        = project::QualifiedName::from_segments(namespace,project_name)?;
+        let name_str            = all_segments.next_back().ok_or_else(||NoModuleName{source:text.clone()})?;
         let name                = name_str.to_owned();
         let mut module_segments = Vec::new();
         for segment in all_segments {
@@ -121,7 +126,7 @@ impl From<QualifiedName> for String {
 
 impl From<&QualifiedName> for String {
     fn from(name:&QualifiedName) -> Self {
-        let project_name = std::iter::once(name.project_name.as_ref());
+        let project_name = name.project_name.segments();
         let segments     = name.module_segments.iter().map(AsRef::<str>::as_ref);
         let name         = std::iter::once(name.name.as_ref());
         project_name.chain(segments).chain(name).join(".")
@@ -143,13 +148,15 @@ impl Display for QualifiedName {
 
 #[cfg(test)]
 mod test {
-    // use super::*;
+    use super::*;
 
     use crate::double_representation::tp::QualifiedName;
 
+
     #[test]
     fn qualified_name_from_string() {
-        let valid_case = |text:&str, project_name:&str, segments:Vec<&str>, name:&str| {
+        let valid_case = |text:&str, ns_name:&str, project_name:&str, segments:Vec<&str>, name:&str| {
+            let project_name = project::QualifiedName::from_segments(ns_name,project_name).unwrap();
             let result = QualifiedName::from_text(text).unwrap();
             assert_eq!(result.project_name    , project_name);
             assert_eq!(result.module_segments , segments    );
@@ -160,12 +167,13 @@ mod test {
             assert!(QualifiedName::from_text(text).is_err());
         };
 
-        valid_case("Project.Main.Test.foo" , "Project", vec!["Main", "Test"], "foo");
-        valid_case("Project.Main.Bar"      , "Project", vec!["Main"]        , "Bar");
-        valid_case("Project.Baz"           , "Project", vec![]              , "Baz");
+        valid_case("local.Project.Main.Test.foo" , "local" , "Project", vec!["Main", "Test"], "foo");
+        valid_case("local.Project.Main.Bar"      , "local" , "Project", vec!["Main"]        , "Bar");
+        valid_case("local.Project.Baz"           , "local" , "Project", vec![]              , "Baz");
 
-        invalid_case("Project");
-        invalid_case("Project.module.foo");
+        invalid_case("local");
+        invalid_case("local.Project");
+        invalid_case("local.Project.module.foo");
         invalid_case("...");
         invalid_case("");
     }

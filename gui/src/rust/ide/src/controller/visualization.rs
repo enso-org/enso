@@ -105,7 +105,7 @@ impl Handle {
 
     async fn list_project_specific_visualizations
     (&self) -> FallibleResult<Vec<VisualizationPath>> {
-        let root_id   = self.language_server_rpc.project_root().id;
+        let root_id   = self.language_server_rpc.project_root().id();
         let path      = language_server::Path::new(root_id,&[VISUALIZATION_DIRECTORY]);
         let folder    = self.language_server_rpc.file_exists(&path).await?;
         let file_list = if folder.exists {
