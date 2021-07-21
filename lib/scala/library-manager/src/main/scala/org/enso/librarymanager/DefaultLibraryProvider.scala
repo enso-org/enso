@@ -50,8 +50,9 @@ class DefaultLibraryProvider(
 
   private val resolver = LibraryResolver(localLibraryProvider)
 
+  private val cacheRoot = distributionManager.paths.cachedLibraries
   private val primaryCache = new DownloadingLibraryCache(
-    cacheRoot = distributionManager.paths.cachedLibraries,
+    cacheRoot,
     TemporaryDirectoryManager(distributionManager, resourceManager),
     resourceManager,
     lockUserInterface,
@@ -76,7 +77,7 @@ class DefaultLibraryProvider(
       s"Local library search paths = ${localLibrarySearchPaths.map(mask)}"
     )
     logger.trace(
-      s"Primary library cache = Not implemented"
+      s"Primary library cache = ${mask(cacheRoot)}"
     )
     logger.trace(
       s"Auxiliary (bundled) library caches = " +
