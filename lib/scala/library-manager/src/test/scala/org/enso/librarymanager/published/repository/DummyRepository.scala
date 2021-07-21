@@ -121,7 +121,8 @@ abstract class DummyRepository {
 
     if (preinstallExitCode != 0)
       throw new RuntimeException(
-        "Failed to preinstall the Library Repository Server dependencies."
+        s"Failed to preinstall the Library Repository Server dependencies: " +
+        s"npm exited with code $preinstallCommand."
       )
 
     val command = commandPrefix ++ Seq(

@@ -91,8 +91,8 @@ class LibraryDownloadTest
           )
         )
       } finally {
-        server.kill()
-        server.join()
+        server.kill(killDescendants    = true)
+        server.join(waitForDescendants = true)
       }
     }
   }

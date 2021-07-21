@@ -130,9 +130,17 @@ class WrappedProcess(command: Seq[String], process: Process) {
   def isAlive: Boolean = process.isAlive
 
   /** Tries to kill the process immediately. */
-  def kill(): Unit = {
+  def kill(killDescendants: Boolean = false): Unit = {
     process.destroyForcibly()
+    if (killDescendants) {
+      for (processHandle <- findDescendants()) {
+        processHandle.destroyForcibly()
+      }
+    }
   }
+
+  private def findDescendants(): Seq[ProcessHandle] =
+    process.descendants().toScala(Factory.arrayFactory).toSeq
 
   /** Waits for the process to finish and returns its [[RunResult]].
     *
@@ -154,7 +162,7 @@ class WrappedProcess(command: Seq[String], process: Process) {
           process.exitValue()
         else throw new TimeoutException("Process timed out")
       if (waitForDescendants) {
-        descendants = process.descendants().toScala(Factory.arrayFactory).toSeq
+        descendants = findDescendants()
         descendants.foreach(_.onExit().get(timeoutSeconds, TimeUnit.SECONDS))
       }
       errThread.join(1000)
