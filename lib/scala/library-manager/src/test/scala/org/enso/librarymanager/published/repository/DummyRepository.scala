@@ -95,6 +95,9 @@ abstract class DummyRepository {
     )
   }
 
+  private def commandPrefix: Seq[String] =
+    if (OS.isWindows) Seq("cmd.exe", "/c") else Seq.empty
+
   private def npmCommand: String  = if (OS.isWindows) "npm.cmd" else "npm"
   private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
 
@@ -108,8 +111,9 @@ abstract class DummyRepository {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
-    val preinstallExitCode = (new ProcessBuilder())
-      .command(npmCommand, "install")
+    val preinstallCommand = commandPrefix ++ Seq(npmCommand, "install")
+    val preinstallExitCode = new ProcessBuilder()
+      .command(preinstallCommand: _*)
       .directory(serverDirectory.toFile)
       .inheritIO()
       .start()
@@ -120,7 +124,7 @@ abstract class DummyRepository {
         "Failed to preinstall the Library Repository Server dependencies."
       )
 
-    val command = Seq(
+    val command = commandPrefix ++ Seq(
       nodeCommand,
       "main.js",
       "--port",
