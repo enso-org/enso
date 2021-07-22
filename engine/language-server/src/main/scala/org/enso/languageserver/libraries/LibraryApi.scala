@@ -164,6 +164,7 @@ object LibraryApi {
       namespace: String,
       name: String,
       authToken: String,
+      uploadUrl: String,
       bumpVersionAfterPublish: Option[Boolean]
     )
 

@@ -314,8 +314,8 @@ object LauncherApplication {
 
   private def uploadLibraryCommand: Command[Config => Int] =
     Command(
-      "upload-library",
-      "Upload an Enso library to a repository. " +
+      "publish-library",
+      "Publish an Enso library to a repository. " +
       "If `auto-confirm` is set, this will install missing engines or " +
       "runtimes without asking."
     ) {

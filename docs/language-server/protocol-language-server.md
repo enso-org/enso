@@ -4417,6 +4417,7 @@ operation will still proceed, but that metadata will be missing.
   namespace: String;
   name: String;
   authToken: String;
+  uploadUrl: String;
 
   bumpVersionAfterPublish?: Boolean;
 }
