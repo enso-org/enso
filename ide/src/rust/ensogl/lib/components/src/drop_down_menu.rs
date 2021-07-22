@@ -74,7 +74,7 @@ pub mod chooser_hover_area {
 
 ensogl_core::define_endpoints! {
     Input {
-        set_entries         (list_view::entry::AnyModelProvider),
+        set_entries         (list_view::entry::AnyModelProvider<Entry>),
         set_icon_size       (Vector2),
         set_icon_padding    (Vector2),
         hide_selection_menu (),
@@ -96,6 +96,9 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
+/// A type of Entry used in DropDownMenu's ListView.
+pub type Entry = list_view::entry::Label;
+
 #[derive(Clone,Debug)]
 struct Model {
     logger          : Logger,
@@ -106,10 +109,10 @@ struct Model {
     icon_overlay    : chooser_hover_area::View,
 
     label           : text::Area,
-    selection_menu  : list_view::ListView,
+    selection_menu  : list_view::ListView<Entry>,
 
     // `SingleMaskedProvider` allows us to hide the selected element.
-    content         : RefCell<Option<list_view::entry::SingleMaskedProvider>>,
+    content         : RefCell<Option<list_view::entry::SingleMaskedProvider<Entry>>>,
 }
 
 impl Model {
@@ -152,7 +155,8 @@ impl Model {
         self.selection_menu.unset_parent()
     }
 
-    fn get_content_item(&self, id:Option<list_view::entry::Id>) -> Option<list_view::entry::Model> {
+    fn get_content_item
+    (&self, id:Option<list_view::entry::Id>) -> Option<<Entry as list_view::entry::Entry>::Model> {
         self.content.borrow().as_ref()?.get(id?)
     }
 
@@ -215,9 +219,9 @@ impl DropDownMenu {
             // === Input Processing ===
 
             eval frp.input.set_entries ([model](entries) {
-                let entries:list_view::entry::SingleMaskedProvider = entries.clone_ref().into();
+                let entries:list_view::entry::SingleMaskedProvider<Entry> = entries.clone_ref().into();
                 model.content.set(entries.clone());
-                let entries:list_view::entry::AnyModelProvider = entries.into();
+                let entries = list_view::entry::AnyModelProvider::<Entry>::new(entries);
                 model.selection_menu.frp.set_entries.emit(entries);
             });
 
@@ -311,12 +315,12 @@ impl DropDownMenu {
                         // clear the mask.
                         content.clear_mask();
                         if let Some(item) = model.get_content_item(Some(*entry_id)) {
-                            model.set_label(&item.label)
+                            model.set_label(&item)
                         };
                         // Remove selected item from menu list
                         content.set_mask(*entry_id);
                         // Update menu content.
-                        let entries:list_view::entry::AnyModelProvider = content.clone().into();
+                        let entries = list_view::entry::AnyModelProvider::<Entry>::new(content.clone());
                         model.selection_menu.frp.set_entries.emit(entries);
                     };
                 };

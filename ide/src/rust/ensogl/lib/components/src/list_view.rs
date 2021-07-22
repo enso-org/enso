@@ -36,7 +36,7 @@ const SHAPE_PADDING:f32 = 5.0;
 mod selection {
     use super::*;
 
-    pub const CORNER_RADIUS_PX:f32 = entry::LABEL_SIZE;
+    pub const CORNER_RADIUS_PX:f32 = 12.0;
 
     ensogl_core::define_shape_system! {
         (style:Style) {
@@ -95,16 +95,17 @@ struct View {
 
 /// The Model of Select Component.
 #[derive(Clone,CloneRef,Debug)]
-struct Model {
+struct Model<E:entry::Entry> {
     app            : Application,
-    entries        : entry::List,
+    entries        : entry::List<E>,
     selection      : selection::View,
     background     : background::View,
     scrolled_area  : display::object::Instance,
     display_object : display::object::Instance,
 }
 
-impl Model {
+impl<E:entry::Entry> Model<E> {
+
     fn new(app:&Application) -> Self {
         let app            = app.clone_ref();
         let logger         = Logger::new("SelectionContainer");
@@ -141,7 +142,7 @@ impl Model {
         self.entries.update_entries(visible_entries);
     }
 
-    fn set_entries(&self, provider:entry::AnyModelProvider, view:&View) {
+    fn set_entries(&self, provider:entry::AnyModelProvider<E>, view:&View) {
         let visible_entries = Self::visible_entries(view,provider.entry_count());
         self.entries.update_entries_new_provider(provider,visible_entries);
     }
@@ -151,10 +152,10 @@ impl Model {
             0..0
         } else {
             let entry_at_y_saturating = |y:f32| {
-                match entry::List::entry_at_y_position(y,entry_count) {
-                    entry::IdAtYPosition::AboveFirst => 0,
-                    entry::IdAtYPosition::UnderLast  => entry_count - 1,
-                    entry::IdAtYPosition::Entry(id)  => id,
+                match entry::List::<E>::entry_at_y_position(y,entry_count) {
+                    entry::list::IdAtYPosition::AboveFirst => 0,
+                    entry::list::IdAtYPosition::UnderLast  => entry_count - 1,
+                    entry::list::IdAtYPosition::Entry(id)  => id,
                 }
             };
             let first = entry_at_y_saturating(*position_y);
@@ -191,6 +192,7 @@ impl Model {
 // ===========
 
 ensogl_core::define_endpoints! {
+    <E>
     Input {
         /// Move selection one position up.
         move_selection_up(),
@@ -211,7 +213,7 @@ ensogl_core::define_endpoints! {
 
         resize       (Vector2<f32>),
         scroll_jump  (f32),
-        set_entries  (entry::AnyModelProvider),
+        set_entries  (entry::AnyModelProvider<E>),
         select_entry (entry::Id),
         chose_entry  (entry::Id),
     }
@@ -226,27 +228,28 @@ ensogl_core::define_endpoints! {
 
 
 
-// ========================
-// === Select Component ===
-// ========================
+// ==========================
+// === ListView Component ===
+// ==========================
 
-/// Select Component.
+/// ListView Component.
 ///
-/// Select is a displayed list of entries with possibility of selecting one and "chosing" by
-/// clicking or pressing enter.
+/// This is a displayed list of entries (of any type `E`) with possibility of selecting one and
+/// "choosing" by clicking or pressing enter. The basic entry types are defined in [`entry`] module.
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
-pub struct ListView {
-    model   : Model,
-    pub frp : Frp,
+pub struct ListView<E:entry::Entry> {
+    model   : Model<E>,
+    pub frp : Frp<E>,
 }
 
-impl Deref for ListView {
-    type Target = Frp;
+impl<E:entry::Entry> Deref for ListView<E> {
+    type Target = Frp<E>;
     fn deref(&self) -> &Self::Target { &self.frp }
 }
 
-impl ListView {
+impl<E:entry::Entry> ListView<E>
+where E::Model : Default {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
         let frp   = Frp::new();
@@ -279,7 +282,7 @@ impl ListView {
                 scene.screen_to_object_space(&model.scrolled_area,*pos).y
             }));
             mouse_pointed_entry <- mouse_y_in_scroll.map(f!([model](y)
-                entry::List::entry_at_y_position(*y,model.entries.entry_count()).entry()
+                entry::List::<E>::entry_at_y_position(*y,model.entries.entry_count()).entry()
             ));
 
 
@@ -336,7 +339,7 @@ impl ListView {
             // === Selection Size and Position ===
 
             target_selection_y <- frp.selected_entry.map(|id|
-                id.map_or(0.0,entry::List::position_y_of_entry)
+                id.map_or(0.0,entry::List::<E>::position_y_of_entry)
             );
             target_selection_height <- frp.selected_entry.map(f!([](id)
                 if id.is_some() {entry::HEIGHT} else {0.0}
@@ -361,7 +364,7 @@ impl ListView {
             // === Scrolling ===
 
             selection_top_after_move_up <- selected_entry_after_move_up.map(|id|
-                id.map(|id| entry::List::y_range_of_entry(id).end)
+                id.map(|id| entry::List::<E>::y_range_of_entry(id).end)
             );
             min_scroll_after_move_up <- selection_top_after_move_up.map(|top|
                 top.unwrap_or(MAX_SCROLL)
@@ -370,7 +373,7 @@ impl ListView {
                 current.max(*min)
             );
             selection_bottom_after_move_down <- selected_entry_after_move_down.map(|id|
-                id.map(|id| entry::List::y_range_of_entry(id).start)
+                id.map(|id| entry::List::<E>::y_range_of_entry(id).start)
             );
             max_scroll_after_move_down <- selection_bottom_after_move_down.map2(&frp.size,
                 |y,size| y.map_or(MAX_SCROLL, |y| y + size.y)
@@ -420,15 +423,15 @@ impl ListView {
     }
 }
 
-impl display::Object for ListView {
+impl<E:entry::Entry> display::Object for ListView<E> {
     fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
 }
 
-impl application::command::FrpNetworkProvider for ListView {
+impl<E:entry::Entry> application::command::FrpNetworkProvider for ListView<E> {
     fn network(&self) -> &frp::Network { &self.frp.network }
 }
 
-impl application::View for ListView {
+impl<E:entry::Entry> application::View for ListView<E> {
     fn label() -> &'static str { "ListView" }
     fn new(app:&Application) -> Self { ListView::new(app) }
     fn app(&self) -> &Application { &self.model.app }

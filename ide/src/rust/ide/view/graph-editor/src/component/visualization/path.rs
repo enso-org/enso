@@ -64,3 +64,9 @@ impl Display for Path {
         f.write_str(&self.name)
     }
 }
+
+impl From<Path> for String {
+    fn from(path:Path) -> Self {
+        path.to_string()
+    }
+}
