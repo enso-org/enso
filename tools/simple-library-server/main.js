@@ -25,6 +25,11 @@ const argv = yargs
     type: "string",
     default: ".",
   })
+  .option("upload", {
+    description: "Specifies whether to allow uploading libraries and which authentication model to choose.",
+    choices: ["disabled", "no-auth", "constant-token"],
+    default: "disabled"
+  })
   .help()
   .alias("help", "h").argv;
 
@@ -34,7 +39,25 @@ const app = express();
 const tmpDir = path.join(os.tmpdir(), "enso-library-repo-uploads");
 const upload = multer({ dest: tmpDir });
 app.use(compression({ filter: shouldCompress }));
-app.post("/upload", upload.any(), handleUpload);
+
+let token = null;
+if (argv.upload == "disabled") {
+  console.log("Uploads are disabled.")
+} else {
+  app.post("/upload", upload.any(), handleUpload);
+
+  if (argv.upload == "constant-token") {
+    const envVar = "ENSO_AUTH_TOKEN";
+    token = process.env[envVar];
+    if (!token) {
+      throw `${envVar} is not defined.`
+    } else {
+      console.log(`Checking the ${envVar} to authorize requests.`)
+    }
+  } else {
+    console.log("WARNING: Uploads are enabled without any authentication.")
+  }
+}
 app.use(express.static(argv.root));
 
 console.log(
@@ -55,6 +78,13 @@ async function handleUpload(req, res) {
   function fail(code, message) {
     res.status(code).json({ error: message });
     cleanFiles(req.files);
+  }
+
+  if (token !== null) {
+    const userToken = req.get("Auth-Token");
+    if (userToken != token) {
+      return fail(403, "Authorization failed.");
+    }
   }
 
   const version = req.query.version;
