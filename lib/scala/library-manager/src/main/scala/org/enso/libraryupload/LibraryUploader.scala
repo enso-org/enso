@@ -4,11 +4,15 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
-import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.TaskProgress
+import org.enso.cli.task.{
+  ProgressReporter,
+  TaskProgress,
+  TaskProgressImplementation
+}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.downloader.archive.TarGzWriter
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.repository.LibraryManifest
@@ -17,7 +21,8 @@ import org.enso.yaml.YamlHelper
 
 import java.nio.file.{Files, Path}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.jdk.CollectionConverters._
+import scala.util.{Failure, Success, Try, Using}
 
 object LibraryUploader {
   private lazy val logger = Logger[LibraryUploader.type]
@@ -25,7 +30,8 @@ object LibraryUploader {
   def uploadLibrary(
     projectRoot: Path,
     uploadUrl: String,
-    authToken: auth.Token
+    authToken: auth.Token,
+    progressReporter: ProgressReporter
   )(implicit ec: ExecutionContext): Try[Unit] = Try {
     // TODO create main.tgz package of all files apart from package.yaml which is separately uploaded
 
@@ -44,11 +50,14 @@ object LibraryUploader {
         Package.configFileName,
         LibraryManifest.filename
       )
-      createMainArchive(
-        projectRoot,
-        filesToIgnoreInArchive,
-        tmpDir / mainArchiveName
+      val archivePath = tmpDir / mainArchiveName
+      val compressing =
+        createMainArchive(projectRoot, filesToIgnoreInArchive, archivePath)
+      progressReporter.trackProgress(
+        s"Creating the [$mainArchiveName] archive.",
+        compressing
       )
+      compressing.force()
 
       val manifestPath = projectRoot / LibraryManifest.filename
       val loadedManifest =
@@ -58,15 +67,23 @@ object LibraryUploader {
         loadedManifest.copy(archives = Seq(mainArchiveName))
       FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
 
-      // TODO add archive file to upload
-      uploadFiles(
+      logger.info(s"Uploading library package to the server at [$uploadUrl].")
+      val upload = uploadFiles(
         uri,
         authToken,
         files = Seq(
           projectRoot / Package.configFileName,
-          projectRoot / LibraryManifest.filename
+          projectRoot / LibraryManifest.filename,
+          archivePath
         )
-      ).force()
+      )
+      progressReporter.trackProgress(
+        s"Uploading packages to [$uploadUrl].",
+        upload
+      )
+      upload.force()
+
+      logger.info(s"Upload complete.")
     }
   }
 
@@ -88,9 +105,50 @@ object LibraryUploader {
     projectRoot: Path,
     rootFilesToIgnore: Seq[String],
     destination: Path
-  ): Unit = {
-    val _ = (projectRoot, rootFilesToIgnore, destination)
-    // TODO
+  ): TaskProgress[Unit] = {
+    def relativePath(file: Path): String = projectRoot.relativize(file).toString
+    def shouldBeUploaded(file: Path): Boolean = {
+      def isIgnored = rootFilesToIgnore.contains(relativePath(file))
+      Files.isRegularFile(file) && !isIgnored
+    }
+
+    logger.trace("Gathering files to compress.")
+    val filesToCompress = Using(Files.walk(projectRoot)) { filesStream =>
+      filesStream.iterator().asScala.filter(shouldBeUploaded).toSeq
+    }.get
+
+    val sumSize = filesToCompress.map(Files.size).sum
+
+    logger.info(
+      s"Compressing ${filesToCompress.size} project files " +
+      s"into [${destination.getFileName}]."
+    )
+
+    val taskProgress = new TaskProgressImplementation[Unit]()
+
+    def runCompresion(): Unit = {
+      val result = TarGzWriter.createArchive(destination) { writer =>
+        var totalBytesWritten: Long = 0
+        def update(): Unit =
+          taskProgress.reportProgress(totalBytesWritten, Some(sumSize))
+        update()
+        for (file <- filesToCompress) {
+          // TODO [RW] Ideally we could report progress for each chunk, offering
+          //  more granular feedback for big data files.
+          val bytesWritten = writer.writeFile(relativePath(file), file)
+          totalBytesWritten += bytesWritten
+          update()
+        }
+      }
+
+      logger.info(s"Archive [${destination.getFileName}] created.")
+      taskProgress.setComplete(result)
+    }
+
+    val thread = new Thread(() => runCompresion(), "Writing-Archive")
+    thread.start()
+
+    taskProgress
   }
 
   private def createRequestEntity(

@@ -3,6 +3,7 @@ package org.enso.librarymanager.published.repository
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
+import org.enso.downloader.archive.TarGzWriter
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
@@ -48,10 +49,13 @@ abstract class DummyRepository {
         .resolve(lib.version.toString)
       Files.createDirectories(libraryRoot)
       createLibraryProject(libraryRoot, lib)
-      val files = Seq(
-        ArchiveWriter.TextFile("src/Main.enso", lib.mainContent)
-      )
-      ArchiveWriter.writeTarArchive(libraryRoot.resolve("main.tgz"), files)
+
+      TarGzWriter
+        .createArchive(libraryRoot.resolve("main.tgz")) { writer =>
+          writer.writeTextFile("src/Main.enso", lib.mainContent)
+        }
+        .get
+
       createManifest(libraryRoot)
     }
   }

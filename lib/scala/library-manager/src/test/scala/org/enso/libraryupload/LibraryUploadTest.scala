@@ -1,6 +1,7 @@
 package org.enso.libraryupload
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.librarymanager.published.repository.{
   DownloaderTest,
@@ -41,7 +42,17 @@ class LibraryUploadTest
         val uploadUrl = s"http://localhost:$port/upload"
         val token     = SimpleHeaderToken("Auth-Token", "TODO")
         import scala.concurrent.ExecutionContext.Implicits.global
-        LibraryUploader.uploadLibrary(projectRoot, uploadUrl, token).get
+        LibraryUploader
+          .uploadLibrary(
+            projectRoot,
+            uploadUrl,
+            token,
+            new ProgressReporter {
+              override def trackProgress(message: String, task: TaskProgress[_])
+                : Unit = ()
+            }
+          )
+          .get
 
         val libRoot = repoRoot
           .resolve("libraries")
