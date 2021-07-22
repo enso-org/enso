@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 const express = require("express");
+const path = require('path');
+const os = require('os');
+const multer = require("multer");
 const compression = require("compression");
 const yargs = require("yargs");
 
@@ -23,7 +26,10 @@ const argv = yargs
   .alias("help", "h").argv;
 
 const app = express();
+const tmpDir = path.join(os.tmpdir(), "enso-library-repo-uploads");
+const upload = multer({ dest: tmpDir });
 app.use(compression({ filter: shouldCompress }));
+app.post("/upload", upload.any(), handleUpload);
 app.use(express.static(argv.root));
 
 console.log(
@@ -38,4 +44,11 @@ function shouldCompress(req, res) {
   }
 
   return compression.filter(req, res);
+}
+
+function handleUpload(req, res) {
+  console.log(req.query);
+  console.log(req.files);
+  console.log(req.body);
+  res.json({ message: "Successfully uploaded files" });
 }
