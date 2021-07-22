@@ -1,8 +1,13 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Added support for the `ALIAS` tag in documentation blocks for use by the
+  searcher ([#1896](https://github.com/enso-org/enso/pull/1896)).
+
 ## Tooling
 
-- Implement a basic library downloader
+- Implemented a basic library downloader
   ([#1885](https://github.com/enso-org/enso/pull/1885)), allowing to download
   missing libraries.
 
