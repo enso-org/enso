@@ -2,21 +2,18 @@ package org.enso.interpreter.instrument
 
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.ProgressBar
-import org.enso.cli.task.{
-  ProgressNotification,
-  ProgressNotificationForwarder,
-  ProgressReporter,
-  TaskProgress
-}
+import org.enso.cli.task.{ProgressNotification, ProgressReporter, TaskProgress}
+import org.enso.distribution.ProgressAndLockNotificationForwarder
+import org.enso.distribution.locking.{LockUserInterface, Resource}
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import java.nio.file.Path
 
-/** A class that forwards notifications about loaded libraries and long-running
-  * tasks to the user interface.
+/** A class that forwards notifications about loaded libraries, locks and
+  * long-running tasks to the user interface.
   */
-trait NotificationHandler extends ProgressReporter {
+trait NotificationHandler extends ProgressReporter with LockUserInterface {
 
   /** Called when a library has been loaded.
     *
@@ -40,6 +37,8 @@ object NotificationHandler {
     */
   object TextMode extends NotificationHandler {
 
+    private lazy val logger = Logger[TextMode.type]
+
     /** @inheritdoc */
     override def addedLibrary(
       libraryName: LibraryName,
@@ -51,11 +50,18 @@ object NotificationHandler {
 
     /** @inheritdoc */
     override def trackProgress(message: String, task: TaskProgress[_]): Unit = {
-      Logger[TextMode.type].info(message)
+      logger.info(message)
       if (System.console() != null) {
         ProgressBar.waitWithProgress(task)
       }
     }
+
+    /** @inheritdoc */
+    override def startWaitingForResource(resource: Resource): Unit =
+      logger.warn(resource.waitMessage)
+
+    /** @inheritdoc */
+    override def finishWaitingForResource(resource: Resource): Unit = ()
   }
 
   /** A [[NotificationHandler]] that forwards messages to other
@@ -76,6 +82,14 @@ object NotificationHandler {
     override def trackProgress(message: String, task: TaskProgress[_]): Unit =
       for (listener <- listeners) listener.trackProgress(message, task)
 
+    /** @inheritdoc */
+    override def startWaitingForResource(resource: Resource): Unit =
+      for (listener <- listeners) listener.startWaitingForResource(resource)
+
+    /** @inheritdoc */
+    override def finishWaitingForResource(resource: Resource): Unit =
+      for (listener <- listeners) listener.finishWaitingForResource(resource)
+
     /** Registers a new listener. */
     def addListener(listener: NotificationHandler): Unit =
       listeners ::= listener
@@ -86,8 +100,8 @@ object NotificationHandler {
     * the IDE.
     */
   class InteractiveMode(endpoint: Endpoint)
-      extends NotificationHandler
-      with ProgressNotificationForwarder {
+      extends ProgressAndLockNotificationForwarder
+      with NotificationHandler {
     private val logger = Logger[InteractiveMode]
 
     private def sendMessage(message: ApiResponse): Unit = {

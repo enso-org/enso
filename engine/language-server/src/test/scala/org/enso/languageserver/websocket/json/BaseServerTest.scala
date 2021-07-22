@@ -39,9 +39,9 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.runtimeversionmanager.test.{FakeEnvironment, HasTestDirectory}
+import org.enso.runtimeversionmanager.test.FakeEnvironment
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
-import org.enso.testkit.EitherValue
+import org.enso.testkit.{EitherValue, HasTestDirectory}
 import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 

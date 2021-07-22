@@ -16,7 +16,7 @@ class EditionResolverSpec
     with Inside
     with OptionValues {
   object FakeEditionProvider extends EditionProvider {
-    val mainRepo = Repository.make("main", "https://example.com/main").get
+    val mainRepo = Repository("main", "https://example.com/main")
     val editions: Map[String, Editions.RawEdition] = Map(
       "2021.0" -> Editions.Raw.Edition(
         parent        = None,
@@ -60,7 +60,7 @@ class EditionResolverSpec
 
   "EditionResolver" should {
     "resolve a simple edition" in {
-      val repo = Repository.make("foo", "http://example.com").get
+      val repo = Repository("foo", "http://example.com")
       val edition = Editions.Raw.Edition(
         parent        = None,
         engineVersion = Some(SemVer(1, 2, 3)),
@@ -127,7 +127,7 @@ class EditionResolverSpec
     }
 
     "correctly handle repository shadowing when resolving libraries" in {
-      val localRepo = Repository.make("main", "http://example.com/local").get
+      val localRepo = Repository("main", "http://example.com/local")
 
       localRepo should not equal FakeEditionProvider.mainRepo
 
