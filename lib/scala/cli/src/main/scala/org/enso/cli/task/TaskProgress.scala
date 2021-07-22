@@ -1,7 +1,7 @@
 package org.enso.cli.task
 
 import java.util.concurrent.LinkedTransferQueue
-
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
 /** Represents a long-running background task.
@@ -94,6 +94,20 @@ object TaskProgress {
         listener: ProgressListener[A]
       ): Unit = {
         listener.done(action)
+      }
+    }
+  }
+
+  def fromFuture[A](
+    future: Future[A]
+  )(implicit ec: ExecutionContext): TaskProgress[A] = {
+    new TaskProgress[A] {
+      override def addProgressListener(
+        listener: ProgressListener[A]
+      ): Unit = {
+        future.onComplete { result =>
+          listener.done(result)
+        }
       }
     }
   }

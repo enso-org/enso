@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
@@ -14,7 +15,7 @@ import org.enso.yaml.YamlHelper
 
 import java.nio.file.{Files, Path}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object LibraryUploader {
   def uploadLibrary(
@@ -61,7 +62,7 @@ object LibraryUploader {
           projectRoot / Package.configFileName,
           projectRoot / LibraryManifest.filename
         )
-      )
+      ).force()
     }
   }
 
@@ -73,9 +74,9 @@ object LibraryUploader {
     // TODO [RW] decide on the API
     URIBuilder
       .fromUri(baseUploadUrl)
-      .addPathSegment(libraryName.namespace)
-      .addPathSegment(libraryName.name)
-      .addPathSegment(version.toString)
+      .addQuery("namespace", libraryName.namespace)
+      .addQuery("name", libraryName.name)
+      .addQuery("version", version.toString)
       .build()
   }
 
@@ -102,6 +103,7 @@ object LibraryUploader {
     }
 
     val formData = Multipart.FormData(Source(fileBodies))
+    println(formData)
     Marshal(formData).to[RequestEntity]
   }
 
@@ -125,14 +127,27 @@ object LibraryUploader {
     uri: Uri,
     authToken: auth.Token,
     files: Seq[Path]
-  )(implicit ec: ExecutionContext): Future[Unit] = {
-    createRequestEntity(files).map { entity =>
+  )(implicit ec: ExecutionContext): TaskProgress[Unit] = {
+    val future = createRequestEntity(files).map { entity =>
+      println(entity)
       val request = authToken
         .alterRequest(HTTPRequestBuilder.fromURI(uri))
         .setEntity(entity)
         .POST
       // TODO upload progress will require a separate mechanism
       HTTPDownload.fetchString(request).force()
+    }
+    TaskProgress.fromFuture(future).flatMap { response =>
+      println(s"Got $response")
+      // TODO we may want to have more precise error messages to handle auth errors etc.
+      if (response.statusCode == 200) Success(())
+      else
+        Failure(
+          new RuntimeException( // TODO more precise exceptions
+            s"Upload failed: " +
+            s"Server responded with status code ${response.statusCode}."
+          )
+        )
     }
   }
 }
