@@ -98,6 +98,21 @@ spec =
             res = t.to_csv separator=';' line_ending=Line_Ending_Style.Windows
             res.should_equal expected+'\r\n'
 
+        Test.specify 'should allow forced quoting of records'
+            c1 = ['name', ['Robert");DROP TABLE Students;--', 'This;Name;;Is""Strange', 'Marcin,,']]
+            c2 = ['grade', [10, 20, 'hello;world']]
+            t = Table.new [c1, c2]
+
+            expected = """
+                "name","grade"
+                "Robert"");DROP TABLE Students;--","10"
+                "This;Name;;Is""""Strange","20"
+                "Marcin,,","hello;world"
+
+            res = t.to_csv always_quote=True
+            res.should_equal expected+'\n'
+
+
         Test.specify 'should write CSV to a file' <|
             varied_column = (Enso_Project.data / "varied_column.csv") . read_csv has_header=False
             out = Enso_Project.data / 'out.csv'

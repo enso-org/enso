@@ -6,29 +6,60 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.function.Function;
 
+/** Utils for converting tables to CSV. */
 public class Writer {
+  /**
+   * Creates a string containing CSV contents of a table.
+   *
+   * @param table the table to represent.
+   * @param writeHeader whether the first row should contain column names.
+   * @param forceQuote whether all fields should be quoted.
+   * @param newline the sequence used for line separation.
+   * @param separator the sequence used for field separation.
+   * @param toCsvString a function for converting unknown values into CSV strings.
+   * @return a string containing the serialized data.
+   */
   public static String writeString(
       Table table,
       boolean writeHeader,
       boolean forceQuote,
       String newline,
       String separator,
-      Function<Object, String> toCsvString)
-      throws IOException {
+      Function<Object, String> toCsvString) {
     var builder = new StringBuilder();
-    writeAppendable(
-        table,
-        builder,
-        0,
-        table.rowCount(),
-        writeHeader,
-        forceQuote,
-        newline,
-        separator,
-        toCsvString);
+    try {
+      writeAppendable(
+          table,
+          builder,
+          0,
+          table.rowCount(),
+          writeHeader,
+          forceQuote,
+          newline,
+          separator,
+          toCsvString);
+    } catch (IOException e) {
+      throw new IllegalStateException("Impossible to be thrown in this case.");
+    }
     return builder.toString();
   }
 
+  /**
+   * Writes a table into a csv file (or a series of files).
+   *
+   * @param table the table to serialize
+   * @param path the path to write data to
+   * @param maxRecords the maximum number of rows allowed per file. If this is specified, data is
+   *     written to multiple files, with names generated based on {@code path}, by appending `_n` to
+   *     the base file name (before any extensions), where `n` are consecutive integers, starting
+   *     with 1.
+   * @param writeHeader whether the first row should contain column names.
+   * @param forceQuote whether all fields should be quoted.
+   * @param newline the sequence used for line separation.
+   * @param separator the sequence used for field separation.
+   * @param toCsvString a function for converting unknown values into CSV strings.
+   * @throws IOException when file IO fails.
+   */
   public static void writePath(
       Table table,
       String path,
