@@ -10,6 +10,8 @@
 
 - Added support for reading XLS and XLSX spreadsheets
   ([#1879](https://github.com/enso-org/enso/pull/1879)).
+- Added support for serializing tables into CSV files.
+  ([#1894](https://github.com/enso-org/enso/pull/1894)).
 
 # Enso 0.2.15 (2021-07-19)
 
