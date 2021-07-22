@@ -1,6 +1,7 @@
 package org.enso.runtimeversionmanager.test
 
 import org.enso.distribution.{Environment, FileSystem}
+import org.enso.testkit.HasTestDirectory
 
 import java.nio.file.{Files, Path}
 

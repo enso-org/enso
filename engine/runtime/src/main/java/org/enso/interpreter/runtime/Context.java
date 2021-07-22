@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
@@ -101,11 +102,19 @@ public class Context {
     var languageHome =
         OptionsHelper.getLanguageHomeOverride(environment).or(() -> Optional.ofNullable(home));
 
+    var distributionManager = RuntimeDistributionManager$.MODULE$;
+
+    // TODO [RW] Once #1890 is implemented, this will need to connect to the Language Server's
+    //  LockManager.
+    var lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
+    var resourceManager = new org.enso.distribution.locking.ResourceManager(lockManager);
+
     packageRepository =
         PackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
             OptionConverters.toScala(languageHome),
-            RuntimeDistributionManager$.MODULE$,
+            distributionManager,
+            resourceManager,
             this,
             builtins,
             notificationHandler);

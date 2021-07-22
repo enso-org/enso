@@ -1,6 +1,6 @@
 package org.enso.editions.provider
 
-import org.enso.editions.{EditionSerialization, Editions}
+import org.enso.editions.{EditionName, EditionSerialization, Editions}
 
 import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
@@ -26,8 +26,6 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     }
   }
 
-  private val editionSuffix = ".yaml"
-
   @tailrec
   private def findEdition(
     name: String,
@@ -52,7 +50,7 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     name: String,
     path: Path
   ): Either[EditionLoadingError, Editions.Raw.Edition] = {
-    val fileName    = name + editionSuffix
+    val fileName    = EditionName(name).toFileName
     val editionPath = path.resolve(fileName)
     if (Files.exists(editionPath)) {
       EditionSerialization
@@ -67,12 +65,8 @@ class FileSystemEditionProvider(searchPaths: List[Path])
   def findAvailableEditions(): Seq[String] =
     searchPaths.flatMap(findEditionsAt).distinct
 
-  private def findEditionName(path: Path): Option[String] = {
-    val name = path.getFileName.toString
-    if (name.endsWith(editionSuffix)) {
-      Some(name.stripSuffix(editionSuffix))
-    } else None
-  }
+  private def findEditionName(path: Path): Option[String] =
+    EditionName.fromFilename(path.getFileName.toString).map(_.name)
 
   private def findEditionsAt(path: Path): Seq[String] =
     listDir(path).filter(Files.isRegularFile(_)).flatMap(findEditionName)
