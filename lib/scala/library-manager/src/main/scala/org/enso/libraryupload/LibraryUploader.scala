@@ -33,8 +33,6 @@ object LibraryUploader {
     authToken: auth.Token,
     progressReporter: ProgressReporter
   )(implicit ec: ExecutionContext): Try[Unit] = Try {
-    // TODO create main.tgz package of all files apart from package.yaml which is separately uploaded
-
     FileSystem.withTemporaryDirectory("enso-upload") { tmpDir =>
       val pkg = PackageManager.Default.loadPackage(projectRoot.toFile).get
       val version = SemVer(pkg.config.version).getOrElse {
@@ -63,7 +61,7 @@ object LibraryUploader {
       val loadedManifest =
         loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
       val updatedManifest =
-        // TODO update dependencies in the manifest
+        // TODO [RW] update dependencies in the manifest
         loadedManifest.copy(archives = Seq(mainArchiveName))
       FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
 
@@ -194,7 +192,7 @@ object LibraryUploader {
         .alterRequest(HTTPRequestBuilder.fromURI(uri))
         .setEntity(entity)
         .POST
-      // TODO upload progress will require a separate mechanism
+      // TODO [RW] upload progress
       HTTPDownload.fetchString(request).force()
     }
     TaskProgress.fromFuture(future).flatMap { response =>

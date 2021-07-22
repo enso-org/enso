@@ -37,10 +37,10 @@ class LibraryUploadTest
         version   = libraryVersion.toString
       )
 
-      val server = EmptyRepository.startServer(port, repoRoot)
+      val server = EmptyRepository.startServer(port, repoRoot, uploads = true)
       try {
         val uploadUrl = s"http://localhost:$port/upload"
-        val token     = SimpleHeaderToken("Auth-Token", "TODO")
+        val token     = SimpleHeaderToken("TODO")
         import scala.concurrent.ExecutionContext.Implicits.global
         LibraryUploader
           .uploadLibrary(

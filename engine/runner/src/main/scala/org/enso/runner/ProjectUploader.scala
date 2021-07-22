@@ -31,7 +31,7 @@ object ProjectUploader {
     }
 
     val token = authToken match {
-      case Some(value) => auth.SimpleHeaderToken("Auth-Token", value)
+      case Some(value) => auth.SimpleHeaderToken(value)
       case None        => auth.NoAuthorization
     }
     LibraryUploader

@@ -26,9 +26,10 @@ const argv = yargs
     default: ".",
   })
   .option("upload", {
-    description: "Specifies whether to allow uploading libraries and which authentication model to choose.",
+    description:
+      "Specifies whether to allow uploading libraries and which authentication model to choose.",
     choices: ["disabled", "no-auth", "constant-token"],
-    default: "disabled"
+    default: "disabled",
   })
   .help()
   .alias("help", "h").argv;
@@ -42,7 +43,7 @@ app.use(compression({ filter: shouldCompress }));
 
 let token = null;
 if (argv.upload == "disabled") {
-  console.log("Uploads are disabled.")
+  console.log("Uploads are disabled.");
 } else {
   app.post("/upload", upload.any(), handleUpload);
 
@@ -50,12 +51,12 @@ if (argv.upload == "disabled") {
     const envVar = "ENSO_AUTH_TOKEN";
     token = process.env[envVar];
     if (!token) {
-      throw `${envVar} is not defined.`
+      throw `${envVar} is not defined.`;
     } else {
-      console.log(`Checking the ${envVar} to authorize requests.`)
+      console.log(`Checking the ${envVar} to authorize requests.`);
     }
   } else {
-    console.log("WARNING: Uploads are enabled without any authentication.")
+    console.log("WARNING: Uploads are enabled without any authentication.");
   }
 }
 app.use(express.static(argv.root));
@@ -164,13 +165,6 @@ function cleanFiles(files) {
         if (err) {
           console.error(
             `Failed to remove ${file.path} ($file.originalname) from a failed upload: ${err}.`
-          );
-        } else {
-          console.log(
-            "Removed file after failed request: " +
-              file.originalname +
-              " / " +
-              file.path
           );
         }
       });

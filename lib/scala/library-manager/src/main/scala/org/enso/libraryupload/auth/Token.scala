@@ -6,9 +6,9 @@ trait Token {
   def alterRequest(request: HTTPRequestBuilder): HTTPRequestBuilder
 }
 
-case class SimpleHeaderToken(headerName: String, value: String) extends Token {
+case class SimpleHeaderToken(value: String) extends Token {
   override def alterRequest(request: HTTPRequestBuilder): HTTPRequestBuilder =
-    request.addHeader(headerName, value)
+    request.addHeader("Auth-Token", value)
 }
 
 case object NoAuthorization extends Token {

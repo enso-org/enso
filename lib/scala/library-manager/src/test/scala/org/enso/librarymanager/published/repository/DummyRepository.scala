@@ -110,12 +110,18 @@ abstract class DummyRepository {
     * @param port port to listen on
     * @param root root of the library repository, the same as the argument to
     *             [[createRepository]]
+    * @param uploads specifies whether to enable uploads in the server
     */
-  def startServer(port: Int, root: Path): WrappedProcess = {
+  def startServer(
+    port: Int,
+    root: Path,
+    uploads: Boolean = false
+  ): WrappedProcess = {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
-    val preinstallCommand = commandPrefix ++ Seq(npmCommand, "install")
+    val preinstallCommand =
+      commandPrefix ++ Seq(npmCommand, "install")
     val preinstallExitCode = new ProcessBuilder()
       .command(preinstallCommand: _*)
       .directory(serverDirectory.toFile)
@@ -129,6 +135,7 @@ abstract class DummyRepository {
         s"npm exited with code $preinstallCommand."
       )
 
+    val uploadsArgs = if (uploads) Seq("--upload", "no-auth") else Seq()
     val command = commandPrefix ++ Seq(
       nodeCommand,
       "main.js",
@@ -136,7 +143,7 @@ abstract class DummyRepository {
       port.toString,
       "--root",
       root.toAbsolutePath.normalize.toString
-    )
+    ) ++ uploadsArgs
     val rawProcess = (new ProcessBuilder)
       .command(command: _*)
       .directory(serverDirectory.toFile)
