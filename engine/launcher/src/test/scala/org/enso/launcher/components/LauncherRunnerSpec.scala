@@ -145,7 +145,7 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer(0, 0, 0, Some("SNAPSHOT.2000-01-01"))
-      val logs = TestLogger.gatherLogs {
+      val (_, logs) = TestLogger.gatherLogs {
         runner
           .newProject(
             path                = projectPath,

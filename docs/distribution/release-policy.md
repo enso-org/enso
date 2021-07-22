@@ -87,6 +87,9 @@ Cutting a release for Enso proceeds as follows:
 3.  Open a PR for this branch into `main`.
 4.  Once the changes have been reviewed, merge the PR into main (getting commit
     hash `xxxxxxx`). The message should be `Prepare for the $version release`.
+    Just before merging, remember to notify the team on Discord to suppress any
+    other merges to the `main` branch until the next step (bumping versions) is
+    completed.
 5.  Immediately push a commit to `main` that updates the version and edition in
     `build.sbt` to the new snapshot version. If unclear, bump the patch version
     by one and append `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The
@@ -118,7 +121,8 @@ git merge --ff-only release-update
 10. As long as the fast-forward proceeds cleanly, you can push the updated
     release branch to the origin.
 11. Create a tag for the commit at the HEAD of the release branch. It should be
-    named as above. For example:
+    named as above. As the tag is signed, it must contain a message. The message
+    should be `Enso <version>`. For example:
 
 ```
 git tag --sign enso-0.2.11
@@ -175,7 +179,8 @@ git merge --ff-only release-update
     and edition name have been set in `build.sbt`. This version and edition name
     should _not_ contain `SNAPSHOT`.
 6.  Once this is done, create a tag for the commit at the HEAD of the release
-    branch. It should be named as above. For example:
+    branch. It should be named as above. The tag message should be
+    `Enso <version>`. For example:
 
 ```
 git tag --sign enso-0.2.11

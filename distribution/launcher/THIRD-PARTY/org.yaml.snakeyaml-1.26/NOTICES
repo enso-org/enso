@@ -1,3 +1,5 @@
+/* Copyright (c) 2008 Google Inc.
+
 /**
  * Copyright (c) 2008, http://www.snakeyaml.org
  *
@@ -13,8 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/* Copyright (c) 2008 Google Inc.
 
 // Copyright 2003-2010 Christian d'Heureuse, Inventec Informatik AG, Zurich, Switzerland
 // www.source-code.biz, www.inventec.ch/chdh

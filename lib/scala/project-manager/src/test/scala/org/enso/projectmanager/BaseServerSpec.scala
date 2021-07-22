@@ -11,8 +11,9 @@ import io.circe.parser.parse
 import nl.gn0s1s.bump.SemVer
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.distribution.{FileSystem, OS}
+import org.enso.distribution.FileSystem
 import org.enso.editions.Editions
+import org.enso.cli.OS
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.loggingservice.printers.StderrPrinterWithColors

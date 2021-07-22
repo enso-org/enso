@@ -1,5 +1,11 @@
 # Enso Next
 
+## Tooling
+
+- Implement a basic library downloader
+  ([#1885](https://github.com/enso-org/enso/pull/1885)), allowing to download
+  missing libraries.
+
 ## Libraries
 
 - Added support for reading XLS and XLSX spreadsheets

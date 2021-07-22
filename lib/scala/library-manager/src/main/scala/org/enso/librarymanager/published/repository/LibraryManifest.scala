@@ -42,4 +42,9 @@ object LibraryManifest {
       description  = description
     )
   }
+
+  /** The name of the manifest file as included in the directory associated with
+    * a given library in the library repository.
+    */
+  val filename = "manifest.yaml"
 }
