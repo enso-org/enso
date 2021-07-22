@@ -39,6 +39,7 @@ use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::SharedHashMap;
 use utils::iter::split_by_predicate;
 use futures::future::LocalBoxFuture;
+use ide_view::searcher::entry::GlyphHighlightedLabel;
 
 
 // ========================
@@ -1105,7 +1106,7 @@ impl Model {
                             let list_is_empty     = actions.matching_count() == 0;
                             let user_action       = searcher.current_user_action();
                             let intended_function = searcher.intended_function_suggestion();
-                            let provider          = DataProviderForView
+                            let provider          = SuggestionsProviderForView
                                 { actions,user_action,intended_function};
                             self.view.searcher().set_actions(Rc::new(provider));
 
@@ -1757,13 +1758,13 @@ pub enum AttachingResult<T>{
 // ===========================
 
 #[derive(Clone,Debug)]
-struct DataProviderForView {
+struct SuggestionsProviderForView {
     actions           : Rc<controller::searcher::action::List>,
     user_action       : controller::searcher::UserAction,
     intended_function : Option<controller::searcher::action::Suggestion>,
 }
 
-impl DataProviderForView {
+impl SuggestionsProviderForView {
     fn doc_placeholder_for(suggestion:&controller::searcher::action::Suggestion) -> String {
         let title = match suggestion.kind {
             suggestion_database::entry::Kind::Atom     => "Atom",
@@ -1776,18 +1777,17 @@ impl DataProviderForView {
     }
 }
 
-impl list_view::entry::ModelProvider for DataProviderForView {
+impl list_view::entry::ModelProvider<GlyphHighlightedLabel> for SuggestionsProviderForView {
     fn entry_count(&self) -> usize {
         self.actions.matching_count()
     }
 
-    fn get(&self, id: usize) -> Option<list_view::entry::Model> {
+    fn get(&self, id: usize) -> Option<list_view::entry::GlyphHighlightedLabelModel> {
         let action = self.actions.get_cloned(id)?;
         if let MatchInfo::Matches {subsequence} = action.match_info {
-            let caption          = action.action.to_string();
-            let model            = list_view::entry::Model::new(caption.clone());
-            let mut char_iter    = caption.char_indices().enumerate();
-            let highlighted_iter = subsequence.indices.iter().filter_map(|idx| loop {
+            let label         = action.action.to_string();
+            let mut char_iter = label.char_indices().enumerate();
+            let highlighted   = subsequence.indices.iter().filter_map(|idx| loop {
                 if let Some(char) = char_iter.next() {
                     let (char_idx,(byte_id,char)) = char;
                     if char_idx == *idx {
@@ -1798,16 +1798,15 @@ impl list_view::entry::ModelProvider for DataProviderForView {
                 } else {
                     break None;
                 }
-            });
-            let model = model.highlight(highlighted_iter);
-            Some(model)
+            }).collect();
+            Some(list_view::entry::GlyphHighlightedLabelModel {label,highlighted})
         } else {
             None
         }
     }
 }
 
-impl ide_view::searcher::DocumentationProvider for DataProviderForView {
+impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
     fn get(&self) -> Option<String> {
         use controller::searcher::UserAction::*;
         self.intended_function.as_ref().and_then(|function| match self.user_action {

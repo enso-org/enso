@@ -252,12 +252,12 @@ macro_rules! define_endpoints {
         /// Frp network and endpoints.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
-        pub struct Frp $(<$($param),*>)? {
+        pub struct Frp $(<$($param:Debug+'static),*>)? {
             pub network : $crate::frp::Network,
             pub output  : FrpEndpoints $(<$($param),*>)?,
         }
 
-        impl $(<$($param),*>)? Frp $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? Frp $(<$($param),*>)? {
             /// Create Frp endpoints within and the associated network.
             pub fn new() -> Self {
                 let network = $crate::frp::Network::new(file!());
@@ -266,19 +266,19 @@ macro_rules! define_endpoints {
             }
 
             /// Create Frp endpoints within the provided network.
-            pub fn extend(network:&$crate::frp::Network) -> FrpEndpoints {
+            pub fn extend(network:&$crate::frp::Network) -> FrpEndpoints $(<$($param),*>)? {
                 let input = FrpInputs::new(network);
                 FrpEndpoints::new(network,input)
             }
         }
 
-        impl $(<$($param),*>)? Default for Frp $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? Default for Frp $(<$($param),*>)? {
             fn default() -> Self {
                 Self::new()
             }
         }
 
-        impl $(<$($param),*>)? Deref for Frp $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? Deref for Frp $(<$($param),*>)? {
             type Target = FrpEndpoints $(<$($param),*>)?;
             fn deref(&self) -> &Self::Target {
                 &self.output
@@ -289,18 +289,23 @@ macro_rules! define_endpoints {
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
         #[allow(unused_parens)]
-        pub struct FrpInputs $(<$($param),*>)? {
-            $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>),*
+        // Clippy thinks `_param` is a field we want to add in future, but it is not: it is to
+        // suppress "not used generic param" error.
+        #[allow(clippy::manual_non_exhaustive)]
+        pub struct FrpInputs $(<$($param:Debug+'static),*>)? {
+            $( $(#[doc=$($in_doc)*])* pub $in_field : $crate::frp::Any<($($in_field_type)*)>,)*
+            _params : ($($(PhantomData<$param>),*)?),
         }
 
         #[allow(unused_parens)]
-        impl FrpInputs $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? FrpInputs $(<$($param),*>)? {
             /// Constructor.
             pub fn new(network:&$crate::frp::Network) -> Self {
                 $crate::frp::extend! { $($($global_opts)*)? $($($input_opts)*)? network
                     $($in_field <- any_mut();)*
                 }
-                Self { $($in_field),* }
+                let _params = default();
+                Self { $($in_field),*, _params }
             }
 
             $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
@@ -310,7 +315,10 @@ macro_rules! define_endpoints {
         #[derive(Debug,Clone,CloneRef)]
         #[allow(unused_parens)]
         #[allow(missing_docs)]
-        pub struct FrpEndpoints $(<$($param),*>)? {
+        // Clippy thinks `_param` is a field we want to add in future, but it is not: it is to
+        // suppress "not used generic param" error.
+        #[allow(clippy::manual_non_exhaustive)]
+        pub struct FrpEndpoints $(<$($param:Debug+'static),*>)? {
             pub input         : FrpInputs $(<$($param),*>)?,
             // TODO[WD]: Consider making it private and exposing only on-demand with special macro
             //           usage syntax.
@@ -318,20 +326,21 @@ macro_rules! define_endpoints {
             pub status_map    : Rc<RefCell<HashMap<String,$crate::frp::Sampler<bool>>>>,
             pub command_map   : Rc<RefCell<HashMap<String,$crate::application::command::Command>>>,
             $($(#[doc=$($out_doc)*])*
-                pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>
-            ),*
+                pub $out_field  : $crate::frp::Sampler<($($out_field_type)*)>,
+            )*
+            _params : ($($(PhantomData<$param>),*)?),
         }
 
-        impl $(<$($param),*>)? Deref for FrpEndpoints $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? Deref for FrpEndpoints $(<$($param),*>)? {
             type Target = FrpInputs $(<$($param),*>)?;
             fn deref(&self) -> &Self::Target {
                 &self.input
             }
         }
 
-        impl $(<$($param),*>)? FrpEndpoints $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? FrpEndpoints $(<$($param),*>)? {
             /// Constructor.
-            pub fn new(network:&$crate::frp::Network, input:FrpInputs) -> Self {
+            pub fn new(network:&$crate::frp::Network, input:FrpInputs $(<$($param),*>)?) -> Self {
                 use $crate::application::command::*;
                 let source = FrpOutputsSource::new(network);
                 let mut status_map  : HashMap<String,$crate::frp::Sampler<bool>> = default();
@@ -348,28 +357,34 @@ macro_rules! define_endpoints {
                     {command_map $in_field ($($in_field_type)*) input.$in_field })*
                 let status_map  = Rc::new(RefCell::new(status_map));
                 let command_map = Rc::new(RefCell::new(command_map));
-                Self {source,input,status_map,command_map,$($out_field),*}
+                let _params     = default();
+                Self {source,input,status_map,command_map,$($out_field),*,_params}
             }
         }
 
         /// Frp output setters.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(unused_parens)]
-        pub(crate) struct FrpOutputsSource $(<$($param),*>)? {
-            $(pub(crate) $out_field : $crate::frp::Any<($($out_field_type)*)>),*
+        // Clippy thinks `_param` is a field we want to add in future, but it is not: it is to
+        // suppress "not used generic param" error.
+        #[allow(clippy::manual_non_exhaustive)]
+        pub(crate) struct FrpOutputsSource $(<$($param:Debug+'static),*>)? {
+            $(pub(crate) $out_field : $crate::frp::Any<($($out_field_type)*)>,)*
+            _params : ($($(PhantomData<$param>),*)?),
         }
 
-        impl $(<$($param),*>)? FrpOutputsSource $(<$($param),*>)? {
+        impl $(<$($param:Debug+'static),*>)? FrpOutputsSource $(<$($param),*>)? {
             /// Constructor.
             pub fn new(network:&$crate::frp::Network) -> Self {
                 $crate::frp::extend! { network
                     $($out_field <- any(...);)*
                 }
-                Self {$($out_field),*}
+                let _params = default();
+                Self {$($out_field),*,_params}
             }
         }
 
-        impl $crate::application::command::CommandApi for Frp {
+        impl $(<$($param:Debug+'static),*>)?  $crate::application::command::CommandApi for Frp $(<$($param),*>)?  {
             fn command_api(&self)
             -> Rc<RefCell<HashMap<String,$crate::application::command::Command>>> {
                 self.command_map.clone()
@@ -380,7 +395,7 @@ macro_rules! define_endpoints {
             }
         }
 
-        impl $crate::application::command::FrpNetworkProvider for Frp {
+        impl $(<$($param:Debug+'static),*>)?  $crate::application::command::FrpNetworkProvider for Frp $(<$($param),*>)?  {
             fn network(&self) -> &$crate::frp::Network { &self.network }
         }
     };

@@ -147,10 +147,16 @@ impl VisualizationChooser {
 
             // === Showing Entries ===
 
-            menu_appears       <- menu.menu_visible.gate(&menu.menu_visible).constant(());
-            input_type_changed <- frp.set_vis_input_type.gate(&menu.menu_visible).constant(());
-            refresh_entries    <- any(menu_appears,input_type_changed);
-            frp.source.entries <+ refresh_entries.map2(&frp.vis_input_type,f!([model] ((),input_type){
+            menu_appears <- menu.menu_visible.gate(&menu.menu_visible).constant(());
+
+            // We want to update entries according to the input type, but only when it changed and
+            // menu is visible.
+            input_type_when_visible  <- frp.set_vis_input_type.gate(&menu.menu_visible);
+            input_type_when_appeared <- frp.set_vis_input_type.sample(&menu_appears);
+            input_type               <- any(input_type_when_visible,input_type_when_appeared);
+            input_type_changed       <- input_type.on_change();
+
+            frp.source.entries <+ input_type_changed.map(f!([model] (input_type){
                 let entries  = Rc::new(model.entries(input_type));
                 let provider = list_view::entry::AnyModelProvider::from(entries.clone_ref());
                 model.selection_menu.set_entries(provider);
