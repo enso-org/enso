@@ -10,3 +10,8 @@ case class SimpleHeaderToken(headerName: String, value: String) extends Token {
   override def alterRequest(request: HTTPRequestBuilder): HTTPRequestBuilder =
     request.addHeader(headerName, value)
 }
+
+case object NoAuthorization extends Token {
+  override def alterRequest(request: HTTPRequestBuilder): HTTPRequestBuilder =
+    request
+}

@@ -341,6 +341,37 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
+  def uploadLibrary(
+    path: Option[Path],
+    uploadUrl: Option[String],
+    authToken: Option[String],
+    logLevel: LogLevel,
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Int = {
+    val settings = runner
+      .uploadLibrary(
+        path,
+        uploadUrl.getOrElse {
+          throw new IllegalArgumentException(
+            "The default repository is currently not defined. " +
+            "You need to explicitly specify the `--upload-url`."
+          )
+        },
+        authToken.orElse(LauncherEnvironment.getEnvVar("ENSO_AUTH_TOKEN")),
+        cliOptions.hideProgress,
+        logLevel,
+        cliOptions.internalOptions.logMasking,
+        additionalArguments
+      )
+      .get
+
+    runner.withCommand(settings, JVMSettings(useSystemJVM, jvmOpts)) {
+      command => command.run().get
+    }
+  }
+
   /** Prints the value of `key` from the global configuration.
     *
     * If the `key` is not set in the config, sets exit code to 1 and prints a

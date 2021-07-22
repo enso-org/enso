@@ -1270,6 +1270,7 @@ lazy val `engine-runner` = project
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(cli)
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
