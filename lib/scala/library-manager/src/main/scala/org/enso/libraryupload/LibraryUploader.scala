@@ -3,6 +3,8 @@ package org.enso.libraryupload
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
+import com.typesafe.scalalogging.Logger
+import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem
@@ -18,6 +20,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 object LibraryUploader {
+  private lazy val logger = Logger[LibraryUploader.type]
+
   def uploadLibrary(
     projectRoot: Path,
     uploadUrl: String,
@@ -103,7 +107,6 @@ object LibraryUploader {
     }
 
     val formData = Multipart.FormData(Source(fileBodies))
-    println(formData)
     Marshal(formData).to[RequestEntity]
   }
 
@@ -129,7 +132,6 @@ object LibraryUploader {
     files: Seq[Path]
   )(implicit ec: ExecutionContext): TaskProgress[Unit] = {
     val future = createRequestEntity(files).map { entity =>
-      println(entity)
       val request = authToken
         .alterRequest(HTTPRequestBuilder.fromURI(uri))
         .setEntity(entity)
@@ -138,16 +140,26 @@ object LibraryUploader {
       HTTPDownload.fetchString(request).force()
     }
     TaskProgress.fromFuture(future).flatMap { response =>
-      println(s"Got $response")
-      // TODO we may want to have more precise error messages to handle auth errors etc.
-      if (response.statusCode == 200) Success(())
-      else
+      if (response.statusCode == 200) {
+        logger.debug("Server responded with 200 OK.")
+        Success(())
+      } else {
+        // TODO we may want to have more precise error messages to handle auth errors etc.
+        val includedMessage = for {
+          json    <- io.circe.parser.parse(response.content).toOption
+          obj     <- json.asObject
+          message <- obj("error").flatMap(_.asString)
+        } yield message
+        val message = includedMessage.getOrElse("Unknown error")
+        val errorMessage =
+          s"Upload failed: $message (Status code: ${response.statusCode})."
+        logger.error(errorMessage)
         Failure(
           new RuntimeException( // TODO more precise exceptions
-            s"Upload failed: " +
-            s"Server responded with status code ${response.statusCode}."
+            errorMessage
           )
         )
+      }
     }
   }
 }

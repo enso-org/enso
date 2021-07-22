@@ -12,7 +12,7 @@ import org.enso.downloader.http
 case class HTTPRequestBuilder private (
   uri: Uri,
   headers: Vector[(String, String)],
-  httpEntity: HttpEntity
+  httpEntity: RequestEntity
 ) {
 
   /** Builds a GET request with the specified settings. */
@@ -34,7 +34,7 @@ case class HTTPRequestBuilder private (
     * It can be used for example to specify form data to send for a POST
     * request.
     */
-  def setEntity(entity: HttpEntity): HTTPRequestBuilder =
+  def setEntity(entity: RequestEntity): HTTPRequestBuilder =
     copy(httpEntity = entity)
 
   private def build(
@@ -52,7 +52,12 @@ case class HTTPRequestBuilder private (
       }
     }
     http.HTTPRequest(
-      HttpRequest(method = method, uri = uri, headers = httpHeaders)
+      HttpRequest(
+        method  = method,
+        uri     = uri,
+        headers = httpHeaders,
+        entity  = httpEntity
+      )
     )
   }
 }
