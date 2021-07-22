@@ -89,4 +89,3 @@ type Parse_Error message
 Parse_Error.to_display_text : Text
 Parse_Error.to_display_text =
     "The input could not be parsed as a CSV: " + this.message
-

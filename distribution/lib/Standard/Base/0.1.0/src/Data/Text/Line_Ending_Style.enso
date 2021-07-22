@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+type Line_Ending_Style
+    type Unix
+    type Windows
+    type Mac_Legacy
+
+    to_text : Text
+    to_text = case this of
+        Unix -> '\n'
+        Windows -> '\r\n'
+        Mac_Legacy -> '\r'

@@ -9,6 +9,7 @@ from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.operations.OrderBuilder
+polyglot java import org.enso.table.format.csv.Writer as Csv_Writer
 
 ## Creates a new table from a vector of `[name, items]` pairs.
 
@@ -698,6 +699,16 @@ type Table
     reverse =
         mask = OrderBuilder.buildReversedMask this.row_count
         Table <| this.java_table.applyMask mask
+
+    to_csv write_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix =
+        Csv_Writer.writeString this.java_table write_header always_quote line_ending.to_text separator .to_csv_field
+
+    write_csv file write_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix max_rows_per_file=Nothing =
+        Csv_Writer.writePath this.java_table file.absolute.path max_rows_per_file write_header always_quote line_ending.to_text separator .to_csv_field
+
+Any.to_csv_field = this.to_text
+Text.to_csv_field = this
+
 
 ## Represents a table with grouped rows.
 type Aggregate_Table
