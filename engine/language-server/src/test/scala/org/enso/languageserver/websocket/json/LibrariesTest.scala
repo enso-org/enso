@@ -33,7 +33,7 @@ class LibrariesTest extends BaseServerTest {
             "id": 1,
             "params": {
               "namespace": "user",
-              "name": "MyLocalLib",
+              "name": "My_Local_Lib",
               "authors": [],
               "maintainers": [],
               "license": ""
@@ -60,7 +60,7 @@ class LibrariesTest extends BaseServerTest {
               "localLibraries": [
                 {
                   "namespace": "user",
-                  "name": "MyLocalLib",
+                  "name": "My_Local_Lib",
                   "version": {
                     "type": "LocalLibraryVersion"
                   }
@@ -73,6 +73,10 @@ class LibrariesTest extends BaseServerTest {
 
     "fail with LibraryAlreadyExists when creating a library that already " +
     "existed" ignore {
+      // TODO [RW] error handling (#1877)
+    }
+
+    "validate the library name" ignore {
       // TODO [RW] error handling (#1877)
     }
 

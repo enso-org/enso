@@ -10,6 +10,7 @@ import org.enso.librarymanager.local.{
   LocalLibraryProvider
 }
 import org.enso.pkg.PackageManager
+import org.enso.pkg.validation.NameValidation
 
 import java.io.File
 import java.nio.file.Files
@@ -45,6 +46,15 @@ class LocalLibraryManager(
     }
   }
 
+  private def validateLibraryName(libraryName: LibraryName): Unit = {
+    // TODO [RW] more specific exceptions
+    NameValidation.validateName(libraryName.name) match {
+      case Left(error) =>
+        throw new RuntimeException(s"Library name is not valid: [$error].")
+      case Right(_) =>
+    }
+  }
+
   /** Creates a new local library project.
     *
     * The project is created in the first directory of the local library search
@@ -58,6 +68,8 @@ class LocalLibraryManager(
   ): Try[Unit] = Try {
     // TODO [RW] modify protocol to be able to create Contact instances
     val _ = (authors, maintainers)
+
+    validateLibraryName(libraryName)
 
     // TODO [RW] make the exceptions more relevant
     val possibleRoots = LazyList
