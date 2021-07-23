@@ -1,3 +1,5 @@
+# Next Release
+
 # Enso 2.0.0-alpha.10 (2021-07-23)
 
 #### Enso Compiler
