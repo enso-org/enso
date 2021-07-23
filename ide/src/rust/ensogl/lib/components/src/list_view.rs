@@ -18,6 +18,8 @@ use ensogl_core::display::shape::*;
 use ensogl_core::DEPRECATED_Animation;
 use ensogl_theme as theme;
 
+pub use entry::Entry;
+
 
 
 // ==========================
@@ -33,9 +35,11 @@ const SHAPE_PADDING:f32 = 5.0;
 
 // === Selection ===
 
-mod selection {
+/// The selection rectangle shape.
+pub mod selection {
     use super::*;
 
+    /// The corner radius in pixels.
     pub const CORNER_RADIUS_PX:f32 = 12.0;
 
     ensogl_core::define_shape_system! {
@@ -57,9 +61,11 @@ mod selection {
 
 // === Background ===
 
-mod background {
+/// The default list view background.
+pub mod background {
     use super::*;
 
+    /// The corner radius in pixels.
     pub const CORNER_RADIUS_PX:f32 = selection::CORNER_RADIUS_PX;
 
     ensogl_core::define_shape_system! {
@@ -95,7 +101,7 @@ struct View {
 
 /// The Model of Select Component.
 #[derive(Clone,CloneRef,Debug)]
-struct Model<E:entry::Entry> {
+struct Model<E:Entry> {
     app            : Application,
     entries        : entry::List<E>,
     selection      : selection::View,
@@ -104,7 +110,7 @@ struct Model<E:entry::Entry> {
     display_object : display::object::Instance,
 }
 
-impl<E:entry::Entry> Model<E> {
+impl<E:Entry> Model<E> {
 
     fn new(app:&Application) -> Self {
         let app            = app.clone_ref();
@@ -238,17 +244,17 @@ ensogl_core::define_endpoints! {
 /// "choosing" by clicking or pressing enter. The basic entry types are defined in [`entry`] module.
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
-pub struct ListView<E:entry::Entry> {
+pub struct ListView<E:Entry> {
     model   : Model<E>,
     pub frp : Frp<E>,
 }
 
-impl<E:entry::Entry> Deref for ListView<E> {
+impl<E:Entry> Deref for ListView<E> {
     type Target = Frp<E>;
     fn deref(&self) -> &Self::Target { &self.frp }
 }
 
-impl<E:entry::Entry> ListView<E>
+impl<E:Entry> ListView<E>
 where E::Model : Default {
     /// Constructor.
     pub fn new(app:&Application) -> Self {
@@ -423,15 +429,15 @@ where E::Model : Default {
     }
 }
 
-impl<E:entry::Entry> display::Object for ListView<E> {
+impl<E:Entry> display::Object for ListView<E> {
     fn display_object(&self) -> &display::object::Instance { &self.model.display_object }
 }
 
-impl<E:entry::Entry> application::command::FrpNetworkProvider for ListView<E> {
+impl<E:Entry> application::command::FrpNetworkProvider for ListView<E> {
     fn network(&self) -> &frp::Network { &self.frp.network }
 }
 
-impl<E:entry::Entry> application::View for ListView<E> {
+impl<E:Entry> application::View for ListView<E> {
     fn label() -> &'static str { "ListView" }
     fn new(app:&Application) -> Self { ListView::new(app) }
     fn app(&self) -> &Application { &self.model.app }

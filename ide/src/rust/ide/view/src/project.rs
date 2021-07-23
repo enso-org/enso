@@ -8,6 +8,7 @@ use crate::graph_editor::component::node::Expression;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::GraphEditor;
 use crate::graph_editor::NodeId;
+use crate::open_dialog::OpenDialog;
 use crate::searcher;
 use crate::status_bar;
 
@@ -34,11 +35,12 @@ ensogl::define_endpoints! {
     Input {
         /// Open the searcher.
         open_searcher(),
-        /// Open the searcher with Open Project mode, where the only suggestions will be projects to
-        /// open, and node creation is disabled.
-        open_searcher_for_opening_project(),
+        /// Open the Open File or Project Dialog.
+        show_open_dialog(),
         /// Close the searcher without taking any actions
         close_searcher(),
+        /// Close the Open File or Project Dialog without further action
+        close_open_dialog(),
         /// Simulates a style toggle press event.
         toggle_style(),
         /// Saves the currently opened module to file.
@@ -47,26 +49,26 @@ ensogl::define_endpoints! {
         undo(),
         /// Redo the last undone action.
         redo(),
-        /// Show the prompt informing about tab key.
+        /// Show the prompt informing about tab key if it is not disabled.
         show_prompt(),
-        /// Hide the prompt
-        hide_prompt(),
+        /// Disable the prompt. It will be hidden if currently visible.
+        disable_prompt(),
     }
 
     Output {
         searcher_opened                     (NodeId),
-        searcher_opened_for_opening_project (NodeId),
         adding_new_node                     (bool),
         searcher_input                      (Option<NodeId>),
         is_searcher_opened                  (bool),
-        opening_project                     (bool),
         old_expression_of_edited_node       (Expression),
         editing_aborted                     (NodeId),
         editing_committed                   (NodeId, Option<searcher::entry::Id>),
+        open_dialog_shown                   (bool),
         code_editor_shown                   (bool),
         style                               (Theme),
         fullscreen_visualization_shown      (bool),
         default_gap_between_nodes           (f32),
+        drop_files_enabled                  (bool),
     }
 }
 
@@ -97,7 +99,6 @@ mod prompt_background {
 
 
 // =============
-// =============
 // === Model ===
 // =============
 
@@ -108,13 +109,14 @@ struct Model {
     display_object         : display::object::Instance,
     /// These buttons are present only in a cloud environment.
     window_control_buttons : Immutable<Option<crate::window_control_buttons::View>>,
-    graph_editor           : GraphEditor,
+    graph_editor           : Rc<GraphEditor>,
     searcher               : searcher::View,
     code_editor            : code_editor::View,
     status_bar             : status_bar::View,
     fullscreen_vis         : Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
     prompt_background      : prompt_background::View,
     prompt                 : ensogl_text::Area,
+    open_dialog            : Rc<OpenDialog>,
 }
 
 impl Model {
@@ -136,6 +138,7 @@ impl Model {
             window_control_buttons
         });
         let window_control_buttons = Immutable(window_control_buttons);
+        let open_dialog            = Rc::new(OpenDialog::new(app));
         prompt_background.add_child(&prompt);
         prompt.set_content("Press the tab key to search for components.");
         scene.layers.panel.add_exclusive(&prompt_background);
@@ -148,9 +151,11 @@ impl Model {
         display_object.add_child(&status_bar);
         display_object.add_child(&prompt_background);
         display_object.remove_child(&searcher);
-        let app = app.clone_ref();
+
+        let app          = app.clone_ref();
+        let graph_editor = Rc::new(graph_editor);
         Self{app,logger,display_object,window_control_buttons,graph_editor,searcher,code_editor,
-            status_bar,fullscreen_vis,prompt_background,prompt}
+            status_bar,fullscreen_vis,prompt_background,prompt,open_dialog}
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
@@ -235,7 +240,7 @@ impl Model {
         let node = self.graph_editor.model.model.nodes.all.get_cloned_ref(&node_id);
         if let Some(node) = node {
             let visualization = node.view.model.visualization.fullscreen_visualization().clone_ref();
-            self.display_object.remove_child(&self.graph_editor);
+            self.display_object.remove_child(&*self.graph_editor);
             self.display_object.add_child(&visualization);
             *self.fullscreen_vis.borrow_mut() = Some(visualization);
         }
@@ -244,7 +249,7 @@ impl Model {
     fn hide_fullscreen_visualization(&self) {
         if let Some(visualization) = std::mem::take(&mut *self.fullscreen_vis.borrow_mut()) {
             self.display_object.remove_child(&visualization);
-            self.display_object.add_child(&self.graph_editor);
+            self.display_object.add_child(&*self.graph_editor);
         }
     }
 
@@ -262,6 +267,14 @@ impl Model {
 
     fn on_fullscreen_clicked(&self) {
         js::fullscreen();
+    }
+
+    fn show_open_dialog(&self) {
+        self.display_object.add_child(&*self.open_dialog);
+    }
+
+    fn hide_open_dialog(&self) {
+        self.display_object.remove_child(&*self.open_dialog);
     }
 }
 
@@ -341,10 +354,13 @@ impl View {
 
         display::style::javascript::expose_to_window(&app.themes);
 
+        let scene                      = app.display.scene().clone_ref();
         let model                      = Model::new(app);
         let frp                        = Frp::new();
         let searcher                   = &model.searcher.frp;
         let graph                      = &model.graph_editor.frp;
+        let project_list               = &model.open_dialog.project_list;
+        let file_browser               = &model.open_dialog.file_browser;
         let network                    = &frp.network;
         let searcher_left_top_position = DEPRECATED_Animation::<Vector2<f32>>::new(network);
         let prompt_visibility          = Animation::new(network);
@@ -356,7 +372,7 @@ impl View {
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
 
-        let style_sheet                    = &model.app.display.scene().style_sheet;
+        let style_sheet                    = &scene.style_sheet;
         let styles                         = StyleWatchFrp::new(style_sheet);
         let default_gap_between_nodes_path = ensogl_theme::project::default_gap_between_nodes;
 
@@ -376,7 +392,7 @@ impl View {
             }
         }
 
-        let shape = app.display.scene().shape().clone_ref();
+        let shape = scene.shape().clone_ref();
         frp::extend!{ network
             eval shape ((shape) model.on_dom_shape_changed(shape));
 
@@ -397,10 +413,6 @@ impl View {
                 }
             });
 
-            // === Searcher Selection ===
-
-            eval searcher.is_selected ((is_selected) graph.set_navigator_disabled(is_selected));
-
 
             // === Editing ===
 
@@ -417,7 +429,7 @@ impl View {
             editing_aborted              <+ frp.close_searcher.constant(true);
             editing_commited_in_searcher <- searcher.editing_committed.constant(());
             should_finish_editing_if_any <- any(frp.close_searcher,editing_commited_in_searcher
-                ,frp.open_searcher,frp.open_searcher_for_opening_project);
+                ,frp.open_searcher,frp.show_open_dialog);
             should_finish_editing <- should_finish_editing_if_any.gate(&graph.output.node_editing);
             eval should_finish_editing ((()) graph.input.stop_editing.emit(()));
 
@@ -466,19 +478,17 @@ impl View {
             eval adding_aborted  ((node) graph.remove_node(node));
 
 
-            // === Opening Project ===
+            // === Opening Open File or Project Dialog ===
 
-            frp.source.opening_project <+ frp.open_searcher_for_opening_project.constant(true);
+            eval_ frp.show_open_dialog  (model.show_open_dialog());
+            project_chosen   <- project_list.chosen_entry.constant(());
+            file_chosen      <- file_browser.entry_chosen.constant(());
+            mouse_down       <- scene.mouse.frp.down.constant(());
+            clicked_on_bg    <- mouse_down.filter(f_!(scene.mouse.target.get().is_background()));
+            should_be_closed <- any(frp.close_open_dialog,project_chosen,file_chosen,clicked_on_bg);
+            eval_ should_be_closed (model.hide_open_dialog());
 
-            frp.source.searcher_opened_for_opening_project <+ frp.open_searcher_for_opening_project
-                .map(f!((_) model.add_node_and_edit()));
-
-            opening_committed <- frp.editing_committed.gate(&frp.opening_project).map(|(id,_)| *id);
-            opening_aborted   <- frp.editing_aborted.gate(&frp.opening_project);
-            opening_finished  <- any(&opening_committed,&opening_aborted);
-            frp.source.opening_project <+ opening_finished.constant(false);
-
-            eval opening_finished ((node) graph.remove_node(node));
+            frp.source.open_dialog_shown <+ bool(&should_be_closed,&frp.show_open_dialog);
 
 
             // === Style toggle ===
@@ -514,6 +524,7 @@ impl View {
 
 
             // === Prompt ===
+
             init <- source::<()>();
             let prompt_bg_color_path   = ensogl_theme::graph_editor::prompt::background;
             let prompt_bg_padding_path = ensogl_theme::graph_editor::prompt::background::padding;
@@ -528,9 +539,13 @@ impl View {
             let prompt_size            = styles.get_number(prompt_size_path);
             prompt_size                <- all(&prompt_size,&init)._0();
 
-            prompt_visibility.target <+ frp.show_prompt.constant(1.0);
-            prompt_visibility.target <+ frp.hide_prompt.constant(0.0);
-            prompt_visibility.target <+ frp.is_searcher_opened.filter(|v| *v).constant(0.0);
+            disable_after_opening_searcher <- frp.is_searcher_opened.filter(|v| *v).constant(());
+            disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
+            disabled                       <- disable.constant(true);
+            show_prompt                    <- frp.show_prompt.gate_not(&disabled);
+
+            prompt_visibility.target <+ show_prompt.constant(1.0);
+            prompt_visibility.target <+ disable.constant(0.0);
             _eval <- all_with4(&prompt_visibility.value,&prompt_bg_color,&prompt_color,&prompt_size,
                 f!([model](weight,bg_color,color,size) {
                     let mut bg_color = *bg_color;
@@ -548,6 +563,17 @@ impl View {
                     model.prompt_background.size.set(Vector2(*width + padding, *size + padding));
                 })
             );
+
+
+            // === Disabling Navigation ===
+
+            disable_navigation           <- searcher.is_selected || frp.open_dialog_shown;
+            graph.set_navigator_disabled <+ disable_navigation;
+
+            // === Disabling Dropping ===
+
+            frp.source.drop_files_enabled <+ init.constant(true);
+            frp.source.drop_files_enabled <+ frp.open_dialog_shown.map(|v| !v);
         }
         init.emit(());
         std::mem::forget(prompt_visibility);
@@ -566,6 +592,9 @@ impl View {
 
     /// Status Bar View.
     pub fn status_bar(&self) -> &status_bar::View { &self.model.status_bar }
+
+    /// Open File or Project Dialog
+    pub fn open_dialog(&self) -> &OpenDialog { &self.model.open_dialog }
 }
 
 impl display::Object for View {
@@ -588,9 +617,12 @@ impl application::View for View {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use shortcut::ActionType::*;
         (&[ (Press   , "!is_searcher_opened", "tab"             , "open_searcher")
-          , (Press   , "!is_searcher_opened", "cmd o"           , "open_searcher_for_opening_project")
+          , (Press   , "!is_searcher_opened", "cmd o"           , "show_open_dialog")
           , (Press   , "is_searcher_opened" , "escape"          , "close_searcher")
-          , (Press   , ""                   , "tab"             , "hide_prompt")
+          , (Press   , "open_dialog_shown"  , "escape"          , "close_open_dialog")
+          , (Press   , ""                   , "tab"             , "disable_prompt")
+          , (Press   , ""                   , "cmd o"           , "disable_prompt")
+          , (Press   , ""                   , "space"           , "disable_prompt")
           , (Press   , ""                   , "cmd alt shift t" , "toggle_style")
           , (Press   , ""                   , "cmd s"           , "save_module")
           , (Press   , ""                   , "cmd z"           , "undo")

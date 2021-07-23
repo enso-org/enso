@@ -62,7 +62,6 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-
     let _guard       = ide::initializer::setup_global_executor();
     let ide          = setup_ide().await;
     let project      = ide.current_project();

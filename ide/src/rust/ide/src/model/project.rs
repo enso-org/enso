@@ -15,6 +15,7 @@ use crate::double_representation::identifier::ReferentName;
 
 use enso_protocol::binary;
 use enso_protocol::language_server;
+use enso_protocol::language_server::ContentRoot;
 use flo_stream::Subscriber;
 use mockall::automock;
 use parser::Parser;
@@ -54,6 +55,12 @@ pub trait API:Debug {
     /// Get the suggestions database.
     fn suggestion_db(&self) -> Rc<model::SuggestionDatabase>;
 
+    /// Get the list of all content roots attached to the project.
+    fn content_roots(&self) -> Vec<Rc<ContentRoot>>;
+
+    /// Get content root by id.
+    fn content_root_by_id(&self, id:Uuid) -> FallibleResult<Rc<ContentRoot>>;
+
     /// Returns a model of module opened from file.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn module<'a>
@@ -84,9 +91,10 @@ pub trait API:Debug {
     /// Get qualified name of the project's `Main` module.
     ///
     /// This module is special, as it needs to be referred by the project name itself.
-    fn main_module(&self) -> FallibleResult<model::module::QualifiedName> {
-        let main = std::iter::once(controller::project::INITIAL_MODULE_NAME);
-        model::module::QualifiedName::from_segments(self.qualified_name(),main)
+    fn main_module(&self) -> model::module::QualifiedName {
+        let id   = controller::project::main_module_id();
+        let name = self.qualified_name();
+        model::module::QualifiedName::new(name,id)
 
         // TODO [mwu] The code below likely should be preferred but does not work
         //            because language server does not support using project name
@@ -102,8 +110,9 @@ pub trait API:Debug {
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn main_module_model<'a>(&'a self) -> BoxFuture<'a, FallibleResult<model::Module>> {
         async move {
-            let main_name = self.main_module()?;
-            let main_path = model::module::Path::from_id(self.project_content_root_id(), &main_name.id);
+            let main_name       = self.main_module();
+            let content_root_id = self.project_content_root_id();
+            let main_path       = model::module::Path::from_id(content_root_id,&main_name.id);
             self.module(main_path).await
         }.boxed_local()
     }
@@ -204,7 +213,7 @@ pub mod test {
             .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
     }
 
-    /// Sets up root id expectation on the mock project, returning a given id.
+    /// Sets up project root id expectation on the mock project, returning a given id.
     pub fn expect_root_id(project:&mut MockAPI, root_id:Uuid) {
         project.expect_project_content_root_id().return_const(root_id);
     }

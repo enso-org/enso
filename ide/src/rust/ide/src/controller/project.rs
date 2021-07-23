@@ -4,9 +4,9 @@ use crate::prelude::*;
 
 use crate::controller::graph::executed::Notification as GraphNotification;
 use crate::controller::ide::StatusNotificationPublisher;
-use crate::model::traits::*;
 use crate::double_representation::project;
 use crate::model::module::QualifiedName;
+use crate::model::traits::*;
 
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
@@ -140,7 +140,7 @@ impl Project {
         // TODO [mwu] This solution to recreate missing main file should be considered provisional
         //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
         self.recreate_if_missing(&file_path,default_main_method_code()).await?;
-        let method = main_method_ptr(project.qualified_name(),&module_path);
+        let method            = main_method_ptr(project.qualified_name(),&module_path);
         let main_module_model = self.model.module(module_path.clone()).await?;
         Self::add_main_if_missing(project.qualified_name(), &main_module_model, &method, &parser)?;
 

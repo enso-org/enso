@@ -15,7 +15,7 @@ use crate::transport::web::WebSocket;
 use enso_protocol::binary;
 use enso_protocol::binary::message::VisualisationContext;
 use enso_protocol::language_server;
-use enso_protocol::language_server::CapabilityRegistration;
+use enso_protocol::language_server::{CapabilityRegistration, ContentRoot};
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::project_manager;
 use enso_protocol::project_manager::MissingComponentAction;
@@ -88,6 +88,63 @@ impl ExecutionContextsRegistry {
     }
 }
 
+
+
+// ====================
+// === ContentRoots ===
+// ====================
+
+#[derive(Clone,Debug,Fail)]
+#[fail(display="Content root {} does not exist.",id)]
+struct MissingContentRoot {id:Uuid}
+
+/// A repository of content roots attached to a specific project.
+#[derive(Clone,Debug)]
+pub struct ContentRoots {
+    logger : Logger,
+    roots  : RefCell<HashMap<Uuid,Rc<ContentRoot>>>
+}
+
+impl ContentRoots {
+    /// Create ContentRoots, initializing with the roots retrieved during connection initialization.
+    pub fn new_from_connection
+    (parent:impl AnyLogger, connection:&language_server::Connection) -> Self {
+        let logger    = Logger::sub(parent,"ContentRoots");
+        let roots_vec = connection.content_roots().map(|r| (r.id(),Rc::new(r.clone()))).collect();
+        let roots     = RefCell::new(roots_vec);
+        Self{logger,roots}
+    }
+
+    /// Return all content roots.
+    pub fn all(&self) -> Vec<Rc<ContentRoot>> {
+        self.roots.borrow().values().cloned().collect()
+    }
+
+    /// Add a new content root.
+    ///
+    /// If there is already a root with given id, it will be replaced and warning will be printed.
+    pub fn add(&self, content_root:ContentRoot) {
+        let content_root = Rc::new(content_root);
+        if let Some(existing) = self.roots.borrow_mut().insert(content_root.id(),content_root) {
+            warning!(self.logger,"Adding content root: there is already content root with given \
+                id: {existing:?}");
+        }
+    }
+
+    /// Get content root by id.
+    pub fn get(&self, id:Uuid) -> FallibleResult<Rc<ContentRoot>> {
+        self.roots.borrow().get(&id).cloned().ok_or_else(|| MissingContentRoot{id}.into())
+    }
+
+    /// Remove the content root with given id.
+    ///
+    /// If there is no content root with such id, a warning will be printed.
+    pub fn remove(&self, id:Uuid) {
+        if self.roots.borrow_mut().remove(&id).is_none() {
+            warning!(self.logger,"Removing content root: no content root with given id: {id}");
+        }
+    }
+}
 
 
 // =============
@@ -166,6 +223,7 @@ pub struct Project {
     pub execution_contexts  : Rc<ExecutionContextsRegistry>,
     pub visualization       : controller::Visualization,
     pub suggestion_db       : Rc<SuggestionDatabase>,
+    pub content_roots       : Rc<ContentRoots>,
     pub parser              : Parser,
     pub logger              : Logger,
     pub notifications       : notification::Publisher<model::project::Notification>,
@@ -195,13 +253,16 @@ impl Project {
         let language_server         = &*language_server_rpc;
         let suggestion_db           = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db           = Rc::new(suggestion_db.await.map_err(&wrap)?);
+        let content_roots           = ContentRoots::new_from_connection(&logger,&*language_server);
+        let content_roots           = Rc::new(content_roots);
         let notifications           = notification::Publisher::default();
         let urm                     = Rc::new(model::undo_redo::Manager::new(&logger));
         let properties              = Rc::new(RefCell::new(properties));
 
         let ret = Project
             {properties,project_manager,language_server_rpc,language_server_bin,module_registry
-            ,execution_contexts,visualization,suggestion_db,parser,logger,notifications,urm};
+            ,execution_contexts,visualization,suggestion_db,content_roots,parser,logger
+            ,notifications,urm};
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
@@ -320,6 +381,7 @@ impl Project {
         let publisher               = self.notifications.clone_ref();
         let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
         let weak_suggestion_db      = Rc::downgrade(&self.suggestion_db);
+        let weak_content_roots      = Rc::downgrade(&self.content_roots);
         move |event| {
             debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
             use enso_protocol::language_server::Event;
@@ -346,6 +408,16 @@ impl Project {
                 Event::Notification(Notification::SuggestionDatabaseUpdates(update)) => {
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {
                         suggestion_db.apply_update_event(update);
+                    }
+                }
+                Event::Notification(Notification::ContentRootAdded {root}) => {
+                    if let Some(content_roots) = weak_content_roots.upgrade() {
+                        content_roots.add(root);
+                    }
+                }
+                Event::Notification(Notification::ContentRootRemoved {id}) => {
+                    if let Some(content_roots) = weak_content_roots.upgrade() {
+                        content_roots.remove(id);
                     }
                 }
                 Event::Closed => {
@@ -416,6 +488,14 @@ impl model::project::API for Project {
 
     fn suggestion_db(&self) -> Rc<SuggestionDatabase> {
         self.suggestion_db.clone_ref()
+    }
+
+    fn content_roots(&self) -> Vec<Rc<ContentRoot>> {
+        self.content_roots.all()
+    }
+
+    fn content_root_by_id(&self, id:Uuid) -> FallibleResult<Rc<ContentRoot>> {
+        self.content_roots.get(id)
     }
 
     fn module(&self, path: module::Path) -> BoxFuture<FallibleResult<model::Module>> {
