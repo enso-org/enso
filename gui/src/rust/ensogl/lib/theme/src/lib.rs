@@ -174,6 +174,34 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
+        file_browser {
+            width  = 0.0,   0.0; // Should be updated when file browser will be implemented.
+            height = 421.0, 421.0;
+        }
+        open_dialog {
+            // Should be updated when file browser will be implemented.
+            gap_between_panels = 0.0, 0.0;
+        }
+        project_list {
+            width      = 202.0 , 202.0;
+            padding    = 16.0, 16.0;
+            height     = 421.0, 421.0;
+            background = Rgba(0.992,0.996,1.0,1.0), Rgba(0.182,0.188,0.196,1.0);
+            text       = widget::list_view::text, widget::list_view::text;
+            text {
+                size    = 12.0, 12.0;
+                padding = 6.0 , 6.0 ;
+            }
+            bar {
+                height      = 45.0, 45.0;
+                border_size = 1.0, 1.0;
+                border_color = Rgba(0.808,0.808,0.808,1.0)    , Rgba(0.808,0.808,0.808,1.0);
+                label {
+                    size  = 12.0, 12.0;
+                    color = Rgba(0.439,0.439,0.439,1.0), Rgba(0.439,0.439,0.439,1.0);
+                }
+            }
+        }
 
         window_control_buttons {
             radius  = 6.5, 6.5;

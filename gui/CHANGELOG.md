@@ -1,6 +1,23 @@
 # Next Release
 
+This update contains major performance improvements and exposes new privacy user
+settings. We will work towards stabilizing it in the next weeks in order to make
+these updates be shipped in a stable release before the end of the year.
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Visual Environment
+
+- [New look of open project dialog.][1700]. Now it has "Open project" title on
+  the top.
+
+<br/>
+
+[1700]: https://github.com/enso-org/ide/pull/1700
+
 # Enso 2.0.0-alpha.10 (2021-07-23)
+
+<br/>![New Features](/docs/assets/tags/new_features.svg)
 
 #### Enso Compiler
 
@@ -8,6 +25,8 @@
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
   [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+<br/>
 
 [1710]: https://github.com/enso-org/ide/pull/1710
 
@@ -23,7 +42,9 @@
 
 <br/>
   
-# Enso 2.0.0-alpha.8 (2021-07-09)
+[1640]: https://github.com/enso-org/ide/pull/1653
+
+# Enso 2.0.0-alpha.8 (2021-06-09)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
 
@@ -35,7 +56,6 @@
   [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
 [1640]: https://github.com/enso-org/ide/pull/1640
-[1677]: https://github.com/enso-org/ide/pull/1677
 
 <br/>
 

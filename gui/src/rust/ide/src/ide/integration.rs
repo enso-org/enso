@@ -1,6 +1,7 @@
 //! The integration layer between IDE controllers and the view.
 
 pub mod project;
+pub mod file_system;
 
 use crate::prelude::*;
 
