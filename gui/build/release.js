@@ -38,7 +38,7 @@ class Version {
         this.minor        = minor
         this.patch        = patch
         this.tag          = tag
-        this.tagVersion   = tagVersion
+        this.tagVersion   = parseInt(tagVersion)
         this.rcTag        = rcTag
         this.rcTagVersion = rcTagVersion
     }
