@@ -4409,6 +4409,9 @@ versions. This is a temporary solution and in the longer-term it should be
 replaced with separate settings allowing to arbitrarily modify the library
 version from the IDE.
 
+The `uploadUrl` is the URL of the library repository that accepts library
+uploads.
+
 The metadata for publishing the library can be set with
 [`library/setMetadata`](#librarysetmetadata). If it was not set, the publish
 operation will still proceed, but that metadata will be missing.

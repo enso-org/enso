@@ -45,19 +45,12 @@ class LibraryPublishHandler(
             bumpVersionAfterPublish
           )
         ) =>
+      val shouldBump  = bumpVersionAfterPublish.getOrElse(false)
+      val replyTo     = sender()
       val token       = auth.SimpleHeaderToken(authToken)
       val libraryName = LibraryName(namespace, name)
       localLibraryManager ! FindLibrary(libraryName)
 
-      val shouldBump = bumpVersionAfterPublish.getOrElse(false)
-      if (shouldBump) {
-        logger.warn(
-          "`bumpVersionAfterPublish` was set to true, but this feature is " +
-          "not currently implemented. Ignoring."
-        )
-      }
-
-      val replyTo = sender()
       val timeoutCancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(
@@ -67,7 +60,8 @@ class LibraryPublishHandler(
           id,
           uploadUrl,
           token,
-          timeoutCancellable
+          timeoutCancellable,
+          shouldBump
         )
       )
   }
@@ -77,13 +71,17 @@ class LibraryPublishHandler(
     context.stop(self)
   }
 
+  /** Waits for the response of LocalLibraryManager and continues the publishing
+    * process.
+    */
   private def waitForLibraryResolutionStage(
     replyTo: ActorRef,
     libraryName: LibraryName,
     id: Id,
     uploadUrl: String,
     token: auth.Token,
-    timeoutCancellable: Cancellable
+    timeoutCancellable: Cancellable,
+    shouldBumpAfterPublishing: Boolean
   ): Receive = {
     case RequestTimeout =>
       replyTo ! RequestTimeout
@@ -110,6 +108,12 @@ class LibraryPublishHandler(
             FileSystemError(s"Upload failed: $exception")
           )
         case Success(_) =>
+          if (shouldBumpAfterPublishing) {
+            logger.warn(
+              "`bumpVersionAfterPublish` was set to true, but this feature " +
+              "is not currently implemented. Ignoring."
+            )
+          }
           replyTo ! ResponseResult(LibraryPublish, id, Unused)
       }
 

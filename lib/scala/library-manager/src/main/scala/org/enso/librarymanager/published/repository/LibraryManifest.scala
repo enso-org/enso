@@ -20,6 +20,15 @@ case class LibraryManifest(
 )
 
 object LibraryManifest {
+
+  /** Creates an empty manifest.
+    *
+    * Such a manifest is invalid as at least one archive should be specified in
+    * a valid manifest.
+    *
+    * It can however be useful as a temporary value for logic that updates or
+    * creates a new manifest.
+    */
   def empty: LibraryManifest = LibraryManifest(Seq.empty, Seq.empty, None, None)
 
   object Fields {

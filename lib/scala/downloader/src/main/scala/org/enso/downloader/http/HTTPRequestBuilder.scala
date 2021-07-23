@@ -18,7 +18,7 @@ case class HTTPRequestBuilder private (
   /** Builds a GET request with the specified settings. */
   def GET: HTTPRequest = build(HttpMethods.GET)
 
-  /** Builds a GET request with the specified settings. */
+  /** Builds a POST request with the specified settings. */
   def POST: HTTPRequest = build(HttpMethods.POST)
 
   /** Adds an additional header that will be included in the request.
@@ -29,7 +29,7 @@ case class HTTPRequestBuilder private (
   def addHeader(name: String, value: String): HTTPRequestBuilder =
     copy(headers = headers.appended((name, value)))
 
-  /** Sets the [[HttpEntity]] for the request.
+  /** Sets the [[RequestEntity]] for the request.
     *
     * It can be used for example to specify form data to send for a POST
     * request.

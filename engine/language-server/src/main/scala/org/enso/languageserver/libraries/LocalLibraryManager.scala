@@ -38,14 +38,12 @@ class LocalLibraryManager(
         sender() ! listLocalLibraries()
       case Create(libraryName, authors, maintainers, license) =>
         sender() ! createLibrary(libraryName, authors, maintainers, license)
-      case Publish(_, _, _) =>
-        logger.error("Publishing libraries is currently not implemented.")
-        sender() ! Failure(new NotImplementedError())
       case FindLibrary(libraryName) =>
         sender() ! findLibrary(libraryName)
     }
   }
 
+  /** Checks if the library name is a valid Enso module name. */
   private def validateLibraryName(libraryName: LibraryName): Unit = {
     // TODO [RW] more specific exceptions
     NameValidation.validateName(libraryName.name) match {
@@ -121,6 +119,7 @@ class LocalLibraryManager(
     } yield LibraryName(namespace, name)
   }
 
+  /** Finds the path on the filesystem to a local library. */
   private def findLibrary(
     libraryName: LibraryName
   ): Try[FindLibraryResponse] = Try {
