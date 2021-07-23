@@ -1,5 +1,7 @@
 # Enso Next
 
+# Enso 0.2.16 (2021-07-23)
+
 ## Interpreter/Runtime
 
 - Added support for the `ALIAS` tag in documentation blocks for use by the
@@ -8,8 +10,8 @@
 ## Tooling
 
 - Implemented a basic library downloader
-  ([#1885](https://github.com/enso-org/enso/pull/1885)), allowing to download
-  missing libraries.
+  ([#1885](https://github.com/enso-org/enso/pull/1885)), allowing the
+  downloading of missing libraries.
 
 ## Libraries
 
@@ -17,6 +19,12 @@
   ([#1879](https://github.com/enso-org/enso/pull/1879)).
 - Added support for serializing tables into CSV files.
   ([#1894](https://github.com/enso-org/enso/pull/1894)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-07-23)
+  for issues opened before the release date.
 
 # Enso 0.2.15 (2021-07-19)
 
