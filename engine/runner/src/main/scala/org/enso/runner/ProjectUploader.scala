@@ -7,10 +7,20 @@ import org.enso.libraryupload.{auth, LibraryUploader}
 
 import java.nio.file.Path
 
+/** Gathers helper functions for uploading a library project. */
 object ProjectUploader {
 
   private lazy val logger = Logger[ProjectUploader.type]
 
+  /** Uploads a project to a library repository.
+    *
+    * @param projectRoot path to the root of the project
+    * @param uploadUrl URL of upload endpoint of the repository to upload to
+    * @param authToken an optional token used for authentication in the
+    *                  repository
+    * @param showProgress specifies if CLI progress bars should be displayed
+    *                     showing progress of compression and upload
+    */
   def uploadProject(
     projectRoot: Path,
     uploadUrl: String,

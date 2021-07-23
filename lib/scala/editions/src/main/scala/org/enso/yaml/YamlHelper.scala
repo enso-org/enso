@@ -20,6 +20,7 @@ object YamlHelper {
       .left
       .map(ParseError(_))
 
+  /** Tries to load and parse a YAML file at the provided path. */
   def load[R](path: Path)(implicit decoder: Decoder[R]): Try[R] =
     Using(new FileReader(path.toFile)) { reader =>
       yaml.parser
@@ -28,6 +29,7 @@ object YamlHelper {
         .toTry
     }.flatten
 
+  /** Saves a YAML representation of an object into a string. */
   def toYaml[A](obj: A)(implicit encoder: Encoder[A]): String =
     Printer.spaces2.copy(preserveOrder = true).pretty(encoder(obj))
 }

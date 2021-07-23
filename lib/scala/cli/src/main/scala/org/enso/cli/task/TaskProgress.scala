@@ -98,6 +98,7 @@ object TaskProgress {
     }
   }
 
+  /** Creates a [[TaskProgress]] from a [[Future]]. */
   def fromFuture[A](
     future: Future[A]
   )(implicit ec: ExecutionContext): TaskProgress[A] = {

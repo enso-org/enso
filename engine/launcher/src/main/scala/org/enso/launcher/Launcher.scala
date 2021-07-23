@@ -341,6 +341,21 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     0
   }
 
+  /** Uploads a library to a repository.
+    *
+    * @param path path to the library, if not specified, the current working
+    *             directory and its ancestors are searched for an Enso project
+    *             to upload
+    * @param uploadUrl a URL of an upload endpoint of a repository; if not
+    *                  specified, falls back to the default Enso repository
+    * @param authToken a token to use for authentication
+    * @param logLevel log level for the language server
+    * @param useSystemJVM if set, forces to use the default configured JVM,
+    *                     instead of the JVM associated with the engine version
+    * @param jvmOpts additional options to pass to the launched JVM
+    * @param additionalArguments additional arguments to pass to the runner
+    * @return exit code of the launched program
+    */
   def uploadLibrary(
     path: Option[Path],
     uploadUrl: Option[String],

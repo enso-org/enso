@@ -24,9 +24,20 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try, Using}
 
+/** Gathers functions used for uploading libraries. */
 object LibraryUploader {
   private lazy val logger = Logger[LibraryUploader.type]
 
+  /** Uploads a library to a repository.
+    *
+    * @param projectRoot path to the library project root
+    * @param uploadUrl an URL to the upload endpoint of a library repository
+    * @param authToken a token describing the authentication method to use with
+    *                  the repository
+    * @param progressReporter a [[ProgressReporter]] to track long running tasks
+    *                         like compression and upload
+    * @param ec an execution context used for handling Futures
+    */
   def uploadLibrary(
     projectRoot: Path,
     uploadUrl: String,
@@ -61,7 +72,7 @@ object LibraryUploader {
       val loadedManifest =
         loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
       val updatedManifest =
-        // TODO [RW] update dependencies in the manifest
+        // TODO [RW] update dependencies in the manifest (#1773)
         loadedManifest.copy(archives = Seq(mainArchiveName))
       FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
 
@@ -85,12 +96,14 @@ object LibraryUploader {
     }
   }
 
+  /** Creates an URL for the upload, including information identifying the
+    * library version.
+    */
   private def buildUploadUri(
     baseUploadUrl: String,
     libraryName: LibraryName,
     version: SemVer
   ): Uri = {
-    // TODO [RW] decide on the API
     URIBuilder
       .fromUri(baseUploadUrl)
       .addQuery("namespace", libraryName.namespace)
@@ -99,6 +112,18 @@ object LibraryUploader {
       .build()
   }
 
+  /** Gathers project files to create the main archive.
+    *
+    * For now it just filters out the files like manifest which are uploaded
+    * separately. In the future this may be extended to create separate
+    * sub-archives for platform specific binaries or tests.
+    *
+    * @param projectRoot path to the project root
+    * @param rootFilesToIgnore names of files at the root that should *not* be
+    *                          included in the archive
+    * @param destination path at which the archive is created
+    * @return
+    */
   private def createMainArchive(
     projectRoot: Path,
     rootFilesToIgnore: Seq[String],
@@ -115,40 +140,23 @@ object LibraryUploader {
       filesStream.iterator().asScala.filter(shouldBeUploaded).toSeq
     }.get
 
-    val sumSize = filesToCompress.map(Files.size).sum
-
     logger.info(
       s"Compressing ${filesToCompress.size} project files " +
       s"into [${destination.getFileName}]."
     )
 
-    val taskProgress = new TaskProgressImplementation[Unit]()
+    val compression = TarGzWriter.compress(
+      archiveDestination = destination,
+      files              = filesToCompress,
+      basePath           = projectRoot
+    )
 
-    def runCompresion(): Unit = {
-      val result = TarGzWriter.createArchive(destination) { writer =>
-        var totalBytesWritten: Long = 0
-        def update(): Unit =
-          taskProgress.reportProgress(totalBytesWritten, Some(sumSize))
-        update()
-        for (file <- filesToCompress) {
-          // TODO [RW] Ideally we could report progress for each chunk, offering
-          //  more granular feedback for big data files.
-          val bytesWritten = writer.writeFile(relativePath(file), file)
-          totalBytesWritten += bytesWritten
-          update()
-        }
-      }
-
+    compression.map { _ =>
       logger.info(s"Archive [${destination.getFileName}] created.")
-      taskProgress.setComplete(result)
     }
-
-    val thread = new Thread(() => runCompresion(), "Writing-Archive")
-    thread.start()
-
-    taskProgress
   }
 
+  /** Creates a [[RequestEntity]] that will upload the provided files. */
   private def createRequestEntity(
     files: Seq[Path]
   )(implicit ec: ExecutionContext): Future[RequestEntity] = {
@@ -166,6 +174,7 @@ object LibraryUploader {
     Marshal(formData).to[RequestEntity]
   }
 
+  /** Loads a manifest, if it exists. */
   private def loadSavedManifest(manifestPath: Path): Option[LibraryManifest] = {
     if (Files.exists(manifestPath)) {
       val loaded = YamlHelper.load[LibraryManifest](manifestPath).get
@@ -173,6 +182,10 @@ object LibraryUploader {
     } else None
   }
 
+  /** Tries to detect the content type of the file to upload.
+    *
+    * If it is not a known type, it falls back to `application/octet-stream`.
+    */
   private def detectContentType(path: Path): ContentType = {
     val filename = path.getFileName.toString
     if (filename.endsWith(".tgz") || filename.endsWith(".tar.gz"))
@@ -182,6 +195,9 @@ object LibraryUploader {
     else ContentTypes.`application/octet-stream`
   }
 
+  /** Uploads the provided files to the provided url, using the provided token
+    * for authentication.
+    */
   private def uploadFiles(
     uri: Uri,
     authToken: auth.Token,
@@ -200,7 +216,7 @@ object LibraryUploader {
         logger.debug("Server responded with 200 OK.")
         Success(())
       } else {
-        // TODO we may want to have more precise error messages to handle auth errors etc.
+        // TODO [RW] we may want to have more precise error messages to handle auth errors etc. (#1773)
         val includedMessage = for {
           json    <- io.circe.parser.parse(response.content).toOption
           obj     <- json.asObject
@@ -211,7 +227,7 @@ object LibraryUploader {
           s"Upload failed: $message (Status code: ${response.statusCode})."
         logger.error(errorMessage)
         Failure(
-          new RuntimeException( // TODO more precise exceptions
+          new RuntimeException(
             errorMessage
           )
         )
