@@ -31,6 +31,8 @@ pub const ENGINE_VERSION_SUPPORTED        : &str = "^0.2.15";
 // Usually it is a good idea to synchronize this version with the bundled Engine version in
 // src/js/lib/project-manager/src/build.ts. See also https://github.com/enso-org/ide/issues/1359
 pub const ENGINE_VERSION_FOR_NEW_PROJECTS : &str = "0.2.15";
+/// The minimum edition that is guaranteed to work with the IDE.
+pub const MINIMUM_EDITION_SUPPORTED : &str = "2021.3";
 
 /// The name of the module initially opened in the project view.
 ///
@@ -224,15 +226,13 @@ impl Project {
     }
 
     fn display_warning_on_unsupported_engine_version(&self) -> FallibleResult {
-        // FIXME[MM]: Disabled as it needs updating to the new edition system.
-        //  See https://github.com/enso-org/ide/issues/1713 for more information.
-        // let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
-        // let version      = self.model.engine_version();
-        // if !requirements.matches(&version) {
-        //     let message = format!("Unsupported Engine version. Please update engine_version in {} \
-        //         to {}.",package_yaml_path(&self.model.name()),ENGINE_VERSION_FOR_NEW_PROJECTS);
-        //     self.status_notifications.publish_event(message);
-        // }
+        let requirements = semver::VersionReq::parse(ENGINE_VERSION_SUPPORTED)?;
+        let version      = self.model.engine_version();
+        if !requirements.matches(&version) {
+            let message = format!("Unsupported Engine version. Please update edition in {} \
+                to {}.",package_yaml_path(&self.model.name()),MINIMUM_EDITION_SUPPORTED);
+            self.status_notifications.publish_event(message);
+        }
         Ok(())
     }
 }
