@@ -3,6 +3,7 @@ package org.enso.launcher.components
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.{DistributionManager, EditionManager, Environment}
+import org.enso.launcher.Constants
 import org.enso.launcher.project.ProjectManager
 import org.enso.logger.masking.MaskedPath
 import org.enso.loggingservice.LogLevel
@@ -193,9 +194,6 @@ class LauncherRunner(
     }
   }
 
-  private val uploadIntroducedVersion: SemVer =
-    SemVer(0, 2, 16, Some("SNAPSHOT"))
-
   /** Creates [[RunSettings]] for uploading a library.
     *
     * See [[org.enso.launcher.Launcher.uploadLibrary]] for more details.
@@ -220,7 +218,7 @@ class LauncherRunner(
       }
 
       val version = resolveVersion(None, Some(project))
-      if (version < uploadIntroducedVersion) {
+      if (version < Constants.uploadIntroducedVersion) {
         throw RunnerError(
           s"Library Upload feature is not available in Enso $version. " +
           s"Please upgrade your project to a newer version."
