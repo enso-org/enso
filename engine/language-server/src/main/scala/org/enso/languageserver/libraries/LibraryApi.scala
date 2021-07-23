@@ -233,4 +233,16 @@ object LibraryApi {
             } """
     )
   }
+
+  case class InvalidLibraryName(
+    originalName: String,
+    suggestedName: String,
+    reason: String
+  ) extends Error(8009, s"[$originalName] is not a valid name: $reason.") {
+    override def payload: Option[Json] = Some(
+      json""" {
+            "suggestedName" : $suggestedName
+            } """
+    )
+  }
 }

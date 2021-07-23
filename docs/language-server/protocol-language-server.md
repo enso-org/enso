@@ -200,6 +200,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`LibraryDownloadError`](#librarydownloaderror)
   - [`LocalLibraryNotFound`](#locallibrarynotfound)
   - [`LibraryNotResolved`](#librarynotresolved)
+  - [`InvalidLibraryName`](#invalidlibraryname)
 
 <!-- /MarkdownTOC -->
 
@@ -4328,6 +4329,8 @@ null;
 
 #### Errors
 
+- [`InvalidLibraryName`](#invalidlibraryname) to signal that the selected
+  library name is not valid.
 - [`LibraryAlreadyExists`](#libraryalreadyexists) to signal that a library with
   the given namespace and name already exists.
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
@@ -4431,6 +4434,8 @@ null;
 
 #### Errors
 
+- [`LocalLibraryNotFound`](#locallibrarynotfound) to signal that a local library
+  with the given name does not exist on the local libraries path.
 - [`LibraryPublishError`](#librarypublisherror) to signal that the server did
   not accept to publish the library (for example because a library with the same
   version already exists).
@@ -4992,6 +4997,24 @@ there either.
   "payload" : {
     "namespace" : "<namespace>",
     "name" : "<name>"
+  }
+}
+```
+
+### `InvalidLibraryName`
+
+Signals that the chosen library name is invalid.
+
+It contains a suggestion of a similar name that is valid.
+
+For example for `FooBar` it will suggest `Foo_Bar`.
+
+```typescript
+"error" : {
+  "code" : 8009,
+  "message" : "[<name>] is not a valid name: <reason>.",
+  "payload" : {
+    "suggestedName" : "<fixed-name>"
   }
 }
 ```
