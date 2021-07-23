@@ -5,7 +5,10 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
-import org.enso.librarymanager.local.LocalLibraryProvider
+import org.enso.librarymanager.local.{
+  DefaultLocalLibraryProvider,
+  LocalLibraryProvider
+}
 import org.enso.pkg.PackageManager
 
 import java.io.File
@@ -37,6 +40,8 @@ class LocalLibraryManager(
       case Publish(_, _, _) =>
         logger.error("Publishing libraries is currently not implemented.")
         sender() ! Failure(new NotImplementedError())
+      case FindLibrary(libraryName) =>
+        sender() ! findLibrary(libraryName)
     }
   }
 
@@ -102,6 +107,16 @@ class LocalLibraryManager(
       namespace = namespaceDir.getFileName.toString
       name      = nameDir.getFileName.toString
     } yield LibraryName(namespace, name)
+  }
+
+  private def findLibrary(
+    libraryName: LibraryName
+  ): Try[FindLibraryResponse] = Try {
+    val localLibraryProvider = new DefaultLocalLibraryProvider(
+      distributionManager.paths.localLibrariesSearchPaths.toList
+    )
+    val pathOpt = localLibraryProvider.findLibrary(libraryName)
+    FindLibraryResponse(pathOpt)
   }
 
   /** Finds the edition associated with the current project, if specified in its

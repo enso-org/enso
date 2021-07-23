@@ -1,8 +1,8 @@
 package org.enso.librarymanager.published.repository
 
 import org.enso.editions.Editions
-import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.pkg.PackageManager
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.matchers.should.Matchers
