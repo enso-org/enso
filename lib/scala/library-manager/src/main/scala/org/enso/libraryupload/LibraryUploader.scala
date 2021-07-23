@@ -5,11 +5,7 @@ import akka.http.scaladsl.model._
 import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.task.{
-  ProgressReporter,
-  TaskProgress,
-  TaskProgressImplementation
-}
+import org.enso.cli.task.{ProgressReporter, TaskProgress}
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.downloader.archive.TarGzWriter
