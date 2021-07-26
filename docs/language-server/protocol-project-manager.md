@@ -336,6 +336,9 @@ interface ProjectCreateRequest {
   /** Name of the project to create. */
   name: String;
 
+  /** The name of the project template to create. */
+  projectTemplate?: String;
+
   /**
    * Enso Engine version to use for the project.
    *

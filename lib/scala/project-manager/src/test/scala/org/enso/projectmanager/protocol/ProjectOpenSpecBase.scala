@@ -27,18 +27,20 @@ abstract class ProjectOpenSpecBase
 
     val blackhole = system.actorOf(blackholeProps)
     val ordinaryAction = projectService.createUserProject(
-      blackhole,
-      "Proj_1",
-      defaultVersion,
-      MissingComponentAction.Fail
+      progressTracker        = blackhole,
+      projectName            = "Proj_1",
+      projectTemplate        = None,
+      engineVersion          = defaultVersion,
+      missingComponentAction = MissingComponentAction.Fail
     )
     ordinaryProject = Runtime.default.unsafeRun(ordinaryAction)
     val brokenName = "Projbroken"
     val brokenAction = projectService.createUserProject(
-      blackhole,
-      brokenName,
-      defaultVersion,
-      MissingComponentAction.Fail
+      progressTracker        = blackhole,
+      projectName            = brokenName,
+      projectTemplate        = None,
+      engineVersion          = defaultVersion,
+      missingComponentAction = MissingComponentAction.Fail
     )
     brokenProject = Runtime.default.unsafeRun(brokenAction)
 

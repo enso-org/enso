@@ -56,6 +56,7 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
         progressTracker        = self,
         name                   = params.name,
         engineVersion          = actualVersion,
+        projectTemplate        = params.projectTemplate,
         missingComponentAction = missingComponentAction
       )
     } yield ProjectCreate.Result(projectId)
