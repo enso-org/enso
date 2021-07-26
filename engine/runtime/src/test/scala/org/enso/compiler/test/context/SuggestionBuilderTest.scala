@@ -33,10 +33,11 @@ class SuggestionBuilderTest extends CompilerTest {
   private val moduleDoc = "Module doc"
   private val DoccedModuleNode = Tree.Node(
     Suggestion.Module(
-      module            = Module.toString,
-      documentation     = Some(" " + moduleDoc),
-      documentationHtml = Some(DocParserWrapper.runOnPureDoc(moduleDoc)),
-      reexport          = None
+      module        = Module.toString,
+      documentation = Some(" " + moduleDoc),
+      documentationHtml =
+        Some(DocParserWrapper.runOnPureDoc(moduleDoc, Module.toString)),
+      reexport = None
     ),
     Vector()
   )

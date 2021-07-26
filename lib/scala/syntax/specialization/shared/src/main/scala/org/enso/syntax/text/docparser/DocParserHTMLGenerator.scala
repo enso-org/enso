@@ -69,12 +69,12 @@ object DocParserHTMLGenerator {
     * @param doc - Doc from Doc Parser
     * @return - HTML Code from Doc
     */
-  def generateHTMLPureDoc(doc: Doc): String =
+  def generateHTMLPureDoc(doc: Doc, title: String): String =
     HTML
       .html(
         HTML.body(
           HTML.div(HTML.`class` := "doc")(HTML.style := "font-size: 13px;")(
-            doc.html
+            doc.htmlWithTitle(title)
           )
         )
       )

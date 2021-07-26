@@ -155,15 +155,16 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId        = externalId,
-      module            = module.toString,
-      name              = name.name,
-      arguments         = methodArgs,
-      selfType          = selfType.toString,
-      returnType        = buildReturnType(returnTypeDef),
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc),
-      reexport          = None
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      selfType      = selfType.toString,
+      returnType    = buildReturnType(returnTypeDef),
+      documentation = doc,
+      documentationHtml =
+        doc.map(d => DocParserWrapper.runOnPureDoc(d, name.name)),
+      reexport = None
     )
   }
 
@@ -216,10 +217,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion =
     Suggestion.Module(
-      module            = module.toString,
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc),
-      reexport          = None
+      module        = module.toString,
+      documentation = doc,
+      documentationHtml =
+        doc.map(d => DocParserWrapper.runOnPureDoc(d, module.toString)),
+      reexport = None
     )
 
   /** Build suggestions for an atom definition. */
@@ -241,14 +243,15 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId        = None,
-      module            = module.toString,
-      name              = name,
-      arguments         = arguments.map(buildArgument),
-      returnType        = module.createChild(name).toString,
-      documentation     = doc,
-      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc),
-      reexport          = None
+      externalId    = None,
+      module        = module.toString,
+      name          = name,
+      arguments     = arguments.map(buildArgument),
+      returnType    = module.createChild(name).toString,
+      documentation = doc,
+      documentationHtml =
+        doc.map(d => DocParserWrapper.runOnPureDoc(d, module.toString)),
+      reexport = None
     )
 
   /** Build getter methods from atom arguments. */
