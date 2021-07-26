@@ -203,6 +203,31 @@ define_sdf_shapes! {
     }
 
 
+    // === RoundedLineSegment ===
+
+    /// A line segment from the origin to `target` with rounded endpoints.
+    Segment (target:Vector2<Pixels>, width:Pixels) {
+        // The implementation of this shape was adapted from here:
+        // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+
+        float half_width = width / 2.0;
+
+        // A value between 0.0 and 1.0 indicating the position of the point on the line segment that
+        // is closest to `position`. 0.0 stands for the origin and 1.0 for `target`.
+        float projection   = clamp(dot(position,target)/dot(target,target),0.0,1.0);
+        vec2 closest_point = projection * target;
+
+        float left         = min(target.x,0.0) - half_width;
+        float right        = max(target.x,0.0) + half_width;
+        float bottom       = min(target.y,0.0) - half_width;
+        float top          = max(target.y,0.0) + half_width;
+        BoundingBox bounds = bounding_box(left,right,bottom,top);
+
+        float distance = length(position - closest_point) - half_width;
+        return bound_sdf(distance,bounds);
+    }
+
+
     // === Ellipse ===
 
     Circle (radius:Pixels) {
@@ -304,6 +329,31 @@ define_sdf_shapes! {
         float max_y        = inner_height + radius_top;
         BoundingBox bounds = bounding_box(min_x,max_x,min_y,max_y);
 
+        return bound_sdf(dist,bounds);
+    }
+
+    // === Five Star ===
+
+    /// A five-pointed star.
+    ///
+    /// # Arguments
+    /// * `radius` - Distance of the outer points to the center.
+    /// * `ratio`  - Distance of the inner points to the center, relative to `radius`.
+    FiveStar (radius:Pixels, ratio:f32) {
+        // The implementation of this shape was adapted from here:
+        // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+        
+        const vec2 k1      = vec2(0.809016994375,-0.587785252292);
+        const vec2 k2      = vec2(-k1.x,k1.y);
+        position.x         = abs(position.x);
+        position          -= 2.0 * max(dot(k1,position),0.0) * k1;
+        position          -= 2.0 * max(dot(k2,position),0.0) * k2;
+        position.x         = abs(position.x);
+        position.y        -= radius;
+        vec2 ba            = ratio * vec2(-k1.y,k1.x) - vec2(0,1);
+        float h            = clamp(dot(position,ba)/dot(ba,ba),0.0,radius);
+        float dist         = length(position-ba*h) * sign(position.y*ba.x-position.x*ba.y);
+        BoundingBox bounds = bounding_box(2.0*radius,2.0*radius);
         return bound_sdf(dist,bounds);
     }
 }

@@ -166,11 +166,23 @@ define_themes! { [light:0, dark:1]
         }
         searcher {
             action_list_gap = 10.0, 10.0;
-            padding = 5.0, 5.0;
+            padding         = 5.0, 5.0;
             selection {
                 padding {
                     horizontal = 2.0, 2.0;
                     vertical   = 2.0, 2.0
+                }
+            }
+            icons {
+                favorites = Rgba(0.98,0.584,0.122,1.0)  , Rgba(0.98,0.584,0.122,1.0);
+                io        = Rgba(0.475,0.494,0.145,1.0) , Rgba(0.475,0.494,0.145,1.0);
+                preparation {
+                    strong = Rgba(0.243,0.545,0.161,1.0) , Rgba(0.243,0.545,0.161,1.0);
+                    weak   = Rgba(0.69,0.816,0.663,1.0)  , Rgba(0.69,0.816,0.663,1.0);
+                }
+                join {
+                    strong = Rgba(0.239,0.573,0.808,1.0) , Rgba(0.239,0.573,0.808,1.0);
+                    weak   = Rgba(0.612,0.784,0.902,1.0) , Rgba(0.612,0.784,0.902,1.0);
                 }
             }
         }
