@@ -12,10 +12,6 @@
 - Implemented a basic library downloader
   ([#1885](https://github.com/enso-org/enso/pull/1885)), allowing the
   downloading of missing libraries.
-- Implemented a basic library uploader
-  ([#1898](https://github.com/enso-org/enso/pull/1898)). It implements the
-  `library/publish` endpoint of the Language Server and adds a `publish-library`
-  subcommand to the Launcher.
 
 ## Libraries
 
