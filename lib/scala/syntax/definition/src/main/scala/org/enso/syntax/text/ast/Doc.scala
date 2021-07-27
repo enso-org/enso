@@ -40,9 +40,13 @@ final case class Doc(
     HTML.div(tags.html)(synopsis.html)(body.html)
   )
   // TODO [MM] - Style it
-  def htmlWithTitle(title: String): Doc.HTML = Seq(
-    HTML.div(HTML.div(title)(tags.html))(synopsis.html)(body.html)
-  )
+  def htmlWithTitle(title: String): Doc.HTML = {
+    if (title != "") {
+      Seq(HTML.div(HTML.div(title)(tags.html))(synopsis.html)(body.html))
+    } else {
+      Seq(HTML.div(tags.html)(synopsis.html)(body.html))
+    }
+  }
 }
 
 object Doc {
