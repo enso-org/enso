@@ -57,7 +57,7 @@ pub struct MissingThisOnMethod(pub String);
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub enum Kind {
-    Atom,Function,Local,Method
+    Atom,Function,Local,Method,Module
 }
 
 /// Describes the visibility range of some entry (i.e. identifier available as suggestion).
@@ -264,6 +264,16 @@ impl Entry {
                 kind          : Kind::Local,
                 scope         : Scope::InModule {range:scope.into()},
             },
+            Module {module,documentation,..} => Self {
+                name          : module.clone(),
+                arguments     : default(),
+                module        : module.clone().try_into()?,
+                self_type     : None,
+                documentation,
+                kind          : Kind::Module,
+                scope         : Scope::Everywhere,
+                return_type   : module
+            }
         };
         Ok(this)
     }

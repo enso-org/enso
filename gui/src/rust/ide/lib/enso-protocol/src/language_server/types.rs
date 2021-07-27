@@ -867,16 +867,23 @@ pub enum SuggestionEntry {
         return_type : String,
         scope       : SuggestionEntryScope,
     },
+    #[serde(rename_all="camelCase")]
+    Module {
+        module        : String,
+        documentation : Option<String>,
+        reexport      : Option<String>,
+    },
 }
 
 impl SuggestionEntry {
     /// Get name of the suggested entity.
     pub fn name(&self) -> &String {
         match self {
-            Self::Atom     {name,..} => name,
-            Self::Function {name,..} => name,
-            Self::Local    {name,..} => name,
-            Self::Method   {name,..} => name,
+            Self::Atom     {name,..}   => name,
+            Self::Function {name,..}   => name,
+            Self::Local    {name,..}   => name,
+            Self::Method   {name,..}   => name,
+            Self::Module   {module,..} => module,
         }
     }
 }
