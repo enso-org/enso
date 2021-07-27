@@ -14,13 +14,17 @@ object Template {
     * @return the template for the provided name
     */
   def fromString(template: String): Option[Template] =
-    template.toLowerCase match {
-      case "default" => Some(Default)
-      case _         => None
-    }
+    allTemplates.find(_.name == template.toLowerCase)
 
   /** The default project template. */
   case object Default extends Template {
     override val name = "default"
   }
+
+  /** The example project template. */
+  case object Example extends Template {
+    override val name = "example"
+  }
+
+  val allTemplates = Seq(Default, Example)
 }

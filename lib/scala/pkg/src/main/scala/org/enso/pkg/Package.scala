@@ -311,9 +311,23 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   private def copyResources(pkg: Package[F], template: Template): Unit =
     template match {
       case Template.Default =>
-        val mainCodePath = new URI(s"/default/src/${Package.mainFileName}")
+        val mainEnsoPath = new URI(s"/default/src/${Package.mainFileName}")
+
         copyResource(
-          mainCodePath,
+          mainEnsoPath,
+          pkg.sourceDir.getChild(Package.mainFileName)
+        )
+
+      case Template.Example =>
+        val helloTxtPath = new URI("/example/hello.txt")
+        val mainEnsoPath = new URI(s"/example/src/${Package.mainFileName}")
+
+        copyResource(
+          helloTxtPath,
+          pkg.root.getChild("hello.txt")
+        )
+        copyResource(
+          mainEnsoPath,
           pkg.sourceDir.getChild(Package.mainFileName)
         )
     }

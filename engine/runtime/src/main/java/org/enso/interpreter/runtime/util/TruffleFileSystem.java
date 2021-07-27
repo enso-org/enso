@@ -61,7 +61,6 @@ public class TruffleFileSystem implements FileSystem<TruffleFile> {
     return file.newOutputStream();
   }
 
-
   @Override
   public BufferedWriter newBufferedWriter(TruffleFile file) throws IOException {
     return file.newBufferedWriter();

@@ -86,8 +86,13 @@ class ProjectService[
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction
   ): F[ProjectServiceFailure, UUID] = for {
-    projectId    <- gen.randomUUID()
-    _            <- log.debug("Creating project [{}, {}].", projectName, projectId)
+    projectId <- gen.randomUUID()
+    _ <- log.debug(
+      "Creating project [{}, {}, {}].",
+      projectName,
+      projectId,
+      projectTemplate
+    )
     name         <- getNameForNewProject(projectName, projectTemplate)
     _            <- validateName(name)
     _            <- checkIfNameExists(name)

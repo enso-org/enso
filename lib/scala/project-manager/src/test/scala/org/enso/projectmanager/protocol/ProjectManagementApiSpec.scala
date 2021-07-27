@@ -171,7 +171,7 @@ class ProjectManagementApiSpec
       meta shouldBe Symbol("file")
     }
 
-    "create project from template" in {
+    "create project from default template" in {
       val projectName = "Foo"
 
       implicit val client = new WsTestClient(address)
@@ -185,6 +185,25 @@ class ProjectManagementApiSpec
 
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
+      meta shouldBe Symbol("file")
+    }
+
+    "create project from example template" in {
+      val projectName = "Foo"
+
+      implicit val client = new WsTestClient(address)
+
+      createProject(projectName, projectTemplate = Some("example"))
+
+      val projectDir  = new File(userProjectDir, projectName)
+      val packageFile = new File(projectDir, "package.yaml")
+      val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
+      val helloTxt    = Paths.get(projectDir.toString, "hello.txt").toFile
+      val meta        = Paths.get(projectDir.toString, ".enso", "project.json").toFile
+
+      packageFile shouldBe Symbol("file")
+      mainEnso shouldBe Symbol("file")
+      helloTxt shouldBe Symbol("file")
       meta shouldBe Symbol("file")
     }
 
