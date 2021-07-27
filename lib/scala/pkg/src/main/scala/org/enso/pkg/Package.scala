@@ -5,6 +5,7 @@ import org.enso.editions.{Editions, LibraryName}
 import org.enso.filesystem.FileSystem
 import org.enso.pkg.validation.NameValidation
 import java.io.{File, InputStream, OutputStream}
+import java.net.URI
 
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try, Using}
@@ -310,22 +311,19 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   private def copyResources(pkg: Package[F], template: Template): Unit =
     template match {
       case Template.Default =>
-        val mainCodePath = new File(
-          new File("/default", "src"),
-          Package.mainFileName
-        )
+        val mainCodePath = new URI(s"/default/src/${Package.mainFileName}")
         copyResource(
           mainCodePath,
           pkg.sourceDir.getChild(Package.mainFileName)
         )
     }
 
-  /** Copy the resource to provided file.
+  /** Copy the resource to provided resource.
     *
     * @param from the source
     * @param to the destination
     */
-  private def copyResource(from: File, to: F): Unit = {
+  private def copyResource(from: URI, to: F): Unit = {
     val fromStream = getClass.getResourceAsStream(from.toString)
     val toStream   = to.newOutputStream
     try PackageManager.copyStream(fromStream, toStream)
