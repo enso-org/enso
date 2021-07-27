@@ -69,7 +69,7 @@ object DocParserHTMLGenerator {
     * @param doc - Doc from Doc Parser
     * @return - HTML Code from Doc
     */
-  def generateHTMLPureDoc(doc: Doc, title: String): String =
+  def generateHTMLPureDoc(doc: Doc, title: String = ""): String =
     HTML
       .html(
         HTML.body(
