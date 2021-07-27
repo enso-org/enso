@@ -44,7 +44,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
-    template: Option[String],
+    projectTemplate: Option[String],
     authorName: Option[String],
     authorEmail: Option[String],
     additionalArguments: Seq[String]
@@ -55,7 +55,7 @@ class Runner(
       val authorEmailOption =
         authorEmail.map(Seq("--new-project-author-email", _)).getOrElse(Seq())
       val templateOption =
-        template.map(Seq("--new-project-template", _)).getOrElse(Seq())
+        projectTemplate.map(Seq("--new-project-template", _)).getOrElse(Seq())
       val arguments =
         Seq(
           "--new",
