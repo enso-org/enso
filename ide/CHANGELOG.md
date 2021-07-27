@@ -11,9 +11,17 @@ these updates be shipped in a stable release before the end of the year.
 - [New look of open project dialog.][1700]. Now it has "Open project" title on
   the top.
 
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.16][1726]. If you're interested in the
+  enhancements and fixes made to the Enso compiler, you can find out more
+  details in
+  [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
 <br/>
 
 [1700]: https://github.com/enso-org/ide/pull/1700
+[1726]: https://github.com/enso-org/ide/pull/1726
 
 # Enso 2.0.0-alpha.10 (2021-07-23)
 
