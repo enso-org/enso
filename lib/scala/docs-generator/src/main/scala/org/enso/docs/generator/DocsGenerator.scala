@@ -19,7 +19,7 @@ object DocsGenerator {
   /** Generates list of HTML docs from given doc comments.
     */
   def generate(comments: List[String]): List[String] = {
-    comments.map(runOnPureDoc)
+    comments.map(c => runOnPureDoc(c))
   }
 
   /** Connects HTML documentation with it's AST element.
