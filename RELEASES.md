@@ -5,6 +5,11 @@
 - Added support for documenting modules directly
   ([#1900](https://github.com/enso-org/enso/pull/1900)).
 
+## Tooling
+
+- Added support for creating projects from a template
+  ([#1902](https://github.com/enso-org/enso/pull/1902)).
+
 # Enso 0.2.16 (2021-07-23)
 
 ## Interpreter/Runtime
