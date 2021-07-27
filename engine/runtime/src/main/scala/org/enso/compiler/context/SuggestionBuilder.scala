@@ -243,15 +243,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId    = None,
-      module        = module.toString,
-      name          = name,
-      arguments     = arguments.map(buildArgument),
-      returnType    = module.createChild(name).toString,
-      documentation = doc,
-      documentationHtml =
-        doc.map(d => DocParserWrapper.runOnPureDoc(d, module.toString)),
-      reexport = None
+      externalId        = None,
+      module            = module.toString,
+      name              = name,
+      arguments         = arguments.map(buildArgument),
+      returnType        = module.createChild(name).toString,
+      documentation     = doc,
+      documentationHtml = doc.map(d => DocParserWrapper.runOnPureDoc(d, name)),
+      reexport          = None
     )
 
   /** Build getter methods from atom arguments. */
