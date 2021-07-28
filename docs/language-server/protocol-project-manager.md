@@ -362,8 +362,9 @@ interface ProjectCreateRequest {
 #### Result
 
 ```typescript
-interface ProjectOpenResponse {
+interface ProjectCreateResponse {
   projectId: UUID;
+  projectName: string;
 }
 ```
 

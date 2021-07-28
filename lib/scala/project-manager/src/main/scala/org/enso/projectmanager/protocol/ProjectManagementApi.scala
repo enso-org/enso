@@ -29,7 +29,7 @@ object ProjectManagementApi {
       missingComponentAction: Option[MissingComponentAction]
     )
 
-    case class Result(projectId: UUID)
+    case class Result(projectId: UUID, projectName: String)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectCreate.Params
