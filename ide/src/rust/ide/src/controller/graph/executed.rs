@@ -110,7 +110,7 @@ impl Handle {
     , project       : model::Project
     , execution_ctx : model::ExecutionContext
     ) -> Self {
-        let logger   = Logger::sub(&graph.logger,"Executed");
+        let logger   = Logger::new_sub(&graph.logger,"Executed");
         let graph    = Rc::new(RefCell::new(graph));
         let notifier = default();
         Handle {logger,graph,execution_ctx,project,notifier}

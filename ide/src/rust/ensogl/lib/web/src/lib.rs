@@ -17,6 +17,7 @@ pub mod drop;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use enso_logger::*;
+    pub use enso_logger::DefaultWarningLogger as Logger;
 }
 
 

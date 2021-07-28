@@ -736,7 +736,7 @@ macro_rules! define_components {
             /// Constructor.
             pub fn new(logger:Logger) -> Self {
                 let display_object = display::object::Instance::new(&logger);
-                $(let $field = <$field_type>::new(Logger::sub(&logger,stringify!($field)));)*
+                $(let $field = <$field_type>::new(Logger::new_sub(&logger,stringify!($field)));)*
                 $(display_object.add_child(&$field);)*
                 let mut shape_view_events:Vec<ShapeViewEvents> = Vec::default();
                 $(shape_view_events.push($field.events.clone_ref());)*
@@ -1233,9 +1233,9 @@ impl EdgeModelData {
     pub fn new(scene:&Scene, network:&frp::Network) -> Self {
         let logger         = Logger::new("edge");
         let display_object = display::object::Instance::new(&logger);
-        let front          = Front::new(Logger::sub(&logger,"front"));
-        let back           = Back::new (Logger::sub(&logger,"back"));
-        let joint          = joint::View::new(Logger::sub(&logger,"joint"));
+        let front          = Front::new(Logger::new_sub(&logger,"front"));
+        let back           = Back::new (Logger::new_sub(&logger,"back"));
+        let joint          = joint::View::new(Logger::new_sub(&logger,"joint"));
 
         let shape_system = scene.layers.main.shape_system_registry.shape_system
             (scene,PhantomData::<joint::DynamicShape>);

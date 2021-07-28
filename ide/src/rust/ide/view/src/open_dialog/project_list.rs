@@ -95,7 +95,7 @@ impl ProjectList {
         app.display.scene().layers.panel.add_exclusive(&display_object);
         caption.set_content("Open Project");
         caption.add_to_scene_layer(&app.display.scene().layers.panel_text);
-        list.set_label_layer(app.display.scene().layers.panel_text.id);
+        list.set_label_layer(app.display.scene().layers.panel_text.id());
 
         ensogl::shapes_order_dependencies! {
             app.display.scene() => {
@@ -112,7 +112,7 @@ impl ProjectList {
         let color       = style_watch.get_color(theme::bar::label::color);
         let label_size  = style_watch.get_number(theme::bar::label::size);
 
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             init <- source::<()>();
             size <- all_with3(&width,&height,&init,|w,h,()|
                 Vector2(w + background::SHADOW_PX * 2.0,h + background::SHADOW_PX * 2.0)

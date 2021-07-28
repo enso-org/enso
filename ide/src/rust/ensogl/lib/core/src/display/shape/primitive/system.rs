@@ -449,7 +449,7 @@ macro_rules! _define_shape_system {
                 type System      = ShapeSystem;
 
                 fn new(logger:impl AnyLogger) -> Self {
-                    let logger : Logger = Logger::sub(&logger,"dyn_shape");
+                    let logger : Logger = Logger::new_sub(&logger,"dyn_shape");
                     let display_object  = display::object::Instance::new(&logger);
                     let shapes          = default();
                     let params          = default();

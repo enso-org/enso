@@ -265,7 +265,7 @@ impl RegistryModel {
     , keyboard         : &keyboard::Keyboard
     , command_registry : &command::Registry
     ) -> Self {
-        let logger             = Logger::sub(logger,"ShortcutRegistry");
+        let logger             = Logger::new_sub(logger,"ShortcutRegistry");
         let keyboard           = keyboard.clone_ref();
         let mouse              = mouse.clone_ref();
         let command_registry   = command_registry.clone_ref();

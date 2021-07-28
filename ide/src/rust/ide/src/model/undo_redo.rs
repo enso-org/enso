@@ -79,7 +79,7 @@ impl Transaction {
     /// Create a new transaction, that will add to the given's repository undo stack on destruction.
     pub fn new(urm:&Rc<Repository>, name:String) -> Self {
         Self {
-            logger  : Logger::sub(&urm.logger,"Transaction"),
+            logger  : Logger::new_sub(&urm.logger,"Transaction"),
             frame   : RefCell::new(Frame{name,..default()}),
             urm     : Rc::downgrade(urm),
             ignored : default(),
@@ -218,7 +218,7 @@ impl Repository {
     /// Create a new repository.
     pub fn new(parent:impl AnyLogger) -> Self {
         Self {
-            logger : Logger::sub(parent,"Repository"),
+            logger : Logger::new_sub(parent,"Repository"),
             data   : default(),
         }
     }
@@ -353,7 +353,7 @@ impl Aware for Manager {
 impl Manager {
     /// Create a new undo-redo manager.
     pub fn new(parent:impl AnyLogger) -> Self {
-        let logger = Logger::sub(parent,"URM");
+        let logger = Logger::new_sub(parent,"URM");
         Self {
             repository : Rc::new(Repository::new(&logger)),
             modules    : default(),

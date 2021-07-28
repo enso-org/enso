@@ -133,10 +133,8 @@ impl Model {
         self.add_child(&self.icon);
         self.add_child(&self.icon_overlay);
         self.add_child(&self.label);
-
         // Clear default parent and hide again.
         self.show_selection_menu();
-
         self
     }
 

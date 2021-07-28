@@ -35,7 +35,7 @@ impl<Callback:?Sized> Listener<Callback> {
     pub fn new(logger:impl AnyLogger,event_type:impl Str, callback:Closure<Callback>) -> Self {
         let element     = web::window();
         let js_function = callback.as_ref().unchecked_ref();
-        let logger      = Logger::sub(logger,"Listener");
+        let logger      = Logger::new_sub(logger,"Listener");
         let event_type  = event_type.as_ref();
         let options     = event_listener_options();
         let result      = element.add_event_listener_with_callback_and_add_event_listener_options

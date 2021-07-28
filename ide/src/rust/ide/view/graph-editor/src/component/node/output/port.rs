@@ -453,7 +453,7 @@ impl Model {
     , port_count : usize
     ) -> (display::object::Instance,Frp) {
         let logger_name = format!("port({},{})",self.index,self.length);
-        let logger      = Logger::sub(logger,logger_name);
+        let logger      = Logger::new_sub(logger,logger_name);
         let shape       = PortShapeView::new(port_count,&logger);
 
         let is_first      = port_index == 0;

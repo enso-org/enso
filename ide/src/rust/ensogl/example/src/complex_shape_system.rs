@@ -19,7 +19,6 @@ use ensogl_core::display::style::theme;
 
 mod shape {
     use super::*;
-
     ensogl_core::define_shape_system! {
         (style:Style) {
             let base_color = style.get_color("base_color");
@@ -33,6 +32,18 @@ mod shape {
         }
     }
 }
+
+mod mask {
+    use super::*;
+    ensogl_core::define_shape_system! {
+        (style:Style) {
+            let shape = Circle(60.px());
+            let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));
+            shape.into()
+        }
+    }
+}
+
 
 
 // ===================
@@ -81,19 +92,66 @@ pub fn entry_point_complex_shape_system() {
     view.size.set(Vector2::new(300.0, 300.0));
     view.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
+    let view2 = shape::View::new(&logger);
+    view2.size.set(Vector2::new(300.0, 300.0));
+    view2.mod_position(|t| *t = Vector3::new(-50.0, -50.0, 0.0));
+
+    // let mask = mask::View::new(&logger);
+    // mask.size.set(Vector2::new(300.0, 300.0));
+    // mask.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+
+    // world.scene().layers.mask.add_exclusive(&mask);
+    DEBUG!("--- add exclusive ---");
+    // world.scene().layers.viz.add_exclusive(&view2);
+    // world.scene().layers.viz.add_exclusive(&mask);
+    // scene.layers.viz.add_exclusive(&view);
+
 
     world.add_child(&view);
+    world.add_child(&view2);
+    // world.add_child(&mask);
     world.keep_alive_forever();
+    let scene = world.scene().clone_ref();
 
     let mut to_theme_switch = 100;
+
+    mem::forget(view);
+    mem::forget(view2);
+
     world.on_frame(move |_time| {
-        let _keep_alive = &view;
+        // let _keep_alive = &view;
+        // let _keep_alive = &view2;
+        // let _keep_alive = &mask;
         let _keep_alive = &navigator;
         let _keep_alive = &style_watch;
         let _keep_alive = &theme_manager;
+        if to_theme_switch == 50 {
+            DEBUG!("---------------");
+            DEBUG!("{scene.layers.main:#?}");
+            DEBUG!("{scene.layers.mask:#?}");
+            DEBUG!("{scene.layers.viz:#?}");
+        }
         if to_theme_switch == 0 {
-            DEBUG!("THEME SWITCH!");
-            theme_manager.set_enabled(&["theme2".to_string()]);
+            DEBUG!("SWITCH!");
+            // scene.layers.mask.add_exclusive(&view);
+            // scene.layers.mask.add_exclusive(&view2);
+            // theme_manager.set_enabled(&["theme2".to_string()]);
+
+            let view3 = shape::View::new(&logger);
+            view3.size.set(Vector2::new(300.0, 300.0));
+            view3.mod_position(|t| *t = Vector3::new(50.0, -50.0, 0.0));
+            scene.add_child(&view3);
+
+            // scene.layers.viz.add_exclusive(&view3);
+
+            mem::forget(view3);
+        }
+        if to_theme_switch == -50 {
+            DEBUG!("---------------");
+            DEBUG!("{scene.layers.main:#?}");
+            DEBUG!("{scene.layers.mask:#?}");
+            let s = format!("{:#?}",scene.layers.viz);
+            DEBUG!(s);
         }
         to_theme_switch -= 1;
     }).forget();

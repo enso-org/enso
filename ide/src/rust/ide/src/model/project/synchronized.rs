@@ -109,7 +109,7 @@ impl ContentRoots {
     /// Create ContentRoots, initializing with the roots retrieved during connection initialization.
     pub fn new_from_connection
     (parent:impl AnyLogger, connection:&language_server::Connection) -> Self {
-        let logger    = Logger::sub(parent,"ContentRoots");
+        let logger    = Logger::new_sub(parent,"ContentRoots");
         let roots_vec = connection.content_roots().map(|r| (r.id(),Rc::new(r.clone()))).collect();
         let roots     = RefCell::new(roots_vec);
         Self{logger,roots}
@@ -240,7 +240,7 @@ impl Project {
     , properties          : Properties
     ) -> FallibleResult<Self> {
         let wrap   = UnsupportedEngineVersion::error_wrapper(&properties);
-        let logger = Logger::sub(parent,"Project Controller");
+        let logger = Logger::new_sub(parent,"Project Controller");
         info!(logger,"Creating a model of project {properties.name}");
         let binary_protocol_events  = language_server_bin.event_stream();
         let json_rpc_events         = language_server_rpc.events();

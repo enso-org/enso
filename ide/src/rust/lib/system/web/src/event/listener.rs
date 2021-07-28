@@ -35,7 +35,7 @@ impl<EventType:crate::event::Type> Slot<EventType> {
     /// gets a callback (see [[set_callback]]).
     pub fn new(target:&EventType::Target, logger:impl AnyLogger) -> Self {
         Self {
-            logger     : Logger::sub(logger, EventType::NAME),
+            logger     : Logger::new_sub(logger,EventType::NAME),
             target     : Some(target.clone()),
             js_closure : default(),
         }

@@ -10,6 +10,7 @@
 #![feature(cell_update)]
 #![feature(const_type_id)]
 #![feature(drain_filter)]
+#![feature(entry_insert)]
 #![feature(fn_traits)]
 #![feature(specialization)]
 #![feature(trait_alias)]

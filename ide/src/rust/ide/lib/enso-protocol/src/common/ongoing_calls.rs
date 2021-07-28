@@ -21,7 +21,7 @@ where Id:Copy + Debug + Display + Hash + Eq + Send + Sync + 'static {
     /// Creates a new, empty ongoing request storage.
     pub fn new(parent:impl AnyLogger) -> OngoingCalls<Id,Reply> {
         OngoingCalls {
-            logger        : Logger::sub(parent,"ongoing_calls"),
+            logger        : Logger::new_sub(parent,"ongoing_calls"),
             ongoing_calls : HashMap::new(),
         }
     }

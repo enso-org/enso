@@ -44,7 +44,7 @@ impl Module {
     , repository : Rc<model::undo_redo::Repository>
     ) -> Self {
         Module {
-            logger        : Logger::sub(parent, path.to_string()),
+            logger        : Logger::new_sub(parent, path.to_string()),
             content       : RefCell::new(ParsedSourceFile{ast,metadata}),
             notifications : default(),
             path,

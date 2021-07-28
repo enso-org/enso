@@ -499,7 +499,7 @@ impl Searcher {
     , mode           : Mode
     , selected_nodes : Vec<double_representation::node::Id>
     ) -> FallibleResult<Self> {
-        let logger   = Logger::sub(parent,"Searcher Controller");
+        let logger   = Logger::new_sub(parent,"Searcher Controller");
         let database = project.suggestion_db();
         let data     = if let Mode::EditNode{node_id} = mode {
             Data::new_with_edited_node(project.qualified_name(),&graph.graph(),&*database,node_id)?

@@ -162,7 +162,7 @@ pub struct Registry {
 impl Registry {
     /// Constructor.
     pub fn create(logger:impl AnyLogger) -> Self {
-        let logger   = Logger::sub(logger,"views");
+        let logger   = Logger::new_sub(logger,"views");
         let name_map = default();
         let id_map   = default();
         Self {logger,name_map,id_map}

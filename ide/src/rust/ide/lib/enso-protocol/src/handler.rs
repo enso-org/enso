@@ -225,7 +225,7 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     where T : Transport + 'static,
           P : FnMut(TransportEvent) -> Disposition<Id,Reply,Notification> + 'static {
         let state  = Rc::new(RefCell::new(HandlerData::new(transport,&logger,processor)));
-        let logger = Logger::sub(&logger,"handler");
+        let logger = Logger::new_sub(&logger,"handler");
         Handler {logger,state}
     }
 

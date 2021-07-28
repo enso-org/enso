@@ -85,7 +85,7 @@ struct Icons {
 
 impl Icons {
     fn new(logger:impl AnyLogger) -> Self {
-        let logger         = Logger::sub(logger,"Icons");
+        let logger         = Logger::new_sub(logger,"Icons");
         let display_object = display::object::Instance::new(&logger);
         let freeze         = ToggleButton::new(&logger);
         let visibility     = ToggleButton::new(&logger);
@@ -135,7 +135,7 @@ struct Model {
 impl Model {
     fn new(logger:impl AnyLogger, app:&Application) -> Self {
         let scene          = app.display.scene();
-        let logger         = Logger::sub(logger,"ActionBar");
+        let logger         = Logger::new_sub(logger,"ActionBar");
         let display_object = display::object::Instance::new(&logger);
         let hover_area     = hover_area::View::new(&logger);
         let icons          = Icons::new(&logger);

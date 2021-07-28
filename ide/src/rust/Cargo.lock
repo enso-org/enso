@@ -637,9 +637,9 @@ dependencies = [
 
 [[package]]
 name = "enso-logger"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fed27bf8ac2768a9224fd66863de4384b42bf16e079e02dd507798ce71dd4d2d"
+checksum = "b19f60656c02b5ba66948f1e9601632fc08d1bbbe663dada3bfdcb174b907eed"
 dependencies = [
  "enso-prelude",
  "enso-shapely",
@@ -670,9 +670,9 @@ dependencies = [
 
 [[package]]
 name = "enso-prelude"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cbd07a2b58b45d34cdcbff3479a2a36c7f01e16487bc9fab29b26a72a49607e"
+checksum = "b1efdee46a7552b3b8a8c1d07dd07b63420d7945ef058480ad9bc20038ed32ff"
 dependencies = [
  "anyhow",
  "backtrace",

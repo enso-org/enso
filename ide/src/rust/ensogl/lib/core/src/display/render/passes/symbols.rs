@@ -47,7 +47,8 @@ impl RenderPass for SymbolsRenderPass {
         context.clear_bufferfv_with_f32_array(Context::COLOR,0,&arr);
         context.clear_bufferfv_with_f32_array(Context::COLOR,1,&arr);
 
-        for layer in self.layers.all().iter() {
+        // FIXME: Please note that rendering of masks and nested layers is not implemented yet.
+        for layer in self.layers.sublayers().iter() {
             self.target.set_camera(&layer.camera());
             let symbols = layer.symbols();
             self.target.render_by_ids(&symbols);

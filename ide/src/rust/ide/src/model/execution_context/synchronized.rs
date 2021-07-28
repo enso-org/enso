@@ -43,11 +43,11 @@ impl ExecutionContext {
     , language_server : Rc<language_server::Connection>
     , root_definition : language_server::MethodPointer
     ) -> impl Future<Output=FallibleResult<Self>> {
-        let logger = Logger::sub(&parent,"ExecutionContext");
+        let logger = Logger::new_sub(&parent,"ExecutionContext");
         async move {
             info!(logger, "Creating.");
             let id     = language_server.client.create_execution_context().await?.context_id;
-            let logger = Logger::sub(&parent,iformat!{"ExecutionContext {id}"});
+            let logger = Logger::new_sub(&parent,iformat!{"ExecutionContext {id}"});
             let model  = model::execution_context::Plain::new(&logger,root_definition);
             info!(logger, "Created. Id: {id}.");
             let this = Self {id,model,language_server,logger };

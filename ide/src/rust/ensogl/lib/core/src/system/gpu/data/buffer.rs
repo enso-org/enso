@@ -118,9 +118,9 @@ impl<T:Storable> {
         info!(logger,"Creating new {T::type_display()} buffer.", || {
             stats.inc_buffer_count();
             let logger        = logger.clone();
-            let sublogger     = Logger::sub(&logger,"mut_dirty");
+            let sublogger     = Logger::new_sub(&logger,"mut_dirty");
             let mut_dirty     = MutDirty::new(sublogger,Callback(on_mut));
-            let sublogger     = Logger::sub(&logger,"resize_dirty");
+            let sublogger     = Logger::new_sub(&logger,"resize_dirty");
             let resize_dirty  = ResizeDirty::new(sublogger, Callback(on_resize));
             resize_dirty.set();
             let on_resize_fn  = on_resize_fn(resize_dirty.clone_ref());

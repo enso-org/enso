@@ -61,7 +61,7 @@ struct Model<Shape> {
 
 impl<Shape:ColorableShape+'static> Model<Shape> {
     fn new(logger:impl AnyLogger) -> Self {
-        let logger = Logger::sub(logger,"ToggleButton");
+        let logger = Logger::new_sub(logger,"ToggleButton");
         let icon   = ShapeView::new(&logger);
         Self{icon}
     }

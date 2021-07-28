@@ -50,9 +50,9 @@ impl SymbolRegistry {
     pub fn mk<OnMut:Fn()+'static,Log:AnyLogger>
     (variables:&UniformScope, stats:&Stats, logger:&Log, on_mut:OnMut)
     -> Self {
-        let logger = Logger::sub(logger,"symbol_registry");
+        let logger = Logger::new_sub(logger,"symbol_registry");
         debug!(logger,"Initializing.");
-        let symbol_logger   = Logger::sub(&logger,"symbol_dirty");
+        let symbol_logger   = Logger::new_sub(&logger,"symbol_dirty");
         let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
         let symbols         = default();
         let variables       = variables.clone();
@@ -72,7 +72,7 @@ impl SymbolRegistry {
         let index        = self.symbols.borrow_mut().insert_with_ix_(|ix| {
             let id     = SymbolId::new(ix as u32);
             let on_mut = move || {symbol_dirty.set(id)};
-            let logger = Logger::sub(logger,format!("symbol_{}",ix));
+            let logger = Logger::new_sub(logger,format!("symbol_{}",ix));
             let symbol = Symbol::new(logger,stats,id,variables,on_mut);
             symbol.set_context(self.context.borrow().as_ref());
             symbol
