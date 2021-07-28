@@ -88,7 +88,7 @@ Text.characters =
     this.each bldr.append
     bldr.to_vector
 
-## ALIAS Split Text
+## ALIAS Split
 
    Takes a separator string and returns a vector resulting from splitting
    `this` on each occurence of `separator`.

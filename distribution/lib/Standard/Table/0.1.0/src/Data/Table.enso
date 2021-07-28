@@ -296,7 +296,7 @@ type Table
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
-    ## Alias Select
+    ## Alias Select Columns
 
        Selects a subset of columns from this table by name.
 
