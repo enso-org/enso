@@ -59,7 +59,9 @@ from_rows header rows =
     columns = header.map_with_index i-> name-> [name, rows.map (_.at i)]
     here.new columns
 
-## Joins a vector of tables (or columns) into a single table, using each table's
+## ALIAS Join Tables
+
+   Joins a vector of tables (or columns) into a single table, using each table's
    index as the join key.
 
    Arguments:
@@ -199,7 +201,10 @@ type Table
         Nothing -> Error.throw (No_Such_Column_Error name)
         c -> Column.Column c
 
-    ## Selects only the rows of this table that correspond to `True` values in
+    ## ALIAS Filter Rows
+       ALIAS Mask Columns
+
+       Selects only the rows of this table that correspond to `True` values in
        `indexes`.
 
        Arguments:
@@ -222,7 +227,9 @@ type Table
     where indexes =
         Table (this.java_table.mask indexes.java_column)
 
-    ## Sets the column value at the given name.
+    ## ALIAS Add Column
+
+       Sets the column value at the given name.
 
        Arguments:
        - name: The name of the column to set the value of.
@@ -289,7 +296,9 @@ type Table
         Nothing -> Error.throw No_Index_Set_Error
         i -> Column.Column i
 
-    ## Selects a subset of columns from this table by name.
+    ## Alias Select Columns
+
+       Selects a subset of columns from this table by name.
 
        > Example
          Get the item name and price columns from the shop inventory.
@@ -301,7 +310,9 @@ type Table
     select : Vector -> Table
     select columns = Table (this.java_table.selectColumns columns.to_array)
 
-    ## Efficiently joins two tables based on either the index or the specified
+    ## ALIAS Join Table
+
+       Efficiently joins two tables based on either the index or the specified
        key column.
 
        Arguments:
@@ -335,7 +346,9 @@ type Table
             Table t ->
                 Table (this.java_table.join t drop_unmatched on left_suffix right_suffix)
 
-    ## Returns a new Table without rows that contained missing values in any of
+    ## ALIAS Clean Rows
+
+       Returns a new Table without rows that contained missing values in any of
        the columns.
     drop_missing_rows : Table
     drop_missing_rows =
@@ -347,7 +360,9 @@ type Table
                 this.where non_missing_mask
             False -> this
 
-    ## Returns a new Table without columns that contained any missing values.
+    ## ALIAS Clean Columns
+
+       Returns a new Table without columns that contained any missing values.
 
        > Example
          Remove any columns that contain missing values from the table.
@@ -400,7 +415,9 @@ type Table
         cols = this.columns
         here.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
 
-    ## Returns an aggregate table resulting from grouping the elements by the
+    ## ALIAS Group a Table
+
+       Returns an aggregate table resulting from grouping the elements by the
        value of the specified column.
 
        Arguments:
@@ -425,7 +442,8 @@ type Table
     group by=Nothing =
         Aggregate_Table (this.java_table.group by)
 
-    ## UNSTABLE
+    ## ALIAS Sort Table
+       UNSTABLE
 
        Sorts the table according to the specified rules.
 
@@ -595,7 +613,8 @@ type Table
     concat other =
         Table (this.java_table.concat other.java_table)
 
-    ## UNSTABLE
+    ## ALIAS First N Rows
+       UNSTABLE
 
        Returns a table containing the first `count` elements in this table.
 
@@ -614,7 +633,8 @@ type Table
     take_start : Integer -> Table
     take_start count = Table (this.java_table.slice 0 count)
 
-    ## UNSTABLE
+    ## ALIAS Last N Rows
+       UNSTABLE
 
        Returns a table containing the last `count` elements in this table.
 
@@ -635,7 +655,8 @@ type Table
         start_point = Math.max (this.row_count - count) 0
         Table (this.java_table.slice start_point count)
 
-    ## UNSTABLE
+    ## ALIAS First Row
+       UNSTABLE
 
        Returns the first row in the table, if it exists.
 
@@ -669,7 +690,8 @@ type Table
     head : Table ! Empty_Error
     head = this.first
 
-    ## UNSTABLE
+    ## ALIAS Last Row
+       UNSTABLE
 
        Returns the last row in the table, if it exists.
 
@@ -726,7 +748,8 @@ type Table
     to_csv include_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix =
         Csv_Writer.writeString this.java_table include_header always_quote line_ending.to_text separator .to_csv_field
 
-    ## UNSTABLE
+    ## ALIAS Write CSV
+       UNSTABLE
 
        Serializes this table into CSV and writes it to the specified file.
 
@@ -895,7 +918,9 @@ type Aggregate_Table
     count : Column
     count = Column.Column this.java_table.count
 
-    ## Returns an aggregate column with the given name, contained in this table.
+    ## ALIAS Get a Column
+
+       Returns an aggregate column with the given name, contained in this table.
 
        Arguments:
        - name: The name of the aggregate column to get.
