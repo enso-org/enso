@@ -1,5 +1,10 @@
 # Enso Next
 
+## Libraries
+
+- Added support for writing tables to XLSX spreadsheets
+  ([#1906](https://github.com/enso-org/enso/pull/1906)).
+
 # Enso 0.2.17 (2021-07-28)
 
 ## Interpreter/Runtime
