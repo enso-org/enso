@@ -272,7 +272,7 @@ pub struct WebSocket {
 impl WebSocket {
     /// Wrap given raw JS WebSocket object.
     pub fn new(ws:web_sys::WebSocket, parent:impl AnyLogger) -> WebSocket {
-        let logger = Logger::sub(parent,ws.url());
+        let logger = Logger::new_sub(parent,ws.url());
         let model  = Rc::new(RefCell::new(Model::new(ws,logger.clone())));
         WebSocket {logger,model}
     }

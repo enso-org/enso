@@ -131,7 +131,7 @@ impl Deref for Selection {
 impl Selection {
     /// Constructor.
     pub fn new(logger:impl AnyLogger, edit_mode:bool) -> Self {
-        let logger         = Logger::sub(logger,"selection");
+        let logger         = Logger::new_sub(logger,"selection");
         let display_object = display::object::Instance::new(&logger);
         let right_side     = display::object::Instance::new(&logger);
         let network        = frp::Network::new("text_selection");

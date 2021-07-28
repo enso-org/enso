@@ -455,7 +455,7 @@ impl Handle {
     , id            : Id
     ) -> Handle {
         let id     = Rc::new(id);
-        let logger = Logger::sub(parent,format!("Graph Controller {}", id));
+        let logger = Logger::new_sub(parent,format!("Graph Controller {}", id));
         Handle {id,module,suggestion_db,parser,logger}
     }
 

@@ -166,7 +166,7 @@ struct Icons {
 
 impl Icons {
     fn new(logger:impl AnyLogger) -> Self {
-        let logger              = Logger::sub(logger,"Icons");
+        let logger              = Logger::new_sub(logger,"Icons");
         let display_object      = display::object::Instance::new(&logger);
         let icon_root           = display::object::Instance::new(&logger);
         let reset_position_icon = pin_icon::View::new(&logger);

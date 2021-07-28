@@ -218,7 +218,7 @@ pub mod mock {
         }
 
         pub fn execution_context(&self) -> model::ExecutionContext {
-            let logger = Logger::sub(&self.logger,"Mocked Execution Context");
+            let logger = Logger::new_sub(&self.logger,"Mocked Execution Context");
             Rc::new(model::execution_context::Plain::new(logger,self.method_pointer()))
         }
 
@@ -363,7 +363,7 @@ pub mod mock {
                 language_server : self.project.json_rpc(),
                 model           : model.clone(),
                 parser          : self.data.parser.clone(),
-                logger          : Logger::sub(&self.data.logger,"MockModuleController"),
+                logger          : Logger::new_sub(&self.data.logger,"MockModuleController"),
             };
             (model,controller)
         }

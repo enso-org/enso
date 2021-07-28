@@ -11,7 +11,7 @@ use crate::display::object::traits::*;
 use crate::display::scene::MouseTarget;
 use crate::display::scene::Scene;
 use crate::display::scene::ShapeRegistry;
-use crate::display::scene::layer::LayerId;
+use crate::display::scene::layer::WeakLayer;
 use crate::display::scene;
 use crate::display::shape::primitive::system::DynamicShape;
 use crate::display::shape::primitive::system::DynamicShapeInternals;
@@ -101,28 +101,15 @@ impl<S:DynamicShapeInternals+'static> ShapeView<S> {
     }
 
     fn init(self) -> Self {
-        self.init_on_show();
         self.init_on_scene_layer_changed();
         self
     }
 
-    fn init_on_show(&self) {
-        let weak_model = Rc::downgrade(&self.model);
-        self.display_object().set_on_show(move |scene,layers| {
-            if let Some(model) = weak_model.upgrade() {
-                if model.before_first_show.get() {
-                    model.before_first_show.set(false);
-                    model.on_scene_layers_changed(scene,layers)
-                }
-            }
-        });
-    }
-
     fn init_on_scene_layer_changed(&self) {
         let weak_model = Rc::downgrade(&self.model);
-        self.display_object().set_on_scene_layer_changed(move |scene,layers| {
+        self.display_object().set_on_scene_layer_changed(move |scene,old_layers,new_layers| {
             if let Some(model) = weak_model.upgrade() {
-                model.on_scene_layers_changed(scene,layers)
+                model.on_scene_layers_changed(scene,old_layers,new_layers)
             }
         });
     }
@@ -146,7 +133,6 @@ pub struct ShapeViewModel<S> {
     pub events          : ShapeViewEvents,
     pub registry        : RefCell<Option<ShapeRegistry>>,
     pub pointer_targets : RefCell<Vec<(SymbolId,attribute::InstanceIndex)>>,
-    before_first_show   : Cell<bool>,
 }
 
 impl<S> Deref for ShapeViewModel<S> {
@@ -164,23 +150,29 @@ impl<S> Drop for ShapeViewModel<S> {
 }
 
 impl<S:DynamicShapeInternals> ShapeViewModel<S> {
-    fn on_scene_layers_changed(&self, scene:&Scene, layers:&[LayerId]) {
-        self.drop_from_all_scene_layers();
-        let default_layers = &[scene.layers.main.id];
-        let target_layers  = if layers.is_empty() { default_layers } else { layers };
-        for &layer_id in target_layers {
-            if let Some(layer) = scene.layers.get(layer_id) {
+    fn on_scene_layers_changed
+    (&self, scene:&Scene, old_layers:&[WeakLayer], new_layers:&[WeakLayer]) {
+        self.drop_from_all_scene_layers(old_layers);
+        for weak_layer in new_layers {
+            if let Some(layer) = weak_layer.upgrade() {
                 self.add_to_scene_layer(scene,&layer)
             }
         }
     }
 
-    fn drop_from_all_scene_layers(&self) {
+    fn drop_from_all_scene_layers(&self, old_layers:&[WeakLayer]) {
+        for layer in old_layers {
+            if let Some(layer) = layer.upgrade() {
+                let (instance_count,shape_system_id,_) = layer.shape_system_registry.drop_instance::<S>();
+                if instance_count == 0 {
+                    layer.remove_shape_system(shape_system_id);
+                }
+            }
+        }
         self.shape.drop_instances();
         self.unregister_existing_mouse_targets();
     }
 }
-
 
 impl<S:DynamicShape> ShapeViewModel<S> {
     /// Constructor.
@@ -189,16 +181,13 @@ impl<S:DynamicShape> ShapeViewModel<S> {
         let events            = ShapeViewEvents::new();
         let registry          = default();
         let pointer_targets   = default();
-        let before_first_show = Cell::new(true);
-        ShapeViewModel {shape,events,registry,pointer_targets,before_first_show}
+        ShapeViewModel {shape,events,registry,pointer_targets}
     }
 
     fn add_to_scene_layer(&self, scene:&Scene, layer:&scene::Layer) {
-        let (shape_system_info,symbol_id,instance_id) = layer.shape_system_registry.instantiate(scene,&self.shape);
-        // FIXME: This is implemented incorrectly, as it does not remove the shape from other layers if the symbol_id is different:
-        layer.add_shape_exclusive(shape_system_info,symbol_id);
-        scene.shapes.insert_mouse_target(symbol_id,instance_id,self.events.clone_ref());
-        self.pointer_targets.borrow_mut().push((symbol_id,instance_id));
+        let instance = layer.instantiate(scene,&self.shape);
+        scene.shapes.insert_mouse_target(instance.symbol_id,instance.instance_id,self.events.clone_ref());
+        self.pointer_targets.borrow_mut().push((instance.symbol_id,instance.instance_id));
         *self.registry.borrow_mut() = Some(scene.shapes.clone_ref());
     }
 }

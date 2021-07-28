@@ -167,7 +167,7 @@ pub struct View {
 impl View {
     /// Constructor.
     pub fn new(logger:&Logger, scene:Scene) -> Self {
-        let logger         = Logger::sub(logger,"view");
+        let logger         = Logger::new_sub(logger,"view");
         let display_object = display::object::Instance::new(&logger);
         let background     = background::View::new(&logger);
         let overlay        = overlay::View::new(&logger);
@@ -255,7 +255,7 @@ impl ContainerModel {
     (logger:&Logger, app:&Application, registry:visualization::Registry)
     -> Self {
         let scene              = app.display.scene();
-        let logger             = Logger::sub(logger,"visualization_container");
+        let logger             = Logger::new_sub(logger,"visualization_container");
         let display_object     = display::object::Instance::new(&logger);
         let drag_root          = display::object::Instance::new(&logger);
         let visualization      = default();

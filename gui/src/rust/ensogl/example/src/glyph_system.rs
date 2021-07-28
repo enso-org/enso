@@ -30,7 +30,9 @@ fn init(world:&World) {
     glyph.set_color(color);
     glyph.size.set(Vector2(height,height));
 
+    world.add_child(&glyph_system);
     world.add_child(&glyph);
     world.keep_alive_forever();
+    std::mem::forget(glyph_system);
     std::mem::forget(glyph);
 }

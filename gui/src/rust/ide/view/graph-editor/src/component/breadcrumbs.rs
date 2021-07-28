@@ -22,8 +22,8 @@ use ensogl::display::shape::*;
 use ensogl::display::style;
 use ensogl::display;
 use ensogl::gui::cursor;
-use logger::Logger;
 use std::cmp::Ordering;
+
 
 
 // =================

@@ -35,7 +35,7 @@ impl Registry {
     , command_registry  : &command::Registry
     , shortcut_registry : &shortcut::Registry
     ) -> Self {
-        let logger            = Logger::sub(logger,"view_registry");
+        let logger            = Logger::new_sub(logger,"view_registry");
         let display           = display.clone_ref();
         let command_registry  = command_registry.clone_ref();
         let shortcut_registry = shortcut_registry.clone_ref();

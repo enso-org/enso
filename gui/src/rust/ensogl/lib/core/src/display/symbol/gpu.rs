@@ -284,17 +284,17 @@ impl Symbol {
         let init_logger = logger.clone();
         debug!(init_logger, "Initializing.", || {
             let on_mut2           = on_mut.clone();
-            let surface_logger    = Logger::sub(&logger,"surface");
-            let shader_logger     = Logger::sub(&logger,"shader");
-            let geo_dirt_logger   = Logger::sub(&logger,"surface_dirty");
-            let mat_dirt_logger   = Logger::sub(&logger,"shader_dirty");
+            let surface_logger    = Logger::new_sub(&logger,"surface");
+            let shader_logger     = Logger::new_sub(&logger,"shader");
+            let geo_dirt_logger   = Logger::new_sub(&logger,"surface_dirty");
+            let mat_dirt_logger   = Logger::new_sub(&logger,"shader_dirty");
             let surface_dirty     = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
             let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
             let surface_on_mut    = Box::new(f!(surface_dirty.set()));
             let shader_on_mut     = Box::new(f!(shader_dirty.set()));
             let shader            = Shader::new(shader_logger,stats,shader_on_mut);
             let surface           = Mesh::new(surface_logger,stats,surface_on_mut);
-            let variables         = UniformScope::new(Logger::sub(&logger,"uniform_scope"));
+            let variables         = UniformScope::new(Logger::new_sub(&logger,"uniform_scope"));
             let global_variables  = global_variables.clone_ref();
             let bindings          = default();
             let stats             = SymbolStats::new(stats);
@@ -302,11 +302,21 @@ impl Symbol {
             let symbol_id_uniform = variables.add_or_panic("symbol_id",(*id) as i32);
             let display_object    = display::object::Instance::new(logger.clone());
             let is_hidden         = Rc::new(Cell::new(false));
-            display_object.set_on_hide(f_!(is_hidden.set(true)));
-            display_object.set_on_show(f__!(is_hidden.set(false)));
             Self {id,display_object,surface,shader,surface_dirty,shader_dirty,variables
-                 ,global_variables,symbol_id_uniform,context,logger,bindings,stats,is_hidden}
+                 ,global_variables,symbol_id_uniform,context,logger,bindings,stats,is_hidden}.init()
         })
+    }
+
+    fn init(self) -> Self {
+        let is_hidden = &self.is_hidden;
+        let id        = self.id;
+        self.display_object.set_on_hide(f_!(is_hidden.set(true)));
+        self.display_object.set_on_show(f__!(is_hidden.set(false)));
+        self.display_object.set_on_scene_layer_changed(move |_,old_layers,new_layers| {
+            for layer in old_layers.iter().filter_map(|t|t.upgrade()) { layer.remove_symbol(id) }
+            for layer in new_layers.iter().filter_map(|t|t.upgrade()) { layer.add_symbol(id) }
+        });
+        self
     }
 
     pub(crate) fn set_context(&self, context:Option<&Context>) {

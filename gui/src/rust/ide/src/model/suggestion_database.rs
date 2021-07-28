@@ -67,7 +67,7 @@ pub struct SuggestionDatabase {
 impl SuggestionDatabase {
     /// Create a database with no entries.
     pub fn new_empty(logger:impl AnyLogger) -> Self {
-        let logger        = Logger::sub(logger,"SuggestionDatabase");
+        let logger        = Logger::new_sub(logger,"SuggestionDatabase");
         let entries       = default();
         let examples      = default();
         let version       = default();

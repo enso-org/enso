@@ -461,7 +461,7 @@ pub mod test {
         fn new(parent:impl AnyLogger, path:Path, initial_content:impl Into<String>) -> Self {
             let current_ls_content = initial_content.into();
             let current_ls_version = Sha3_224::new(current_ls_content.as_bytes());
-            let logger             = Logger::sub(parent,"LsClientSetup");
+            let logger             = Logger::new_sub(parent,"LsClientSetup");
             debug!(logger,"Initial content:\n===\n{current_ls_content}\n===");
             Self {
                 path,logger,

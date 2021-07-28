@@ -416,9 +416,9 @@ impl NodeModel {
         let scene  = app.display.scene();
         let logger = Logger::new("node");
 
-        let main_logger             = Logger::sub(&logger,"main_area");
-        let drag_logger             = Logger::sub(&logger,"drag_area");
-        let error_indicator_logger  = Logger::sub(&logger,"error_indicator");
+        let main_logger             = Logger::new_sub(&logger,"main_area");
+        let drag_logger             = Logger::new_sub(&logger,"drag_area");
+        let error_indicator_logger  = Logger::new_sub(&logger,"error_indicator");
 
         let error_indicator = error_shape::View::new(&error_indicator_logger);
         let profiling_label = ProfilingLabel::new(app);

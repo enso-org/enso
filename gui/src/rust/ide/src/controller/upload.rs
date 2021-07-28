@@ -100,7 +100,7 @@ impl<DP:DataProvider> FileUploadProcess<DP> {
     , json_connection : Rc<language_server::Connection>
     , remote_path : Path
     ) -> Self {
-        let logger         = Logger::sub(parent,"FileUploadProcess");
+        let logger         = Logger::new_sub(parent,"FileUploadProcess");
         let bytes_uploaded = 0;
         let checksum       = sha3::Sha3_224::new();
         Self {logger,bin_connection,json_connection,file,remote_path,bytes_uploaded,checksum}
@@ -172,7 +172,7 @@ pub struct NodeFromDroppedFileHandler {
 impl NodeFromDroppedFileHandler {
     /// Constructor
     pub fn new(parent:impl AnyLogger, project:model::Project, graph:controller::Graph) -> Self {
-        let logger = Logger::sub(parent,"NodeFromDroppedFileHandler");
+        let logger = Logger::new_sub(parent,"NodeFromDroppedFileHandler");
         Self{logger,project,graph}
     }
 

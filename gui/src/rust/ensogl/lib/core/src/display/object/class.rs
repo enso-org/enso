@@ -9,7 +9,8 @@ use super::transform;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::display::scene::Scene;
-use crate::display::scene::layer::LayerId;
+use crate::display::scene::layer::Layer;
+use crate::display::scene::layer::WeakLayer;
 
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
@@ -61,9 +62,9 @@ impl<Host> Drop for ParentBind<Host> {
 #[allow(clippy::type_complexity)]
 pub struct Callbacks<Host> {
     on_updated              : RefCell<Option<Box<dyn Fn(&Model<Host>)>>>,
-    on_show                 : RefCell<Option<Box<dyn Fn(&Host,&[LayerId])>>>,
+    on_show                 : RefCell<Option<Box<dyn Fn(&Host,&[WeakLayer])>>>,
     on_hide                 : RefCell<Option<Box<dyn Fn(&Host)>>>,
-    on_scene_layers_changed : RefCell<Option<Box<dyn Fn(&Host,&[LayerId])>>>,
+    on_scene_layers_changed : RefCell<Option<Box<dyn Fn(&Host,&[WeakLayer],&[WeakLayer])>>>,
 }
 
 impl<Host> Callbacks<Host> {
@@ -71,7 +72,7 @@ impl<Host> Callbacks<Host> {
         if let Some(f) = &*self.on_updated.borrow() { f(model) }
     }
 
-    fn on_show(&self, host:&Host, layers:&[LayerId]) {
+    fn on_show(&self, host:&Host, layers:&[WeakLayer]) {
         if let Some(f) = &*self.on_show.borrow() { f(host,layers) }
     }
 
@@ -79,8 +80,9 @@ impl<Host> Callbacks<Host> {
         if let Some(f) = &*self.on_hide.borrow() { f(host) }
     }
 
-    fn on_scene_layers_changed(&self, host:&Host, layers:&[LayerId]) {
-        if let Some(f) = &*self.on_scene_layers_changed.borrow() { f(host,layers) }
+    fn on_scene_layers_changed
+    (&self, host:&Host, old_layers:&[WeakLayer], new_layers:&[WeakLayer]) {
+        if let Some(f) = &*self.on_scene_layers_changed.borrow() { f(host,old_layers,new_layers) }
     }
 }
 
@@ -127,17 +129,17 @@ pub struct DirtyFlags<Host> {
 impl<Host> DirtyFlags<Host> {
     #![allow(trivial_casts)]
     fn new(logger:impl AnyLogger) -> Self {
-        let logger : Logger  = Logger::sub(&logger,"dirty");
+        let logger : Logger  = Logger::new_sub(&logger,"dirty");
         let on_dirty         = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
-        let sub_logger       = logger::WarningLogger::sub(&logger,"parent");
+        let sub_logger       = logger::WarningLogger::new_sub(&logger,"parent");
         let parent           = NewParentDirty::new(sub_logger,());
-        let sub_logger       = logger::WarningLogger::sub(&logger,"children");
+        let sub_logger       = logger::WarningLogger::new_sub(&logger,"children");
         let children         = ChildrenDirty::new(sub_logger,on_dirty_callback(&on_dirty));
-        let sub_logger       = logger::WarningLogger::sub(&logger,"removed_children");
+        let sub_logger       = logger::WarningLogger::new_sub(&logger,"removed_children");
         let removed_children = RemovedChildren::new(sub_logger,on_dirty_callback(&on_dirty));
-        let sub_logger       = logger::WarningLogger::sub(&logger,"transform");
+        let sub_logger       = logger::WarningLogger::new_sub(&logger,"transform");
         let transform        = TransformDirty::new(sub_logger,on_dirty_callback(&on_dirty));
-        let sub_logger       = logger::WarningLogger::sub(&logger,"scene_layer");
+        let sub_logger       = logger::WarningLogger::new_sub(&logger,"scene_layer");
         let scene_layer      = SceneLayerDirty::new(sub_logger,on_dirty_callback(&on_dirty));
         Self {parent,children,removed_children,transform,scene_layer,on_dirty}
     }
@@ -189,10 +191,10 @@ fn on_dirty_callback(f:&Rc<RefCell<Box<dyn Fn()>>>) -> OnDirtyCallback {
 pub struct Model<Host=Scene> {
     host:PhantomData <Host>,
     /// Layers the object was explicitly assigned to.
-    assigned_layers:RefCell<Vec<LayerId>>,
+    assigned_layers:RefCell<Vec<WeakLayer>>,
     /// Layers where the object is displayed. May be same as assigned layers, or inherited by
     /// parent.
-    scene_layers : RefCell<Vec<LayerId>>,
+    layers       : RefCell<Vec<WeakLayer>>,
     dirty        : DirtyFlags  <Host>,
     callbacks    : Callbacks   <Host>,
     parent_bind  : RefCell     <Option<ParentBind<Host>>>,
@@ -214,9 +216,9 @@ impl<Host> Model<Host> {
         let callbacks       = default();
         let host            = default();
         let assigned_layers = default();
-        let scene_layers    = default();
-        Self {host,assigned_layers,scene_layers,dirty,callbacks,parent_bind,children,transform
-            ,visible,logger}
+        let layers          = default();
+        Self {host,assigned_layers,layers,dirty,callbacks,parent_bind,children,transform
+             ,visible,logger}
     }
 
     /// Checks whether the object is visible.
@@ -278,44 +280,57 @@ impl<Host> Model<Host> {
     /// learn more.
     fn update_with_origin
     ( &self
-    , host                        : &Host
-    , parent_origin               : Matrix4<f32>
-    , parent_origin_changed       : bool
-    , parent_scene_layers_changed : bool
-    , parent_scene_layers         : &[LayerId]
+    , host                  : &Host
+    , parent_origin         : Matrix4<f32>
+    , parent_origin_changed : bool
+    , parent_layers_changed : bool
+    , parent_layers         : &[WeakLayer]
     ) {
         // === Scene Layers Update ===
-
-        let assigned_layers         = self.assigned_layers.borrow();
-        let assigned_layers_slice   = assigned_layers.as_slice();
-        let assigned_layers_changed = self.dirty.scene_layer.check();
-        let scene_layers_changed    = parent_scene_layers_changed || assigned_layers_changed;
-        let scene_layers = if scene_layers_changed {
-            self.dirty.scene_layer.unset();
-            if assigned_layers_slice.is_empty() { parent_scene_layers   }
-            else                                { assigned_layers_slice }
+        let has_new_parent          = self.dirty.parent.check();
+        let assigned_layers_ref     = self.assigned_layers.borrow();
+        let assigned_layers         = assigned_layers_ref.as_slice();
+        let assigned_layers_changed = self.dirty.scene_layer.take().check();
+        let has_assigned_layers     = !assigned_layers.is_empty();
+        let layers_changed          = if assigned_layers_changed {
+            // We might as well check here if assigned layers were not removed and accidentally the
+            // inherited layers are not the same as previously assigned ones, but this is so rare
+            // situation that we are not checking it to optimize the performance of this case in
+            // most popular cases.
+            true
+        } else if has_assigned_layers {
+            false
+        } else if has_new_parent {
+            // Optimization for a common case of switching parent in the same layer.
+            *self.layers.borrow() != parent_layers
         } else {
-            assigned_layers_slice
+            parent_layers_changed
         };
-        if scene_layers_changed {
+
+        let new_layers_opt = layers_changed.as_some_from(||
+            if has_assigned_layers {assigned_layers} else {parent_layers}
+        );
+        if let Some(new_layers) = new_layers_opt {
             debug!(self.logger, "Scene layers changed.", || {
-                *self.scene_layers.borrow_mut() = scene_layers.to_vec();
-                self.callbacks.on_scene_layers_changed(host,scene_layers);
+                let old_layers = mem::replace(&mut *self.layers.borrow_mut(),new_layers.to_vec());
+                self.callbacks.on_scene_layers_changed(host,&old_layers,new_layers);
             });
         }
+
+        let current_layers = self.layers.borrow();
+        let new_layers     = new_layers_opt.unwrap_or(&*current_layers);
 
 
         // === Origin & Visibility Update ===
 
-        self.update_visibility(host,parent_scene_layers);
-        let has_new_parent      = self.dirty.parent.check();
-        let is_origin_dirty     = has_new_parent || parent_origin_changed || scene_layers_changed;
+        self.update_visibility(host,parent_layers);
+        let is_origin_dirty     = has_new_parent || parent_origin_changed || layers_changed;
         let new_parent_origin   = is_origin_dirty.as_some(parent_origin);
         let parent_origin_label = if new_parent_origin.is_some() {"new"} else {"old"};
         debug!(self.logger, "Update with {parent_origin_label} parent origin.", || {
             let origin_changed = self.transform.borrow_mut().update(new_parent_origin);
             let new_origin     = self.transform.borrow().matrix;
-            if origin_changed || scene_layers_changed {
+            if origin_changed || layers_changed {
                 if origin_changed {
                     info!(self.logger,"Self origin changed.");
                 } else {
@@ -327,7 +342,7 @@ impl<Host> Model<Host> {
                         self.children.borrow().iter().for_each(|weak_child| {
                             weak_child.upgrade().for_each(|child|
                                 child.update_with_origin
-                                    (host,new_origin,true,scene_layers_changed,scene_layers)
+                                    (host,new_origin,true,layers_changed,new_layers)
                             );
                         });
                     })
@@ -340,7 +355,7 @@ impl<Host> Model<Host> {
                             self.children.borrow().safe_index(*ix).and_then(|t|t.upgrade())
                                 .for_each(|child|
                                     child.update_with_origin
-                                        (host,new_origin,false,scene_layers_changed,scene_layers))
+                                        (host,new_origin,false,layers_changed,new_layers))
                         });
                     })
                 }
@@ -352,11 +367,11 @@ impl<Host> Model<Host> {
     }
 
     /// Hide all removed children and show this display object if it was attached to a new parent.
-    fn update_visibility(&self, host:&Host, parent_scene_layers:&[LayerId]) {
+    fn update_visibility(&self, host:&Host, parent_layers:&[WeakLayer]) {
         self.take_removed_children_and_update_their_visibility(host);
         let parent_changed = self.dirty.parent.check();
         if parent_changed && !self.is_orphan() {
-            self.set_vis_true(host,parent_scene_layers)
+            self.set_vis_true(host,parent_layers)
         }
     }
 
@@ -390,17 +405,17 @@ impl<Host> Model<Host> {
         }
     }
 
-    fn set_vis_true(&self, host:&Host, parent_scene_layers:&[LayerId]) {
+    fn set_vis_true(&self, host:&Host, parent_layers:&[WeakLayer]) {
        if !self.visible.get() {
            info!(self.logger,"Showing.");
            let this_scene_layers       = self.assigned_layers.borrow();
            let this_scene_layers_slice = this_scene_layers.as_slice();
-           let scene_layers            = if this_scene_layers_slice.is_empty()
-               { parent_scene_layers } else { this_scene_layers_slice };
+           let layers            = if this_scene_layers_slice.is_empty()
+               { parent_layers } else { this_scene_layers_slice };
            self.visible.set(true);
-           self.callbacks.on_show(host,scene_layers);
+           self.callbacks.on_show(host,layers);
            self.children.borrow().iter().for_each(|child| {
-               child.upgrade().for_each(|t| t.set_vis_true(host,scene_layers));
+               child.upgrade().for_each(|t| t.set_vis_true(host,layers));
            });
        }
     }
@@ -509,7 +524,7 @@ impl<Host> Model<Host> {
     /// Sets a callback which will be called with a reference to scene when the object will be
     /// shown (attached to visible display object graph).
     pub fn set_on_show<F>(&self, f:F)
-    where F : Fn(&Host,&[LayerId])+'static {
+    where F : Fn(&Host,&[WeakLayer])+'static {
         self.callbacks.on_show.set(Box::new(f))
     }
 
@@ -520,10 +535,11 @@ impl<Host> Model<Host> {
         self.callbacks.on_hide.set(Box::new(f))
     }
 
-    /// Sets a callback which will be called with a reference to scene and list of scene layers this
-    /// object was attached to on every change to the scene layers assignment.
+    /// Sets a callback which will be called on every change to the layers assignment. The callback
+    /// will be provided with a reference to scene and two lists of layers this object was
+    /// previously and is currently attached to .
     pub fn set_on_scene_layer_changed<F>(&self, f:F)
-    where F : Fn(&Host,&[LayerId]) + 'static {
+    where F : Fn(&Host,&[WeakLayer],&[WeakLayer]) + 'static {
         self.callbacks.on_scene_layers_changed.set(Box::new(f))
     }
 }
@@ -613,28 +629,31 @@ impl<Host> Instance<Host> {
 
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
-    pub fn _scene_layers(&self) -> Vec<LayerId> { self.scene_layers.borrow().clone() }
+    pub fn _display_layers(&self) -> Vec<WeakLayer> { self.layers.borrow().clone() }
 
     /// Add this object to the provided scene layer and remove it from all other layers. Do not use
     /// this method explicitly. Use layers' methods instead.
-    pub(crate) fn add_to_scene_layer(&self, layer:LayerId) {
+    pub(crate) fn add_to_display_layer(&self, layer:&Layer) {
+        let layer = layer.downgrade();
         self.dirty.scene_layer.set();
-        let mut scene_layers = self.assigned_layers.borrow_mut();
-        if !scene_layers.contains(&layer) {
-            scene_layers.push(layer);
+        let mut layers = self.assigned_layers.borrow_mut();
+        if !layers.contains(&layer) {
+            layers.push(layer);
         }
     }
 
     /// Add this object to the provided scene layer and remove it from all other layers. Do not use
     /// this method explicitly. Use layers' methods instead.
-    pub(crate) fn add_to_scene_layer_exclusive(&self, layer:LayerId) {
+    pub(crate) fn add_to_display_layer_exclusive(&self, layer:&Layer) {
+        let layer = layer.downgrade();
         self.dirty.scene_layer.set();
         *self.assigned_layers.borrow_mut() = vec![layer];
     }
 
     /// Remove this object from the provided scene layer. Do not use this method explicitly. Use
     /// layers' methods instead.
-    pub(crate) fn remove_from_scene_layer(&self, layer:LayerId) {
+    pub(crate) fn remove_from_scene_layer(&self, layer:&Layer) {
+        let layer = layer.downgrade();
         self.dirty.scene_layer.set();
         self.assigned_layers.borrow_mut().remove_item(&layer);
     }
@@ -824,7 +843,7 @@ pub trait ObjectOps<Host=Scene> : Object<Host> {
 
     /// Get the layers where this object is displayed. May be equal to layers it was explicitly
     /// assigned, or layers inherited from the parent.
-    fn scene_layers(&self) -> Vec<LayerId> { self.display_object()._scene_layers() }
+    fn display_layers(&self) -> Vec<WeakLayer> { self.display_object()._display_layers() }
 
     /// Add another display object as a child to this display object. Children will inherit all
     /// transformations of their parents.
@@ -1469,28 +1488,28 @@ mod tests {
 
     #[test]
     fn layers_test() {
-        let layer1 = LayerId::new(0);
-        let layer2 = LayerId::new(2);
+        let layer1 = Layer::new(Logger::new("0"));
+        let layer2 = Layer::new(Logger::new("1"));
         let node1 = Instance::<()>::new(Logger::new("node1"));
         let node2 = Instance::<()>::new(Logger::new("node2"));
         let node3 = Instance::<()>::new(Logger::new("node3"));
         node1.add_child(&node2);
         node1.add_child(&node3);
         node1.update(&());
-        assert_eq!(node1.scene_layers(), vec![]);
-        assert_eq!(node2.scene_layers(), vec![]);
-        assert_eq!(node3.scene_layers(), vec![]);
+        assert_eq!(node1.display_layers(), vec![]);
+        assert_eq!(node2.display_layers(), vec![]);
+        assert_eq!(node3.display_layers(), vec![]);
 
-        node1.add_to_scene_layer(layer1);
+        node1.add_to_display_layer(&layer1);
         node1.update(&());
-        assert_eq!(node1.scene_layers(), vec![layer1]);
-        assert_eq!(node2.scene_layers(), vec![layer1]);
-        assert_eq!(node3.scene_layers(), vec![layer1]);
+        assert_eq!(node1.display_layers(), vec![layer1.downgrade()]);
+        assert_eq!(node2.display_layers(), vec![layer1.downgrade()]);
+        assert_eq!(node3.display_layers(), vec![layer1.downgrade()]);
 
-        node2.add_to_scene_layer_exclusive(layer2);
+        node2.add_to_display_layer_exclusive(&layer2);
         node1.update(&());
-        assert_eq!(node1.scene_layers(), vec![layer1]);
-        assert_eq!(node2.scene_layers(), vec![layer2]);
-        assert_eq!(node3.scene_layers(), vec![layer1]);
+        assert_eq!(node1.display_layers(), vec![layer1.downgrade()]);
+        assert_eq!(node2.display_layers(), vec![layer2.downgrade()]);
+        assert_eq!(node3.display_layers(), vec![layer1.downgrade()]);
     }
 }

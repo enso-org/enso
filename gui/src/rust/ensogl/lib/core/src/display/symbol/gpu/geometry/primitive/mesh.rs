@@ -119,11 +119,11 @@ impl {
     (logger:Logger, stats:&Stats, on_mut:OnMut) -> Self {
         stats.inc_mesh_count();
         let stats         = stats.clone();
-        let scopes_logger = Logger::sub(&logger,"scopes_dirty");
+        let scopes_logger = Logger::new_sub(&logger,"scopes_dirty");
         let scopes_dirty  = ScopesDirty::new(scopes_logger,Box::new(on_mut));
         let scopes        = debug!(logger, "Initializing.", || {
             macro_rules! new_scope { ({ $($name:ident),* } { $($uname:ident),* } ) => {$(
-                let sub_logger = Logger::sub(&logger,stringify!($name));
+                let sub_logger = Logger::new_sub(&logger,stringify!($name));
                 let status_mod = ScopeType::$uname;
                 let scs_dirty  = scopes_dirty.clone_ref();
                 let callback   = move || {scs_dirty.set(status_mod)};

@@ -91,7 +91,7 @@ impl {
         let geometry_material = default();
         let surface_material  = default();
         let program           = default();
-        let dirty_logger      = Logger::sub(&logger,"dirty");
+        let dirty_logger      = Logger::new_sub(&logger,"dirty");
         let dirty             = Dirty::new(dirty_logger,Box::new(on_mut));
         let stats             = stats.clone_ref();
         Self {context,geometry_material,surface_material,program,dirty,logger,stats}
