@@ -1,5 +1,10 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Documentation in IDE now shows names of suggestions
+  ([#1904](https://github.com/enso-org/enso/pull/1904)).
+
 # Enso 0.2.17 (2021-07-28)
 
 ## Interpreter/Runtime
