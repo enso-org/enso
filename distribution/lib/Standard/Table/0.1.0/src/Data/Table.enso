@@ -762,7 +762,8 @@ type Table
     write_csv file include_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix max_rows_per_file=Nothing =
         Csv_Writer.writePath this.java_table file.absolute.path max_rows_per_file include_header always_quote line_ending.to_text separator .to_csv_field
 
-    ## UNSTABLE
+    ## ALIAS Write Excel File
+       UNSTABLE
 
        Writes this table into an XLSX spreadsheet.
 
@@ -1027,4 +1028,3 @@ print_table header rows indices_count format_term =
    - y: The right operand to the comparator.
 comparator_to_java : (Any -> Any -> Ordering) -> Any -> Any -> Integer
 comparator_to_java cmp x y = cmp x y . to_sign
-
