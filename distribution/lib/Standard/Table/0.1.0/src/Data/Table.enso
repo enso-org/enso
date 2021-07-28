@@ -841,7 +841,7 @@ type Aggregate_Table
     count = Column.Column this.java_table.count
 
     ## ALIAS Get a Column
-       
+
        Returns an aggregate column with the given name, contained in this table.
 
        Arguments:
