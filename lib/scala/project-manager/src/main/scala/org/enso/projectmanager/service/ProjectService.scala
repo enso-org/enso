@@ -85,7 +85,7 @@ class ProjectService[
     engineVersion: SemVer,
     projectTemplate: Option[String],
     missingComponentAction: MissingComponentAction
-  ): F[ProjectServiceFailure, UUID] = for {
+  ): F[ProjectServiceFailure, Project] = for {
     projectId <- gen.randomUUID()
     _ <- log.debug(
       "Creating project [{}, {}, {}].",
@@ -131,7 +131,7 @@ class ProjectService[
       .mapError(toServiceFailure)
     _ <- log.debug("Project [{}] updated in repository [{}].", projectId, repo)
     _ <- log.info("Project created [{}].", project)
-  } yield projectId
+  } yield project
 
   /** @inheritdoc */
   override def deleteUserProject(
