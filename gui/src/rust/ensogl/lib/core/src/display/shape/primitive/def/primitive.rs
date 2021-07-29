@@ -157,6 +157,12 @@ macro_rules! _define_sdf_shape_mutable_part {
 
 define_sdf_shapes! {
 
+    // === Empty ===
+
+    EmptyShape () {
+        return bound_sdf(FLOAT_MAX,bounding_box(0.0,0.0));
+    }
+
     // === Infinite ===
 
     Plane () {
@@ -205,22 +211,23 @@ define_sdf_shapes! {
 
     // === RoundedLineSegment ===
 
-    /// A line segment from the origin to `target` with rounded endpoints.
-    Segment (target:Vector2<Pixels>, width:Pixels) {
+    /// A line segment from `start` to `end` with rounded endpoints.
+    Segment (start:Vector2<Pixels>, end:Vector2<Pixels>, width:Pixels) {
         // The implementation of this shape was adapted from here:
         // https://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
 
         float half_width = width / 2.0;
 
+        vec2 delta = end - start;
         // A value between 0.0 and 1.0 indicating the position of the point on the line segment that
         // is closest to `position`. 0.0 stands for the origin and 1.0 for `target`.
-        float projection   = clamp(dot(position,target)/dot(target,target),0.0,1.0);
-        vec2 closest_point = projection * target;
+        float projection   = clamp(dot(position-start,delta)/dot(delta,delta),0.0,1.0);
+        vec2 closest_point = start + projection * delta;
 
-        float left         = min(target.x,0.0) - half_width;
-        float right        = max(target.x,0.0) + half_width;
-        float bottom       = min(target.y,0.0) - half_width;
-        float top          = max(target.y,0.0) + half_width;
+        float left         = min(start.x,end.x) - half_width;
+        float right        = max(start.x,end.x) + half_width;
+        float bottom       = min(start.y,end.y) - half_width;
+        float top          = max(start.y,end.y) + half_width;
         BoundingBox bounds = bounding_box(left,right,bottom,top);
 
         float distance = length(position - closest_point) - half_width;
@@ -366,7 +373,7 @@ define_sdf_shapes! {
         return bound_sdf(dist,bounds);
     }
 
-  
+
     // === Five Star ===
 
     /// A five-pointed star.
