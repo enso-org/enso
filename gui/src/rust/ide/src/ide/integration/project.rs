@@ -1860,8 +1860,16 @@ impl SuggestionsProviderForView {
             suggestion_database::entry::Kind::Method   => "Method",
             suggestion_database::entry::Kind::Module   => "Module",
         };
-        let code = suggestion.code_to_insert(None,true).code;
-        format!("{} `{}`\n\nNo documentation available", title,code)
+        let code   = suggestion.code_to_insert(None,true).code;
+        let code   = format!("{} `{}`\n\nNo documentation available.", title,code);
+        let parser = parser::DocParser::new();
+        match parser {
+            Ok(p) => {
+                let output = p.generate_html_doc_pure((*code).to_string());
+                output.unwrap_or(code)
+            },
+            Err(_) => code
+        }
     }
 }
 
@@ -1898,7 +1906,7 @@ impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
     fn get(&self) -> Option<String> {
         use controller::searcher::UserAction::*;
         self.intended_function.as_ref().and_then(|function| match self.user_action {
-            StartingTypingArgument => function.documentation.clone(),
+            StartingTypingArgument => function.documentation_html.clone(),
             _                      => None
         })
     }
@@ -1907,10 +1915,10 @@ impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
         use controller::searcher::action::Action;
         match self.actions.get_cloned(id)?.action {
             Action::Suggestion(suggestion) => {
-                let doc = suggestion.documentation.clone();
+                let doc = suggestion.documentation_html.clone();
                 Some(doc.unwrap_or_else(|| Self::doc_placeholder_for(&suggestion)))
             }
-            Action::Example(example)     => Some(example.documentation.clone()),
+            Action::Example(example)     => Some(example.documentation_html.clone()),
             Action::ProjectManagement(_) => None,
         }
     }

@@ -32,10 +32,10 @@ pub struct InvalidExample;
 #[allow(missing_docs)]
 #[derive(Clone,Debug,Default,Eq,PartialEq)]
 pub struct Example {
-    pub name          : String,
-    pub code          : String,
-    pub imports       : Vec<String>,
-    pub documentation : String,
+    pub name               : String,
+    pub code               : String,
+    pub imports            : Vec<String>,
+    pub documentation_html : String,
 }
 
 impl Example {
@@ -72,7 +72,10 @@ impl Example {
     }
 }
 
-
+/// Creates a pretty documentation from hardcoded inner text.
+pub fn documentation_html_from(inner:&str) -> String {
+    return format!("<div class=\"doc\" style=\"font-size: 13px;\"><p>{}</p></div>", inner)
+}
 
 // =========================
 // === Embedded Examples ===
@@ -84,19 +87,19 @@ lazy_static! {
     //TODO[ao]: Remove once the issue will be implemented.
     pub static ref EXAMPLES:Vec<Example> = vec!
     [ Example
-      { name          : "Parse JSON".to_owned()
-      , code          : r#"Json.parse "{\"a\":10, \"b\": 20}""#.to_owned()
-      , imports       : default()
-      , documentation : "An example showing how to parse string to Json structure.".to_owned()
+      { name               : "Parse JSON".to_owned()
+      , code               : r#"Json.parse "{\"a\":10, \"b\": 20}""#.to_owned()
+      , imports            : default()
+      , documentation_html : documentation_html_from("An example showing how to parse string to Json structure.")
       }
     , Example
-      { name          : "Http GET".to_owned()
-      , code          : "http1 = Http.new \n\
+      { name               : "Http GET".to_owned()
+      , code               : "http1 = Http.new \n\
           response = http1.get \"http://enso.org/\"\n\
           body1    = response.body\n\
           body1.to_text".to_owned()
-      , imports       : vec!["Standard.Base.Network.Http".to_owned()]
-      , documentation : "This snippet downloads the Enso main page.".to_owned(),
+      , imports            : vec!["Standard.Base.Network.Http".to_owned()]
+      , documentation_html : documentation_html_from("This snippet downloads the Enso main page."),
       }
     ];
 }
