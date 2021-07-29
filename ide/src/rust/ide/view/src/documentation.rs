@@ -7,7 +7,6 @@ use crate::graph_editor::component::visualization;
 
 pub use visualization::container::overlay;
 
-use ast::prelude::FallibleResult;
 use enso_frp as frp;
 use ensogl::display::DomSymbol;
 use ensogl::display::scene::Scene;
@@ -36,7 +35,6 @@ pub const VIEW_WIDTH  : f32 = 300.0;
 pub const VIEW_HEIGHT : f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
-const PLACEHOLDER_STR   : &str = "<h3>Documentation Viewer</h3><p>No documentation available</p>";
 const CORNER_RADIUS     : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
 const PADDING           : f32  = 15.0;
 const CODE_BLOCK_CLASS  : &str = "doc-code-container";
@@ -63,12 +61,6 @@ fn documentation_style() -> String {
 // =============
 // === Model ===
 // =============
-
-/// The input type for documentation parser. See documentation of `View` for details.
-#[derive(Clone,Copy,Debug)]
-enum InputFormat {
-    Ast,Docstring
-}
 
 type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
 
@@ -136,22 +128,6 @@ impl Model {
         self.reload_style();
     }
 
-    /// Generate HTML documentation from documented Enso code.
-    fn gen_html_from(string:&str, input_type: InputFormat) -> FallibleResult<String> {
-        if string.is_empty() {
-            Ok(PLACEHOLDER_STR.into())
-        } else {
-            let parser    = parser::DocParser::new()?;
-            let processed = string.to_string();
-            let output    = match input_type {
-                InputFormat::Ast       => parser.generate_html_docs(processed),
-                InputFormat::Docstring => parser.generate_html_doc_pure(processed),
-            };
-            let output = output?;
-            Ok( if output.is_empty() { PLACEHOLDER_STR.into() } else { output } )
-        }
-    }
-
     /// Create a container for generated content and embed it with stylesheet.
     fn push_to_dom(&self, content:String) {
         let no_doc_txt = "<p style=\"color: #a3a6a9;\">No documentation available</p>";
@@ -210,20 +186,13 @@ impl Model {
             visualization::Data::Binary =>
                 return Err(visualization::DataError::BinaryNotSupported),
         };
-        self.display_doc(&string, InputFormat::Docstring);
+        self.display_doc(&string);
         Ok(())
     }
 
-    fn display_doc(&self, content:&str, content_type: InputFormat) {
-        let html = match Model::gen_html_from(content,content_type) {
-            Ok(html) => html,
-            Err(err) => {
-                error!(self.logger, "Documentation parsing error: {err:?}");
-                PLACEHOLDER_STR.into()
-            }
-        };
-
-        self.push_to_dom(html);
+    /// Displays the received data in the panel.
+    fn display_doc(&self, content:&str) {
+        self.push_to_dom(String::from(content));
         self.attach_listeners_to_copy_buttons();
     }
 
@@ -252,9 +221,7 @@ impl Model {
 ensogl::define_endpoints! {
     Input {
         /// Display documentation of the entity represented by given code.
-        display_documentation (String),
-        /// Display documentation represented by docstring.
-        display_docstring (String),
+        display_documentation (String)
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -312,8 +279,7 @@ impl View {
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((cont) model.display_doc(cont,InputFormat::Ast      ));
-            eval frp.display_docstring     ((cont) model.display_doc(cont,InputFormat::Docstring));
+            eval frp.display_documentation ((cont) model.display_doc(cont));
             eval visualization.send_data([visualization,model](data) {
                 if let Err(error) = model.receive_data(data) {
                     visualization.data_receive_error.emit(error)

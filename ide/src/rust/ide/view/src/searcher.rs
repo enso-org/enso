@@ -228,7 +228,7 @@ impl View {
             source.used_as_suggestion <+ opt_picked_entry.gate(&is_selected);
             source.editing_committed  <+ model.list.chosen_entry.gate(&is_selected);
 
-            eval displayed_doc ((data) model.documentation.frp.display_docstring(data));
+            eval displayed_doc ((data) model.documentation.frp.display_documentation(data));
         };
 
         self

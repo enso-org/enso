@@ -833,22 +833,24 @@ pub enum SuggestionEntryType {Atom,Method,Function,Local}
 pub enum SuggestionEntry {
     #[serde(rename_all="camelCase")]
     Atom {
-        external_id   : Option<Uuid>,
-        name          : String,
-        module        : String,
-        arguments     : Vec<SuggestionEntryArgument>,
-        return_type   : String,
-        documentation : Option<String>,
+        external_id        : Option<Uuid>,
+        name               : String,
+        module             : String,
+        arguments          : Vec<SuggestionEntryArgument>,
+        return_type        : String,
+        documentation      : Option<String>,
+        documentation_html : Option<String>,
     },
     #[serde(rename_all="camelCase")]
     Method {
-        external_id   : Option<Uuid>,
-        name          : String,
-        module        : String,
-        arguments     : Vec<SuggestionEntryArgument>,
-        self_type     : String,
-        return_type   : String,
-        documentation : Option<String>,
+        external_id        : Option<Uuid>,
+        name               : String,
+        module             : String,
+        arguments          : Vec<SuggestionEntryArgument>,
+        self_type          : String,
+        return_type        : String,
+        documentation      : Option<String>,
+        documentation_html : Option<String>,
     },
     #[serde(rename_all="camelCase")]
     Function {
@@ -1006,12 +1008,13 @@ pub enum SuggestionsDatabaseUpdate {
 #[serde(tag="type")]
 pub struct SuggestionsDatabaseModification {
     #[serde(default)]
-    pub arguments     : Vec<SuggestionArgumentUpdate>,
-    pub module        : Option<FieldUpdate<String>>,
-    pub self_type     : Option<FieldUpdate<String>>,
-    pub return_type   : Option<FieldUpdate<String>>,
-    pub documentation : Option<FieldUpdate<String>>,
-    pub scope         : Option<FieldUpdate<SuggestionEntryScope>>,
+    pub arguments          : Vec<SuggestionArgumentUpdate>,
+    pub module             : Option<FieldUpdate<String>>,
+    pub self_type          : Option<FieldUpdate<String>>,
+    pub return_type        : Option<FieldUpdate<String>>,
+    pub documentation      : Option<FieldUpdate<String>>,
+    pub documentation_html : Option<FieldUpdate<String>>,
+    pub scope              : Option<FieldUpdate<SuggestionEntryScope>>,
 }
 
 /// Notification about change in the suggestions database.

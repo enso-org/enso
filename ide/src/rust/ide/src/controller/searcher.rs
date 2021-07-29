@@ -1014,14 +1014,14 @@ impl Searcher {
     fn add_enso_project_entries(actions:&action::List) -> FallibleResult {
         for method in &["data", "root"] {
             let entry = model::suggestion_database::Entry {
-                name          : (*method).to_owned(),
-                kind          : model::suggestion_database::entry::Kind::Method,
-                module        : QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
-                arguments     : vec![],
-                return_type   : "Standard.Base.System.File.File".to_owned(),
-                documentation : None,
-                self_type     : Some(tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?),
-                scope         : model::suggestion_database::entry::Scope::Everywhere,
+                name               : (*method).to_owned(),
+                kind               : model::suggestion_database::entry::Kind::Method,
+                module             : QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?,
+                arguments          : vec![],
+                return_type        : "Standard.Base.System.File.File".to_owned(),
+                documentation_html : None,
+                self_type          : Some(tp::QualifiedName::from_text(ENSO_PROJECT_SPECIAL_MODULE)?),
+                scope              : model::suggestion_database::entry::Scope::Everywhere,
             };
             actions.extend(std::iter::once(Action::Suggestion(Rc::new(entry))));
         }
@@ -1240,14 +1240,14 @@ pub mod test {
                 position_in_code : Immutable(end_of_code),
             };
             let entry1 = model::suggestion_database::Entry {
-                name          : "testFunction1".to_string(),
-                kind          : Kind::Function,
-                module        : crate::test::mock::data::module_qualified_name(),
-                arguments     : vec![],
-                return_type   : "Number".to_string(),
-                documentation : default(),
-                self_type     : None,
-                scope         : Scope::InModule {range:code_range},
+                name               : "testFunction1".to_string(),
+                kind               : Kind::Function,
+                module             : crate::test::mock::data::module_qualified_name(),
+                arguments          : vec![],
+                return_type        : "Number".to_string(),
+                documentation_html : default(),
+                self_type          : None,
+                scope              : Scope::InModule {range:code_range},
             };
             let entry2 = model::suggestion_database::Entry {
                 name : "TestVar1".to_string(),
@@ -1889,10 +1889,10 @@ pub mod test {
         let Fixture{test:_test,searcher,..} = Fixture::new();
         let module                          = searcher.graph.graph().module.clone_ref();
         let example                         = model::suggestion_database::example::Example {
-            name          : "Test Example".to_owned(),
-            code          : "x = 2 + 2\nx + 4".to_owned(),
-            imports       : vec![],
-            documentation : "Lorem ipsum".to_owned()
+            name               : "Test Example".to_owned(),
+            code               : "x = 2 + 2\nx + 4".to_owned(),
+            imports            : vec![],
+            documentation_html : "Lorem ipsum".to_owned(),
         };
         let expected_code = "test_example1 =\n    x = 2 + 2\n    x + 4\n\n\
             main = \n    2 + 2\n    here.test_example1";
@@ -1905,10 +1905,10 @@ pub mod test {
         let Fixture{test:_test,searcher,..} = Fixture::new();
         let module                          = searcher.graph.graph().module.clone_ref();
         let example                         = model::suggestion_database::example::Example {
-            name          : "Test Example".to_owned(),
-            code          : "[1,2,3,4,5]".to_owned(),
-            imports       : vec!["std.Base.Network.Http".to_owned()],
-            documentation : "Lorem ipsum".to_owned()
+            name               : "Test Example".to_owned(),
+            code               : "[1,2,3,4,5]".to_owned(),
+            imports            : vec!["std.Base.Network.Http".to_owned()],
+            documentation_html : "Lorem ipsum".to_owned()
         };
         let expected_code = "import std.Base.Network.Http\n\
             test_example1 = [1,2,3,4,5]\n\ntest_example2 = [1,2,3,4,5]\n\n\

@@ -264,12 +264,13 @@ mod test {
 
         // Non-empty db
         let entry = language_server::types::SuggestionEntry::Atom {
-            name          : "TextAtom".to_string(),
-            module        : "TestProject.TestModule".to_string(),
-            arguments     : vec![],
-            return_type   : "TestAtom".to_string(),
-            documentation : None,
-            external_id   : None,
+            name               : "TextAtom".to_string(),
+            module             : "TestProject.TestModule".to_string(),
+            arguments          : vec![],
+            return_type        : "TestAtom".to_string(),
+            documentation      : None,
+            documentation_html : None,
+            external_id        : None,
         };
         let db_entry = SuggestionsDatabaseEntry {id:12, suggestion:entry};
         let response = language_server::response::GetSuggestionDatabase {
@@ -288,28 +289,31 @@ mod test {
     fn applying_update() {
         let mut fixture = TestWithLocalPoolExecutor::set_up();
         let entry1 = language_server::types::SuggestionEntry::Atom {
-            name          : "Entry1".to_owned(),
-            module        : "TestProject.TestModule".to_owned(),
-            arguments     : vec![],
-            return_type   : "TestAtom".to_owned(),
-            documentation : None,
-            external_id   : None,
+            name               : "Entry1".to_owned(),
+            module             : "TestProject.TestModule".to_owned(),
+            arguments          : vec![],
+            return_type        : "TestAtom".to_owned(),
+            documentation      : None,
+            documentation_html : None,
+            external_id        : None,
         };
         let entry2 = language_server::types::SuggestionEntry::Atom {
-            name          : "Entry2".to_owned(),
-            module        : "TestProject.TestModule".to_owned(),
-            arguments     : vec![],
-            return_type   : "TestAtom".to_owned(),
-            documentation : None,
-            external_id   : None,
+            name               : "Entry2".to_owned(),
+            module             : "TestProject.TestModule".to_owned(),
+            arguments          : vec![],
+            return_type        : "TestAtom".to_owned(),
+            documentation      : None,
+            documentation_html : None,
+            external_id        : None,
         };
         let new_entry2 = language_server::types::SuggestionEntry::Atom {
-            name          : "NewEntry2".to_owned(),
-            module        : "TestProject.TestModule".to_owned(),
-            arguments     : vec![],
-            return_type   : "TestAtom".to_owned(),
-            documentation : None,
-            external_id   : None,
+            name               : "NewEntry2".to_owned(),
+            module             : "TestProject.TestModule".to_owned(),
+            arguments          : vec![],
+            return_type        : "TestAtom".to_owned(),
+            documentation      : None,
+            documentation_html : None,
+            external_id        : None,
         };
         let arg1 = SuggestionEntryArgument {
             name          : "Argument1".to_owned(),
@@ -385,12 +389,13 @@ mod test {
             id            : 1,
             external_id   : None,
             modification  : Box::new(SuggestionsDatabaseModification {
-                arguments     : vec![],
-                module        : None,
-                self_type     : None,
-                return_type   : None,
-                documentation : None,
-                scope         : None
+                arguments          : vec![],
+                module             : None,
+                self_type          : None,
+                return_type        : None,
+                documentation      : None,
+                documentation_html : None,
+                scope              : None
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -401,9 +406,9 @@ mod test {
         fixture.run_until_stalled();
         assert_eq!(notifications.expect_next(),Notification::Updated);
         notifications.expect_pending();
-        assert_eq!(db.lookup(1).unwrap().arguments    , vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type  , "TestAtom");
-        assert_eq!(db.lookup(1).unwrap().documentation, None);
+        assert_eq!(db.lookup(1).unwrap().arguments         , vec![]);
+        assert_eq!(db.lookup(1).unwrap().return_type       , "TestAtom");
+        assert_eq!(db.lookup(1).unwrap().documentation_html, None);
         assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
         assert_eq!(db.version.get(), 4);
 
@@ -418,6 +423,8 @@ mod test {
                 return_type:Some(FieldUpdate::set("TestAtom2".to_owned())),
                 // Valid.
                 documentation:Some(FieldUpdate::set("Blah blah".to_owned())),
+                // Valid.
+                documentation_html:Some(FieldUpdate::set("<p>Blah blah</p>".to_owned())),
                 // Invalid: atoms does not have any scope.
                 scope:Some(FieldUpdate::set(SuggestionEntryScope {
                     start : Position {line:4, character:10},
@@ -435,9 +442,9 @@ mod test {
         fixture.run_until_stalled();
         assert_eq!(notifications.expect_next(),Notification::Updated);
         notifications.expect_pending();
-        assert_eq!(db.lookup(1).unwrap().arguments    , vec![]);
-        assert_eq!(db.lookup(1).unwrap().return_type  , "TestAtom2");
-        assert_eq!(db.lookup(1).unwrap().documentation, Some("Blah blah".to_owned()));
+        assert_eq!(db.lookup(1).unwrap().arguments         , vec![]);
+        assert_eq!(db.lookup(1).unwrap().return_type       , "TestAtom2");
+        assert_eq!(db.lookup(1).unwrap().documentation_html, Some("<p>Blah blah</p>".to_owned()));
         assert!(matches!(db.lookup(1).unwrap().scope, Scope::Everywhere));
         assert_eq!(db.version.get(), 5);
 
@@ -454,11 +461,12 @@ mod test {
                     has_default   : Some(FieldUpdate::set(false)),
                     default_value : Some(FieldUpdate::remove()),
                 }],
-                return_type   : None,
-                documentation : None,
-                scope         : Some(FieldUpdate::set(SuggestionEntryScope {
-                    start: Position { line: 1, character: 5 },
-                    end: Position { line: 3, character: 0 }
+                return_type        : None,
+                documentation      : None,
+                documentation_html : None,
+                scope              : Some(FieldUpdate::set(SuggestionEntryScope {
+                    start : Position { line: 1, character: 5 },
+                    end   : Position { line: 3, character: 0 }
                 })),
                 self_type : None,
                 module    : None,
@@ -494,11 +502,12 @@ mod test {
             external_id   : None,
             modification  : Box::new(SuggestionsDatabaseModification {
                 arguments     : vec![SuggestionArgumentUpdate::Add {index:2, argument:new_argument}],
-                return_type   : None,
-                documentation : None,
-                scope         : None,
-                self_type     : None,
-                module        : None,
+                return_type        : None,
+                documentation      : None,
+                documentation_html : None,
+                scope              : None,
+                self_type          : None,
+                module             : None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
@@ -519,11 +528,12 @@ mod test {
             external_id   : None,
             modification  : Box::new(SuggestionsDatabaseModification {
                 arguments     : vec![SuggestionArgumentUpdate::Remove {index:2}],
-                return_type   : None,
-                documentation : None,
-                scope         : None,
-                self_type     : None,
-                module        : None,
+                return_type        : None,
+                documentation      : None,
+                documentation_html : None,
+                scope              : None,
+                self_type          : None,
+                module             : None,
             }),
         };
         let update = SuggestionDatabaseUpdatesEvent {
