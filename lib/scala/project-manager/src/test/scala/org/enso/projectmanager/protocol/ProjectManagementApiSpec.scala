@@ -129,7 +129,8 @@ class ProjectManagementApiSpec
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $getGeneratedUUID
+              "projectId" : $getGeneratedUUID,
+              "projectName" : "Foo"
             }
           }
           """)
@@ -213,7 +214,11 @@ class ProjectManagementApiSpec
       implicit val client = new WsTestClient(address)
 
       createProject(projectName, projectTemplate = Some("default"))
-      createProject(projectName, projectTemplate = Some("default"))
+      createProject(
+        projectName,
+        projectTemplate = Some("default"),
+        nameSuffix      = Some(1)
+      )
 
       val projectDir  = new File(userProjectDir, "Foo_1")
       val packageFile = new File(projectDir, "package.yaml")
@@ -238,7 +243,8 @@ class ProjectManagementApiSpec
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $getGeneratedUUID
+              "projectId" : $getGeneratedUUID,
+              "projectName" : "Foo"
             }
           }
           """)
