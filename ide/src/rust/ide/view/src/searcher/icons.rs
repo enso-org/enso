@@ -8,6 +8,7 @@ use ensogl::display::DomSymbol;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::*;
+use ensogl::display::shape::compound::path::path;
 use ensogl::system::web;
 use ensogl_theme::application::searcher::icons as theme;
 use ensogl::system::web::StyleSetter;
@@ -230,11 +231,11 @@ mod text_input {
 
             // We construct the letter "A", consisting of a diagonal stroke on the left, a diagonal
             // stroke on the right and a horizontal bar in the middle.
-            let left_stroke   = Segment(((-2.5).px(),(-5.0).px()),1.0.px());
-            let right_stroke  = Segment((2.5.px() ,(-5.0).px()),1.0.px());
-            let bar           = Rect((4.0.px(),1.0.px())).translate_y((-3.5).px());
+            let left_stroke   = Segment((0.0.px(),2.5.px()),((-2.5).px(),(-2.5).px()),1.0.px());
+            let right_stroke  = Segment((0.0.px(),2.5.px()),(2.5.px(),(-2.5).px()),1.0.px());
+            let bar           = Rect((4.0.px(),1.0.px())).translate_y((-1.0).px());
             let letter        = left_stroke + right_stroke + bar;
-            let letter        = letter.translate_x((-2.5).px()).translate_y(2.5.px());
+            let letter        = letter.translate_x((-2.5).px());
 
 
             // === Shape ===
@@ -255,7 +256,7 @@ mod number_input {
 
             // === Border ===
 
-            let border = Rect((16.0.px(),11.0.px())).corners_radius(1.5.px());
+            let border = Rect((16.0.px(),11.0.px())).corners_radius(5.5.px());
             // Using just the outline.
             let border = &border - border.shrink(1.0.px());
             // Creating a gap for the cursor.
@@ -527,6 +528,78 @@ mod dataframes_union {
     }
 }
 
+/// A capital "Σ".
+mod sigma {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let shape = path(2.0,&[
+                ( 4.0 ,  4.0),
+                ( 4.0 ,  5.5),
+                (-5.0 ,  5.5),
+                ( 0.5 ,  0.0),
+                (-5.0 , -5.5),
+                ( 4.0 , -5.5),
+                ( 5.0 , -3.5),
+            ]);
+            let shape = shape.fill(style.get_color(theme::transform));
+            let shape = shape.shrink(SHRINK_AMOUNT.px());
+            shape.into()
+        }
+    }
+}
+
+/// The shape of a sheet of paper that has been ripped apart with a vertical crack through the
+/// middle. Both pieces contain two thin rectangles as a simple representation of lines of text.
+mod split_text {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+
+            // === Page border ===
+
+            let page = Rect((16.0.px(),14.0.px())).corners_radius(2.0.px());
+            let page = &page - page.shrink(1.0.px());
+            let gap  = Rect((3.0.px(),15.0.px())).translate_x(0.5.px());
+            let page = page - gap;
+
+
+            // === Lines ===
+
+            let line1 = Rect((3.0.px(),1.0.px())).translate_x((-4.5).px());
+            let line2 = Rect((2.0.px(),1.0.px())).translate(((-5.0).px(),(-3.0).px()));
+            let line3 = Rect((2.0.px(),1.0.px())).translate_x(5.0.px());
+            let line4 = Rect((3.0.px(),1.0.px())).translate((4.5.px(),(-3.0).px()));
+            let page  = page + line1 + line2 + line3 + line4;
+            let page  = page.fill(style.get_color(theme::text::weak));
+
+
+            // === Crack ===
+
+            let crack = path(1.0,&[
+                ( 0.0  ,  6.5),
+                (-1.25 ,  3.25),
+                ( 0.0  ,  0.0),
+                (-1.25 , -3.25),
+                ( 0.0  , -6.5),
+            ]);
+            let crack = crack.fill(style.get_color(theme::text::strong));
+
+            let crack_left  = crack.translate_x((-1.0).px());
+            let crack_right = crack.translate_x(2.0.px());
+
+
+            // === Shape ===
+
+            let shape = page + crack_left + crack_right;
+            let shape = shape.shrink(SHRINK_AMOUNT.px());
+            shape.into()
+        }
+    }
+}
+
 /// Some rectangles and circles in different colors.
 mod data_science {
     use super::*;
@@ -569,6 +642,31 @@ mod network {
 
             let shape = circle + arc1 + arc2 + arc3;
             let shape = shape.translate_y((-5.5).px());
+            let shape = shape.shrink(SHRINK_AMOUNT.px());
+            shape.into()
+        }
+    }
+}
+
+/// A dark rectangle containing the simple terminal prompt ">_".
+mod system {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let background = Rect((14.0.px(),14.0.px())).corners_radius(2.0.px());
+            let background = background.translate_y((-0.5).px());
+            let background = background.fill(style.get_color(theme::system::background));
+            let greater    = path(1.5,&[
+                (-3.75 ,  2.25),
+                (-1.25 , -0.25),
+                (-3.75 , -2.25),
+            ]);
+            let bar = Rect((4.0.px(),1.5.px())).translate((2.5.px(),(-2.75).px()));
+            let content = greater + bar;
+            let content = content.fill(style.get_color(theme::system::content));
+
+            let shape = background + content;
             let shape = shape.shrink(SHRINK_AMOUNT.px());
             shape.into()
         }
@@ -655,6 +753,49 @@ mod io {
     }
 }
 
+/// The shape of a funnel, consisting of a big upside-down triangle at the top connected with a thin
+/// rectangular tube shape below with a triangular end piece. The whole shape has an outline.
+mod preparation {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+
+            // === Outline ===
+
+            let outline = path(1.0,&[
+                (-6.5 ,  6.0),
+                ( 6.0 ,  6.0),
+                ( 6.0 ,  5.5),
+                ( 1.0 ,  0.5),
+                ( 1.0 , -7.0),
+                (-1.5 , -4.5),
+                (-1.5 ,  0.5),
+                (-6.5 ,  5.5),
+                (-6.5 ,  6.0),
+            ]);
+            let outline = outline.fill(style.get_color(theme::preparation::strong));
+
+
+            // === Fill ===
+
+            let big_triangle   = Triangle(13.5.px(),6.75.px()).rotate(PI.radians());
+            let big_triangle   = big_triangle.translate(((-0.25).px(),2.625.px()));
+            let pipe           = Rect((2.5.px(),6.0.px())).translate(((-0.25).px(),(-1.5).px()));
+            let small_triangle = Triangle(5.0.px(),2.5.px()).rotate((-PI/2.0).radians());
+            let small_triangle = small_triangle.translate(((-0.25).px(),(-4.5).px()));
+            let fill           = big_triangle + pipe + small_triangle;
+            let fill           = fill.fill(style.get_color(theme::preparation::weak));
+
+
+            // === Shape ===
+
+            let shape = fill.shrink(SHRINK_AMOUNT.px()) + outline.shrink(SHRINK_AMOUNT.px());
+            shape.into()
+        }
+    }
+}
+
 /// Two intersecting circles. The circles, their outlines and the intersection are displayed in
 /// different colors.
 mod join {
@@ -716,8 +857,8 @@ mod date_and_time {
             let circle = Circle(7.75.px());
             let circle = &circle - circle.shrink(1.0.px());
 
-            let big_hand   = Segment((3.0.px(),(-2.0).px()),1.5.px());
-            let small_hand = Segment((0.0.px(),2.5.px()),1.5.px());
+            let big_hand   = Segment((0.0.px(),0.0.px()),(3.0.px(),(-2.0).px()),1.5.px());
+            let small_hand = Segment((0.0.px(),0.0.px()),(0.0.px(),2.5.px()),1.5.px());
 
             let shape = circle + big_hand + small_hand;
             let shape = shape.translate((0.25.px(),0.25.px()));
@@ -802,6 +943,30 @@ mod machine_learning {
 
             let shape = body + collar + left_eye + right_eye + antenna + left_arm + right_arm;
             let shape = shape.fill(style.get_color(theme::machine_learning));
+            let shape = shape.shrink(SHRINK_AMOUNT.px());
+            shape.into()
+        }
+    }
+}
+
+/// The simplified shape of a camera. It consists of a small red circle in a bigger circle outline,
+/// representing the lens and a base above that the camera is mounted on.
+mod computer_vision {
+    use super::*;
+
+    ensogl::define_shape_system! {
+        (style:Style) {
+            let lens    = Circle(2.0.px()).fill(style.get_color(theme::computer_vision::highlight));
+            let outline = Circle(4.5.px()) - Circle(3.5.px());
+            let outline = outline.fill(style.get_color(theme::computer_vision::strong));
+
+            let base = Circle(7.0.px()).translate_y(6.0.px()) * HalfPlane().translate_y(7.0.px());
+            let base = base + Rect((14.0.px(),2.0.px())).translate_y(7.0.px());
+            let base = base - Circle(5.5.px());
+            let base = base.fill(style.get_color(theme::computer_vision::weak));
+
+            let shape = lens + outline + base;
+            let shape = shape.translate_y((-2.0).px());
             let shape = shape.shrink(SHRINK_AMOUNT.px());
             shape.into()
         }
@@ -1015,6 +1180,24 @@ pub fn entry_point_searcher_icons() {
     mem::forget(dataframes_union);
 
 
+    // === Sigma ===
+
+    let sigma = sigma::View::new(&logger);
+    world.add_child(&sigma);
+    sigma.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    sigma.set_position_x(340.0);
+    mem::forget(sigma);
+
+
+    // === Split Text ===
+
+    let split_text = split_text::View::new(&logger);
+    world.add_child(&split_text);
+    split_text.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    split_text.set_position_x(360.0);
+    mem::forget(split_text);
+
+
     // === Data Science ===
 
     let data_science = data_science::View::new(&logger);
@@ -1031,6 +1214,15 @@ pub fn entry_point_searcher_icons() {
     network.size.set(Vector2(ICON_SIZE+1.0,ICON_SIZE));
     network.set_position_x(400.0);
     mem::forget(network);
+
+
+    // === System ===
+
+    let system = system::View::new(&logger);
+    world.add_child(&system);
+    system.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    system.set_position_x(420.0);
+    mem::forget(system);
 
 
     // === Libraries ===
@@ -1058,6 +1250,15 @@ pub fn entry_point_searcher_icons() {
     io.size.set(Vector2(ICON_SIZE,ICON_SIZE));
     io.set_position_x(480.0);
     mem::forget(io);
+
+
+    // === Preparation ===
+
+    let preparation = preparation::View::new(&logger);
+    world.add_child(&preparation);
+    preparation.size.set(Vector2(ICON_SIZE,ICON_SIZE));
+    preparation.set_position_x(500.0);
+    mem::forget(preparation);
 
 
     // === Join ===
@@ -1112,4 +1313,13 @@ pub fn entry_point_searcher_icons() {
     machine_learning.size.set(Vector2(ICON_SIZE,ICON_SIZE));
     machine_learning.set_position_x(620.0);
     mem::forget(machine_learning);
+
+
+    // === Computer Vision ===
+
+    let computer_vision = computer_vision::View::new(&logger);
+    world.add_child(&computer_vision);
+    computer_vision.size.set(Vector2(ICON_SIZE, ICON_SIZE));
+    computer_vision.set_position_x(640.0);
+    mem::forget(computer_vision);
 }
