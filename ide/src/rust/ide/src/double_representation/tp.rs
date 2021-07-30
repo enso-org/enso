@@ -40,7 +40,7 @@ pub enum InvalidQualifiedName {
 ///
 /// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
 /// package structure.
-#[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[derive(Clone,Debug,Deserialize,Eq,Hash,Ord,PartialEq,PartialOrd,Serialize)]
 #[serde(into="String")]
 #[serde(try_from="String")]
 pub struct QualifiedName {

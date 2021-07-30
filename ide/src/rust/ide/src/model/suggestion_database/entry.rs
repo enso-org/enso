@@ -89,12 +89,12 @@ pub struct CodeToInsert {
 /// The Suggestion Database Entry.
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Entry {
-    /// A name of suggested object.
-    pub name : String,
     /// A type of suggestion.
     pub kind : Kind,
     /// A module where the suggested object is defined, represented as vector of segments.
     pub module : module::QualifiedName,
+    /// A name of suggested object.
+    pub name : String,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments : Vec<Argument>,

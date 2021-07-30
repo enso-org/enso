@@ -1,14 +1,67 @@
 //! All structures related to the suggestion list provided by SearcherController.
 use crate::prelude::*;
 
+use crate::double_representation::module;
+use crate::model::suggestion_database::entry::CodeToInsert;
+use crate::model::module::MethodId;
+
+pub mod hardcoded;
+
 
 
 // ==============
 // === Action ===
 // ==============
 
+#[derive(Clone,CloneRef,Debug,Eq,PartialEq)]
 /// Suggestion for code completion: possible functions, arguments, etc.
-pub type Suggestion = Rc<model::suggestion_database::Entry>;
+pub enum Suggestion {
+    /// The suggestion from Suggestion Database received from the Engine.
+    FromDatabase(Rc<model::suggestion_database::Entry>),
+    /// The one of the hard-coded suggestion.
+    Hardcoded(Rc<hardcoded::Suggestion>),
+}
+
+impl Suggestion {
+    /// Return the code to be inserted in searcher input upon picking suggestion.
+    pub fn code_to_insert
+    (&self, current_module:Option<&module::QualifiedName>, generate_this:bool) -> CodeToInsert {
+        match self {
+            Suggestion::FromDatabase(s) => s.code_to_insert(current_module, generate_this),
+            Suggestion::Hardcoded(s) => CodeToInsert {
+                code    : s.code.to_owned(),
+                imports : s.imports.iter().cloned().collect()
+            }
+        }
+    }
+
+    /// Return the expected arguments to be added after picking the suggestion.
+    pub fn argument_types(&self) -> Vec<String> {
+        match self {
+            Suggestion::FromDatabase(suggestion) =>
+                suggestion.arguments.iter().map(|a| a.repr_type.clone()).collect(),
+            Suggestion::Hardcoded(suggestion) =>
+                suggestion.argument_types.iter().map(|t| t.into()).collect(),
+        }
+    }
+
+    /// Return the documentation assigned to the suggestion.
+    pub fn documentation_html(&self) -> Option<&str> {
+        match self {
+            Suggestion::FromDatabase(s) => s.documentation_html.as_ref().map(AsRef::<str>::as_ref),
+            Suggestion::Hardcoded   (s) => s.documentation_html,
+        }
+    }
+
+    /// The Id of the method called by a suggestion, or [`None`] if the suggestion is not a method
+    /// call.
+    pub fn method_id(&self) -> Option<MethodId> {
+        match self {
+            Suggestion::FromDatabase(s) => s.method_id(),
+            Suggestion::Hardcoded   (s) => s.method_id.clone(),
+        }
+    }
+}
 
 /// Action of adding example code.
 pub type Example = Rc<model::suggestion_database::Example>;
@@ -42,23 +95,52 @@ pub enum Action {
 impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Suggestion(completion) => if let Some(self_type) = completion.self_type.as_ref() {
-                let should_put_project_name = self_type.name == constants::PROJECTS_MAIN_MODULE
-                    && self_type.module_segments.is_empty();
-                let self_type_name = if should_put_project_name {
-                    self_type.project_name.project.as_ref()
-                } else { &self_type.name };
-                write!(f,"{}.{}",self_type_name,completion.name)
-            } else {
-                write!(f, "{}", completion.name.clone())
-            }
-            Self::Example(example) => write!(f,"Example: {}", example.name),
-            Self::ProjectManagement(action) => match action {
-                ProjectManagement::CreateNewProject => write!(f,"New Project"),
-                ProjectManagement::OpenProject {name,..} => write!(f,"{}", name),
-            }
+            Self::Suggestion(Suggestion::FromDatabase(suggestion)) =>
+                if let Some(self_type) = suggestion.self_type.as_ref() {
+                    let should_put_project_name = self_type.name == constants::PROJECTS_MAIN_MODULE
+                        && self_type.module_segments.is_empty();
+                    let self_type_name = if should_put_project_name {
+                        self_type.project_name.project.as_ref()
+                    } else { &self_type.name };
+                    write!(f,"{}.{}",self_type_name,suggestion.name)
+                } else {
+                    write!(f, "{}", suggestion.name.clone())
+                }
+            Self::Suggestion(Suggestion::Hardcoded(suggestion)) =>
+                Display::fmt(&suggestion.name,f),
+            Self::Example(example) =>
+                write!(f,"Example: {}", example.name),
+            Self::ProjectManagement(ProjectManagement::CreateNewProject) =>
+                write!(f,"New Project"),
+            Self::ProjectManagement(ProjectManagement::OpenProject {name,..}) =>
+                Display::fmt(name,f),
         }
     }
+}
+
+
+
+// ==================
+// === Categories ===
+// ==================
+
+/// The Category Identifier: the index on the category list in [`List`].
+pub type CategoryId = usize;
+
+/// The Root category. See also [`Category`].
+#[allow(missing_docs)]
+#[derive(Clone,Debug)]
+pub struct RootCategory {
+    pub name : Cow<'static,str>,
+}
+
+/// The category of suggestions.
+#[allow(missing_docs)]
+#[derive(Clone,Debug)]
+pub struct Subcategory {
+    pub name:Cow<'static,str>,
+    /// The id of the root category this category belongs to.
+    pub parent:CategoryId,
 }
 
 
@@ -69,16 +151,43 @@ impl Display for Action {
 
 /// Information how the list entry matches the filtering pattern.
 #[allow(missing_docs)]
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone,Debug)]
 pub enum MatchInfo {
     DoesNotMatch,
     Matches {subsequence:fuzzly::Subsequence}
 }
 
+impl Ord for MatchInfo {
+    /// Compare Match infos: the better matches are greater. The scores are compared using the full
+    /// ordering as described in [`fuzzly::Subsequence::compare_scores`].
+    fn cmp(&self, rhs:&Self) -> std::cmp::Ordering {
+        use MatchInfo::*;
+        use std::cmp::Ordering::*;
+        match (&self,&rhs) {
+            (DoesNotMatch             ,DoesNotMatch             ) => Equal,
+            (DoesNotMatch             ,Matches {..}             ) => Less,
+            (Matches {..}             ,DoesNotMatch             ) => Greater,
+            (Matches {subsequence:lhs},Matches {subsequence:rhs}) => lhs.compare_scores(rhs),
+        }
+    }
+}
+
+impl PartialOrd for MatchInfo {
+    fn partial_cmp(&self, rhs:&Self) -> Option<std::cmp::Ordering> { Some(self.cmp(rhs)) }
+}
+
+impl PartialEq for MatchInfo {
+    fn eq(&self, rhs:&Self) -> bool { self.cmp(rhs) == std::cmp::Ordering::Equal }
+}
+
+impl Eq for MatchInfo {}
+
+
 /// The single list entry.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 pub struct ListEntry {
+    pub category   : CategoryId,
     pub match_info : MatchInfo,
     pub action     : Action,
 }
@@ -97,26 +206,16 @@ impl ListEntry {
         };
     }
 
-    /// Compare how two entries matches filtering pattern.
-    ///
-    /// The "greater" entry matches better.
-    pub fn compare_match_scores(&self, rhs:&ListEntry) -> std::cmp::Ordering {
-        use MatchInfo::*;
-        use std::cmp::Ordering::*;
-        match (&self.match_info,&rhs.match_info) {
-            (DoesNotMatch             ,DoesNotMatch             ) => Equal,
-            (DoesNotMatch             ,Matches {..}             ) => Less,
-            (Matches {..}             ,DoesNotMatch             ) => Greater,
-            (Matches {subsequence:lhs},Matches {subsequence:rhs}) => lhs.compare_scores(rhs),
-        }
-    }
-}
+    /// Returns true if the entry matches current filtering pattern.
+    pub fn matches(&self) -> bool { matches!(self.match_info, MatchInfo::Matches {..}) }
 
-impl From<Action> for ListEntry {
-    fn from(action:Action) -> Self {
-        let subsequence = default();
-        let match_info  = MatchInfo::Matches {subsequence};
-        ListEntry {match_info,action}
+    /// The ordering on the action list: first, are the matched entries are gathered on the top of
+    /// the list, then sorted by categories, and those of same category are ordered by match score
+    /// (the best matches are first).
+    pub fn ordering_on_list(&self, rhs:&Self) -> std::cmp::Ordering {
+        self.matches().cmp(&rhs.matches()).reverse()
+            .then_with(|| self.category.cmp(&rhs.category))
+            .then_with(|| self.match_info.cmp(&rhs.match_info).reverse())
     }
 }
 
@@ -128,18 +227,32 @@ impl From<Action> for ListEntry {
 
 /// Action list.
 ///
-/// This structure should be notified about filtering changes. using `update_filtering` function.
+/// The structure contains also information about all the categories the actions belongs to. It
+/// also supports updating list when filtering pattern changes (See [`List::update_filtering`]
+/// function).
 #[derive(Clone,Debug)]
 pub struct List {
-    entries  : RefCell<Vec<ListEntry>>,
-    matching : CloneCell<Range<usize>>,
+    /// List of root categories. It should be immutable in constructed list, as categories refers
+    /// to the indexes in this vector.
+    root_categories:Vec<RootCategory>,
+    /// List of subcategories. It should be immutable in constructed list, as actions refers
+    /// to the indexes in this vector. It also have to be sorted by parent category id: this is
+    /// ensured by [`ListBuilder`].
+    subcategories:Vec<Subcategory>,
+    /// The all entries in actions list. It should be kept ordered as defined by
+    /// [`ListEntry::ordering_on_list`] function.
+    entries:RefCell<Vec<ListEntry>>,
+    /// The range of matching entries. Should be kept up-to-date after each `entries` change.
+    matching:CloneCell<Range<usize>>,
 }
 
 impl Default for List {
     fn default() -> Self {
         List {
-            entries  : default(),
-            matching : CloneCell::new(0..0),
+            root_categories : default(),
+            subcategories: default(),
+            entries         : default(),
+            matching        : CloneCell::new(0..0),
         }
     }
 }
@@ -150,32 +263,18 @@ impl List {
         default()
     }
 
-    /// Create list from actions.
-    ///
-    /// The list will assume that the filtering pattern is an empty string.
-    pub fn from_actions(actions:impl IntoIterator<Item=Action>) -> Self {
-        let entries = actions.into_iter().map(ListEntry::from).collect_vec();
-        let len     = entries.len();
-        Self {
-            entries  : RefCell::new(entries),
-            matching : CloneCell::new(0..len),
-        }
-    }
-
     /// Update the list filtering.
     ///
     /// The "matching score" of each entry is recalculated against the given pattern and the entries
     /// are re-ordered, so the best matches will go first.
     pub fn update_filtering(&self, pattern:impl Str) {
-        let mut entries_mut = self.entries.borrow_mut();
-        for entry in entries_mut.iter_mut() {
-            entry.update_matching_info(pattern.as_ref());
+        {
+            let mut entries_mut = self.entries.borrow_mut();
+            for entry in entries_mut.iter_mut() {
+                entry.update_matching_info(pattern.as_ref());
+            }
         }
-        entries_mut.sort_by(|l,r| l.compare_match_scores(r).reverse());
-        let not_matching       = |e:&&ListEntry| e.match_info == MatchInfo::DoesNotMatch;
-        let first_not_matching = entries_mut.iter().find_position(not_matching);
-        let matches_end        = first_not_matching.map_or(entries_mut.len(), |(id,_)| id);
-        self.matching.set(0..matches_end);
+        self.update_sorting();
     }
 
     /// Length of the actions list.
@@ -198,26 +297,98 @@ impl List {
         existing_ids.filter_map(move |id| self.entries.borrow().get(id).cloned())
     }
 
-    /// Extend the list with new actions.
-    ///
-    /// The new actions will be put at end, regardless the current filtering. This function
-    /// is meant to be a part of list's initialization.
-    pub fn extend<T:IntoIterator<Item=Action>>(&self, iter: T) {
-        self.entries.borrow_mut().extend(iter.into_iter().map(ListEntry::from));
-        self.matching.set(0..self.len())
-    }
-
     /// Convert to the action vector.
     ///
     /// Used for testing.
     pub fn to_action_vec(&self) -> Vec<Action> {
         self.entries.borrow().iter().map(|entry| entry.action.clone_ref()).collect()
     }
+
+    fn update_sorting(&self) {
+        let mut entries_mut = self.entries.borrow_mut();
+        entries_mut.sort_by(|l,r| l.ordering_on_list(r));
+        let first_not_matching = entries_mut.partition_point(|e| e.matches());
+        self.matching.set(0..first_not_matching);
+    }
 }
 
-impl<IntoIter> From<IntoIter> for List
-where IntoIter : IntoIterator<Item=Action> {
-    fn from(actions:IntoIter) -> Self {
-        Self::from_actions(actions)
+
+
+// ===================
+// === ListBuilder ===
+// ===================
+
+/// The List Builder.
+///
+/// As the [`List`] itself keeps its categories immutable, the builder is used to extend the list.
+/// It ensures, that the all indexes will remain intact and in a proper order (see also fields docs
+/// in [`List`] - therefore the sub-builders are designed such way, that intermixing subcategories
+/// of different root-categories is impossible.
+#[derive(Debug,Default)]
+pub struct ListBuilder {
+    built_list : List,
+}
+
+/// The builder of a single root category.
+///
+/// It allows to add sub-categories to the category.
+#[derive(Debug)]
+pub struct RootCategoryBuilder<'a> {
+    list_builder     : &'a mut ListBuilder,
+    root_category_id : CategoryId,
+}
+
+/// The builder of single category.
+///
+/// It allows to add entries to the category. The built list will have no filtering applied.
+#[derive(Debug)]
+pub struct CategoryBuilder<'a> {
+    list_builder : &'a mut ListBuilder,
+    category_id  : CategoryId,
+}
+
+impl ListBuilder {
+    /// Add the new root category with a given name. The returned builder should be used to add
+    /// sub-categories to it.
+    pub fn add_root_category(&mut self, name: impl Into<Cow<'static,str>>) -> RootCategoryBuilder {
+        let name             = name.into();
+        let root_category_id = self.built_list.root_categories.len();
+        self.built_list.root_categories.push(RootCategory{name});
+        RootCategoryBuilder { list_builder:self, root_category_id}
+    }
+
+    /// Consumes self returning built list.
+    pub fn build(self) -> List {
+        self.built_list.update_sorting();
+        self.built_list
+    }
+}
+
+impl<'a> RootCategoryBuilder<'a> {
+    /// Add the category with a given name to the root category. The returned builder should be
+    /// used to add actions to the newly created category.
+    pub fn add_category(&mut self, name:impl Into<Cow<'static,str>>) -> CategoryBuilder {
+        let name        = name.into();
+        let parent      = self.root_category_id;
+        let category_id = self.list_builder.built_list.subcategories.len();
+        self.list_builder.built_list.subcategories.push(Subcategory {name,parent});
+        CategoryBuilder { list_builder:self.list_builder, category_id}
+    }
+}
+
+impl<'a> CategoryBuilder<'a> {
+    /// Add an action to the category.
+    pub fn add_action(&self, action:Action) {
+        self.extend(std::iter::once(action))
+    }
+
+    /// Add many actions to the category.
+    pub fn extend<T:IntoIterator<Item=Action>>(&self, iter: T) {
+        let built_list = &self.list_builder.built_list;
+        let category   = self.category_id;
+        built_list.entries.borrow_mut().extend(iter.into_iter().map(|action| {
+            let match_info = MatchInfo::Matches {subsequence:default()};
+            ListEntry{action,category,match_info}
+        }));
     }
 }
