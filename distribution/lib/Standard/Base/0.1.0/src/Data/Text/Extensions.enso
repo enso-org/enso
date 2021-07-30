@@ -102,7 +102,7 @@ Text.characters =
          "ham,eggs,cheese,tomatoes".split ","
 
    > Example
-     Split the string on whitespace into a vector of items.
+     Split the text on whitespace into a vector of items.
 
          "ham eggs cheese tomatoes".split Split_Kind.Whitespace
 Text.split : Split_Kind -> Vector.Vector Text
