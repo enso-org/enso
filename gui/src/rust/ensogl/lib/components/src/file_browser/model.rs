@@ -77,7 +77,6 @@ pub struct Entry {
     pub name  : String,
     /// The entrie's global path in the file system.
     pub path  : PathBuf,
-
 }
 
 

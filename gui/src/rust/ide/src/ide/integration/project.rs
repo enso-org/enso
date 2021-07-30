@@ -49,6 +49,7 @@ use futures::future::LocalBoxFuture;
 use ide_view::searcher::entry::GlyphHighlightedLabel;
 
 
+
 // ========================
 // === VisualizationMap ===
 // ========================
@@ -1853,15 +1854,23 @@ struct SuggestionsProviderForView {
 
 impl SuggestionsProviderForView {
     fn doc_placeholder_for(suggestion:&controller::searcher::action::Suggestion) -> String {
-        let title = match suggestion.kind {
-            suggestion_database::entry::Kind::Atom     => "Atom",
-            suggestion_database::entry::Kind::Function => "Function",
-            suggestion_database::entry::Kind::Local    => "Local variable",
-            suggestion_database::entry::Kind::Method   => "Method",
-            suggestion_database::entry::Kind::Module   => "Module",
+        use controller::searcher::action::Suggestion;
+        let code = match suggestion {
+            Suggestion::FromDatabase(suggestion) => {
+                let title = match suggestion.kind {
+                    suggestion_database::entry::Kind::Atom     => "Atom",
+                    suggestion_database::entry::Kind::Function => "Function",
+                    suggestion_database::entry::Kind::Local    => "Local variable",
+                    suggestion_database::entry::Kind::Method   => "Method",
+                    suggestion_database::entry::Kind::Module   => "Module",
+                };
+                let code = suggestion.code_to_insert(None,true).code;
+                format!("{} `{}`\n\nNo documentation available", title,code)
+            }
+            Suggestion::Hardcoded(suggestion) => {
+                format!("{}\n\nNo documentation available", suggestion.name)
+            }
         };
-        let code   = suggestion.code_to_insert(None,true).code;
-        let code   = format!("{} `{}`\n\nNo documentation available.", title,code);
         let parser = parser::DocParser::new();
         match parser {
             Ok(p) => {
@@ -1906,7 +1915,7 @@ impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
     fn get(&self) -> Option<String> {
         use controller::searcher::UserAction::*;
         self.intended_function.as_ref().and_then(|function| match self.user_action {
-            StartingTypingArgument => function.documentation_html.clone(),
+            StartingTypingArgument => function.documentation_html().map(ToOwned::to_owned),
             _                      => None
         })
     }
@@ -1915,7 +1924,7 @@ impl ide_view::searcher::DocumentationProvider for SuggestionsProviderForView {
         use controller::searcher::action::Action;
         match self.actions.get_cloned(id)?.action {
             Action::Suggestion(suggestion) => {
-                let doc = suggestion.documentation_html.clone();
+                let doc = suggestion.documentation_html().map(ToOwned::to_owned);
                 Some(doc.unwrap_or_else(|| Self::doc_placeholder_for(&suggestion)))
             }
             Action::Example(example)     => Some(example.documentation_html.clone()),
