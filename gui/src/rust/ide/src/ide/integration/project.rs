@@ -863,12 +863,14 @@ impl Model {
         };
         let expression_changed =
             !self.expression_views.borrow().get(&id).contains(&&code_and_trees);
-        if expression_changed {
+        let node_is_being_edited = self.view.graph().frp.node_being_edited.value().contains(&id);
+        if expression_changed && !node_is_being_edited {
             for sub_expression in node.info.ast().iter_recursive() {
                 if let Some(expr_id) = sub_expression.id {
                     self.node_view_by_expression.borrow_mut().insert(expr_id,id);
                 }
             }
+            info!(self.logger, "Refreshing node {id:?} expression");
             self.view.graph().frp.input.set_node_expression.emit(&(id,code_and_trees.clone()));
             self.expression_views.borrow_mut().insert(id,code_and_trees);
         }
@@ -1338,7 +1340,7 @@ impl Model {
                 Ok(())
             },
             Err(err) => {
-                self.view.graph().frp.remove_node.emit(displayed_id);
+                self.view.graph().frp.remove_node(displayed_id);
                 Err(err)
             }
         }

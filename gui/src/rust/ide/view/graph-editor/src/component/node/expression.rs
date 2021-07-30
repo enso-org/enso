@@ -9,7 +9,7 @@ use span_tree::traits::*;
 // === Expression ===
 // ==================
 
-#[derive(Clone,Default,Eq,PartialEq)]
+#[derive(Clone,Debug,Default,Eq,PartialEq)]
 pub struct Expression {
     pub pattern             : Option<String>,
     pub code                : String,
@@ -30,9 +30,9 @@ impl Expression {
     }
 }
 
-impl Debug for Expression {
+impl Display for Expression {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Expression({})",self.code)
+        Display::fmt(&self.code,f)
     }
 }
 
