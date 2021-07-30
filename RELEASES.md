@@ -4,6 +4,8 @@
 
 - Added support for writing tables to XLSX spreadsheets
   ([#1906](https://github.com/enso-org/enso/pull/1906)).
+- Added documentation for the new searcher categories
+  ([#1910](https://github.com/enso-org/enso/pull/1910)).
 
 # Enso 0.2.17 (2021-07-28)
 
