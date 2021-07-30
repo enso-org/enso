@@ -1,0 +1,20 @@
+from Standard.Base import all
+import Standard.Base.Data.Json
+import Standard.Base.Network.Http
+import Standard.Table
+import Standard.Visualization
+
+main =
+    text1 = "enso-org"
+    sum1 = "https://api.github.com/orgs/" + text1 + "/repos?per_page=1000"
+    operator2 = Http.get sum1
+    operator3 = operator2.body
+    operator4 = operator3.to_json
+    operator5 = operator4.to_table ["name", "stargazers_count", "forks_count", "language", "archived"]
+    operator6 = operator5.at "archived"
+    operator7 = operator6.not
+    operator8 = operator5.where operator7
+    operator9 = operator8.sort by="stargazers_count" order=Sort_Order.Descending
+    operator10 = operator9.group by="language"
+    operator11 = operator10.at "stargazers_count"
+    operator12 = operator11.mean

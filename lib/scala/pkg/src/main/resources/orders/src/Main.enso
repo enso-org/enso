@@ -1,0 +1,25 @@
+from Standard.Base import all
+import Standard.Table.Io.Spreadsheet
+import Standard.Visualization
+import Standard.Examples
+
+parse_json1 = Json.parse "{\"a\":10, \"b\": 20}"
+
+main =
+    operator2 = Enso_Project.data / 'store_data.xlsx'
+    operator3 = operator2.read_xlsx 'Customers'
+    operator4 = operator2.read_xlsx 'Items'
+    operator5 = operator2.read_xlsx 'Orders'
+    operator7 = operator4.set_index 'Item ID'
+    operator8 = operator5.join operator7 'Item ID'
+    operator1 = operator8.at 'Unit Price'
+    operator9 = operator8.at 'Quantity'
+    product1 = operator1 * operator9
+    operator10 = operator8.set 'Order Value' product1
+    operator11 = operator10.group by='Customer ID'
+    operator12 = operator11.at 'Order Value'
+    operator13 = operator12.sum
+    operator14 = operator13.rename 'Orders Value'
+    operator15 = operator3.set_index 'Customer ID'
+    operator16 = operator14.join operator15
+    operator17 = operator16.sort by='Orders Value' order=Sort_Order.Descending
