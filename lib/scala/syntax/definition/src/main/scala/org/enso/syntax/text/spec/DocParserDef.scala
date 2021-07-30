@@ -229,9 +229,11 @@ case class DocParserDef() extends Parser[Doc] {
   val CODE: State         = state.define("Code")
 
   ROOT || code.inlinePattern || code.onPushingInline(currentMatch)
-  CODE || newline            || { state.end(); state.begin(NEWLINE)  }
-  CODE || notNewLine         || code.onPushingMultiline(currentMatch)
-  CODE || eof                || { state.end(); documentation.onEOF() }
+  CODE || newline || {
+    state.end(); state.begin(NEWLINE)
+  } // TODO - check if the indent is smaller than the one at the beginning of the code block.
+  CODE || notNewLine || code.onPushingMultiline(currentMatch)
+  CODE || eof        || { state.end(); documentation.onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Formatter ///////////////////////////////////////////////////////////////
