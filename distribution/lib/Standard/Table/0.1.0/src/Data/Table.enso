@@ -350,6 +350,14 @@ type Table
 
        Returns a new Table without rows that contained missing values in any of
        the columns.
+
+       > Example
+         Remove any rows that contain missing values from the table.
+
+             import Standard.Examples
+
+             example_drop_missing_rows =
+                 Examples.inventory_table.drop_missing_rows
     drop_missing_rows : Table
     drop_missing_rows =
         cols = this.columns
@@ -486,7 +494,7 @@ type Table
 
              example_sort =
                 table = Examples.inventory_table
-                table.sort by="price" order=Sort_Order.Descending missing_last = false
+                table.sort by="price" order=Sort_Order.Descending missing_last=false
 
        > Example
          Sort the shop inventory based on the total stock, using the number sold
