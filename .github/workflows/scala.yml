@@ -92,7 +92,6 @@ jobs:
         run: |
           npm install
       - name: Download Project Template Files
-        working-directory: repo
         shell: bash
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o lib/scala/pkg/src/main/resources/orders/data/store_data.xlsx https://github.com/enso-org/project-templates/raw/main/Orders/data/store_data.xlsx
