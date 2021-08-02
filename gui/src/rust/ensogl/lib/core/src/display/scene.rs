@@ -19,8 +19,7 @@ use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
-use crate::display::render::RenderComposer;
-use crate::display::render::RenderPipeline;
+use crate::display::render;
 use crate::display::scene::dom::DomScene;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::shape::system::ShapeSystemOf;
@@ -543,13 +542,13 @@ pub struct Dirty {
 
 #[derive(Clone,CloneRef,Debug)]
 pub struct Renderer {
-    logger    : Logger,
-    dom       : Dom,
-    context   : Context,
-    variables : UniformScope,
+    pub logger : Logger,
+    dom        : Dom,
+    context    : Context,
+    variables  : UniformScope,
 
-    pub pipeline : Rc<CloneCell<RenderPipeline>>,
-    pub composer : Rc<CloneCell<RenderComposer>>,
+    pub pipeline : Rc<CloneCell<render::Pipeline>>,
+    pub composer : Rc<RefCell<render::Composer>>,
 }
 
 impl Renderer {
@@ -562,9 +561,9 @@ impl Renderer {
         let shape     = dom.shape().device_pixels();
         let width     = shape.width  as i32;
         let height    = shape.height as i32;
-        let composer  = RenderComposer::new(&pipeline,&context,&variables,width,height);
+        let composer  = render::Composer::new(&pipeline,&context,&variables,width,height);
         let pipeline  = Rc::new(CloneCell::new(pipeline));
-        let composer  = Rc::new(CloneCell::new(composer));
+        let composer  = Rc::new(RefCell::new(composer));
 
         context.enable(Context::BLEND);
         // To learn more about the blending equations used here, please see the following articles:
@@ -577,24 +576,25 @@ impl Renderer {
         Self {logger,dom,context,variables,pipeline,composer}
     }
 
-    pub fn set_pipeline<P:Into<RenderPipeline>>(&self, pipeline:P) {
-        self.pipeline.set(pipeline.into());
-        self.reload_composer();
+    /// Set the pipeline of this renderer.
+    pub fn set_pipeline<P:Into<render::Pipeline>>(&self, pipeline:P) {
+        let pipeline = pipeline.into();
+        self.composer.borrow_mut().set_pipeline(&pipeline);
+        self.pipeline.set(pipeline);
     }
 
-    pub fn reload_composer(&self) {
-        let shape    = self.dom.shape().device_pixels();
-        let width    = shape.width  as i32;
-        let height   = shape.height as i32;
-        let pipeline = self.pipeline.get();
-        let composer = RenderComposer::new(&pipeline,&self.context,&self.variables,width,height);
-        self.composer.set(composer);
+    /// Reload the composer after scene shape change.
+    fn resize_composer(&self) {
+        let shape  = self.dom.shape().device_pixels();
+        let width  = shape.width  as i32;
+        let height = shape.height as i32;
+        self.composer.borrow_mut().resize(width,height);
     }
 
     /// Run the renderer.
     pub fn run(&self) {
         debug!(self.logger, "Running.", || {
-            self.composer.get().run();
+            self.composer.borrow_mut().run();
         })
     }
 }
@@ -611,22 +611,24 @@ impl Renderer {
 /// should be abstracted away in the future.
 #[derive(Clone,CloneRef,Debug)]
 pub struct HardcodedLayers {
-    pub viz              : Layer,
-    pub below_main       : Layer,
-    pub main             : Layer,
-    pub port_selection   : Layer,
-    pub label            : Layer,
-    pub above_nodes      : Layer,
-    pub above_nodes_text : Layer,
-    /// Layer containing all panels with fixed position (not moving with the panned scene):
+    pub root               : Layer,
+    pub viz                : Layer,
+    pub below_main         : Layer,
+    pub main               : Layer,
+    pub port_selection     : Layer,
+    pub label              : Layer,
+    pub above_nodes        : Layer,
+    pub above_nodes_text   : Layer,
+    /// Layer containing all panels with fixed position (not moving with the panned scene)
     /// like status bar, breadcrumbs or similar.
-    pub panel            : Layer,
-    pub panel_text       : Layer,
-    pub tooltip          : Layer,
-    pub tooltip_text     : Layer,
-    pub cursor           : Layer,
-    root                 : Layer,
-    pub mask             : Layer,
+    pub panel              : Layer,
+    pub panel_text         : Layer,
+    pub node_searcher      : Layer,
+    pub node_searcher_mask : Layer,
+    pub tooltip            : Layer,
+    pub tooltip_text       : Layer,
+    pub cursor             : Layer,
+    pub mask               : Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -638,22 +640,25 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new(logger:impl AnyLogger) -> Self {
-        let root             = Layer::new(logger.sub("root"));
-        let main             = Layer::new(logger.sub("main"));
-        let main_cam         = &main.camera();
-        let viz              = Layer::new_with_cam(logger.sub("viz"),main_cam);
-        let below_main       = Layer::new_with_cam(logger.sub("below_main"),main_cam);
-        let port_selection   = Layer::new(logger.sub("port_selection"));
-        let label            = Layer::new_with_cam(logger.sub("label"),main_cam);
-        let above_nodes      = Layer::new_with_cam(logger.sub("above_nodes"),main_cam);
-        let above_nodes_text = Layer::new_with_cam(logger.sub("above_nodes_text"),main_cam);
-        let panel            = Layer::new(logger.sub("panel"));
-        let panel_text       = Layer::new(logger.sub("panel_text"));
-        let tooltip          = Layer::new_with_cam(logger.sub("tooltip"),main_cam);
-        let tooltip_text     = Layer::new_with_cam(logger.sub("tooltip_text"),main_cam);
-        let cursor           = Layer::new(logger.sub("cursor"));
-        let mask             = Layer::new(logger.sub("mask"));
-        root.set_mask(&mask);
+        let root               = Layer::new(logger.sub("root"));
+        let main               = Layer::new(logger.sub("main"));
+        let main_cam           = &main.camera();
+        let viz                = Layer::new_with_cam(logger.sub("viz"),main_cam);
+        let below_main         = Layer::new_with_cam(logger.sub("below_main"),main_cam);
+        let port_selection     = Layer::new(logger.sub("port_selection"));
+        let label              = Layer::new_with_cam(logger.sub("label"),main_cam);
+        let above_nodes        = Layer::new_with_cam(logger.sub("above_nodes"),main_cam);
+        let above_nodes_text   = Layer::new_with_cam(logger.sub("above_nodes_text"),main_cam);
+        let panel              = Layer::new(logger.sub("panel"));
+        let panel_text         = Layer::new(logger.sub("panel_text"));
+        let node_searcher      = Layer::new(logger.sub("node_searcher"));
+        let node_searcher_mask = Layer::new(logger.sub("node_searcher_mask"));
+        let tooltip            = Layer::new_with_cam(logger.sub("tooltip"),main_cam);
+        let tooltip_text       = Layer::new_with_cam(logger.sub("tooltip_text"),main_cam);
+        let cursor             = Layer::new(logger.sub("cursor"));
+
+        let mask             = Layer::new_with_cam(logger.sub("mask"),main_cam);
+        node_searcher.set_mask(&node_searcher_mask);
         root.set_sublayers(
             &[ &viz
              , &below_main
@@ -664,12 +669,13 @@ impl HardcodedLayers {
              , &above_nodes_text
              , &panel
              , &panel_text
+             , &node_searcher
              , &tooltip
              , &tooltip_text
              , &cursor
              ]);
         Self {viz,below_main,main,port_selection,label,above_nodes,above_nodes_text,panel,panel_text
-             ,tooltip,tooltip_text,cursor,root,mask}
+             ,node_searcher,node_searcher_mask,tooltip,tooltip_text,cursor,root,mask}
     }
 }
 
@@ -850,10 +856,10 @@ impl SceneData {
         if self.dirty.shape.check_all() {
             let screen = self.dom.shape();
             self.resize_canvas(screen);
-            self.layers.iter_sublayers_nested(|layer| {
+            self.layers.iter_sublayers_and_masks_nested(|layer| {
                 layer.camera().set_screen(screen.width,screen.height)
             });
-            self.renderer.reload_composer();
+            self.renderer.resize_composer();
             self.dirty.shape.unset_all();
         }
     }
@@ -883,7 +889,7 @@ impl SceneData {
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
-        self.layers.iter_sublayers_nested(|layer| {
+        self.layers.iter_sublayers_and_masks_nested(|layer| {
             layer.camera().update(scene);
         });
     }

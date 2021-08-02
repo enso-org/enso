@@ -469,6 +469,7 @@ impl NodeModel {
 
         let action_bar = action_bar::ActionBar::new(&logger,app);
         display_object.add_child(&action_bar);
+        scene.layers.above_nodes.add_exclusive(&action_bar);
 
         let output = output::Area::new(&logger,app);
         display_object.add_child(&output);

@@ -28,13 +28,6 @@ pub fn shape() -> AnyShape {
     shape.into()
 }
 
-/// The mask definition.
-pub fn mask() -> AnyShape {
-    let circle = Circle(50.px());
-    let shape  = circle.fill(color::Rgb::new(0.0,1.0,0.0));
-    shape.into()
-}
-
 
 
 // ===================
@@ -52,25 +45,16 @@ pub fn entry_point_shape_system() {
     let camera         = scene.camera().clone_ref();
     let navigator      = Navigator::new(scene,&camera);
     let sprite_system  = ShapeSystem::new(&world,&shape());
-    let sprite_system2 = ShapeSystem::new(&world,&mask());
     let sprite         = sprite_system.new_instance();
-    let mask           = sprite_system2.new_instance();
 
     sprite.size.set(Vector2::new(300.0, 300.0));
     sprite.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
 
-    mask.size.set(Vector2::new(300.0, 300.0));
-    mask.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
-
     world.add_child(&sprite_system);
-    world.add_child(&mask);
     world.keep_alive_forever();
-
-    world.scene().layers.mask.add_exclusive(&mask);
 
     world.on_frame(move |_time| {
         let _keep_alive = &sprite;
-        let _keep_alive = &mask;
         let _keep_alive = &navigator;
     }).forget();
 }

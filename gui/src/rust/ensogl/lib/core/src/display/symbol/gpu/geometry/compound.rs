@@ -2,6 +2,7 @@
 //! geometries and behave like smart constructors for commonly used shapes.
 
 pub mod screen;
+pub mod mask_composer;
 pub mod sprite;
 
 
@@ -14,5 +15,6 @@ pub mod sprite;
 pub mod types {
     use super::*;
     pub use screen::Screen;
+    pub use mask_composer::MaskComposer;
     pub use sprite::{SpriteSystem,Sprite};
 }

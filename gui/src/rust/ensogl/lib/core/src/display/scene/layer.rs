@@ -125,6 +125,33 @@ use std::any::TypeId;
 /// automatically. Although the [`SublayersModel`] registers [`WeakLayer`], the weak form is used only
 /// to break cycles and never points to a dropped [`Layer`], as layers update the information on
 /// a drop.
+///
+/// # Masking Layers With ScissorBox
+/// Layers rendering an be limited to a specific set of pixels by using the [`ScissorBox`] object.
+/// Only the required pixels will be processed by the GPU which makes layer scissors a very
+/// efficient clipping mechanism (definitely faster than masking with arbitrary shapes). All
+/// [`ScissorBox`] elements are inherited by sublayers and can be refined (the common shape of
+/// overlapping scissor boxes is automatically computed).
+///
+/// Please note that although this method is the fastest (almost zero-cost) masking way, it has
+/// several downsides – it can be used only for rectangular areas, and also it works on whole pixels
+/// only. The latter fact drastically limits its usability on elements with animations. Animating
+/// rectangles requires displaying them sometimes with non-integer coordinates in order to get a
+/// correct, smooth movement. Using [`ScissorBox`] on such elements would always cut them to whole
+/// pixels which might result in a jaggy animation.
+///
+/// # Masking Layers With Arbitrary Shapes
+/// Every layer can be applied with a "mask", another layer defining the visible area of the first
+/// layer. The masked layer will be rendered first and it will be used to determine which pixels to
+/// hide in the first layer. Unlike in many other solutions, masks are not black-white. Only the
+/// alpha channel of the mask is used to determine which area should be hidden in the masked layer.
+/// This design allows for a much easier definition of layers and also, it allows layers to be
+/// assigned as both visible layers as masks, without the need to modify their shapes definitions.
+/// As layers are hierarchical, you can also apply masks to group of layers.
+///
+/// Please note that the current implementation does not allow for hierarchical masks (masks applied
+/// to already masked area or masks applied to masks). If you try using masks in hierarchical way,
+/// the nested masks will be skipped and a warning will be emitted to the console.
 #[derive(Clone,CloneRef)]
 pub struct Layer {
     model : Rc<LayerModel>
@@ -180,7 +207,8 @@ impl Layer {
     }
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
-    /// visited before their corresponding sublayers.
+    /// visited before their corresponding sublayers. Does not visit masks. If you want to visit
+    /// masks, use [`iter_sublayers_and_masks_nested`] instead.
     pub fn iter_sublayers_nested(&self, f:impl Fn(&Layer)) {
         self.iter_sublayers_nested_internal(&f)
     }
@@ -189,6 +217,24 @@ impl Layer {
         f(self);
         for layer in self.sublayers() {
             layer.iter_sublayers_nested_internal(f)
+        }
+    }
+
+    /// Iterate over all layers, sublayers, masks, and their sublayers of this layer hierarchically.
+    /// Parent layers will be visited before their corresponding sublayers.
+    pub fn iter_sublayers_and_masks_nested(&self, f:impl Fn(&Layer)) {
+        self.iter_sublayers_and_masks_nested_internal(&f)
+    }
+
+    fn iter_sublayers_and_masks_nested_internal(&self, f:&impl Fn(&Layer)) {
+        f(self);
+        if let Some(mask) = &*self.mask.borrow() {
+            if let Some(layer) = mask.upgrade() {
+                layer.iter_sublayers_and_masks_nested_internal(f)
+            }
+        }
+        for layer in self.sublayers() {
+            layer.iter_sublayers_and_masks_nested_internal(f)
         }
     }
 }
@@ -256,6 +302,7 @@ pub struct LayerModel {
     global_element_depth_order      : Rc<RefCell<DependencyGraph<LayerItem>>>,
     sublayers                       : Sublayers,
     mask                            : RefCell<Option<WeakLayer>>,
+    scissor_box                     : RefCell<Option<ScissorBox>>,
     mem_mark                        : Rc<()>,
 }
 
@@ -294,12 +341,13 @@ impl LayerModel {
         let on_mut                          = on_depth_order_dirty(&parents);
         let depth_order_dirty               = dirty::SharedBool::new(logger_dirty,on_mut);
         let global_element_depth_order      = default();
-        let sublayers                        = Sublayers::new(Logger::new_sub(&logger,"registry"));
+        let sublayers                       = Sublayers::new(Logger::new_sub(&logger,"registry"));
         let mask                            = default();
+        let scissor_box                     = default();
         let mem_mark                        = default();
         Self {logger,camera,shape_system_registry,shape_system_to_symbol_info_map
              ,symbol_to_shape_system_map,elements,symbols_ordered,depth_order,depth_order_dirty
-             ,parents,global_element_depth_order,sublayers,mask,mem_mark}
+             ,parents,global_element_depth_order,sublayers,mask,scissor_box,mem_mark}
     }
 
     /// Unique identifier of this layer. It is memory-based, it will be unique even for layers in
@@ -454,9 +502,7 @@ impl LayerModel {
     (&self, global_element_depth_order:Option<&DependencyGraph<LayerItem>>) {
         if self.depth_order_dirty.check() {
             self.depth_order_dirty.unset();
-            if let Some(dep_graph) = global_element_depth_order {
-                self.depth_sort(dep_graph);
-            }
+            self.depth_sort(global_element_depth_order);
         }
 
         if self.sublayers.element_depth_order_dirty.check() {
@@ -472,14 +518,20 @@ impl LayerModel {
         }
     }
 
-    /// Compute a combined [`DependencyGraph`] for the layer taking int consideration the global
+    /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
     /// dependency graph (from [`Group`]), the local one (per layer), and individual shape
     /// preferences (see the "Compile Time Shapes Ordering Relations" section in docs of [`Group`]
     /// to learn more).
-    fn combined_depth_order_graph(&self, global_element_depth_order:&DependencyGraph<LayerItem>)
+    fn combined_depth_order_graph
+    (&self, global_element_depth_order:Option<&DependencyGraph<LayerItem>>)
     -> DependencyGraph<LayerItem> {
-        let mut graph = global_element_depth_order.clone();
-        graph.extend(self.depth_order.borrow().clone().into_iter());
+        let mut graph = if let Some(global_element_depth_order) = global_element_depth_order {
+            let mut graph = global_element_depth_order.clone();
+            graph.extend(self.depth_order.borrow().clone().into_iter());
+            graph
+        } else {
+            self.depth_order.borrow().clone()
+        };
         for element in &*self.elements.borrow() {
             if let LayerItem::ShapeSystem(id) = element {
                 if let Some(info) = self.shape_system_to_symbol_info_map.borrow().get(id) {
@@ -491,7 +543,7 @@ impl LayerModel {
         graph
     }
 
-    fn depth_sort(&self, global_element_depth_order:&DependencyGraph<LayerItem>) {
+    fn depth_sort(&self, global_element_depth_order:Option<&DependencyGraph<LayerItem>>) {
         let graph           = self.combined_depth_order_graph(global_element_depth_order);
         let elements_sorted = self.elements.borrow().iter().copied().collect_vec();
         let sorted_elements = graph.into_unchecked_topo_sort(elements_sorted);
@@ -571,11 +623,26 @@ impl LayerModel {
         }
     }
 
+    /// The layer's mask, if any.
+    pub fn mask(&self) -> Option<Layer> {
+        self.mask.borrow().as_ref().and_then(|t|t.upgrade())
+    }
+
     /// Set a mask layer of this layer. Old mask layer will be unregistered.
     pub fn set_mask(&self, mask:&Layer) {
         self.remove_mask();
         *self.mask.borrow_mut() = Some(mask.downgrade());
         mask.add_parent(&self.sublayers);
+    }
+
+    /// The layer's [`ScissorBox`], if any.
+    pub fn scissor_box(&self) -> Option<ScissorBox> {
+        *self.scissor_box.borrow()
+    }
+
+    /// Set the [`ScissorBox`] of this layer.
+    pub fn set_scissor_box(&self, scissor_box:Option<&ScissorBox>) {
+        *self.scissor_box.borrow_mut() = scissor_box.cloned();
     }
 
     /// Add depth-order dependency between two [`LayerItem`]s in this layer. Returns `true`
@@ -682,9 +749,9 @@ impl LayerDynamicShapeInstance {
 
 
 
-// ================
+// =================
 // === Sublayers ===
-// ================
+// =================
 
 /// Abstraction for layer sublayers.
 #[derive(Clone,CloneRef,Debug)]
@@ -947,9 +1014,9 @@ impl<T> ShapeSystemInfoTemplate<T> {
 
 
 
-// ==============
-// === Macros ===
-// ==============
+// ======================
+// === Shape Ordering ===
+// ======================
 
 /// Shape ordering utility. Currently, this macro supports ordering of shapes for a given stage.
 /// For example, the following usage:
@@ -980,4 +1047,76 @@ macro_rules! shapes_order_dependencies {
     }) => {$(
         $scene.layers.add_global_shapes_order_dependency::<$p1$(::$ps1)*::View, $p2$(::$ps2)*::View>();
     )*};
+}
+
+
+
+// ==================
+// === ScissorBox ===
+// ==================
+
+/// A rectangular area used to limit rendering of a [`Layer`]. The area contains information about
+/// rendering limits from each side of the image (left, right, top, and bottom).
+#[allow(missing_docs)]
+#[derive(Debug,Clone,Copy)]
+pub struct ScissorBox {
+    pub min_x : i32,
+    pub min_y : i32,
+    pub max_x : i32,
+    pub max_y : i32,
+}
+
+impl ScissorBox {
+    /// Constructor.
+    pub fn new() -> Self {
+        let min_x = 0;
+        let min_y = 0;
+        let max_x = i32::MAX;
+        let max_y = i32::MAX;
+        Self {min_x,min_y,max_x,max_y}
+    }
+
+    /// Constructor.
+    pub fn new_with_position_and_size(position:Vector2<i32>, size:Vector2<i32>) -> Self {
+        let min_x = position.x;
+        let min_y = position.y;
+        let max_x = min_x + size.x;
+        let max_y = min_y + size.y;
+        Self {min_x,min_y,max_x,max_y}
+    }
+}
+
+impl ScissorBox {
+    /// The size of the scissor box.
+    pub fn size(&self) -> Vector2<i32> {
+        let width  = (self.max_x - self.min_x).max(0);
+        let height = (self.max_y - self.min_y).max(0);
+        Vector2(width,height)
+    }
+
+    /// The position of the scissor box computed from the left bottom corner.
+    pub fn position(&self) -> Vector2<i32> {
+        Vector2(self.min_x.max(0),self.min_y.max(0))
+    }
+}
+
+impl Default for ScissorBox {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PartialSemigroup<ScissorBox> for ScissorBox {
+    fn concat_mut(&mut self, other:Self) {
+        self.min_x = Ord::max(self.min_x,other.min_x);
+        self.min_y = Ord::max(self.min_y,other.min_y);
+        self.max_x = Ord::min(self.max_x,other.max_x);
+        self.max_y = Ord::min(self.max_y,other.max_y);
+    }
+}
+
+impl PartialSemigroup<&ScissorBox> for ScissorBox {
+    fn concat_mut(&mut self, other:&Self) {
+        self.concat_mut(*other)
+    }
 }

@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material::Material;
-use crate::display::world::World;
+use crate::display::scene::Scene;
 use crate::system::gpu::data::texture;
 use crate::system::gpu::data::types::*;
 
@@ -23,12 +23,18 @@ pub struct Screen {
 
 impl Screen {
     /// Constructor.
-    pub fn new(world:&World) -> Self {
-        let sprite_system = SpriteSystem::new(world);
+    pub fn new(scene:&Scene, surface_material:Material) -> Self {
+        let sprite_system = SpriteSystem::new(scene);
         sprite_system.set_geometry_material(Self::geometry_material());
-        sprite_system.set_material(Self::surface_material());
+        sprite_system.set_material(surface_material);
         let sprite = sprite_system.new_instance();
         Self {sprite,sprite_system}
+    }
+
+    /// Constructor of a geometry which covers the whole screen and displays on it the image
+    /// provided as the input argument.
+    pub fn new_identity_painter(scene:&Scene, input:impl AsRef<str>) -> Self {
+        Self::new(scene,Self::identity_painter_surface_material(input))
     }
 
     /// Hide the symbol. Hidden symbols will not be rendered.
@@ -43,7 +49,7 @@ impl Screen {
 
     /// Local variables used by the screen object.
     pub fn variables(&self) -> UniformScope {
-        self.sprite_system.symbol().variables().clone() // FIXME remove clone
+        self.sprite_system.symbol().variables().clone()
     }
 
     /// Render the shape.
@@ -63,13 +69,15 @@ impl Screen {
         material
     }
 
-    fn surface_material() -> Material {
+    fn identity_painter_surface_material(input:impl AsRef<str>) -> Material {
+        let input        = input.as_ref();
         let mut material = Material::new();
-        material.add_input_def::<texture::FloatSampler>("pass_color");
-        material.set_main("
-        vec4 sample_color = texture(input_pass_color, input_uv);
+        let shader       = iformat!("
+        vec4 sample_color = texture(input_{input}, input_uv);
         output_color = sample_color;
         ");
+        material.add_input_def::<texture::FloatSampler>(input);
+        material.set_main(shader);
         material
     }
 }

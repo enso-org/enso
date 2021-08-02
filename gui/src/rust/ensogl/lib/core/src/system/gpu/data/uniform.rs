@@ -13,6 +13,8 @@ use crate::system::gpu::shader::Context;
 use crate::system::gpu::data::texture::*;
 use crate::system::gpu::data::prim::*;
 
+use web_sys::WebGlTexture;
+
 
 
 // ====================
@@ -176,6 +178,18 @@ impl<Value:Clone> {
     }
 }}
 
+impl<Value> Uniform<Value> {
+    pub fn swap(&self, that:&Self) {
+        self.rc.borrow_mut().swap(&mut *that.rc.borrow_mut())
+    }
+}
+
+impl<Value> UniformData<Value> {
+    pub fn swap(&mut self, that:&mut Self) {
+        mem::swap(self,that)
+    }
+}
+
 
 
 // ========================
@@ -249,41 +263,79 @@ impl<Value:UniformUpload> AnyPrimUniformOps for UniformData<Value> {
 // === AnyTextureUniform ===
 // =========================
 
-// Note, we could do it using static dispatch instead (like in the AnyPrimUniform case) if this
-// gets fixed: https://github.com/rust-lang/rust/issues/68324 .
+macro_rules! define_any_texture_uniform {
+    ( [ $([$storage:ident $internal_format:ident $item_type:ident])* ] ) => { paste::item! {
+        #[allow(non_camel_case_types)]
+        #[derive(Clone,CloneRef,Debug)]
+        pub enum AnyTextureUniform {
+            $([<$storage _ $internal_format _ $item_type >]
+                (Uniform<Texture<$storage,$internal_format,$item_type>>)),*
+        }
 
-#[derive(Clone,Debug,Shrinkwrap)]
-pub struct AnyTextureUniform {
-    pub raw: Box<dyn AnyTextureUniformOps>
+        impl AnyTextureUniform {
+            pub fn try_swap(&self, that:&Self) -> bool {
+                match (self,that) {
+                    $(
+                        ( Self::[<$storage _ $internal_format _ $item_type >](a)
+                        , Self::[<$storage _ $internal_format _ $item_type >](b)
+                        ) => {a.swap(b); true},
+                    )*
+                    _ => false
+                }
+            }
+        }
+
+        impl TextureOps for AnyTextureUniform {
+            fn bind_texture_unit
+            (&self, context:&crate::display::Context, unit:TextureUnit) -> TextureBindGuard {
+                match self {
+                    $(
+                        Self::[<$storage _ $internal_format _ $item_type >](t) =>
+                            t.bind_texture_unit(context,unit)
+                    ),*
+                }
+            }
+
+            fn gl_texture(&self) -> WebGlTexture {
+                match self {
+                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.gl_texture()),*
+                }
+            }
+
+            fn get_format(&self) -> AnyFormat {
+                match self {
+                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.get_format()),*
+                }
+            }
+
+            fn get_item_type(&self) -> AnyItemType {
+                match self {
+                    $(Self::[<$storage _ $internal_format _ $item_type >](t) => t.get_item_type()),*
+                }
+            }
+        }
+
+        $(
+            impl From<Uniform<Texture<$storage,$internal_format,$item_type>>>
+            for AnyTextureUniform {
+                fn from(t:Uniform<Texture<$storage,$internal_format,$item_type>>) -> Self {
+                    Self::[<$storage _ $internal_format _ $item_type >](t)
+                }
+            }
+
+            impl<'t> TryFrom<&'t AnyTextureUniform>
+            for &'t Uniform<Texture<$storage,$internal_format,$item_type>> {
+                type Error = TypeMismatch;
+                fn try_from(value:&'t AnyTextureUniform) -> Result<Self,Self::Error> {
+                    match value {
+                        AnyTextureUniform::[<$storage _ $internal_format _ $item_type >](t) => Ok(t),
+                        _ => Err(TypeMismatch),
+                    }
+                }
+            }
+        )*
+    }}
 }
-
-clone_boxed!(AnyTextureUniformOps);
-pub trait AnyTextureUniformOps:CloneBoxedForAnyTextureUniformOps + TextureOps + Debug {
-    fn as_any(&self) -> &dyn Any;
-}
-
-impl<T:TextureOps+Debug+'static> AnyTextureUniformOps for Uniform<T>
-where Uniform<T>: TextureOps {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-impl<T:AnyTextureUniformOps + 'static> From<T> for AnyTextureUniform {
-    fn from(t:T) -> Self {
-        let raw = Box::new(t);
-        Self {raw}
-    }
-}
-
-impl<'t,S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
-TryFrom<&'t AnyTextureUniform> for &'t Uniform<Texture<S,I,T>> {
-    type Error = TypeMismatch;
-    fn try_from(value:&'t AnyTextureUniform) -> Result<Self,Self::Error> {
-        value.as_any().downcast_ref().ok_or(TypeMismatch)
-    }
-}
-
 
 macro_rules! define_get_or_add_gpu_texture_dyn {
     ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
@@ -307,14 +359,21 @@ macro_rules! define_get_or_add_gpu_texture_dyn {
                     let uniform = scope.get_or_add(name,texture).unwrap();
                     uniform.into()
                 })*
-                _ => panic!("Invalid (internal format, item type) combination.")
+                _ => panic!("Invalid internal format and item type combination ({:?},{:?}).",
+                    internal_format,item_type)
             }
         }
     }
 }
 
+macro_rules! generate {
+    ( [ $([$internal_format:ident $item_type:ident])* ] ) => {
+        define_any_texture_uniform!{[ $([GpuOnly $internal_format $item_type])* ]}
+        define_get_or_add_gpu_texture_dyn!{[ $([$internal_format $item_type])* ]}
+    }
+}
 
-crate::with_all_texture_types! ([define_get_or_add_gpu_texture_dyn _]);
+crate::with_all_texture_types! ([generate _]);
 
 
 
@@ -347,10 +406,13 @@ impl<T:Into<AnyPrimUniform>> IntoAnyUniform for T {
     }
 }
 
-impl<S:StorageRelation<I,T>,I:InternalFormat,T:ItemType>
-IntoAnyUniform for Uniform<Texture<S,I,T>> {
+impl<S,I,T> IntoAnyUniform for Uniform<Texture<S,I,T>>
+where S : StorageRelation<I,T>,
+      I : InternalFormat,
+      T : ItemType,
+      Uniform<Texture<S,I,T>> : Into<AnyTextureUniform> {
     fn into_any_uniform(self) -> AnyUniform {
-        AnyUniform::Texture(AnyTextureUniform {raw: Box::new(self)})
+        AnyUniform::Texture(self.into())
     }
 }
 
