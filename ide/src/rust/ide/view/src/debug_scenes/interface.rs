@@ -118,6 +118,9 @@ fn init(app:&Application) {
 
     let expression_1 = expression_mock();
     graph_editor.frp.set_node_expression.emit((node1_id,expression_1.clone()));
+    let comment_1 = String::from("Sample documentation comment.");
+    graph_editor.frp.set_node_comment.emit((node1_id,comment_1));
+
     let expression_2 = expression_mock3();
     graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
 
@@ -278,7 +281,7 @@ pub fn expression_mock_string(label:&str) -> Expression {
     let code                = format!("\"{}\"", label);
     let parser              = Parser::new_or_panic();
     let parameters          = vec![];
-    let ast                 = parser.parse_line(&code).unwrap();
+    let ast                 = parser.parse_line_ast(&code).unwrap();
     let invocation_info     = span_tree::generate::context::CalledMethodInfo {parameters};
     let ctx                 = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree    = span_tree::SpanTree::default();
@@ -296,7 +299,7 @@ pub fn expression_mock() -> Expression {
         tp   : Some("Text".to_owned()),
     };
     let parameters       = vec![this_param];
-    let ast              = parser.parse_line(&code).unwrap();
+    let ast              = parser.parse_line_ast(&code).unwrap();
     let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::default();
@@ -370,7 +373,7 @@ pub fn expression_mock3() -> Expression {
         tp   : Some("Vector String".to_owned()),
     };
     let parameters       = vec![this_param,param0,param1,param2,param3];
-    let ast              = parser.parse_line(&code).unwrap();
+    let ast              = parser.parse_line_ast(&code).unwrap();
     let invocation_info  = span_tree::generate::context::CalledMethodInfo {parameters};
     let ctx              = span_tree::generate::MockContext::new_single(ast.id.unwrap(),invocation_info);
     let output_span_tree = span_tree::SpanTree::new(&ast,&ctx).unwrap();//span_tree::SpanTree::default();

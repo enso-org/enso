@@ -8,17 +8,21 @@ use crate::prelude::*;
 
 use crate::double_representation::connection;
 use crate::double_representation::definition;
+use crate::double_representation::definition::DefinitionProvider;
 use crate::double_representation::graph::GraphInfo;
 use crate::double_representation::identifier::LocatedName;
 use crate::double_representation::identifier::NormalizedName;
 use crate::double_representation::identifier::generate_name;
 use crate::double_representation::module;
 use crate::double_representation::node;
+use crate::double_representation::node::MainLine;
+use crate::double_representation::node::NodeLocation;
 use crate::double_representation::node::NodeInfo;
 use crate::model::module::NodeMetadata;
 use crate::model::traits::*;
 
 use ast::crumbs::InfixCrumb;
+use ast::macros::DocumentationCommentInfo;
 use enso_protocol::language_server;
 use parser::Parser;
 use span_tree::SpanTree;
@@ -119,6 +123,8 @@ impl Deref for Node {
 pub struct NewNodeInfo {
     /// Expression to be placed on the node
     pub expression : String,
+    /// Documentation comment to be attached before the node.
+    pub doc_comment : Option<String>,
     /// Visual node position in the graph scene.
     pub metadata : Option<NodeMetadata>,
     /// ID to be given to the node.
@@ -127,7 +133,6 @@ pub struct NewNodeInfo {
     pub location_hint : LocationHint,
     /// Introduce variable name for the node, making it into an assignment line.
     pub introduce_pattern : bool,
-
 }
 
 impl NewNodeInfo {
@@ -135,6 +140,7 @@ impl NewNodeInfo {
     pub fn new_pushed_back(expression:impl Str) -> NewNodeInfo {
         NewNodeInfo {
             expression        : expression.into(),
+            doc_comment       : None,
             metadata          : default(),
             id                : default(),
             location_hint     : LocationHint::End,
@@ -470,7 +476,7 @@ impl Handle {
     ) -> FallibleResult<Handle> {
         let ret = Self::new_unchecked(parent,module,suggestion_db,parser,id);
         // Get and discard definition info, we are just making sure it can be obtained.
-        let _ = ret.graph_definition_info()?;
+        let _ = ret.definition()?;
         Ok(ret)
     }
 
@@ -488,15 +494,9 @@ impl Handle {
         Self::new(parent,module,project.suggestion_db(),project.parser(),definition)
     }
 
-    /// Retrieves double rep information about definition providing this graph.
-    pub fn graph_definition_info
-    (&self) -> FallibleResult<double_representation::definition::DefinitionInfo> {
-        self.module.find_definition(&self.id)
-    }
-
     /// Get the double representation description of the graph.
     pub fn graph_info(&self) -> FallibleResult<GraphInfo> {
-        self.graph_definition_info().map(GraphInfo::from_definition)
+        self.definition().map(|definition| GraphInfo::from_definition(definition.item))
     }
 
     /// Returns double rep information about all nodes in the graph.
@@ -551,7 +551,7 @@ impl Handle {
     /// Analyzes the expression, e.g. result for "a+b" shall be named "sum".
     /// The caller should make sure that obtained name won't collide with any symbol usage before
     /// actually introducing it. See `variable_name_for`.
-    pub fn variable_name_base_for(node:&NodeInfo) -> String {
+    pub fn variable_name_base_for(node:&MainLine) -> String {
         name_for_ast(node.expression())
     }
 
@@ -561,12 +561,12 @@ impl Handle {
     /// resolution in the code in this graph.
     pub fn used_names(&self) -> FallibleResult<Vec<LocatedName>> {
         use double_representation::alias_analysis;
-        let def   = self.graph_definition_info()?;
+        let def   = self.definition()?;
         let body  = def.body();
         let usage = if matches!(body.shape(),ast::Shape::Block(_)) {
             alias_analysis::analyze_crumbable(body.item)
-        } else if  let Some(node) = NodeInfo::from_line_ast(&body) {
-            alias_analysis::analyze_node(&node)
+        } else if let Some(node) = MainLine::from_ast(&body) {
+            alias_analysis::analyze_ast(node.ast())
         } else {
             // Generally speaking - impossible. But if there is no node in the definition
             // body, then there is nothing that could use any symbols, so nothing is used.
@@ -639,19 +639,28 @@ impl Handle {
     /// moved after it, keeping their order.
     pub fn place_node_and_dependencies_lines_after
     (&self, node_to_be_before:node::Id, node_to_be_after:node::Id) -> FallibleResult {
-        let definition      = self.graph_definition_info()?;
-        let definition_ast  = &definition.body().item;
+        let graph           = self.graph_info()?;
+        let definition_ast  = &graph.body().item;
         let dependent_nodes = connection::dependent_nodes_in_def(definition_ast,node_to_be_after);
-        let mut lines       = definition.block_lines()?;
 
-        let before_node_position = node::index_in_lines(&lines,node_to_be_before)?;
-        let after_node_position  = node::index_in_lines(&lines,node_to_be_after)?;
-        if before_node_position > after_node_position {
+        let node_to_be_before = graph.locate_node(node_to_be_before)?;
+        let node_to_be_after  = graph.locate_node(node_to_be_after)?;
+        let dependent_nodes   = dependent_nodes.iter().map(|id| graph.locate_node(*id))
+            .collect::<Result<Vec<_>,_>>()?;
+
+        if node_to_be_after.index < node_to_be_before.index {
             let should_be_at_end = |line:&ast::BlockLine<Option<Ast>>| {
-                let id = NodeInfo::from_block_line(line).map(|node| node.id());
-                id.map_or(false, |id| id == node_to_be_after || dependent_nodes.contains(&id))
+                let mut itr = std::iter::once(&node_to_be_after).chain(&dependent_nodes);
+                if let Some(line_ast) = &line.elem {
+                    itr.any(|node| node.node.contains_line(line_ast))
+                } else {
+                    false
+                }
             };
-            lines[after_node_position..=before_node_position].sort_by_key(should_be_at_end);
+
+            let mut lines = graph.block_lines();
+            let range     = NodeLocation::range(node_to_be_after.index, node_to_be_before.index);
+            lines[range].sort_by_key(should_be_at_end);
             self.update_definition_ast(|mut def| {
                 def.set_block_lines(lines)?;
                 Ok(def)
@@ -725,7 +734,7 @@ impl Handle {
     /// Parses given text as a node expression.
     pub fn parse_node_expression
     (&self, expression_text:impl Str) -> FallibleResult<Ast> {
-        let node_ast      = self.parser.parse_line(expression_text.as_ref())?;
+        let node_ast = self.parser.parse_line_ast(expression_text.as_ref())?;
         if ast::opr::is_assignment(&node_ast) {
             Err(BindingExpressionNotAllowed(expression_text.into()).into())
         } else {
@@ -733,15 +742,28 @@ impl Handle {
         }
     }
 
+    /// Creates a proper description of a documentation comment in the context of this graph.
+    pub fn documentation_comment_from_pretty_text
+    (&self, pretty_text:&str) -> Option<DocumentationCommentInfo> {
+        let indent   = self.definition().ok()?.indent();
+        let doc_repr = DocumentationCommentInfo::text_to_repr(indent,pretty_text);
+        let doc_line = self.parser.parse_line(doc_repr).ok()?;
+        DocumentationCommentInfo::new(&doc_line.as_ref(),indent)
+    }
+
     /// Adds a new node to the graph and returns information about created node.
     pub fn add_node(&self, node:NewNodeInfo) -> FallibleResult<ast::Id> {
         info!(self.logger, "Adding node with expression `{node.expression}`");
-        let ast           = self.parse_node_expression(&node.expression)?;
-        let mut node_info = node::NodeInfo::from_line_ast(&ast).ok_or(FailedToCreateNode)?;
+        let expression_ast = self.parse_node_expression(&node.expression)?;
+        let main_line      = MainLine::from_ast(&expression_ast).ok_or(FailedToCreateNode)?;
+        let documentation  = node.doc_comment.as_ref().and_then(|pretty_text| {
+            self.documentation_comment_from_pretty_text(pretty_text)
+        });
+
+        let mut node_info = NodeInfo {documentation,main_line};
         if let Some(desired_id) = node.id {
             node_info.set_id(desired_id)
         }
-
         if node.introduce_pattern && node_info.pattern().is_none() {
             let var = self.variable_name_for(&node_info)?;
             node_info.set_pattern(var.into());
@@ -749,8 +771,7 @@ impl Handle {
 
         self.update_definition_ast(|definition| {
             let mut graph = GraphInfo::from_definition(definition);
-            let node_ast  = node_info.ast().clone();
-            graph.add_node(node_ast,node.location_hint)?;
+            graph.add_node(&node_info,node.location_hint)?;
             Ok(graph.source)
         })?;
 
@@ -1285,6 +1306,7 @@ main =
         test.run(|graph| async move {
             // === Initial nodes ===
             let nodes         = graph.nodes().unwrap();
+            for node in &nodes { DEBUG!(node.repr())};
             let (node1,node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");
             assert_eq!(node2.info.expression().repr(), "print foo");
@@ -1296,6 +1318,7 @@ main =
             let metadata = NodeMetadata {position,..default()};
             let info     = NewNodeInfo {
                 expression        : "a+b".into(),
+                doc_comment       : None,
                 metadata          : Some(metadata),
                 id                : Some(id),
                 location_hint     : LocationHint::End,
@@ -1436,7 +1459,7 @@ main =
                     let destination   = Endpoint::new(node1.info.id(),dst_port.to_vec());
                     let connection    = Connection{source,destination};
                     graph.connect(&connection,&span_tree::generate::context::Empty).unwrap();
-                    let new_main = graph.graph_definition_info().unwrap().ast.repr();
+                    let new_main = graph.definition().unwrap().ast.repr();
                     assert_eq!(new_main,expected,"Case {:?}",this);
                 })
             }
@@ -1480,7 +1503,7 @@ main =
                 }
             };
             graph.connect(&connection_to_add,&span_tree::generate::context::Empty).unwrap();
-            let new_main = graph.graph_definition_info().unwrap().ast.repr();
+            let new_main = graph.definition().unwrap().ast.repr();
             assert_eq!(new_main,EXPECTED);
         })
     }
@@ -1518,7 +1541,7 @@ main =
                 }
             };
             graph.connect(&connection_to_add,&span_tree::generate::context::Empty).unwrap();
-            let new_main = graph.graph_definition_info().unwrap().ast.repr();
+            let new_main = graph.definition().unwrap().ast.repr();
             assert_eq!(new_main,EXPECTED);
         })
     }
@@ -1555,7 +1578,7 @@ main =
                 }
             };
             graph.connect(&connection_to_add,&span_tree::generate::context::Empty).unwrap();
-            let new_main = graph.graph_definition_info().unwrap().ast.repr();
+            let new_main = graph.definition().unwrap().ast.repr();
             assert_eq!(new_main,EXPECTED);
         })
     }
@@ -1578,8 +1601,8 @@ main =
         ];
 
         for (code,expected_name) in &cases {
-            let ast = parser.parse_line(*code).unwrap();
-            let node = NodeInfo::from_line_ast(&ast).unwrap();
+            let ast  = parser.parse_line_ast(*code).unwrap();
+            let node = MainLine::from_ast(&ast).unwrap();
             let name = Handle::variable_name_base_for(&node);
             assert_eq!(&name,expected_name);
         }
@@ -1604,7 +1627,7 @@ main =
                     let connections = connections(&graph).unwrap();
                     let connection  = connections.connections.first().unwrap();
                     graph.disconnect(connection,&span_tree::generate::context::Empty).unwrap();
-                    let new_main = graph.graph_definition_info().unwrap().ast.repr();
+                    let new_main = graph.definition().unwrap().ast.repr();
                     assert_eq!(new_main,expected,"Case {:?}",this);
                 })
             }

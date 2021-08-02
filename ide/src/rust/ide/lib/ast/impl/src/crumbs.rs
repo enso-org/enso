@@ -3,12 +3,13 @@
 
 use crate::prelude::*;
 
-use crate::ShiftedVec1;
+use crate::enumerate_non_empty_lines;
 use crate::known;
 use crate::Shifted;
 use crate::MacroPatternMatch;
 use crate::HasTokens;
 use crate::Shape;
+use crate::ShiftedVec1;
 use crate::TokenConsumer;
 
 use enso_data::text::Index;
@@ -1414,9 +1415,7 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T, Error=E>,
 pub fn non_empty_line_indices<'a, T:'a>
 (iter:impl Iterator<Item = &'a crate::BlockLine<Option<T>>> + 'a)
  -> impl Iterator<Item=usize> + 'a {
-    iter.enumerate().filter_map(|(line_index,line)| {
-        line.elem.as_ref().map(|_| line_index)
-    })
+    enumerate_non_empty_lines(iter).map(|(index,_ast)| index)
 }
 
 

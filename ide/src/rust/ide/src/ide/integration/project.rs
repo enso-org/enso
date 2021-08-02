@@ -739,6 +739,7 @@ impl Model {
                        self.refresh_node_selection(displayed,node_info);
                        self.refresh_node_visualization(displayed,node_info);
                    };
+                   self.refresh_node_comment(displayed,node_info);
                    self.refresh_node_expression(displayed,node_info,node_trees);
                 },
                 None => self.create_node_view(node_info,node_trees,*default_pos),
@@ -796,6 +797,7 @@ impl Model {
     (&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
         self.refresh_node_position(id,node);
         self.refresh_node_selection(id,node);
+        self.refresh_node_comment(id,node);
         self.refresh_node_expression(id,node,trees);
         self.refresh_node_visualization(id,node);
     }
@@ -847,6 +849,17 @@ impl Model {
                 self.view.graph().frp.input.enable_visualization.emit(&id);
             } else {
                 self.view.graph().frp.input.disable_visualization.emit(&id);
+            }
+        }
+    }
+    /// Update the documentation comment on the node.
+    fn refresh_node_comment
+    (&self, id:graph_editor::NodeId, node:&controller::graph::Node) {
+        if let Some(node_view) = self.view.graph().model.nodes.get_cloned_ref(&id) {
+            let comment_as_per_controller = node.info.documentation_text().unwrap_or_default();
+            let comment_as_per_view       = node_view.comment.value();
+            if comment_as_per_controller != comment_as_per_view {
+                node_view.set_comment(comment_as_per_controller);
             }
         }
     }
