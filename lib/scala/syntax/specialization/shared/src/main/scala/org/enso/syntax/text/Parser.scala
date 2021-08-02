@@ -613,9 +613,32 @@ object Main extends scala.App {
       |
       |""".stripMargin
 
+  val testWithMultilineComment =
+    """
+      |## ALIAS New File
+      |
+      |   Creates a new file object, pointing to the given path.
+      |
+      |   Arguments:
+      |   - path: The path to the file that you want to create, or a file itself. The
+      |     latter is a no-op.
+      |
+      |   > Example
+      |     Create a new file pointing to the `data.csv` file in the project directory.
+      |
+      |         import Standard.Base.System.File
+      |         import Standard.Examples
+      |
+      |         example_new = File.new Examples.csv_path
+      |new : (Text | File) -> File
+      |new path = case path of
+      |    Text -> File (Prim_Io.get_file path)
+      |    _ -> path
+      |""".stripMargin
+
   println("--- PARSING ---")
 
-  val mod = parser.run(inC)
+  val mod = parser.run(testWithMultilineComment)
 
   println(Debug.pretty(mod.toString))
 
@@ -628,7 +651,7 @@ object Main extends scala.App {
   }
 
   println("------")
-  println(mod.show() == inC)
+  println(mod.show() == testWithMultilineComment)
   println("------")
   println(mod.show())
   println("------")
@@ -641,50 +664,49 @@ object Main extends scala.App {
   println(Debug.pretty(doc.toString))
   println("------")
   println(doc.show())
-  println("=========================")
   val htmlCode =
     docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
   println("========== HTML ===========")
   println(htmlCode)
-  println("=========================")
+  println("===========================")
 
-  println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
-  val inpOnlyDoc =
-    """DEPRECATED
-      |REMOVED - replaced by Foo Bar
-      |ADDED
-      |MODIFIED
-      |UPCOMING
-      |ALAMAKOTA a kot ma Ale
-      |This is a test of Enso Documentation Parser. This is a short synopsis.
-      |
-      |Here you can write the body of documentation. On top you can see tags
-      |added to this piece of code. You can customise your text with _Italic_
-      |~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
-      |
-      |
-      |There are 3 kinds of sections
-      |  - Important
-      |  - Info
-      |  - Example
-      |    * You can use example to add multiline code to your documentation
-      |
-      |! Important
-      |  Here is a small test of Important Section
-      |
-      |? Info
-      |  Here is a small test of Info Section
-      |
-      |> Example
-      |  Here is a small test of Example Section
-      |      Import Foo
-      |      def Bar a
-      |          Foo x y
-      |""".stripMargin
-  val doc2      = DocParser.runMatched(inpOnlyDoc)
-  val htmlCode2 = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
-  println(htmlCode2)
-
-  AST.main()
+//  println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
+//  val inpOnlyDoc =
+//    """DEPRECATED
+//      |REMOVED - replaced by Foo Bar
+//      |ADDED
+//      |MODIFIED
+//      |UPCOMING
+//      |ALAMAKOTA a kot ma Ale
+//      |This is a test of Enso Documentation Parser. This is a short synopsis.
+//      |
+//      |Here you can write the body of documentation. On top you can see tags
+//      |added to this piece of code. You can customise your text with _Italic_
+//      |~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
+//      |
+//      |
+//      |There are 3 kinds of sections
+//      |  - Important
+//      |  - Info
+//      |  - Example
+//      |    * You can use example to add multiline code to your documentation
+//      |
+//      |! Important
+//      |  Here is a small test of Important Section
+//      |
+//      |? Info
+//      |  Here is a small test of Info Section
+//      |
+//      |> Example
+//      |  Here is a small test of Example Section
+//      |      Import Foo
+//      |      def Bar a
+//      |          Foo x y
+//      |""".stripMargin
+//  val doc2      = DocParser.runMatched(inpOnlyDoc)
+//  val htmlCode2 = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
+//  println(htmlCode2)
+//
+//  AST.main()
 
 }
