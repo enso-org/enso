@@ -7,7 +7,6 @@ use crate::double_representation::definition::DefinitionInfo;
 use crate::double_representation::definition::ScopeKind;
 use crate::double_representation::identifier::LocatedName;
 use crate::double_representation::identifier::NormalizedName;
-use crate::double_representation::node::NodeInfo;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::InfixCrumb;
@@ -334,11 +333,12 @@ impl AliasAnalyzer {
     }
 }
 
-/// Describes identifiers that nodes introduces into the graph and identifiers from graph's scope
-/// that node uses. This logic serves as a base for connection discovery.
-pub fn analyze_node(node:&NodeInfo) -> IdentifierUsage {
+/// Describes identifiers that code represented by AST introduces into the graph and identifiers
+/// from graph's scope that code uses. This logic serves as a base for connection discovery,
+/// where ASTs are typically the node's ASTs.
+pub fn analyze_ast(ast:&Ast) -> IdentifierUsage {
     let mut analyzer = AliasAnalyzer::new();
-    analyzer.process_ast(node.ast());
+    analyzer.process_ast(ast);
     analyzer.root_scope.symbols
 }
 
@@ -365,8 +365,8 @@ mod tests {
     /// Checks if actual observed sequence of located identifiers matches the expected one.
     /// Expected identifiers are described as code spans in the node's text representation.
     fn validate_identifiers
-    (name:impl Str, node:&NodeInfo, expected:Vec<Range<usize>>, actual:&Vec<LocatedName>) {
-        let mut checker = IdentifierValidator::new(name,node,expected);
+    (name:impl Str, ast:&Ast, expected:Vec<Range<usize>>, actual:&Vec<LocatedName>) {
+        let mut checker = IdentifierValidator::new(name,ast,expected);
         checker.validate_identifiers(actual);
     }
 
@@ -374,12 +374,11 @@ mod tests {
     fn run_case(parser:&parser::Parser, case:Case) {
         DEBUG!("\n===========================================================================\n");
         DEBUG!("Case: " case.code);
-        let ast    = parser.parse_line(&case.code).unwrap();
-        let node   = NodeInfo::from_line_ast(&ast).unwrap();
-        let result = analyze_node(&node);
+        let ast    = parser.parse_line_ast(&case.code).unwrap();
+        let result = analyze_ast(&ast);
         DEBUG!("Analysis results: {result:?}");
-        validate_identifiers("introduced",&node, case.expected_introduced, &result.introduced);
-        validate_identifiers("used",      &node, case.expected_used,       &result.used);
+        validate_identifiers("introduced",&ast, case.expected_introduced, &result.introduced);
+        validate_identifiers("used",      &ast, case.expected_used,       &result.used);
     }
 
     /// Runs the test for the test case expressed using markdown notation. See `Case` for details.

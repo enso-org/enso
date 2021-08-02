@@ -10,6 +10,7 @@ these updates be shipped in a stable release before the end of the year.
 
 - [New look of open project dialog.][1700]. Now it has "Open project" title on
   the top.
+- [Documentation cooments are displayed next to the nodes.][1744].
 
 #### Enso Compiler
 
@@ -31,6 +32,7 @@ these updates be shipped in a stable release before the end of the year.
 [1700]: https://github.com/enso-org/ide/pull/1700
 [1726]: https://github.com/enso-org/ide/pull/1726
 [1743]: https://github.com/enso-org/ide/pull/1743
+[1744]: https://github.com/enso-org/ide/pull/1744
 
 # Enso 2.0.0-alpha.10 (2021-07-23)
 
