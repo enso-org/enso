@@ -12,6 +12,7 @@ use crate::control::callback;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
+use crate::display::render;
 use crate::display::render::*;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::Scene;
@@ -55,16 +56,16 @@ impl Uniforms {
 /// It is responsible for updating the system on every animation frame.
 #[derive(Clone,CloneRef,Debug)]
 pub struct World {
-    logger           : Logger,
-    scene            : Scene,
-    scene_dirty      : dirty::SharedBool,
-    main_loop        : animation::DynamicLoop,
-    uniforms         : Uniforms,
-    stats            : Stats,
-    stats_monitor    : stats::Monitor,
-    main_loop_frame  : callback::Handle,
-    on_before_frame  : callback::SharedRegistryMut1<animation::TimeInfo>,
-    on_after_frame   : callback::SharedRegistryMut1<animation::TimeInfo>,
+    logger          : Logger,
+    scene           : Scene,
+    scene_dirty     : dirty::SharedBool,
+    main_loop       : animation::DynamicLoop,
+    uniforms        : Uniforms,
+    stats           : Stats,
+    stats_monitor   : stats::Monitor,
+    main_loop_frame : callback::Handle,
+    on_before_frame : callback::SharedRegistryMut1<animation::TimeInfo>,
+    on_after_frame  : callback::SharedRegistryMut1<animation::TimeInfo>,
 }
 
 impl World {
@@ -136,9 +137,10 @@ impl World {
         });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
-        let pipeline = RenderPipeline::new()
-            .add(SymbolsRenderPass::new(self.scene.symbols(),&self.scene.layers))
-            .add(ScreenRenderPass::new(self))
+        let logger   = &self.scene.renderer.logger;
+        let pipeline = render::Pipeline::new()
+            .add(SymbolsRenderPass::new(&logger,&self.scene,self.scene.symbols(),&self.scene.layers))
+            .add(ScreenRenderPass::new(&self.scene))
             .add(pixel_read_pass);
         self.scene.renderer.set_pipeline(pipeline);
     }

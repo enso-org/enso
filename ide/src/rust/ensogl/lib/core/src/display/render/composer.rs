@@ -1,21 +1,22 @@
-//! This module defines render composer, a render pipeline bound to a specific context.
+//! Render composer definition, which is a render pipeline bound to a specific context.
 
 use crate::prelude::*;
 
+use crate::display::render::pass;
 use crate::display::render::pipeline::*;
 use crate::system::gpu::*;
-use js_sys::Array;
 
 
 
-// ======================
-// === RenderComposer ===
-// ======================
+// ================
+// === Composer ===
+// ================
 
-shared! { RenderComposer
+shared! { Composer
 /// Render composer is a render pipeline bound to a specific context.
 #[derive(Debug)]
-pub struct RenderComposerData {
+pub struct ComposerModel {
+    pipeline  : Pipeline,
     passes    : Vec<ComposerPass>,
     variables : UniformScope,
     context   : Context,
@@ -26,29 +27,49 @@ pub struct RenderComposerData {
 impl {
     /// Constructor
     pub fn new
-    ( pipeline  : &RenderPipeline
+    ( pipeline  : &Pipeline
     , context   : &Context
     , variables : &UniformScope
     , width     : i32
     , height    : i32
     ) -> Self {
+        let pipeline  = pipeline.clone_ref();
         let passes    = default();
         let context   = context.clone();
         let variables = variables.clone_ref();
-        let mut this  = Self {passes,variables,context,width,height};
-        for pass in pipeline.passes_clone() { this.add(pass); };
+        let mut this  = Self {pipeline,passes,variables,context,width,height};
+        this.init_passes();
         this
     }
 
-    fn add(&mut self, pass:Box<dyn RenderPass>) {
-        let pass = ComposerPass::new(&self.context,&self.variables,pass,self.width,self.height);
-        self.passes.push(pass);
+    /// Set a new pipeline for this composer.
+    pub fn set_pipeline(&mut self, pipeline:&Pipeline) {
+        self.pipeline = pipeline.clone_ref();
+        self.init_passes();
+    }
+
+    /// Resize the composer and reinitialize all of its layers.
+    pub fn resize(&mut self, width:i32, height:i32) {
+        self.width  = width;
+        self.height = height;
+        self.init_passes();
+    }
+
+    /// Initialize all pass definitions from the [`Pipeline`].
+    fn init_passes(&mut self) {
+        let ctx    = &self.context;
+        let vars   = &self.variables;
+        let width  = self.width;
+        let height = self.height;
+        let defs   = self.pipeline.passes_clone();
+        let passes = defs.into_iter().map(|pass| ComposerPass::new(ctx,vars,pass,width,height));
+        self.passes = passes.collect_vec();
     }
 
     /// Run all the registered passes in this composer.
     pub fn run(&mut self) {
         for pass in &mut self.passes {
-            pass.run(&self.context);
+            pass.run();
         }
     }
 }}
@@ -59,18 +80,26 @@ impl {
 // === ComposerPass ===
 // ====================
 
-/// A `RenderPass` bound to a specific rendering context.
+/// A `pass::Definition` bound to a specific rendering context.
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct ComposerPass {
     #[derivative(Debug="ignore")]
-    pass        : Box<dyn RenderPass>,
-    outputs     : Vec<AnyTextureUniform>,
-    framebuffer : Option<web_sys::WebGlFramebuffer>,
-    variables   : UniformScope,
-    context     : Context,
-    width       : i32,
-    height      : i32,
+    pass     : Box<dyn pass::Definition>,
+    instance : pass::Instance,
+}
+
+impl Deref for ComposerPass {
+    type Target = pass::Instance;
+    fn deref(&self) -> &Self::Target {
+        &self.instance
+    }
+}
+
+impl DerefMut for ComposerPass {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.instance
+    }
 }
 
 impl ComposerPass {
@@ -79,66 +108,17 @@ impl ComposerPass {
     pub fn new
     ( context   : &Context
     , variables : &UniformScope
-    , pass      : Box<dyn RenderPass>
+    , mut pass  : Box<dyn pass::Definition>
     , width     : i32
     , height    : i32
     ) -> Self {
-        let outputs      = default();
-        let variables    = variables.clone_ref();
-        let context      = context.clone();
-        let is_not_empty = !pass.outputs().is_empty();
-        let framebuffer  = is_not_empty.as_some_from(|| context.create_framebuffer().unwrap());
-        let mut this     = Self {pass,outputs,framebuffer,variables,context,width,height};
-        this.initialize();
-        this
+        let instance = pass::Instance::new(context,variables,width,height);
+        pass.initialize(&instance);
+        Self {pass,instance}
     }
 
     /// Run the pass.
-    pub fn run(&mut self, context:&Context) {
-        self.context.bind_framebuffer(Context::FRAMEBUFFER,self.framebuffer.as_ref());
-        self.pass.run(context,&self.variables);
-    }
-
-    fn initialize(&mut self) {
-        self.initialize_outputs();
-        self.initialize_draw_buffers();
-    }
-
-    fn initialize_outputs(&mut self) {
-        for output in &self.pass.outputs() {
-            let name    = format!("pass_{}",output.name());
-            let args    = (self.width,self.height);
-            let texture = uniform::get_or_add_gpu_texture_dyn
-                (&self.context,&self.variables,&name,output.internal_format,output.item_type,args,
-                 Some(output.texture_parameters));
-            self.add_output(texture);
-        }
-    }
-
-    /// WebGL has to be informed to what attachments it is allowed to draw. This function enables
-    /// every attachment bound to an output.
-    fn initialize_draw_buffers(&mut self) {
-        if !self.outputs.is_empty() {
-            let draw_buffers = Array::new();
-            self.outputs.iter().enumerate().for_each(|(i, _)| {
-                let attachment_point = Context::COLOR_ATTACHMENT0 + i as u32;
-                draw_buffers.push(&attachment_point.into());
-            });
-            self.context.draw_buffers(&draw_buffers);
-        }
-    }
-
-    fn add_output(&mut self, texture:AnyTextureUniform) {
-        let context          = &self.context;
-        let target           = Context::FRAMEBUFFER;
-        let texture_target   = Context::TEXTURE_2D;
-        let index            = self.outputs.len() as u32;
-        let attachment_point = Context::COLOR_ATTACHMENT0 + index;
-        let gl_texture       = texture.gl_texture();
-        let gl_texture       = Some(&gl_texture);
-        let level            = 0;
-        self.outputs.push(texture);
-        context.bind_framebuffer(target,self.framebuffer.as_ref());
-        context.framebuffer_texture_2d(target,attachment_point,texture_target,gl_texture,level);
+    pub fn run(&mut self) {
+        self.pass.run(&self.instance);
     }
 }

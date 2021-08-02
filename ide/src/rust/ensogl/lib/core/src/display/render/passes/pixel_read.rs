@@ -2,13 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::display::render::pipeline::*;
+use crate::display::render::pass;
 use crate::system::gpu::*;
+use crate::system::gpu::data::texture::class::TextureOps;
 use crate::system::js::*;
 
 use web_sys::WebGlBuffer;
-use web_sys::WebGlSync;
 use web_sys::WebGlFramebuffer;
+use web_sys::WebGlSync;
 
 
 
@@ -150,18 +151,18 @@ impl<T:JsTypedArrayItem> PixelReadPass<T> {
     }
 }
 
-impl<T:JsTypedArrayItem> RenderPass for PixelReadPass<T> {
-    fn run(&mut self, context:&Context, variables:&UniformScope) {
+impl<T:JsTypedArrayItem> pass::Definition for PixelReadPass<T> {
+    fn run(&mut self, instance:&pass::Instance) {
         if self.to_next_read > 0 {
             self.to_next_read -= 1;
         } else {
             self.to_next_read = self.threshold;
-            self.init_if_fresh(context,variables);
+            self.init_if_fresh(&instance.context,&instance.variables);
             if let Some(sync) = self.sync.clone() {
-                self.check_and_handle_sync(context,&sync);
+                self.check_and_handle_sync(&instance.context,&sync);
             }
             if self.sync.is_none() {
-                self.run_not_synced(context);
+                self.run_not_synced(&instance.context);
             }
         }
     }

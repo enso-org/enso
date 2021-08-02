@@ -7,6 +7,7 @@ use ensogl_core::system::web;
 use wasm_bindgen::prelude::*;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::world::*;
+use ensogl_core::display::scene;
 use ensogl_core::display::shape::*;
 use ensogl_core::data::color;
 use ensogl_core::display::style::theme;
@@ -85,75 +86,76 @@ pub fn entry_point_complex_shape_system() {
     theme_manager.set_enabled(&["theme1".to_string()]);
 
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
-    style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
+    // style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
     style_watch.get("base_color");
 
-    let view = shape::View::new(&logger);
-    view.size.set(Vector2::new(300.0, 300.0));
-    view.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+    let view1 = shape::View::new(&logger);
+    view1.size.set(Vector2::new(300.0, 300.0));
+    view1.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+
+    let mask = mask::View::new(&logger);
+    mask.size.set(Vector2::new(300.0, 300.0));
+    mask.mod_position(|t| *t = Vector3::new(-50.0, 0.0, 0.0));
+
+    let scissor_box = scene::layer::ScissorBox::new_with_position_and_size(default(),Vector2(600,600));
+    scene.layers.main.set_scissor_box(Some(&scissor_box));
 
     let view2 = shape::View::new(&logger);
     view2.size.set(Vector2::new(300.0, 300.0));
-    view2.mod_position(|t| *t = Vector3::new(-50.0, -50.0, 0.0));
+    view2.mod_position(|t| *t = Vector3::new(50.0, 0.0, 0.0));
 
-    // let mask = mask::View::new(&logger);
-    // mask.size.set(Vector2::new(300.0, 300.0));
-    // mask.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+    world.add_child(&view1);
+    world.add_child(&mask);
 
-    // world.scene().layers.mask.add_exclusive(&mask);
-    DEBUG!("--- add exclusive ---");
-    // world.scene().layers.viz.add_exclusive(&view2);
-    // world.scene().layers.viz.add_exclusive(&mask);
-    // scene.layers.viz.add_exclusive(&view);
-
-
-    world.add_child(&view);
-    world.add_child(&view2);
-    // world.add_child(&mask);
     world.keep_alive_forever();
     let scene = world.scene().clone_ref();
 
-    let mut to_theme_switch = 100;
-
-    mem::forget(view);
-    mem::forget(view2);
-
+    let mut frame = 0;
     world.on_frame(move |_time| {
-        // let _keep_alive = &view;
-        // let _keep_alive = &view2;
-        // let _keep_alive = &mask;
+        mask.set_position_x(((frame as f32)/30.0).sin()*100.0);
+
         let _keep_alive = &navigator;
         let _keep_alive = &style_watch;
         let _keep_alive = &theme_manager;
-        if to_theme_switch == 50 {
-            DEBUG!("---------------");
-            DEBUG!("{scene.layers.main:#?}");
-            DEBUG!("{scene.layers.mask:#?}");
-            DEBUG!("{scene.layers.viz:#?}");
+        if frame == 50 {
+            // These comments are left for easy debugging in the future.
+            // DEBUG!("---------------");
+            // DEBUG!("{scene.layers.node_searcher:#?}");
+            // DEBUG!("{scene.layers.main:#?}");
+            // DEBUG!("{scene.layers.mask:#?}");
+            // DEBUG!("{scene.layers.node_searcher_mask:#?}");
+            // DEBUG!("{scene.layers.viz:#?}");
         }
-        if to_theme_switch == 0 {
-            DEBUG!("SWITCH!");
-            // scene.layers.mask.add_exclusive(&view);
-            // scene.layers.mask.add_exclusive(&view2);
-            // theme_manager.set_enabled(&["theme2".to_string()]);
-
-            let view3 = shape::View::new(&logger);
-            view3.size.set(Vector2::new(300.0, 300.0));
-            view3.mod_position(|t| *t = Vector3::new(50.0, -50.0, 0.0));
-            scene.add_child(&view3);
-
-            // scene.layers.viz.add_exclusive(&view3);
-
-            mem::forget(view3);
+        if frame == 100 {
+            DEBUG!("Adding previously hidden element.");
+            scene.add_child(&view2);
+            // These comments are left for easy debugging in the future.
+            // DEBUG!("---------------");
+            // DEBUG!("{scene.layers.node_searcher:#?}");
+            // DEBUG!("{scene.layers.main:#?}");
+            // DEBUG!("{scene.layers.mask:#?}");
+            // DEBUG!("{scene.layers.node_searcher_mask:#?}");
+            // DEBUG!("{scene.layers.viz:#?}");
         }
-        if to_theme_switch == -50 {
-            DEBUG!("---------------");
-            DEBUG!("{scene.layers.main:#?}");
-            DEBUG!("{scene.layers.mask:#?}");
-            let s = format!("{:#?}",scene.layers.viz);
-            DEBUG!(s);
+        if frame == 150 {
+            DEBUG!("Enabling masking.");
+            // These comments are left for easy debugging in the future.
+            // DEBUG!("---------------");
+            // DEBUG!("{scene.layers.node_searcher:#?}");
+            // DEBUG!("{scene.layers.main:#?}");
+            // DEBUG!("{scene.layers.mask:#?}");
+            // DEBUG!("{scene.layers.node_searcher_mask:#?}");
+            // DEBUG!("{scene.layers.viz:#?}");
+
+            scene.layers.node_searcher.add_exclusive(&view1);
+            scene.layers.node_searcher.add_exclusive(&view2);
+            scene.layers.node_searcher_mask.add_exclusive(&mask);
         }
-        to_theme_switch -= 1;
+        if frame == 200 {
+            DEBUG!("Changing the theme.");
+            theme_manager.set_enabled(&["theme2".to_string()]);
+        }
+        frame += 1;
     }).forget();
 
 }

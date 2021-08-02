@@ -274,6 +274,7 @@ impl Model {
 
         app.display.scene().layers.below_main.add_exclusive(&hover_area);
         app.display.scene().layers.below_main.add_exclusive(&background);
+        app.display.scene().layers.above_nodes.add_exclusive(&icons);
 
         shapes.add_sub_shape(&hover_area);
         shapes.add_sub_shape(&background);
