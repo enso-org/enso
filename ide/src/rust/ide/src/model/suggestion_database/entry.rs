@@ -266,15 +266,18 @@ impl Entry {
                 kind               : Kind::Local,
                 scope              : Scope::InModule {range:scope.into()},
             },
-            Module {module,documentation,..} => Self {
-                name               : module.clone(),
-                arguments          : default(),
-                module             : module.clone().try_into()?,
-                self_type          : None,
-                documentation_html : documentation,
-                kind               : Kind::Module,
-                scope              : Scope::Everywhere,
-                return_type        : module
+            Module {module,documentation_html,..} => {
+                let module_name: module::QualifiedName = module.clone().try_into()?;
+                Self {
+                    documentation_html,
+                    name        : module_name.id().name().into(),
+                    arguments   : default(),
+                    module      : module_name,
+                    self_type   : None,
+                    kind        : Kind::Module,
+                    scope       : Scope::Everywhere,
+                    return_type : module
+                }
             }
         };
         Ok(this)

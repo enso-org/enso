@@ -14,7 +14,7 @@ these updates be shipped in a stable release before the end of the year.
 
 #### Enso Compiler
 
-- [Updated Enso engine to version 0.2.16][1726]. If you're interested in the
+- [Updated Enso engine to version 0.2.19][1726]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
   [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
