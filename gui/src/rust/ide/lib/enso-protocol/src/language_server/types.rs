@@ -871,9 +871,10 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all="camelCase")]
     Module {
-        module        : String,
-        documentation : Option<String>,
-        reexport      : Option<String>,
+        module             : String,
+        documentation      : Option<String>,
+        documentation_html : Option<String>,
+        reexport           : Option<String>,
     },
 }
 
