@@ -1,5 +1,11 @@
 # Enso Next
 
+## Compiler/Interpreter
+
+- Fixed a bug with module documentation where it would associate the wrong
+  doc-block with the module
+  ([#1919](https://github.com/enso-org/enso/pull/1919)).
+
 # Enso 0.2.18 (2021-08-02)
 
 ## Libraries
