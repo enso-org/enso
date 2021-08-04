@@ -20,5 +20,5 @@ Please include the following checklist in your PR:
 - [ ] All code has been profiled where possible.
 - [ ] All code has been manually tested in the IDE.
 - [ ] All code has been manually tested in the "debug/interface" scene.
-- [ ] All code has been manually tested by the PR owner against our [test scenarios](https://docs.google.com/spreadsheets/d/1RatJDM_f9_3bvYhl3Bpq2d8SyKgtVdrV1RkGxPU17c8/edit?ts=5faa7049#gid=0).
-- [ ] All code has been manually tested by at least one reviewer against our [test scenarios](https://docs.google.com/spreadsheets/d/1RatJDM_f9_3bvYhl3Bpq2d8SyKgtVdrV1RkGxPU17c8/edit?ts=5faa7049#gid=0).
+- [ ] All code has been manually tested by the PR owner against our [test scenarios](https://airtable.com/shr7KPRypRpanF7TO).
+- [ ] All code has been manually tested by at least one reviewer against our [test scenarios](https://airtable.com/shr7KPRypRpanF7TO).
