@@ -269,6 +269,12 @@ Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
 Text.from_utf_8 : Vector.Vector Byte -> Text
 Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
 
+Text.utf_16 : Vector.Vector Char
+Text.utf_16 = Vector.from_array (Text_Utils.get_chars this)
+
+Text.from_utf_16 : Vector.Vector Char -> Text
+Text.from_utf_16 chars = Text_Utils.from_chars chars.to_array
+
 ## Returns a vector containing integers representing the Unicode codepoints of
    the input text.
 

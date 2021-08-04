@@ -1,0 +1,124 @@
+
+from Standard.Base import all
+import Standard.Test
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Regex.Mode
+
+polyglot java import java.util.regex.Pattern as Java_Pattern
+
+Text.slice_utf_16 start end =
+    chars = this.utf_16.drop_start start . drop_end (this.length - end)
+    Text.from_utf_16 chars
+
+default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
+
+spec =
+    Test.group "The default regex engine's options handling" <|
+
+        Test.specify "should convert options to Java" <|
+            options = [Global_Option.Verbose, Global_Option.Multiline, Default_Engine.Unix_Lines]
+            expected_mask = Java_Pattern.UNIX_LINES.bit_or Java_Pattern.COMMENTS . bit_or Java_Pattern.MULTILINE . bit_or here.default_mask
+            actual_mask = Default_Engine.from_enso_options options
+
+            actual_mask . should_equal expected_mask
+
+        Test.specify "should specify the unicode options by default" <|
+            actual_mask = Default_Engine.from_enso_options []
+
+            actual_mask . should_equal here.default_mask
+
+        Test.specify "should handle ascii matching by disabling unicode" <|
+            actual_mask = Default_Engine.from_enso_options [Global_Option.Ascii_Matching]
+            actual_mask . should_equal 0
+
+        Test.specify "should result in an error when an option is invalid" <|
+            Default_Engine.from_enso_options [""] . should_fail_with Default_Engine.Invalid_Option_Error
+            Default_Engine.from_enso_options ["", Global_Option.Ascii_Matching] . should_fail_with Default_Engine.Invalid_Option_Error
+
+    Test.group "The default regex engine (Regex.Engine.Default)" <|
+
+        Test.specify "should be able to compile patterns with no options" <|
+            engine = Default_Engine.new
+            pattern = engine.compile "^a$" []
+            pattern.engine . should_equal engine
+            pattern.options . should_equal []
+            pattern.internal_pattern.flags . should_equal here.default_mask
+
+        Test.specify "should be able to compile patterns with global options" <|
+            engine = Default_Engine.new
+            pattern = engine.compile "^a$" [Global_Option.Multiline]
+            pattern.engine . should_equal engine
+            pattern.options . should_equal [Global_Option.Multiline]
+            pattern.internal_pattern.flags . should_equal (here.default_mask.bit_or Java_Pattern.MULTILINE)
+
+        Test.specify "should be able to compile patterns with engine-specific options" <|
+            engine = Default_Engine.new [Default_Engine.Literal_Pattern]
+            pattern = engine.compile "^a$" []
+            pattern.engine . should_equal engine
+            pattern.options . should_equal [Default_Engine.Literal_Pattern]
+            pattern.internal_pattern.flags . should_equal (here.default_mask.bit_or Java_Pattern.LITERAL)
+
+        Test.specify "should be able to compile patterns with combined options" <|
+            engine = Default_Engine.new [Default_Engine.Literal_Pattern]
+            pattern = engine.compile "^a$" [Global_Option.Verbose]
+            pattern.engine . should_equal engine
+            pattern.options.contains Default_Engine.Literal_Pattern . should_be_true
+            pattern.options.contains Global_Option.Verbose . should_be_true
+            pattern.internal_pattern.flags . should_equal (here.default_mask . bit_or Java_Pattern.LITERAL . bit_or Java_Pattern.COMMENTS)
+
+        Test.specify "should return a syntax error of the regex syntax is invalid" <|
+            engine = Default_Engine.new
+            engine.compile "^(a" [] . should_fail_with Regex.Syntax_Error
+
+        Test.specify "should throw an invalid options error if an option is invalid" <|
+            engine = Default_Engine.new
+            engine.compile "^a$" ["invalid"] . should_fail_with Default_Engine.Invalid_Option_Error
+
+        Test.specify "should escape an expression for use as a literal" <|
+            pattern = "http://example.com"
+            engine = Default_Engine.new
+            engine.escape pattern . should_equal "\Qhttp://example.com\E"
+
+    Test.group "The default regex engine's Pattern.match" <|
+        Test.specify "should be able to `match` the first instance of the pattern in the input" <|
+            engine = Default_Engine.new
+            pattern = engine.compile "a" []
+            input = "a ab abc a bc bcd"
+            match = pattern.match input mode=Mode.First
+            match . should_be_a Regex.Match
+
+        Test.specify "should be able to `match` N instances of the pattern in the input" <|
+            Nothing
+
+        Test.specify "should be able to `match` the all instances of the pattern in the input" <|
+            Nothing
+
+        Test.specify "should be able to `match` the pattern against the entire input" <|
+            Nothing
+
+        Test.specify "should be able to `match` in ascii mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in case insensitive mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in dotall mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in multiline mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in verbose mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in literal mode" <|
+            Nothing
+
+        Test.specify "should be able to `match` in unix lines mode" <|
+            Nothing
+
+    Test.group "The default engine's `Match` type" <|
+        Nothing

@@ -1,0 +1,259 @@
+## Enso's default regular expression matching engine.
+
+   ==== TODO ====
+   Regex engines should conform to the following requirements:
+   - Regex engines should be Unicode compliant by default. In such a mode, all
+     character classes must behave as specified in the "Unicode Technical
+     Standard 18: Unicode Regular Expression Annex C: Compatability Properties"
+   - All engines must support the common regex syntax as described in
+     `Standard.Base.Data.Text.Regex`.
+   - Regex engines must provide the standard options as described in
+     `Standard.Base.Data.Text.Regex.Option`.
+   - Engines should provide a _full specification of their syntax_ along with
+     their type.
+
+   How on earth do we acually do this with unicode-aware character boundaries?
+
+from Standard.Base import all
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine
+import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Polyglot.Java as Java_Ext
+
+from Standard.Builtins import Java
+
+import Standard.Base.Error.Extensions as Error
+
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.util.regex.PatternSyntaxException
+polyglot java import java.util.regex.Pattern as Java_Pattern
+polyglot java import java.util.regex.Matcher as Java_Matcher
+polyglot java import com.ibm.icu.impl.UnicodeRegex
+polyglot java import org.enso.base.Regex_Utils
+
+## Construct an instance of the default engine.
+
+   Arguments:
+   - opts: Any engine-specific options.
+
+   > Example
+     Build a new default engine specifying literal mode.
+
+         import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
+         example_new =
+             engine_opts = [Default_Engine.Literal_Pattern]
+             Default_Engine.new engine_opts
+new : Vector.Vector Option -> Engine
+new opts=[] = Engine opts
+
+## Engine is an interface that must...
+   TODO syntax
+   TODO Write down and document the expected interface.
+type Engine
+
+    ## PRIVATE
+
+       The default regex engine for Enso.
+
+       Arguments:
+       - engine_opts: Options for regex matching that are specific to this
+         engine.
+    type Engine (engine_opts : Vector.Vector Option)
+
+    ## ADVANCED
+
+       Compile the provided `expression` into a regex pattern that can be used
+       for matching.
+
+       Arguments
+       - expression: The text representing the regular expression that you want
+         to compile.
+       - options: The options to configure the matching process with. These are
+         merged with the specific `engine_opts`.
+
+       ? Why Compile?
+         While many regex engines are able to cache ad-hoc patterns, it is often
+         useful to be able to manually retain a pattern that you have computed.
+         This function exists so you can hold onto the resultant `Pattern`
+         object, instead of immediately proceeding to match using it.
+
+       > Example
+         Compile the regex `"^a$"` in multiline mode so it matches all lines
+         consisting of a single "a".
+
+             import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+             import Standard.Base.Data.Text.Regex.Option as Global_Option
+
+             example_compile =
+                 expression = "^a$"
+                 options = [Global_Option.Multiline]
+                 engine = Default_Engine.new
+                 engine.compile expression options
+    compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
+    compile expression options =
+        all_options = options + this.engine_opts
+        options_bitmask = here.from_enso_options all_options
+        unicode_regex = UnicodeRegex.new
+
+        maybe_java_pattern = Panic.recover <|
+            Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
+
+        internal_pattern = maybe_java_pattern.map_error case _ of
+            Polyglot_Error err ->
+                if Java.is_instance err PatternSyntaxException . not then err else
+                    Regex.Syntax_Error err.getMessage
+            other -> other
+
+        Pattern internal_pattern all_options this
+
+    ## ADVANCED
+
+       Escape the special characters in `expression` such that the result is a
+       valid literal pattern for the original string.
+
+       Arguments:
+       - expression: The expression to escape metacharacters in.
+
+       > Example
+         Turn a literal string into a regex that matches that string exactly.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+             import Standard.Base.Data.Text.Regex.Option as Global_Option
+
+             example_escape =
+                 literal_string = "\!\.|abcde"
+                 engine = Default_Engine.new
+                 engine.escape literal_string
+    escape : Text -> Text
+    escape expression = Java_Pattern.quote expression
+
+## Pattern is an interface that must...
+   TODO Document this.
+type Pattern
+
+    ## PRIVATE
+
+       The default pattern type for Enso, produced by the default regex engine.
+
+       Arguments:
+       - internal_pattern: The internal representation of the compiled pattern.
+       - options: The vector of options with which this pattern was built.
+       - engine: A handle to the engine that built this pattern.
+    type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
+
+    ## PRIVATE
+
+       Gets the names of the regexes named groups from the regex.
+    candidate_group_names : Vector Text
+    candidate_group_names =
+        Vector.Vector (Regex_Utils.get_group_names this.internal_pattern)
+
+    ## TODO
+    match : Text -> Mode.Mode -> Regex.Match | Vector.Vector Regex.Match | Nothing
+    match input mode=Mode.All =
+        do_match_mode mode start end =
+            internal_matcher = this.internal_pattern.matcher input . region start end
+            if this.options.contains No_Anchoring_Bounds then
+                internal_matcher.useAnchoringBounds False
+            if this.options.contains Transparent_Bounds then
+                internal_matcher.useTransparentBounds True
+
+            case mode of
+                Mode.First -> if internal_matcher.find.not then Nothing else
+                    IO.println this.candidate_group_names
+                    Nothing
+                Integer -> Error.unimplemented
+                Mode.All -> Error.unimplemented
+                Mode.Full -> Error.unimplemented
+                Mode.Bounded _ _ _ -> Nothing
+
+        case mode of
+            Mode.Bounded start end sub_mode -> do_match_mode sub_mode start end
+            _ -> do_match_mode mode 0 input.length
+
+    ## TODO
+    # find : Text -> Mode.Mode -> Text | Vector.Veector Text | Nothing
+    # find input mode=Mode.All = Error.unimplemented
+
+    ## TODO
+    # split : Text -> Mode.Mode -> Vector.Vector Text | Nothing
+    # split input mode=Mode.All = Error.unimplemented
+
+    ## TODO
+    # replace : Text -> Text -> Mode.Mode -> Text
+    # replace input replacement mode=Mode.All = Error.unimplemented
+
+## Options specific to the `Default` regular expression engine.
+type Option
+
+    ## Specifies that the input expression to the pattern be treated as a
+       sequence of literal characters. Metacharacters and escape sequences have
+       no special meaning in this mode.
+    type Literal_Pattern
+
+    ## Disables anchoring to the region's boundaries.
+
+       By default, the regex engine will allow `^` and `$` to match the
+       boundaries of a restricted region. With this option specified, they will
+       only match the start and end of the input.
+    type No_Anchoring_Bounds
+
+    ## Enables transparent bounds.
+
+       Setting this option will allow the regex engine to look "through" the
+       boundaries of the engine's region for the purposes of lookahead,
+       lookbehind, and boundary matching.
+
+       Without this flag, the region boundaries are treated as opaque, meaning
+       that the above constructs will fail to match anything outside the region.
+    type Transparent_Bounds
+
+    ## Specifies that only the unix line ending `''\n'` be considered in the
+       behaviour of the `^` and `$` special characters.
+    type Unix_Lines
+
+## PRIVATE
+
+   Generates a Java bitmask representing the options used to configure the
+   regex.
+
+   Arguments:
+   - opts: The enso-side options to configure the regex.
+from_enso_options : Vector.Vector (Option | Global_Option.Option) -> Integer
+from_enso_options opts =
+    java_flags = Panic.recover <| opts.flat_map case _ of
+        Literal_Pattern -> [Java_Pattern.LITERAL]
+        Unix_Lines -> [Java_Pattern.UNIX_LINES]
+        Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
+        Global_Option.Dotall -> [Java_Pattern.DOTALL]
+        Global_Option.Multiline -> [Java_Pattern.MULTILINE]
+        Global_Option.Verbose -> [Java_Pattern.COMMENTS]
+        Global_Option.Ascii_Matching -> []
+        No_Anchoring_Bounds -> []
+        Transparent_Bounds -> []
+        other -> Panic.throw (Invalid_Option_Error other)
+
+    options_bitmask = java_flags.fold 0 .bit_or
+
+    if opts.contains Global_Option.Ascii_Matching then options_bitmask else
+        unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
+        options_bitmask.bit_or unicode
+
+## PRIVATE
+
+   An error representing that one of the passed options was invalid.
+
+   Arguments:
+   - opt: The option that was not valid for this regex engine.
+type Invalid_Option_Error (opt : Any)
+
+## PRIVATE
+
+   Provides a human-readable representation of the invalid option error.
+Invalid_Option_Error.to_display_text : Text
+Invalid_Option_Error.to_display_text =
+    "The option " + this.opt.to_text + " is not valid for the default regex engine."
+

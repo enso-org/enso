@@ -1,0 +1,22 @@
+## An `Engine` is a configuration and behaviour specification object for a
+   particular regular expression engine.
+
+   Regex engines should conform to the following requirements:
+   - Regex engines should be Unicode compliant by default. In such a mode, all
+     character classes must behave as specified in the "Unicode Technical
+     Standard #18: Unicode Regular Expression Annex C: Compatability Properties"
+   - All engines must support the common regex syntax as described in
+     `Standard.Base.Data.Text.Regex`.
+   - Regex engines must provide the standard options as described in
+     `Standard.Base.Data.Text.Regex.Option`.
+   - Engines should provide a _full specification of their syntax_ along with
+     their type.
+   - Engines must conform to the interface as described below.
+
+   This file is _not executable_. It instead describes the interface for the
+   customisable `Engine` and `Pattern` types.
+
+from Standard.Base import all
+
+from Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine export Default
+

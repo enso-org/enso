@@ -605,7 +605,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val escape_u16 = "\\u" >> repeat(escapeChar, 0, 4)
     val escape_u32 = "\\U" >> repeat(escapeChar, 0, 8)
     val fmtSeg     = fmtChar.many1
-    val rawSeg     = noneOf("\"\n\\").many1
+    val rawSeg     = noneOf("\"\n").many1
     val fmtBSeg    = noneOf("\n\\`").many1
     val rawBSeg    = noneOf("\n").many1
 
@@ -668,10 +668,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   text.RAW_LINE || text.rawSeg || text.submitPlainSegment()
   text.RAW_LINE || eof         || text.submitMissingQuote()
   text.RAW_LINE || newline     || text.submitMissingQuote()
-  text.RAW_LINE || "\\\""      || text.onEscapeRawQuote()
-  text.RAW_LINE || "\\\\"      || text.onEscapeSlash()
-  text.RAW_LINE || "\\" >> any || text.onEscapeInvalid()
-  text.RAW_LINE || "\\"        || text.onEscapeUnfinished()
 
   text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
   text.RAW_BLCK   || eof           || text.onEndOfBlock()

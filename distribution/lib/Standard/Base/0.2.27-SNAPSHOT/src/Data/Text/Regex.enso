@@ -1,0 +1,531 @@
+## TODO Module doc
+   TODO Clarify behaviour around "characters"
+   TODO Common syntax specification
+
+from Standard.Base import all
+
+import Standard.Base.Data.Map
+import Standard.Base.Data.Text.Span
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine
+import Standard.Base.Data.Text.Regex.Engine.Default
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Regex.Option
+import Standard.Base.Data.Text.Split_Kind
+import Standard.Base.Data.Map
+
+import Standard.Base.Error.Extensions as Errors
+
+## Compile the provided `expression` into a regex pattern that can be used for
+   matching.
+
+   Arguments
+   - expression: The text representing the regular expression that you want to
+     compile.
+   - engine: The regular expression engine to use. It defaults to Enso's
+     built-in one which has good performance and a full feature-set.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dotall: Enables or disables the dotall option. Dotall specifies that the
+     `.` special character should match everything _including_ newline
+     characters. Without this flag, it will match all characters _except_
+     newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. Where these overlap
+     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
+     `multiline` and `verbose`), the flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   ? Why Compile?
+     While many regex engines are able to cache ad-hoc patterns, it is often
+     useful to be able to manually retain a pattern that you have computed. This
+     function exists so you can hold onto the resultant `Pattern` object,
+     instead of immediately proceeding to match using it.
+
+   > Example
+     TODO no overrides, with overrides, with options, with specific engine
+# compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern
+# compile expression engine=Default.Engine.new match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    # Errors.unimplemented
+
+## Escape the special characters in `expression` such that the result is a valid
+   literal pattern for the original string.
+
+   Arguments:
+   - expression: The expression to escape metacharacters in.
+   - engine: The regular expression engine to use. It defaults to Enso's
+     built-in one which has good performance and a full feature-set.
+
+   ! Matching Engines
+     Care should be taken to ensure that you use the same engine for escaping
+     and matching, as engine syntax may differ in certain cases.
+
+   > Example
+     TODO with custom engine, without
+# escape : Text -> Engine.Engine -> Text
+# escape expression engine=Default = engine.build.escape expression
+
+# !!!!!!!!!!!!! TODO These should be in `Text.Extensions` !!!!!!!!!!!!!!!!!!
+
+## ALIAS Match Text
+
+   Matches the text in `this` against the provided regex `pattern`, returning
+   the match(es) if present or `Nothing` if there are no matches.
+
+   Arguments:
+   - pattern: The pattern to match `this` against. We recommend using _raw text_
+     to write your patterns.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Match` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Match` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dotall: Enables or disables the dotall option. Dotall specifies that the
+     `.` special character should match everything _including_ newline
+     characters. Without this flag, it will match all characters _except_
+     newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. Where these overlap
+     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
+     `multiline` and `verbose`), the flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     TODO stuff
+# Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing
+# Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    # Errors.unimplemented
+
+## ALIAS Find Text
+
+   Finds all occurrences of `pattern` in the text `this`, returning the text(s)
+   if present, or `Nothing` if there are no matches.
+
+   Arguments:
+   - pattern: The pattern to match `this` against. We recommend using _raw text_
+     to write your patterns.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Text` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dotall: Enables or disables the dotall option. Dotall specifies that the
+     `.` special character should match everything _including_ newline
+     characters. Without this flag, it will match all characters _except_
+     newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. Where these overlap
+     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
+     `multiline` and `verbose`), the flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     TODO stuff
+# Text.find : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text | Vector.Vector Text | Nothing
+# Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    # Errors.unimplemented
+
+## ALIAS Split
+
+   Takes a separator and returns the vector that results from splitting `this`
+   on the configured number of occurrences of `separator`.
+
+   Arguments:
+   - separator: The pattern used to split the text.
+   - mode: This argument specifies how many matches the engine will try and
+     find. When mode is set to either `Mode.First` or `Mode.Full`, this method
+     will return either a single `Text` or `Nothing`. If set to an `Integer` or
+     `Mode.All`, this method will return either a `Vector Text` or `Nothing`.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dotall: Enables or disables the dotall option. Dotall specifies that the
+     `.` special character should match everything _including_ newline
+     characters. Without this flag, it will match all characters _except_
+     newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. Where these overlap
+     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
+     `multiline` and `verbose`), the flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     TODO stuff
+# Text.split_new : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
+# Text.split_new separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    # Errors.unimplemented
+
+## ALIAS Replace Text
+
+   Replaces each occurrence of `old_sequence` with `new_sequence`, returning
+   `this` unchanged if no matches are found.
+
+   Arguments:
+   - old_sequence: The pattern to search for in `this`.
+   - new_sequence: The text to replace every occurrence of `old_sequence` with.
+   - mode: This argument specifies how many matches the engine will try to
+     replace.
+   - match_ascii: Enables or disables pure-ASCII matching for the regex. If you
+     know your data only contains ASCII then you can enable this for a
+     performance boost on some regex engines.
+   - case_insensitive: Enables or disables case-insensitive matching. Case
+     insensitive matching behaves as if it normalises the case of all input
+     text before matching on it.
+   - dotall: Enables or disables the dotall option. Dotall specifies that the
+     `.` special character should match everything _including_ newline
+     characters. Without this flag, it will match all characters _except_
+     newlines.
+   - multiline: Enables or disables the multiline option. Multiline specifies
+     that the `^` and `$` pattern characters match the start and end of lines,
+     as well as the start and end of the input respectively.
+   - verbose: Enables or disables the verbose mode for the regular expression.
+     In verbose mode, the following changes apply:
+     - Whitespace within the pattern is ignored, except when within a
+       character class or when preceeded by an unescaped backslash, or within
+       grouping constructs (e.g. `(?...)`).
+     - When a line contains a `#`, that is not in a character class and is not
+       preceeded by an unescaped backslash, all characters from the leftmost
+       such `#` to the end of the line are ignored. That is to say, they act
+       as _comments_ in the regex.
+   - extra_opts: Specifies additional options in a vector. Where these overlap
+     with one of the flags (`match_ascii`, `case_insensitive`, `dotall`,
+     `multiline` and `verbose`), the flags take precedence.
+
+   ! Boolean Flags and Extra Options
+     This function contains a number of arguments that are boolean flags that
+     enable or disable common options for the regex. At the same time, it also
+     provides the ability to specify options in the `extra_opts` argument.
+
+     Where one of the flags is _set_ (has the value `True` or `False`), the
+     value of the flag takes precedence over the value in `extra_opts` when
+     merging the options to the engine. The flags are _unset_ (have value
+     `Nothing`) by default.
+
+   > Example
+     TODO stuff
+# Text.replace_new : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
+# Text.replace_new old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    # Errors.unimplemented
+
+type Match
+
+    ## PRIVATE
+
+       A representation of a regular expression match.
+
+       Arguments:
+       - groups_by_index: The groups in the match by index. This must contain
+         _all_ of the groups, not only the unnamed ones. The index in the vector
+         must correspond to the index of the group. It must contain the full
+         match at index zero.
+       - groups_by_name: The groups in the match by name. All named groups must
+         be present in the Map, even if they didn't match.
+       - region_start: The character index from which the match process
+         started in the input.
+       - region_end: The first character index in the match after
+         `start_position` that was not part of the range being matched on.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       ! Unmatched Groups
+         If a group is contained in a part of the pattern that did not match,
+         both `indexed_groups` and `named_groups`
+    type Match (groups_by_index : Vector.Vector Group) (groups_by_name : Map.Map Text Group) (region_start : Integer) (region_end : Integer)
+
+    ## PRIVATE
+
+       Gets the internal group structure for the given identifier.
+
+       Arguments:
+       - id: The identifier of the group to get.
+    internal_group : Integer | Text -> Group ! No_Such_Group_Error
+    internal_group id = case id of
+        Integer -> if id >= this.groups_by_index.length then Error.throw (No_Such_Group_Error id) else
+            this.groups_by_index.at id
+        Text -> this.groups_by_name.get id . map_error case _ of
+            Map.No_Value_For_Key_Error _ -> No_Such_Group_Error id
+
+    ## Gets the text matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+
+       Arguments:
+       - id: The index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         TODO
+    group : Integer | Text -> Text | Nothing ! No_Such_Group_Error
+    group id = this.internal_group id . map_nothing .text
+
+    ## Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         TODO
+    groups : (a : Any) -> Vector.Vector (Text | a)
+    groups default=Nothing = this.groups_by_index.map x->
+        case x.text of
+            Nothing -> default
+            a -> a
+
+    ## Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match.
+
+       > Example
+         TODO
+    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups default=Nothing = this.groups_by_name.map x->
+        case x.text of
+            Nothing -> default
+            a -> a
+
+    ## Gets the index of the first character captured by the group with the
+       given identifier, or `Nothing` if the group did not participate in the
+       match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the start index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    start : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
+    start id = this.internal_group id . map_nothing .start
+
+    ## Gets the index of the first character after `start` that was not captured
+       by the group with the given identifier, or `Nothing` if the group did not
+       participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    end : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
+    end id = this.internal_group id . map_nothing .end
+
+    ## Returns the span matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    span : Integer | Text -> Span | Nothing ! No_Such_Group_Error
+    span id = this.internal_group id |> group->
+        case group.text of
+            Nothing -> Nothing
+            _ -> Span.new (this.start id) (this.end id) (this.group 0)
+
+    ## Returns the start character index of the match's region.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    start_position : Integer
+    start_position = this.region_start
+
+    ## Returns the end character index of the match's region.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    end_position : Integer
+    end_position = this.region_end
+
+type Group
+
+    ## PRIVATE
+
+       A representation of the content matched by a group.
+
+       Arguments:
+       - text: The text matched by the group
+    type Group (text : Text | Nothing) (start : Integer | Nothing) (end : Integer | Nothing)
+
+    ## PRIVATE
+
+       Checks whether `this` actually matched in the input.
+    matched : Boolean
+    matched = !this.text.is_nothing
+
+## PRIVATE
+
+   An error that is emitted when there is no such group in the match for the
+   provided `id`.
+
+   Arguments:
+   - id: The identifier of the group that was asked for but does not exist.
+type No_Such_Group_Error (id : Text | Integer)
+
+## PRIVATE
+
+   Provides a human-readable representation of the `No_Such_Group_Error`.
+No_Such_Group_Error.to_display_text : Text
+No_Such_Group_Error.to_display_text = case this.id of
+    Integer -> "No group exists with the index " + this.id.to_text + "."
+    Text -> "No group exists with the name " + this.id + "."
+
+## PRIVATE
+
+   An error that is emitted when the regex could not be compiled due to
+   syntactic errors
+
+   Arguments:
+   - message: A description of the syntactic error.
+type Syntax_Error (message : Text)
+
+## PRIVATE
+
+   Converts the compile error to a human-readable representation.
+Syntax_Error.to_display_text : Text
+Syntax_Error.to_display_text =
+    "The regex could not be compiled: " + this.message
+

@@ -177,7 +177,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Standard.Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\x01\\x0F\\x10'") "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\x01\x0F\x10'") "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -234,7 +234,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
         """from Standard.Builtins import all
           |
           |main =
-          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2") "" False True True
+          |    result = System.create_process "bash" (Array.new_2 "-c" "printf '%b' '\xCA\xFE\xBA\xBE' 1>&2") "" False True True
           |    result.exit_code
           |""".stripMargin
 

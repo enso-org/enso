@@ -1,0 +1,14 @@
+
+from Standard.Base import all
+import Standard.Test
+
+import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
+
+spec = Test.group "Regexes" <|
+    Test.specify "should be able to be compiled" <|
+        Nothing
+
+    Test.specify "should be able to be escaped" <|
+        Nothing
+

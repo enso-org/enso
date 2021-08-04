@@ -69,7 +69,7 @@ class TextTest extends InterpreterTest {
       val code =
         """from Standard.Builtins import all
           |
-          |main = IO.println "\"Grzegorz Brzeczyszczykiewicz\""
+          |main = IO.println '\"Grzegorz Brzeczyszczykiewicz\"'
           |""".stripMargin
 
       eval(code)

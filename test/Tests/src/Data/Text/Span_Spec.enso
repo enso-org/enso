@@ -1,0 +1,21 @@
+
+from Standard.Base import all
+import Standard.Test
+
+import Standard.Base.Data.Text.Span
+
+spec = Test.group "Text.Span" <|
+
+    Test.specify "should be able to be created over a text" <|
+        text = "Hello!"
+        span = Span.new 0 3 text
+        span.start . should_equal 0
+        span.end . should_equal 3
+        span.text . should_equal text
+
+    Test.specify "should be able to be created without a text" <|
+        span = Span.new 5 8
+        span.start . should_equal 5
+        span.end . should_equal 8
+        span.text . should_equal Nothing
+
