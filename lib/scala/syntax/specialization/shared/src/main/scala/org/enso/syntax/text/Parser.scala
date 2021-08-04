@@ -639,31 +639,31 @@ object Main extends scala.App {
   println("--- PARSING ---")
 
   val mod = parser.run(testWithMultilineComment)
-
-  println(Debug.pretty(mod.toString))
-
-  println("=========================")
-  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
+//
+//  println(Debug.pretty(mod.toString))
+//
+//  println("=========================")
+//  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
   val rmod = parser.resolveMacros(mod)
-  if (mod != rmod) {
-    println("\n---\n")
-    println(Debug.pretty(rmod.toString))
-  }
-
-  println("------")
-  println(mod.show() == testWithMultilineComment)
-  println("------")
-  println(mod.show())
-  println("------")
+//  if (mod != rmod) {
+//    println("\n---\n")
+//    println(Debug.pretty(rmod.toString))
+//  }
+//
+//  println("------")
+//  println(mod.show() == testWithMultilineComment)
+//  println("------")
+//  println(mod.show())
+//  println("------")
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
   val droppedMeta = parser.dropMacroMeta(mod)
   val doc         = docparser.DocParserRunner.createDocs(droppedMeta)
 
-  println(Debug.pretty(doc.toString))
-  println("------")
-  println(doc.show())
+//  println(Debug.pretty(doc.toString))
+//  println("------")
+//  println(doc.show())
   val htmlCode =
     docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
   println("========== HTML ===========")

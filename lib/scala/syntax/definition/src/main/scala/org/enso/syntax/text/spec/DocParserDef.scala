@@ -552,6 +552,10 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onIndentPattern(): Unit =
       logger.trace {
+        println("=-" * 20)
+        println("CML: " + currentMatch.length)
+        println("CL: " + indent.current)
+        println("*-" * 20)
         state.end()
         if (result.stack.nonEmpty) {
           indent.onPushingNewLine()
@@ -719,8 +723,27 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onNewRaw(): Unit =
       logger.trace {
+        println(" -=-" * 20)
+        println("CML: " + currentMatch.length)
+        println("CL: " + indent.current)
+        println("CL: " + section.currentIndentRaw)
+        println(" -*-" * 20)
+        println("SZTACK")
+        println(" -*-" * 20)
+        println(result.current)
+        println(result.stack)
+        println(section.current)
+        println(section.stack)
+        println(" -*-" * 20)
         indent.onEmptyLine()
         onNew(None)
+        println("SZTACK AFTERR")
+        println(" -*-" * 20)
+        println(result.current)
+        println(result.stack)
+        println(section.current)
+        println(section.stack)
+        println(" -*-" * 20)
       }
 
     def onNewRawWithHeader(): Unit =
@@ -770,6 +793,19 @@ case class DocParserDef() extends Parser[Doc] {
               case None =>
                 section.stack +:= Section.Raw(currentIndentRaw, result.stack)
             }
+        }
+      }
+
+    def pushReadySection(s: Section): Unit = section.stack :+ s
+
+    def pop(): Option[Section] =
+      logger.trace {
+        section.stack match {
+          case ::(head, next) => {
+            section.stack = next
+            Some(head)
+          }
+          case Nil => None
         }
       }
 
@@ -829,7 +865,30 @@ case class DocParserDef() extends Parser[Doc] {
     def reverseSectionsStackOnEOF(): Unit =
       logger.trace {
         section.stack = section.stack.reverse
+        val baseIndent =
+          if (section.stack.nonEmpty) section.stack.head.indent else 0
+        transformOverlyIndentedRawIntoCode(baseIndent)
       }
+
+    def transformOverlyIndentedRawIntoCode(
+      baseIndent: Int
+    ): Unit = {
+      var newStack = List[Section]()
+      while (section.stack.nonEmpty) {
+        var current = section.pop().get
+        if (current.indent > baseIndent) {
+          var stackOfCodeSections: List[Section] = List[Section]()
+          while (section.stack.nonEmpty && current.indent > baseIndent) {
+            stackOfCodeSections = stackOfCodeSections :+ current
+            current             = section.pop().get
+          }
+          // This is code and it needs to be connected to previous section
+        } else {
+          newStack = newStack :+ current
+        }
+      }
+      section.stack = newStack
+    }
 
     def reverseTagsStackOnEOF(): Unit =
       logger.trace {
