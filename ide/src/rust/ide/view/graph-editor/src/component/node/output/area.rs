@@ -134,15 +134,14 @@ ensogl::define_endpoints! {
     }
 
     Output {
-        on_port_press               (Crumbs),
-        on_port_hover               (Switch<Crumbs>),
-        on_port_type_change         (Crumbs,Option<Type>),
-        port_size_multiplier        (f32),
-        body_hover                  (bool),
-        type_label_visibility       (bool),
-        expression_label_visibility (bool),
-        tooltip                     (tooltip::Style),
-        view_mode                   (view::Mode),
+        on_port_press         (Crumbs),
+        on_port_hover         (Switch<Crumbs>),
+        on_port_type_change   (Crumbs,Option<Type>),
+        port_size_multiplier  (f32),
+        body_hover            (bool),
+        type_label_visibility (bool),
+        tooltip               (tooltip::Style),
+        view_mode             (view::Mode),
     }
 }
 
@@ -429,21 +428,19 @@ impl Area {
 
             // === Label Color ===
 
-            port_hover                             <- frp.on_port_hover.map(|t| t.is_on());
-            frp.source.body_hover                  <+ frp.set_hover || port_hover;
-            expr_vis                               <- frp.body_hover || frp.set_expression_visibility;
-            in_normal_mode                         <- frp.set_view_mode.map(|m| m.is_normal());
-            expr_vis                               <- expr_vis && in_normal_mode;
-            frp.source.expression_label_visibility <+ expr_vis;
-            
             let label_vis_color = color::Lcha::from(model.styles.get_color(theme::graph_editor::node::text));
             let label_vis_alpha = label_vis_color.alpha;
+            port_hover               <- frp.on_port_hover.map(|t| t.is_on());
+            frp.source.body_hover    <+ frp.set_hover || port_hover;
+            expr_vis                 <- frp.body_hover || frp.set_expression_visibility;
+            in_normal_mode           <- frp.set_view_mode.map(|m| m.is_normal());
+            expr_vis                 <- expr_vis && in_normal_mode;
             label_alpha_tgt          <- expr_vis.map(move |t| if *t {label_vis_alpha} else {0.0} );
             label_color.target_alpha <+ label_alpha_tgt;
             label_color_on_change    <- label_color.value.sample(&frp.set_expression);
             new_label_color          <- any(&label_color.value,&label_color_on_change);
             eval new_label_color ((color) model.label.set_color_all(color::Rgba::from(color)));
-            
+
 
             // === View Mode ===
 
