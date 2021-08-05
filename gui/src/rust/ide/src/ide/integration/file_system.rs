@@ -114,7 +114,7 @@ impl FolderContent for FileProvider {
                     DirectoryView::new_from_root(connection,root.clone_ref()).into()
                 }
             };
-            Some(Entry {name,path,type_})
+            Some(Entry {type_,name,path})
         });
         entries_loaded.emit(Rc::new(entries.sorted().collect_vec()));
     }
@@ -162,13 +162,13 @@ impl DirectoryView {
                         type_   : FolderType::Standard,
                         content : sub.into()
                     };
-                    Entry {name,path,type_}
+                    Entry {type_,name,path}
                 }
                 FileSystemObject::File  {name,path} |
                 FileSystemObject::Other {name,path} => {
                     let path  = to_file_browser_path(&path).join(&name);
                     let type_ = EntryType::File;
-                    Entry {name,path,type_}
+                    Entry {type_,name,path}
                 }
             }
         });

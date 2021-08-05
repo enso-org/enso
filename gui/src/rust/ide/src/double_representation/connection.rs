@@ -7,7 +7,7 @@ use crate::double_representation::definition::DefinitionInfo;
 use crate::double_representation::definition::ScopeKind;
 use crate::double_representation::identifier::NormalizedName;
 use crate::double_representation::node::Id;
-use crate::double_representation::node::NodeInfo;
+use crate::double_representation::node::MainLine;
 
 use ast::crumbs::Crumb;
 use ast::crumbs::Crumbs;
@@ -42,8 +42,8 @@ impl Endpoint {
         let line_ast   = block.get(&line_crumb).ok()?;
         let definition = DefinitionInfo::from_line_ast(line_ast,ScopeKind::NonRoot,block.indent);
         let is_non_def = definition.is_none();
-        let node       = is_non_def.and_option_from(|| NodeInfo::from_line_ast(line_ast))?.id();
-        Some(Endpoint { node, crumbs })
+        let node       = is_non_def.and_option_from(|| MainLine::from_ast(line_ast))?.id();
+        Some(Endpoint {node,crumbs})
     }
 }
 

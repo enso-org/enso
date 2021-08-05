@@ -27,6 +27,7 @@ use crate::tooltip;
 use crate::Type;
 
 use enso_frp as frp;
+use ensogl_theme as theme;
 use enso_frp;
 use ensogl::Animation;
 use ensogl::animation::delayed::DelayedAnimation;
@@ -56,6 +57,9 @@ pub const HEIGHT            : f32 = 28.0;
 pub const PADDING           : f32 = 40.0;
 pub const RADIUS            : f32 = 14.0;
 
+/// Space between the documentation comment and the node.
+pub const COMMENT_MARGIN    : f32 = 10.0;
+
 const INFINITE                 : f32       = 99999.0;
 const ERROR_VISUALIZATION_SIZE : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
@@ -66,6 +70,18 @@ const ERROR_PREVIEW_ONSET_MS : f32 = 0000.0;
 /// A type of unresolved methods. We filter them out, because we don't want to treat them as types
 /// for ports and edges coloring (due to bad UX otherwise).
 const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
+
+
+
+// ===============
+// === Comment ===
+// ===============
+
+/// String with documentation comment text for this node.
+/// 
+/// This is just a plain string, as this is what text area expects and node just redirects this 
+/// value,
+pub type Comment = String;
 
 
 
@@ -258,6 +274,7 @@ ensogl::define_endpoints! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -277,19 +294,21 @@ ensogl::define_endpoints! {
     Output {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
-        background_press      (),
-        expression            (Text),
-        skip                  (bool),
-        freeze                (bool),
-        hover                 (bool),
-        error                 (Option<Error>),
+        background_press         (),
+        expression               (Text),
+        comment                  (Comment),
+        skip                     (bool),
+        freeze                   (bool),
+        hover                    (bool),
+        error                    (Option<Error>),
         /// Whether visualization was permanently enabled (e.g. by pressing the button).
-        visualization_enabled (bool),
+        visualization_enabled    (bool),
         /// Visualization can be visible even when it is not enabled, e.g. when showing preview.
-        visualization_visible (bool),
-        visualization_path    (Option<visualization::Path>),
-        tooltip               (tooltip::Style),
-        bounding_box          (BoundingBox)
+        visualization_visible    (bool),
+        visualization_path       (Option<visualization::Path>),
+        expression_label_visible (bool),
+        tooltip                  (tooltip::Style),
+        bounding_box             (BoundingBox)
     }
 }
 
@@ -384,6 +403,7 @@ pub struct NodeModel {
     pub action_bar          : action_bar::ActionBar,
     pub vcs_indicator       : vcs::StatusIndicator,
     pub style               : StyleWatchFrp,
+    pub comment             : ensogl_text::Area,
 }
 
 impl NodeModel {
@@ -458,10 +478,13 @@ impl NodeModel {
 
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
 
+        let comment = ensogl_text::Area::new(app);
+        display_object.add_child(&comment);
+
         let app = app.clone_ref();
         Self {app,display_object,logger,backdrop,background,drag_area,error_indicator
              ,profiling_label,input,output,visualization,error_visualization,action_bar
-             ,vcs_indicator,style}.init()
+             ,vcs_indicator,style,comment}.init()
     }
 
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
@@ -557,6 +580,9 @@ impl Node {
         let model     = Rc::new(NodeModel::new(app,registry));
         let selection = Animation::<f32>::new(network);
 
+        // TODO[ao] The comment color should be animated, but this is currently slow. Will be fixed
+        //      in https://github.com/enso-org/ide/issues/1031
+        // let comment_color    = color::Animation::new(network);
         let error_color_anim = color::Animation::new(network);
         let style            = StyleWatch::new(&app.display.scene().style_sheet);
         let style_frp        = &model.style;
@@ -608,6 +634,30 @@ impl Node {
             model.input.set_connected              <+ frp.set_input_connected;
             model.input.set_disabled               <+ frp.set_disabled;
             model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
+
+
+            // === Comment ===
+            
+            let comment_base_color = style_frp.get_color(theme::graph_editor::node::text);
+            // comment_color.target <+ all_with(
+            comment_color <- all_with(
+                &comment_base_color, &model.output.expression_label_visibility, 
+                |&base_color,&expression_visible| {
+                    let mut color = color::Lcha::from(base_color);
+                    color.mod_alpha(|alpha| {
+                        // Comment is hidden when output expression (i.e. node name) is visible.
+                        if expression_visible { *alpha = 0.0 }
+                    });
+                    color
+            });
+            eval comment_color ((value) model.comment.set_color_all(color::Rgba::from(value)));
+            
+            eval model.comment.width ([model](width)
+                model.comment.set_position_x(-*width - COMMENT_MARGIN));
+            eval model.comment.height ([model](height)
+                model.comment.set_position_y(*height / 2.0));
+            model.comment.set_content <+ frp.set_comment;
+            out.source.comment        <+ model.comment.content.map(|text| text.to_string());
 
 
             // === Size ===
@@ -698,7 +748,7 @@ impl Node {
             visualization_visible            <- visualization_enabled || preview_visible;
             visualization_visible            <- visualization_visible && no_error_set;
             visualization_visible_on_change  <- visualization_visible.on_change();
-            frp.source.visualization_visible <+ visualization_visible;
+            frp.source.visualization_visible <+ visualization_visible_on_change;
             frp.source.visualization_enabled <+ visualization_enabled;
             eval visualization_visible_on_change ((is_visible)
                 model.visualization.frp.set_visibility(is_visible)
