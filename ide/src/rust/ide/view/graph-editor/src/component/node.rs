@@ -56,9 +56,6 @@ pub const HEIGHT            : f32 = 28.0;
 pub const PADDING           : f32 = 40.0;
 pub const RADIUS            : f32 = 14.0;
 
-/// Space between the documentation comment and the node.
-pub const COMMENT_MARGIN    : f32 = 14.0;
-
 const INFINITE                 : f32       = 99999.0;
 const ERROR_VISUALIZATION_SIZE : (f32,f32) = visualization::container::DEFAULT_SIZE;
 
@@ -69,18 +66,6 @@ const ERROR_PREVIEW_ONSET_MS : f32 = 0000.0;
 /// A type of unresolved methods. We filter them out, because we don't want to treat them as types
 /// for ports and edges coloring (due to bad UX otherwise).
 const UNRESOLVED_SYMBOL_TYPE : &str = "Builtins.Main.Unresolved_Symbol";
-
-
-
-// ===============
-// === Comment ===
-// ===============
-
-/// String with documentation comment text for this node.
-/// 
-/// This is just a plain string, as this is what text area expects and node just redirects this 
-/// value,
-pub type Comment = String;
 
 
 
@@ -273,7 +258,6 @@ ensogl::define_endpoints! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
-        set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
@@ -295,7 +279,6 @@ ensogl::define_endpoints! {
         /// background. In edit mode, the whole node area is considered non-active.
         background_press      (),
         expression            (Text),
-        comment               (Comment),
         skip                  (bool),
         freeze                (bool),
         hover                 (bool),
@@ -401,7 +384,6 @@ pub struct NodeModel {
     pub action_bar          : action_bar::ActionBar,
     pub vcs_indicator       : vcs::StatusIndicator,
     pub style               : StyleWatchFrp,
-    pub comment             : ensogl_text::Area,
 }
 
 impl NodeModel {
@@ -476,14 +458,10 @@ impl NodeModel {
 
         let style = StyleWatchFrp::new(&app.display.scene().style_sheet);
 
-        // TODO: Style the documentation comment properly.
-        let comment = ensogl_text::Area::new(app);
-        display_object.add_child(&comment);
-
         let app = app.clone_ref();
         Self {app,display_object,logger,backdrop,background,drag_area,error_indicator
              ,profiling_label,input,output,visualization,error_visualization,action_bar
-             ,vcs_indicator,style,comment}.init()
+             ,vcs_indicator,style}.init()
     }
 
     pub fn get_crumbs_by_id(&self, id:ast::Id) -> Option<Crumbs> {
@@ -630,16 +608,6 @@ impl Node {
             model.input.set_connected              <+ frp.set_input_connected;
             model.input.set_disabled               <+ frp.set_disabled;
             model.output.set_expression_visibility <+ frp.set_output_expression_visibility;
-
-
-            // === Comment ===
-
-            eval model.comment.width ([model](width)
-                model.comment.set_position_x(-*width - COMMENT_MARGIN));
-            eval model.comment.height ([model](height)
-                model.comment.set_position_y(*height / 2.0));
-            model.comment.set_content <+ frp.set_comment;
-            out.source.expression     <+ model.comment.content;
 
 
             // === Size ===

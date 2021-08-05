@@ -199,7 +199,7 @@ impl ParsedInput {
         //
         // See also `parsed_input` test to see all cases we want to cover.
         input.push('a');
-        let ast        = parser.parse_line_ast(input.trim_start())?;
+        let ast        = parser.parse_line(input.trim_start())?;
         let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
         if let Some(last_arg) = prefix.args.pop() {
             let mut last_arg_repr = last_arg.sast.wrapped.repr();
@@ -262,7 +262,7 @@ impl ParsedInput {
     /// Convert the current input to Prefix Chain representation.
     pub fn as_prefix_chain
     (&self, parser:&Parser) -> Option<ast::Shifted<ast::prefix::Chain>> {
-        let parsed_pattern = parser.parse_line_ast(&self.pattern).ok();
+        let parsed_pattern = parser.parse_line(&self.pattern).ok();
         let pattern_sast   = parsed_pattern.map(|p| ast::Shifted::new(self.pattern_offset,p));
         // If there is an expression part of input, we add current pattern as the last argument.
         if let Some(chain) = &self.expression {
@@ -580,7 +580,7 @@ impl Searcher {
         let picked_completion = FragmentAddedByPickingSuggestion {id,picked_suggestion};
         let code_to_insert    = self.code_to_insert(&picked_completion).code;
         debug!(self.logger, "Code to insert: \"{code_to_insert}\"");
-        let added_ast         = self.ide.parser().parse_line_ast(&code_to_insert)?;
+        let added_ast         = self.ide.parser().parse_line(&code_to_insert)?;
         let pattern_offset    = self.data.borrow().input.pattern_offset;
         let new_expression    = match self.data.borrow_mut().input.expression.take() {
             None => {
@@ -760,11 +760,10 @@ impl Searcher {
         let args             = std::iter::empty();
         let node_expression  = ast::prefix::Chain::new_with_this(new_definition_name,here,args);
         let node_expression  = node_expression.into_ast();
-        let node             = NodeInfo::from_main_line_ast(&node_expression).ok_or(FailedToCreateNode)?;
-        let added_node_id    = node.id();
+        let node             = NodeInfo::new_expression(node_expression).ok_or(FailedToCreateNode)?;
         let graph_definition = double_representation::module::locate(&module.ast,&self.graph.graph().id)?;
         let mut graph_info   = GraphInfo::from_definition(graph_definition.item);
-        graph_info.add_node(&node,LocationHint::End)?;
+        graph_info.add_node(node.ast().clone_ref(), LocationHint::End)?;
         module.ast   = module.ast.set_traversing(&graph_definition.crumbs, graph_info.ast())?;
         let metadata = NodeMetadata {position,..default()};
 
@@ -775,9 +774,9 @@ impl Searcher {
             module.add_module_import(&here,self.ide.parser(),&import);
         }
         graph.module.update_ast(module.ast)?;
-        graph.module.set_node_metadata(added_node_id,metadata)?;
+        graph.module.set_node_metadata(node.id(),metadata)?;
 
-        Ok(added_node_id)
+        Ok(node.id())
     }
 
     fn invalidate_fragments_added_by_picking(&self) {
@@ -1662,7 +1661,7 @@ pub mod test {
 
             fn run(&self) {
                 let parser  = Parser::new_or_panic();
-                let ast     = parser.parse_line_ast(self.before).unwrap();
+                let ast     = parser.parse_line(self.before).unwrap();
                 let new_ast = apply_this_argument("foo",&ast);
                 assert_eq!(new_ast.repr(),self.after,"Case {:?} failed: {:?}",self,ast);
             }
@@ -1861,28 +1860,28 @@ pub mod test {
     fn simple_function_call_parsing() {
         let parser = Parser::new_or_panic();
 
-        let ast  = parser.parse_line_ast("foo").unwrap();
+        let ast  = parser.parse_line("foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"foo\"");
         assert!(call.this_argument.is_none());
         assert_eq!(call.function_name, "foo");
 
-        let ast = parser.parse_line_ast("Main.foo").unwrap();
+        let ast = parser.parse_line("Main.foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"Main.foo\"");
         assert_eq!(call.this_argument.unwrap().repr(), "Main");
         assert_eq!(call.function_name                , "foo");
 
-        let ast = parser.parse_line_ast("(2 + 3).foo").unwrap();
+        let ast = parser.parse_line("(2 + 3).foo").unwrap();
         let call = SimpleFunctionCall::try_new(&ast).expect("Returned None for \"(2 + 3).foo\"");
         assert_eq!(call.this_argument.unwrap().repr(), "(2 + 3)");
         assert_eq!(call.function_name                , "foo");
 
-        let ast = parser.parse_line_ast("foo + 3").unwrap();
+        let ast = parser.parse_line("foo + 3").unwrap();
         assert!(SimpleFunctionCall::try_new(&ast).is_none());
 
-        let ast = parser.parse_line_ast("foo bar baz").unwrap();
+        let ast = parser.parse_line("foo bar baz").unwrap();
         assert!(SimpleFunctionCall::try_new(&ast).is_none());
 
-        let ast = parser.parse_line_ast("Main . (foo bar)").unwrap();
+        let ast = parser.parse_line("Main . (foo bar)").unwrap();
         assert!(SimpleFunctionCall::try_new(&ast).is_none());
     }
 

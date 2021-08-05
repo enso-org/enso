@@ -22,7 +22,6 @@ mod wsclient;
 use crate::prelude::*;
 
 use ast::Ast;
-use ast::BlockLine;
 use ast::IdMap;
 use std::panic;
 use utils::fail::FallibleResult;
@@ -101,28 +100,17 @@ impl Parser {
     }
 
     /// Program is expected to be single non-empty line module. The line's AST is
-    /// returned. The program is parsed with empty IdMap.
-    pub fn parse_line_ast(&self, program:impl Str) -> FallibleResult<Ast> {
-        self.parse_line_with_id_map(program, default()).map(|line| line.elem)
+    /// returned. Panics otherwise. The program is parsed with empty IdMap.
+    pub fn parse_line(&self, program:impl Str) -> FallibleResult<Ast> {
+        self.parse_line_with_id_map(program,default())
     }
-
-    /// Program is expected to be single non-empty line module. The line's AST is
-    /// returned. The program is parsed with empty IdMap.
-    pub fn parse_line(&self, program:impl Str) -> FallibleResult<BlockLine<Ast>> {
-        self.parse_line_with_id_map(program, default())
-    }
-
-    /// Program is expected to be single non-empty line module. The line's AST is returned.
-    pub fn parse_line_ast_with_id_map(&self, program:impl Str, id_map:IdMap) -> FallibleResult<Ast> {
-        self.parse_line_with_id_map(program,id_map).map(|line| line.elem)
-    }
-
-    /// Program is expected to be single non-empty line module. Return the parsed line.
-    pub fn parse_line_with_id_map(&self, program:impl Str, id_map:IdMap) -> FallibleResult<BlockLine<Ast>> {
+    /// Program is expected to be single non-empty line module. The line's AST is returned. Panics
+    /// otherwise.
+    pub fn parse_line_with_id_map(&self, program:impl Str, id_map:IdMap) -> FallibleResult<Ast> {
         let module = self.parse_module(program,id_map)?;
 
         let mut lines = module.lines.clone().into_iter().filter_map(|line| {
-            line.map(|elem| elem).transpose()
+            line.elem
         });
         if let Some(first_non_empty_line) = lines.next() {
             if lines.next().is_some() {

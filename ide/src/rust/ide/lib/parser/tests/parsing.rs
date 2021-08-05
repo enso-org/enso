@@ -83,7 +83,7 @@ impl Fixture {
     fn test_shape<T,F>(&mut self, program:&str, tester:F)
     where for<'t> &'t Shape<Ast>: TryInto<&'t T>,
                       F         : FnOnce(&T) -> () {
-        let ast   = self.parser.parse_line_ast(program).unwrap();
+        let ast   = self.parser.parse_line(program).unwrap();
         let shape = expect_shape(&ast);
         tester(shape);
     }
@@ -115,7 +115,7 @@ impl Fixture {
     #[allow(dead_code)] // TODO [mwu] https://github.com/enso-org/enso/issues/1016
     fn deserialize_unexpected(&mut self) {
         let unexpected = "import";
-        let ast = self.parser.parse_line_ast(unexpected).unwrap();
+        let ast = self.parser.parse_line(unexpected).unwrap();
         // This does not deserialize to "Unexpected" but to a very complex macro match tree that has
         // Unexpected somewhere within. We just make sure that it is somewhere, and that confirms
         // that we are able to deserialize such node.
@@ -416,7 +416,7 @@ impl Fixture {
             ];
 
         for macro_usage in macro_usages.iter() {
-            let ast = self.parser.parse_line_ast(*macro_usage).unwrap();
+            let ast = self.parser.parse_line(*macro_usage).unwrap();
             expect_shape::<Match<Ast>>(&ast);
         };
     }

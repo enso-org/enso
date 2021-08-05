@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::double_representation::identifier::NormalizedName;
 use crate::double_representation::identifier::LocatedName;
+use crate::double_representation::node::NodeInfo;
 use crate::double_representation::test_utils::MarkdownProcessor;
 
 use regex::Captures;
@@ -113,23 +114,24 @@ enum HasBeenValidated {No,Yes}
 /// Otherwise, it shall panic when dropped.
 #[derive(Clone,Debug)]
 pub struct IdentifierValidator<'a> {
-    ast         : &'a Ast,
     name        : String,
+    node        : &'a NodeInfo,
     validations : HashMap<NormalizedName,HasBeenValidated>,
 }
 
 impl<'a> IdentifierValidator<'a> {
     /// Creates a new checker, with identifier set obtained from given node's representation
     /// spans.
-    pub fn new(name:impl Str, ast:&Ast,spans:Vec<Range<usize>>) -> IdentifierValidator {
+    pub fn new(name:impl Str, node:&NodeInfo,spans:Vec<Range<usize>>) -> IdentifierValidator {
         let name = name.into();
+        let ast  = node.ast();
         let repr = ast.repr();
         let mut validations = HashMap::default();
         for span in spans {
             let name = NormalizedName::new(&repr[span]);
             validations.insert(name, HasBeenValidated::No);
         }
-        IdentifierValidator {ast,name,validations}
+        IdentifierValidator {name,node,validations}
     }
 
     /// Marks given identifier as checked.
@@ -146,7 +148,7 @@ impl<'a> IdentifierValidator<'a> {
             self.validate_identifier(&identifier.item);
 
             let crumbs     = &identifier.crumbs;
-            let ast_result = self.ast.get_traversing(crumbs);
+            let ast_result = self.node.ast().get_traversing(crumbs);
             let ast        = ast_result.expect("failed to retrieve ast from crumb");
             let name_err   = || iformat!("Failed to use AST {ast.repr()} as an identifier name");
             let name       = NormalizedName::try_from_ast(ast).expect(&name_err());

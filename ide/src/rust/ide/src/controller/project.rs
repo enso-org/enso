@@ -191,7 +191,7 @@ impl Project {
         if module.lookup_method(project_name,main_ptr).is_err() {
             let mut info  = module.info();
             let main_code = default_main_method_code();
-            let main_ast  = parser.parse_line_ast(main_code)?;
+            let main_ast  = parser.parse_line(main_code)?;
             info.add_ast(main_ast,double_representation::module::Placement::End)?;
             module.update_ast(info.ast)?;
         }

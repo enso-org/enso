@@ -388,7 +388,7 @@ impl<'a> CategoryBuilder<'a> {
         let category   = self.category_id;
         built_list.entries.borrow_mut().extend(iter.into_iter().map(|action| {
             let match_info = MatchInfo::Matches {subsequence:default()};
-            ListEntry{category,match_info,action}
+            ListEntry{action,category,match_info}
         }));
     }
 }
