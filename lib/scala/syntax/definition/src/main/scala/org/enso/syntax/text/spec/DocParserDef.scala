@@ -796,7 +796,7 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
 
-    def pushReadySection(s: Section): Unit = section.stack :+ s
+    def pushReadySection(s: Section): Unit = section.stack = section.stack :+ s
 
     def pop(): Option[Section] =
       logger.trace {
@@ -876,18 +876,31 @@ case class DocParserDef() extends Parser[Doc] {
       var newStack = List[Section]()
       while (section.stack.nonEmpty) {
         var current = section.pop().get
-        if (current.indent > baseIndent) {
+        println(current)
+        if (current.indent > baseIndent && current.isInstanceOf[Section.Raw]) {
           var stackOfCodeSections: List[Section] = List[Section]()
           while (section.stack.nonEmpty && current.indent > baseIndent) {
             stackOfCodeSections = stackOfCodeSections :+ current
             current             = section.pop().get
           }
-          // This is code and it needs to be connected to previous section
+          val codeLines = stackOfCodeSections.map(s =>
+            Doc.Elem.CodeBlock.Line(s.indent, s.repr.build())
+          )
+          val l1CodeLines = List1(codeLines.head, codeLines.tail)
+          val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
+          val s           = newStack.head
+          val sElems      = newStack.head.elems :+ codeBlock
+          s.elems  = sElems
+          newStack = newStack.drop(1)
+          newStack +:= s
         } else {
-          newStack = newStack :+ current
+          newStack +:= current
         }
       }
-      section.stack = newStack
+      section.stack = newStack.reverse
+      println()
+      println(section.stack)
+      println()
     }
 
     def reverseTagsStackOnEOF(): Unit =
@@ -901,6 +914,9 @@ case class DocParserDef() extends Parser[Doc] {
         val synopsis: Option[Synopsis] = createSynopsis()
         val body: Option[Body]         = createBody()
         result.doc = Some(Doc(tags, synopsis, body))
+        println()
+        println(result.doc)
+        println()
       }
 
     def createTags(): Option[Tags] =
