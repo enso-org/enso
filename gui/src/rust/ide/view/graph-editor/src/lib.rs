@@ -483,7 +483,6 @@ ensogl::define_endpoints! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
-        set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         set_method_pointer           ((ast::Id,Option<MethodPointer>)),
@@ -556,7 +555,6 @@ ensogl::define_endpoints! {
         node_position_set         ((NodeId,Vector2)),
         node_position_set_batched ((NodeId,Vector2)),
         node_expression_set       ((NodeId,String)),
-        node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
         node_editing_started      (NodeId),
@@ -1185,10 +1183,6 @@ impl GraphEditorModelWithNetwork {
             hovered <- node.output.hover.map (move |t| Some(Switch::new(node_id,*t)));
             output.source.node_hovered <+ hovered;
 
-            eval node.comment ([model](comment)
-                model.frp.source.node_comment_set.emit((node_id,comment.clone()))
-            );
-
             node.set_output_expression_visibility <+ self.frp.nodes_labels_visible;
 
             eval node.frp.tooltip ((tooltip) tooltip_update.emit(tooltip));
@@ -1582,14 +1576,6 @@ impl GraphEditorModel {
         }
         for edge_id in self.node_out_edges(node_id) {
             self.refresh_edge_source_size(edge_id);
-        }
-    }
-
-    fn set_node_comment(&self, node_id:impl Into<NodeId>, comment:impl Into<node::Comment>) {
-        let node_id = node_id.into();
-        let comment = comment.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.frp.set_comment.emit(comment);
         }
     }
 
@@ -2604,12 +2590,6 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
-    // === Set Node Comment ===
-    frp::extend! { network
-
-    eval inputs.set_node_comment([model] ((id,comment)) model.set_node_comment(id,comment));
-    }
-
     // === Set Node Error ===
     frp::extend! { network
 
@@ -3065,6 +3045,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     eval inputs.set_node_expression (((id,expr)) model.set_node_expression(id,expr));
     port_to_refresh <= inputs.set_node_expression.map(f!(((id,_))model.node_in_edges(id)));
     eval port_to_refresh ((id) model.set_edge_target_connection_status(*id,true));
+
 
     // === Remove implementation ===
     out.source.node_removed <+ inputs.remove_node;

@@ -485,7 +485,7 @@ impl Info {
         }).last();
 
         let index_to_place_at = previous_import.map_or(0,|(crumb,_)| crumb.line_index + 1);
-        let import_ast        = parser.parse_line_ast(to_add.to_string()).unwrap();
+        let import_ast        = parser.parse_line(to_add.to_string()).unwrap();
         self.add_line(index_to_place_at,Some(import_ast));
         index_to_place_at
     }
@@ -790,7 +790,7 @@ mod tests {
         let ast      = parser.parse_module(code,default()).unwrap();
         let mut info = Info { ast };
         let import   = |code| {
-            let ast = parser.parse_line_ast(code).unwrap();
+            let ast = parser.parse_line(code).unwrap();
             ImportInfo::from_ast(&ast).unwrap()
         };
 

@@ -128,7 +128,7 @@ struct Lines {
 
 impl Lines {
     /// The number of visible lines.
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.rc.borrow().len()
     }
 
@@ -260,7 +260,6 @@ ensogl_core::define_endpoints! {
     Output {
         pointer_style   (cursor::Style),
         width           (f32),
-        height          (f32),
         changed         (Vec<buffer::view::Change>),
         content         (Text),
         hovered         (bool),
@@ -601,7 +600,7 @@ impl AreaModel {
                 let id         = sel.id;
                 let start_line = sel.start.line.as_usize();
                 let end_line   = sel.end.line.as_usize();
-                let pos_x      = |line:usize, column:Column| if line >= self.lines.len() {
+                let pos_x      = |line:usize, column:Column| if line >= self.lines.count() {
                     self.lines.rc.borrow().last().and_then(|l| l.divs.last().cloned()).unwrap_or(0.0)
                 } else {
                     self.lines.rc.borrow()[line].div_by_column(column)
@@ -678,7 +677,7 @@ impl AreaModel {
     fn get_in_text_location(&self, screen_pos:Vector2) -> Location {
         let object_space = self.to_object_space(screen_pos);
         let line_index   = (-object_space.y / LINE_HEIGHT) as usize;
-        let line_index   = std::cmp::min(line_index,self.lines.len() - 1);
+        let line_index   = std::cmp::min(line_index,self.lines.count() - 1);
         let div_index    = self.lines.rc.borrow()[line_index].div_index_close_to(object_space.x);
         let line         = line_index.into();
         let column       = div_index.into();
@@ -691,23 +690,17 @@ impl AreaModel {
     }
 
     /// Redraw the text.
-    fn redraw(&self, size_may_change:bool) {
+    fn redraw(&self, width_may_change:bool) {
         let lines      = self.buffer.view_lines();
         let line_count = lines.len();
         self.lines.resize_with(line_count,|ix| self.new_line(ix));
-        let widths = lines.into_iter().enumerate().map(|(view_line_index,content)|{
+        let lengths = lines.into_iter().enumerate().map(|(view_line_index,content)|{
             self.redraw_line(view_line_index,content)
         }).collect_vec();
-        let width = widths.into_iter().max_by(|x, y|x.partial_cmp(y).unwrap()).unwrap_or_default();
-        if size_may_change {
-            let height = self.calculate_height();
-            self.frp_endpoints.source.width.emit(width);
-            self.frp_endpoints.source.height.emit(height);
+        let length = lengths.into_iter().max_by(|x,y|x.partial_cmp(y).unwrap()).unwrap_or_default();
+        if width_may_change {
+            self.frp_endpoints.source.width.emit(length);
         }
-    }
-
-    fn calculate_height(&self) -> f32 {
-        self.lines.len() as f32 * LINE_HEIGHT
     }
 
     fn redraw_line(&self, view_line_index:usize, content:String) -> f32 {

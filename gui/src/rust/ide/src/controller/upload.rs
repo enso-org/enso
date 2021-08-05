@@ -197,7 +197,6 @@ impl NodeFromDroppedFileHandler {
     fn new_node_info<DP>(file:&FileToUpload<DP>, position:Position) -> NewNodeInfo {
         NewNodeInfo {
             expression        : Self::uploading_node_expression(&file.name),
-            doc_comment       : None,
             metadata          : Some(Self::metadata_of_new_node(file,position)),
             id                : None,
             location_hint     : LocationHint::End,

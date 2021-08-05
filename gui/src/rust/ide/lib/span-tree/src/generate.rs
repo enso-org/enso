@@ -603,7 +603,7 @@ mod test {
         id_map.generate(12..13);
         id_map.generate(14..15);
         id_map.generate(4..11);
-        let ast      = parser.parse_line_ast_with_id_map("2 + foo bar - 3", id_map.clone()).unwrap();
+        let ast      = parser.parse_line_with_id_map("2 + foo bar - 3",id_map.clone()).unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
 
         // Check the expression ids we defined:
@@ -643,7 +643,7 @@ mod test {
     #[wasm_bindgen_test]
     fn generate_span_tree_with_chains() {
         let parser   = Parser::new_or_panic();
-        let ast      = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
+        let ast      = parser.parse_line("2 + 3 + foo bar baz 13 + 5").unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
         clear_expression_ids(&mut tree.root);
 
@@ -685,7 +685,7 @@ mod test {
     #[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_operator() {
         let parser   = Parser::new_or_panic();
-        let ast      = parser.parse_line_ast("1,2,3").unwrap();
+        let ast      = parser.parse_line("1,2,3").unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
         clear_expression_ids(&mut tree.root);
 
@@ -711,7 +711,7 @@ mod test {
         let parser = Parser::new_or_panic();
         // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
         // SectionRight, and last + makes SectionLeft.
-        let ast      = parser.parse_line_ast("+ * + + 2 +").unwrap();
+        let ast      = parser.parse_line("+ * + + 2 +").unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
         clear_expression_ids(&mut tree.root);
 
@@ -745,7 +745,7 @@ mod test {
     #[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_section() {
         let parser   = Parser::new_or_panic();
-        let ast      = parser.parse_line_ast(",2,").unwrap();
+        let ast      = parser.parse_line(",2,").unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
         clear_expression_ids(&mut tree.root);
 
@@ -771,7 +771,7 @@ mod test {
         let mut id_map = IdMap::default();
         id_map.generate(0..29);
         let expression = "if foo then (a + b) x else ()";
-        let ast        = parser.parse_line_ast_with_id_map(expression, id_map.clone()).unwrap();
+        let ast        = parser.parse_line_with_id_map(expression,id_map.clone()).unwrap();
         let mut tree   = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
 
         // Check if expression id is set
@@ -821,7 +821,7 @@ mod test {
 
         let parser     = Parser::new_or_panic();
         let expression = "[a,b]";
-        let ast        = parser.parse_line_ast(expression).unwrap();
+        let ast        = parser.parse_line(expression).unwrap();
         let mut tree   = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
 
         // Check the other fields
@@ -849,7 +849,7 @@ mod test {
         let parser     = Parser::new_or_panic();
         let mut id_map = IdMap::default();
         id_map.generate(0..2);
-        let ast      = parser.parse_line_ast_with_id_map("(4", id_map.clone()).unwrap();
+        let ast      = parser.parse_line_with_id_map("(4",id_map.clone()).unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
 
         // Check the expression id:
@@ -871,7 +871,7 @@ mod test {
     #[wasm_bindgen_test]
     fn generating_span_tree_for_lambda() {
         let parser   = Parser::new_or_panic();
-        let ast      = parser.parse_line_ast("foo a-> b + c").unwrap();
+        let ast      = parser.parse_line("foo a-> b + c").unwrap();
         let mut tree = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
         clear_expression_ids(&mut tree.root);
 
@@ -904,7 +904,7 @@ mod test {
 
         // === Single function name ===
 
-        let ast = parser.parse_line_ast("foo").unwrap();
+        let ast = parser.parse_line("foo").unwrap();
         let invocation_info = CalledMethodInfo {
             parameters : vec![this_param.clone()]
         };
@@ -925,7 +925,7 @@ mod test {
 
         // === Complete application chain ===
 
-        let ast = parser.parse_line_ast("foo here").unwrap();
+        let ast = parser.parse_line("foo here").unwrap();
         let invocation_info = CalledMethodInfo {
             parameters : vec![this_param.clone()]
         };
@@ -946,7 +946,7 @@ mod test {
 
         // === Partial application chain ===
 
-        let ast = parser.parse_line_ast("foo here").unwrap();
+        let ast = parser.parse_line("foo here").unwrap();
         let invocation_info = CalledMethodInfo {
             parameters : vec![this_param.clone(), param1.clone(), param2.clone()]
         };
@@ -977,7 +977,7 @@ mod test {
 
         // === Partial application chain - this argument ===
 
-        let ast = parser.parse_line_ast("here.foo").unwrap();
+        let ast = parser.parse_line("here.foo").unwrap();
         let invocation_info = CalledMethodInfo {
             parameters : vec![this_param.clone(), param1.clone(), param2.clone()]
         };

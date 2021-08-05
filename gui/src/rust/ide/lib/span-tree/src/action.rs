@@ -243,7 +243,7 @@ mod test {
 
         impl Case {
             fn run(&self, parser:&Parser) {
-                let ast        = parser.parse_line_ast(self.expr).unwrap();
+                let ast        = parser.parse_line(self.expr).unwrap();
                 let ast_id     = ast.id;
                 let tree       = ast.generate_tree(&context::Empty).unwrap() : SpanTree;
                 let span_begin = Index::new(self.span.start);
@@ -327,7 +327,7 @@ mod test {
 
         impl Case {
             fn run(&self, parser:&Parser) {
-                let ast        = parser.parse_line_ast(self.expr).unwrap();
+                let ast        = parser.parse_line(self.expr).unwrap();
                 let tree : SpanTree = ast.generate_tree(&context::Empty).unwrap();
                 let span_begin = Index::new(self.span.start);
                 let span_end   = Index::new(self.span.end);

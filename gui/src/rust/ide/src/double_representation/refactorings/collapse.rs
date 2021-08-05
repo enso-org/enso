@@ -12,7 +12,6 @@ use crate::double_representation::definition;
 use crate::double_representation::identifier::Identifier;
 use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
-use crate::double_representation::node::MainLine;
 use crate::double_representation::graph::GraphInfo;
 
 use ast::crumbs::Located;
@@ -138,7 +137,7 @@ impl GraphHelper {
     -> FallibleResult<DefinitionInfo> {
         let mut updated_definition = self.info.source.clone();
         let mut new_lines          = Vec::new();
-        for line in updated_definition.block_lines() {
+        for line in updated_definition.block_lines()? {
             match line_rewriter(&line)? {
                 LineDisposition::Keep         => new_lines.push(line),
                 LineDisposition::Remove       => {},
@@ -236,9 +235,9 @@ impl Extracted {
         Ok(Self {inputs,output,extracted_nodes,extracted_nodes_set})
     }
 
-    /// Check if the given line belongs to the selection (i.e. is extracted into a new method).
-    pub fn belongs_to_selection(&self, line_ast:&Ast) -> bool {
-        self.extracted_nodes.iter().any(|extracted_node| extracted_node.contains_line(line_ast))
+    /// Check if the given node belongs to the selection (i.e. is extracted into a new method).
+    pub fn is_selected(&self, id:node::Id) -> bool {
+        self.extracted_nodes_set.contains(&id)
     }
 
     /// Generate AST of a line that needs to be appended to the extracted nodes' Asts.
@@ -267,7 +266,7 @@ impl Extracted {
 // === Collapser ===
 // =================
 
-/// Collapser rewrites the refactored definition line-by-line. This enum describes action to be
+/// Collapser rewrites the refactoring definition line-by-line. This enum describes action to be
 /// taken for a given line.
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
@@ -335,21 +334,17 @@ impl Collapser {
     pub fn rewrite_line
     (&self, line:&BlockLine<Option<Ast>>, extracted_definition:&definition::ToAdd)
     -> FallibleResult<LineDisposition> {
-        let ast = match line.elem.as_ref() {
+        let node_id = match line.elem.as_ref().and_then(NodeInfo::from_line_ast) {
+            Some(node_info) => node_info.id(),
             // We leave lines without nodes (blank lines) intact.
-            None      => return Ok(LineDisposition::Keep),
-            Some(ast) => ast,
+            _               => return Ok(LineDisposition::Keep),
         };
-        if !self.extracted.belongs_to_selection(ast) {
+        if !self.extracted.is_selected(node_id) {
             Ok(LineDisposition::Keep)
-        } else if MainLine::from_ast(ast).contains_if(|n| n.id() == self.replaced_node) {
-            let no_node_err    = failure::Error::from(CannotConstructCollapsedNode);
-            let expression_ast = self.call_to_extracted(extracted_definition)?;
-            let expression     = MainLine::from_ast(&expression_ast).ok_or(no_node_err)?;
-            let mut new_node   = NodeInfo {
-                documentation : None,
-                main_line      : expression,
-            };
+        } else if node_id == self.replaced_node {
+            let expression   = self.call_to_extracted(extracted_definition)?;
+            let no_node_err  = failure::Error::from(CannotConstructCollapsedNode);
+            let mut new_node = NodeInfo::new_expression(expression.clone_ref()).ok_or(no_node_err)?;
             new_node.set_id(self.collapsed_node);
             if let Some(Output{identifier,..}) = &self.extracted.output {
                 new_node.set_pattern(identifier.with_new_id().into())
@@ -384,6 +379,7 @@ mod tests {
     use crate::double_representation::definition::DefinitionName;
     use crate::double_representation::graph;
     use crate::double_representation::module;
+    use crate::double_representation::node::NodeInfo;
 
     use ast::crumbs::Crumb;
 
@@ -428,7 +424,7 @@ mod tests {
             // isn't passing just because it got selected nodes in some specific order.
             // The refactoring is expected to behave the same, no matter what the order of selected
             // nodes is.
-            let mut selected_nodes = nodes[extracted_lines].iter().map(|node| node.id()).collect_vec();
+            let mut selected_nodes = nodes[extracted_lines].iter().map(NodeInfo::id).collect_vec();
             run_internal(&selected_nodes);
             selected_nodes.reverse();
             run_internal(&selected_nodes);

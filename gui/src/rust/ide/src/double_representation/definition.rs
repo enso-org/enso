@@ -2,16 +2,14 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::LineKind;
-
 use ast::crumbs::ChildAst;
 use ast::crumbs::Crumbable;
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
+use ast::prefix;
 use ast::opr;
 use parser::Parser;
-
 
 
 // =====================
@@ -180,7 +178,7 @@ impl DefinitionName {
     pub fn ast(&self, parser:&Parser) -> FallibleResult<Ast> {
         // We can't assume that string pieces we have are valid identifiers.
         // But neither this is our responsibility. If it parses, we can store it in the Ast.
-        parser.parse_line_ast(self.to_string())
+        parser.parse_line(self.to_string())
     }
 
     /// Checks if the given definition name is a method defined on given expected atom name.
@@ -243,13 +241,13 @@ impl DefinitionInfo {
     /// Gets the definition block lines. If `body` is a `Block`, it returns its `BlockLine`s,
     /// concatenating `empty_lines`, `first_line` and `lines`, in this exact order. If `body` is
     /// `Infix`, it returns a single `BlockLine`.
-    pub fn block_lines(&self) -> Vec<ast::BlockLine<Option<Ast>>> {
+    pub fn block_lines(&self) -> FallibleResult<Vec<ast::BlockLine<Option<Ast>>>> {
         if let Ok(block) = known::Block::try_from(*self.body()) {
-            block.iter_all_lines().map(|line| line.map_opt(CloneRef::clone_ref)).collect()
+            Ok(block.all_lines())
         } else {
             let elem = Some((*self.body()).clone());
             let off  = 0;
-            vec![ast::BlockLine{elem,off}]
+            Ok(vec![ast::BlockLine{elem,off}])
         }
     }
 
@@ -264,7 +262,7 @@ impl DefinitionInfo {
         //  offsets. This is not desirable, as e.g. an empty line in the middle of block is not
         //  possible to express with the current AST (it won't round-trip).
 
-        let indent          = self.indent();
+        let indent          = self.context_indent + double_representation::INDENT;
         let mut empty_lines = Vec::new();
         let mut line        = lines.pop_front().ok_or(MissingLineWithAst)?;
         while line.elem.is_none() {
@@ -313,13 +311,49 @@ impl DefinitionInfo {
     /// some binding or other kind of subtree).
     pub fn from_line_ast
     (ast:&Ast, kind:ScopeKind, context_indent:usize) -> Option<DefinitionInfo> {
-        if let LineKind::Definition{ast,args,name} = LineKind::discern(ast,kind) {
-            Some(DefinitionInfo {ast,name,args,context_indent})
+        let infix = opr::to_assignment(ast)?;
+        // There two cases - function name is either a Var or operator.
+        // If this is a Var, we have Var, optionally under a Prefix chain with args.
+        // If this is an operator, we have SectionRight with (if any prefix in arguments).
+        let lhs  = Located::new(InfixCrumb::LeftOperand,prefix::Chain::from_ast_non_strict(&infix.larg));
+        let name = lhs.entered(|chain| {
+            let name_ast = chain.located_func();
+            name_ast.map(DefinitionName::from_ast)
+        }).into_opt()?;
+        let args = lhs.enumerate_args().map(|located_ast| {
+            // We already in the left side of assignment, so we need to prepend this crumb.
+            let left   = std::iter::once(ast::crumbs::Crumb::from(InfixCrumb::LeftOperand));
+            let crumbs = left.chain(located_ast.crumbs);
+            let ast    = located_ast.item.clone();
+            Located::new(crumbs,ast)
+        }).collect_vec();
+        let ret  = DefinitionInfo {ast:infix,name,args,context_indent};
+
+        // Note [Scope Differences]
+        if kind == ScopeKind::NonRoot {
+            // 1. Not an extension method but setter.
+            let is_setter = !ret.name.extended_target.is_empty();
+            // 2. No explicit args -- this is a node, not a definition.
+            let is_node = ret.args.is_empty();
+            if is_setter || is_node {
+                None
+            } else {
+                Some(ret)
+            }
         } else {
-            None
+            Some(ret)
         }
     }
 }
+
+// Note [Scope Differences]
+// ========================
+// When we are in definition scope (as opposed to global scope) certain patterns should not be
+// considered to be function definitions. These are:
+// 1. Expressions like "Int.x = …". In module, they'd be treated as extension methods. In
+//    definition scope they are treated as accessor setters.
+// 2. Expression like "foo = 5". In module, this is treated as method definition (with implicit
+//    this parameter). In definition, this is just a node (evaluated expression).
 
 /// Definition stored under some known crumbs path.
 pub type ChildDefinition = Located<DefinitionInfo>;
@@ -580,7 +614,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn definition_name_tests() {
         let parser = parser::Parser::new_or_panic();
-        let ast    = parser.parse_line_ast("Foo.Bar.baz").unwrap();
+        let ast    = parser.parse_line("Foo.Bar.baz").unwrap();
         let name   = DefinitionName::from_ast(&ast).unwrap();
 
         assert_eq!(*name.name, "baz");
@@ -595,14 +629,14 @@ mod tests {
     #[wasm_bindgen_test]
     fn definition_name_rejecting_incomplete_names() {
         let parser = parser::Parser::new_or_panic();
-        let ast    = parser.parse_line_ast("Foo. .baz").unwrap();
+        let ast    = parser.parse_line("Foo. .baz").unwrap();
         assert!(DefinitionName::from_ast(&ast).is_none());
     }
 
     #[wasm_bindgen_test]
     fn definition_info_name() {
         let parser     = parser::Parser::new_or_panic();
-        let ast        = parser.parse_line_ast("Foo.bar a b c = baz").unwrap();
+        let ast        = parser.parse_line("Foo.bar a b c = baz").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
 
         assert_eq!(definition.name.to_string(), "Foo.bar");
@@ -612,7 +646,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn located_definition_args() {
         let parser     = parser::Parser::new_or_panic();
-        let ast        = parser.parse_line_ast("foo bar baz = a + b + c").unwrap();
+        let ast        = parser.parse_line("foo bar baz = a + b + c").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
         let (arg0,arg1) = definition.args.expect_tuple();
 
