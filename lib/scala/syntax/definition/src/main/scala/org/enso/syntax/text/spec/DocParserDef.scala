@@ -884,7 +884,7 @@ case class DocParserDef() extends Parser[Doc] {
             current             = section.pop().get
           }
           val codeLines = stackOfCodeSections.map(s =>
-            Doc.Elem.CodeBlock.Line(s.indent, s.repr.build())
+            Doc.Elem.CodeBlock.Line(s.indent, s.repr.build().trim)
           )
           val l1CodeLines = List1(codeLines.head, codeLines.tail)
           val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
