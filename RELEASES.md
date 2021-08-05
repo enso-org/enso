@@ -1,5 +1,11 @@
 # Enso Next
 
+# Enso 0.2.21 (2021-08-05)
+
+## Miscellaneous
+
+- Updated the included project templates to better work with the IDE.
+
 # Enso 0.2.20 (2021-08-05)
 
 ## Tooling
