@@ -94,6 +94,7 @@ class ProjectService[
       projectTemplate
     )
     name         <- getNameForNewProject(projectName, projectTemplate)
+    _            <- log.info("Created project with actual name [{}].", name)
     _            <- validateName(name)
     _            <- checkIfNameExists(name)
     creationTime <- clock.nowInUtc()
@@ -478,8 +479,17 @@ class ProjectService[
 
         val edition =
           project.edition.getOrElse(DefaultEdition.getDefaultEdition)
+
         distributionConfiguration.editionManager
           .resolveEngineVersion(edition)
+          .orElse {
+            logger.warn(
+              s"Could not resolve engine version for ${edition}. Falling " +
+              s"back to ${DefaultEdition.getDefaultEdition}"
+            )
+            distributionConfiguration.editionManager
+              .resolveEngineVersion(DefaultEdition.getDefaultEdition)
+          }
           .get
       }
       .mapError { error =>
