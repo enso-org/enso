@@ -229,11 +229,9 @@ case class DocParserDef() extends Parser[Doc] {
   val CODE: State         = state.define("Code")
 
   ROOT || code.inlinePattern || code.onPushingInline(currentMatch)
-  CODE || newline || {
-    state.end(); state.begin(NEWLINE)
-  } // TODO - check if the indent is smaller than the one at the beginning of the code block.
-  CODE || notNewLine || code.onPushingMultiline(currentMatch)
-  CODE || eof        || { state.end(); documentation.onEOF() }
+  CODE || newline            || { state.end(); state.begin(NEWLINE)  }
+  CODE || notNewLine         || code.onPushingMultiline(currentMatch)
+  CODE || eof                || { state.end(); documentation.onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Formatter ///////////////////////////////////////////////////////////////
@@ -552,10 +550,6 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onIndentPattern(): Unit =
       logger.trace {
-        println("=-" * 20)
-        println("CML: " + currentMatch.length)
-        println("CL: " + indent.current)
-        println("*-" * 20)
         state.end()
         if (result.stack.nonEmpty) {
           indent.onPushingNewLine()
@@ -723,27 +717,8 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onNewRaw(): Unit =
       logger.trace {
-        println(" -=-" * 20)
-        println("CML: " + currentMatch.length)
-        println("CL: " + indent.current)
-        println("CL: " + section.currentIndentRaw)
-        println(" -*-" * 20)
-        println("SZTACK")
-        println(" -*-" * 20)
-        println(result.current)
-        println(result.stack)
-        println(section.current)
-        println(section.stack)
-        println(" -*-" * 20)
         indent.onEmptyLine()
         onNew(None)
-        println("SZTACK AFTERR")
-        println(" -*-" * 20)
-        println(result.current)
-        println(result.stack)
-        println(section.current)
-        println(section.stack)
-        println(" -*-" * 20)
       }
 
     def onNewRawWithHeader(): Unit =
@@ -876,7 +851,6 @@ case class DocParserDef() extends Parser[Doc] {
       var newStack = List[Section]()
       while (section.stack.nonEmpty) {
         var current = section.pop().get
-        println(current)
         if (current.indent > baseIndent && current.isInstanceOf[Section.Raw]) {
           var stackOfCodeSections: List[Section] = List[Section]()
           while (section.stack.nonEmpty && current.indent > baseIndent) {
@@ -898,9 +872,6 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
       section.stack = newStack.reverse
-      println()
-      println(section.stack)
-      println()
     }
 
     def reverseTagsStackOnEOF(): Unit =
@@ -914,9 +885,6 @@ case class DocParserDef() extends Parser[Doc] {
         val synopsis: Option[Synopsis] = createSynopsis()
         val body: Option[Body]         = createBody()
         result.doc = Some(Doc(tags, synopsis, body))
-        println()
-        println(result.doc)
-        println()
       }
 
     def createTags(): Option[Tags] =

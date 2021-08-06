@@ -639,74 +639,74 @@ object Main extends scala.App {
   println("--- PARSING ---")
 
   val mod = parser.run(testWithMultilineComment)
-//
-//  println(Debug.pretty(mod.toString))
-//
-//  println("=========================")
-//  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
+
+  println(Debug.pretty(mod.toString))
+
+  println("=========================")
+  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
   val rmod = parser.resolveMacros(mod)
-//  if (mod != rmod) {
-//    println("\n---\n")
-//    println(Debug.pretty(rmod.toString))
-//  }
-//
-//  println("------")
-//  println(mod.show() == testWithMultilineComment)
-//  println("------")
-//  println(mod.show())
-//  println("------")
+  if (mod != rmod) {
+    println("\n---\n")
+    println(Debug.pretty(rmod.toString))
+  }
+
+  println("------")
+  println(mod.show() == testWithMultilineComment)
+  println("------")
+  println(mod.show())
+  println("------")
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
   val droppedMeta = parser.dropMacroMeta(mod)
   val doc         = docparser.DocParserRunner.createDocs(droppedMeta)
 
-//  println(Debug.pretty(doc.toString))
-//  println("------")
-//  println(doc.show())
+  println(Debug.pretty(doc.toString))
+  println("------")
+  println(doc.show())
   val htmlCode =
     docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
   println("========== HTML ===========")
   println(htmlCode)
   println("===========================")
 
-//  println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
-//  val inpOnlyDoc =
-//    """DEPRECATED
-//      |REMOVED - replaced by Foo Bar
-//      |ADDED
-//      |MODIFIED
-//      |UPCOMING
-//      |ALAMAKOTA a kot ma Ale
-//      |This is a test of Enso Documentation Parser. This is a short synopsis.
-//      |
-//      |Here you can write the body of documentation. On top you can see tags
-//      |added to this piece of code. You can customise your text with _Italic_
-//      |~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
-//      |
-//      |
-//      |There are 3 kinds of sections
-//      |  - Important
-//      |  - Info
-//      |  - Example
-//      |    * You can use example to add multiline code to your documentation
-//      |
-//      |! Important
-//      |  Here is a small test of Important Section
-//      |
-//      |? Info
-//      |  Here is a small test of Info Section
-//      |
-//      |> Example
-//      |  Here is a small test of Example Section
-//      |      Import Foo
-//      |      def Bar a
-//      |          Foo x y
-//      |""".stripMargin
-//  val doc2      = DocParser.runMatched(inpOnlyDoc)
-//  val htmlCode2 = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
-//  println(htmlCode2)
-//
-//  AST.main()
+  println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
+  val inpOnlyDoc =
+    """DEPRECATED
+      |REMOVED - replaced by Foo Bar
+      |ADDED
+      |MODIFIED
+      |UPCOMING
+      |ALAMAKOTA a kot ma Ale
+      |This is a test of Enso Documentation Parser. This is a short synopsis.
+      |
+      |Here you can write the body of documentation. On top you can see tags
+      |added to this piece of code. You can customise your text with _Italic_
+      |~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
+      |
+      |
+      |There are 3 kinds of sections
+      |  - Important
+      |  - Info
+      |  - Example
+      |    * You can use example to add multiline code to your documentation
+      |
+      |! Important
+      |  Here is a small test of Important Section
+      |
+      |? Info
+      |  Here is a small test of Info Section
+      |
+      |> Example
+      |  Here is a small test of Example Section
+      |      Import Foo
+      |      def Bar a
+      |          Foo x y
+      |""".stripMargin
+  val doc2      = DocParser.runMatched(inpOnlyDoc)
+  val htmlCode2 = docparser.DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
+  println(htmlCode2)
+
+  AST.main()
 
 }
