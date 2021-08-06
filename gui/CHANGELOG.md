@@ -1,4 +1,4 @@
-# Next Release
+# Enso 2.0.0-alpha.11 (2021-08-06)
 
 This update contains major performance improvements and exposes new privacy user
 settings. We will work towards stabilizing it in the next weeks in order to make
@@ -8,13 +8,13 @@ these updates be shipped in a stable release before the end of the year.
 
 #### Visual Environment
 
-- [New look of open project dialog][1700]. Now it has "Open project" title on
+- [New look of open project dialog][1700]. Now it has a "Open project" title at
   the top.
-- [Documentation cooments are displayed next to the nodes.][1744].
+- [Documentation coments are displayed next to the nodes.][1744].
 
 #### Enso Compiler
 
-- [Updated Enso engine to version 0.2.22][1762]. If you're interested in the
+- [Updated Enso engine to version 0.2.22][1762]. If you are interested in the
   enhancements and fixes made to the Enso compiler, you can find out more
   details in
   [the engine release notes](https://github.com/enso-org/enso/blob/main/RELEASES.md).
