@@ -1,15 +1,29 @@
 # Enso Next
 
+# Enso 0.2.22 (2021-08-06)
+
 ## Tooling
 
 - Made the project manager more resilient to edition resolution failures
   ([#1929](https://github.com/enso-org/enso/pull/1929)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-06)
+  for issues opened before the release date.
 
 # Enso 0.2.21 (2021-08-05)
 
 ## Miscellaneous
 
 - Updated the included project templates to better work with the IDE.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-05)
+  for issues opened before the release date.
 
 # Enso 0.2.20 (2021-08-05)
 
