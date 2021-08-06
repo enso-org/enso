@@ -1,60 +1,61 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
-const path              = require('path')
-const webpack           = require('webpack')
+const path = require('path')
+const webpack = require('webpack')
 
-const thisPath  = path.resolve(__dirname)
-const root      = path.resolve(thisPath,'..','..','..','..')
-const distPath  = path.resolve(root,'dist')
-const wasmPath  = path.resolve(distPath,'wasm')
-const buildPath = path.resolve(distPath,'build.json')
+const thisPath = path.resolve(__dirname)
+const root = path.resolve(thisPath, '..', '..', '..', '..')
+const distPath = path.resolve(root, 'dist')
+const wasmPath = path.resolve(distPath, 'wasm')
+const buildPath = path.resolve(distPath, 'build.json')
 
-const child_process = require('child_process');
+const child_process = require('child_process')
 function git(command) {
-    return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
+    return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim()
 }
 
-const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'));
+const BUILD_INFO = JSON.parse(require('fs').readFileSync(buildPath, 'utf8'))
 
 module.exports = {
     entry: {
-        index: path.resolve(thisPath,'src','index.ts'),
+        index: path.resolve(thisPath, 'src', 'index.ts'),
         wasm_imports: './src/wasm_imports.js',
     },
     output: {
-        path: path.resolve(root,'dist','content','assets'),
+        path: path.resolve(root, 'dist', 'content', 'assets'),
         filename: '[name].js',
         libraryTarget: 'umd',
     },
     node: {
-        fs: 'empty'
+        fs: 'empty',
     },
     plugins: [
         new CompressionPlugin(),
         new CopyWebpackPlugin([
-            path.resolve(thisPath,'src','index.html'),
-            path.resolve(thisPath,'src','run.js'),
-            path.resolve(thisPath,'src','style.css'),
-            path.resolve(wasmPath,'ide.wasm'),
+            path.resolve(thisPath, 'src', 'index.html'),
+            path.resolve(thisPath, 'src', 'run.js'),
+            path.resolve(thisPath, 'src', 'style.css'),
+            path.resolve(thisPath, 'assets'),
+            path.resolve(wasmPath, 'ide.wasm'),
         ]),
         new webpack.DefinePlugin({
             GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
             GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
             BUILD_INFO: JSON.stringify(BUILD_INFO),
             FIREBASE_API_KEY: JSON.stringify(process.env.FIREBASE_API_KEY),
-        })
+        }),
     ],
     devServer: {
         publicPath: '/assets/',
         historyApiFallback: {
-            index: '/assets/'
-        }
+            index: '/assets/',
+        },
     },
     resolve: {
         alias: {
-            wasm_rust_glue$: path.resolve(wasmPath,'ide.js'),
+            wasm_rust_glue$: path.resolve(wasmPath, 'ide.js'),
         },
-        extensions: [ '.ts', '.js' ],
+        extensions: ['.ts', '.js'],
     },
     performance: {
         hints: false,
@@ -66,13 +67,17 @@ module.exports = {
             {
                 test: /\.ya?ml$/,
                 type: 'json',
-                use: 'yaml-loader'
+                use: 'yaml-loader',
             },
             {
                 test: /\.tsx?/,
                 use: 'ts-loader',
                 exclude: /node_modules/,
-            }
-        ]
-    }
+            },
+            {
+                test: /\.html$/i,
+                loader: 'html-loader',
+            },
+        ],
+    },
 }
