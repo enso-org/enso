@@ -38,28 +38,34 @@ class ProjectCreateHandler[F[+_, +_]: Exec: CovariantFlatMap: ErrorChannel](
       Some(requestTimeout)
     ) {
 
-  override def handleRequest = { params =>
-    val version = params.version.getOrElse(DefaultEnsoVersion)
-    val missingComponentAction =
-      params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
+  override def handleRequest
+    : ProjectCreate.Params => F[ProjectServiceFailure, ProjectCreate.Result] = {
+    params =>
+      val version = params.version.getOrElse(DefaultEnsoVersion)
+      val missingComponentAction =
+        params.missingComponentAction.getOrElse(MissingComponentAction.Fail)
 
-    for {
-      actualVersion <- configurationService
-        .resolveEnsoVersion(version)
-        .mapError { error =>
-          ProjectServiceFailure.ComponentRepositoryAccessFailure(
-            s"Could not determine the default version: $error"
-          )
-        }
-      _ = logger.trace(s"Creating project using engine $actualVersion")
-      project <- projectService.createUserProject(
-        progressTracker        = self,
-        name                   = params.name,
-        engineVersion          = actualVersion,
-        projectTemplate        = params.projectTemplate,
-        missingComponentAction = missingComponentAction
-      )
-    } yield ProjectCreate.Result(project.id, project.name)
+      for {
+        actualVersion <- configurationService
+          .resolveEnsoVersion(version)
+          .mapError { error =>
+            ProjectServiceFailure.ComponentRepositoryAccessFailure(
+              s"Could not determine the default version: $error"
+            )
+          }
+        _ = logger.trace(s"Creating project using engine $actualVersion")
+        project <- projectService.createUserProject(
+          progressTracker        = self,
+          name                   = params.name,
+          engineVersion          = actualVersion,
+          projectTemplate        = params.projectTemplate,
+          missingComponentAction = missingComponentAction
+        )
+        _ = logger.trace(
+          s"Created requested project ${params.name} with real " +
+          s"name ${project.name}"
+        )
+      } yield ProjectCreate.Result(project.id, project.name)
   }
 }
 
