@@ -1,5 +1,9 @@
 # Enso Next
 
+## Miscellaneous
+
+- Fixed inaproppriate parsing of code blocks in documentation.
+
 # Enso 0.2.21 (2021-08-05)
 
 ## Miscellaneous
