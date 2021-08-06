@@ -1,3 +1,5 @@
+# Next Release
+
 # Enso 2.0.0-alpha.11 (2021-08-06)
 
 This update contains major performance improvements and exposes new privacy user
