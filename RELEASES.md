@@ -1,5 +1,10 @@
 # Enso Next
 
+## Tooling
+
+- Made the project manager more resilient to edition resolution failures
+  ([#1929](https://github.com/enso-org/enso/pull/1929)).
+
 # Enso 0.2.21 (2021-08-05)
 
 ## Miscellaneous
