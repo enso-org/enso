@@ -10,6 +10,7 @@ let config = {
         "firebase": "^8.6.8",
         "firebaseui": "^4.8.0",
         "copy-webpack-plugin": "^5.1.1",
+        "html-loader": "^1.3.2",
         "mixpanel-browser":  "2.40.1"
     },
     devDependencies: {

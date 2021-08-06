@@ -251,7 +251,7 @@ mod test {
             name           : project_name.clone(),
             id             : uuid::Uuid::new_v4(),
             last_opened    : default(),
-            engine_version : "127.0.01".to_owned(),
+            engine_version : Some("127.0.01".to_owned()),
             namespace      : "local".to_owned(),
         };
         let expected_id      = project.id;

@@ -130,7 +130,7 @@ pub struct ProjectMetadata {
     /// Project's uuid.
     pub id:Uuid,
     /// Engine version to use for the project, represented by a semver version string.
-    pub engine_version:String,
+    pub engine_version:Option<String>,
     /// Last time the project was opened.
     pub last_opened:Option<UTCDateTime>
 }
@@ -269,14 +269,14 @@ mod mock_client_tests {
             name           : ProjectName::new("project1"),
             id             : Uuid::default(),
             last_opened    : Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version : "0.2.21".to_owned(),
+            engine_version : Some("0.2.21".to_owned()),
             namespace      : "local".to_owned(),
         };
         let project2 = ProjectMetadata {
             name        : ProjectName::new("project2"),
             id          : Uuid::default(),
             last_opened : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version : "0.2.22".to_owned(),
+            engine_version : Some("0.2.22".to_owned()),
             namespace      : "local".to_owned(),
         };
         let expected_recent_projects = response::ProjectList { projects : vec![project1,project2] };
@@ -284,14 +284,14 @@ mod mock_client_tests {
             name           : ProjectName::new("sample1"),
             id             : Uuid::default(),
             last_opened    : Some(DateTime::parse_from_rfc3339("2019-11-23T05:30:12Z").unwrap()),
-            engine_version : "0.2.21".to_owned(),
+            engine_version : Some("0.2.21".to_owned()),
             namespace      : "test".to_owned(),
         };
         let sample2 = ProjectMetadata {
             name           : ProjectName::new("sample2"),
             id             : Uuid::default(),
             last_opened    : Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap()),
-            engine_version : "0.2.21".to_owned(),
+            engine_version : Some("0.2.21".to_owned()),
             namespace      : "test".to_owned(),
         };
         let expected_sample_projects = response::ProjectList { projects : vec![sample1,sample2] };
@@ -420,14 +420,14 @@ mod remote_client_tests {
             name           : ProjectName::new("project1"),
             id             : Uuid::default(),
             last_opened    : Some(DateTime::parse_from_rfc3339("2020-01-07T21:25:26Z").unwrap()),
-            engine_version : "0.2.21".to_owned(),
+            engine_version : Some("0.2.21".to_owned()),
             namespace      : "local".to_owned(),
         };
         let project2 = ProjectMetadata {
             name           : ProjectName::new("project2"),
             id             : Uuid::default(),
             last_opened    : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap()),
-            engine_version : "0.2.22".to_owned(),
+            engine_version : Some("0.2.22".to_owned()),
             namespace      : "local".to_owned(),
         };
         let project_list      = response::ProjectList { projects : vec![project1,project2] };

@@ -3,3 +3,4 @@ dist
 lerna-debug.log
 *.lerna_backup
 package.json
+lib/content/assets/

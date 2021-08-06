@@ -41,6 +41,7 @@ paths.js                    = {}
 paths.js.lib                = {}
 paths.js.root               = path.join(paths.root, 'src', 'js')
 paths.js.lib.projectManager = path.join(paths.js.root, 'lib', 'project-manager')
+paths.js.lib.content        = path.join(paths.js.root, 'lib', 'content')
 
 paths.rust                = {}
 paths.rust.root           = path.join(paths.root,'src','rust')

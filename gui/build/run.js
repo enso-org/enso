@@ -507,6 +507,8 @@ async function updateBuildVersion (argv) {
 async function installJsDeps() {
     let initialized = fss.existsSync(paths.dist.init)
     if (!initialized) {
+        console.log('Downloading binary assets.')
+        await downloadJsAssets()
         console.log('Installing application dependencies.')
         await cmd.with_cwd(paths.js.root, async () => {
             await cmd.run('npm',['run','install'])
@@ -517,7 +519,35 @@ async function installJsDeps() {
     }
 }
 
-async function runCommand(command,argv) {
+async function downloadJsAssets() {
+    const workdir = path.join(paths.root, '.assets-temp')
+    await cmd.with_cwd(paths.root, async () => {
+        await cmd.run('mkdir', ['-p', workdir])
+    })
+    const ideAssetsMainZip = 'ide-assets-main.zip'
+    const unzippedAssets = path.join(workdir, 'ide-assets-main', 'content', 'assets')
+    const jsLibAssets = path.join(paths.js.lib.content, 'assets')
+
+    await cmd.with_cwd(workdir, async () => {
+        await cmd.run('curl', [
+            '--retry',
+            '4',
+            '--retry-connrefused',
+            '-fsSL',
+            '-o',
+            ideAssetsMainZip,
+            'https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip',
+        ])
+        await cmd.run('unzip', [ideAssetsMainZip])
+    })
+
+    await cmd.with_cwd(paths.root, async () => {
+        await cmd.run('cp', ['-r', unzippedAssets, paths.js.lib.content])
+        await cmd.run('rm', ['-r', workdir])
+    })
+}
+
+async function runCommand(command, argv) {
     let config = commands[command]
     cargoArgs  = argv['--']
     if (config === undefined) {
