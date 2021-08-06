@@ -479,14 +479,13 @@ class ProjectService[
 
         val edition =
           project.edition.getOrElse(DefaultEdition.getDefaultEdition)
-        logger.warn(s"Edition is $edition")
 
         distributionConfiguration.editionManager
           .resolveEngineVersion(edition)
           .orElse {
             logger.warn(
               s"Could not resolve engine version for ${edition}. Falling " +
-                s"back to ${DefaultEdition.getDefaultEdition}"
+              s"back to ${DefaultEdition.getDefaultEdition}"
             )
             distributionConfiguration.editionManager
               .resolveEngineVersion(DefaultEdition.getDefaultEdition)
