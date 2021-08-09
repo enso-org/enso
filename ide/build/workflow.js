@@ -123,6 +123,13 @@ let installClippy = {
     run: "rustup component add clippy"
 }
 
+// Install fixed version to avoid upgrading to a breaking version.
+// Should be removed once this has a better solution as described here:
+// https://github.com/enso-org/ide/issues/1772
+let installTypeScript = {
+    name: "Install TypeScript",
+    run: "npm install -g ts-node@10.1.0"
+}
 
 function installWasmPackOn(name,sys,pkg) {
     return {
@@ -458,6 +465,7 @@ let workflow = {
         ]),
         lint: job_on_macos("Linter", [
             installNode,
+            installTypeScript,
             installRust,
             installPrettier,
             installClippy,
@@ -467,17 +475,20 @@ let workflow = {
         ]),
         test: job_on_macos("Tests", [
             installNode,
+            installTypeScript,
             installRust,
             testNoWASM,
         ]),
         "wasm-test": job_on_macos("WASM Tests", [
             installNode,
+            installTypeScript,
             installRust,
             installWasmPack,
             testWASM
         ]),
         simple_build: job_on_macos("Simple Build (WASM size limit check)", [
             installNode,
+            installTypeScript,
             installRust,
             installWasmPack,
             installJava,
@@ -486,6 +497,7 @@ let workflow = {
         build: job_on_all_platforms("Build", [
             getCurrentReleaseChangelogInfo,
             installNode,
+            installTypeScript,
             installRust,
             installWasmPack,
             // Needed for package signing on macOS.
