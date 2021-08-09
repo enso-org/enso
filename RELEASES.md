@@ -1,5 +1,12 @@
 # Enso Next
 
+## Tooling
+
+- Implemented a basic library uploader
+  ([#1933](https://github.com/enso-org/enso/pull/1933)). It implements the
+  `library/publish` endpoint of the Language Server and adds a `publish-library`
+  subcommand to the Launcher.
+
 # Enso 0.2.23 (2021-08-09)
 
 ## Miscellaneous
