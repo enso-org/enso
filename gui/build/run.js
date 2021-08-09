@@ -1,7 +1,9 @@
 const child_process = require('child_process')
 const cmd           = require('./cmd')
 const fs            = require('fs').promises
+const fse           = require('fs-extra')
 const fss           = require('fs')
+const unzipper      = require('unzipper')
 const glob          = require('glob')
 const ncp           = require('ncp').ncp
 const os            = require('os')
@@ -521,13 +523,11 @@ async function installJsDeps() {
 
 async function downloadJsAssets() {
     const workdir = path.join(paths.root, '.assets-temp')
-    await cmd.with_cwd(paths.root, async () => {
-        await cmd.run('mkdir', ['-p', workdir])
-    })
+    await fs.mkdir(workdir, {recursive:true})
     const ideAssetsMainZip = 'ide-assets-main.zip'
+    const ideAssetsUrl = `https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip`
     const unzippedAssets = path.join(workdir, 'ide-assets-main', 'content', 'assets')
     const jsLibAssets = path.join(paths.js.lib.content, 'assets')
-
     await cmd.with_cwd(workdir, async () => {
         await cmd.run('curl', [
             '--retry',
@@ -536,15 +536,14 @@ async function downloadJsAssets() {
             '-fsSL',
             '-o',
             ideAssetsMainZip,
-            'https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip',
+            ideAssetsUrl,
         ])
-        await cmd.run('unzip', [ideAssetsMainZip])
     })
 
-    await cmd.with_cwd(paths.root, async () => {
-        await cmd.run('cp', ['-r', unzippedAssets, paths.js.lib.content])
-        await cmd.run('rm', ['-r', workdir])
-    })
+    const assetsArchive = await unzipper.Open.file(path.join(workdir,ideAssetsMainZip))
+    await assetsArchive.extract({path: workdir})
+    await fse.copy(unzippedAssets,jsLibAssets)
+    await fse.remove(workdir)
 }
 
 async function runCommand(command, argv) {
