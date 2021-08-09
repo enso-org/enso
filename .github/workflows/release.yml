@@ -244,7 +244,7 @@ jobs:
         shell: bash
         working-directory: repo/built-distribution
         run:
-          zip -q -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH
+          7z a -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH
           }}.zip *
       - name: Upload the Built Artifacts
         uses: actions/upload-artifact@v2
@@ -279,7 +279,7 @@ jobs:
       - name: Unpack Artifacts
         shell: bash
         working-directory: repo/built-distribution
-        run: unzip *.zip
+        run: 7z x "*.zip"
 
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
