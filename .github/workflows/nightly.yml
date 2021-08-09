@@ -285,12 +285,15 @@ jobs:
         # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
         shell: bash
         working-directory: repo/built-distribution
-        run: zip -q -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip *
+        run:
+          zip -q -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH
+          }}.zip *
       - name: Upload the Built Artifacts
         uses: actions/upload-artifact@v2
         with:
           name: built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}
-          path: repo/built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
+          path:
+            repo/built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
