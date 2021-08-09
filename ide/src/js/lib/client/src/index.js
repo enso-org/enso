@@ -36,8 +36,8 @@ const resources = path.join(root, "..")
 // ================
 
 let windowCfg = {
-    width  : 1280,
-    height : 720,
+    width  : 1380,
+    height : 900,
 }
 
 
