@@ -26,7 +26,7 @@ pub const VISUALIZATION_DIRECTORY:&str = "visualization";
 ///
 /// This is necessary, because the request will be timing out for a while, until the stdlib
 /// compilation is done.
-pub const INITIAL_VISUALIZATION_ATTACH_ATTEMPTS:usize = 10;
+pub const INITIAL_VISUALIZATION_ATTACH_ATTEMPTS:usize = 50;
 
 /// A module with language-specific constants.
 pub mod keywords {
