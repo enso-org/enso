@@ -101,6 +101,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
+      - name: Install TypeScript
+        run: npm install -g ts-node@10.1.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -130,6 +132,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
+      - name: Install TypeScript
+        run: npm install -g ts-node@10.1.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -151,6 +155,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
+      - name: Install TypeScript
+        run: npm install -g ts-node@10.1.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -205,6 +211,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
+      - name: Install TypeScript
+        run: npm install -g ts-node@10.1.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -282,6 +290,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.0
+      - name: Install TypeScript
+        run: npm install -g ts-node@10.1.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
