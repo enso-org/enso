@@ -251,6 +251,7 @@ lazy val enso = (project in file("."))
     `distribution-manager`,
     `edition-updater`,
     `library-manager`,
+    `library-manager-test`,
     syntax.jvm,
     testkit
   )
@@ -1023,6 +1024,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(testkit % Test)
+  .dependsOn(`library-manager-test` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
 lazy val ast = (project in file("lib/scala/ast"))
@@ -1178,22 +1180,6 @@ lazy val runtime = (project in file("engine/runtime"))
       case _ => MergeStrategy.first
     }
   )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(
-        Def.task {
-          Editions.writeEditionConfig(
-            ensoVersion = ensoVersion,
-            editionName = currentEdition,
-            libraryVersion =
-              "0.1.0", // TODO [RW] Once we start releasing the standard libraries, this will be synced with engine version.
-            log = streams.value.log
-          )
-        }
-      )
-      .value,
-    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
-  )
   .dependsOn(pkg)
   .dependsOn(`interpreter-dsl`)
   .dependsOn(syntax.jvm)
@@ -1270,6 +1256,7 @@ lazy val `engine-runner` = project
   )
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(cli)
   .dependsOn(`library-manager`)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
@@ -1359,6 +1346,22 @@ lazy val editions = project
       "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
     )
   )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(
+        Def.task {
+          Editions.writeEditionConfig(
+            ensoVersion = ensoVersion,
+            editionName = currentEdition,
+            libraryVersion =
+              "0.1.0", // TODO [RW] Once we start releasing the standard libraries, this will be synced with engine version.
+            log = streams.value.log
+          )
+        }
+      )
+      .value,
+    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+  )
   .dependsOn(testkit % Test)
 
 lazy val downloader = (project in file("lib/scala/downloader"))
@@ -1405,6 +1408,19 @@ lazy val `library-manager` = project
   .dependsOn(downloader)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service` % Test)
+
+lazy val `library-manager-test` = project
+  .in(file("lib/scala/library-manager-test"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
+    )
+  )
+  .dependsOn(`library-manager`)
+  .dependsOn(testkit)
+  .dependsOn(`logging-service`)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
