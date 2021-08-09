@@ -7,6 +7,19 @@
   `library/publish` endpoint of the Language Server and adds a `publish-library`
   subcommand to the Launcher.
 
+# Enso 0.2.23 (2021-08-09)
+
+## Miscellaneous
+
+- Update the included project templates for better display and usability in the
+  IDE.
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-09)
+  for issues opened before the release date.
+
 # Enso 0.2.22 (2021-08-06)
 
 ## Tooling
