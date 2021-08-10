@@ -139,6 +139,9 @@ pub trait EventConsumer<T> {
 /// Implementors of this trait have to know how to consume incoming events. However, it is allowed
 /// for them not to consume an event if they were already dropped.
 pub trait WeakEventConsumer<T> {
+    /// Returns true is the consumer is already dropped.
+    fn is_dropped(&self) -> bool;
+
     /// Callback for a new incoming event. Returns true if the event was consumed or false if it was
     /// not. Not consuming an event means that the event receiver was already dropped.
     fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool;
@@ -196,6 +199,8 @@ impl<Input> Debug for EventInput<Input> {
 // === NodeData ===
 // ================
 
+const EVALUATIONS_LIMIT:usize = 100;
+
 /// Internal structure of every stream FRP node.
 ///
 /// A few important design decisions are worth mentioning. The `during_call` field is set to `true`
@@ -212,12 +217,12 @@ pub struct NodeData<Out=()> {
     /// is borrowed mutable. You should always borrow it only if `during_call` is false. Otherwise,
     /// if you want to register new outputs during a call, use `new_targets` field instead. It will
     /// be merged into `targets` directly after the call.
-    targets       : RefCell<Vec<EventInput<Out>>>,
-    new_targets   : RefCell<Vec<EventInput<Out>>>,
-    value_cache   : RefCell<Out>,
-    during_call   : Cell<bool>,
-    watch_counter : watch::Counter,
-    label         : Label,
+    targets             : RefCell<Vec<EventInput<Out>>>,
+    new_targets         : RefCell<Vec<EventInput<Out>>>,
+    value_cache         : RefCell<Out>,
+    ongoing_evaluations : Cell<usize>,
+    watch_counter       : watch::Counter,
+    label               : Label,
 }
 
 impl<Out:Default> NodeData<Out> {
@@ -226,9 +231,9 @@ impl<Out:Default> NodeData<Out> {
         let targets       = default();
         let new_targets   = default();
         let value_cache   = default();
-        let during_call   = default();
+        let evaluations   = default();
         let watch_counter = default();
-        Self {targets,new_targets,value_cache,during_call,watch_counter,label}
+        Self {targets,new_targets,value_cache, ongoing_evaluations: evaluations,watch_counter,label}
     }
 
     fn use_caching(&self) -> bool {
@@ -243,30 +248,36 @@ impl<Out:Data> HasOutput for NodeData<Out> {
 impl<Out:Data> EventEmitter for NodeData<Out> {
     fn emit_event(&self, stack:CallStack, value:&Out) {
         let new_stack = stack.sub(self.label);
-        if self.during_call.get() {
+        if self.ongoing_evaluations.get() > EVALUATIONS_LIMIT {
             let logger : Logger = Logger::new("frp");
-            warning!(logger,"Encountered a loop in the reactive dataflow.", || {
+            warning!(logger,"The recursive evaluations limit exceeded.", || {
                 warning!(logger,"{new_stack}");
             });
+            WARNING!("{backtrace()}")
         } else {
-            self.during_call.set(true);
+            self.ongoing_evaluations.set(self.ongoing_evaluations.get() + 1);
             if self.use_caching() {
                 *self.value_cache.borrow_mut() = value.clone();
             }
-            self.targets.borrow_mut().retain(
-                |target| target.data.on_event_if_exists(&new_stack,value)
-            );
+            if let Ok(mut targets) = self.targets.try_borrow_mut() {
+                targets.retain(|target| !target.data.is_dropped());
+            }
+            for target in self.targets.borrow().iter() {
+                target.data.on_event_if_exists(&new_stack,value);
+            }
             let mut new_targets = self.new_targets.borrow_mut();
             if !new_targets.is_empty() {
-                let new_targets_ref: &mut Vec<EventInput<Out>> = &mut new_targets;
-                self.targets.borrow_mut().extend(mem::take(new_targets_ref));
+                if let Ok(mut targets) = self.targets.try_borrow_mut() {
+                    let new_targets_ref: &mut Vec<EventInput<Out>> = &mut new_targets;
+                    targets.extend(mem::take(new_targets_ref));
+                }
             }
-            self.during_call.set(false);
+            self.ongoing_evaluations.set(self.ongoing_evaluations.get() - 1);
         }
     }
 
     fn register_target(&self,target:EventInput<Out>) {
-        if self.during_call.get() {
+        if self.ongoing_evaluations.get() > 0 {
             self.new_targets.borrow_mut().push(target);
         } else {
             self.targets.borrow_mut().push(target);
@@ -508,6 +519,10 @@ impl<Def:HasOutputStatic> EventEmitter for WeakNode<Def> {
 
 impl<Def,T> WeakEventConsumer<T> for WeakNode<Def>
 where Def:HasOutputStatic, Node<Def>:EventConsumer<T> {
+    fn is_dropped(&self) -> bool {
+        self.definition.is_expired()
+    }
+
     fn on_event_if_exists(&self, stack:CallStack, value:&T) -> bool {
         self.upgrade().map(|node| {node.on_event(stack,value);}).is_some()
     }

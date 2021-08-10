@@ -274,9 +274,9 @@ impl DropDownMenu {
 
             eval_ hide_menu (model.selection_menu.deselect_entries.emit(()));
 
-            frp.source.menu_visible <+ hide_menu.constant(false);
-            frp.source.menu_visible <+ show_menu.constant(true);
-            frp.source.menu_closed  <+ hide_menu;
+            menu_visible            <- bool(&hide_menu,&show_menu).on_change();
+            frp.source.menu_visible <+ menu_visible;
+            frp.source.menu_closed  <+ menu_visible.on_false();
 
             target_height <- all_with(&frp.output.menu_visible,&model.selection_menu.frp.set_entries,
                 f!([](visible,entries) {
@@ -347,12 +347,12 @@ impl DropDownMenu {
             });
 
 
-           // === Close Menu ===
+            // === Close Menu ===
 
-           mouse_down        <- mouse.down.constant(());
-           mouse_down_remote <- mouse_down.gate_not(&icon_hovered);
-           dismiss_menu      <- any(&frp.hide_selection_menu,&mouse_down_remote);
-           eval_ dismiss_menu ( hide_menu.emit(()) );
+            mouse_down        <- mouse.down.constant(());
+            mouse_down_remote <- mouse_down.gate_not(&icon_hovered);
+            dismiss_menu      <- any(&frp.hide_selection_menu,&mouse_down_remote);
+            eval_ dismiss_menu ( hide_menu.emit(()) );
         }
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for
