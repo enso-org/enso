@@ -319,7 +319,7 @@ impl Integration {
 
         let file_browser = &model.view.open_dialog().file_browser;
         let project_list = &model.view.open_dialog().project_list;
-        frp::extend! { TRACE_ALL network
+        frp::extend! { network
             let chosen_project = project_list.chosen_entry.clone_ref();
             let file_chosen    = file_browser.entry_chosen.clone_ref();
             project_chosen     <- chosen_project.filter_map(|p| *p);

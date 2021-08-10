@@ -223,10 +223,12 @@ impl View {
             eval frp.hide     ((()) height.set_target_value(-list_view::SHADOW_PX));
 
             is_selected               <- model.list.selected_entry.map(|e| e.is_some());
+            is_enabled                <- bool(&frp.hide,&frp.show);
+            is_entry_enabled          <- is_selected && is_enabled;
             displayed_doc             <- model.list.selected_entry.map(f!((id) model.docs_for(*id)));
             opt_picked_entry          <- model.list.selected_entry.sample(&frp.use_as_suggestion);
-            source.used_as_suggestion <+ opt_picked_entry.gate(&is_selected);
-            source.editing_committed  <+ model.list.chosen_entry.gate(&is_selected);
+            source.used_as_suggestion <+ opt_picked_entry.gate(&is_entry_enabled);
+            source.editing_committed  <+ model.list.chosen_entry.gate(&is_entry_enabled);
 
             eval displayed_doc ((data) model.documentation.frp.display_documentation(data));
         };

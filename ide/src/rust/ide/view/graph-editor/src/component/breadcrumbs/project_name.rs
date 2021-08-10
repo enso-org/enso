@@ -286,8 +286,6 @@ impl ProjectName {
             });
             frp.source.edit_mode <+ start_editing.to_true();
 
-            outside_press <- any(&frp.outside_press,&frp.deselect);
-
 
             // === Text Area ===
 
@@ -299,21 +297,20 @@ impl ProjectName {
 
             // === Input Commands ===
 
-            eval_ frp.input.cancel_editing(model.reset_name());
+            eval_ frp.input.cancel_editing  (model.reset_name());
             eval  frp.input.set_name((name) {model.rename(name)});
             frp.output.source.name <+ frp.input.set_name;
 
 
             // === Commit ===
 
-            do_commit <- any(&frp.commit,&outside_press).gate(&frp.output.edit_mode);
+            do_commit <- any(&frp.commit,&frp.outside_press).gate(&frp.output.edit_mode);
             commit_text <- text_content.sample(&do_commit);
             frp.output.source.name <+ commit_text;
             eval commit_text((text) model.commit(text));
             on_commit <- commit_text.constant(());
 
-            end_edit_mode <- any(&on_commit,&on_deselect);
-            frp.output.source.edit_mode <+ end_edit_mode.to_false();
+            frp.output.source.edit_mode <+ on_deselect.to_false();
 
 
             // === Selection ===
@@ -321,7 +318,7 @@ impl ProjectName {
             eval_ frp.select( animations.color.set_target_value(selected_color) );
             frp.output.source.selected <+ frp.select.to_true();
 
-            set_inactive <- any3(&frp.deselect,&end_edit_mode,&outside_press);
+            set_inactive <- any(&frp.deselect,&on_commit);
             eval_ set_inactive ([text,animations]{
                 text.set_focus(false);
                 text.remove_all_cursors();

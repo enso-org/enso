@@ -210,7 +210,6 @@ impl Model {
             }
             _ => {
                 self.searcher.hide();
-                self.searcher.clear_actions();
             }
         }
     }

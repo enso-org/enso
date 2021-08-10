@@ -166,7 +166,7 @@ impl Model {
         let label           = text::Area::new(app);
         let events          = default();
         let processes       = default();
-        let next_process_id = default();
+        let next_process_id = Rc::new(RefCell::new(process::Id(1)));
         let camera          = scene.camera();
 
         scene.layers.panel.add_exclusive(&background);
@@ -279,7 +279,9 @@ impl View {
             _process_finished <- frp.finish_process.filter_map(f!((id)
                 model.finish_process(*id).as_some(*id)
             ));
-            displayed_process_finished <- frp.finish_process.all(&frp.output.displayed_process).filter(|(fin,dis)| dis.contains(fin));
+            displayed_process_finished <- frp.finish_process
+                .map2(&frp.output.displayed_process, |fin,dis|(*fin,*dis))
+                .filter(|(fin,dis)| dis.contains(fin));
 
             label_after_adding_event <- frp.add_event.map(
                 |label| AsRef::<ImString>::as_ref(label).clone_ref()
