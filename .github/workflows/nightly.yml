@@ -293,7 +293,8 @@ jobs:
         with:
           name: built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}
           path:
-            repo/built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
+            repo/built-distribution/built-distribution-${{ env.DIST_OS }}-${{
+            env.DIST_ARCH }}.zip
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
