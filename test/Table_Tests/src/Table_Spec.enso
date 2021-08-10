@@ -19,27 +19,6 @@ My.frobnicate = case this of
     My x1 y1 -> My y1 x1
 
 spec =
-
-    Test.group "JSON serialization" <|
-        Test.specify "should serialize all column types to correct JSON" <|
-            c_1 = [1, 2, 3, Nothing]
-            c_2 = [1.2, 3.4, 5.6, 7.8]
-            c_3 = [Nothing, 'foo', 'bar', 'baz']
-            c_4 = [True, False, True, True]
-            c_5 = [My 1 2, My True False, My 6.3 6.4, [1, 2, 3]]
-
-            t = Table.new [['a', c_1], ['b', c_2], ['c', c_3], ['d', c_4], ['e', c_5]]
-
-            j_c_1 = Json.from_pairs [["name", "a"], ["data", c_1]]
-            j_c_2 = Json.from_pairs [["name", "b"], ["data", c_2]]
-            j_c_3 = Json.from_pairs [["name", "c"], ["data", c_3]]
-            j_c_4 = Json.from_pairs [["name", "d"], ["data", c_4]]
-            j_c_5 = Json.from_pairs [["name", "e"], ["data", c_5]]
-
-            expected = Json.from_pairs [["columns", [j_c_1, j_c_2, j_c_3, j_c_4, j_c_5]]]
-
-            t.to_json.should_equal expected
-
     Test.group "JSON construction" <|
         geo_json = Json.parse <| '''
             {
