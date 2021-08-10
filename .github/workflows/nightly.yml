@@ -318,14 +318,13 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           path: repo/built-distribution
-      - name: Unpack Artifacts
-        shell: bash
-        working-directory: repo/built-distribution
-        run: unzip *.zip
-      # This jobs can be used to debug errors, it may be removed
       - name: Display Structure of Downloaded Files
         run: ls
         working-directory: repo/built-distribution
+      - name: Unpack Artifacts
+        shell: bash
+        working-directory: repo/built-distribution
+        run: for f in built-distribution-*; do unzip -n "$f/$f.zip"; done
 
       - name: Prepare Nodejs
         shell: bash
