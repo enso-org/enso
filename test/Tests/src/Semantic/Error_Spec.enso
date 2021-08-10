@@ -2,6 +2,8 @@ from Standard.Base import all
 
 import Standard.Test
 
+polyglot java import java.util.Random
+
 type My_Type foo
 
 spec =
@@ -19,7 +21,9 @@ spec =
 
             err_3.target.to_text.should_equal "(My_Type False)"
             err_3.method_name.should_equal "nope"
+
     Test.group "Dataflow Errors" <|
+
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type "aaa").to_default_visualization_data
             json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "My_Type"]]).to_text
@@ -38,8 +42,10 @@ spec =
                   }
                 ]
             visualization_text.should_equal expected_json.to_text
+
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
+
         Test.specify "should be able to be mapped" <|
             error = Error.throw 42
             regular = 10
@@ -53,3 +59,7 @@ spec =
 
             error.is_error . should_equal True
             regular.is_error . should_equal False
+
+        Test.specify "should short-circuit polyglot evaluation" <|
+            error = Error.throw 42
+            Random.new error . should_fail_with Integer

@@ -153,7 +153,6 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
-      @Cached AnyResolverNode anyResolverNode,
       @Cached HostMethodCallNode hostMethodCallNode,
       @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
 

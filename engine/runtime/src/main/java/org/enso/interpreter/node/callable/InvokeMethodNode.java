@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -31,7 +30,9 @@ import org.enso.interpreter.runtime.state.Stateful;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
-  private final ConditionProfile errorProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile polyglotArgumentErrorProfile =
+      ConditionProfile.createCountingProfile();
   private final int argumentCount;
 
   /**
@@ -94,7 +95,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode) {
     Function function = dataflowErrorResolverNode.execute(symbol, _this);
-    if (errorProfile.profile(function == null)) {
+    if (errorReceiverProfile.profile(function == null)) {
       return new Stateful(state, _this);
     } else {
       return invokeFunctionNode.execute(function, frame, state, arguments);
@@ -130,11 +131,14 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached("buildExecutors()") ThunkExecutorNode[] argExecutors,
-      @Cached AnyResolverNode anyResolverNode,
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      // TODO [AA] New node
+      if (polyglotArgumentErrorProfile.profile(r.getValue() instanceof DataflowError)) {
+        return r;
+      }
       state = r.getState();
       args[i] = r.getValue();
     }
