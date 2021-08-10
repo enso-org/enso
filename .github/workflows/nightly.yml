@@ -281,26 +281,20 @@ jobs:
           sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/0.1.0/THIRD-PARTY"
 
       # Publish
-      - name: Upload the Engine Artifact
+      - name: Compress the built artifacts for upload
+        # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
+        shell: bash
+        working-directory: repo/built-distribution
+        run:
+          7z a -r built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}.zip
+          *
+      - name: Upload the Built Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.ENGINE_DIST_NAME }}
-          path: repo/${{ env.ENGINE_DIST_ROOT }}
-      - name: Upload the Launcher Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.LAUNCHER_DIST_NAME }}
-          path: repo/${{ env.LAUNCHER_DIST_ROOT }}
-      - name: Upload the Project Manager Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.PROJECTMANAGER_DIST_NAME }}
-          path: repo/${{ env.PROJECTMANAGER_DIST_ROOT }}
-      - name: Upload the GraalVM Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ env.GRAAL_DIST_NAME }}
-          path: repo/${{ env.GRAAL_DIST_ROOT }}
+          name: built-distribution-${{ env.DIST_OS }}-${{ env.DIST_ARCH }}
+          path:
+            repo/built-distribution/built-distribution-${{ env.DIST_OS }}-${{
+            env.DIST_ARCH }}.zip
       - name: Upload the Manifest Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -325,16 +319,18 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           path: repo/built-distribution
+      - name: Display Structure of Downloaded Files
+        run: ls
+        working-directory: repo/built-distribution
+      - name: Unpack Artifacts
+        shell: bash
+        working-directory: repo/built-distribution
+        run: for f in built-distribution-*; do unzip -n "$f/$f.zip"; done
+
       - name: Prepare Nodejs
         shell: bash
         working-directory: repo/tools/ci/nightly
         run: npm install
-
-      # This jobs can be used to debug errors, it may be removed
-      - name: Display Structure of Downloaded Files
-        run: ls
-        working-directory: repo/built-distribution
-
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
