@@ -29,7 +29,7 @@ class EditionsListAvailableHandler(editionManager: EditionManager)
           sender() ! ResponseResult(
             EditionsListAvailable,
             id,
-            EditionsListAvailable.Result(editions)
+            EditionsListAvailable.Result(editions.sorted)
           )
         case Failure(exception) =>
           sender() ! ResponseError(
