@@ -7,6 +7,11 @@
   `library/publish` endpoint of the Language Server and adds a `publish-library`
   subcommand to the Launcher.
 
+## Libraries
+
+- Added support for writing tables to file as JSON
+  ([#1937](https://github.com/enso-org/enso/pull/1937)).
+
 # Enso 0.2.23 (2021-08-09)
 
 ## Miscellaneous
