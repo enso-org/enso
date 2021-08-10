@@ -1,10 +1,9 @@
 package org.enso.editions.updater
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.distribution.config.GlobalConfigurationManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions
-import org.enso.editions.provider.{EditionProvider, FileSystemEditionProvider}
 import org.enso.editions.{EditionResolver, Editions}
 
 import java.nio.file.Path
@@ -50,16 +49,14 @@ object EditionManager {
   def makeEditionProvider(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
-  ): EditionProvider = {
-    val sources = loadEditionSources(distributionManager.paths.config / "")
+  ): UpdatingEditionProvider = {
+    val config = new GlobalConfigurationManager(distributionManager).getConfig
     new UpdatingEditionProvider(
       getSearchPaths(distributionManager, languageHome),
       distributionManager.paths.cachedEditions,
-      sources
+      config.editionProviders
     )
   }
-
-  private def loadEditionSources(sourcesPath: Path): Seq[String] = ???
 
   /** Get search paths associated with the distribution and language home. */
   private def getSearchPaths(
@@ -78,7 +75,6 @@ object EditionManager {
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome] = None
   ): EditionManager = new EditionManager(
-    distributionManager.paths.cachedEditions,
-    getSearchPaths(distributionManager, languageHome)
+    makeEditionProvider(distributionManager, languageHome)
   )
 }

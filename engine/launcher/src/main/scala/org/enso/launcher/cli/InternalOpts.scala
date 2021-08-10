@@ -10,7 +10,7 @@ import org.enso.cli.arguments.Opts.implicits._
 import org.enso.distribution.FileSystem
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.cli.Arguments._
+import org.enso.distribution.config.DefaultVersion._
 import org.enso.launcher.distribution.LauncherEnvironment
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.releases.LauncherRepository

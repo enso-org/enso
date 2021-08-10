@@ -1,7 +1,8 @@
-package org.enso.runtimeversionmanager.config
+package org.enso.distribution.config
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
+import org.enso.distribution.config
 import org.enso.pkg.Contact
 
 /** Global user configuration.
@@ -74,7 +75,7 @@ object GlobalConfig {
         defaultEditionProviders
       )
       original <- json.as[JsonObject]
-    } yield GlobalConfig(
+    } yield config.GlobalConfig(
       defaultVersion   = defaultVersion,
       authorName       = authorName,
       authorEmail      = authorEmail,

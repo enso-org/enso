@@ -145,7 +145,6 @@ case class EditionResolver(provider: EditionProvider) {
         for {
           rawParent <- provider
             .findEditionForName(parentName)
-            .toEither
             .left
             .map(EditionResolutionError.CannotLoadEdition(parentName, _))
           res <- resolveEdition(rawParent, parentName :: visitedEditions)

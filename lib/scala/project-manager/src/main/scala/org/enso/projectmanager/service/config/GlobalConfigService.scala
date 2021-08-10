@@ -8,7 +8,7 @@ import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.service.config.GlobalConfigServiceFailure.ConfigurationFileAccessFailure
 import org.enso.projectmanager.service.versionmanagement.NoOpInterface
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
 /** Implementation of global configuration management logic.
   *
@@ -18,7 +18,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   distributionConfiguration: DistributionConfiguration
 ) extends GlobalConfigServiceApi[F] {
 
-  val configurationManager = new GlobalConfigurationManager(
+  val configurationManager = new GlobalRunnerConfigurationManager(
     distributionConfiguration.makeRuntimeVersionManager(new NoOpInterface),
     distributionConfiguration.distributionManager
   )

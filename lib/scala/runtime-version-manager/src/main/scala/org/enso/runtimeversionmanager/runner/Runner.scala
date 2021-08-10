@@ -14,7 +14,7 @@ import org.enso.runtimeversionmanager.components.{
   GraalRuntime,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
 import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
@@ -28,7 +28,7 @@ import scala.util.Try
 class Runner(
   runtimeVersionManager: RuntimeVersionManager,
   distributionManager: DistributionManager,
-  globalConfigurationManager: GlobalConfigurationManager,
+  globalConfigurationManager: GlobalRunnerConfigurationManager,
   editionManager: EditionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]

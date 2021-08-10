@@ -1,10 +1,9 @@
-package org.enso.runtimeversionmanager.config
+package org.enso.distribution.config
 
-import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax._
+import io.circe.{Decoder, Encoder, Json}
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.arguments.Argument
-import org.enso.runtimeversionmanager.cli.Arguments._
+import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.editions.SemVerJson._
 
 /** Default version that is used when launching Enso outside of projects and
@@ -59,4 +58,12 @@ object DefaultVersion {
       implicitly[Argument[SemVer]].read(string).map(Exact)
     }
   }
+
+  /** [[Argument]] instance that tries to parse the String as a [[SemVer]]
+    * version string.
+    */
+  implicit val semverArgument: Argument[SemVer] = (string: String) =>
+    SemVer(string).toRight(
+      OptsParseError(s"`$string` is not a valid semantic version string.")
+    )
 }

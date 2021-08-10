@@ -2,12 +2,11 @@ package org.enso.editions.provider
 
 import org.enso.editions.{EditionName, EditionSerialization, Editions}
 
-import java.io.FileNotFoundException
 import java.nio.file.{Files, Path}
 import scala.annotation.tailrec
 import scala.collection.Factory
 import scala.jdk.StreamConverters.StreamHasToScala
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.Using
 
 /** An implementation of [[EditionProvider]] that looks for the edition files in
   *  a list of filesystem paths.
@@ -29,11 +28,11 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     case head :: tail =>
       val headResult = loadEdition(name, head)
       headResult match {
-        case Left(EditionNotFound) =>
+        case Left(EditionNotFound()) =>
           findEdition(name, tail)
         case _ => headResult
       }
-    case Nil => Left(EditionNotFound)
+    case Nil => Left(EditionNotFound())
   }
 
   private def loadEdition(
@@ -48,7 +47,7 @@ class FileSystemEditionProvider(searchPaths: List[Path])
         .toEither
         .left
         .map(EditionReadError)
-    } else Left(EditionNotFound)
+    } else Left(EditionNotFound())
   }
 
   /** Finds all editions available on the [[searchPaths]]. */
