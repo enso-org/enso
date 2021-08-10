@@ -12,5 +12,10 @@ import scala.util.Try
 trait EditionProvider {
 
   /** Tries to load an edition with the given name. */
-  def findEditionForName(name: String): Try[Editions.Raw.Edition]
+  def findEditionForName(
+    name: String
+  ): Either[EditionLoadingError, Editions.Raw.Edition]
+
+  /** Finds all editions that are currently available. */
+  def findAvailableEditions(): Seq[String]
 }

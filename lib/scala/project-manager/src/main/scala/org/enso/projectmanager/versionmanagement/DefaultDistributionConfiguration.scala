@@ -3,7 +3,6 @@ package org.enso.projectmanager.versionmanagement
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.distribution.{
   DistributionManager,
-  EditionManager,
   Environment,
   TemporaryDirectoryManager
 }

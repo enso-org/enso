@@ -4,7 +4,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.EditionManager
+import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
 import org.enso.runtimeversionmanager.config.{
   DefaultVersion,

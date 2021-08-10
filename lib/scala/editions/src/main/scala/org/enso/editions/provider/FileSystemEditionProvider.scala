@@ -16,15 +16,10 @@ class FileSystemEditionProvider(searchPaths: List[Path])
     extends EditionProvider {
 
   /** @inheritdoc */
-  override def findEditionForName(name: String): Try[Editions.Raw.Edition] = {
-    val result = findEdition(name, searchPaths)
-    result match {
-      case Left(EditionNotFound) =>
-        Failure(new FileNotFoundException(s"Could not find edition `$name`."))
-      case Left(EditionReadError(error)) => Failure(error)
-      case Right(value)                  => Success(value)
-    }
-  }
+  override def findEditionForName(
+    name: String
+  ): Either[EditionLoadingError, Editions.Raw.Edition] =
+    findEdition(name, searchPaths)
 
   @tailrec
   private def findEdition(
@@ -40,11 +35,6 @@ class FileSystemEditionProvider(searchPaths: List[Path])
       }
     case Nil => Left(EditionNotFound)
   }
-
-  sealed private trait EditionLoadingError
-  private case object EditionNotFound extends EditionLoadingError
-  private case class EditionReadError(error: Throwable)
-      extends EditionLoadingError
 
   private def loadEdition(
     name: String,
@@ -62,7 +52,7 @@ class FileSystemEditionProvider(searchPaths: List[Path])
   }
 
   /** Finds all editions available on the [[searchPaths]]. */
-  def findAvailableEditions(): Seq[String] =
+  override def findAvailableEditions(): Seq[String] =
     searchPaths.flatMap(findEditionsAt).distinct
 
   private def findEditionName(path: Path): Option[String] =

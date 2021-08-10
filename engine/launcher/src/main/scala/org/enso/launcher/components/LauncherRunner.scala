@@ -2,7 +2,8 @@ package org.enso.launcher.components
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{DistributionManager, EditionManager, Environment}
+import org.enso.distribution.{DistributionManager, Environment}
+import org.enso.editions.updater.EditionManager
 import org.enso.launcher.Constants
 import org.enso.launcher.project.ProjectManager
 import org.enso.logger.masking.MaskedPath

@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.EditionManager
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
