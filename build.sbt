@@ -1395,6 +1395,7 @@ lazy val `edition-updater` = project
   .dependsOn(editions)
   .dependsOn(downloader)
   .dependsOn(`distribution-manager`)
+  .dependsOn(`library-manager-test` % Test)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))

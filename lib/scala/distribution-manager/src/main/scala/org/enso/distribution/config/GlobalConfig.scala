@@ -39,8 +39,9 @@ case class GlobalConfig(
 }
 
 object GlobalConfig {
-  // TODO [RW] this should include the default provider once it is set up
-  private val defaultEditionProviders: Seq[String] = Seq()
+  private val defaultEditionProviders: Seq[String] = Seq(
+    "https://editions.release.enso.org/"
+  )
 
   /** The default configuration used when the configuration file does not exist.
     */
@@ -91,9 +92,10 @@ object GlobalConfig {
 
     val overrides =
       Json.obj(
-        Fields.DefaultVersion -> config.defaultVersion.asJson,
-        Fields.AuthorName     -> config.authorName.asJson,
-        Fields.AuthorEmail    -> config.authorEmail.asJson
+        Fields.DefaultVersion   -> config.defaultVersion.asJson,
+        Fields.AuthorName       -> config.authorName.asJson,
+        Fields.AuthorEmail      -> config.authorEmail.asJson,
+        Fields.EditionProviders -> config.editionProviders.asJson
       )
     base.deepMerge(overrides).dropNullValues.asJson
   }

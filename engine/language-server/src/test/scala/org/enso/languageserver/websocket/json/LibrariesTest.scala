@@ -7,6 +7,7 @@ import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.librarymanager.published.repository.EmptyRepository
 
 import java.nio.file.Files
+import scala.util.Using
 
 class LibrariesTest extends BaseServerTest {
   "LocalLibraryManager" should {
@@ -105,8 +106,7 @@ class LibrariesTest extends BaseServerTest {
           """)
 
       val repoRoot = getTestDirectory.resolve("libraries_repo_root")
-      val server   = EmptyRepository.startServer(port, repoRoot, uploads = true)
-      try {
+      EmptyRepository.withServer(port, repoRoot, uploads = true) {
         val uploadUrl = s"http://localhost:$port/upload"
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -147,9 +147,6 @@ class LibrariesTest extends BaseServerTest {
           .resolve("0.0.1")
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
-      } finally {
-        server.kill(killDescendants    = true)
-        server.join(waitForDescendants = true)
       }
     }
   }

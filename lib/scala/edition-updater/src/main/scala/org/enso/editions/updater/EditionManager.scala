@@ -36,9 +36,11 @@ class EditionManager private (editionProvider: UpdatingEditionProvider) {
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
 
-  /** Find all editions available in the [[searchPaths]]. */
-  def findAllAvailableEditions(): Seq[String] =
-    editionProvider.findAvailableEditions()
+  /** Find all editions available in the [[searchPaths]], performing an update
+    * if asked to.
+    */
+  def findAllAvailableEditions(update: Boolean): Seq[String] =
+    editionProvider.findAvailableEditions(update)
 }
 
 object EditionManager {
