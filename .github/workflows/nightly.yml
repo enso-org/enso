@@ -321,7 +321,7 @@ jobs:
       - name: Unpack Artifacts
         shell: bash
         working-directory: repo/built-distribution
-        run: 7z x "*.zip"
+        run: unzip *.zip
       # This jobs can be used to debug errors, it may be removed
       - name: Display Structure of Downloaded Files
         run: ls

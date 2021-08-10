@@ -279,8 +279,7 @@ jobs:
       - name: Unpack Artifacts
         shell: bash
         working-directory: repo/built-distribution
-        run: 7z x "*.zip"
-
+        run: unzip *.zip
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
