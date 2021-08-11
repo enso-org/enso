@@ -44,7 +44,7 @@ abstract class DummyRepository {
   def editions: Seq[(String, Editions.RawEdition)]
 
   /** Creates a directory structure for the repository at the given root and
-    * populates it with [[libraries]].
+    * populates it with [[libraries]] and [[editions]].
     */
   def createRepository(root: Path): Unit = {
     for (lib <- libraries) {

@@ -10,6 +10,11 @@ import org.enso.editions.provider.{
 
 import java.nio.file.Path
 
+/** An [[EditionProvider]] implementation that works like
+  * [[FileSystemEditionProvider]] but the first time that an edition could not
+  * be found, it downloads the latest editions from the sources, attempting to
+  * locate the missing edition there.
+  */
 class UpdatingEditionProvider(
   searchPaths: List[Path],
   cachePath: Path,

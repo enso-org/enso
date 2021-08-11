@@ -10,7 +10,22 @@ import java.nio.file.Path
 import scala.util.Using
 import scala.util.control.NonFatal
 
+/** A helper program used by our CI to upload the built edition file to S3. */
 object EditionUploader {
+
+  /** The entry point.
+    *
+    * It takes no arguments.
+    *
+    * The name of the edition to use for the upload is taken from
+    * [[buildinfo.Info.currentEdition]].
+    *
+    * The location for upload is taken from the repository name defined in
+    * [[GITHUB_REPOSITORY]] environment variable as used in the GitHub Actions
+    * runners.
+    *
+    * If the environment variable [[NIGHTLIES_TO_KEEP]]
+    */
   def main(args: Array[String]): Unit = try {
     val edition = EditionName(buildinfo.Info.currentEdition)
     updateEditionsRepository(edition)
@@ -21,12 +36,23 @@ object EditionUploader {
       sys.exit(1)
   }
 
+  private val GITHUB_REPOSITORY = "GITHUB_REPOSITORY"
+  private val NIGHTLIES_TO_KEEP = "NIGHTLIES_TO_KEEP"
+  private val nightlyPrefix     = "nightly"
+
+  /** Name of the bucket to upload to.
+    *
+    * It is based on the name of the repository in which the workflow is being
+    * run.
+    *
+    * This is only used so that any tests that happen in the enso-staging
+    * repository do not affect the production repository.
+    */
   lazy val editionsBucket: String = {
-    val repositoryVariable = "GITHUB_REPOSITORY"
     val fullRepoName = sys.env.getOrElse(
-      repositoryVariable,
+      GITHUB_REPOSITORY,
       throw new IllegalStateException(
-        s"The environment variable $repositoryVariable was not set."
+        s"The environment variable $GITHUB_REPOSITORY was not set."
       )
     )
     val justRepoName = fullRepoName.split('/') match {
@@ -34,28 +60,28 @@ object EditionUploader {
       case other =>
         throw new IllegalStateException(
           s"[${other.mkString("Array(", ", ", ")")}] is not a valid value " +
-          s"for $repositoryVariable."
+          s"for $GITHUB_REPOSITORY."
         )
     }
 
     s"s3://editions.release.enso.org/$justRepoName/"
   }
 
-  val NIGHTLIES_TO_KEEP = "NIGHTLIES_TO_KEEP"
-
-  def updateEditionsRepository(editionName: EditionName): Unit = {
-    val fileName    = editionName.toFileName
+  /** Uploads the new edition to the repository and updates the manifest.
+    *
+    * Also if the [[NIGHTLIES_TO_KEEP]] environment variable is set, it will
+    * remove any older nightly editions from that repository.
+    *
+    * @param newEditionName name of the edition to upload
+    */
+  def updateEditionsRepository(newEditionName: EditionName): Unit = {
+    val fileName    = newEditionName.toFileName
     val source      = Path.of("distribution/editions").resolve(fileName)
     val destination = editionsBucket + fileName
     println(s"Uploading $destination")
     AWS.transfer(source, destination)
     println(s"Uploaded $fileName to the bucket.")
 
-    updateRepositoryManifest(editionName)
-    println(s"The manifest file has been updated.")
-  }
-
-  def updateRepositoryManifest(newEditionName: EditionName): Unit = {
     val manifestPath = Path.of("target").resolve("tmp-editions-manifest.yaml")
     val manifestUrl  = editionsBucket + Manifest.filename
     AWS.transfer(manifestUrl, manifestPath)
@@ -80,7 +106,7 @@ object EditionUploader {
 
         val (nightly, regular) =
           withNewEdition.editions.distinct.partition(
-            _.name.contains("SNAPSHOT")
+            _.name.startsWith(nightlyPrefix)
           )
         val taken   = nightly.takeRight(limit)
         val removed = nightly.dropRight(limit)
