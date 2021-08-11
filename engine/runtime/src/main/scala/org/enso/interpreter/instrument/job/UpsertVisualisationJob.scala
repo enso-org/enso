@@ -58,6 +58,7 @@ class UpsertVisualisationJob(
           val stack = ctx.contextManager.getStack(config.executionContextId)
           val cachedValue = stack.headOption
             .flatMap(frame => Option(frame.cache.get(expressionId)))
+          requireVisualisationSynchronization(stack, expressionId)
           cachedValue match {
             case Some(value) =>
               ProgramExecutionSupport.sendVisualisationUpdate(
@@ -69,8 +70,6 @@ class UpsertVisualisationJob(
               )
               None
             case None =>
-              val stack = ctx.contextManager.getStack(config.executionContextId)
-              requireVisualisationSynchronization(stack, expressionId)
               Some(Executable(config.executionContextId, stack))
           }
       }

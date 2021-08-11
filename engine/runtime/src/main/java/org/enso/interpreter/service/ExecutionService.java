@@ -151,9 +151,11 @@ public class ExecutionService {
             onComputedCallback,
             onCachedCallback,
             onExceptionalCallback);
+    Object p = context.getThreadManager().enter();
     try {
       interopLibrary.execute(call);
     } finally {
+      context.getThreadManager().leave(p);
       listener.dispose();
     }
   }
@@ -215,7 +217,12 @@ public class ExecutionService {
   public Object evaluateExpression(Module module, String expression)
       throws UnsupportedMessageException, ArityException, UnknownIdentifierException,
           UnsupportedTypeException {
-    return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+    Object p = context.getThreadManager().enter();
+    try {
+      return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+    } finally {
+      context.getThreadManager().leave(p);
+    }
   }
 
   /**
@@ -227,7 +234,12 @@ public class ExecutionService {
    */
   public Object callFunction(Object fn, Object argument)
       throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
-    return interopLibrary.execute(fn, argument);
+    Object p = context.getThreadManager().enter();
+    try {
+      return interopLibrary.execute(fn, argument);
+    } finally {
+      context.getThreadManager().leave(p);
+    }
   }
 
   /**
@@ -341,6 +353,7 @@ public class ExecutionService {
    * @return a human-readable version of its contents.
    */
   public String getExceptionMessage(PanicException panic) {
+    Object p = context.getThreadManager().enter();
     try {
       return interopLibrary.asString(
           interopLibrary.invokeMember(panic.getPayload(), "to_display_text"));
@@ -355,6 +368,8 @@ public class ExecutionService {
       } else {
         throw e;
       }
+    } finally {
+      context.getThreadManager().leave(p);
     }
   }
 }

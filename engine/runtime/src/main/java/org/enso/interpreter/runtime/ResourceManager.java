@@ -233,13 +233,13 @@ public class ResourceManager {
      * @param context current execution context
      */
     public void doFinalize(Context context) {
-      context.getThreadManager().enter();
+      Object p = context.getThreadManager().enter();
       try {
         InteropLibrary.getUncached(finalizer).execute(finalizer, underlying);
       } catch (Exception e) {
         context.getErr().println("Exception in finalizer: " + e.getMessage());
       } finally {
-        context.getThreadManager().leave();
+        context.getThreadManager().leave(p);
       }
     }
 

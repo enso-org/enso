@@ -1,5 +1,10 @@
 # Enso Next
 
+## Interpreter/Runtime
+
+- Fixed a bug where visualizations would sometimes randomly fail to compute, due
+  to thread interrupts ([#1939](https://github.com/enso-org/enso/pull/1939)).
+
 ## Tooling
 
 - Implemented a basic library uploader
