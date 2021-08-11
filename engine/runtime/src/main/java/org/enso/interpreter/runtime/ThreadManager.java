@@ -25,6 +25,8 @@ public class ThreadManager {
 
   private volatile boolean safepoint = false;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
+  private static final Object ENTERED = new Object();
+  private static final Object NO_OP = new Object();
 
   /**
    * Registers the current thread as running guest code.
@@ -32,22 +34,33 @@ public class ThreadManager {
    * <p>From this point on, the thread is assumed to be controlled by the Enso runtime and e.g. will
    * be waited on in safepoints.
    *
-   * <p>{@link #leave()} must be called immediately after guest execution is finished in the given
-   * thread, otherwise a deadlock may occur.
+   * <p>{@link #leave(Object)} must be called immediately after guest execution is finished in the
+   * given thread, otherwise a deadlock may occur.
+   *
+   * @return a token object that must be passed to {@link #leave(Object)}. This object is opaque,
+   *     with no guarantees on its structure.
    */
-  public void enter() {
-    safepointPhaser.register();
-    interruptFlags.put(Thread.currentThread(), false);
+  public Object enter() {
+    if (interruptFlags.get(Thread.currentThread()) == null) {
+      safepointPhaser.register();
+      interruptFlags.put(Thread.currentThread(), false);
+      return ENTERED;
+    }
+    return NO_OP;
   }
 
   /**
    * Deregisters the current thread from the control of the Enso runtime.
    *
    * <p>The thread may no longer execute Enso code, until {@link #enter()} is called again.
+   *
+   * @param token the token returned by the corresponding call to {@link #enter()}.
    */
-  public void leave() {
-    safepointPhaser.arriveAndDeregister();
-    interruptFlags.remove(Thread.currentThread());
+  public void leave(Object token) {
+    if (token != NO_OP) {
+      safepointPhaser.arriveAndDeregister();
+      interruptFlags.remove(Thread.currentThread());
+    }
   }
 
   /** Called from the interpreter to periodically perform a safepoint check. */
@@ -76,13 +89,13 @@ public class ThreadManager {
     lock.lock();
     try {
       interruptFlags.replaceAll((t, b) -> true);
-      enter();
+      Object p = enter();
       try {
         safepoint = true;
         safepointPhaser.arriveAndAwaitAdvance();
         safepoint = false;
       } finally {
-        leave();
+        leave(p);
       }
     } finally {
       lock.unlock();

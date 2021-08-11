@@ -405,7 +405,7 @@ class JsonConnectionController(
       case InitialPing | Ping =>
       // ignore
       case _ =>
-        idlenessMonitor ! MonitoringProtocol.ResetIdleTime
+        idlenessMonitor ! MonitoringProtocol.ResetIdleTimeCommand
     }
   }
 
@@ -505,7 +505,8 @@ class JsonConnectionController(
         .props(requestTimeout, localLibraryManager),
       LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
       LibraryPreinstall  -> LibraryPreinstallHandler.props(),
-      LibraryPublish     -> LibraryPublishHandler.props(),
+      LibraryPublish -> LibraryPublishHandler
+        .props(requestTimeout, localLibraryManager),
       LibrarySetMetadata -> LibrarySetMetadataHandler.props()
     )
   }

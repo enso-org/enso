@@ -443,6 +443,7 @@ class ProjectManagementApiSpec
     }
 
     "fail when project's edition could not be resolved" in {
+      pending
       implicit val client = new WsTestClient(address)
       val projectId       = createProject("Foo")
       setProjectParentEdition(
@@ -790,7 +791,7 @@ class ProjectManagementApiSpec
                   "name": "Bar",
                   "namespace": "local",
                   "id": $barId,
-                  "engineVersion": null,
+                  "engineVersion": $engineToInstall,
                   "lastOpened": null
                 },
                 {

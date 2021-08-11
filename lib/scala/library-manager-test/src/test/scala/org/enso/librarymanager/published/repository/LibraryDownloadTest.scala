@@ -1,17 +1,8 @@
 package org.enso.librarymanager.published.repository
 
-import org.enso.cli.task.{ProgressReporter, TaskProgress}
-import org.enso.distribution.TemporaryDirectoryManager
-import org.enso.distribution.locking.{
-  LockUserInterface,
-  Resource,
-  ResourceManager,
-  ThreadSafeFileLockManager
-}
 import org.enso.editions.Editions
-import org.enso.librarymanager.published.cache.DownloadingLibraryCache
-import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.loggingservice.{LogLevel, TestLogger}
+import org.enso.loggingservice.TestLogger.TestLogMessage
 import org.enso.pkg.PackageManager
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.matchers.should.Matchers
@@ -22,7 +13,8 @@ import java.nio.file.Files
 class LibraryDownloadTest
     extends AnyWordSpec
     with Matchers
-    with WithTemporaryDirectory {
+    with WithTemporaryDirectory
+    with DownloaderTest {
 
   val port: Int = 47306
 
@@ -32,32 +24,7 @@ class LibraryDownloadTest
 
       val repoRoot = getTestDirectory.resolve("repo")
       repo.createRepository(repoRoot)
-      val lockManager =
-        new ThreadSafeFileLockManager(getTestDirectory.resolve("locks"))
-      val resourceManager = new ResourceManager(lockManager)
-      try {
-        val cache = new DownloadingLibraryCache(
-          cacheRoot = getTestDirectory.resolve("cache"),
-          temporaryDirectoryManager = new TemporaryDirectoryManager(
-            getTestDirectory.resolve("tmp"),
-            resourceManager
-          ),
-          resourceManager = resourceManager,
-          lockUserInterface = new LockUserInterface {
-            override def startWaitingForResource(resource: Resource): Unit =
-              println(s"Waiting for ${resource.name}")
-
-            override def finishWaitingForResource(resource: Resource): Unit =
-              println(s"${resource.name} is ready")
-          },
-          progressReporter = new ProgressReporter {
-            override def trackProgress(
-              message: String,
-              task: TaskProgress[_]
-            ): Unit = {}
-          }
-        )
-
+      withDownloader { cache =>
         val server = repo.startServer(port, repoRoot)
         try {
           cache.findCachedLibrary(
@@ -95,9 +62,6 @@ class LibraryDownloadTest
           server.kill(killDescendants    = true)
           server.join(waitForDescendants = true)
         }
-      } finally {
-        resourceManager.releaseMainLock()
-        resourceManager.unlockTemporaryDirectory()
       }
     }
   }
