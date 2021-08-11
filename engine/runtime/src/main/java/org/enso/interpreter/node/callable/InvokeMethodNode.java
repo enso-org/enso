@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.callable;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -9,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
@@ -31,7 +31,8 @@ import org.enso.interpreter.runtime.state.Stateful;
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
-  private final ConditionProfile errorProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
+  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
   private final int argumentCount;
 
   /**
@@ -94,7 +95,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @Cached DataflowErrorResolverNode dataflowErrorResolverNode) {
     Function function = dataflowErrorResolverNode.execute(symbol, _this);
-    if (errorProfile.profile(function == null)) {
+    if (errorReceiverProfile.profile(function == null)) {
       return new Stateful(state, _this);
     } else {
       return invokeFunctionNode.execute(function, frame, state, arguments);
@@ -129,12 +130,16 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
-      @Cached("buildExecutors()") ThunkExecutorNode[] argExecutors,
-      @Cached AnyResolverNode anyResolverNode,
+      @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
+      @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
+      if (r.getValue() instanceof DataflowError) {
+        profiles[i].enter();
+        return r;
+      }
       state = r.getState();
       args[i] = r.getValue();
     }
@@ -195,6 +200,14 @@ public abstract class InvokeMethodNode extends BaseNode {
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  BranchProfile[] buildProfiles() {
+    BranchProfile[] result = new BranchProfile[argumentCount - 1];
+    for (int i = 0; i < argumentCount - 1; i++) {
+      result[i] = BranchProfile.create();
+    }
+    return result;
   }
 
   ThunkExecutorNode[] buildExecutors() {
