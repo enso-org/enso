@@ -35,9 +35,13 @@ public class ThreadManager {
    * <p>{@link #leave()} must be called immediately after guest execution is finished in the given
    * thread, otherwise a deadlock may occur.
    */
-  public void enter() {
-    safepointPhaser.register();
-    interruptFlags.put(Thread.currentThread(), false);
+  public Object enter() {
+    if (interruptFlags.get(Thread.currentThread()) == null) {
+      safepointPhaser.register();
+      interruptFlags.put(Thread.currentThread(), false);
+      return new Object();
+    }
+    return null;
   }
 
   /**
@@ -45,9 +49,11 @@ public class ThreadManager {
    *
    * <p>The thread may no longer execute Enso code, until {@link #enter()} is called again.
    */
-  public void leave() {
-    safepointPhaser.arriveAndDeregister();
-    interruptFlags.remove(Thread.currentThread());
+  public void leave(Object token) {
+    if (token != null) {
+      safepointPhaser.arriveAndDeregister();
+      interruptFlags.remove(Thread.currentThread());
+    }
   }
 
   /** Called from the interpreter to periodically perform a safepoint check. */
@@ -76,13 +82,13 @@ public class ThreadManager {
     lock.lock();
     try {
       interruptFlags.replaceAll((t, b) -> true);
-      enter();
+      Object p = enter();
       try {
         safepoint = true;
         safepointPhaser.arriveAndAwaitAdvance();
         safepoint = false;
       } finally {
-        leave();
+        leave(p);
       }
     } finally {
       lock.unlock();
