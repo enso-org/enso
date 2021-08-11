@@ -25,6 +25,8 @@ public class ThreadManager {
 
   private volatile boolean safepoint = false;
   private final ConcurrentHashMap<Thread, Boolean> interruptFlags = new ConcurrentHashMap<>();
+  private static final Object ENTERED = new Object();
+  private static final Object NO_OP = new Object();
 
   /**
    * Registers the current thread as running guest code.
@@ -32,25 +34,30 @@ public class ThreadManager {
    * <p>From this point on, the thread is assumed to be controlled by the Enso runtime and e.g. will
    * be waited on in safepoints.
    *
-   * <p>{@link #leave()} must be called immediately after guest execution is finished in the given
-   * thread, otherwise a deadlock may occur.
+   * <p>{@link #leave(Object)} must be called immediately after guest execution is finished in the
+   * given thread, otherwise a deadlock may occur.
+   *
+   * @return a token object that must be passed to {@link #leave(Object)}. This object is opaque,
+   *     with no guarantees on its structure.
    */
   public Object enter() {
     if (interruptFlags.get(Thread.currentThread()) == null) {
       safepointPhaser.register();
       interruptFlags.put(Thread.currentThread(), false);
-      return new Object();
+      return ENTERED;
     }
-    return null;
+    return NO_OP;
   }
 
   /**
    * Deregisters the current thread from the control of the Enso runtime.
    *
    * <p>The thread may no longer execute Enso code, until {@link #enter()} is called again.
+   *
+   * @param token the token returned by the corresponding call to {@link #enter()}.
    */
   public void leave(Object token) {
-    if (token != null) {
+    if (token != NO_OP) {
       safepointPhaser.arriveAndDeregister();
       interruptFlags.remove(Thread.currentThread());
     }
