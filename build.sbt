@@ -250,6 +250,7 @@ lazy val enso = (project in file("."))
     editions,
     `distribution-manager`,
     `edition-updater`,
+    `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
     syntax.jvm,

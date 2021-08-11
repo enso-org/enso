@@ -12,15 +12,8 @@ import scala.util.control.NonFatal
 
 object EditionUploader {
   def main(args: Array[String]): Unit = try {
-    args match {
-      case Array(editionName) =>
-        updateEditionsRepository(EditionName(editionName))
-      case _ =>
-        println(
-          s"Expected exactly one argument: ${args.mkString("Array(", ", ", ")")}"
-        )
-        sys.exit(1)
-    }
+    val edition = EditionName(buildinfo.Info.currentEdition)
+    updateEditionsRepository(edition)
   } catch {
     case NonFatal(error) =>
       println(s"Failed: $error")
@@ -86,7 +79,9 @@ object EditionUploader {
         println(s"Will keep only $limit last nightly builds.")
 
         val (nightly, regular) =
-          withNewEdition.editions.partition(_.name.contains("SNAPSHOT"))
+          withNewEdition.editions.distinct.partition(
+            _.name.contains("SNAPSHOT")
+          )
         val taken   = nightly.takeRight(limit)
         val removed = nightly.dropRight(limit)
 

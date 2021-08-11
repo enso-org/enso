@@ -1,6 +1,12 @@
 import sbt._
 
 object Editions {
+
+  /** List of libraries that are shipped with the engine and reside in the
+    * engine repository.
+    *
+    * They currently all share the version number.
+    */
   val standardLibraries: Seq[String] = Seq(
     "Standard.Base",
     "Standard.Test",
@@ -11,6 +17,13 @@ object Editions {
     "Standard.Visualization",
     "Standard.Examples"
   )
+
+  case class ContribLibrary(name: String, version: String)
+
+  /** A list of additional libraries from external sources that are published in
+    * the main repository and should be available in the default edition.
+    */
+  val contribLibraries: Seq[ContribLibrary] = Seq()
 
   private val editionsRoot = file("distribution") / "editions"
   private val extension    = ".yaml"
@@ -35,11 +48,20 @@ object Editions {
     }
 
     if (!edition.exists()) {
-      val librariesConfigs = standardLibraries.map { libName =>
+      val standardLibrariesConfigs = standardLibraries.map { libName =>
         s"""  - name: $libName
            |    repository: main
            |    version: $libraryVersion""".stripMargin
       }
+
+      val contribLibrariesConfigs = contribLibraries.map {
+        case ContribLibrary(name, version) =>
+          s"""  - name: $name
+             |    repository: main
+             |    version: $version""".stripMargin
+      }
+
+      val librariesConfigs = standardLibrariesConfigs ++ contribLibrariesConfigs
 
       val editionConfig =
         s"""engine-version: $ensoVersion
