@@ -568,6 +568,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # This is done regardless of the release-publish-edition workflow, because this workflow seems to not be triggered by Actions automatically.
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.LAUNCHER_DEPLOY_ACCESS_KEY_ID }}
+          ${{ secrets.LAUNCHER_DEPLOY_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+
+      - name: Update the Editions Bucket
+        shell: bash
+        working-directory: repo
+        run: sbt edition-uploader/run
+
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
       # TODO enable this once IDE supports triggers
       #      - name: Trigger IDE Build
       #        shell: bash
