@@ -42,24 +42,48 @@ class IdlenessEndpointSpec
     }
   }
 
-  it should "reset idle time" in withEndpoint { (clock, monitor, endpoint) =>
-    Get("/_idle") ~> endpoint.route ~> check {
-      status shouldEqual StatusCodes.OK
-      responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
-    }
+  it should "reset idle time with internal message" in withEndpoint {
+    (clock, monitor, endpoint) =>
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
+      }
 
-    val idleTimeSeconds = 1L
-    clock.moveTimeForward(idleTimeSeconds)
-    Get("/_idle") ~> endpoint.route ~> check {
-      status shouldEqual StatusCodes.OK
-      responseAs[String] shouldEqual s"""{"idle_time_sec":$idleTimeSeconds}"""
-    }
+      val idleTimeSeconds = 1L
+      clock.moveTimeForward(idleTimeSeconds)
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":$idleTimeSeconds}"""
+      }
 
-    monitor ! MonitoringProtocol.ResetIdleTime
-    Get("/_idle") ~> endpoint.route ~> check {
-      status shouldEqual StatusCodes.OK
-      responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
-    }
+      monitor ! MonitoringProtocol.ResetIdleTimeCommand
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
+      }
+  }
+
+  it should "reset idle time with endpoint" in withEndpoint {
+    (clock, _, endpoint) =>
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
+      }
+
+      val idleTimeSeconds = 1L
+      clock.moveTimeForward(idleTimeSeconds)
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":$idleTimeSeconds}"""
+      }
+
+      Post("/_idle/reset") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+      Get("/_idle") ~> endpoint.route ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[String] shouldEqual s"""{"idle_time_sec":0}"""
+      }
   }
 
   def withEndpoint(
