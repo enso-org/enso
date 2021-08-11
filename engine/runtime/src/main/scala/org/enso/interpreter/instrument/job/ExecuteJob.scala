@@ -29,7 +29,6 @@ class ExecuteJob(
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()
-    ctx.executionService.getContext.getThreadManager.enter()
     try {
       val outcome = ProgramExecutionSupport.runProgram(contextId, stack)
       outcome.foreach {
@@ -46,7 +45,6 @@ class ExecuteJob(
         Api.Response(Api.ExecutionComplete(contextId))
       )
     } finally {
-      ctx.executionService.getContext.getThreadManager.leave()
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseContextLock(contextId)
     }
