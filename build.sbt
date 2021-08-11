@@ -253,6 +253,7 @@ lazy val enso = (project in file("."))
     `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
+    `stdlib-version-updater`,
     syntax.jvm,
     testkit
   )
@@ -752,7 +753,8 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           ensoVersion    = ensoVersion,
           scalacVersion  = scalacVersion,
           graalVersion   = graalVersion,
-          currentEdition = currentEdition
+          currentEdition = currentEdition,
+          stdLibVersion  = stdLibVersion
         )
     }.taskValue
   )
@@ -1432,6 +1434,12 @@ lazy val `library-manager-test` = project
   .dependsOn(`library-manager`)
   .dependsOn(testkit)
   .dependsOn(`logging-service`)
+
+lazy val `stdlib-version-updater` = project
+  .in(file("lib/scala/stdlib-version-updater"))
+  .configs(Test)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
