@@ -175,3 +175,7 @@ spec = Test.group "Polyglot JS" <|
         (enso_num + js_num) . should_equal 20
         (js_num - enso_num) . should_equal 0
 
+    Test.specify "should propagate dataflow errors" <|
+        error = Error.throw 42
+        here.my_method error 0 . should_fail_with Integer
+
