@@ -32,12 +32,18 @@ class IdlenessEndpoint(
   override def route: Route =
     idlenessProbe
 
-  private val idlenessProbe =
+  private val idlenessProbe = {
+    path("_idle" / "reset") {
+      post {
+        resetIdleness()
+      }
+    } ~
     path("_idle") {
       get {
         checkIdleness()
       }
     }
+  }
 
   private def checkIdleness(): Route = {
     val future = idlenessMonitor ? MonitoringProtocol.GetIdleTime
@@ -48,7 +54,29 @@ class IdlenessEndpoint(
       case Success(r: MonitoringProtocol.IdleTime) =>
         complete(IdlenessEndpoint.toHttpEntity(r))
       case Success(r) =>
-        logger.error("Unexpected response from idleness monitor: [{}]", r)
+        logger.error(
+          "Unexpected response from idleness monitor: [{}, {}].",
+          MonitoringProtocol.GetIdleTime,
+          r
+        )
+        complete(StatusCodes.InternalServerError)
+    }
+  }
+
+  private def resetIdleness(): Route = {
+    val future = idlenessMonitor ? MonitoringProtocol.ResetIdleTimeRequest
+
+    onComplete(future) {
+      case Failure(_) =>
+        complete(StatusCodes.InternalServerError)
+      case Success(MonitoringProtocol.ResetIdleTimeResponse) =>
+        complete(StatusCodes.OK)
+      case Success(r) =>
+        logger.error(
+          "Unexpected response from idleness monitor [{}, {}].",
+          MonitoringProtocol.ResetIdleTimeRequest,
+          r
+        )
         complete(StatusCodes.InternalServerError)
     }
   }

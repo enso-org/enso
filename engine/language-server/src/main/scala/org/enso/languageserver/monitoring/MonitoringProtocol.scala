@@ -26,8 +26,14 @@ object MonitoringProtocol {
     */
   case object OK extends ReadinessResponse
 
+  /** A command to reset the idle time. Does not expect a response. */
+  case object ResetIdleTimeCommand
+
   /** A request to reset the idle time. */
-  case object ResetIdleTime
+  case object ResetIdleTimeRequest
+
+  /** A request to reset the idle time. */
+  case object ResetIdleTimeResponse
 
   /** A request to get the server idle time. */
   case object GetIdleTime

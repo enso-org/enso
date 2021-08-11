@@ -13,10 +13,11 @@ JSONRPC protocol.
 
 <!-- MarkdownTOC levels="2" autolink="true" indent="    " -->
 
-- [`/_health`](#---health-)
-- [`/_health/readiness`](#---health-readiness-)
-- [`/_health/liveness`](#---health-liveness-)
-- [`/_idle`](#---idle-)
+- [`/_health`](#_health)
+- [`/_health/readiness`](#_healthreadiness)
+- [`/_health/liveness`](#_healthliveness)
+- [`/_idle`](#_idle)
+- [`/_idle/reset`](#_idlereset)
 
 <!-- /MarkdownTOC -->
 
@@ -137,4 +138,33 @@ Return the amount of time the language server is idle.
 < Content-Length: 21
 <
 {"idle_time_sec":58}
+```
+
+## `/_idle/reset`
+
+The reset request of the server idleness probe.
+
+### `POST`
+
+Reset the idle time of the language server.
+
+#### Request
+
+```text
+> POST /_idle/reset HTTP/1.1
+> Host: localhost:64996
+> User-Agent: curl/7.77.0
+> Accept: */*
+```
+
+#### Response
+
+```text
+< HTTP/1.1 200 OK
+< Server: akka-http/10.2.0-RC1
+< Date: Mon, 09 Aug 2021 15:37:27 GMT
+< Content-Type: text/plain; charset=UTF-8
+< Content-Length: 2
+<
+OK
 ```

@@ -14,8 +14,12 @@ class IdlenessMonitor(clock: Clock) extends Actor with UnhandledLogging {
   override def receive: Receive = initialized(clock.instant())
 
   private def initialized(lastActiveTime: Instant): Receive = {
-    case MonitoringProtocol.ResetIdleTime =>
+    case MonitoringProtocol.ResetIdleTimeCommand =>
       context.become(initialized(clock.instant()))
+
+    case MonitoringProtocol.ResetIdleTimeRequest =>
+      context.become(initialized(clock.instant()))
+      sender() ! MonitoringProtocol.ResetIdleTimeResponse
 
     case MonitoringProtocol.GetIdleTime =>
       val idleTime = Duration.between(lastActiveTime, clock.instant())
