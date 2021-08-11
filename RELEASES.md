@@ -4,6 +4,9 @@
 
 - Fixed a bug where visualizations would sometimes randomly fail to compute, due
   to thread interrupts ([#1939](https://github.com/enso-org/enso/pull/1939)).
+- Fixed an issue where both host and polyglot interop would not properly
+  propagate error information
+  ([#1941](https://github.com/enso-org/enso/pull/1941)).
 
 ## Tooling
 
