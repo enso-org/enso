@@ -8,6 +8,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
@@ -31,8 +32,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 public abstract class InvokeMethodNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
   private final ConditionProfile errorReceiverProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile polyglotArgumentErrorProfile =
-      ConditionProfile.createCountingProfile();
+  private final BranchProfile polyglotArgumentErrorProfile = BranchProfile.create();
   private final int argumentCount;
 
   /**
@@ -135,8 +135,9 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object[] args = new Object[argExecutors.length];
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
-      // TODO [AA] New node
-      if (polyglotArgumentErrorProfile.profile(r.getValue() instanceof DataflowError)) {
+      // TODO [AA] Maybe need an array of branch profiles.
+      if (r.getValue() instanceof DataflowError) {
+        polyglotArgumentErrorProfile.enter();
         return r;
       }
       state = r.getState();

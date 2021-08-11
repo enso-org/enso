@@ -14,6 +14,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
@@ -154,11 +155,15 @@ public abstract class IndirectInvokeMethodNode extends Node {
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached HostMethodCallNode hostMethodCallNode,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
-
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode,
+      @Cached BranchProfile profile) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
       Stateful r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
+      if (r.getValue() instanceof DataflowError) {
+        profile.enter();
+        return r;
+      }
       state = r.getState();
       args[i] = r.getValue();
     }
