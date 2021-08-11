@@ -155,13 +155,11 @@ public abstract class IndirectInvokeMethodNode extends Node {
           HostMethodCallNode.PolyglotCallType polyglotCallType,
       @Cached ThunkExecutorNode argExecutor,
       @Cached HostMethodCallNode hostMethodCallNode,
-      @Cached IndirectInvokeFunctionNode invokeFunctionNode,
-      @Cached BranchProfile profile) {
+      @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
       Stateful r = argExecutor.executeThunk(arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
       if (r.getValue() instanceof DataflowError) {
-        profile.enter();
         return r;
       }
       state = r.getState();

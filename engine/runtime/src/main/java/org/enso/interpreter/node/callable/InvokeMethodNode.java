@@ -130,14 +130,14 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") InteropLibrary interop,
       @Bind("getPolyglotCallType(_this, symbol.getName(), interop)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
-      @Cached("buildExecutors()") ThunkExecutorNode[] argExecutors,
+      @Cached(value = "buildExecutors()") ThunkExecutorNode[] argExecutors,
+      @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[argExecutors.length];
     for (int i = 0; i < argExecutors.length; i++) {
       Stateful r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
-      // TODO [AA] Maybe need an array of branch profiles.
       if (r.getValue() instanceof DataflowError) {
-        polyglotArgumentErrorProfile.enter();
+        profiles[i].enter();
         return r;
       }
       state = r.getState();
@@ -200,6 +200,14 @@ public abstract class InvokeMethodNode extends BaseNode {
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  BranchProfile[] buildProfiles() {
+    BranchProfile[] result = new BranchProfile[argumentCount - 1];
+    for (int i = 0; i < argumentCount - 1; i++) {
+      result[i] = BranchProfile.create();
+    }
+    return result;
   }
 
   ThunkExecutorNode[] buildExecutors() {

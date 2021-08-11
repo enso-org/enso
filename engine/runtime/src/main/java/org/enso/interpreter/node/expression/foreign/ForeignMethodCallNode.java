@@ -12,11 +12,16 @@ import org.enso.interpreter.runtime.error.DataflowError;
 public class ForeignMethodCallNode extends ExpressionNode {
   private @Children ExpressionNode[] arguments;
   private @Child DirectCallNode callNode;
-  private final BranchProfile errorProfile = BranchProfile.create();
+  private final BranchProfile[] errorProfiles;
 
   ForeignMethodCallNode(ExpressionNode[] arguments, CallTarget foreignCt) {
     this.arguments = arguments;
     this.callNode = DirectCallNode.create(foreignCt);
+
+    this.errorProfiles = new BranchProfile[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      this.errorProfiles[i] = BranchProfile.create();
+    }
   }
 
   /**
@@ -37,7 +42,7 @@ public class ForeignMethodCallNode extends ExpressionNode {
     for (int i = 0; i < arguments.length; i++) {
       args[i] = arguments[i].executeGeneric(frame);
       if (args[i] instanceof DataflowError) {
-        errorProfile.enter();
+        errorProfiles[i].enter();
         return args[i];
       }
     }
