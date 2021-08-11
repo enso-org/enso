@@ -132,12 +132,13 @@ object Main {
   ): Unit = {
     val allFiles = traverse(new File(path))
       .filter(f => f.isFile && f.getName.endsWith(".enso"))
+    val libraryVersion = buildinfo.Info.stdLibVersion
     val allFileNames = allFiles.map(
       _.getPath
         .replace(path + "/", "")
         .replace(".enso", "")
         .replace("src/", "")
-        .replace("/0.1.0/", "/")
+        .replace(s"/$libraryVersion/", "/")
     )
     val allPrograms = allFiles
       .map(f => Using(Source.fromFile(f, "UTF-8")) { _.mkString })
@@ -156,12 +157,12 @@ object Main {
     val styleCode = Using(Source.fromFile(styleFile, "UTF-8")) { _.mkString }
     val treeStyle = "<style jsx>{`" + styleCode.getOrElse("") + "`}</style>"
     val allDocJSFiles = allFiles.map { x =>
+      val libraryVersion = buildinfo.Info.stdLibVersion
       val name = x.getPath
         .replace(".enso", ".js")
         .replace("lib/Standard/", outDir + "/")
         .replace("Main.js", "index.js")
-        // TODO [RW] update this once library versions are changing
-        .replace("/0.1.0/", "/")
+        .replace(s"/$libraryVersion/", "/")
         .replace("src/", "")
       val ending = name.split(outDir + "/").tail.head
       name.replace(ending, ending.replace('/', '-'))

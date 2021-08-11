@@ -112,7 +112,8 @@ object DistributionPackage {
     distributionRoot: File,
     cacheFactory: CacheStoreFactory,
     graalVersion: String,
-    javaVersion: String
+    javaVersion: String,
+    stdlibVersion: String
   ): Unit = {
 
     copyDirectoryIncremental(
@@ -138,7 +139,7 @@ object DistributionPackage {
       distributionRoot / "lib",
       cacheFactory.make("engine-lib")
     )
-    getStdlibDataFiles(distributionRoot)
+    getStdlibDataFiles(distributionRoot, stdlibVersion)
 
     copyDirectoryIncremental(
       file("distribution/bin"),
@@ -154,13 +155,16 @@ object DistributionPackage {
     )
   }
 
-  private def getStdlibDataFiles(distributionRoot: File): Unit = {
+  private def getStdlibDataFiles(
+    distributionRoot: File,
+    stdlibVersion: String
+  ): Unit = {
     val exampleImageUrl =
       "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/" +
       "Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     downloadFileToLocation(
       exampleImageUrl,
-      distributionRoot / "lib/Standard/Examples/0.1.0/data/image.png"
+      distributionRoot / s"lib/Standard/Examples/$stdlibVersion/data/image.png"
     )
   }
 
