@@ -1397,6 +1397,11 @@ lazy val `edition-updater` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(`library-manager-test` % Test)
 
+lazy val `edition-uploader` = project
+  .in(file("lib/scala/edition-uploader"))
+  .dependsOn(editions)
+  .dependsOn(`version-output`)
+
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .configs(Test)

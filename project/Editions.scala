@@ -12,6 +12,9 @@ object Editions {
     "Standard.Examples"
   )
 
+  private val editionsRoot = file("distribution") / "editions"
+  private val extension    = ".yaml"
+
   /** Generates a base edition file for the engine release that contains the
     * Standard library and is associated with the current Enso version.
     */
@@ -21,11 +24,10 @@ object Editions {
     libraryVersion: String,
     log: Logger
   ): Unit = {
-    val editions = file("distribution") / "editions"
-    IO.createDirectory(editions)
-    val edition = editions / (editionName + ".yaml")
+    IO.createDirectory(editionsRoot)
+    val edition = editionsRoot / (editionName + extension)
 
-    for (file <- IO.listFiles(editions)) {
+    for (file <- IO.listFiles(editionsRoot)) {
       if (file.getName != edition.getName) {
         IO.delete(file)
         log.warn(s"Removed spurious file in editions directory: $file")
