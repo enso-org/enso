@@ -34,11 +34,11 @@ class RuntimeManagementTest extends InterpreterTest {
       val main = getMain(code)
 
       val runnable: Runnable = { () =>
-        langCtx.getThreadManager.enter()
+        val p = langCtx.getThreadManager.enter()
         try {
           Try(main.execute())
         } finally {
-          langCtx.getThreadManager.leave()
+          langCtx.getThreadManager.leave(p)
         }
       }
 

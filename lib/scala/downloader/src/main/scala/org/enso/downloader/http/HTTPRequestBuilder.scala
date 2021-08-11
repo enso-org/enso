@@ -11,12 +11,15 @@ import org.enso.downloader.http
   */
 case class HTTPRequestBuilder private (
   uri: Uri,
-  headers: Vector[(String, String)]
+  headers: Vector[(String, String)],
+  httpEntity: RequestEntity
 ) {
 
-  /** Builds a GET request with the specified settings.
-    */
+  /** Builds a GET request with the specified settings. */
   def GET: HTTPRequest = build(HttpMethods.GET)
+
+  /** Builds a POST request with the specified settings. */
+  def POST: HTTPRequest = build(HttpMethods.POST)
 
   /** Adds an additional header that will be included in the request.
     *
@@ -25,6 +28,14 @@ case class HTTPRequestBuilder private (
     */
   def addHeader(name: String, value: String): HTTPRequestBuilder =
     copy(headers = headers.appended((name, value)))
+
+  /** Sets the [[RequestEntity]] for the request.
+    *
+    * It can be used for example to specify form data to send for a POST
+    * request.
+    */
+  def setEntity(entity: RequestEntity): HTTPRequestBuilder =
+    copy(httpEntity = entity)
 
   private def build(
     method: HttpMethod
@@ -41,7 +52,12 @@ case class HTTPRequestBuilder private (
       }
     }
     http.HTTPRequest(
-      HttpRequest(method = method, uri = uri, headers = httpHeaders)
+      HttpRequest(
+        method  = method,
+        uri     = uri,
+        headers = httpHeaders,
+        entity  = httpEntity
+      )
     )
   }
 }
@@ -51,7 +67,7 @@ object HTTPRequestBuilder {
   /** Creates a request builder that will send the request for the given URI.
     */
   def fromURI(uri: Uri): HTTPRequestBuilder =
-    new HTTPRequestBuilder(uri, Vector.empty)
+    new HTTPRequestBuilder(uri, Vector.empty, HttpEntity.Empty)
 
   /** Tries to parse the URI provided as a [[String]] and returns a request
     * builder that will send the request to the given `uri`.
