@@ -151,10 +151,14 @@ type Table
              example_to_json = Examples.inventory_table.to_json
     to_json : Json
     to_json =
-        col_jsons = this.columns.map .to_json
-        cols_json = Json.Array col_jsons
-        fields = Map.singleton "columns" cols_json
-        Json.Object fields
+        index_prep = case this.index.catch (_->Nothing) of
+            Nothing -> []
+            index -> [index]
+        cols = index_prep + this.columns
+        rows = 0.up_to this.row_count . map row->
+            vals_kv = cols.map col-> [col.name, col.at row]
+            Json.from_pairs vals_kv
+        rows.to_json
 
     ## UNSTABLE
        ADVANCED
@@ -836,6 +840,26 @@ type Table
     write_xlsx : File.File -> String -> Spreadsheet_Write_Mode.Speadsheet_Write_Mode -> Boolean -> Nothing | Integer -> Nothing
     write_xlsx file sheet='Data' write_mode=Spreadsheet_Write_Mode.Create include_header=True max_rows_per_file=Nothing =
         Spreadsheet_Writer.writeXlsx this.java_table file.absolute.path sheet write_mode.to_java include_header max_rows_per_file .write_to_spreadsheet
+
+    ## ALIAS Write JSON
+       UNSTABLE
+
+       Writes this table to a specified file, serialized into JSON. The JSON
+       serialization is such that the result is an array, in which every entry
+       is an object representing a single row, with column names as keys.
+
+       Arguments:
+       - file: the file to write data to. If the file exists, it will be
+         overwritten.
+
+       > Example
+         Write a table to a JSON file.
+
+             import Standard.Examples
+
+             example_to_csv = Examples.inventory_table.write_csv (Enso_Project.data / 'example.json')
+    write_json : File.File -> Nothing
+    write_json file = file.write this.to_json.to_text
 
 ## UNSTABLE
 
