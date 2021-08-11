@@ -405,7 +405,7 @@ class JsonConnectionController(
       case InitialPing | Ping =>
       // ignore
       case _ =>
-        idlenessMonitor ! MonitoringProtocol.ResetIdleTime
+        idlenessMonitor ! MonitoringProtocol.ResetIdleTimeCommand
     }
   }
 
