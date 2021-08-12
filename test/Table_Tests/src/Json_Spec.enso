@@ -19,3 +19,9 @@ spec = Test.group 'JSON conversion' <|
         (Json.parse out.read).to_table ['a', 'b', 'c'] . should_equal simple_empty
         out.delete_if_exists
 
+    Test.specify 'Should write JSON tables to disk using the write method' <|
+        out = Enso_Project.data / 'out.json'
+        out.delete_if_exists
+        simple_empty.write out Table.Format.Json
+        (Json.parse out.read).to_table ['a', 'b', 'c'] . should_equal simple_empty
+        out.delete_if_exists
