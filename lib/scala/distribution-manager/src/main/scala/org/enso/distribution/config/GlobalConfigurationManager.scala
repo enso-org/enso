@@ -1,59 +1,20 @@
-package org.enso.runtimeversionmanager.config
+package org.enso.distribution.config
 
-import java.io.BufferedWriter
-import java.nio.file.{Files, NoSuchFileException, Path}
 import com.typesafe.scalalogging.Logger
 import io.circe.syntax._
 import io.circe.{yaml, Json}
-import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.DistributionManager
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.components.RuntimeVersionManager
 
+import java.io.BufferedWriter
+import java.nio.file.{Files, NoSuchFileException, Path}
 import scala.util.{Failure, Success, Try, Using}
 
-/** Manages the global configuration of the distribution which includes the
-  * default engine version and default project metadata used for new projects.
-  */
-class GlobalConfigurationManager(
-  componentsManager: RuntimeVersionManager,
-  distributionManager: DistributionManager
-) {
+/** Manages the global configuration of the distribution. */
+class GlobalConfigurationManager(distributionManager: DistributionManager) {
+  private val logger = Logger[this.type]
 
-  private val logger = Logger[GlobalConfigurationManager]
-
-  /** Returns the default Enso version that should be used when running Enso
-    * outside a project and when creating a new project.
-    *
-    * The default can be set by `enso default <version>`. If the default is not
-    * set, the latest installed version is used. If no versions are installed,
-    * the release provider is queried for the latest available version.
-    */
-  def defaultVersion: SemVer =
-    getConfig.defaultVersion match {
-      case DefaultVersion.Exact(version) => version
-      case DefaultVersion.LatestInstalled =>
-        val latestInstalled =
-          componentsManager
-            .listInstalledEngines()
-            .filter(!_.isMarkedBroken)
-            .map(_.version)
-            .sorted
-            .lastOption
-        latestInstalled.getOrElse {
-          val latestAvailable = componentsManager.fetchLatestEngineVersion()
-          logger.warn(
-            "No Enso versions installed, defaulting to the latest available " +
-            "release: [{}].",
-            latestAvailable
-          )
-          latestAvailable
-        }
-    }
-
-  /** Location of the global configuration file.
-    * @return
-    */
+  /** Location of the global configuration file. */
   def configLocation: Path =
     distributionManager.paths.config / GlobalConfigurationManager.globalConfigName
 
@@ -74,8 +35,7 @@ class GlobalConfigurationManager(
       }
       .get
 
-  /** Applies `update` to the current config and saves the returned value.
-    */
+  /** Applies `update` to the current config and saves the returned value. */
   def updateConfig(update: GlobalConfig => GlobalConfig): Unit = {
     val updated = update(getConfig)
     GlobalConfigurationManager.writeConfig(configLocation, updated).get
@@ -109,18 +69,19 @@ class GlobalConfigurationManager(
     */
   def removeFromConfig(key: String): Unit = {
     val updated = GlobalConfig.encoder(getConfig).asObject.get.remove(key)
-    GlobalConfigurationManager.writeConfigRaw(configLocation, updated.asJson)
+    GlobalConfigurationManager.writeConfigRaw(
+      configLocation,
+      updated.asJson
+    )
   }
 }
 
 object GlobalConfigurationManager {
 
-  /** Name of the main global configuration file.
-    */
+  /** Name of the main global configuration file. */
   val globalConfigName: String = "global-config.yaml"
 
-  /** Tries to read the global config from the given `path`.
-    */
+  /** Tries to read the global config from the given `path`. */
   def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
       for {
@@ -129,8 +90,7 @@ object GlobalConfigurationManager {
       } yield config
     }.flatMap(_.toTry)
 
-  /** Tries to write the provided `config` to the given `path`.
-    */
+  /** Tries to write the provided `config` to the given `path`. */
   def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
     writeConfigRaw(path, GlobalConfig.encoder(config))
 

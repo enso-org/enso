@@ -3,7 +3,8 @@ package org.enso.runtimeversionmanager.runner
 import akka.http.scaladsl.model.Uri
 import com.typesafe.scalalogging.Logger
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{DistributionManager, EditionManager, Environment}
+import org.enso.distribution.{DistributionManager, Environment}
+import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEnsoVersion, SemVerEnsoVersion}
 import org.enso.logger.masking.MaskedString
 import org.enso.loggingservice.LogLevel
@@ -13,7 +14,7 @@ import org.enso.runtimeversionmanager.components.{
   GraalRuntime,
   RuntimeVersionManager
 }
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 
 import java.nio.file.Path
 import scala.concurrent.duration.DurationInt
@@ -27,7 +28,7 @@ import scala.util.Try
 class Runner(
   runtimeVersionManager: RuntimeVersionManager,
   distributionManager: DistributionManager,
-  globalConfigurationManager: GlobalConfigurationManager,
+  globalConfigurationManager: GlobalRunnerConfigurationManager,
   editionManager: EditionManager,
   environment: Environment,
   loggerConnection: Future[Option[Uri]]

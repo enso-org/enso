@@ -22,7 +22,7 @@ class EditionReferenceResolver(
     editionReference: EditionReference
   ): Try[Editions.RawEdition] = editionReference match {
     case EditionReference.NamedEdition(editionName) =>
-      editionProvider.findEditionForName(editionName)
+      editionProvider.findEditionForName(editionName).toTry
     case EditionReference.CurrentProjectEdition =>
       Try {
         projectPackage.config.edition.getOrElse {

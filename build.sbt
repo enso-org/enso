@@ -250,6 +250,7 @@ lazy val enso = (project in file("."))
     editions,
     `distribution-manager`,
     `edition-updater`,
+    `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
     syntax.jvm,
@@ -818,6 +819,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`akka-native`)
   .dependsOn(`version-output`)
   .dependsOn(editions)
+  .dependsOn(`edition-updater`)
   .dependsOn(cli)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`polyglot-api`)
@@ -1017,6 +1019,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
+  .dependsOn(`edition-updater`)
   .dependsOn(`logging-service`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`searcher`)
@@ -1187,6 +1190,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(searcher)
+  .dependsOn(`edition-updater`)
   .dependsOn(`library-manager`)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-utils`)
@@ -1391,6 +1395,13 @@ lazy val `edition-updater` = project
   )
   .dependsOn(editions)
   .dependsOn(downloader)
+  .dependsOn(`distribution-manager`)
+  .dependsOn(`library-manager-test` % Test)
+
+lazy val `edition-uploader` = project
+  .in(file("lib/scala/edition-uploader"))
+  .dependsOn(editions)
+  .dependsOn(`version-output`)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
@@ -1441,6 +1452,7 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`logging-service`)
   .dependsOn(cli)
   .dependsOn(`version-output`)
+  .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
 
 lazy val `runtime-version-manager-test` = project

@@ -1,24 +1,16 @@
-package org.enso.distribution
+package org.enso.editions.updater
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.config.GlobalConfigurationManager
+import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions
-import org.enso.editions.provider.{EditionProvider, FileSystemEditionProvider}
 import org.enso.editions.{EditionResolver, Editions}
 
 import java.nio.file.Path
-import scala.annotation.unused
 import scala.util.Try
 
-/** A helper class for resolving editions.
-  *
-  * @param primaryCachePath will be used for updating editions
-  * @param searchPaths all paths to search for editions, should include
-  *                    [[primaryCachePath]]
-  */
-class EditionManager(@unused primaryCachePath: Path, searchPaths: List[Path]) {
-  private val editionProvider = new FileSystemEditionProvider(
-    searchPaths
-  )
+/** A helper class for resolving editions. */
+class EditionManager private (editionProvider: UpdatingEditionProvider) {
   private val editionResolver = EditionResolver(editionProvider)
   private val engineVersionResolver =
     editions.EngineVersionResolver(editionProvider)
@@ -44,11 +36,11 @@ class EditionManager(@unused primaryCachePath: Path, searchPaths: List[Path]) {
   def resolveEngineVersion(edition: Editions.RawEdition): Try[SemVer] =
     engineVersionResolver.resolveEnsoVersion(edition).toTry
 
-  // TODO [RW] download edition updates, part of #1772
-
-  /** Find all editions available in the [[searchPaths]]. */
-  def findAllAvailableEditions(): Seq[String] =
-    editionProvider.findAvailableEditions()
+  /** Find all editions available in the [[searchPaths]], performing an update
+    * if asked to.
+    */
+  def findAllAvailableEditions(update: Boolean): Seq[String] =
+    editionProvider.findAvailableEditions(update)
 }
 
 object EditionManager {
@@ -59,9 +51,14 @@ object EditionManager {
   def makeEditionProvider(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
-  ): EditionProvider = new FileSystemEditionProvider(
-    getSearchPaths(distributionManager, languageHome)
-  )
+  ): UpdatingEditionProvider = {
+    val config = new GlobalConfigurationManager(distributionManager).getConfig
+    new UpdatingEditionProvider(
+      getSearchPaths(distributionManager, languageHome),
+      distributionManager.paths.cachedEditions,
+      config.editionProviders
+    )
+  }
 
   /** Get search paths associated with the distribution and language home. */
   private def getSearchPaths(
@@ -80,7 +77,6 @@ object EditionManager {
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome] = None
   ): EditionManager = new EditionManager(
-    distributionManager.paths.cachedEditions,
-    getSearchPaths(distributionManager, languageHome)
+    makeEditionProvider(distributionManager, languageHome)
   )
 }
