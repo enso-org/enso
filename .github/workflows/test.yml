@@ -1,0 +1,29 @@
+name: Test trigger
+
+on: release
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+  # Please ensure that this is in sync with NIGHTLIES_TO_KEEP in nightly.yml
+  NIGHTLIES_TO_KEEP: 20
+
+concurrency: "foo"
+
+jobs:
+  test-pub:
+    name: Test pub
+    runs-on: ubuntu-18.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      - name: Print info
+        shell: bash
+        run: echo ${{ toJSON(github.event) }}
