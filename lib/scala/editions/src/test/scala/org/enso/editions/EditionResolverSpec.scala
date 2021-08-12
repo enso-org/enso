@@ -12,8 +12,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
 
-import scala.util.{Failure, Success, Try}
-
 class EditionResolverSpec
     extends AnyWordSpec
     with Matchers
@@ -54,7 +52,9 @@ class EditionResolverSpec
     override def findEditionForName(
       name: String
     ): Either[EditionLoadingError, Editions.Raw.Edition] =
-      editions.get(name).toRight(EditionNotFound)
+      editions.get(name).toRight(EditionNotFound())
+
+    override def findAvailableEditions(): Seq[String] = editions.keys.toSeq
   }
 
   val resolver = EditionResolver(FakeEditionProvider)
