@@ -6,7 +6,7 @@ import org.enso.yaml.YamlHelper
 import org.enso.editions.repository.Manifest
 
 import java.io.PrintWriter
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import scala.util.Using
 import scala.util.control.NonFatal
 
@@ -75,8 +75,13 @@ object EditionUploader {
     * @param newEditionName name of the edition to upload
     */
   def updateEditionsRepository(newEditionName: EditionName): Unit = {
-    val fileName    = newEditionName.toFileName
-    val source      = Path.of("distribution/editions").resolve(fileName)
+    val fileName = newEditionName.toFileName
+    val source   = Path.of("distribution/editions").resolve(fileName)
+    if (!Files.exists(source)) {
+      throw new IllegalStateException(
+        s"The edition to upload [$source] does not exist."
+      )
+    }
     val destination = editionsBucket + fileName
     println(s"Uploading $destination")
     AWS.transfer(source, destination)
