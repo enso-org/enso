@@ -122,13 +122,11 @@ jobs:
         run: |
           sleep 1
           sbt --no-colors bootstrap
-      # TODO [RW] This is commented out because as the initial bumping will happen in a separate PR, this check would fail and prevent from merging. It should be uncommented in this next PR.
-      #      - name: Verify the Stdlib Version
-      #        working-directory: repo
-      #        shell: bash
-      #        run: |
-      #          sleep 1
-      #          sbt --no-colors stdlib-version-updater/run check
+
+      - name: Verify the Stdlib Version
+        run: |
+          sleep 1
+          sbt --no-colors "stdlib-version-updater/run check"
 
       # Compile
       - name: Build Enso

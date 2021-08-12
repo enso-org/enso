@@ -173,7 +173,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt --no-colors stdlib-version-updater/run update
+          sbt --no-colors "stdlib-version-updater/run update"
 
       # Verify Legal Review
       - name: Verify Packages

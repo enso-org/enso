@@ -136,7 +136,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt --no-colors stdlib-version-updater/run check
+          sbt --no-colors "stdlib-version-updater/run check"
 
       # Prepare distributions
       - name: Build the Launcher Native Image
