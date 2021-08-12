@@ -2,7 +2,9 @@ name: Geo
 namespace: Standard
 version: 0.1.0
 license: APLv2
-authors: []
-maintainers: []
-author: Enso Team <contact@enso.org>
-maintainer: Enso Team <contact@enso.org>
+authors:
+  - name: Enso Team
+    email: contact@enso.org
+maintainers:
+  - name: Enso Team
+    email: contact@enso.org
