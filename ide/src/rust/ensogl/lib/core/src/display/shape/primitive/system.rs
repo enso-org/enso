@@ -254,7 +254,8 @@ pub type DynShapeSystemOf<T> = <T as DynamicShape>::System;
 /// GPU, the `attribute` will be initialized as well and will point to the right buffer
 /// section. Otherwise, changing the parameter will not have any visual effect, however,
 /// all the changes will be recorded and applied as soon as the shape will get initialized.
-#[derive(Clone,CloneRef,Derivative)]
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone(bound=""))]
 #[derivative(Default(bound="T::Item:Default"))]
 #[derivative(Debug(bound="T::Item:Copy+Debug, T:Debug"))]
 #[allow(missing_docs)]

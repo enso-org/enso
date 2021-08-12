@@ -92,6 +92,17 @@ pub enum Action {
     // In the future, other action types will be added (like module/method management, etc.).
 }
 
+impl Action {
+    /// Get the name of the icon associated with given action.
+    pub fn icon(&self) -> ImString {
+        use Suggestion::*;
+        match self {
+            Self::Suggestion(Hardcoded(s)) => s.icon.clone_ref(),
+            _                              => hardcoded::ICONS.with(|ics| ics.default.clone_ref()),
+        }
+    }
+}
+
 impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -132,13 +143,15 @@ pub type CategoryId = usize;
 #[derive(Clone,Debug)]
 pub struct RootCategory {
     pub name : Cow<'static,str>,
+    pub icon : ImString,
 }
 
 /// The category of suggestions.
 #[allow(missing_docs)]
 #[derive(Clone,Debug)]
 pub struct Subcategory {
-    pub name:Cow<'static,str>,
+    pub name : Cow<'static,str>,
+    pub icon : ImString,
     /// The id of the root category this category belongs to.
     pub parent:CategoryId,
 }
@@ -291,10 +304,38 @@ impl List {
     /// Check if list is empty.
     pub fn is_empty(&self) -> bool { self.entries.borrow().is_empty() }
 
+    /// Iterate over root categories.
+    pub fn root_categories(&self) -> impl Iterator<Item=(CategoryId,&RootCategory)> {
+        self.root_categories.iter().enumerate()
+    }
+
+    /// Iterate over all subcategories of given root category.
+    pub fn subcategories_of(&self, id:CategoryId) -> impl Iterator<Item=(CategoryId,&Subcategory)> {
+        let start = self.subcategories.partition_point(|cat| cat.parent < id);
+        let end   = self.subcategories.partition_point(|cat| cat.parent <= id);
+        (start..end).zip(self.subcategories[start..end].iter())
+    }
+
+    /// Iterate over all actions of given subcategory.
+    pub fn actions_of(&self, id:CategoryId) -> impl Iterator<Item=(usize,ListEntry)> + '_ {
+        let range = {
+            let actions = self.entries.borrow();
+            let start = actions.partition_point(|entry| entry.category < id);
+            let end   = actions.partition_point(|entry| entry.category <= id);
+            start..end
+        };
+        self.actions_range(range)
+    }
+
     /// Iterate over action entries.
-    pub fn iter(&self) -> impl Iterator<Item=ListEntry> + '_ {
-        let existing_ids = (0..self.len()).take_while(move |id| *id < self.len());
-        existing_ids.filter_map(move |id| self.entries.borrow().get(id).cloned())
+    pub fn actions(&self) -> impl Iterator<Item=(usize,ListEntry)> + '_ {
+        self.actions_range(0..self.len())
+    }
+
+    fn actions_range(&self, range:Range<usize>)
+    -> impl Iterator<Item=(usize,ListEntry)> + '_ {
+        let existing_ids = range.take_while(move |id| *id < self.len());
+        existing_ids.filter_map(move |id| self.entries.borrow().get(id).cloned().map(|e| (id,e)))
     }
 
     /// Convert to the action vector.
@@ -350,10 +391,11 @@ pub struct CategoryBuilder<'a> {
 impl ListBuilder {
     /// Add the new root category with a given name. The returned builder should be used to add
     /// sub-categories to it.
-    pub fn add_root_category(&mut self, name: impl Into<Cow<'static,str>>) -> RootCategoryBuilder {
+    pub fn add_root_category
+    (&mut self, name: impl Into<Cow<'static,str>>, icon:ImString) -> RootCategoryBuilder {
         let name             = name.into();
         let root_category_id = self.built_list.root_categories.len();
-        self.built_list.root_categories.push(RootCategory{name});
+        self.built_list.root_categories.push(RootCategory{name,icon});
         RootCategoryBuilder { list_builder:self, root_category_id}
     }
 
@@ -367,11 +409,12 @@ impl ListBuilder {
 impl<'a> RootCategoryBuilder<'a> {
     /// Add the category with a given name to the root category. The returned builder should be
     /// used to add actions to the newly created category.
-    pub fn add_category(&mut self, name:impl Into<Cow<'static,str>>) -> CategoryBuilder {
+    pub fn add_category
+    (&mut self, name:impl Into<Cow<'static,str>>, icon:ImString) -> CategoryBuilder {
         let name        = name.into();
         let parent      = self.root_category_id;
         let category_id = self.list_builder.built_list.subcategories.len();
-        self.list_builder.built_list.subcategories.push(Subcategory {name,parent});
+        self.list_builder.built_list.subcategories.push(Subcategory {name,parent,icon});
         CategoryBuilder { list_builder:self.list_builder, category_id}
     }
 }
@@ -383,7 +426,7 @@ impl<'a> CategoryBuilder<'a> {
     }
 
     /// Add many actions to the category.
-    pub fn extend<T:IntoIterator<Item=Action>>(&self, iter: T) {
+    pub fn extend<T:IntoIterator<Item=Action>>(&self, iter:T) {
         let built_list = &self.list_builder.built_list;
         let category   = self.category_id;
         built_list.entries.borrow_mut().extend(iter.into_iter().map(|action| {

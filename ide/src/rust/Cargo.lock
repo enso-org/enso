@@ -670,9 +670,9 @@ dependencies = [
 
 [[package]]
 name = "enso-prelude"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1efdee46a7552b3b8a8c1d07dd07b63420d7945ef058480ad9bc20038ed32ff"
+checksum = "2a7721506abe056be4f27f58131fb3677f38e62d0d9696c9920ba94777e52d56"
 dependencies = [
  "anyhow",
  "backtrace",

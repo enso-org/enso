@@ -14,7 +14,7 @@ enso-callback = { path = "../lib/callback" }
 enso-data = { version = "0.2.0" }
 enso-frp = { path = "../lib/frp" }
 enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.5" }
+enso-prelude = { version = "0.2.6" }
 enso-shapely = { version = "0.2.0" }
 ensogl = { path = "../ensogl" }
 ensogl-examples = { path = "../ensogl/example" }

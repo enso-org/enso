@@ -54,7 +54,8 @@ ensogl_core::define_endpoints! {
 // === Model ===
 // =============
 
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug,Derivative)]
+#[clone_ref(bound="Shape:CloneRef")]
 struct Model<Shape> {
     icon : ShapeView<Shape>,
 }
@@ -174,7 +175,8 @@ impl ColorScheme {
 
 /// A UI component that acts as a toggle which can be toggled on and of. Has a visible shape
 /// that acts as button and changes color depending on the toggle state.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(CloneRef,Debug,Derivative)]
+#[derivative(Clone(bound=""))]
 #[allow(missing_docs)]
 pub struct ToggleButton<Shape> {
     pub frp : Frp,

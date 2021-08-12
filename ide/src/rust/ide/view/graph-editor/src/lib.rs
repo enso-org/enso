@@ -112,8 +112,9 @@ fn traffic_lights_gap_width() -> f32 {
 // === SharedVec ===
 // =================
 
-#[derive(Clone,CloneRef,Debug,Derivative)]
+#[derive(CloneRef,Debug,Derivative)]
 #[derivative(Default(bound=""))]
+#[derivative(Clone(bound=""))]
 pub struct SharedVec<T> {
     pub raw : Rc<RefCell<Vec<T>>>
 }

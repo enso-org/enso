@@ -12,7 +12,7 @@ ast = { path = "../lib/ast/impl" }
 enso-args = { path = "../lib/args" }
 enso-frp = { path = "../../lib/frp" }
 enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.5" }
+enso-prelude = { version = "0.2.6" }
 enso-protocol = { path = "../lib/enso-protocol" }
 enso-shapely = { version = "0.2.0" }
 ensogl = { path = "../../ensogl" }

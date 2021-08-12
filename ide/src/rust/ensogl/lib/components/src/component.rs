@@ -51,7 +51,8 @@ pub trait Frp<Model> : Default + CommandApi {
 
 /// Base struct for UI components in EnsoGL. Contains the Data/Shape model and the FPR exposing its
 /// behaviour.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(CloneRef,Debug,Derivative)]
+#[derivative(Clone(bound=""))]
 pub struct Component<Model,Frp> {
     /// Public FRP api of the Component.
     pub frp : Rc<Frp>,

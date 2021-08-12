@@ -899,22 +899,25 @@ impl Searcher {
         let creating_new_node             = matches!(self.mode.deref(), Mode::NewNode{..});
         let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
         let mut actions                   = action::ListBuilder::default();
+        let (libraries_icon,default_icon) = action::hardcoded::ICONS.with(|i|
+            (i.libraries.clone_ref(),i.default.clone_ref())
+        );
         //TODO[ao] should be uncommented once new searcher GUI will be integrated + the order of
         // added entries should be adjusted.
         // https://github.com/enso-org/ide/issues/1681
         // Self::add_hardcoded_entries(&mut actions,this_type,return_types)?;
         if should_add_additional_entries && self.ide.manage_projects().is_ok() {
-            let mut root_cat = actions.add_root_category("Projects");
-            let category     = root_cat.add_category("Projects");
+            let mut root_cat = actions.add_root_category("Projects",default_icon.clone_ref());
+            let category     = root_cat.add_category("Projects",default_icon.clone_ref());
             let create_project = action::ProjectManagement::CreateNewProject;
             category.add_action(Action::ProjectManagement(create_project));
         }
-        let mut libraries_root_cat = actions.add_root_category("Libraries");
+        let mut libraries_root_cat = actions.add_root_category("Libraries",libraries_icon.clone_ref());
         if should_add_additional_entries {
-            let examples_cat = libraries_root_cat.add_category("Examples");
+            let examples_cat = libraries_root_cat.add_category("Examples",default_icon.clone_ref());
             examples_cat.extend(self.database.iterate_examples().map(Action::Example));
         }
-        let libraries_cat = libraries_root_cat.add_category("Libraries");
+        let libraries_cat = libraries_root_cat.add_category("Libraries",libraries_icon.clone_ref());
         if should_add_additional_entries {
             Self::add_enso_project_entries(&libraries_cat)?;
         }

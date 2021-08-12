@@ -154,8 +154,8 @@ impl Model {
 
         let app          = app.clone_ref();
         let graph_editor = Rc::new(graph_editor);
-        Self{app,logger,display_object,window_control_buttons,graph_editor,searcher,code_editor,
-            status_bar,fullscreen_vis,prompt_background,prompt,open_dialog}
+        Self{app,logger,display_object,window_control_buttons,graph_editor,searcher,code_editor
+            ,status_bar,fullscreen_vis,prompt_background,prompt,open_dialog}
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
@@ -585,6 +585,9 @@ impl View {
 
     /// Searcher View.
     pub fn searcher(&self) -> &searcher::View { &self.model.searcher }
+
+    /// Searcher 2.0 FRP.
+    pub fn new_searcher_frp(&self) -> &searcher::new::Frp<usize> { self.model.searcher.new_frp() }
 
     /// Code Editor View.
     pub fn code_editor(&self) -> &code_editor::View { &self.model.code_editor }
