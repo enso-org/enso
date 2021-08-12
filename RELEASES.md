@@ -4,6 +4,9 @@
 
 - Fixed a bug where visualizations would sometimes randomly fail to compute, due
   to thread interrupts ([#1939](https://github.com/enso-org/enso/pull/1939)).
+- Fixed an issue where both host and polyglot interop would not properly
+  propagate error information
+  ([#1941](https://github.com/enso-org/enso/pull/1941)).
 - Documentation in IDE now shows names of suggestions
   ([#1904](https://github.com/enso-org/enso/pull/1904)).
 
@@ -15,11 +18,20 @@
   subcommand to the Launcher.
 - Implemented an HTTP endpoint that resets the time that the language server has
   spent idle ([#1938](https://github.com/enso-org/enso/pull/1938)).
+- Implemented the mechanism for updating the editions cache
+  ([#1944](https://github.com/enso-org/enso/pull/1944)), allowing the engine to
+  download and use editions other than the one bundled with a given release.
+- Added a notification about the successful program execution to the language
+  server API ([#1945](https://github.com/enso-org/enso/pull/1945)).
 
 ## Libraries
 
 - Added support for writing tables to file as JSON
   ([#1937](https://github.com/enso-org/enso/pull/1937)).
+- Added support for parsing CSV files with too many headers declared
+  ([#1942](https://github.com/enso-org/enso/pull/1942)).
+- Added a single entry point method for all table serialization modes
+  ([#1946](https://github.com/enso-org/enso/pull/1946)).
 
 # Enso 0.2.23 (2021-08-09)
 

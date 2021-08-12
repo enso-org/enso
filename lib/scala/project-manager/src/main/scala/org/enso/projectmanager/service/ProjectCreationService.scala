@@ -12,7 +12,7 @@ import org.enso.projectmanager.service.ProjectServiceFailure.ProjectCreateFailed
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerErrorRecoverySyntax._
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.Runner
 import java.nio.file.Path
 
@@ -42,7 +42,7 @@ class ProjectCreationService[
         distributionConfiguration
       ).makeRuntimeVersionManager(progressTracker, missingComponentAction)
       versionManager.logAvailableComponentsForDebugging()
-      val configurationManager = new GlobalConfigurationManager(
+      val configurationManager = new GlobalRunnerConfigurationManager(
         versionManager,
         distributionConfiguration.distributionManager
       )

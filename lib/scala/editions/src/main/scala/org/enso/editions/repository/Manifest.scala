@@ -1,6 +1,7 @@
 package org.enso.editions.repository
 
 import io.circe._
+import io.circe.syntax.EncoderOps
 import org.enso.editions.EditionName
 
 /** The Edition Repository manifest, which lists all editions that the
@@ -18,6 +19,11 @@ object Manifest {
     for {
       editions <- json.get[Seq[EditionName]](Fields.editions)
     } yield Manifest(editions)
+  }
+
+  /** An [[Encoder]] instance for serializing [[Manifest]]. */
+  implicit val encoder: Encoder[Manifest] = { manifest =>
+    Json.obj(Fields.editions -> manifest.editions.asJson)
   }
 
   /** The name of the manifest file that should be present at the root of

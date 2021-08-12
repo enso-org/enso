@@ -122,6 +122,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
+  - [`executionContext/executionComplete`](#executioncontextexecutioncomplete)
   - [`executionContext/executionStatus`](#executioncontextexecutionstatus)
   - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
@@ -3237,6 +3238,29 @@ stack, an error location a method or a module when issuing a
    * The location of a file producing the error.
    */
   path?: Path;
+}
+```
+
+#### Errors
+
+None
+
+### `executionContext/executionComplete`
+
+Sent from the server to the client to inform about the successful execution of a
+context.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /** The identifier of the execution context. */
+  contextId: ContextId;
 }
 ```
 

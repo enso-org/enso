@@ -3,7 +3,8 @@ package org.enso.compiler
 import com.oracle.truffle.api.TruffleFile
 import com.typesafe.scalalogging.Logger
 import org.enso.distribution.locking.ResourceManager
-import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
+import org.enso.distribution.{DistributionManager, LanguageHome}
+import org.enso.editions.updater.EditionManager
 import org.enso.editions.{DefaultEdition, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins

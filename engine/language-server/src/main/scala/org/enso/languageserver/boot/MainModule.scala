@@ -1,13 +1,9 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
-import org.enso.distribution.{
-  DistributionManager,
-  EditionManager,
-  Environment,
-  LanguageHome
-}
+import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.boot.DeploymentType.{Azure, Desktop}
 import org.enso.languageserver.capability.CapabilityRouter

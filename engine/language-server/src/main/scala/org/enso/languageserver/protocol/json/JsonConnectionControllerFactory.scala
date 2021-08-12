@@ -1,7 +1,7 @@
 package org.enso.languageserver.protocol.json
 
 import akka.actor.{ActorRef, ActorSystem}
-import org.enso.distribution.EditionManager
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.data.Config

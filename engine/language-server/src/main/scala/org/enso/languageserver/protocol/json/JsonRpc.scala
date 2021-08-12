@@ -94,6 +94,7 @@ object JsonRpc {
     .registerNotification(ContentRootRemoved)
     .registerNotification(ExecutionContextExpressionUpdates)
     .registerNotification(ExecutionContextExecutionFailed)
+    .registerNotification(ExecutionContextExecutionComplete)
     .registerNotification(ExecutionContextExecutionStatus)
     .registerNotification(StandardOutputAppended)
     .registerNotification(StandardErrorAppended)

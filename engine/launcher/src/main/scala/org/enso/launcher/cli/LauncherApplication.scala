@@ -1,8 +1,5 @@
 package org.enso.launcher.cli
 
-import java.nio.file.Path
-import java.util.UUID
-
 import akka.http.scaladsl.model.Uri
 import cats.data.NonEmptyList
 import cats.implicits._
@@ -10,16 +7,20 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli._
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.arguments._
+import org.enso.distribution.config.DefaultVersion
+import org.enso.distribution.config.DefaultVersion._
 import org.enso.launcher.cli.LauncherColorMode.argument
-import org.enso.runtimeversionmanager.cli.Arguments._
-import org.enso.runtimeversionmanager.config.DefaultVersion
-import org.enso.runtimeversionmanager.runner.LanguageServerOptions
 import org.enso.launcher.distribution.DefaultManagers._
 import org.enso.launcher.installation.DistributionInstaller
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{cli, Launcher}
 import org.enso.loggingservice.{ColorMode, LogLevel}
+import org.enso.runtimeversionmanager.cli.Arguments._
+import org.enso.runtimeversionmanager.runner.LanguageServerOptions
+
+import java.nio.file.Path
+import java.util.UUID
 
 /** Defines the CLI commands and options for the program.
   *

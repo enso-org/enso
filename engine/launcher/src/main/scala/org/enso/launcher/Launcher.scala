@@ -4,12 +4,10 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.Logger
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.EditionManager
+import org.enso.distribution.config.DefaultVersion
+import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.CurrentVersion
-import org.enso.runtimeversionmanager.config.{
-  DefaultVersion,
-  GlobalConfigurationManager
-}
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{
   JVMSettings,
   LanguageServerOptions,
@@ -45,7 +43,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     manager
   }
   private lazy val configurationManager =
-    new GlobalConfigurationManager(componentsManager, distributionManager)
+    new GlobalRunnerConfigurationManager(componentsManager, distributionManager)
   private lazy val editionManager = EditionManager(distributionManager)
   private lazy val projectManager = new ProjectManager
   private lazy val runner =

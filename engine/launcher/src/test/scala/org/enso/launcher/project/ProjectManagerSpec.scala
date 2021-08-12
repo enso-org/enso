@@ -2,7 +2,7 @@ package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.DistributionManager
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
@@ -12,11 +12,12 @@ class ProjectManagerSpec
     with Inside
     with OptionValues {
   private val defaultEnsoVersion = SemVer(0, 0, 0, Some("default"))
-  def makeProjectManager(): (GlobalConfigurationManager, ProjectManager) = {
+  def makeProjectManager()
+    : (GlobalRunnerConfigurationManager, ProjectManager) = {
     val env                 = fakeInstalledEnvironment()
     val distributionManager = new DistributionManager(env)
     val fakeConfigurationManager =
-      new GlobalConfigurationManager(null, distributionManager) {
+      new GlobalRunnerConfigurationManager(null, distributionManager) {
         override def defaultVersion: SemVer = defaultEnsoVersion
       }
     (fakeConfigurationManager, new ProjectManager())
