@@ -62,11 +62,13 @@ public class Parser {
       builders = initBuilders(row.length);
     }
     for (int i = 0; i < builders.length; i++) {
-      builders[i] = builders[i].parseAndAppend(handleNa(row[i]));
+      String item = i < row.length ? handleNa(row[i]) : null;
+      builders[i] = builders[i].parseAndAppend(item);
     }
     while ((row = parser.parseNext()) != null) {
       for (int i = 0; i < builders.length; i++) {
-        builders[i] = builders[i].parseAndAppend(handleNa(row[i]));
+        String item = i < row.length ? handleNa(row[i]) : null;
+        builders[i] = builders[i].parseAndAppend(item);
       }
     }
     Column[] columns = new Column[builders.length];

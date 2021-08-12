@@ -21,6 +21,8 @@
 
 - Added support for writing tables to file as JSON
   ([#1937](https://github.com/enso-org/enso/pull/1937)).
+- Added support for parsing CSV files with too many headers declared
+  ([#1942](https://github.com/enso-org/enso/pull/1942)).
 
 # Enso 0.2.23 (2021-08-09)
 
