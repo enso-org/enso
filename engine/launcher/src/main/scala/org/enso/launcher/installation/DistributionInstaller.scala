@@ -1,16 +1,15 @@
 package org.enso.launcher.installation
 
-import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.enso.cli.{CLIOutput, OS}
+import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.distribution.config.GlobalConfigurationManager
+import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{
   DistributionManager,
   FileSystem,
   PortableDistributionManager
 }
-import org.enso.distribution.locking.ResourceManager
-import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts, Main}
 import org.enso.launcher.distribution.DefaultManagers
@@ -20,18 +19,19 @@ import org.enso.launcher.installation.DistributionInstaller.{
   MoveBundles
 }
 
+import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
 
 /** Allows to locally [[install]] a portable distribution.
   *
-  * @param manager a distribution manager instance which defines locations for
-  *                the source portable distribution and the installation
-  *                location
-  * @param autoConfirm if set to true, the installer will use defaults instead
-  *                    of asking questions
-  * @param removeOldLauncher if `autoConfirm` is set to true, specifies whether
-  *                          the old launcher should be removed after successful
-  *                          installation
+  * @param manager            a distribution manager instance which defines locations for
+  *                           the source portable distribution and the installation
+  *                           location
+  * @param autoConfirm        if set to true, the installer will use defaults instead
+  *                           of asking questions
+  * @param removeOldLauncher  if `autoConfirm` is set to true, specifies whether
+  *                           the old launcher should be removed after successful
+  *                           installation
   * @param bundleActionOption defines how bundled components are added, if
   *                           [[autoConfirm]] is set, defaults to a move,
   *                           otherwise explicitly asks the user

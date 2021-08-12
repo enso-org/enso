@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.EditionManager
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.{Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
@@ -12,9 +12,6 @@ import scala.util.{Failure, Success, Try}
 
 /** A request handler for the `editions/listAvailable` endpoint.
   *
-  * It is a partial implementation - it already allows to list existing
-  * editions, but updating is not yet implemented.
-  *
   * @param editionManager an edition manager instance
   */
 class EditionsListAvailableHandler(editionManager: EditionManager)
@@ -22,14 +19,17 @@ class EditionsListAvailableHandler(editionManager: EditionManager)
     with LazyLogging
     with UnhandledLogging {
   override def receive: Receive = {
-    case Request(EditionsListAvailable, id, _: EditionsListAvailable.Params) =>
-      // TODO [RW] once updating editions is implemented this should be made asynchronous
-      Try(editionManager.findAllAvailableEditions()) match {
+    case Request(
+          EditionsListAvailable,
+          id,
+          EditionsListAvailable.Params(update)
+        ) =>
+      Try(editionManager.findAllAvailableEditions(update)) match {
         case Success(editions) =>
           sender() ! ResponseResult(
             EditionsListAvailable,
             id,
-            EditionsListAvailable.Result(editions)
+            EditionsListAvailable.Result(editions.sorted)
           )
         case Failure(exception) =>
           sender() ! ResponseError(

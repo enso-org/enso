@@ -5,8 +5,9 @@ import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
-import org.enso.distribution.{DistributionManager, EditionManager, LanguageHome}
+import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.EditionResolver
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.TestClock

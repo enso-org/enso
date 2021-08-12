@@ -5,7 +5,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.releases.ReleaseNotFound
 import org.enso.runtimeversionmanager.test.{
   RuntimeVersionManagerTest,
@@ -90,7 +90,10 @@ class RuntimeVersionManagerSpec extends RuntimeVersionManagerTest with OsSpec {
           new TestRuntimeVersionManagementUserInterface(installBroken = true)
         )
       val configurationManager =
-        new GlobalConfigurationManager(componentsManager, distributionManager)
+        new GlobalRunnerConfigurationManager(
+          componentsManager,
+          distributionManager
+        )
 
       val validVersion          = SemVer(0, 0, 1)
       val newerButBrokenVersion = SemVer(0, 999, 0, Some("broken"))

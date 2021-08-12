@@ -2,13 +2,14 @@ package org.enso.launcher.components
 
 import akka.http.scaladsl.model.Uri
 import nl.gn0s1s.bump.SemVer
-import org.enso.distribution.{DistributionManager, EditionManager, Environment}
+import org.enso.distribution.{DistributionManager, Environment}
+import org.enso.editions.updater.EditionManager
 import org.enso.launcher.Constants
 import org.enso.launcher.project.ProjectManager
 import org.enso.logger.masking.MaskedPath
 import org.enso.loggingservice.LogLevel
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 
 import java.nio.file.{Files, Path}
@@ -20,7 +21,7 @@ import scala.util.Try
 class LauncherRunner(
   projectManager: ProjectManager,
   distributionManager: DistributionManager,
-  configurationManager: GlobalConfigurationManager,
+  configurationManager: GlobalRunnerConfigurationManager,
   componentsManager: RuntimeVersionManager,
   editionManager: EditionManager,
   environment: Environment,

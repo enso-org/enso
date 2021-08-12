@@ -17,6 +17,11 @@
   subcommand to the Launcher.
 - Implemented an HTTP endpoint that resets the time that the language server has
   spent idle ([#1938](https://github.com/enso-org/enso/pull/1938)).
+- Implemented the mechanism for updating the editions cache
+  ([#1944](https://github.com/enso-org/enso/pull/1944)), allowing the engine to
+  download and use editions other than the one bundled with a given release.
+- Added a notification about the successful program execution to the language
+  server API ([#1945](https://github.com/enso-org/enso/pull/1945)).
 
 ## Libraries
 

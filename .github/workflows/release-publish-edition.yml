@@ -1,0 +1,76 @@
+name: Publish Edition to S3
+
+on:
+  release:
+    types: [published]
+
+env:
+  # Please ensure that this is in sync with graalVersion in build.sbt
+  graalVersion: 21.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
+  javaVersion: 11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.5.2
+  # Please ensure that this is in sync with NIGHTLIES_TO_KEEP in nightly.yml
+  NIGHTLIES_TO_KEEP: 20
+
+concurrency: "releases"
+
+jobs:
+  update-editions-on-s3:
+    name: Update Editions on S3
+    runs-on: ubuntu-18.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: repo
+      - name: Setup GraalVM Environment
+        uses: ayltai/setup-graalvm@v1
+        with:
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
+      - name: Set Up SBT
+        shell: bash
+        run: |
+          curl -fsSL -o sbt.tgz https://github.com/sbt/sbt/releases/download/v${{env.sbtVersion}}/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo $GITHUB_WORKSPACE/sbt/bin/ >> $GITHUB_PATH
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+
+      - name: Update the Editions Bucket
+        shell: bash
+        working-directory: repo
+        run: sbt edition-uploader/run
+
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF

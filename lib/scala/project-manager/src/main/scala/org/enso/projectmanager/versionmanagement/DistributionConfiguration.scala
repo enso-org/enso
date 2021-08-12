@@ -3,10 +3,10 @@ package org.enso.projectmanager.versionmanagement
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{
   DistributionManager,
-  EditionManager,
   Environment,
   TemporaryDirectoryManager
 }
+import org.enso.editions.updater.EditionManager
 import org.enso.runtimeversionmanager.components.{
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager

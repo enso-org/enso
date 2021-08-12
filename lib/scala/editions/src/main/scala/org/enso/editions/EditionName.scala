@@ -1,6 +1,7 @@
 package org.enso.editions
 
-import io.circe.Decoder
+import io.circe.syntax.EncoderOps
+import io.circe.{Decoder, Encoder}
 
 /** A helper type to handle special parsing logic of edition names.
   *
@@ -9,6 +10,9 @@ import io.circe.Decoder
   * number, so special care must be taken to correctly parse it.
   */
 case class EditionName(name: String) extends AnyVal {
+
+  /** @inheritdoc */
+  override def toString: String = name
 
   /** Returns the name of the file that is associated with the edition name. */
   def toFileName: String = name + EditionName.editionSuffix
@@ -28,6 +32,16 @@ object EditionName {
       .orElse(json.as[Int].map(_.toString))
       .orElse(json.as[Float].map(_.toString))
       .map(EditionName(_))
+  }
+
+  /** An [[Encoder]] instance for serializing [[EditionName]].
+    *
+    * Regardless of the original representation, the edition name is always
+    * serialized as string as this is the most portable and precise format for
+    * this datatype.
+    */
+  implicit val encoder: Encoder[EditionName] = { case EditionName(name) =>
+    name.asJson
   }
 
   /** The filename suffix that is used to create a filename corresponding to a
