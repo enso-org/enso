@@ -842,7 +842,9 @@ case class DocParserDef() extends Parser[Doc] {
         section.stack = section.stack.reverse
         val baseIndent =
           if (section.stack.nonEmpty) section.stack.head.indent else 0
-        transformOverlyIndentedRawIntoCode(baseIndent)
+        if (section.stack.length > 2) {
+          transformOverlyIndentedRawIntoCode(baseIndent)
+        }
       }
 
     def transformOverlyIndentedRawIntoCode(
@@ -857,16 +859,19 @@ case class DocParserDef() extends Parser[Doc] {
             stackOfCodeSections = stackOfCodeSections :+ current
             current             = section.pop().get
           }
+          stackOfCodeSections = stackOfCodeSections :+ current
           val codeLines = stackOfCodeSections.map(s =>
             Doc.Elem.CodeBlock.Line(s.indent, s.repr.build().trim)
           )
-          val l1CodeLines = List1(codeLines.head, codeLines.tail)
-          val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
-          val s           = newStack.head
-          val sElems      = newStack.head.elems :+ codeBlock
-          s.elems  = sElems
-          newStack = newStack.drop(1)
-          newStack +:= s
+          if (codeLines.nonEmpty) {
+            val l1CodeLines = List1(codeLines.head, codeLines.tail)
+            val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
+            val s           = newStack.head
+            val sElems      = newStack.head.elems :+ codeBlock
+            s.elems  = sElems
+            newStack = newStack.drop(1)
+            newStack +:= s
+          }
         } else {
           newStack +:= current
         }
