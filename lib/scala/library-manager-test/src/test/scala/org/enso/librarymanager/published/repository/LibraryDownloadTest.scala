@@ -1,8 +1,8 @@
 package org.enso.librarymanager.published.repository
 
 import org.enso.editions.Editions
-import org.enso.loggingservice.{LogLevel, TestLogger}
 import org.enso.loggingservice.TestLogger.TestLogMessage
+import org.enso.loggingservice.{LogLevel, TestLogger}
 import org.enso.pkg.PackageManager
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.matchers.should.Matchers
@@ -25,8 +25,7 @@ class LibraryDownloadTest
       val repoRoot = getTestDirectory.resolve("repo")
       repo.createRepository(repoRoot)
       withDownloader { cache =>
-        val server = repo.startServer(port, repoRoot)
-        try {
+        repo.withServer(port, repoRoot) {
           cache.findCachedLibrary(
             repo.testLib.libraryName,
             repo.testLib.version
@@ -58,9 +57,6 @@ class LibraryDownloadTest
               "License file for library [Foo.Bar:1.0.0] was missing."
             )
           )
-        } finally {
-          server.kill(killDescendants    = true)
-          server.join(waitForDescendants = true)
         }
       }
     }

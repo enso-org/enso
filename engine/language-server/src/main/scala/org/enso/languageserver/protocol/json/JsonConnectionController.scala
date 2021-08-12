@@ -6,7 +6,7 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
-import org.enso.distribution.EditionManager
+import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{

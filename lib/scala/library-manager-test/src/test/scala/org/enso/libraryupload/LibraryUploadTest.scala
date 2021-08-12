@@ -37,8 +37,7 @@ class LibraryUploadTest
         version   = libraryVersion.toString
       )
 
-      val server = EmptyRepository.startServer(port, repoRoot, uploads = true)
-      try {
+      EmptyRepository.withServer(port, repoRoot, uploads = true) {
         val uploadUrl = s"http://localhost:$port/upload"
         val token     = SimpleHeaderToken("TODO")
         import scala.concurrent.ExecutionContext.Implicits.global
@@ -83,9 +82,6 @@ class LibraryUploadTest
           sources.head.file.getName shouldEqual "Main.enso"
         }
 
-      } finally {
-        server.kill(killDescendants    = true)
-        server.join(waitForDescendants = true)
       }
     }
   }

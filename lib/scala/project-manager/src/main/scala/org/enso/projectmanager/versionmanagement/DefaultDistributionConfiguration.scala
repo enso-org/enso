@@ -1,24 +1,17 @@
 package org.enso.projectmanager.versionmanagement
 
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.distribution.{
-  DistributionManager,
-  EditionManager,
-  Environment,
-  TemporaryDirectoryManager
-}
 import org.enso.distribution.locking.{
   ResourceManager,
   ThreadSafeFileLockManager
 }
-import org.enso.runtimeversionmanager.components.{
-  GraalVMComponentConfiguration,
-  InstallerKind,
-  RuntimeComponentConfiguration,
-  RuntimeComponentUpdaterFactory,
-  RuntimeVersionManagementUserInterface,
-  RuntimeVersionManager
+import org.enso.distribution.{
+  DistributionManager,
+  Environment,
+  TemporaryDirectoryManager
 }
+import org.enso.editions.updater.EditionManager
+import org.enso.runtimeversionmanager.components._
 import org.enso.runtimeversionmanager.releases.ReleaseProvider
 import org.enso.runtimeversionmanager.releases.engine.{
   EngineRelease,

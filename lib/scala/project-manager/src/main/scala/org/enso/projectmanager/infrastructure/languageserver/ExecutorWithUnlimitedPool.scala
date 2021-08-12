@@ -6,7 +6,7 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
 import org.enso.loggingservice.LoggingServiceManager
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner.{LanguageServerOptions, Runner}
 
 import java.io.PrintWriter
@@ -83,7 +83,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       rpcPort   = rpcPort,
       dataPort  = dataPort
     )
-    val configurationManager = new GlobalConfigurationManager(
+    val configurationManager = new GlobalRunnerConfigurationManager(
       versionManager,
       distributionConfiguration.distributionManager
     )

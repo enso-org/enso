@@ -1,7 +1,8 @@
-package org.enso.runtimeversionmanager.config
+package org.enso.distribution.config
 
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json, JsonObject}
+import org.enso.distribution.config
 import org.enso.pkg.Contact
 
 /** Global user configuration.
@@ -38,8 +39,9 @@ case class GlobalConfig(
 }
 
 object GlobalConfig {
-  // TODO [RW] this should include the default provider once it is set up
-  private val defaultEditionProviders: Seq[String] = Seq()
+  private val defaultEditionProviders: Seq[String] = Seq(
+    "https://editions.release.enso.org/enso/"
+  )
 
   /** The default configuration used when the configuration file does not exist.
     */
@@ -74,7 +76,7 @@ object GlobalConfig {
         defaultEditionProviders
       )
       original <- json.as[JsonObject]
-    } yield GlobalConfig(
+    } yield config.GlobalConfig(
       defaultVersion   = defaultVersion,
       authorName       = authorName,
       authorEmail      = authorEmail,
@@ -90,9 +92,10 @@ object GlobalConfig {
 
     val overrides =
       Json.obj(
-        Fields.DefaultVersion -> config.defaultVersion.asJson,
-        Fields.AuthorName     -> config.authorName.asJson,
-        Fields.AuthorEmail    -> config.authorEmail.asJson
+        Fields.DefaultVersion   -> config.defaultVersion.asJson,
+        Fields.AuthorName       -> config.authorName.asJson,
+        Fields.AuthorEmail      -> config.authorEmail.asJson,
+        Fields.EditionProviders -> config.editionProviders.asJson
       )
     base.deepMerge(overrides).dropNullValues.asJson
   }
