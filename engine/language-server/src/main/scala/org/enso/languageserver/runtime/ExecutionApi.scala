@@ -115,6 +115,16 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextExecutionComplete
+      extends Method("executionContext/executionComplete") {
+
+    case class Params(contextId: ContextId)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextExecutionComplete.Params
+    }
+  }
+
   case object ExecutionContextExecutionStatus
       extends Method("executionContext/executionStatus") {
 

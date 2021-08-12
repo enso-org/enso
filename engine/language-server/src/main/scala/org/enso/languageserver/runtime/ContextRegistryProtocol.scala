@@ -297,6 +297,12 @@ object ContextRegistryProtocol {
     failure: ExecutionFailure
   )
 
+  /** Signals about a finished context execution.
+    *
+    * @param contextId execution context identifier
+    */
+  case class ExecutionCompleteNotification(contextId: ContextId)
+
   /** Signals the status of a context execution.
     *
     * @param contextId execution context identifier

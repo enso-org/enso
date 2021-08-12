@@ -128,6 +128,12 @@ final class ContextEventsListener(
 
       message.pipeTo(sessionRouter)
 
+    case Api.ExecutionComplete(`contextId`) =>
+      val payload =
+        ContextRegistryProtocol.ExecutionCompleteNotification(contextId)
+
+      sessionRouter ! DeliverToJsonController(rpcSession.clientId, payload)
+
     case Api.ExecutionUpdate(`contextId`, diagnostics) =>
       val message = for {
         diagnostics <- diagnostics
