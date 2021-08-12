@@ -14,12 +14,18 @@ import org.scalatest.matchers.should.Matchers
 class DocParserTests extends AnyFlatSpec with Matchers {
   val logger = new Logger()
 
-  def assertExpr(input: String, result: Doc): Assertion = {
+  def assertExpr(
+    input: String,
+    result: Doc,
+    assertShow: Boolean = true
+  ): Assertion = {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        if (assertShow) {
+          assert(value.show() == new Reader(input).toString())
+        }
         assert(value == result)
-        assert(value.show() == new Reader(input).toString())
       case _ =>
         fail(s"Parsing documentation failed, consumed ${output.offset} chars")
     }
@@ -33,7 +39,12 @@ class DocParserTests extends AnyFlatSpec with Matchers {
 
     private val testBase = it should parseDocumentation(input)
 
-    def ?=(out: Doc): Unit = testBase in { assertExpr(input, out) }
+    def ?=(out: Doc): Unit = testBase in {
+      assertExpr(input, out)
+    }
+    def ?==(out: Doc): Unit = testBase in {
+      assertExpr(input, out, false)
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -903,6 +914,47 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         "asfasfa sf",
         Newline,
         "asfas fasf "
+      )
+    )
+  )
+
+  """ALIAS New File
+    |
+    |Creates a new file object, pointing to the given path.
+    |
+    |> Example
+    |  Create a new file pointing to the `data.csv` file in the project directory.
+    |
+    |      import Standard.Base.System.File
+    |      import Standard.Examples
+    |
+    |      example_new = File.new Examples.csv_path
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?== Doc(
+    Tags(Tags.Tag(0, Tags.Tag.Type.Alias, " New File")),
+    Synopsis(Section.Raw(0, Newline)),
+    Body(
+      Section.Raw(
+        0,
+        "Creates a new file object, pointing to the given path.",
+        Newline
+      ),
+      Section.Marked(
+        0,
+        1,
+        Section.Marked.Example,
+        Section.Header("Example"),
+        Newline,
+        "Create a new file pointing to the ",
+        CodeBlock.Inline("data.csv"),
+        " file in the project directory.",
+        Newline,
+        CodeBlock(
+          CodeBlock.Line(
+            6,
+            "import Standard.Base.System.File\n      import Standard.Examples"
+          ),
+          CodeBlock.Line(6, "example_new = File.new Examples.csv_path")
+        )
       )
     )
   )

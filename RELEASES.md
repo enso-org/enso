@@ -7,6 +7,7 @@
 - Fixed an issue where both host and polyglot interop would not properly
   propagate error information
   ([#1941](https://github.com/enso-org/enso/pull/1941)).
+- Fixed inaproppriate parsing of code blocks in documentation.
 
 ## Tooling
 
