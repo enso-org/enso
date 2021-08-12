@@ -14,7 +14,7 @@ env:
   # Please ensure that this is in sync with NIGHTLIES_TO_KEEP in nightly.yml
   NIGHTLIES_TO_KEEP: 20
 
-concurrency: "publishing-editions"
+concurrency: "releases"
 
 jobs:
   update-editions-on-s3:
