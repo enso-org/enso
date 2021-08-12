@@ -6,6 +6,7 @@ import Standard.Table.Io.Csv
 import Standard.Visualization
 import Standard.Base.Data.Time.Date
 import Standard.Table.Io.Spreadsheet_Write_Mode
+import Standard.Table.Io.Format
 
 from Standard.Table.Data.Order_Rule as Order_Rule_Module import Order_Rule
 
@@ -860,6 +861,46 @@ type Table
              example_to_csv = Examples.inventory_table.write_csv (Enso_Project.data / 'example.json')
     write_json : File.File -> Nothing
     write_json file = file.write this.to_json.to_text
+
+    ## UNSTABLE
+
+       Writes the table to a specified file with the given serialization
+       settings.
+
+       Arguments:
+       - file: the file to write to.
+       - format: the format settings to use.
+
+
+       > Example
+         Write a table to a CSV file, without writing the header.
+
+             import Standard.Examples
+             import Table
+
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Table.Format.Csv include_header=False)
+
+       > Example
+         Write a table to an XLSX file, without writing the header.
+
+             import Standard.Examples
+             import Table
+
+             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") (Table.Format.Xlsx include_header=False)
+
+       > Example
+         Write a table to a JSON file.
+
+             import Standard.Examples
+             import Table
+
+             example_to_json = Examples.inventory_table.write (Enso_Project.data / "example_output.json") Table.Format.Json
+    write : File.File -> Format.Format -> Nothing
+    write file format = case format of
+        Format.Csv header quote sep line max -> this.write_csv file header quote sep line max
+        Format.Xlsx sheet mode header max -> this.write_xlsx file sheet mode header max
+        Format.Json -> this.write_json file
+
 
 ## UNSTABLE
 

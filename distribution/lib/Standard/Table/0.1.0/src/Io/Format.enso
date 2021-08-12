@@ -1,0 +1,86 @@
+from Standard.Base import all
+import Standard.Table.Io.Spreadsheet_Write_Mode
+
+## Specifies the different output formats for serializing tables.
+type Format
+
+    ## UNSTABLE
+
+       Specifies the CSV output format settings.
+
+       Arguments:
+       - include_header: Specifies whether the first line of generated CSV
+         should contain the column names.
+       - always_quote: Specifies whether all fields in the resulting CSV should
+         be quoted. When this is set to `False`, only the fields containing the
+         `separator` in their contents will be quoted.
+       - separator: a sequence used to separate fields within a single row.
+       - line_ending: the style of line-endings to use in the generated CSV.
+       - max_rows_per_file: specifies the maximum number of rows that can be
+         written to a single file. If this option is set, instead of writing the
+         contents directly to a file, its name is parsed and a numbered series
+         of files with names based on it is written to instead. For example,
+         if file is `~/my_data/output.csv`, the table contains 250 rows, and
+         `max_rows_per_file` is set to `100`, 3 different files will be written:
+         - `~/my_data/output_1.csv`, containing rows 0 through 99;
+         - `~/my_data/output_2.csv`, containing rows 100 through 199;
+         - `~/my_data/output_3.csv`, containing rows 200 through 249.
+
+       > Example
+         Write a table to a CSV file, without writing the header.
+
+             import Standard.Examples
+             import Table
+
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Table.Format.Csv include_header=False)
+    type Csv include_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix max_rows_per_file=Nothing
+
+    ## UNSTABLE
+
+       Specifies XLSX format settings.
+
+       Arguments:
+       - sheet: the name of the sheet to use for writing the data.
+       - write_mode: specifies this method's behavior if the specified file and
+         sheet already exist. Can be one of:
+         - Spreadsheet_Write_Mode.Create: this is the default value. This
+           setting will create a new sheet in the file, with a name chosen such
+           that the clash is avoided.
+         - Spreadsheet_Write_Mode.Overwrite: will result in removing all
+           contents of the existing sheet and replacing it with the new data.
+         - Spreadsheet_Write_Mode.Append: will append this data to the existing
+           sheet, such that the new data starts after the last row containing
+           any data.
+       - include_header: Specifies whether the first line of generated CSV
+         should contain the column names.
+       - max_rows_per_file: specifies the maximum number of rows that can be
+         written to a single file. If this option is set, instead of writing the
+         contents directly to the file, its name is parsed and a numbered series
+         of files with names based on it is written to instead. For example, if
+         the file is `~/my_data/output.xlsx`, the table contains 250 rows, and
+         `max_rows_per_file` is set to `100`, 3 different files will be written:
+         - `~/my_data/output_1.xlsx`, containing rows 0 through 99;
+         - `~/my_data/output_2.xlsx`, containing rows 100 through 199;
+         - `~/my_data/output_3.xlsx`, containing rows 200 through 249.
+
+       > Example
+         Write a table to an XLSX file, without writing the header.
+
+             import Standard.Examples
+             import Table
+
+             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") (Table.Format.Xlsx include_header=False)
+    type Xlsx sheet='Data' write_mode=Spreadsheet_Write_Mode.Create include_header=True max_rows_per_file=Nothing
+
+    ## UNSTABLE
+
+       Specifies that the table should be written to a JSON file.
+
+       > Example
+         Write a table to a JSON file.
+
+             import Standard.Examples
+             import Table
+
+             example_to_json = Examples.inventory_table.write (Enso_Project.data / "example_output.json") Table.Format.Json
+    type Json

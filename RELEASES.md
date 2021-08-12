@@ -23,6 +23,8 @@
   ([#1937](https://github.com/enso-org/enso/pull/1937)).
 - Added support for parsing CSV files with too many headers declared
   ([#1942](https://github.com/enso-org/enso/pull/1942)).
+- Added a single entry point method for all table serialization modes
+  ([#1946](https://github.com/enso-org/enso/pull/1946)).
 
 # Enso 0.2.23 (2021-08-09)
 
