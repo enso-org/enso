@@ -40,7 +40,7 @@ crate::define_endpoints! {
 // =========================
 
 /// Animation that has a delayed onset.
-#[derive(CloneRef,Debug,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 pub struct DelayedAnimation {
     #[allow(missing_docs)]
     pub frp : FrpEndpoints,

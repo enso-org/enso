@@ -224,7 +224,8 @@ impl {
 /// Interface for a particular [`Buffer`] element. It allows reading and writing the buffer value.
 /// Attributes are used to bind geometric specific, like sprite positions, to specific [`Buffer`]
 /// indexes.
-#[derive(Clone,CloneRef,Debug,Derivative)]
+#[derive(CloneRef,Debug,Derivative)]
+#[derivative(Clone(bound=""))]
 pub struct Attribute<T> {
     index  : InstanceIndex,
     buffer : Buffer<T>

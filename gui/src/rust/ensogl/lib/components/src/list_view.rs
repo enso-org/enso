@@ -198,7 +198,7 @@ impl<E:Entry> Model<E> {
 // ===========
 
 ensogl_core::define_endpoints! {
-    <E>
+    <E:(Debug+'static)>
     Input {
         /// Move selection one position up.
         move_selection_up(),

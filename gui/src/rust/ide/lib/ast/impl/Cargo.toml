@@ -18,6 +18,6 @@ shrinkwraprs = { version = "0.2.1" }
 uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 ast-macros = { path = "../macros" }
 enso-data = { version = "0.2.0" }
-enso-prelude = { version = "0.2.5" }
+enso-prelude = { version = "0.2.6" }
 enso-shapely = { version = "0.2.0" }
 utils = { path = "../../utils" }

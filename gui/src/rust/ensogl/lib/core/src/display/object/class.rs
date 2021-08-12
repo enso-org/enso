@@ -1116,9 +1116,13 @@ pub trait ObjectOps<Host=Scene> : Object<Host> {
 /// You can convert structure into `Any` using `Object::into_any`. Unfortunately it is not possible
 /// to make general `From` implementation, because `Any` itself would use it as well, and it clashes
 /// with base implementation `From<T> for T`.
-#[derive(Clone,CloneRef)]
+#[derive(CloneRef)]
 pub struct Any<Host=Scene> {
     wrapped : Rc<dyn Object<Host>>
+}
+
+impl<Host> Clone for Any<Host> {
+    fn clone(&self) -> Self { Self {wrapped:self.wrapped.clone()} }
 }
 
 impl<Host> Debug for Any<Host> {

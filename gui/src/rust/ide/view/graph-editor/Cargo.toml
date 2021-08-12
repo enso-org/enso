@@ -14,7 +14,7 @@ bimap = { version = "0.4.0"}
 enso-args = { version = "0.1.0", path = "../../lib/args" }
 enso-frp = { version = "0.1.0", path = "../../../lib/frp" }
 enso-logger = { version = "0.3.1" }
-enso-prelude = { version = "0.2.5" }
+enso-prelude = { version = "0.2.6" }
 enso-protocol = { version = "0.1.0", path = "../../lib/enso-protocol" }
 enso-shapely = { version = "0.2.0" }
 ensogl = { version = "0.1.0", path = "../../../ensogl" }
