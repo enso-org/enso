@@ -23,6 +23,8 @@
   ([#1937](https://github.com/enso-org/enso/pull/1937)).
 - Added support for parsing CSV files with too many headers declared
   ([#1942](https://github.com/enso-org/enso/pull/1942)).
+- Fixed a bug where reading binary and text files would be 100 times slower than
+  expected ([#1949](https://github.com/enso-org/enso/pull/1949)).
 
 # Enso 0.2.23 (2021-08-09)
 
