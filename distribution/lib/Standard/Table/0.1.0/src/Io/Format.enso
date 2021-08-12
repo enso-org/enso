@@ -32,7 +32,7 @@ type Format
              import Standard.Examples
              import Table
 
-             example_to_csv = Examples.inventory_table.write (Enso_Project.data / example_csv_output.csv) (Table.Format.Csv include_header=False)
+             example_to_csv = Examples.inventory_table.write (Enso_Project.data / "example_csv_output.csv") (Table.Format.Csv include_header=False)
     type Csv include_header=True always_quote=False separator=',' line_ending=Line_Ending_Style.Unix max_rows_per_file=Nothing
 
     ## UNSTABLE
@@ -69,7 +69,7 @@ type Format
              import Standard.Examples
              import Table
 
-             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / example_xlsx_output.xlsx) (Table.Format.Xlsx include_header=False)
+             example_to_xlsx = Examples.inventory_table.write (Enso_Project.data / "example_xlsx_output.xlsx") (Table.Format.Xlsx include_header=False)
     type Xlsx sheet='Data' write_mode=Spreadsheet_Write_Mode.Create include_header=True max_rows_per_file=Nothing
 
     ## UNSTABLE
@@ -82,5 +82,5 @@ type Format
              import Standard.Examples
              import Table
 
-             example_to_json = Examples.inventory_table.write (Enso_Project.data / example_output.json) Table.Format.Json
+             example_to_json = Examples.inventory_table.write (Enso_Project.data / "example_output.json") Table.Format.Json
     type Json
