@@ -379,6 +379,18 @@ class ContextEventsListenerSpec
         )
     }
 
+    "send execution complete notification" taggedAs Retry in withDb {
+      (clientId, contextId, _, router, _, listener) =>
+        listener ! Api.ExecutionComplete(contextId)
+
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            ExecutionCompleteNotification(contextId)
+          )
+        )
+    }
+
     "send execution update notification" taggedAs Retry in withDb {
       (clientId, contextId, _, router, _, listener) =>
         val message = "Test execution failed"
