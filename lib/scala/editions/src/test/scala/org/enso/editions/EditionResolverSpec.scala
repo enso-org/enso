@@ -3,12 +3,14 @@ package org.enso.editions
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.EditionResolutionError.EditionResolutionCycle
 import org.enso.editions.Editions.Repository
-import org.enso.editions.provider.EditionProvider
+import org.enso.editions.provider.{
+  EditionLoadingError,
+  EditionNotFound,
+  EditionProvider
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{Inside, OptionValues}
-
-import scala.util.{Failure, Success, Try}
 
 class EditionResolverSpec
     extends AnyWordSpec
@@ -47,13 +49,12 @@ class EditionResolverSpec
       )
     )
 
-    override def findEditionForName(name: String): Try[Editions.Raw.Edition] =
-      editions
-        .get(name)
-        .map(Success(_))
-        .getOrElse(
-          Failure(new RuntimeException(s"Could not load edition `$name`."))
-        )
+    override def findEditionForName(
+      name: String
+    ): Either[EditionLoadingError, Editions.Raw.Edition] =
+      editions.get(name).toRight(EditionNotFound())
+
+    override def findAvailableEditions(): Seq[String] = editions.keys.toSeq
   }
 
   val resolver = EditionResolver(FakeEditionProvider)

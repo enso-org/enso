@@ -1,17 +1,16 @@
 package org.enso.launcher.installation
 
-import java.nio.file.{Files, Path}
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.io.FileUtils
 import org.enso.cli.{CLIOutput, OS}
+import org.enso.distribution.FileSystem.PathSyntax
+import org.enso.distribution.config.GlobalConfigurationManager
+import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{
   DistributionManager,
   FileSystem,
   PortableDistributionManager
 }
-import org.enso.distribution.locking.ResourceManager
-import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
 import org.enso.launcher.InfoLogger
 import org.enso.launcher.cli.{
   GlobalCLIOptions,
@@ -21,6 +20,7 @@ import org.enso.launcher.cli.{
 }
 import org.enso.launcher.distribution.DefaultManagers
 
+import java.nio.file.{Files, Path}
 import scala.util.control.NonFatal
 
 /** Allows to [[uninstall]] an installed distribution.
@@ -260,8 +260,8 @@ class DistributionUninstaller(
     * It asks the user if they want to remove these files unless `auto-confirm`
     * is set, in which case it just prints a warning.
     *
-    * @param directoryName name of the directory
-    * @param path path to the directory
+    * @param directoryName  name of the directory
+    * @param path           path to the directory
     * @param remainingFiles sequence of filenames that are present in that
     *                       directory but are not expected
     */
@@ -273,6 +273,7 @@ class DistributionUninstaller(
     if (remainingFiles.nonEmpty) {
       def remainingFilesList =
         remainingFiles.map(fileName => s"`$fileName`").mkString(", ")
+
       if (autoConfirm) {
         logger.warn(
           s"$directoryName ($path) contains unexpected files: " +
@@ -283,10 +284,12 @@ class DistributionUninstaller(
           s"$directoryName ($path) contains unexpected files: " +
           s"$remainingFilesList."
         )
+
         def confirmation =
           CLIOutput.askConfirmation(
             s"Do you want to remove the $directoryName containing these files?"
           )
+
         if (confirmation) {
           for (fileName <- remainingFiles) {
             FileUtils.forceDelete((path / fileName).toFile)
@@ -325,7 +328,7 @@ class DistributionUninstaller(
     * Uses a workaround implemented in [[InternalOpts]]. Has to be run at the
     * very end as it has to terminate the current executable.
     *
-    * @param myNewPath path to the current (possibly moved) executable
+    * @param myNewPath      path to the current (possibly moved) executable
     * @param parentToRemove optional path to the parent directory that should be
     *                       removed alongside the executable
     */

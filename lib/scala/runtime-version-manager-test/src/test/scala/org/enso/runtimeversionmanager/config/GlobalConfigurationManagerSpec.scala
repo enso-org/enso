@@ -3,6 +3,7 @@ package org.enso.runtimeversionmanager.config
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.distribution.DistributionManager
+import org.enso.distribution.config.InvalidConfigError
 import org.enso.runtimeversionmanager.test.FakeEnvironment
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.OptionValues
@@ -15,10 +16,10 @@ class GlobalConfigurationManagerSpec
     with WithTemporaryDirectory
     with FakeEnvironment
     with OptionValues {
-  def makeConfigManager(): GlobalConfigurationManager = {
+  def makeConfigManager(): GlobalRunnerConfigurationManager = {
     val env                 = fakeInstalledEnvironment()
     val distributionManager = new DistributionManager(env)
-    new GlobalConfigurationManager(null, distributionManager) {
+    new GlobalRunnerConfigurationManager(null, distributionManager) {
       override def defaultVersion: SemVer = SemVer(0, 0, 0)
     }
   }

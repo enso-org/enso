@@ -4,7 +4,10 @@ import io.circe.literal._
 import io.circe.{Json, JsonObject}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.librarymanager.published.repository.EmptyRepository
+import org.enso.librarymanager.published.repository.{
+  EmptyRepository,
+  ExampleRepository
+}
 
 import java.nio.file.Files
 
@@ -105,8 +108,7 @@ class LibrariesTest extends BaseServerTest {
           """)
 
       val repoRoot = getTestDirectory.resolve("libraries_repo_root")
-      val server   = EmptyRepository.startServer(port, repoRoot, uploads = true)
-      try {
+      EmptyRepository.withServer(port, repoRoot, uploads = true) {
         val uploadUrl = s"http://localhost:$port/upload"
         client.send(json"""
           { "jsonrpc": "2.0",
@@ -147,9 +149,6 @@ class LibrariesTest extends BaseServerTest {
           .resolve("0.0.1")
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
-      } finally {
-        server.kill(killDescendants    = true)
-        server.join(waitForDescendants = true)
       }
     }
   }
@@ -225,7 +224,33 @@ class LibrariesTest extends BaseServerTest {
     }
 
     "update the list of editions if requested" ignore {
-      // TODO [RW] updating editions
+      val repo     = new ExampleRepository
+      val repoPath = getTestDirectory.resolve("repo_root")
+      repo.createRepository(repoPath)
+      repo.withServer(43707, repoPath) {
+        val client = getInitialisedWsClient()
+
+        client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "editions/listAvailable",
+            "id": 0,
+            "params": {
+              "update": true
+            }
+          }
+          """)
+        client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": {
+              "editionNames": [
+                ${buildinfo.Info.currentEdition},
+                "testlocal"
+              ]
+            }
+          }
+          """)
+      }
     }
   }
 

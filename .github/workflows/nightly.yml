@@ -17,6 +17,8 @@ env:
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2021-05-12
+  # Specifies how many nightly releases should be kept. Any older releases are removed.
+  NIGHTLIES_TO_KEEP: 20
 
 concurrency: "releases"
 
@@ -566,6 +568,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # This is done regardless of the release-publish-edition workflow, because this workflow seems to not be triggered by Actions automatically.
+      - name: Prepare AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          eu-central-1
+          text
+          EOF
+
+      - name: Update the Editions Bucket
+        shell: bash
+        working-directory: repo
+        run: sbt edition-uploader/run
+
+      - name: Teardown AWS Session
+        shell: bash
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF
+
       # TODO enable this once IDE supports triggers
       #      - name: Trigger IDE Build
       #        shell: bash
@@ -576,7 +604,7 @@ jobs:
       - uses: dev-drprasad/delete-older-releases@v0.2.0
         name: Remove Old Releases
         with:
-          keep_latest: 3
+          keep_latest: ${{ env.NIGHTLIES_TO_KEEP }}
           delete_tag_pattern: SNAPSHOT
           delete_tags: true
         env:

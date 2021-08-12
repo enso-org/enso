@@ -1,24 +1,24 @@
 package org.enso.launcher
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.distribution.config.DefaultVersion.{Exact, LatestInstalled}
 import org.enso.runtimeversionmanager.components.RuntimeVersionManager
-import org.enso.runtimeversionmanager.config.DefaultVersion.{
-  Exact,
-  LatestInstalled
-}
-import org.enso.runtimeversionmanager.config.GlobalConfigurationManager
+import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 
 class DefaultVersionSpec extends RuntimeVersionManagerTest {
   def makeConfigAndComponentsManagers()
-    : (RuntimeVersionManager, GlobalConfigurationManager) = {
+    : (RuntimeVersionManager, GlobalRunnerConfigurationManager) = {
     val (distributionManager, componentsManager, _) = makeManagers()
     val configurationManager =
-      new GlobalConfigurationManager(componentsManager, distributionManager)
+      new GlobalRunnerConfigurationManager(
+        componentsManager,
+        distributionManager
+      )
     (componentsManager, configurationManager)
   }
 
-  def makeConfigurationManager(): GlobalConfigurationManager =
+  def makeConfigurationManager(): GlobalRunnerConfigurationManager =
     makeConfigAndComponentsManagers()._2
 
   private val latestAvailable = SemVer(0, 1, 0)

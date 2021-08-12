@@ -1,11 +1,8 @@
 package org.enso.projectmanager
 
-import org.enso.distribution.{
-  DistributionManager,
-  EditionManager,
-  TemporaryDirectoryManager
-}
+import org.enso.distribution.{DistributionManager, TemporaryDirectoryManager}
 import org.enso.distribution.locking.ResourceManager
+import org.enso.editions.updater.EditionManager
 
 import java.nio.file.Path
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration

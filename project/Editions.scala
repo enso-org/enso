@@ -1,6 +1,12 @@
 import sbt._
 
 object Editions {
+
+  /** List of libraries that are shipped with the engine and reside in the
+    * engine repository.
+    *
+    * They currently all share the version number.
+    */
   val standardLibraries: Seq[String] = Seq(
     "Standard.Base",
     "Standard.Test",
@@ -12,6 +18,16 @@ object Editions {
     "Standard.Examples"
   )
 
+  case class ContribLibrary(name: String, version: String)
+
+  /** A list of additional libraries from external sources that are published in
+    * the main repository and should be available in the default edition.
+    */
+  val contribLibraries: Seq[ContribLibrary] = Seq()
+
+  private val editionsRoot = file("distribution") / "editions"
+  private val extension    = ".yaml"
+
   /** Generates a base edition file for the engine release that contains the
     * Standard library and is associated with the current Enso version.
     */
@@ -21,11 +37,10 @@ object Editions {
     libraryVersion: String,
     log: Logger
   ): Unit = {
-    val editions = file("distribution") / "editions"
-    IO.createDirectory(editions)
-    val edition = editions / (editionName + ".yaml")
+    IO.createDirectory(editionsRoot)
+    val edition = editionsRoot / (editionName + extension)
 
-    for (file <- IO.listFiles(editions)) {
+    for (file <- IO.listFiles(editionsRoot)) {
       if (file.getName != edition.getName) {
         IO.delete(file)
         log.warn(s"Removed spurious file in editions directory: $file")
@@ -33,11 +48,20 @@ object Editions {
     }
 
     if (!edition.exists()) {
-      val librariesConfigs = standardLibraries.map { libName =>
+      val standardLibrariesConfigs = standardLibraries.map { libName =>
         s"""  - name: $libName
            |    repository: main
            |    version: $libraryVersion""".stripMargin
       }
+
+      val contribLibrariesConfigs = contribLibraries.map {
+        case ContribLibrary(name, version) =>
+          s"""  - name: $name
+             |    repository: main
+             |    version: $version""".stripMargin
+      }
+
+      val librariesConfigs = standardLibrariesConfigs ++ contribLibrariesConfigs
 
       val editionConfig =
         s"""engine-version: $ensoVersion
