@@ -1429,6 +1429,7 @@ lazy val `stdlib-version-updater` = project
   .configs(Test)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+  .dependsOn(cli)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
