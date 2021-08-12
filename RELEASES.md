@@ -16,6 +16,8 @@
   subcommand to the Launcher.
 - Implemented an HTTP endpoint that resets the time that the language server has
   spent idle ([#1938](https://github.com/enso-org/enso/pull/1938)).
+- Added a notification about the successful program execution to the language
+  server API ([#1945](https://github.com/enso-org/enso/pull/1945)).
 
 ## Libraries
 
