@@ -4,13 +4,16 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.OS
 import org.enso.distribution.FileSystem
 import org.enso.downloader.archive.TarGzWriter
+import org.enso.editions.EditionSerialization.editionEncoder
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.testkit.process.WrappedProcess
+import org.enso.yaml.YamlHelper
 
 import java.io.File
 import java.nio.file.{Files, Path}
+import scala.util.Using
 import scala.util.control.NonFatal
 
 /** A helper class managing a library repository for testing purposes. */
@@ -37,8 +40,11 @@ abstract class DummyRepository {
     */
   def libraries: Seq[DummyLibrary]
 
+  /** Sequence of downloadable editions and their names to create in the repository. */
+  def editions: Seq[(String, Editions.RawEdition)]
+
   /** Creates a directory structure for the repository at the given root and
-    * populates it with [[libraries]].
+    * populates it with [[libraries]] and [[editions]].
     */
   def createRepository(root: Path): Unit = {
     for (lib <- libraries) {
@@ -57,6 +63,22 @@ abstract class DummyRepository {
         .get
 
       createManifest(libraryRoot)
+    }
+
+    val editionsRoot = root.resolve("editions")
+    Files.createDirectories(editionsRoot)
+    for ((name, edition) <- editions) {
+      FileSystem.writeTextFile(
+        editionsRoot.resolve(name + ".yaml"),
+        YamlHelper.toYaml(edition)
+      )
+    }
+
+    if (editions.nonEmpty) {
+      val content = "editions:\n" + editions.map { case (name, _) =>
+        s"""- "$name"\n"""
+      }.mkString
+      FileSystem.writeTextFile(editionsRoot.resolve("manifest.yaml"), content)
     }
   }
 
@@ -105,6 +127,28 @@ abstract class DummyRepository {
   private def npmCommand: String  = if (OS.isWindows) "npm.cmd" else "npm"
   private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
 
+  case class Server(process: WrappedProcess) extends AutoCloseable {
+    override def close(): Unit = {
+      process.kill(killDescendants    = true)
+      process.join(waitForDescendants = true)
+    }
+  }
+
+  /** Starts the server and runs the action while it is running, and shuts it
+    * down afterwards.
+    *
+    * @param port port to listen on
+    * @param root root of the library repository, the same as the argument to
+    *             [[createRepository]]
+    * @param uploads specifies whether to enable uploads in the server
+    * @param action the action to perform while the server is running
+    */
+  def withServer[R](port: Int, root: Path, uploads: Boolean = false)(
+    action: => R
+  ): R = Using(startServer(port, root, uploads)) { _ =>
+    action
+  }.get
+
   /** Starts a server for the library repository.
     *
     * @param port port to listen on
@@ -116,7 +160,7 @@ abstract class DummyRepository {
     port: Int,
     root: Path,
     uploads: Boolean = false
-  ): WrappedProcess = {
+  ): Server = {
     val serverDirectory =
       Path.of("tools/simple-library-server").toAbsolutePath.normalize
 
@@ -161,6 +205,6 @@ abstract class DummyRepository {
         process.kill()
         throw e
     }
-    process
+    Server(process)
   }
 }

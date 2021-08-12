@@ -13,8 +13,7 @@ object EditionResolutionError {
     */
   case class CannotLoadEdition(name: String, cause: Throwable)
       extends EditionResolutionError(
-        s"Cannot load the edition: ${cause.getMessage}",
-        cause
+        s"Cannot load edition [$name]: ${cause.getMessage}"
       )
 
   /** Indicates that the edition cannot be parsed. */

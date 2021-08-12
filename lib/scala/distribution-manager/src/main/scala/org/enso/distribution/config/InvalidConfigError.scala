@@ -1,4 +1,4 @@
-package org.enso.runtimeversionmanager.config
+package org.enso.distribution.config
 
 /** Indicates that the config is invalid.
   */
