@@ -20,7 +20,7 @@ val graalVersion   = "21.1.0"
 val javaVersion    = "11"
 val ensoVersion    = "0.2.25-SNAPSHOT"  // Note [Engine And Launcher Version]
 val currentEdition = "2021.13-SNAPSHOT" // Note [Default Editions]
-val stdLibVersion  = "0.1.0"            // Note [Standard Library Version]
+val stdLibVersion  = ensoVersion
 
 /* Note [Engine And Launcher Version]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,17 +42,6 @@ val stdLibVersion  = "0.1.0"            // Note [Standard Library Version]
  *
  * In the future we may automate generating this edition number when cutting a
  * release.
- */
-
-/* Note [Standard Library Version]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * Currently the Standard library version is fixed at 0.1.0.
- *
- * Once the library repository is up and we start releasing the libraries, this
- * version will need to be bumped, so for now the best way to achieve that will
- * be to keep it in-sync with the engine version. However this will require
- * creating a tool which will bump these version numbers in all standard library
- * packages.
  */
 
 ThisBuild / organization := "org.enso"
@@ -253,6 +242,7 @@ lazy val enso = (project in file("."))
     `edition-uploader`,
     `library-manager`,
     `library-manager-test`,
+    `stdlib-version-updater`,
     syntax.jvm,
     testkit
   )
@@ -586,6 +576,7 @@ lazy val `parser-service` = (project in file("lib/scala/parser-service"))
 lazy val `docs-generator` = (project in file("lib/scala/docs-generator"))
   .dependsOn(syntax.jvm)
   .dependsOn(cli)
+  .dependsOn(`version-output`)
   .configs(Benchmark)
   .settings(
     libraryDependencies ++= Seq(
@@ -752,7 +743,8 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
           ensoVersion    = ensoVersion,
           scalacVersion  = scalacVersion,
           graalVersion   = graalVersion,
-          currentEdition = currentEdition
+          currentEdition = currentEdition,
+          stdLibVersion  = stdLibVersion
         )
     }.taskValue
   )
@@ -1355,11 +1347,10 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
-            ensoVersion = ensoVersion,
-            editionName = currentEdition,
-            libraryVersion =
-              "0.1.0", // TODO [RW] Once we start releasing the standard libraries, this will be synced with engine version.
-            log = streams.value.log
+            ensoVersion    = ensoVersion,
+            editionName    = currentEdition,
+            libraryVersion = stdLibVersion,
+            log            = streams.value.log
           )
         }
       )
@@ -1432,6 +1423,13 @@ lazy val `library-manager-test` = project
   .dependsOn(`library-manager`)
   .dependsOn(testkit)
   .dependsOn(`logging-service`)
+
+lazy val `stdlib-version-updater` = project
+  .in(file("lib/scala/stdlib-version-updater"))
+  .configs(Test)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
+  .dependsOn(cli)
 
 lazy val `runtime-version-manager` = project
   .in(file("lib/scala/runtime-version-manager"))
@@ -1639,7 +1637,8 @@ buildEngineDistribution := {
     distributionRoot = root,
     cacheFactory     = cacheFactory,
     graalVersion     = graalVersion,
-    javaVersion      = javaVersion
+    javaVersion      = javaVersion,
+    stdlibVersion    = stdLibVersion
   )
   log.info(s"Engine package created at $root")
 }
