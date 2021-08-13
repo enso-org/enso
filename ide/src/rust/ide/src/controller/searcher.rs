@@ -522,6 +522,11 @@ impl Searcher {
         Ok(ret)
     }
 
+    /// Return true if user is currently filtering entries (the input has non-empty _pattern_ part).
+    pub fn is_filtering(&self) -> bool {
+        !self.data.borrow().input.pattern.is_empty()
+    }
+
     /// Subscribe to controller's notifications.
     pub fn subscribe(&self) -> Subscriber<Notification> {
         self.notifier.subscribe()
@@ -898,7 +903,7 @@ impl Searcher {
     ) -> FallibleResult<action::List> {
         let creating_new_node             = matches!(self.mode.deref(), Mode::NewNode{..});
         let should_add_additional_entries = creating_new_node && self.this_arg.is_none();
-        let mut actions                   = action::ListBuilder::default();
+        let mut actions                   = action::ListWithSearchResultBuilder::new();
         let (libraries_icon,default_icon) = action::hardcoded::ICONS.with(|i|
             (i.libraries.clone_ref(),i.default.clone_ref())
         );
@@ -1505,7 +1510,9 @@ pub mod test {
     #[wasm_bindgen_test]
     fn loading_list() {
         let Fixture{mut test,searcher,entry1,entry9,..} = Fixture::new_custom(|data,client| {
-            data.expect_completion(client,None,None,&[1,5,9]);
+            // entry with id 99999 does not exist, so only two actions from suggestions db should be
+            // displayed in searcher.
+            data.expect_completion(client,None,None,&[1,99999,9]);
         });
 
         let mut subscriber = searcher.subscribe();
@@ -1513,7 +1520,9 @@ pub mod test {
         assert!(searcher.actions().is_loading());
         test.run_until_stalled();
         let list = searcher.actions().list().unwrap().to_action_vec();
-        assert_eq!(list.len(), 4); // we include two mocked entries
+        // There are 8 entries, because: 2 were returned from `completion` method, two are mocked,
+        // and all of these are repeasted in "All Search Result" category.
+        assert_eq!(list.len(), 8);
         assert_eq!(list[2], Action::Suggestion(action::Suggestion::FromDatabase(entry1)));
         assert_eq!(list[3], Action::Suggestion(action::Suggestion::FromDatabase(entry9)));
         let notification = subscriber.next().boxed_local().expect_ready();
