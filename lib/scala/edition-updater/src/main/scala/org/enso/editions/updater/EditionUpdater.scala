@@ -69,6 +69,7 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
     repositoryRoot: URIBuilder,
     editionName: EditionName
   ): Try[Unit] = Try {
+    Files.createDirectories(cachePath)
     val destinationPath = cachePath.resolve(editionName.toFileName)
 
     val uri     = repositoryRoot.addPathSegment(editionName.toFileName).build()
