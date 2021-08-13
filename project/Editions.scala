@@ -15,7 +15,8 @@ object Editions {
     "Standard.Image",
     "Standard.Geo",
     "Standard.Visualization",
-    "Standard.Examples"
+    "Standard.Examples",
+    "Standard.Searcher"
   )
 
   case class ContribLibrary(name: String, version: String)
