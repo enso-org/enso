@@ -233,6 +233,7 @@ async function putFiles(directory, files) {
     const file = files[i];
     const filename = file.originalname;
     const destination = path.join(directory, filename);
-    await fsPromises.rename(file.path, destination);
+    await fsPromises.copyFile(file.path, destination);
+    await fsPromises.unlink(file.path);
   }
 }
