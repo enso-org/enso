@@ -435,3 +435,50 @@ impl<'a> CategoryBuilder<'a> {
         }));
     }
 }
+
+
+// === ListWithSearchResultBuilder ===
+
+/// The Actions list builder which adds a special "All search result" category: it will contain
+/// all entries (regardless of their categories) and is designed to be displayed upon filtering.
+#[derive(Debug,Default)]
+pub struct ListWithSearchResultBuilder {
+    internal               : ListBuilder,
+    search_result_category : CategoryId,
+}
+
+impl ListWithSearchResultBuilder {
+    /// Constructor.
+    pub fn new() -> Self {
+        let icon = hardcoded::ICONS.with(|icons| icons.search_result.clone_ref());
+        let mut internal           = ListBuilder::default();
+        let mut search_result_root = internal.add_root_category("All Search Result",icon.clone_ref());
+        let search_result_category = search_result_root.add_category("All Search Result",icon);
+        let search_result_category = search_result_category.category_id;
+        Self {internal,search_result_category}
+    }
+
+    /// Add the new root category with a given name. The returned builder should be used to add
+    /// sub-categories to it.
+    pub fn add_root_category
+    (&mut self, name: impl Into<Cow<'static,str>>, icon:ImString) -> RootCategoryBuilder {
+        self.internal.add_root_category(name,icon)
+    }
+
+    /// Consumes self returning built list.
+    pub fn build(self) -> List {
+        let search_results = self.make_searcher_result_entries();
+        // The entries will be sorted, so it is no problem in pushing search results at the end.
+        self.internal.built_list.entries.borrow_mut().extend(search_results);
+        self.internal.build()
+    }
+
+    fn make_searcher_result_entries(&self) -> Vec<ListEntry> {
+        self.internal.built_list.entries.borrow().iter().map(|entry| {
+            let match_info = MatchInfo::Matches {subsequence:default()};
+            let action     = entry.action.clone_ref();
+            let category   = self.search_result_category;
+            ListEntry {category,match_info,action}
+        }).collect()
+    }
+}

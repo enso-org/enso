@@ -19,27 +19,29 @@ use crate::model::module::MethodId;
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct Icons {
-    pub data_science : ImString,
-    pub input_output : ImString,
-    pub text         : ImString,
-    pub number_input : ImString,
-    pub text_input   : ImString,
-    pub data_input   : ImString,
-    pub libraries    : ImString,
-    pub default      : ImString,
+    pub search_result : ImString,
+    pub data_science  : ImString,
+    pub input_output  : ImString,
+    pub text          : ImString,
+    pub number_input  : ImString,
+    pub text_input    : ImString,
+    pub data_input    : ImString,
+    pub libraries     : ImString,
+    pub default       : ImString,
 }
 
 thread_local! {
     /// A set of hardcoded icon names, to be used when creating hardcoded categories and actions.
     pub static ICONS:Icons = Icons {
-        data_science : ImString::new("DataScience"),
-        input_output : ImString::new("Text"),
-        text         : ImString::new("Text"),
-        number_input : ImString::new("DataInput"),
-        text_input   : ImString::new("DataInput"),
-        data_input   : ImString::new("DataInput"),
-        libraries    : ImString::new("Libraries"),
-        default      : ImString::new("Default"),
+        search_result : ImString::new("search_result"),
+        data_science  : ImString::new("data_science"),
+        input_output  : ImString::new("io"),
+        text          : ImString::new("text"),
+        number_input  : ImString::new("number_input"),
+        text_input    : ImString::new("text_input"),
+        data_input    : ImString::new("data_input"),
+        libraries     : ImString::new("libraries"),
+        default       : ImString::new("default"),
     };
 }
 
