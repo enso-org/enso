@@ -85,7 +85,7 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
   def unfoldedDocumentationForAssertion(inner: String): String =
     s"""<html>
        | <body>
-       |   <div class="doc" style="font-size: 13px;">
+       |   <div class="enso docs">
        |     <div>
        |       <div class="">
        |         $inner
