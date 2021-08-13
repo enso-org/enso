@@ -323,6 +323,12 @@ class JsonConnectionController(
         )
       )
 
+    case ContextRegistryProtocol.ExecutionCompleteNotification(contextId) =>
+      webActor ! Notification(
+        ExecutionContextExecutionComplete,
+        ExecutionContextExecutionComplete.Params(contextId)
+      )
+
     case ContextRegistryProtocol.ExecutionDiagnosticNotification(
           contextId,
           diagnostics

@@ -613,9 +613,32 @@ object Main extends scala.App {
       |
       |""".stripMargin
 
+  val testWithMultilineComment =
+    """
+      |## ALIAS New File
+      |
+      |   Creates a new file object, pointing to the given path.
+      |
+      |   Arguments:
+      |   - path: The path to the file that you want to create, or a file itself. The
+      |     latter is a no-op.
+      |
+      |   > Example
+      |     Create a new file pointing to the `data.csv` file in the project directory.
+      |
+      |         import Standard.Base.System.File
+      |         import Standard.Examples
+      |
+      |         example_new = File.new Examples.csv_path
+      |new : (Text | File) -> File
+      |new path = case path of
+      |    Text -> File (Prim_Io.get_file path)
+      |    _ -> path
+      |""".stripMargin
+
   println("--- PARSING ---")
 
-  val mod = parser.run(inC)
+  val mod = parser.run(testWithMultilineComment)
 
   println(Debug.pretty(mod.toString))
 
@@ -628,7 +651,7 @@ object Main extends scala.App {
   }
 
   println("------")
-  println(mod.show() == inC)
+  println(mod.show() == testWithMultilineComment)
   println("------")
   println(mod.show())
   println("------")
@@ -641,12 +664,11 @@ object Main extends scala.App {
   println(Debug.pretty(doc.toString))
   println("------")
   println(doc.show())
-  println("=========================")
   val htmlCode =
     docparser.DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
   println("========== HTML ===========")
   println(htmlCode)
-  println("=========================")
+  println("===========================")
 
   println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
   val inpOnlyDoc =

@@ -771,6 +771,19 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
 
+    def pushReadySection(s: Section): Unit = section.stack = section.stack :+ s
+
+    def pop(): Option[Section] =
+      logger.trace {
+        section.stack match {
+          case ::(head, next) => {
+            section.stack = next
+            Some(head)
+          }
+          case Nil => None
+        }
+      }
+
     def cleanupOnEOS(): Unit =
       logger.trace {
         result.current  = None
@@ -827,7 +840,44 @@ case class DocParserDef() extends Parser[Doc] {
     def reverseSectionsStackOnEOF(): Unit =
       logger.trace {
         section.stack = section.stack.reverse
+        val baseIndent =
+          if (section.stack.nonEmpty) section.stack.head.indent else 0
+        if (section.stack.length > 2) {
+          transformOverlyIndentedRawIntoCode(baseIndent)
+        }
       }
+
+    def transformOverlyIndentedRawIntoCode(
+      baseIndent: Int
+    ): Unit = {
+      var newStack = List[Section]()
+      while (section.stack.nonEmpty) {
+        var current = section.pop().get
+        if (current.indent > baseIndent && current.isInstanceOf[Section.Raw]) {
+          var stackOfCodeSections: List[Section] = List[Section]()
+          while (section.stack.nonEmpty && current.indent > baseIndent) {
+            stackOfCodeSections = stackOfCodeSections :+ current
+            current             = section.pop().get
+          }
+          stackOfCodeSections = stackOfCodeSections :+ current
+          val codeLines = stackOfCodeSections.map(s =>
+            Doc.Elem.CodeBlock.Line(s.indent, s.repr.build().trim)
+          )
+          if (codeLines.nonEmpty) {
+            val l1CodeLines = List1(codeLines.head, codeLines.tail)
+            val codeBlock   = Doc.Elem.CodeBlock(l1CodeLines)
+            val s           = newStack.head
+            val sElems      = newStack.head.elems :+ codeBlock
+            s.elems  = sElems
+            newStack = newStack.drop(1)
+            newStack +:= s
+          }
+        } else {
+          newStack +:= current
+        }
+      }
+      section.stack = newStack.reverse
+    }
 
     def reverseTagsStackOnEOF(): Unit =
       logger.trace {
