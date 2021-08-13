@@ -131,6 +131,13 @@ jobs:
           sleep 1
           sbt --no-colors verifyLicensePackages
 
+      - name: Verify the Stdlib Version
+        working-directory: repo
+        shell: bash
+        run: |
+          sleep 1
+          sbt --no-colors "stdlib-version-updater/run check"
+
       # Prepare distributions
       - name: Build the Launcher Native Image
         working-directory: repo
@@ -228,15 +235,16 @@ jobs:
         working-directory: repo
         if: runner.os != 'Windows' # TODO [RW] CRLF handling in licenses task
         shell: bash
+        # We assume that standard library version is the same as engine version.
         run: |
           sleep 1
           sbt "enso/verifyGeneratedPackage engine ${{ env.ENGINE_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage launcher ${{ env.LAUNCHER_DIST_DIR }}/THIRD-PARTY"
           sbt "enso/verifyGeneratedPackage project-manager ${{ env.PROJECTMANAGER_DIST_DIR }}/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Base/0.1.0/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Table/0.1.0/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Image/0.1.0/THIRD-PARTY"
-          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/0.1.0/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Base ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Base/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Table ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Table/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Image ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Image/${{ env.DIST_VERSION }}/THIRD-PARTY"
+          sbt "enso/verifyGeneratedPackage Database ${{ env.ENGINE_DIST_DIR }}/lib/Standard/Database/${{ env.DIST_VERSION }}/THIRD-PARTY"
 
       # Publish
       - name: Compress the built artifacts for upload
