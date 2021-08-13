@@ -63,13 +63,34 @@ if (argv.upload == "disabled") {
     console.log("WARNING: Uploads are enabled without any authentication.");
   }
 }
+
+app.get("/health", function (req, res) {
+  res.status(200).send("OK");
+});
+
 app.use(express.static(argv.root));
 
+let port = argv.port;
+if (process.env.PORT) {
+  port = process.env.PORT;
+  console.log(
+    `Overriding the port to ${port} set by the PORT environment variable.`
+  );
+}
 console.log(
-  `Serving the repository located under ${argv.root} on port ${argv.port}.`
+  `Serving the repository located under ${argv.root} on port ${port}.`
 );
 
-app.listen(argv.port);
+const server = app.listen(port);
+
+function handleShutdown() {
+  console.log("Received a signal - shutting down.");
+  server.close(() => {
+    console.log("Server terminated.");
+  });
+}
+process.on("SIGTERM", handleShutdown);
+process.on("SIGINT", handleShutdown);
 
 /// Specifies if a particular file can be compressed in transfer, if supported.
 function shouldCompress(req, res) {
