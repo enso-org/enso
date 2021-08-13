@@ -570,7 +570,7 @@ type Input_Stream
     read_all_bytes : Vector.Vector ! File_Error
     read_all_bytes = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
-            Vector.from_array java_stream.readAllBytes
+            Vector.Vector java_stream.readAllBytes
 
     ## ADVANCED
 
@@ -601,7 +601,7 @@ type Input_Stream
     read_n_bytes n = Managed_Resource.with this.stream_resource java_stream->
         here.handle_java_exceptions this.file <|
             bytes = java_stream.readNBytes n
-            Vector.from_array bytes
+            Vector.Vector bytes
 
     ## ADVANCED
 

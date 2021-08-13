@@ -1,5 +1,10 @@
 # Enso Next
 
+## Libraries
+
+- Fixed a bug where reading binary and text files would be 100 times slower than
+  expected ([#1949](https://github.com/enso-org/enso/pull/1949)).
+
 # Enso 0.2.24 (2021-08-13)
 
 ## Interpreter/Runtime
