@@ -73,9 +73,7 @@ object DocParserHTMLGenerator {
     HTML
       .html(
         HTML.body(
-          HTML.div(HTML.`class` := "doc")(HTML.style := "font-size: 13px;")(
-            doc.htmlWithTitle(title)
-          )
+          HTML.div(HTML.`class` := "enso docs")(doc.htmlWithTitle(title))
         )
       )
       .toString()
