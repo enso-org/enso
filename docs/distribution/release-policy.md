@@ -84,23 +84,28 @@ Cutting a release for Enso proceeds as follows:
     that the release notes are up to date in `RELEASES.md` (follow the existing
     format), and that the new version number and edition name have been set in
     `build.sbt`. This version and edition name should _not_ contain `SNAPSHOT`.
-3.  Open a PR for this branch into `main`.
-4.  Once the changes have been reviewed, merge the PR into main (getting commit
+3.  Run `sbt "stdlib-version-updater/run update"` to update the standard library
+    versions.
+4.  Open a PR for this branch into `main`.
+5.  Once the changes have been reviewed, merge the PR into main (getting commit
     hash `xxxxxxx`). The message should be `Prepare for the $version release`.
     Just before merging, remember to notify the team on Discord to suppress any
     other merges to the `main` branch until the next step (bumping versions) is
     completed.
-5.  Immediately push a commit to `main` that updates the version and edition in
+6.  Immediately push a commit to `main` that updates the version and edition in
     `build.sbt` to the new snapshot version. If unclear, bump the patch version
     by one and append `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The
     edition name should have the number after the dot increased and `-SNAPSHOT`
     appended, so that `2021.3` becomes `2021.4-SNAPSHOT`. The only exception is
     when making the first release in a new year, where the first number should
     be bumped to the next year and the second number should be set to 1, for
-    example `2022.1`. The message should be `Bump the snapshot version`.
-6.  Find the commit hash of the last "Bump the snapshot version" commit. Let's
+    example `2022.1`. The message should be `Bump the snapshot version`. After
+    changing the version in `build.sbt`, remember to run
+    `sbt "stdlib-version-updater/run update"` to update the library versions
+    again.
+7.  Find the commit hash of the last "Bump the snapshot version" commit. Let's
     say this is `yyyyyyy`.
-7.  Run a `rebase --onto` the release branch from the `yyyyyyy` commit to the
+8.  Run a `rebase --onto` the release branch from the `yyyyyyy` commit to the
     `xxxxxxx` commit. For example:
 
 ```
@@ -178,7 +183,9 @@ git merge --ff-only release-update
     `RELEASES.md` (follow the existing format), and that the new version number
     and edition name have been set in `build.sbt`. This version and edition name
     should _not_ contain `SNAPSHOT`.
-6.  Once this is done, create a tag for the commit at the HEAD of the release
+6.  Run `sbt "stdlib-version-updater/run update"` to update the standard library
+    versions.
+7.  Once this is done, create a tag for the commit at the HEAD of the release
     branch. It should be named as above. The tag message should be
     `Enso <version>`. For example:
 
@@ -201,7 +208,9 @@ git tag --sign enso-0.2.11
     `-SNAPSHOT` (e.g. `0.2.10` becomes `0.2.11-SNAPSHOT`). The edition name
     should have the number after the dot increased and `-SNAPSHOT` appended, so
     that `2021.3` becomes `2021.4-SNAPSHOT`. The message should be
-    `Bump the snapshot version`.
+    `Bump the snapshot version`. After changing the version in `build.sbt`,
+    remember to run `sbt "stdlib-version-updater/run update"` to update the
+    library versions again.
 13. Push this commit into `origin/main`, or merge via PR if unable to directly
     push.
 
