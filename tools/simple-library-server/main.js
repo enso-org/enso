@@ -175,7 +175,7 @@ function isVersionValid(version) {
 
 /// Checks if the namespace/username is valid.
 function isNamespaceValid(namespace) {
-  return /^[a-z][a-z0-9]*$/.test(namespace) && namespace.length >= 3;
+  return /^[A-Za-z][a-z0-9]*$/.test(namespace) && namespace.length >= 3;
 }
 
 /** Checks if the library name is valid.
