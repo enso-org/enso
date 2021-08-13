@@ -52,6 +52,7 @@ object UpdatingVisitor extends StdlibVisitor {
     pkg: Package[File]
   ): Unit = {
     pkg.updateConfig(config => config.copy(version = targetVersion))
+    Prettier.format(pkg.configFile.toPath)
     println(
       s"Updated config of [$libraryName] from [$currentVersion] to " +
       s"[$targetVersion]."
