@@ -294,11 +294,18 @@ jobs:
           $ENGINE_DIST_DIR/bin/enso.bat --run test/Image_Tests
 
       # Publish
+      - name: Compress the built artifacts for upload
+        # The artifacts are compressed before upload to work around an error with long path handling in the upload-artifact action on Windows.
+        # See: https://github.com/actions/upload-artifact/issues/240
+        shell: bash
+        working-directory: ${{ env.ENGINE_DIST_ROOT }}
+        run:
+          7z a -r ${{ env.ENGINE_DIST_NAME }}.zip *
       - name: Publish the Engine Distribution Artifact
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ENGINE_DIST_NAME }}
-          path: ${{ env.ENGINE_DIST_ROOT }}
+          path: ${{ env.ENGINE_DIST_ROOT }}/${{ env.ENGINE_DIST_NAME }}.zip
       - name: Publish the Launcher
         uses: actions/upload-artifact@v2
         with:
