@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const express = require("express");
+const crypto = require("crypto");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -142,7 +143,21 @@ async function handleUpload(req, res) {
     }
   }
 
-  const libraryPath = path.join(libraryRoot, namespace, name, version);
+  const libraryBasePath = path.join(libraryRoot, namespace, name);
+  const libraryPath = path.join(libraryBasePath, version);
+
+  /** Finds a name for a temporary directory to move the files to,
+      so that the upload can then be committed atomically by renaming
+      a single directory. */
+  function findRandomTemporaryDirectory() {
+    const randomName = crypto.randomBytes(32).toString("hex");
+    const temporaryPath = path.join(libraryBasePath, randomName);
+    if (fs.existsSync(temporaryPath)) {
+      return findRandomTemporaryDirectory();
+    }
+
+    return temporaryPath;
+  }
 
   if (fs.existsSync(libraryPath)) {
     return fail(
@@ -153,11 +168,14 @@ async function handleUpload(req, res) {
     );
   }
 
-  await fsPromises.mkdir(libraryPath, { recursive: true });
+  const temporaryPath = findRandomTemporaryDirectory();
+  await fsPromises.mkdir(libraryBasePath, { recursive: true });
+  await fsPromises.mkdir(temporaryPath, { recursive: true });
 
   console.log(`Uploading library [${namespace}.${name}:${version}].`);
   try {
-    await putFiles(libraryPath, req.files);
+    await putFiles(temporaryPath, req.files);
+    await fsPromises.rename(temporaryPath, libraryPath);
   } catch (error) {
     console.log(`Upload failed: [${error}].`);
     console.error(error.stack);
