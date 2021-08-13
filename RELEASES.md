@@ -1,5 +1,7 @@
 # Enso Next
 
+# Enso 0.2.24 (2021-08-13)
+
 ## Interpreter/Runtime
 
 - Fixed a bug where visualizations would sometimes randomly fail to compute, due
@@ -31,6 +33,12 @@
   ([#1942](https://github.com/enso-org/enso/pull/1942)).
 - Added a single entry point method for all table serialization modes
   ([#1946](https://github.com/enso-org/enso/pull/1946)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-13)
+  for issues opened before the release date.
 
 # Enso 0.2.23 (2021-08-09)
 

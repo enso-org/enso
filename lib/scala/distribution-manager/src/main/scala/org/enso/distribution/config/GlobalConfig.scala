@@ -40,7 +40,7 @@ case class GlobalConfig(
 
 object GlobalConfig {
   private val defaultEditionProviders: Seq[String] = Seq(
-    "https://editions.release.enso.org/enso/"
+    "https://editions.release.enso.org/enso"
   )
 
   /** The default configuration used when the configuration file does not exist.
