@@ -1,5 +1,15 @@
 # Next Release
 
+<br/>![New Features](/docs/assets/tags/new_features.svg)
+
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.11][1798]. If you're interested in the
+  enhancements and fixes made to the Enso compiler, you can find their release
+  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
+
+[1798]: https://github.com/enso-org/ide/pull/1798
+
 # Enso 2.0.0-alpha.11 (2021-08-09)
 
 This update contains major performance improvements and exposes new privacy user
