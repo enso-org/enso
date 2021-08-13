@@ -1,5 +1,10 @@
 # Enso Next
 
+## Libraries
+
+- Fixed a bug where reading binary and text files would be 100 times slower than
+  expected ([#1949](https://github.com/enso-org/enso/pull/1949)).
+
 # Enso 0.2.24 (2021-08-13)
 
 ## Interpreter/Runtime
@@ -31,8 +36,6 @@
   ([#1937](https://github.com/enso-org/enso/pull/1937)).
 - Added support for parsing CSV files with too many headers declared
   ([#1942](https://github.com/enso-org/enso/pull/1942)).
-- Fixed a bug where reading binary and text files would be 100 times slower than
-  expected ([#1949](https://github.com/enso-org/enso/pull/1949)).
 - Added a single entry point method for all table serialization modes
   ([#1946](https://github.com/enso-org/enso/pull/1946)).
 
