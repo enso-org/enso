@@ -85,13 +85,6 @@ jobs:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}
           native-image: true
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ env.nodeVersion }}
-      # This is needed because npx is not available on Windows by default.
-      - name: Install npx
-        run: npm install -g npx
       - name: Download Project Template Files
         working-directory: repo
         shell: bash
