@@ -2,6 +2,7 @@ package org.enso.table.format.xlsx;
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
@@ -27,6 +28,9 @@ public class Reader {
    * @param sheetIdx specifies which sheet should be read. If the value is a {@link Long}, it is
    *     used as a 0-based index of the sheet. If it is a {@link String}, it is used as a sheet
    *     name. Otherwise, the active sheet is read.
+   * @param cellRange specifies a cell range to read from the sheet. If not provided (default), a
+   *     range containing all non-empty cells will be selected. If provided, this must be a valid
+   *     Excel range address.
    * @param hasHeaders specifies whether the first non-empty row of the sheet should be used for
    *     column names.
    * @param unnamedColumnPrefix specifies the prefix to use for missing columns.
@@ -38,12 +42,18 @@ public class Reader {
   public static Table read_xlsx(
       InputStream inputStream,
       Object sheetIdx,
+      String cellRange,
       boolean hasHeaders,
       String unnamedColumnPrefix,
       Function<LocalDate, Value> mkDate)
       throws IOException {
     return read_table(
-        new XSSFWorkbook(inputStream), sheetIdx, hasHeaders, unnamedColumnPrefix, mkDate);
+        new XSSFWorkbook(inputStream),
+        sheetIdx,
+        cellRange,
+        hasHeaders,
+        unnamedColumnPrefix,
+        mkDate);
   }
 
   /**
@@ -53,6 +63,9 @@ public class Reader {
    * @param sheetIdx specifies which sheet should be read. If the value is a {@link Long}, it is
    *     used as a 0-based index of the sheet. If it is a {@link String}, it is used as a sheet
    *     name. Otherwise, the active sheet is read.
+   * @param cellRange specifies a cell range to read from the sheet. If not provided (default), a
+   *     range containing all non-empty cells will be selected. If provided, this must be a valid
+   *     Excel range address.
    * @param hasHeaders specifies whether the first non-empty row of the sheet should be used for
    *     column names.
    * @param unnamedColumnPrefix specifies the prefix to use for missing columns.
@@ -64,16 +77,19 @@ public class Reader {
   public static Table read_xls(
       InputStream is,
       Object sheetIdx,
+      String cellRange,
       boolean hasHeaders,
       String unnamedColumnPrefix,
       Function<LocalDate, Value> mkDate)
       throws IOException {
-    return read_table(new HSSFWorkbook(is), sheetIdx, hasHeaders, unnamedColumnPrefix, mkDate);
+    return read_table(
+        new HSSFWorkbook(is), sheetIdx, cellRange, hasHeaders, unnamedColumnPrefix, mkDate);
   }
 
   private static Table read_table(
       Workbook workbook,
       Object sheetIdx,
+      String cellRange,
       boolean hasHeaders,
       String unnamedColumnPrefix,
       Function<LocalDate, Value> mkDate)
@@ -87,8 +103,23 @@ public class Reader {
     if (sheet == null) {
       sheet = workbook.getSheetAt(workbook.getActiveSheetIndex());
     }
-    int minRow = sheet.getFirstRowNum();
-    int maxRow = sheet.getLastRowNum();
+
+    int minRowSpecified, maxRowSpecified, minColSpecified, maxColSpecified;
+    if (cellRange != null) {
+      var range = CellRangeAddress.valueOf(cellRange);
+      minRowSpecified = range.getFirstRow();
+      maxRowSpecified = range.getLastRow() == -1 ? Integer.MAX_VALUE : range.getLastRow();
+      minColSpecified = range.getFirstColumn();
+      maxColSpecified = range.getLastColumn() == -1 ? Integer.MAX_VALUE - 1 : range.getLastColumn();
+    } else {
+      minRowSpecified = -1;
+      maxRowSpecified = Integer.MAX_VALUE;
+      minColSpecified = 0;
+      maxColSpecified = Integer.MAX_VALUE - 1;
+    }
+
+    int minRow = Math.max(sheet.getFirstRowNum(), minRowSpecified);
+    int maxRow = Math.min(sheet.getLastRowNum(), maxRowSpecified);
     if (minRow == -1) {
       return new Table(new Column[0]);
     }
@@ -107,6 +138,8 @@ public class Reader {
     if (minCol >= maxCol) {
       return new Table(new Column[0]);
     }
+    minCol = Math.max(minCol, minColSpecified);
+    maxCol = Math.min(maxCol, maxColSpecified + 1);
 
     List<String> colNames = new ArrayList<>(maxCol - minCol);
     if (hasHeaders) {

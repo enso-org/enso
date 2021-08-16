@@ -14,6 +14,10 @@ polyglot java import org.enso.table.format.xlsx.Reader
      the active sheet (i.e. the one that would be displayed when the file is
      opened in Excel). Can be a 0-based index to specify the number of the sheet
      to read, or a `Text` corresponding to the sheet name.
+   - cell_range: specifies a cell range to read from the sheet. If not provided
+     (default), a range containing all non-empty cells will be selected. If
+     provided, this must be a valid Excel range address, e.g. `'A1:B5'`,
+     `'A:WX'`, or `'5:64'`.
    - has_header: Specifies whether the first row of the sheet should be
      interpreted as a header, containing storage names. If set to `False`,
      storage names will be automatically generated.
@@ -37,9 +41,9 @@ polyglot java import org.enso.table.format.xlsx.Reader
          import Standard.Examples
 
          example_xlsx_to_table = Examples.xlsx.read_xlsx sheet='Dates'
-File.File.read_xlsx : Integer | Text | Nothing -> Boolean -> Text -> Table
-File.File.read_xlsx sheet=Nothing has_header=True prefix='C' =
-    here.from_xlsx this sheet has_header prefix
+File.File.read_xlsx : Integer | Text | Nothing -> Text | Nothing -> Boolean -> Text -> Table
+File.File.read_xlsx sheet=Nothing cell_range=Nothing has_header=True prefix='C' =
+    here.from_xlsx this sheet cell_range has_header prefix
 
 ## Reads the contents of `this` and parses them as an XLSX dataframe.
 
@@ -49,6 +53,10 @@ File.File.read_xlsx sheet=Nothing has_header=True prefix='C' =
      the active sheet (i.e. the one that would be displayed when the file is
      opened in Excel). Can be a 0-based index to specify the number of the sheet
      to read, or a `Text` corresponding to the sheet name.
+   - cell_range: specifies a cell range to read from the sheet. If not provided
+     (default), a range containing all non-empty cells will be selected. If
+     provided, this must be a valid Excel range address, e.g. `'A1:B5'`,
+     `'A:WX'`, or `'5:64'`.
    - has_header: Specifies whether the first row of the sheet should be
      interpreted as a header, containing storage names. If set to `False`,
      storage names will be automatically generated.
@@ -72,11 +80,11 @@ File.File.read_xlsx sheet=Nothing has_header=True prefix='C' =
          import Standard.Examples
 
          example_xlsx_to_table = Table.from_xlsx Examples.xlsx sheet='Dates'
-from_xlsx : File.File -> Integer | Text | Nothing -> Boolean -> Text -> Table
-from_xlsx file sheet=Nothing has_header=True prefix='C' =
+from_xlsx : File.File -> Integer | Text | Nothing -> Text | Nothing -> Boolean -> Text -> Table
+from_xlsx file sheet=Nothing cell_range=Nothing has_header=True prefix='C' =
     file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream js->
-            Table.Table (Reader.read_xlsx js sheet has_header prefix Date.Date)
+            Table.Table (Reader.read_xlsx js sheet cell_range has_header prefix Date.Date)
 
 ## Reads the contents of `this` and parses them as an XLS dataframe.
 
@@ -85,6 +93,10 @@ from_xlsx file sheet=Nothing has_header=True prefix='C' =
      the active sheet (i.e. the one that would be displayed when the file is
      opened in Excel). Can be a 0-based index to specify the number of the sheet
      to read, or a `Text` corresponding to the sheet name.
+   - cell_range: specifies a cell range to read from the sheet. If not provided
+     (default), a range containing all non-empty cells will be selected. If
+     provided, this must be a valid Excel range address, e.g. `'A1:B5'`,
+     `'A:WX'`, or `'5:64'`.
    - has_header: Specifies whether the first row of the sheet should be
      interpreted as a header, containing storage names. If set to `False`,
      storage names will be automatically generated.
@@ -108,9 +120,9 @@ from_xlsx file sheet=Nothing has_header=True prefix='C' =
          import Standard.Examples
 
          example_xls_to_table = Examples.xls.read_xls sheet='Dates'
-File.File.read_xls : Integer | Text | Nothing -> Boolean -> Text -> Table
-File.File.read_xls sheet=Nothing has_header=True prefix='C' =
-    here.from_xls this sheet has_header prefix
+File.File.read_xls : Integer | Text | Nothing -> Text | Nothing -> Boolean -> Text -> Table
+File.File.read_xls sheet=Nothing cell_range=Nothing has_header=True prefix='C' =
+    here.from_xls this sheet cell_range has_header prefix
 
 ## Reads the contents of `this` and parses them as an XLS dataframe.
 
@@ -120,6 +132,10 @@ File.File.read_xls sheet=Nothing has_header=True prefix='C' =
      the active sheet (i.e. the one that would be displayed when the file is
      opened in Excel). Can be a 0-based index to specify the number of the sheet
      to read, or a `Text` corresponding to the sheet name.
+   - cell_range: specifies a cell range to read from the sheet. If not provided
+     (default), a range containing all non-empty cells will be selected. If
+     provided, this must be a valid Excel range address, e.g. `'A1:B5'`,
+     `'A:WX'`, or `'5:64'`.
    - has_header: Specifies whether the first row of the sheet should be
      interpreted as a header, containing storage names. If set to `False`,
      storage names will be automatically generated.
@@ -143,9 +159,9 @@ File.File.read_xls sheet=Nothing has_header=True prefix='C' =
          import Standard.Examples
 
          example_xls_to_table = Table.from_xls Examples.xls sheet='Dates'
-from_xls : File.File -> Integer | Text | Nothing -> Boolean -> Text -> Table
-from_xls file sheet=Nothing has_header=True prefix='C' =
+from_xls : File.File -> Integer | Text | Nothing -> Text | Nothing -> Boolean -> Text -> Table
+from_xls file sheet=Nothing cell_range=Nothing has_header=True prefix='C' =
     file.with_input_stream [File.Option.Read] stream->
         stream.with_java_stream js->
-            Table.Table (Reader.read_xls js sheet has_header prefix Date.Date)
+            Table.Table (Reader.read_xls js sheet cell_range has_header prefix Date.Date)
 
