@@ -7,6 +7,13 @@
 - Added the ability to specify cell ranges for reading XLS and XSLX spreadsheets
   ([#1954](https://github.com/enso-org/enso/pull/1954)).
 
+## Tooling
+
+- Updated the Simple Library Server to make it more robust; updated the edition
+  configuration with a proper URL to the Enso Library Repository, making it
+  possible for new libraries to be downloaded from it
+  ([#1952](https://github.com/enso-org/enso/pull/1952)).
+
 # Enso 0.2.24 (2021-08-13)
 
 ## Interpreter/Runtime
