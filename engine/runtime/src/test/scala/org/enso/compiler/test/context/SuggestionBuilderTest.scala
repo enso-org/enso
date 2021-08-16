@@ -82,20 +82,6 @@ class SuggestionBuilderTest extends CompilerTest {
           |foo = 42""".stripMargin
       val module = code.preprocessModule
 
-      println("*=" * 40)
-      println(
-        DocParserWrapper.runOnPureDoc(
-          """ ALIAS foo
-            | UNSTABLE
-            |
-            | Opens a file.
-            |
-            | ! Important
-            |   You need to remember to close file manually.
-            |""".stripMargin,
-          "open"
-        )
-      )
       build(code, module) shouldEqual Tree.Root(
         Vector(
           DoccedModuleNode,
