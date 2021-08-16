@@ -21,9 +21,9 @@ object DocParserWrapper {
 
   /** Generates HTML from Documentation string.
     */
-  def runOnPureDoc(comment: String): String = {
+  def runOnPureDoc(comment: String, title: String = ""): String = {
     val doc  = DocParser.runMatched(comment)
-    val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+    val html = DocParserHTMLGenerator.generateHTMLPureDoc(doc, title)
     html
   }
 

@@ -39,6 +39,19 @@ final case class Doc(
   val html: Doc.HTML = Seq(
     HTML.div(tags.html)(synopsis.html)(body.html)
   )
+
+  def htmlWithTitle(title: String): Doc.HTML = {
+    if (title != "") {
+      Seq(
+        HTML.div(HTML.`class` := "doc-title-container")(
+          HTML.div(HTML.`class` := "doc-title-name")(title),
+          tags.html
+        )(synopsis.html)(body.html)
+      )
+    } else {
+      Seq(HTML.div(tags.html)(synopsis.html)(body.html))
+    }
+  }
 }
 
 object Doc {
@@ -182,7 +195,7 @@ object Doc {
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
-        val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
+        val elemsHTML    = elems.toList.map(_.htmlOffset(firstIndent))
         val copyClass    = HTML.`class` := "doc-copy-btn flex"
         val codeClass    = HTML.`class` := "doc-code-container"
         val copyBtn      = HTML.button(htmlIdBtn)(copyClass)("Copy")
@@ -441,7 +454,7 @@ object Doc {
       val repr: Repr.Builder = R + indent + elemsRepr
 
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := ""
+        HTML.`class` := "raw"
       }
 
       override val html: HTML = Seq(HTML.p(elems.map(_.html)))
@@ -471,7 +484,7 @@ object Doc {
     val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       Seq(
-        HTML.div(HTML.`class` := "")(
+        HTML.div(HTML.`class` := "synopsis")(
           elems.toList.map(_.html)
         )
       )
@@ -504,7 +517,7 @@ object Doc {
       R + newLn + _
     )
     val html: HTML = Seq(
-      HTML.div(elems.toList.map(_.html))
+      HTML.div(HTML.`class` := "body")(elems.toList.map(_.html))
     )
   }
 
@@ -551,16 +564,17 @@ object Doc {
         case _                => R + indent + name + details
       }
       val html: HTML = {
+        val htmlClass = HTML.`class` := "tag"
         typ match {
           case Tag.Unrecognized =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)(details.html)
               )
             )
           case Tag.Type.TextOnly =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)("TEXT ONLY")(
                   details.html
                 )
@@ -568,7 +582,7 @@ object Doc {
             )
           case _ =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)(name)(details.html)
               )
             )

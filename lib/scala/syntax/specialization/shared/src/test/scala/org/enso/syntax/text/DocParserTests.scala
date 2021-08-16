@@ -949,10 +949,8 @@ class DocParserTests extends AnyFlatSpec with Matchers {
         " file in the project directory.",
         Newline,
         CodeBlock(
-          CodeBlock.Line(
-            6,
-            "import Standard.Base.System.File\n      import Standard.Examples"
-          ),
+          CodeBlock.Line(6, "import Standard.Base.System.File"),
+          CodeBlock.Line(6, "import Standard.Examples"),
           CodeBlock.Line(6, "example_new = File.new Examples.csv_path")
         )
       )
