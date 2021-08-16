@@ -14,6 +14,8 @@ env:
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2021-05-12
+  # Please ensure that this is in sync with nodeVersion in scala.yml
+  nodeVersion: 14.17.2
 
 concurrency: "releases"
 
