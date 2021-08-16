@@ -35,6 +35,23 @@ spec_fmt header file read_method =
             t.columns.map .name . should_equal ['Item', 'Price', 'Quantity', 'Price 1']
             t.at 'Price 1' . to_vector . should_equal [20, 40, 0, 60, 0, 10]
 
+        Test.specify "should allow reading with cell range specified" <|
+            t_1 = read_method file sheet="Simple" cell_range="B:C"
+            t_1.columns.map .name . should_equal ['Quantity', 'Price']
+            t_1.at 'Quantity' . to_vector . should_equal [10, 20, Nothing, 30, Nothing, 5]
+            t_1.at 'Price' . to_vector . should_equal [22.3, 32, 43.2, 54, 31, Nothing]
+
+            t_2 = read_method file sheet="Simple" cell_range="3:5" has_header=False
+            t_2.columns.length.should_equal 3
+            t_2.at 'C0' . to_vector . should_equal ['t-shirt', 'trousers', 'shoes']
+            t_2.at 'C1' . to_vector . should_equal [20, Nothing, 30]
+            t_2.at 'C2' . to_vector . should_equal [32, 43.2, 54]
+
+            t_3 = read_method file sheet="Simple" cell_range="B4:C5" has_header=False
+            t_3.columns.length.should_equal 2
+            t_3.at 'C0' . to_vector . should_equal [Nothing, 30]
+            t_3.at 'C1' . to_vector . should_equal [43.2, 54]
+
 spec =
     here.spec_fmt 'XLSX reading' Examples.xlsx .read_xlsx
 
