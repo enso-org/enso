@@ -39,7 +39,7 @@ final case class Doc(
   val html: Doc.HTML = Seq(
     HTML.div(tags.html)(synopsis.html)(body.html)
   )
-  // TODO [MM] - Style it
+
   def htmlWithTitle(title: String): Doc.HTML = {
     if (title != "") {
       Seq(
@@ -195,7 +195,7 @@ object Doc {
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val firstIndent  = elems.head.indent
-        val elemsHTML    = elems.toList.map(elem => elem.htmlOffset(firstIndent))
+        val elemsHTML    = elems.toList.map(_.htmlOffset(firstIndent))
         val copyClass    = HTML.`class` := "doc-copy-btn flex"
         val codeClass    = HTML.`class` := "doc-code-container"
         val copyBtn      = HTML.button(htmlIdBtn)(copyClass)("Copy")
