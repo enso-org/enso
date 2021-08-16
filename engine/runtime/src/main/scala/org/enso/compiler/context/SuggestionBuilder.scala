@@ -155,16 +155,15 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     val (methodArgs, returnTypeDef) =
       buildMethodArguments(args, typeSig, selfType)
     Suggestion.Method(
-      externalId    = externalId,
-      module        = module.toString,
-      name          = name.name,
-      arguments     = methodArgs,
-      selfType      = selfType.toString,
-      returnType    = buildReturnType(returnTypeDef),
-      documentation = doc,
-      documentationHtml =
-        doc.map(d => DocParserWrapper.runOnPureDoc(d, name.name)),
-      reexport = None
+      externalId        = externalId,
+      module            = module.toString,
+      name              = name.name,
+      arguments         = methodArgs,
+      selfType          = selfType.toString,
+      returnType        = buildReturnType(returnTypeDef),
+      documentation     = doc,
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name.name)),
+      reexport          = None
     )
   }
 
@@ -220,7 +219,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       module        = module.toString,
       documentation = doc,
       documentationHtml =
-        doc.map(d => DocParserWrapper.runOnPureDoc(d, module.toString)),
+        doc.map(DocParserWrapper.runOnPureDoc(_, module.toString)),
       reexport = None
     )
 
@@ -249,7 +248,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       arguments         = arguments.map(buildArgument),
       returnType        = module.createChild(name).toString,
       documentation     = doc,
-      documentationHtml = doc.map(d => DocParserWrapper.runOnPureDoc(d, name)),
+      documentationHtml = doc.map(DocParserWrapper.runOnPureDoc(_, name)),
       reexport          = None
     )
 
