@@ -17,6 +17,8 @@
   propagate error information
   ([#1941](https://github.com/enso-org/enso/pull/1941)).
 - Fixed inaproppriate parsing of code blocks in documentation.
+- Documentation in IDE now shows names of suggestions
+  ([#1904](https://github.com/enso-org/enso/pull/1904)).
 
 ## Tooling
 

@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.GenerateDocumentation
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
+import org.enso.docs.generator.DocParserWrapper
 import org.scalatest.Inside
 import pprint.pprintln
 
@@ -79,24 +80,6 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
     meta.get.documentation
   }
 
-  /** Creates full html doc generator output from the `inner` string, the one
-    * that will only change during the test.
-    */
-  def unfoldedDocumentationForAssertion(inner: String): String =
-    s"""<html>
-       | <body>
-       |   <div class="doc" style="font-size: 13px;">
-       |     <div>
-       |       <div class="">
-       |         $inner
-       |       </div>
-       |     </div>
-       |   </div>
-       | </body>
-       |</html>""".stripMargin
-      .replaceAll(System.lineSeparator(), "")
-      .replaceAll(">[ ]+<", "><")
-
   // === The Tests ============================================================
 
   "Documentation comments in the top scope" should {
@@ -117,11 +100,11 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
       ir.bindings(0) shouldBe an[IR.Module.Scope.Definition.Atom]
       ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
 
-      getDoc(ir.bindings(0)) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>This is doc for My<div class=\"Unclosed\"><i>Atom</i></div></p>"
+      getDoc(ir.bindings(0)) shouldEqual DocParserWrapper.runOnPureDoc(
+        " This is doc for My_Atom"
       )
-      getDoc(ir.bindings(1)) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>This is doc for my<div class=\"Unclosed\"><i>method</i></div></p>"
+      getDoc(ir.bindings(1)) shouldEqual DocParserWrapper.runOnPureDoc(
+        " This is doc for my_method"
       )
     }
   }
@@ -148,11 +131,11 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       pprintln(body)
       body.expressions.length shouldEqual 1
-      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>Do thing</p>"
+      getDoc(body.expressions(0)) shouldEqual DocParserWrapper.runOnPureDoc(
+        " Do thing"
       )
-      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>Do another thing</p>"
+      getDoc(body.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
+        " Do another thing"
       )
     }
 
@@ -178,11 +161,11 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
 
       body.expressions.length shouldEqual 2
       body.expressions(0) shouldBe an[IR.Application.Operator.Binary]
-      getDoc(body.expressions(0)) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>Id</p>"
+      getDoc(body.expressions(0)) shouldEqual DocParserWrapper.runOnPureDoc(
+        " Id"
       )
-      getDoc(body.returnValue) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>Return thing</p>"
+      getDoc(body.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
+        " Return thing"
       )
     }
   }
@@ -208,31 +191,30 @@ class GenerateDocumentationTest extends CompilerTest with Inside {
           |        ## the return
           |        0
           |""".stripMargin.preprocessModule.resolve
-//      pprintln(ir)
       val tp = ir.bindings(0).asInstanceOf[IR.Module.Scope.Definition.Type]
-      getDoc(tp) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>the type Foo</p>"
+      getDoc(tp) shouldEqual DocParserWrapper.runOnPureDoc(
+        " the type Foo"
       )
       val t1 = tp.body(0)
-      getDoc(t1) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>the constructor Bar</p>"
+      getDoc(t1) shouldEqual DocParserWrapper.runOnPureDoc(
+        " the constructor Bar"
       )
       val t2 = tp.body(1)
-      getDoc(t2) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>the included Unit</p>"
+      getDoc(t2) shouldEqual DocParserWrapper.runOnPureDoc(
+        " the included Unit"
       )
       val method = tp.body(2).asInstanceOf[IR.Function.Binding]
-      getDoc(method) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>a method</p>"
+      getDoc(method) shouldEqual DocParserWrapper.runOnPureDoc(
+        " a method"
       )
       val block = method.body.asInstanceOf[IR.Expression.Block]
       getDoc(
         block.expressions(0)
-      ) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>a statement</p>"
+      ) shouldEqual DocParserWrapper.runOnPureDoc(
+        " a statement"
       )
-      getDoc(block.returnValue) shouldEqual unfoldedDocumentationForAssertion(
-        "<p>the return</p>"
+      getDoc(block.returnValue) shouldEqual DocParserWrapper.runOnPureDoc(
+        " the return"
       )
     }
   }
