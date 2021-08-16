@@ -5,6 +5,8 @@ import org.enso.cli.arguments.{Application, Command, Opts}
 
 import java.nio.file.Path
 import scala.util.control.NonFatal
+import cats.implicits._
+import org.enso.cli.arguments.Opts.implicits._
 
 object Main {
   private val commands: NonEmptyList[Command[Unit => Int]] = NonEmptyList.of(
@@ -18,8 +20,15 @@ object Main {
       }
     },
     Command[Unit => Int]("update", "Updates Standard Library versions.") {
-      Opts.pure { _ =>
-        run(UpdatingVisitor)
+      val noFormat = Opts.flag(
+        "no-format",
+        "If set, does not run prettier after updating the packages.",
+        showInUsage = true
+      )
+
+      noFormat map { disableFormatting => _ =>
+        val shouldFormat = !disableFormatting
+        run(new UpdatingVisitor(shouldFormat))
         0
       }
     }
