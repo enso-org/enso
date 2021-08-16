@@ -17,6 +17,8 @@ env:
   sbtVersion: 1.5.2
   # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2021-05-12
+  # Please ensure that this is in sync with nodeVersion in scala.yml
+  nodeVersion: 14.17.2
   # Specifies how many nightly releases should be kept. Any older releases are removed.
   NIGHTLIES_TO_KEEP: 20
 
@@ -173,7 +175,7 @@ jobs:
         shell: bash
         run: |
           sleep 1
-          sbt --no-colors "stdlib-version-updater/run update"
+          sbt --no-colors "stdlib-version-updater/run update --no-format"
 
       # Verify Legal Review
       - name: Verify Packages
