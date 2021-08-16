@@ -454,7 +454,7 @@ object Doc {
       val repr: Repr.Builder = R + indent + elemsRepr
 
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := ""
+        HTML.`class` := "raw"
       }
 
       override val html: HTML = Seq(HTML.p(elems.map(_.html)))
@@ -484,7 +484,7 @@ object Doc {
     val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       Seq(
-        HTML.div(HTML.`class` := "")(
+        HTML.div(HTML.`class` := "synopsis")(
           elems.toList.map(_.html)
         )
       )
@@ -517,7 +517,7 @@ object Doc {
       R + newLn + _
     )
     val html: HTML = Seq(
-      HTML.div(elems.toList.map(_.html))
+      HTML.div(HTML.`class` := "body")(elems.toList.map(_.html))
     )
   }
 
@@ -564,16 +564,17 @@ object Doc {
         case _                => R + indent + name + details
       }
       val html: HTML = {
+        val htmlClass = HTML.`class` := "tag"
         typ match {
           case Tag.Unrecognized =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)(details.html)
               )
             )
           case Tag.Type.TextOnly =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)("TEXT ONLY")(
                   details.html
                 )
@@ -581,7 +582,7 @@ object Doc {
             )
           case _ =>
             Seq(
-              HTML.p(HTML.`class` := "tag")(
+              HTML.p(htmlClass)(
                 HTML.span(HTML.`class` := cName)(name)(details.html)
               )
             )
