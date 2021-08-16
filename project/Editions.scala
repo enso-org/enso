@@ -26,6 +26,9 @@ object Editions {
     */
   val contribLibraries: Seq[ContribLibrary] = Seq()
 
+  /** The URL to the main library repository. */
+  val mainLibraryRepositoryUrl = "https://libraries.release.enso.org/libraries"
+
   private val editionsRoot = file("distribution") / "editions"
   private val extension    = ".yaml"
 
@@ -68,7 +71,7 @@ object Editions {
         s"""engine-version: $ensoVersion
            |repositories:
            |  - name: main
-           |    url: n/a # Library repository is still a work in progress.
+           |    url: $mainLibraryRepositoryUrl
            |libraries:
            |${librariesConfigs.mkString("\n")}
            |""".stripMargin
