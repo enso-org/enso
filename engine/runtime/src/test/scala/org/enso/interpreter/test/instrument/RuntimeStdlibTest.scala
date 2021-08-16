@@ -246,8 +246,7 @@ class RuntimeStdlibTest
         (namespace, name, version)
     }
 
-    val libraryVersion =
-      "0.1.0" // buildinfo.Info.ensoVersion // TODO [RW] Change this once stdlib version starts being in-sync with engine version.
+    val libraryVersion = buildinfo.Info.stdLibVersion
     contentRootNotifications should contain(
       ("Standard", "Base", libraryVersion)
     )
