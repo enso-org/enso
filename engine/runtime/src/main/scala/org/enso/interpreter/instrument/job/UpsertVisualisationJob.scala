@@ -8,8 +8,11 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvalFailure,
   EvaluationFailed,
+  MaxEvaluationRetryCount,
   ModuleNotFound
 }
+import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   RequestId,
@@ -126,25 +129,55 @@ class UpsertVisualisationJob(
     )
   }
 
-  private def evaluateExpression(
-    moduleName: String,
-    expression: String
-  )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] = {
+  private def findModule(
+    moduleName: String
+  )(implicit ctx: RuntimeContext): Either[EvalFailure, Module] = {
     val context = ctx.executionService.getContext
     // TODO [RW] more specific error when the module cannot be installed (#1861)
     context.ensureModuleIsLoaded(moduleName)
     val maybeModule = context.findModule(moduleName)
 
-    val notFoundOrModule =
-      if (maybeModule.isPresent) Right(maybeModule.get())
-      else Left(ModuleNotFound)
+    if (maybeModule.isPresent) Right(maybeModule.get())
+    else Left(ModuleNotFound)
+  }
 
-    notFoundOrModule.flatMap { module =>
-      Either
-        .catchNonFatal {
-          ctx.executionService.evaluateExpression(module, expression)
-        }
-        .leftMap { error =>
+  private def evaluateModuleExpression(
+    module: Module,
+    expression: String,
+    retryCount: Int = 0
+  )(implicit
+    ctx: RuntimeContext
+  ): Either[EvalFailure, AnyRef] =
+    Either
+      .catchNonFatal {
+        ctx.executionService.evaluateExpression(module, expression)
+      }
+      .leftFlatMap {
+        case _: ThreadInterruptedException
+            if retryCount < MaxEvaluationRetryCount =>
+          ctx.executionService.getLogger.log(
+            Level.WARNING,
+            s"Evaluation of visualisation was interrupted. Retrying [${retryCount + 1}]."
+          )
+          evaluateModuleExpression(module, expression, retryCount + 1)
+
+        case error: ThreadInterruptedException =>
+          val message =
+            s"Evaluation of visualization failed after [$retryCount] times " +
+            s"[${error.getClass.getSimpleName}]."
+          ctx.executionService.getLogger
+            .log(
+              Level.SEVERE,
+              message
+            )
+          Left(
+            EvaluationFailed(
+              message,
+              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            )
+          )
+
+        case error =>
           ctx.executionService.getLogger
             .log(
               Level.SEVERE,
@@ -152,18 +185,29 @@ class UpsertVisualisationJob(
               s"[${error.getClass}] ${error.getMessage}",
               error
             )
-          EvaluationFailed(
-            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
-            ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+          Left(
+            EvaluationFailed(
+              Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
+              ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
+            )
           )
-        }
-    }
+      }
 
-  }
+  private def evaluateExpression(
+    moduleName: String,
+    expression: String
+  )(implicit ctx: RuntimeContext): Either[EvalFailure, AnyRef] =
+    for {
+      module     <- findModule(moduleName)
+      expression <- evaluateModuleExpression(module, expression)
+    } yield expression
 
 }
 
 object UpsertVisualisationJob {
+
+  /** The number of times to retry the expression evaluation. */
+  val MaxEvaluationRetryCount: Int = 5
 
   /** Base trait for evaluation failures.
     */
