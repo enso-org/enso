@@ -75,4 +75,6 @@ Then you can use the Enso CLI to upload the project:
 enso publish-library --upload-url <URL> <path to project root>
 ```
 
-See `enso publish-library --help` for more information.
+The `--upload-url` is optional, if not provided, the library will be uploaded to
+the main Enso library repository. See `enso publish-library --help` for more
+information.
