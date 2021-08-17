@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.job
 
+import java.util.logging.Level
+
 import cats.implicits._
 import org.enso.interpreter.instrument.{InstrumentFrame, Visualisation}
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
@@ -143,8 +145,15 @@ class UpsertVisualisationJob(
           ctx.executionService.evaluateExpression(module, expression)
         }
         .leftMap { error =>
+          ctx.executionService.getLogger
+            .log(
+              Level.SEVERE,
+              "Evaluation of visualization failed: " +
+              s"[${error.getClass}] ${error.getMessage}",
+              error
+            )
           EvaluationFailed(
-            error.getMessage,
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName),
             ProgramExecutionSupport.getDiagnosticOutcome.lift(error)
           )
         }
