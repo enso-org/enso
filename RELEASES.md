@@ -1,5 +1,11 @@
 # Enso Next
 
+## Libraries
+
+- Implement `File.list` which allows to list files inside of a directory and
+  filter them using glob patterns
+  ([#1961](https://github.com/enso-org/enso/pull/1961)).
+
 # Enso 0.2.25 (2021-08-18)
 
 ## Libraries

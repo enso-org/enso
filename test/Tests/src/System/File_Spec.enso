@@ -84,3 +84,28 @@ spec =
             contents_2 = File.read file
             contents_2.should .start_with "Cupcake ipsum dolor sit amet."
 
+        resolve files =
+            base = Enso_Project.data
+            files.map str->
+                (base / str) . to_text
+
+        Test.specify "should list files in a directory" <|
+            immediate = Enso_Project.data.list . map .to_text
+            immediate.sort.should_equal (resolve ["books.json", "sample.txt", "subdirectory"])
+
+            filtered1 = Enso_Project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
+            filtered1.should_equal (resolve ["sample.txt"])
+
+            filtered2 = File.list Enso_Project.data name_filter="*dir*" . map .to_text
+            filtered2.should_equal (resolve ["subdirectory"])
+
+        Test.specify "should list files in a directory recursively" <|
+            all = Enso_Project.data.list recursive=True . map .to_text
+            all.sort.should_equal (resolve ["", "books.json", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
+
+            filtered1 = Enso_Project.data.list name_filter="**.txt" recursive=True . map .to_text
+            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+
+            filtered2 = Enso_Project.data.list name_filter="*/*/*" recursive=True . map .to_text
+            filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
+
