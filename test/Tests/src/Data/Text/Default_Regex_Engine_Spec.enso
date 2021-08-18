@@ -84,12 +84,20 @@ spec =
             engine.escape pattern . should_equal "\Qhttp://example.com\E"
 
     Test.group "The default regex engine's Pattern.match" <|
+        engine = Default_Engine.new
+
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
-            engine = Default_Engine.new
-            pattern = engine.compile "a" []
-            input = "a ab abc a bc bcd"
+            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            input = "aa ab abc a bc bcd"
             match = pattern.match input mode=Mode.First
             match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal input
+
+        Test.specify "should return `Nothing` if there are no matches" <|
+            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            input = "           "
+            match = pattern.match input mode=Mode.First
+            match . should_equal Nothing
 
         Test.specify "should be able to `match` N instances of the pattern in the input" <|
             Nothing
