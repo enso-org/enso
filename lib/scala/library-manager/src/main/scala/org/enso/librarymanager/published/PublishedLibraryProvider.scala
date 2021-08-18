@@ -25,4 +25,9 @@ trait PublishedLibraryProvider {
     version: SemVer,
     recommendedRepository: Repository
   ): Try[Path]
+
+  /** Checks if the library at the specific version is already available in the
+    * caches.
+    */
+  def isLibraryCached(libraryName: LibraryName, version: SemVer): Boolean
 }

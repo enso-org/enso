@@ -10,6 +10,7 @@ import org.enso.languageserver.libraries.{
 }
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.librarymanager.ResolvingLibraryProvider
 
 import scala.util.{Failure, Success}
 
@@ -18,7 +19,8 @@ import scala.util.{Failure, Success}
   * @param editionReferenceResolver an [[EditionReferenceResolver]] instance
   */
 class EditionsListDefinedLibrariesHandler(
-  editionReferenceResolver: EditionReferenceResolver
+  editionReferenceResolver: EditionReferenceResolver,
+  libraryProvider: ResolvingLibraryProvider
 ) extends Actor
     with LazyLogging
     with UnhandledLogging {
@@ -31,10 +33,12 @@ class EditionsListDefinedLibrariesHandler(
       val result = for {
         edition <- editionReferenceResolver.resolveEdition(reference)
       } yield edition.getAllDefinedLibraries.toSeq.map { case (name, version) =>
+        // TODO check cached
         LibraryEntry(
           namespace = name.namespace,
           name      = name.name,
-          version   = version
+          version   = version,
+          isCached  = libraryProvider.isLibraryCached(name)
         )
       }
 

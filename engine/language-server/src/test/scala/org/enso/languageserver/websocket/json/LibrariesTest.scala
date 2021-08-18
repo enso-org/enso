@@ -262,7 +262,12 @@ class LibrariesTest extends BaseServerTest {
         val parsed = libs.asArray.value.map(_.as[LibraryEntry])
         val bases = parsed.collect {
           case Right(
-                LibraryEntry("Standard", "Base", PublishedLibraryVersion(_, _))
+                LibraryEntry(
+                  "Standard",
+                  "Base",
+                  PublishedLibraryVersion(_, _),
+                  true
+                )
               ) =>
             ()
         }

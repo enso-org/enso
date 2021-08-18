@@ -123,4 +123,18 @@ class DefaultLibraryProvider(
           .map(ResolvingLibraryProvider.Error.DownloadFailed)
     }
   }
+
+  /** @inheritdoc */
+  override def isLibraryCached(
+    name: LibraryName
+  ): Either[LibraryResolutionError, Boolean] = {
+    val resolvedVersion =
+      resolver.resolveLibraryVersion(name, edition, preferLocalLibraries)
+    resolvedVersion.map {
+      case LibraryVersion.Local =>
+        localLibraryProvider.findLibrary(name).isDefined
+      case LibraryVersion.Published(version, _) =>
+        publishedLibraryProvider.isLibraryCached(name, version)
+    }
+  }
 }

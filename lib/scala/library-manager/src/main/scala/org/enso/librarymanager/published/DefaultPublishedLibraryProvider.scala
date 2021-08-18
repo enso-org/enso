@@ -54,4 +54,11 @@ class DefaultPublishedLibraryProvider(
         .findOrInstallLibrary(libraryName, version, recommendedRepository)
     }
   }
+
+  /** @inheritdoc */
+  override def isLibraryCached(
+    libraryName: LibraryName,
+    version: SemVer
+  ): Boolean =
+    findCached(libraryName, version, caches).isDefined
 }
