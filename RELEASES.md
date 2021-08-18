@@ -1,5 +1,7 @@
 # Enso Next
 
+# Enso 0.2.25 (2021-08-18)
+
 ## Libraries
 
 - Fixed a bug where reading binary and text files would be 100 times slower than
@@ -13,6 +15,12 @@
   configuration with a proper URL to the Enso Library Repository, making it
   possible for new libraries to be downloaded from it
   ([#1952](https://github.com/enso-org/enso/pull/1952)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-18)
+  for issues opened before the release date.
 
 # Enso 0.2.24 (2021-08-13)
 
