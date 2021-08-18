@@ -146,30 +146,35 @@ type Pattern
     type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
 
     ## PRIVATE
+    build_matcher : Text -> Integer -> Integer -> Java_Matcher
+    build_matcher input start end =
+        internal_matcher = this.internal_pattern.matcher input . region start end
 
-       Gets the names of the regexes named groups from the regex.
-    candidate_group_names : Vector Text
-    candidate_group_names =
-        Vector.Vector (Regex_Utils.get_group_names this.internal_pattern)
+        if this.options.contains No_Anchoring_Bounds then
+            internal_matcher.useAnchoringBounds False
+        if this.options.contains Transparent_Bounds then
+            internal_matcher.useTransparentBounds True
+
+        internal_matcher
 
     ## TODO
     match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
     match input mode=Mode.All =
-        do_match_mode mode start end =
-            internal_matcher = this.internal_pattern.matcher input . region start end
-            if this.options.contains No_Anchoring_Bounds then
-                internal_matcher.useAnchoringBounds False
-            if this.options.contains Transparent_Bounds then
-                internal_matcher.useTransparentBounds True
 
+        do_match : Integer -> Integer -> Integer -> Match | Nothing
+        do_match start end offset =
+            internal_matcher = this.build_matcher input start end
+
+            if internal_matcher . find offset . not then Nothing else
+                Match internal_matcher
+
+        do_match_mode mode start end offset=0 =
             case mode of
-                Mode.First -> if internal_matcher.find.not then Nothing else
-                    IO.println this.candidate_group_names
-                    Nothing
+                Mode.First -> do_match start end offset
                 Integer -> Errors.unimplemented
                 Mode.All -> Errors.unimplemented
                 Mode.Full -> Errors.unimplemented
-                Mode.Bounded _ _ _ -> Nothing
+                Mode.Bounded _ _ _ -> Panic.throw Recursive_Mode_Error
 
         case mode of
             Mode.Bounded start end sub_mode -> do_match_mode sub_mode start end
@@ -398,6 +403,13 @@ from_enso_options opts =
     if opts.contains Global_Option.Ascii_Matching then options_bitmask else
         unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
         options_bitmask.bit_or unicode
+
+## PRIVATE
+type Recursive_Mode_Error
+
+## PRIVATE
+Recursive_Mode_Error.to_display_text : Text
+Recursive_Mode_Error.to_display_text = "The mode cannot be recursive."
 
 ## PRIVATE
 
