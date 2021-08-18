@@ -93,36 +93,37 @@ home = here.new (Prim_Io.get_user_home)
      immediate children of the listed directory are considered.
 
    The `name_filter` can contain the following special characters:
-   - `?` - which matches a single filename character (so it will not match a
-     `/`).
-   - `*` - which matches any number of characters, but again does not cross
+   - `"?"` - which matches a single filename character (so it will not match a
+     `"/"`).
+   - `"*"` - which matches any number of characters, but again does not cross
      directories.
-   - `**` - which matches any number of characters and can cross directories.
-   - `\` - can be used to escape the characters with special meaning; to get a
+   - `"**"` - which matches any number of characters and can cross directories.
+   - `"\"` - can be used to escape the characters with special meaning; to get a
      single backslash, you need to specify it twice; you also need to keep in
-     mind that the interpolating string literal also uses `\` as an escape
-     sequence, so you need to type '\\\\' to get a single backslash for the glob
-     pattern, unless you use the raw strings, where you only need to escape
-     once: "\\".
+     mind that the interpolating string literal also uses `"\"` as an escape
+     sequence, so you need to type `'\\\\'` to get a single backslash for the
+     glob pattern, unless you use the raw strings, where you only need to escape
+     once: `"\\"`.
    - Brackets can be used to match exactly one character from some set of
-     characters. For example `[xy]` matches `x` or `y`. Character ranges can
-     also be specified: `[a-z]` matches any character from `a` to `z`. An
-     exclamation mark can be used to negate the match, i.e. `[!xz]` will match
-     any characters except for `x` and `z`. Moreover the ranges and single
-     characters can be used together, so for example `[a-cxy]` will match `a`,
-     `b`, `c`, `x` or `y`. Within the brackets, the special characters `*`, `?`
-     and `\` stand for themselves instead of their special meanings.
+     characters. For example `"[xy]"` matches `"x"` or `"y"`. Character ranges
+     can also be specified: `"[a-z]"` matches any character from `"a"` to `"z"`.
+     An exclamation mark can be used to negate the match, i.e. `"[!xz]"` will
+     match any characters except for `"x"` and `"z"`. Moreover the ranges and
+     single characters can be used together, so for example `"[a-cxy]"` will
+     match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`. Within the brackets, the special
+     characters `"*"`, `"?"` and `"\"` stand for themselves instead of their
+     special meanings.
    - Braces allow to specify multiple patterns (separated with a comma), one of
-     which must be matched. For example: `{abc,x*}` will match either the name
-     `abc` or any name starting with `x`. The groups cannot be nested.
+     which must be matched. For example: `"{abc,x*}"` will match either the name
+     `"abc"` or any name starting with `"x"`. The groups cannot be nested.
 
    Keep in mind that if `recursive` is set to True and a `name_filter` is used,
    the function will return files from subdirectories only if the set
    `name_filter` allows crossing directories. So even with `recursive=True` a
-   filter `*.txt` will only return files that are immediate children of the
+   filter `"*.txt"` will only return files that are immediate children of the
    listed directory, to list files recursively you need to use a filter like
-   `**.txt` or `*/*` (which will match only files that are exactly one directory
-   down from the listed directory) or no filter at all.
+   `"**.txt"` or `"*/*"` (which will match only files that are exactly one
+   directory down from the listed directory) or no filter at all.
 
    > Example
      List all files with `.md` extension in the example directory and any of its
@@ -540,41 +541,42 @@ type File
          only the immediate children of the listed directory are considered.
 
        The `name_filter` can contain the following special characters:
-       - `?` - which matches a single filename character (so it will not match a
-         `/`).
-       - `*` - which matches any number of characters, but again does not cross
+       - `"?"` - which matches a single filename character (so it will not match
+         a `"/"`).
+       - `"*"` - which matches any number of characters, but again does not
+         cross directories.
+       - `"**"` - which matches any number of characters and can cross
          directories.
-       - `**` - which matches any number of characters and can cross
-         directories.
-       - `\` - can be used to escape the characters with special meaning; to get
-         a single backslash, you need to specify it twice; you also need to keep
-         in mind that the interpolating string literal also uses `\` as an escape
-         sequence, so you need to type '\\\\' to get a single backslash for the
-         glob pattern, unless you use the raw strings, where you only need to
-         escape once: "\\".
+       - `"\"` - can be used to escape the characters with special meaning; to
+         get a single backslash, you need to specify it twice; you also need to
+         keep in mind that the interpolating string literal also uses `"\"` as
+         an escape sequence, so you need to type `'\\\\'` to get a single
+         backslash for the glob pattern, unless you use the raw strings, where
+         you only need to escape once: `"\\"`.
        - Brackets can be used to match exactly one character from some set of
-         characters. For example `[xy]` matches `x` or `y`. Character ranges can
-         also be specified: `[a-z]` matches any character from `a` to `z`. An
-         exclamation mark can be used to negate the match, i.e. `[!xz]` will
-         match any characters except for `x` and `z`. Moreover the ranges and
-         single characters can be used together, so for example `[a-cxy]` will
-         match `a`, `b`, `c`, `x` or `y`. Within the brackets, the special
-         characters `*`, `?` and `\` stand for themselves instead of their
-         special meanings.
+         characters. For example `"[xy]"` matches `"x"` or `"y"`. Character
+         ranges can also be specified: `"[a-z]"` matches any character from
+         `"a"` to `"z"`. An exclamation mark can be used to negate the match,
+         i.e. `"[!xz]"` will match any characters except for `"x"` and `"z"`.
+         Moreover the ranges and single characters can be used together, so for
+         example `"[a-cxy]"` will match `"a"`, `"b"`, `"c"`, `"x"` or `"y"`.
+         Within the brackets, the special characters `"*"`, `"?"` and `"\"`
+         stand for themselves instead of their special meanings.
        - Braces allow to specify multiple patterns (separated with a comma), one
-         of which must be matched. For example: `{abc,x*}` will match either the
-         name `abc` or any name starting with `x`. The groups cannot be nested.
+         of which must be matched. For example: `"{abc,x*}"` will match either
+         the name `"abc"` or any name starting with `"x"`. The groups cannot be
+         nested.
 
        Keep in mind that if `recursive` is set to True and a `name_filter` is
        used, the function will return files from subdirectories only if the set
        `name_filter` allows crossing directories. So even with `recursive=True`
-       a filter `*.txt` will only return files that are immediate children of
+       a filter `"*.txt"` will only return files that are immediate children of
        the listed directory, to list files recursively you need to use a filter
-       like `**.txt` or `*/*` (which will match only files that are exactly one
-       directory down from the listed directory) or no filter at all.
+       like `"**.txt"` or `"*/*"` (which will match only files that are exactly
+       one directory down from the listed directory) or no filter at all.
 
        > Example
-         List all files with `.md` or `.txt` extension in the example directory
+         List all files with ".md" or ".txt" extension in the example directory
          and any of its subdirectories.
 
              import Standard.Examples
@@ -852,6 +854,7 @@ type File_Error
 ## PRIVATE
 
    Utility function that lists immediate children of a directory.
+list_immediate_children : File -> Vector.Vector File
 list_immediate_children directory =
     arr = directory.prim_file.list
     Vector.new (Polyglot.get_array_size arr) ix->
@@ -862,6 +865,7 @@ list_immediate_children directory =
    Utility function that returns all descendants of the provided file, including
    that file itself. If the file is not a directory, a list containing only
    itself is returned.
+list_descendants : File -> Vector.Vector File
 list_descendants file =
     builder = Vector.new_builder
     go file =
