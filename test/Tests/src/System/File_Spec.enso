@@ -96,7 +96,7 @@ spec =
             filtered1 = Enso_Project.data.list name_filter="s[a-cw]mple.{t?t,md}" . map .to_text
             filtered1.should_equal (resolve ["sample.txt"])
 
-            filtered2 = Enso_Project.data.list name_filter="*dir*" . map .to_text
+            filtered2 = File.list Enso_Project.data name_filter="*dir*" . map .to_text
             filtered2.should_equal (resolve ["subdirectory"])
 
         Test.specify "should list files in a directory recursively" <|
