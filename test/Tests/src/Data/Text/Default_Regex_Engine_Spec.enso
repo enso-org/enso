@@ -4,8 +4,9 @@ import Standard.Test
 
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Span
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -84,12 +85,11 @@ spec =
 
     Test.group "The default regex engine's Pattern.match" <|
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
-            # engine = Default_Engine.new
-            # pattern = engine.compile "a" []
-            # input = "a ab abc a bc bcd"
-            # match = pattern.match input mode=Mode.First
-            # match . should_be_a Regex.Match
-            Nothing
+            engine = Default_Engine.new
+            pattern = engine.compile "a" []
+            input = "a ab abc a bc bcd"
+            match = pattern.match input mode=Mode.First
+            match . should_be_a Default_Engine.Match
 
         Test.specify "should be able to `match` N instances of the pattern in the input" <|
             Nothing
@@ -98,6 +98,9 @@ spec =
             Nothing
 
         Test.specify "should be able to `match` the pattern against the entire input" <|
+            Nothing
+
+        Test.specify "should be able to `match` the pattern against bounded input" <|
             Nothing
 
         Test.specify "should be able to `match` in ascii mode" <|
@@ -121,5 +124,147 @@ spec =
         Test.specify "should be able to `match` in unix lines mode" <|
             Nothing
 
-    Test.group "The default engine's `Match` type" <|
-        Nothing
+    Test.group "Match.group" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the full match with index 0" <|
+            match.group 0 . should_equal "aa ab abc a bc bcd"
+
+        Test.specify "should return the group contents if it matches by index" <|
+            match.group 1 . should_equal "aa ab "
+
+        Test.specify "should return the group contents if it matches by name" <|
+            match.group "letters" . should_equal "abc a bc bcd"
+
+        Test.specify "should return Nothing if the group did not match" <|
+            match.group 3 . should_equal Nothing
+
+        Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
+            match.group "fail" . should_fail_with Regex.No_Such_Group_Error
+            match.group 5 . should_fail_with Regex.No_Such_Group_Error
+
+        Test.specify "should make named groups accessible by index" <|
+            match.group 2 . should_equal (match.group "letters")
+
+    Test.group "Match.groups" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the results of all groups" <|
+            groups = match.groups
+            groups.length . should_equal 5
+            groups.should_equal ["aa ab abc a bc bcd", "aa ab ", "abc a bc bcd", Nothing, Nothing]
+
+        Test.specify "should replace unmatched groups by a user-specified value" <|
+            groups = match.groups "UNMATCHED"
+            groups.length . should_equal 5
+            groups.should_equal ["aa ab abc a bc bcd", "aa ab ", "abc a bc bcd", "UNMATCHED", "UNMATCHED"]
+
+    Test.group "Match.named_groups" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the results of all named groups" <|
+            groups = match.named_groups
+            groups.size . should_equal 2
+            groups.get "letters" . should_equal "abc a bc bcd"
+            groups.get "empty" . should_equal Nothing
+
+        Test.specify "should replace unmatched groups by a user-specified value" <|
+            groups = match.named_groups "UNMATCHED"
+            groups.size . should_equal 2
+            groups.get "letters" . should_equal "abc a bc bcd"
+            groups.get "empty" . should_equal "UNMATCHED"
+
+    Test.group "Match.start" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the start of a group by index" <|
+            match.start 1 . should_equal 0
+
+        Test.specify "should return the start of a group by name" <|
+            match.start "letters" . should_equal 6
+
+        Test.specify "should return Nothing if the group didn't match" <|
+            match.start 3 . should_equal Nothing
+            match.start "empty" . should_equal Nothing
+
+        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            match.start 5 . should_fail_with Regex.No_Such_Group_Error
+            match.start "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+
+    Test.group "Match.end" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the end of a group by index" <|
+            match.end 1 . should_equal 6
+
+        Test.specify "should return the end of a group by name" <|
+            match.end "letters" . should_equal 18
+
+        Test.specify "should return Nothing if the group didn't match" <|
+            match.end 3 . should_equal Nothing
+            match.end "empty" . should_equal Nothing
+
+        Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
+            match.end 5 . should_fail_with Regex.No_Such_Group_Error
+            match.end "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+
+    Test.group "Match.span" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should get the span of a group by index" <|
+            match.span 1 . should_equal (Span.new 0 6 input)
+
+        Test.specify "should get the span of a group by name" <|
+            match.span "letters" . should_equal (Span.new 6 18 input)
+
+        Test.specify "should return Nothing if the group didn't match" <|
+            match.span 3 . should_equal Nothing
+            match.span "empty" . should_equal Nothing
+
+        Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
+            match.span 5 . should_fail_with Regex.No_Such_Group_Error
+            match.span "nonexistent" . should_fail_with Regex.No_Such_Group_Error
+
+    Test.group "Match.start_position" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the region start over which this match was performed" <|
+            match.start_position . should_equal 0
+
+    Test.group "Match.end_position" <|
+        engine = Default_Engine.new
+        pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+        input = "aa ab abc a bc bcd"
+        match = pattern.match input mode=Mode.First
+        match . should_be_a Default_Engine.Match
+
+        Test.specify "should return the region end over which this match was performed" <|
+            match.end_position . should_equal 18

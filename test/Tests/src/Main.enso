@@ -32,7 +32,6 @@ import project.Data.Text_Spec
 import project.Data.Time.Spec as Time_Spec
 import project.Data.Vector_Spec
 import project.Data.Text.Regex_Spec
-import project.Data.Text.Match_Spec
 import project.Data.Text.Default_Regex_Engine_Spec
 import project.Data.Text.Span_Spec
 
@@ -77,7 +76,6 @@ main = Test.Suite.run_main <|
     # R_Interop_Spec.spec
     # Range_Spec.spec
     Default_Regex_Engine_Spec.spec
-    Match_Spec.spec
     Regex_Spec.spec
     # Runtime_Spec.spec
     Span_Spec.spec

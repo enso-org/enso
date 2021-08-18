@@ -28,6 +28,7 @@ from Standard.Builtins import Java
 import Standard.Base.Error.Extensions as Errors
 
 polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import java.util.regex.PatternSyntaxException
 polyglot java import java.util.regex.Pattern as Java_Pattern
 polyglot java import java.util.regex.Matcher as Java_Matcher
@@ -166,7 +167,7 @@ type Pattern
             internal_matcher = this.build_matcher input start end
 
             if internal_matcher . find offset . not then Nothing else
-                Match internal_matcher
+                Match internal_matcher start end
 
         do_match_mode mode start end offset=0 =
             case mode of
@@ -197,21 +198,7 @@ type Match
     ## PRIVATE
 
        A representation of a regular expression match.
-    type Match (internal_match : Java_Matcher)
-
-    ## PRIVATE
-
-       Gets the internal group structure for the given identifier.
-
-       Arguments:
-       - id: The identifier of the group to get.
-    internal_group : Integer | Text -> Group ! No_Such_Group_Error
-    internal_group = Errors.unimplemented
-    # internal_group id = case id of
-        # Integer -> if id >= this.groups_by_index.length then Error.throw (No_Such_Group_Error id) else
-            # this.groups_by_index.at id
-        # Text -> this.groups_by_name.get id . map_error case _ of
-            # Map.No_Value_For_Key_Error _ -> No_Such_Group_Error id
+    type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer)
 
     ## Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
@@ -229,8 +216,9 @@ type Match
 
        > Example
          TODO
-    group : Integer | Text -> Text | Nothing ! No_Such_Group_Error
-    group id = this.internal_group id . map_nothing .text
+    group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
+    group id =
+        Panic.recover (this.internal_match.group id) . map_error (here.handle_error _ id)
 
     ## Gets a vector containing the results of _all_ of the capturing groups in
        the pattern, replacing the value of groups that did not participate in
@@ -250,10 +238,12 @@ type Match
        > Example
          TODO
     groups : (a : Any) -> Vector.Vector (Text | a)
-    groups default=Nothing = this.groups_by_index.map x->
-        case x.text of
-            Nothing -> default
-            a -> a
+    groups default=Nothing =
+        group_numbers = 0.up_to this.internal_match.groupCount+1
+        group_numbers.map n->
+            case this.group n of
+                Nothing -> default
+                a -> a
 
     ## Gets a map containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
@@ -266,10 +256,15 @@ type Match
        > Example
          TODO
     named_groups : (a : Any) -> Map Text (Text | a)
-    named_groups default=Nothing = this.groups_by_name.map x->
-        case x.text of
-            Nothing -> default
-            a -> a
+    named_groups default=Nothing =
+        group_names = Vector.Vector <|
+            Regex_Utils.get_group_names this.internal_match.pattern
+        pairs = group_names.map name->
+            value = case this.group name of
+                Nothing -> default
+                a -> a
+            [name, value]
+        Map.from_vector pairs
 
     ## Gets the index of the first character captured by the group with the
        given identifier, or `Nothing` if the group did not participate in the
@@ -285,8 +280,11 @@ type Match
 
        > Example
          TODO
-    start : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
-    start id = this.internal_group id . map_nothing .start
+    start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    start id =
+        result = Panic.recover (this.internal_match.start id)
+        no_errors = result.map_error (here.handle_error _ id)
+        if no_errors == -1 then Nothing else no_errors
 
     ## Gets the index of the first character after `start` that was not captured
        by the group with the given identifier, or `Nothing` if the group did not
@@ -302,8 +300,11 @@ type Match
 
        > Example
          TODO
-    end : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
-    end id = this.internal_group id . map_nothing .end
+    end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    end id =
+        result = Panic.recover (this.internal_match.end id)
+        no_errors = result.map_error (here.handle_error _ id)
+        if no_errors == -1 then Nothing else no_errors
 
     ## Returns the span matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match.
@@ -318,11 +319,10 @@ type Match
 
        > Example
          TODO
-    span : Integer | Text -> Span | Nothing ! No_Such_Group_Error
-    span id = this.internal_group id |> group->
-        case group.text of
-            Nothing -> Nothing
-            _ -> Span.new (this.start id) (this.end id) (this.group 0)
+    span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
+    span id = case this.group id of
+        Nothing -> Nothing
+        _ -> Span.new (this.start id) (this.end id) (this.group 0)
 
     ## Returns the start character index of the match's region.
 
@@ -347,6 +347,20 @@ type Match
          TODO
     end_position : Integer
     end_position = this.region_end
+
+## PRIVATE
+
+   Handle errors when looking up group info.
+handle_error : Any -> (Text | Integer) -> Any
+handle_error error id = case error of
+    Polyglot_Error err ->
+        is_ioob = Java.is_instance err IndexOutOfBoundsException
+        is_iae = Java.is_instance err IllegalArgumentException
+        maps_to_no_such_group = is_ioob || is_iae
+
+        if maps_to_no_such_group.not then err else
+            Regex.No_Such_Group_Error id
+    other -> other
 
 ## Options specific to the `Default` regular expression engine.
 type Option
