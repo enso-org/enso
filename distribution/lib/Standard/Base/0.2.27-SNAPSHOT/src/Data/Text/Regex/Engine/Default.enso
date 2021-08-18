@@ -21,10 +21,11 @@ import Standard.Base.Data.Text.Regex.Engine
 import Standard.Base.Data.Text.Regex.Option as Global_Option
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Polyglot.Java as Java_Ext
+import Standard.Base.Data.Text.Span
 
 from Standard.Builtins import Java
 
-import Standard.Base.Error.Extensions as Error
+import Standard.Base.Error.Extensions as Errors
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.util.regex.PatternSyntaxException
@@ -152,7 +153,7 @@ type Pattern
         Vector.Vector (Regex_Utils.get_group_names this.internal_pattern)
 
     ## TODO
-    match : Text -> Mode.Mode -> Regex.Match | Vector.Vector Regex.Match | Nothing
+    match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
     match input mode=Mode.All =
         do_match_mode mode start end =
             internal_matcher = this.internal_pattern.matcher input . region start end
@@ -165,9 +166,9 @@ type Pattern
                 Mode.First -> if internal_matcher.find.not then Nothing else
                     IO.println this.candidate_group_names
                     Nothing
-                Integer -> Error.unimplemented
-                Mode.All -> Error.unimplemented
-                Mode.Full -> Error.unimplemented
+                Integer -> Errors.unimplemented
+                Mode.All -> Errors.unimplemented
+                Mode.Full -> Errors.unimplemented
                 Mode.Bounded _ _ _ -> Nothing
 
         case mode of
@@ -176,15 +177,171 @@ type Pattern
 
     ## TODO
     # find : Text -> Mode.Mode -> Text | Vector.Veector Text | Nothing
-    # find input mode=Mode.All = Error.unimplemented
+    # find input mode=Mode.All = Errors.unimplemented
 
     ## TODO
     # split : Text -> Mode.Mode -> Vector.Vector Text | Nothing
-    # split input mode=Mode.All = Error.unimplemented
+    # split input mode=Mode.All = Errors.unimplemented
 
     ## TODO
     # replace : Text -> Text -> Mode.Mode -> Text
-    # replace input replacement mode=Mode.All = Error.unimplemented
+    # replace input replacement mode=Mode.All = Errors.unimplemented
+
+type Match
+
+    ## PRIVATE
+
+       A representation of a regular expression match.
+    type Match (internal_match : Java_Matcher)
+
+    ## PRIVATE
+
+       Gets the internal group structure for the given identifier.
+
+       Arguments:
+       - id: The identifier of the group to get.
+    internal_group : Integer | Text -> Group ! No_Such_Group_Error
+    internal_group = Errors.unimplemented
+    # internal_group id = case id of
+        # Integer -> if id >= this.groups_by_index.length then Error.throw (No_Such_Group_Error id) else
+            # this.groups_by_index.at id
+        # Text -> this.groups_by_name.get id . map_error case _ of
+            # Map.No_Value_For_Key_Error _ -> No_Such_Group_Error id
+
+    ## Gets the text matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+
+       Arguments:
+       - id: The index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         TODO
+    group : Integer | Text -> Text | Nothing ! No_Such_Group_Error
+    group id = this.internal_group id . map_nothing .text
+
+    ## Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+
+       > Example
+         TODO
+    groups : (a : Any) -> Vector.Vector (Text | a)
+    groups default=Nothing = this.groups_by_index.map x->
+        case x.text of
+            Nothing -> default
+            a -> a
+
+    ## Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match.
+
+       > Example
+         TODO
+    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups default=Nothing = this.groups_by_name.map x->
+        case x.text of
+            Nothing -> default
+            a -> a
+
+    ## Gets the index of the first character captured by the group with the
+       given identifier, or `Nothing` if the group did not participate in the
+       match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the start index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    start : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
+    start id = this.internal_group id . map_nothing .start
+
+    ## Gets the index of the first character after `start` that was not captured
+       by the group with the given identifier, or `Nothing` if the group did not
+       participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    end : Integer | Text -> Integer | Nothing ! No_Such_Group_Error
+    end id = this.internal_group id . map_nothing .end
+
+    ## Returns the span matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    span : Integer | Text -> Span | Nothing ! No_Such_Group_Error
+    span id = this.internal_group id |> group->
+        case group.text of
+            Nothing -> Nothing
+            _ -> Span.new (this.start id) (this.end id) (this.group 0)
+
+    ## Returns the start character index of the match's region.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    start_position : Integer
+    start_position = this.region_start
+
+    ## Returns the end character index of the match's region.
+
+       ! What is a Character?
+         A character is defined as an Extended Grapheme Cluster, see Unicode
+         Standard Annex 29. This is the smallest unit that still has semantic
+         meaning in most text-processing applications.
+
+       > Example
+         TODO
+    end_position : Integer
+    end_position = this.region_end
 
 ## Options specific to the `Default` regular expression engine.
 type Option
