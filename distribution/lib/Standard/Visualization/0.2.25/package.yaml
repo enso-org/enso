@@ -1,6 +1,6 @@
-name: Geo
+name: Visualization
 namespace: Standard
-version: 0.2.25-SNAPSHOT
+version: 0.2.25
 license: APLv2
 authors:
   - name: Enso Team
