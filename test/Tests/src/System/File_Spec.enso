@@ -94,7 +94,7 @@ spec =
             immediate.sort.should_equal ["books.json", "sample.txt", "subdirectory"]
 
             filtered1 = to_paths (Enso_Project.data.list name_filter="*.txt")
-            filtered1.should_equal ["sample.txt"]
+            filtered1.should_equal ["s[a-cw]mple.{t?t,md}"]
 
             filtered2 = to_paths (Enso_Project.data.list name_filter="*dir*")
             filtered2.should_equal ["subdirectory"]
