@@ -92,6 +92,10 @@ object LibraryUploader {
     }
   }
 
+  /** Indicates that the library upload has failed. */
+  case class UploadFailedError(message: String)
+      extends RuntimeException(message)
+
   /** Creates an URL for the upload, including information identifying the
     * library version.
     */
@@ -222,11 +226,7 @@ object LibraryUploader {
         val errorMessage =
           s"Upload failed: $message (Status code: ${response.statusCode})."
         logger.error(errorMessage)
-        Failure(
-          new RuntimeException(
-            errorMessage
-          )
-        )
+        Failure(UploadFailedError(errorMessage))
       }
     }
   }

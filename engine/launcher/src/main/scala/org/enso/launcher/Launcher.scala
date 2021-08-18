@@ -368,12 +368,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     val settings = runner
       .uploadLibrary(
         path,
-        uploadUrl.getOrElse {
-          throw new IllegalArgumentException(
-            "The default repository is currently not defined. " +
-            "You need to explicitly specify the `--upload-url`."
-          )
-        },
+        uploadUrl.getOrElse(Constants.defaultUploadUrl),
         authToken.orElse(LauncherEnvironment.getEnvVar("ENSO_AUTH_TOKEN")),
         cliOptions.hideProgress,
         logLevel,

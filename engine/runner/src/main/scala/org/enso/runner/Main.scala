@@ -7,15 +7,16 @@ import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.editions.DefaultEdition
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
+import org.enso.libraryupload.LibraryUploader.UploadFailedError
 import org.enso.loggingservice.LogLevel
 import org.enso.pkg.{Contact, PackageManager, Template}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.PolyglotException
+
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
-
 import scala.Console.err
 import scala.jdk.CollectionConverters._
 import scala.util.Try
@@ -700,13 +701,20 @@ object Main {
             exitFail()
           }
 
-      ProjectUploader.uploadProject(
-        projectRoot  = projectRoot,
-        uploadUrl    = line.getOptionValue(UPLOAD_OPTION),
-        authToken    = Option(line.getOptionValue(AUTH_TOKEN)),
-        showProgress = !line.hasOption(HIDE_PROGRESS)
-      )
-      exitSuccess()
+      try {
+        ProjectUploader.uploadProject(
+          projectRoot  = projectRoot,
+          uploadUrl    = line.getOptionValue(UPLOAD_OPTION),
+          authToken    = Option(line.getOptionValue(AUTH_TOKEN)),
+          showProgress = !line.hasOption(HIDE_PROGRESS)
+        )
+        exitSuccess()
+      } catch {
+        case UploadFailedError(_) =>
+          // We catch this error to avoid printing an unnecessary stack trace.
+          // The error itself is already logged.
+          exitFail()
+      }
     }
 
     if (line.hasOption(RUN_OPTION)) {

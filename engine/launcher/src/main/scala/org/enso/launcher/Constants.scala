@@ -11,4 +11,7 @@ object Constants {
     */
   val uploadIntroducedVersion: SemVer =
     SemVer(0, 2, 17, Some("SNAPSHOT"))
+
+  /** The upload URL associated with the main Enso library repository. */
+  val defaultUploadUrl = "https://publish.libraries.release.enso.org/"
 }

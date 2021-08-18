@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const express = require("express");
+const crypto = require("crypto");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -63,13 +64,34 @@ if (argv.upload == "disabled") {
     console.log("WARNING: Uploads are enabled without any authentication.");
   }
 }
+
+app.get("/health", function (req, res) {
+  res.status(200).send("OK");
+});
+
 app.use(express.static(argv.root));
 
+let port = argv.port;
+if (process.env.PORT) {
+  port = process.env.PORT;
+  console.log(
+    `Overriding the port to ${port} set by the PORT environment variable.`
+  );
+}
 console.log(
-  `Serving the repository located under ${argv.root} on port ${argv.port}.`
+  `Serving the repository located under ${argv.root} on port ${port}.`
 );
 
-app.listen(argv.port);
+const server = app.listen(port);
+
+function handleShutdown() {
+  console.log("Received a signal - shutting down.");
+  server.close(() => {
+    console.log("Server terminated.");
+  });
+}
+process.on("SIGTERM", handleShutdown);
+process.on("SIGINT", handleShutdown);
 
 /// Specifies if a particular file can be compressed in transfer, if supported.
 function shouldCompress(req, res) {
@@ -121,7 +143,21 @@ async function handleUpload(req, res) {
     }
   }
 
-  const libraryPath = path.join(libraryRoot, namespace, name, version);
+  const libraryBasePath = path.join(libraryRoot, namespace, name);
+  const libraryPath = path.join(libraryBasePath, version);
+
+  /** Finds a name for a temporary directory to move the files to,
+      so that the upload can then be committed atomically by renaming
+      a single directory. */
+  function findRandomTemporaryDirectory() {
+    const randomName = crypto.randomBytes(32).toString("hex");
+    const temporaryPath = path.join(libraryBasePath, randomName);
+    if (fs.existsSync(temporaryPath)) {
+      return findRandomTemporaryDirectory();
+    }
+
+    return temporaryPath;
+  }
 
   if (fs.existsSync(libraryPath)) {
     return fail(
@@ -132,11 +168,14 @@ async function handleUpload(req, res) {
     );
   }
 
-  await fsPromises.mkdir(libraryPath, { recursive: true });
+  const temporaryPath = findRandomTemporaryDirectory();
+  await fsPromises.mkdir(libraryBasePath, { recursive: true });
+  await fsPromises.mkdir(temporaryPath, { recursive: true });
 
   console.log(`Uploading library [${namespace}.${name}:${version}].`);
   try {
-    await putFiles(libraryPath, req.files);
+    await putFiles(temporaryPath, req.files);
+    await fsPromises.rename(temporaryPath, libraryPath);
   } catch (error) {
     console.log(`Upload failed: [${error}].`);
     console.error(error.stack);
@@ -154,7 +193,7 @@ function isVersionValid(version) {
 
 /// Checks if the namespace/username is valid.
 function isNamespaceValid(namespace) {
-  return /^[a-z][a-z0-9]*$/.test(namespace) && namespace.length >= 3;
+  return /^[A-Za-z][a-z0-9]*$/.test(namespace) && namespace.length >= 3;
 }
 
 /** Checks if the library name is valid.
@@ -194,6 +233,7 @@ async function putFiles(directory, files) {
     const file = files[i];
     const filename = file.originalname;
     const destination = path.join(directory, filename);
-    await fsPromises.rename(file.path, destination);
+    await fsPromises.copyFile(file.path, destination);
+    await fsPromises.unlink(file.path);
   }
 }
