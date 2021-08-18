@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.TruffleFile;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -60,6 +59,14 @@ public class EnsoFile {
 
   public void createDirectories() throws IOException {
     this.truffleFile.createDirectories();
+  }
+
+  public EnsoFile[] list() throws IOException {
+    return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
+  }
+
+  public EnsoFile relativize(EnsoFile other) {
+    return new EnsoFile(this.truffleFile.relativize(other.truffleFile));
   }
 
   public boolean isRegularFile() {
