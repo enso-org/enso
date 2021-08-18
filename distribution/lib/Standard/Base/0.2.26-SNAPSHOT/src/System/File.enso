@@ -86,31 +86,31 @@ home = here.new (Prim_Io.get_user_home)
 ## Lists files contained in the provided directory.
 
    Arguments:
-   - name_filter: A glob pattern that can be used to filter the returned
-     files. If it is not specified, all files are returned.
-   - recursive: Specifies whether the returned list of files should include
-     also files from the subdirectories. If set to `False` (the default),
-     only the immediate children of the listed directory are considered.
+   - name_filter: A glob pattern that can be used to filter the returned files.
+     If it is not specified, all files are returned.
+   - recursive: Specifies whether the returned list of files should include also
+     files from the subdirectories. If set to `False` (the default), only the
+     immediate children of the listed directory are considered.
 
-   Keep in mind that if `recursive` is set to True and a `name_filter` is
-   used, the function will return files from subdirectories only if the set
-   `name_filter` allows crossing directories. So even with `recursive=True`
-   a filter `*.txt` will only return files that are immediate children of
-   the listed directory, to list files recursively you need to use a filter
-   like `**.txt` or `*/*` (which will match only files that are exactly one
-   directory down from the listed directory) or no filter at all.
+   Keep in mind that if `recursive` is set to True and a `name_filter` is used,
+   the function will return files from subdirectories only if the set
+   `name_filter` allows crossing directories. So even with `recursive=True` a
+   filter `*.txt` will only return files that are immediate children of the
+   listed directory, to list files recursively you need to use a filter like
+   `**.txt` or `*/*` (which will match only files that are exactly one directory
+   down from the listed directory) or no filter at all.
 
    > Example
-     List all files with `.md` extension in the example directory and any of
-     its subdirectories.
+     List all files with `.md` extension in the example directory and any of its
+     subdirectories.
 
          import Standard.Examples
 
-         example_list_md_files =
-             Examples.data_dir.list name_filter="**.md" recursive=True
+         example_list_files =
+             File.list Examples.data_dir name_filter="**.md" recursive=True
 list : (File | Text) -> Text -> Boolean -> Vector.Vector File
 list directory name_filter=Nothing recursive=False =
-    here.new directory . list name_filter recursive
+    here.new directory . list name_filter=name_filter recursive=recursive
 
 type File
 
@@ -803,7 +803,7 @@ type File_Error
 
    Utility function that lists immediate children of a directory.
 list_immediate_children directory =
-    arr = this.prim_file.list
+    arr = directory.prim_file.list
     Vector.new (Polyglot.get_array_size arr) ix->
         File (arr.at ix)
 
