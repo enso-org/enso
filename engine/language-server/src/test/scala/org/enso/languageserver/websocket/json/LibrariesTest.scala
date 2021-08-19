@@ -148,7 +148,8 @@ class LibrariesTest extends BaseServerTest {
           val idMatches =
             response("id").flatMap(_.asNumber).flatMap(_.toInt).contains(1)
           if (idMatches) {
-            rawResponse shouldEqual json"""
+            rawResponse shouldEqual
+            json"""
               { "jsonrpc": "2.0",
                 "id": 1,
                 "result": null

@@ -51,7 +51,7 @@ import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 
 import java.nio.file
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -225,21 +225,6 @@ class BaseServerTest
       Api.VerifyModulesIndexResponse(Seq())
     )
 
-    locally {
-      val dataRoot = getTestDirectory.resolve("test_data")
-      val editions = dataRoot.resolve("editions")
-      Files.createDirectories(editions)
-      val distribution   = file.Path.of("distribution")
-      val currentEdition = buildinfo.Info.currentEdition + ".yaml"
-      val dest           = editions.resolve(currentEdition)
-      if (Files.notExists(dest)) {
-        Files.copy(
-          distribution.resolve("editions").resolve(currentEdition),
-          dest
-        )
-      }
-    }
-
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
     val distributionManager = new DistributionManager(environment)
@@ -301,6 +286,13 @@ class BaseServerTest
       config                 = config
     )
   }
+
+  /** As we are testing the language server, we want to imitate the location
+    * context of the runner.jar, while the default implementation of this method
+    * was more suited towards testing the launcher.
+    */
+  override def fakeExecutablePath(portable: Boolean): Path =
+    Path.of("distribution/component/runner.jar")
 
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true
