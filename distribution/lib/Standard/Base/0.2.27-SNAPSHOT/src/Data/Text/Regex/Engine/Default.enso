@@ -1,18 +1,8 @@
 ## Enso's default regular expression matching engine.
 
-   ==== TODO ====
-   Regex engines should conform to the following requirements:
-   - Regex engines should be Unicode compliant by default. In such a mode, all
-     character classes must behave as specified in the "Unicode Technical
-     Standard 18: Unicode Regular Expression Annex C: Compatability Properties"
-   - All engines must support the common regex syntax as described in
-     `Standard.Base.Data.Text.Regex`.
-   - Regex engines must provide the standard options as described in
-     `Standard.Base.Data.Text.Regex.Option`.
-   - Engines should provide a _full specification of their syntax_ along with
-     their type.
-
-   How on earth do we acually do this with unicode-aware character boundaries?
+    TODO Synatx
+    TODO Description
+    TODO Characters and limitations on positions
 
 from Standard.Base import all
 
@@ -51,9 +41,7 @@ polyglot java import org.enso.base.Regex_Utils
 new : Vector.Vector Option -> Engine
 new opts=[] = Engine opts
 
-## Engine is an interface that must...
-   TODO syntax
-   TODO Write down and document the expected interface.
+## The default implementation of the `Data.Text.Regex.Engine.Engine` interface.
 type Engine
 
     ## PRIVATE
@@ -132,8 +120,7 @@ type Engine
     escape : Text -> Text
     escape expression = Java_Pattern.quote expression
 
-## Pattern is an interface that must...
-   TODO Document this.
+## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
 
     ## PRIVATE
@@ -147,6 +134,14 @@ type Pattern
     type Pattern (internal_pattern : Java_Pattern) (options : Vector.Vector (Global_Option.Option | Option)) (engine : Engine)
 
     ## PRIVATE
+
+       Constructs an internal matcher, settings the region as provided and
+       handling some additional options.
+
+       Arguments:
+       - input: The text on which it will be matching.
+       - start: The start of the matcher's region.
+       - end: The end of the matcher's region.
     build_matcher : Text -> Integer -> Integer -> Java_Matcher
     build_matcher input start end =
         internal_matcher = this.internal_pattern.matcher input . region start end
@@ -158,7 +153,67 @@ type Pattern
 
         internal_matcher
 
-    ## TODO
+    ## ADVANCED
+
+       Tries to match the provided `input` against the pattern `this`.
+
+       Arguments:
+       - input: The text to match the pattern described by `this` against.
+       - mode: The matching mode to use.
+
+       This method will _always_ return `Nothing` if it fails to match.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+
+       > Example
+         Match the first instance of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input mode=Mode.First
+
+       > Example
+         Match up to the first 3 instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input mode=3
+
+       > Example
+         Match all instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.match input
+
+       > Example
+         Check if the pattern `".*"` matches on the entire input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".*" []
+                 input = "abcdefghij"
+                 pattern.match input mode=Mode.Full
     match : Text -> Mode.Mode -> Match | Vector.Vector Match | Nothing
     match input mode=Mode.All =
         do_match_mode mode start end = case mode of
@@ -221,6 +276,30 @@ type Pattern
                 if start < end then do_match_mode sub_mode start end else
                     Panic.throw Invalid_Bounds_Error
             _ -> do_match_mode mode 0 input.length
+
+    ## ADVANDED
+
+       Returns `True` if the input matches against the pattern described by
+       `this`, otherwise `False`.
+
+       Arguments:
+       - input: The text to check for matching.
+
+       > Example
+         Check if the input "aa" matches against the pattern `".."`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "aa"
+                 pattern.matches input
+    matches : Text -> Boolean
+    matches input = case this.match input mode=Mode.All of
+        Match _ _ _ -> True
+        Vector.Vector _ -> True
+        _ -> False
 
     ## TODO
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
@@ -291,6 +370,7 @@ type Pattern
                 Mode_Error "Bounded replacements are not well-formed."
             _ -> do_replace_mode mode 0 input.length
 
+## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
 type Match
 
     ## PRIVATE

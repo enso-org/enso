@@ -83,6 +83,19 @@ spec =
             engine = Default_Engine.new
             engine.escape pattern . should_equal "\Qhttp://example.com\E"
 
+    Test.group "The default regex engine's Pattern.matches" <|
+        engine = Default_Engine.new
+
+        Test.specify "should return True when the pattern matches against the input" <|
+            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            input = "aa ab abc a bc bcd"
+            pattern.matches input . should_be_true
+
+        Test.specify "should return False when the pattern doesn't match against the input" <|
+            pattern = engine.compile "aaz" []
+            input = "aa ab abc a bc bcd"
+            pattern.matches input . should_be_false
+
     Test.group "The default regex engine's Pattern.match" <|
         engine = Default_Engine.new
 
