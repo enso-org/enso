@@ -44,4 +44,9 @@ object LocalLibraryManagerProtocol {
 
   /** A response to [[FindLibrary]]. */
   case class FindLibraryResponse(libraryRoot: Option[Path])
+
+  case class LocalLibraryNotFoundError(libraryName: LibraryName)
+      extends RuntimeException(
+        s"Local library [$libraryName] has not been found."
+      )
 }

@@ -2,6 +2,7 @@ package org.enso.languageserver.libraries
 
 import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
@@ -9,8 +10,10 @@ import org.enso.librarymanager.local.{
   DefaultLocalLibraryProvider,
   LocalLibraryProvider
 }
+import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.pkg.PackageManager
 import org.enso.pkg.validation.NameValidation
+import org.enso.yaml.YamlHelper
 
 import java.io.File
 import java.nio.file.Files
@@ -22,18 +25,20 @@ class LocalLibraryManager(
   distributionManager: DistributionManager
 ) extends Actor
     with LazyLogging {
+  val localLibraryProvider = new DefaultLocalLibraryProvider(
+    distributionManager.paths.localLibrariesSearchPaths.toList
+  )
+
   override def receive: Receive = { case request: Request =>
     request match {
-      case GetMetadata(_) =>
-        logger.warn(
-          "Getting local library metadata is currently not implemented."
+      case GetMetadata(libraryName) =>
+        sender() ! getMetadata(libraryName)
+      case request: SetMetadata =>
+        sender() ! setMetadata(
+          request.libraryName,
+          description = request.description,
+          tagLine     = request.tagLine
         )
-        sender() ! Success(GetMetadataResponse(None, None))
-      case SetMetadata(_, _, _) =>
-        logger.error(
-          "Setting local library metadata is currently not implemented."
-        )
-        sender() ! Failure(new NotImplementedError())
       case ListLocalLibraries =>
         sender() ! listLocalLibraries()
       case Create(libraryName, authors, maintainers, license) =>
@@ -128,12 +133,42 @@ class LocalLibraryManager(
   private def findLibrary(
     libraryName: LibraryName
   ): Try[FindLibraryResponse] = Try {
-    val localLibraryProvider = new DefaultLocalLibraryProvider(
-      distributionManager.paths.localLibrariesSearchPaths.toList
-    )
     val pathOpt = localLibraryProvider.findLibrary(libraryName)
     FindLibraryResponse(pathOpt)
   }
+
+  private def getMetadata(libraryName: LibraryName): Try[GetMetadataResponse] =
+    for {
+      libraryRootPath <- localLibraryProvider
+        .findLibrary(libraryName)
+        .toRight(LocalLibraryNotFoundError(libraryName))
+        .toTry
+      manifestPath = libraryRootPath / LibraryManifest.filename
+      manifest <- YamlHelper.load[LibraryManifest](manifestPath)
+    } yield GetMetadataResponse(
+      description = manifest.description,
+      tagLine     = manifest.tagLine
+    )
+
+  private def setMetadata(
+    libraryName: LibraryName,
+    description: Option[String],
+    tagLine: Option[String]
+  ): Try[Unit] = for {
+    libraryRootPath <- localLibraryProvider
+      .findLibrary(libraryName)
+      .toRight(LocalLibraryNotFoundError(libraryName))
+      .toTry
+    manifestPath = libraryRootPath / LibraryManifest.filename
+    manifest <- YamlHelper.load[LibraryManifest](manifestPath)
+    updatedManifest = manifest.copy(
+      description = description,
+      tagLine     = tagLine
+    )
+  } yield FileSystem.writeTextFile(
+    manifestPath,
+    YamlHelper.toYaml(updatedManifest)
+  )
 
   /** Finds the edition associated with the current project, if specified in its
     * config.

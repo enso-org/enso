@@ -100,9 +100,13 @@ class LibrariesTest extends BaseServerTest {
       // TODO [RW] error handling (#1877)
     }
 
+    "get and set the metadata" in {
+      ???
+    }
+
     def port: Int = 47308
 
-    "create and publish a library" in {
+    "create, publish a library and fetch its manifest" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
