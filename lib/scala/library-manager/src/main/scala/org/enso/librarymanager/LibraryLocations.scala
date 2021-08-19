@@ -23,6 +23,11 @@ case class LibraryLocations(
 object LibraryLocations {
   private lazy val logger = Logger[LibraryLocations]
 
+  /** Resolves the [[LibraryLocations]] based on the [[DistributionManager]]
+    * which provides paths to the distribution and an optional [[LanguageHome]]
+    * which can provide paths to libraries bundled with the current language
+    * version.
+    */
   def resolve(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome]
