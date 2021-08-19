@@ -1,3 +1,4 @@
+## Enso's default regular expression matching engine.
 
    Enso's default regular expression engine uses Java's regular expression
    syntax, extended with support for the unicode character classes and
