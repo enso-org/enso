@@ -190,7 +190,7 @@ type Date
        Arguments:
        - locale: the locale used to define the notion of weeks of year.
 
-       ! Locale dependency
+       ! Locale Dependency
          Note that this operation is locale-specific. It varies both by the
          local definition of the first day of week and the definition of the
          first week of year. For example, in the US, the first day of the week
