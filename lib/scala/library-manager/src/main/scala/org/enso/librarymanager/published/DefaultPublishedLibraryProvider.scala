@@ -9,7 +9,6 @@ import org.enso.librarymanager.published.cache.{
 }
 
 import java.nio.file.Path
-import scala.annotation.tailrec
 import scala.util.{Success, Try}
 
 /** A default implementation of [[PublishedLibraryProvider]] which uses one
@@ -19,24 +18,8 @@ import scala.util.{Success, Try}
 class DefaultPublishedLibraryProvider(
   primaryCache: LibraryCache,
   auxiliaryCaches: List[ReadOnlyLibraryCache]
-) extends PublishedLibraryProvider {
+) extends CachedLibraryProvider(caches = primaryCache :: auxiliaryCaches) {
   private val logger = Logger[DefaultPublishedLibraryProvider]
-  private val caches: List[ReadOnlyLibraryCache] =
-    primaryCache :: auxiliaryCaches
-
-  @tailrec
-  private def findCached(
-    libraryName: LibraryName,
-    version: SemVer,
-    caches: List[ReadOnlyLibraryCache]
-  ): Option[Path] = caches match {
-    case head :: tail =>
-      head.findCachedLibrary(libraryName, version) match {
-        case Some(found) => Some(found)
-        case None        => findCached(libraryName, version, tail)
-      }
-    case Nil => None
-  }
 
   /** @inheritdoc */
   override def findLibrary(
@@ -44,7 +27,7 @@ class DefaultPublishedLibraryProvider(
     version: SemVer,
     recommendedRepository: Editions.Repository
   ): Try[Path] = {
-    val cached = findCached(libraryName, version, caches)
+    val cached = findCached(libraryName, version)
     cached.map(Success(_)).getOrElse {
       logger.trace(
         s"$libraryName was not found in any caches, it will need to be " +

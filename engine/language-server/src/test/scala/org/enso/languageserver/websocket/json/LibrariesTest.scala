@@ -2,6 +2,8 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import io.circe.{Json, JsonObject}
+import nl.gn0s1s.bump.SemVer
+import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
 import org.enso.librarymanager.published.repository.{
@@ -12,6 +14,20 @@ import org.enso.librarymanager.published.repository.{
 import java.nio.file.Files
 
 class LibrariesTest extends BaseServerTest {
+  override protected def customEdition: Option[Editions.RawEdition] = Some(
+    Editions.Raw.Edition
+      .make(
+        parent = Some(buildinfo.Info.currentEdition),
+        libraries = Seq(
+          Editions.Raw.PublishedLibrary(
+            name       = LibraryName("Foo", "Bar"),
+            version    = SemVer(1, 2, 3),
+            repository = "main"
+          )
+        )
+      )
+  )
+
   "LocalLibraryManager" should {
     "create a library project and include it on the list of local projects" in {
       val client = getInitialisedWsClient()
@@ -66,7 +82,8 @@ class LibrariesTest extends BaseServerTest {
                   "name": "My_Local_Lib",
                   "version": {
                     "type": "LocalLibraryVersion"
-                  }
+                  },
+                  "isCached": true
                 }
               ]
             }
@@ -254,21 +271,31 @@ class LibrariesTest extends BaseServerTest {
     }
   }
 
-  "editions/listDefinedLibraries" should {
-    "include Standard.Base in the list" in {
-      def containsBase(response: Json): Unit = {
-        val result = response.asObject.value("result").value
-        val libs   = result.asObject.value("availableLibraries").value
-        val parsed = libs.asArray.value.map(_.as[LibraryEntry])
-        val bases = parsed.collect {
-          case Right(
-                LibraryEntry("Standard", "Base", PublishedLibraryVersion(_, _))
-              ) =>
-            ()
-        }
-        bases should have size 1
-      }
+  case class PublishedLibrary(
+    namespace: String,
+    name: String,
+    isCached: Boolean
+  )
 
+  def extractPublishedLibraries(response: Json): Seq[PublishedLibrary] = {
+    val result = response.asObject.value("result").value
+    val libs   = result.asObject.value("availableLibraries").value
+    val parsed = libs.asArray.value.map(_.as[LibraryEntry])
+    parsed.collect {
+      case Right(
+            LibraryEntry(
+              namespace,
+              name,
+              PublishedLibraryVersion(_, _),
+              isCached
+            )
+          ) =>
+        PublishedLibrary(namespace, name, isCached)
+    }
+  }
+
+  "editions/listDefinedLibraries" should {
+    "include expected libraries in the list" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -281,7 +308,14 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      containsBase(client.expectSomeJson())
+      val published = extractPublishedLibraries(client.expectSomeJson())
+
+      published should contain(
+        PublishedLibrary("Standard", "Base", isCached = true)
+      )
+      published should contain(
+        PublishedLibrary("Foo", "Bar", isCached = false)
+      )
 
       val currentEditionName = buildinfo.Info.currentEdition
       client.send(json"""
@@ -296,7 +330,9 @@ class LibrariesTest extends BaseServerTest {
             }
           }
           """)
-      containsBase(client.expectSomeJson())
+      extractPublishedLibraries(client.expectSomeJson()) should contain(
+        PublishedLibrary("Standard", "Base", isCached = true)
+      )
     }
   }
 

@@ -1330,6 +1330,7 @@ interface LibraryEntry {
   namespace: String;
   name: String;
   version: LibraryVersion;
+  isCached: Boolean;
 }
 ```
 

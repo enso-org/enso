@@ -14,6 +14,7 @@ import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
+  LibraryConfig,
   LocalLibraryManager,
   ProjectSettingsManager
 }
@@ -36,6 +37,9 @@ import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
+import org.enso.librarymanager.LibraryLocations
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
+import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.loggingservice.{JavaLoggingLogHandler, LogLevel}
 import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -292,24 +296,34 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     "local-library-manager"
   )
 
-  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
-    mainComponent            = initializationComponent,
-    bufferRegistry           = bufferRegistry,
-    capabilityRouter         = capabilityRouter,
-    fileManager              = fileManager,
-    contentRootManager       = contentRootManagerActor,
-    contextRegistry          = contextRegistry,
-    suggestionsHandler       = suggestionsHandler,
-    stdOutController         = stdOutController,
-    stdErrController         = stdErrController,
-    stdInController          = stdInController,
-    runtimeConnector         = runtimeConnector,
-    idlenessMonitor          = idlenessMonitor,
-    projectSettingsManager   = projectSettingsManager,
+  val libraryLocations =
+    LibraryLocations.resolve(distributionManager, Some(languageHome))
+
+  val libraryConfig = LibraryConfig(
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    config                   = languageServerConfig
+    localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+    publishedLibraryCache =
+      PublishedLibraryCache.makeReadOnlyCache(libraryLocations)
+  )
+
+  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+    mainComponent          = initializationComponent,
+    bufferRegistry         = bufferRegistry,
+    capabilityRouter       = capabilityRouter,
+    fileManager            = fileManager,
+    contentRootManager     = contentRootManagerActor,
+    contextRegistry        = contextRegistry,
+    suggestionsHandler     = suggestionsHandler,
+    stdOutController       = stdOutController,
+    stdErrController       = stdErrController,
+    stdInController        = stdInController,
+    runtimeConnector       = runtimeConnector,
+    idlenessMonitor        = idlenessMonitor,
+    projectSettingsManager = projectSettingsManager,
+    libraryConfig          = libraryConfig,
+    config                 = languageServerConfig
   )
   log.trace(
     "Created JSON connection controller factory [{}].",

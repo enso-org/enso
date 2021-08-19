@@ -6,7 +6,7 @@ import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
 import org.enso.distribution.{DistributionManager, LanguageHome}
-import org.enso.editions.EditionResolver
+import org.enso.editions.{EditionResolver, Editions}
 import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
@@ -24,6 +24,7 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries.{
   EditionReferenceResolver,
+  LibraryConfig,
   LocalLibraryManager,
   ProjectSettingsManager
 }
@@ -37,6 +38,9 @@ import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.librarymanager.LibraryLocations
+import org.enso.librarymanager.local.DefaultLocalLibraryProvider
+import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.data.TypeGraph
 import org.enso.polyglot.runtime.Runtime.Api
@@ -47,7 +51,7 @@ import org.enso.text.Sha3_224VersionCalculator
 import org.scalatest.OptionValues
 
 import java.nio.file
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -221,21 +225,6 @@ class BaseServerTest
       Api.VerifyModulesIndexResponse(Seq())
     )
 
-    locally {
-      val dataRoot = getTestDirectory.resolve("test_data")
-      val editions = dataRoot.resolve("editions")
-      Files.createDirectories(editions)
-      val distribution   = file.Path.of("distribution")
-      val currentEdition = buildinfo.Info.currentEdition + ".yaml"
-      val dest           = editions.resolve(currentEdition)
-      if (Files.notExists(dest)) {
-        Files.copy(
-          distribution.resolve("editions").resolve(currentEdition),
-          dest
-        )
-      }
-    }
-
     val environment         = fakeInstalledEnvironment()
     val languageHome        = LanguageHome.detectFromExecutableLocation(environment)
     val distributionManager = new DistributionManager(environment)
@@ -267,35 +256,59 @@ class BaseServerTest
       )
     )
 
-    new JsonConnectionControllerFactory(
-      mainComponent            = initializationComponent,
-      bufferRegistry           = bufferRegistry,
-      capabilityRouter         = capabilityRouter,
-      fileManager              = fileManager,
-      contentRootManager       = contentRootManagerActor,
-      contextRegistry          = contextRegistry,
-      suggestionsHandler       = suggestionsHandler,
-      stdOutController         = stdOutController,
-      stdErrController         = stdErrController,
-      stdInController          = stdInController,
-      runtimeConnector         = runtimeConnectorProbe.ref,
-      idlenessMonitor          = idlenessMonitor,
-      projectSettingsManager   = projectSettingsManager,
+    val libraryLocations =
+      LibraryLocations.resolve(distributionManager, Some(languageHome))
+
+    val libraryConfig = LibraryConfig(
       localLibraryManager      = localLibraryManager,
       editionReferenceResolver = editionReferenceResolver,
       editionManager           = editionManager,
-      config                   = config
+      localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+      publishedLibraryCache =
+        PublishedLibraryCache.makeReadOnlyCache(libraryLocations)
+    )
+
+    new JsonConnectionControllerFactory(
+      mainComponent          = initializationComponent,
+      bufferRegistry         = bufferRegistry,
+      capabilityRouter       = capabilityRouter,
+      fileManager            = fileManager,
+      contentRootManager     = contentRootManagerActor,
+      contextRegistry        = contextRegistry,
+      suggestionsHandler     = suggestionsHandler,
+      stdOutController       = stdOutController,
+      stdErrController       = stdErrController,
+      stdInController        = stdInController,
+      runtimeConnector       = runtimeConnectorProbe.ref,
+      idlenessMonitor        = idlenessMonitor,
+      projectSettingsManager = projectSettingsManager,
+      libraryConfig          = libraryConfig,
+      config                 = config
     )
   }
 
+  /** As we are testing the language server, we want to imitate the location
+    * context of the runner.jar, while the default implementation of this method
+    * was more suited towards testing the launcher.
+    */
+  override def fakeExecutablePath(portable: Boolean): Path =
+    Path.of("distribution/component/runner.jar")
+
   /** Specifies if the `package.yaml` at project root should be auto-created. */
   protected def initializeProjectPackage: Boolean = true
+
+  /** Allows to customize the edition used by the project.
+    *
+    * Only applicable if [[initializeProjectPackage]] is [[true]].
+    */
+  protected def customEdition: Option[Editions.RawEdition] = None
 
   lazy val initPackage: Unit = {
     if (initializeProjectPackage) {
       PackageManager.Default.create(
         config.projectContentRoot.file,
-        name = "TestProject"
+        name    = "TestProject",
+        edition = customEdition
       )
     }
   }

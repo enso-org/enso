@@ -344,7 +344,7 @@ object PackageRepository {
     val edition        = editionManager.resolveEdition(rawEdition).get
 
     val resolvingLibraryProvider =
-      new DefaultLibraryProvider(
+      DefaultLibraryProvider.make(
         distributionManager = distributionManager,
         resourceManager     = resourceManager,
         lockUserInterface   = notificationHandler,
