@@ -3,6 +3,7 @@ import Standard.Base.Data.Array.Extensions
 import Standard.Base.Data.Interval
 import Standard.Base.Data.Json
 import Standard.Base.Data.List
+import Standard.Base.Data.Locale
 import Standard.Base.Data.Map
 import Standard.Base.Data.Maybe
 import Standard.Base.Data.Noise
@@ -25,6 +26,7 @@ from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, 
 
 export Standard.Base.Data.Interval
 export Standard.Base.Data.Json
+export Standard.Base.Data.Locale
 export Standard.Base.Data.Map
 export Standard.Base.Data.Maybe
 export Standard.Base.Data.Ordering

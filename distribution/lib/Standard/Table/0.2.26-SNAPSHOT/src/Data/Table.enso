@@ -86,6 +86,30 @@ join : Vector -> Table
 join tables =
     tables.reduce .join
 
+## UNSTABLE
+
+   Concatenates multiple tables, resulting in a table with the number of rows
+   being the sum of numbers of rows of `tables`. Any column that is present in
+   some tables, but missing in others, will be `Nothing`-padded in the positions
+   corresponding to the missing values.
+
+   Arguments:
+   - tables: the tables to concatenate.
+
+   > Example
+     Concatenate multiple tables together.
+
+         import Standard.Examples
+         import Standard.Table
+
+         example_concat =
+             table_1 = Examples.inventory_table
+             table_2 = Examples.popularity_table
+             Table.concat [table_1, table_2]
+concat : Vector -> Table
+concat tables =
+    Table (Java_Table.concat (tables.map .java_table).to_array)
+
 ## Represents a column-oriented table data structure.
 type Table
 
@@ -623,8 +647,7 @@ type Table
              example_concat =
                  Examples.inventory_table.concat Examples.popularity_table
     concat : Table -> Table
-    concat other =
-        Table (this.java_table.concat other.java_table)
+    concat other = Table (Java_Table.concat [this.java_table, other.java_table].to_array)
 
     ## ALIAS First N Rows
        UNSTABLE

@@ -180,7 +180,8 @@ public abstract class Storage {
    * @param function the function to run.
    * @return the result of running the function on all non-missing elements.
    */
-  public final Storage zip(String name, BiFunction<Object, Object, Object> function, Storage arg) {
+  public final Storage zip(
+      String name, BiFunction<Object, Object, Object> function, Storage arg, boolean skipNa) {
     if (name != null && isOpVectorized(name)) {
       return runVectorizedZip(name, arg);
     }
@@ -188,7 +189,7 @@ public abstract class Storage {
     for (int i = 0; i < size(); i++) {
       Object it1 = getItemBoxed(i);
       Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
-      if (it1 == null || it2 == null) {
+      if (skipNa && (it1 == null || it2 == null)) {
         builder.appendNoGrow(null);
       } else {
         builder.appendNoGrow(function.apply(it1, it2));
@@ -205,6 +206,18 @@ public abstract class Storage {
    */
   public Storage fillMissing(Object arg) {
     return fillMissingHelper(arg, new ObjectBuilder(size()));
+  }
+
+  public Storage fillMissingFrom(Storage other) {
+    var builder = new InferredBuilder(size());
+    for (int i = 0; i < size(); i++) {
+      if (isNa(i)) {
+        builder.appendNoGrow(other.getItemBoxed(i));
+      } else {
+        builder.appendNoGrow(getItemBoxed(i));
+      }
+    }
+    return builder.seal();
   }
 
   protected final Storage fillMissingHelper(Object arg, Builder builder) {
@@ -259,6 +272,18 @@ public abstract class Storage {
 
   public List<Object> toList() {
     return new StorageListView(this);
+  }
+
+  public Storage duplicateCount() {
+    long[] data = new long[size()];
+    HashMap<Object, Integer> occurenceCount = new HashMap<>();
+    for (int i = 0; i < size(); i++) {
+      var value = getItemBoxed(i);
+      var count = occurenceCount.getOrDefault(value, 0);
+      data[i] = count;
+      occurenceCount.put(value, count + 1);
+    }
+    return new LongStorage(data);
   }
 
   /**

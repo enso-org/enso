@@ -171,4 +171,8 @@ public class Column {
   public Column slice(int offset, int limit) {
     return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
   }
+
+  public Column duplicateCount() {
+    return new Column(name + "_duplicate_count", index, storage.duplicateCount());
+  }
 }
