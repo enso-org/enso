@@ -1,11 +1,10 @@
 package org.enso.languageserver.protocol.json
 
 import akka.actor.{ActorRef, ActorSystem}
-import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.data.Config
-import org.enso.languageserver.libraries.EditionReferenceResolver
+import org.enso.languageserver.libraries.LibraryConfig
 
 import java.util.UUID
 
@@ -15,6 +14,7 @@ import java.util.UUID
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
+  * @param libraryConfig configuration of the library ecosystem
   */
 class JsonConnectionControllerFactory(
   mainComponent: InitializationComponent,
@@ -30,9 +30,7 @@ class JsonConnectionControllerFactory(
   runtimeConnector: ActorRef,
   idlenessMonitor: ActorRef,
   projectSettingsManager: ActorRef,
-  localLibraryManager: ActorRef,
-  editionReferenceResolver: EditionReferenceResolver,
-  editionManager: EditionManager,
+  libraryConfig: LibraryConfig,
   config: Config
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -45,24 +43,22 @@ class JsonConnectionControllerFactory(
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
       JsonConnectionController.props(
-        connectionId             = clientId,
-        mainComponent            = mainComponent,
-        bufferRegistry           = bufferRegistry,
-        capabilityRouter         = capabilityRouter,
-        fileManager              = fileManager,
-        contentRootManager       = contentRootManager,
-        contextRegistry          = contextRegistry,
-        suggestionsHandler       = suggestionsHandler,
-        stdOutController         = stdOutController,
-        stdErrController         = stdErrController,
-        stdInController          = stdInController,
-        runtimeConnector         = runtimeConnector,
-        idlenessMonitor          = idlenessMonitor,
-        projectSettingsManager   = projectSettingsManager,
-        localLibraryManager      = localLibraryManager,
-        editionReferenceResolver = editionReferenceResolver,
-        editionManager           = editionManager,
-        languageServerConfig     = config
+        connectionId           = clientId,
+        mainComponent          = mainComponent,
+        bufferRegistry         = bufferRegistry,
+        capabilityRouter       = capabilityRouter,
+        fileManager            = fileManager,
+        contentRootManager     = contentRootManager,
+        contextRegistry        = contextRegistry,
+        suggestionsHandler     = suggestionsHandler,
+        stdOutController       = stdOutController,
+        stdErrController       = stdErrController,
+        stdInController        = stdInController,
+        runtimeConnector       = runtimeConnector,
+        idlenessMonitor        = idlenessMonitor,
+        projectSettingsManager = projectSettingsManager,
+        libraryConfig          = libraryConfig,
+        languageServerConfig   = config
       )
     )
 }

@@ -101,7 +101,12 @@ class LocalLibraryManager(
   private def listLocalLibraries(): Try[ListLocalLibrariesResponse] = for {
     libraryNames <- findLocalLibraries()
     libraryEntries = libraryNames.distinct.map { name =>
-      LibraryEntry(name.namespace, name.name, LibraryEntry.LocalLibraryVersion)
+      LibraryEntry(
+        name.namespace,
+        name.name,
+        LibraryEntry.LocalLibraryVersion,
+        isCached = true
+      )
     }
   } yield ListLocalLibrariesResponse(libraryEntries)
 

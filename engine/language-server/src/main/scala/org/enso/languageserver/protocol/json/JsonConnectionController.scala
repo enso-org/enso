@@ -6,7 +6,6 @@ import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.cli.task.ProgressUnit
 import org.enso.cli.task.notifications.TaskNotificationApi
-import org.enso.editions.updater.EditionManager
 import org.enso.jsonrpc._
 import org.enso.languageserver.boot.resource.InitializationComponent
 import org.enso.languageserver.capability.CapabilityApi.{
@@ -27,8 +26,8 @@ import org.enso.languageserver.filemanager._
 import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
-import org.enso.languageserver.libraries.EditionReferenceResolver
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.libraries.LibraryConfig
 import org.enso.languageserver.libraries.handler._
 import org.enso.languageserver.monitoring.MonitoringApi.{InitialPing, Ping}
 import org.enso.languageserver.monitoring.MonitoringProtocol
@@ -89,6 +88,7 @@ import scala.concurrent.duration._
   * @param suggestionsHandler a reference to the suggestions requests handler
   * @param idlenessMonitor a reference to the idleness monitor actor
   * @param projectSettingsManager a reference to the project settings manager
+  * @param libraryConfig configuration of the library ecosystem
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -106,9 +106,7 @@ class JsonConnectionController(
   val runtimeConnector: ActorRef,
   val idlenessMonitor: ActorRef,
   val projectSettingsManager: ActorRef,
-  val localLibraryManager: ActorRef,
-  val editionReferenceResolver: EditionReferenceResolver,
-  val editionManager: EditionManager,
+  val libraryConfig: LibraryConfig,
   val languageServerConfig: Config,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -495,24 +493,28 @@ class JsonConnectionController(
       EditionsGetProjectSettings -> EditionsGetProjectSettingsHandler
         .props(requestTimeout, projectSettingsManager),
       EditionsListAvailable -> EditionsListAvailableHandler.props(
-        editionManager
+        libraryConfig.editionManager
       ),
       EditionsListDefinedLibraries -> EditionsListDefinedLibrariesHandler
-        .props(editionReferenceResolver),
+        .props(
+          libraryConfig.editionReferenceResolver,
+          libraryConfig.localLibraryProvider,
+          libraryConfig.publishedLibraryCache
+        ),
       EditionsResolve -> EditionsResolveHandler
-        .props(editionReferenceResolver),
+        .props(libraryConfig.editionReferenceResolver),
       EditionsSetParentEdition -> EditionsSetParentEditionHandler
         .props(requestTimeout, projectSettingsManager),
       EditionsSetLocalLibrariesPreference -> EditionsSetProjectLocalLibrariesPreferenceHandler
         .props(requestTimeout, projectSettingsManager),
       LibraryCreate -> LibraryCreateHandler
-        .props(requestTimeout, localLibraryManager),
+        .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryListLocal -> LibraryListLocalHandler
-        .props(requestTimeout, localLibraryManager),
+        .props(requestTimeout, libraryConfig.localLibraryManager),
       LibraryGetMetadata -> LibraryGetMetadataHandler.props(),
       LibraryPreinstall  -> LibraryPreinstallHandler.props(),
       LibraryPublish -> LibraryPublishHandler
-        .props(requestTimeout, localLibraryManager),
+        .props(requestTimeout, libraryConfig.localLibraryManager),
       LibrarySetMetadata -> LibrarySetMetadataHandler.props()
     )
   }
@@ -557,6 +559,7 @@ object JsonConnectionController {
     * @param contentRootManager manages the available content roots
     * @param contextRegistry a router that dispatches execution context requests
     * @param suggestionsHandler a reference to the suggestions requests handler
+    * @param libraryConfig configuration of the library ecosystem
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -575,33 +578,29 @@ object JsonConnectionController {
     runtimeConnector: ActorRef,
     idlenessMonitor: ActorRef,
     projectSettingsManager: ActorRef,
-    localLibraryManager: ActorRef,
-    editionReferenceResolver: EditionReferenceResolver,
-    editionManager: EditionManager,
+    libraryConfig: LibraryConfig,
     languageServerConfig: Config,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
       new JsonConnectionController(
-        connectionId             = connectionId,
-        mainComponent            = mainComponent,
-        bufferRegistry           = bufferRegistry,
-        capabilityRouter         = capabilityRouter,
-        fileManager              = fileManager,
-        contentRootManager       = contentRootManager,
-        contextRegistry          = contextRegistry,
-        suggestionsHandler       = suggestionsHandler,
-        stdOutController         = stdOutController,
-        stdErrController         = stdErrController,
-        stdInController          = stdInController,
-        runtimeConnector         = runtimeConnector,
-        idlenessMonitor          = idlenessMonitor,
-        projectSettingsManager   = projectSettingsManager,
-        localLibraryManager      = localLibraryManager,
-        editionReferenceResolver = editionReferenceResolver,
-        editionManager           = editionManager,
-        languageServerConfig     = languageServerConfig,
-        requestTimeout           = requestTimeout
+        connectionId           = connectionId,
+        mainComponent          = mainComponent,
+        bufferRegistry         = bufferRegistry,
+        capabilityRouter       = capabilityRouter,
+        fileManager            = fileManager,
+        contentRootManager     = contentRootManager,
+        contextRegistry        = contextRegistry,
+        suggestionsHandler     = suggestionsHandler,
+        stdOutController       = stdOutController,
+        stdErrController       = stdErrController,
+        stdInController        = stdInController,
+        runtimeConnector       = runtimeConnector,
+        idlenessMonitor        = idlenessMonitor,
+        projectSettingsManager = projectSettingsManager,
+        libraryConfig          = libraryConfig,
+        languageServerConfig   = languageServerConfig,
+        requestTimeout         = requestTimeout
       )
     )
 

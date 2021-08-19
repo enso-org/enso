@@ -10,11 +10,14 @@ import org.enso.editions
   * @param namespace namespace of the library
   * @param name name of the library
   * @param version version of the library
+  * @param isCached indicates whether the library is available in one of local
+  *                 caches
   */
 case class LibraryEntry(
   namespace: String,
   name: String,
-  version: LibraryEntry.LibraryVersion
+  version: LibraryEntry.LibraryVersion,
+  isCached: Boolean
 )
 
 object LibraryEntry {
