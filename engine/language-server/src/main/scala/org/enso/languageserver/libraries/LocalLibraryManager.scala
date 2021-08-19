@@ -11,7 +11,7 @@ import org.enso.librarymanager.local.{
   LocalLibraryProvider
 }
 import org.enso.librarymanager.published.repository.LibraryManifest
-import org.enso.pkg.PackageManager
+import org.enso.pkg.{Contact, PackageManager}
 import org.enso.pkg.validation.NameValidation
 import org.enso.yaml.YamlHelper
 
@@ -65,13 +65,10 @@ class LocalLibraryManager(
     */
   private def createLibrary(
     libraryName: LibraryName,
-    authors: Seq[String],
-    maintainers: Seq[String],
+    authors: Seq[Contact],
+    maintainers: Seq[Contact],
     license: String
   ): Try[Unit] = Try {
-    // TODO [RW] modify protocol to be able to create Contact instances
-    val _ = (authors, maintainers)
-
     validateLibraryName(libraryName)
 
     // TODO [RW] make the exceptions more relevant
@@ -95,10 +92,12 @@ class LocalLibraryManager(
 
     PackageManager.Default.create(
       libraryPath.toFile,
-      name      = libraryName.name,
-      namespace = libraryName.namespace,
-      edition   = findCurrentProjectEdition(),
-      license   = license
+      name        = libraryName.name,
+      namespace   = libraryName.namespace,
+      edition     = findCurrentProjectEdition(),
+      authors     = authors.toList,
+      maintainers = maintainers.toList,
+      license     = license
     )
   }
 

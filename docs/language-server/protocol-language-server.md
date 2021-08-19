@@ -60,6 +60,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ContentRoot`](#contentroot)
   - [`LibraryEntry`](#libraryentry)
   - [`LibraryVersion`](#libraryversion)
+  - [`Contact`](#contact)
   - [`EditionReference`](#editionreference)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
@@ -1355,6 +1356,20 @@ interface PublishedLibraryVersion {
 
 // A library version that references a locally editable version of the library.
 interface LocalLibraryVersion {}
+```
+
+### `Contact`
+
+Represents contact information of authors or maintainers.
+
+Both fields are optional, but for the contact to be valid, at least one of them
+must be defined.
+
+```typescript
+interface Contact {
+  name?: String;
+  email?: String;
+}
 ```
 
 ### `EditionReference`
@@ -4354,8 +4369,8 @@ added, the library will be loaded and its content root will be sent in a
 {
   namespace: String;
   name: String;
-  authors: [String];
-  maintainers: [String];
+  authors: [Contact];
+  maintainers: [Contact];
   license: String;
 }
 ```

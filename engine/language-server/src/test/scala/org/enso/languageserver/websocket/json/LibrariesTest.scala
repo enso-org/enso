@@ -10,6 +10,7 @@ import org.enso.librarymanager.published.repository.{
   EmptyRepository,
   ExampleRepository
 }
+import org.enso.pkg.{Contact, PackageManager}
 
 import java.nio.file.Files
 
@@ -53,8 +54,20 @@ class LibrariesTest extends BaseServerTest {
             "params": {
               "namespace": "user",
               "name": "My_Local_Lib",
-              "authors": [],
-              "maintainers": [],
+              "authors": [
+                {
+                  "name": "user",
+                  "email": "example@example.com"
+                }
+              ],
+              "maintainers": [
+                {
+                  "name": "only-name"
+                },
+                {
+                  "email": "foo@example.com"
+                }
+              ],
               "license": ""
             }
           }
@@ -199,8 +212,20 @@ class LibrariesTest extends BaseServerTest {
             "params": {
               "namespace": "user",
               "name": "Publishable_Lib",
-              "authors": [],
-              "maintainers": [],
+              "authors": [
+                {
+                  "name": "user",
+                  "email": "example@example.com"
+                }
+              ],
+              "maintainers": [
+                {
+                  "name": "only-name"
+                },
+                {
+                  "email": "foo@example.com"
+                }
+              ],
               "license": ""
             }
           }
@@ -278,6 +303,14 @@ class LibrariesTest extends BaseServerTest {
           .resolve("0.0.1")
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
+        val pkg = PackageManager.Default.loadPackage(libraryRoot.toFile).get
+        pkg.config.authors should contain theSameElementsAs Seq(
+          Contact(name = Some("user"), email = Some("example@example.com"))
+        )
+        pkg.config.maintainers should contain theSameElementsAs Seq(
+          Contact(name = Some("only-name"), email = None),
+          Contact(name = None, email              = Some("foo@example.com"))
+        )
 
         client.send(json"""
           { "jsonrpc": "2.0",
