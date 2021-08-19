@@ -1,8 +1,17 @@
 ## Enso's default regular expression matching engine.
 
-    TODO Synatx
-    TODO Description
-    TODO Characters and limitations on positions
+   Enso's default regular expression engine uses Java's regular expression
+   syntax, extended with support for the unicode character classes and
+   properties. A detailed explanation of the syntax is below.
+
+   ! Characters
+     When the default regex engine provdies a position with regards to
+     "characters", it is referring to positions in terms of the UTF-16
+     characters in the text. These indices must be used to index into the
+     vector of UTF-16 characters. It will otherwise be wrong.
+
+   ? Syntax Specification
+     TODO Full syntax specification.
 
 from Standard.Base import all
 
