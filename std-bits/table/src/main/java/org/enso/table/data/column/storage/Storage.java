@@ -176,8 +176,9 @@ public abstract class Storage {
    * Runs a function on each pair of non-missing elements in this and arg.
    *
    * @param name a name of potential vectorized variant of the function that should be used if
-   *     supported. If this argument is null, the vectorized operation will never be used. *
+   *     supported. If this argument is null, the vectorized operation will never be used.
    * @param function the function to run.
+   * @param skipNa whether rows containing missing values should be passed to the function.
    * @return the result of running the function on all non-missing elements.
    */
   public final Storage zip(
@@ -208,6 +209,12 @@ public abstract class Storage {
     return fillMissingHelper(arg, new ObjectBuilder(size()));
   }
 
+  /**
+   * Fills missing values in this storage, by using corresponding values from {@code other}.
+   *
+   * @param other the source of default values
+   * @return a new storage with missing values filled
+   */
   public Storage fillMissingFrom(Storage other) {
     var builder = new InferredBuilder(size());
     for (int i = 0; i < size(); i++) {
@@ -274,6 +281,11 @@ public abstract class Storage {
     return new StorageListView(this);
   }
 
+  /**
+   * Counts the number of times each value has been seen before in this storage.
+   *
+   * @return a storage counting the number of times each value in this one has been seen before.
+   */
   public Storage duplicateCount() {
     long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();

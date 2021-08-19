@@ -172,6 +172,7 @@ public class Column {
     return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
   }
 
+  /** @return a column counting value repetitions in this column. */
   public Column duplicateCount() {
     return new Column(name + "_duplicate_count", index, storage.duplicateCount());
   }

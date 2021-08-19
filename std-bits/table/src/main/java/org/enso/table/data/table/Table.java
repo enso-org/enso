@@ -299,18 +299,17 @@ public class Table {
     private final String name;
     private final InferredBuilder builder;
 
-    public NamedBuilder(String name, int size) {
+    private NamedBuilder(String name, int size) {
       this.name = name;
       this.builder = new InferredBuilder(size);
     }
   }
 
   /**
-   * Concatenates {@code other} to {@code this}. Any column that is present in one table, but
-   * missing in another, will be {@code null}-padded in the positions corresponding to the missing
-   * column.
+   * Concatenates tables. Any column that is present in one table, but missing in another, will be
+   * {@code null}-padded in the positions corresponding to the missing column.
    *
-   * @param other the table to append to this one.
+   * @param tables the (non-empty) list of tables to concatenate.
    * @return a table result from concatenating both tables
    */
   public static Table concat(List<Table> tables) {
