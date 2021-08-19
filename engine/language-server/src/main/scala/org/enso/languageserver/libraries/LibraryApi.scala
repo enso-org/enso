@@ -129,7 +129,11 @@ object LibraryApi {
 
   case object LibraryGetMetadata extends Method("library/getMetadata") { self =>
 
-    case class Params(namespace: String, name: String)
+    case class Params(
+      namespace: String,
+      name: String,
+      version: LibraryEntry.LibraryVersion
+    )
 
     case class Result(description: Option[String], tagLine: Option[String])
 
