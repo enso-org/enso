@@ -8,6 +8,7 @@ import Standard.Base.Data.Time.Zone
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalDate
+polyglot java import java.time.temporal.WeekFields
 polyglot java import org.enso.base.Time_Utils
 
 ## Obtains the current date from the system clock in the system timezone.
@@ -183,6 +184,24 @@ type Date
              example_day = Date.now.day
     day : Integer
     day = this . internal_local_date . getDayOfMonth
+
+    ## Returns the number of week of year this date falls into.
+
+       Arguments:
+       - locale: the locale used to define the notion of weeks of year.
+
+       ! Locale Dependency
+         Note that this operation is locale-specific. It varies both by the
+         local definition of the first day of week and the definition of the
+         first week of year. For example, in the US, the first day of the week
+         is Sunday and week 1 is the week containing January 1. In the UK on the
+         other hand, the first day of the week is Monday, and week 1 is the week
+         containing the first Thursday of the year. Therefore it is important to
+         properly specify the `locale` argument.
+    week_of_year : Locale.Locale -> Integer
+    week_of_year locale=Locale.default =
+        field = WeekFields.of locale.java_locale . weekOfYear
+        this.internal_local_date.get field
 
     ## ALIAS Date to Time
 

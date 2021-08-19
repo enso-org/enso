@@ -1,5 +1,6 @@
 package org.enso.table.data.index;
 
+import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
@@ -79,9 +80,10 @@ public class HashIndex extends Index {
   public Index unique() {
     HashMap<Object, List<Integer>> newLocs = new HashMap<>();
     BitSet mask = new BitSet();
+    int uniqPos = 0;
     for (int i = 0; i < items.size(); i++) {
       if (!newLocs.containsKey(items.getItemBoxed(i))) {
-        newLocs.put(items.getItemBoxed(i), Collections.singletonList(i));
+        newLocs.put(items.getItemBoxed(i), Collections.singletonList(uniqPos++));
         mask.set(i);
       }
     }

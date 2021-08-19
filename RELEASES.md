@@ -6,6 +6,9 @@
   filter them using glob patterns
   ([#1961](https://github.com/enso-org/enso/pull/1961)).
 
+- Implement a host of missing helpers in the Table library
+  ([#1963](https://github.com/enso-org/enso/pull/1963)).
+
 # Enso 0.2.25 (2021-08-18)
 
 ## Libraries
