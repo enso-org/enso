@@ -28,9 +28,11 @@ import Standard.Base.Error.Extensions as Errors
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException
-polyglot java import java.util.regex.PatternSyntaxException
-polyglot java import java.util.regex.Pattern as Java_Pattern
+polyglot java import java.lang.StringBuffer
 polyglot java import java.util.regex.Matcher as Java_Matcher
+polyglot java import java.util.regex.Pattern as Java_Pattern
+polyglot java import java.util.regex.PatternSyntaxException
+
 polyglot java import com.ibm.icu.impl.UnicodeRegex
 polyglot java import org.enso.base.Regex_Utils
 
@@ -504,19 +506,17 @@ type Pattern
                 if mode < 0 then Panic.throw <|
                     Mode_Error "Cannot replace a negative number of times."
 
-                go text region_start region_end remaining_replacements =
-                    should_stop = remaining_replacements <= 0
+                internal_matcher = this.build_matcher input start end
+                buffer = StringBuffer.new
 
-                    if should_stop then text else
-                        internal_matcher = this.build_matcher text region_start region_end
-                        result = internal_matcher.replaceFirst replacement
+                go remaining_replacements =
+                    if (internal_matcher.find) && (remaining_replacements > 0) then
+                        internal_matcher.appendReplacement buffer replacement
+                        @Tail_Call go (remaining_replacements - 1)
 
-                        if internal_matcher.hitEnd then result else
-                            replacements = remaining_replacements - 1
-
-                            @Tail_Call go result region_start region_end replacements
-
-                go input start end mode
+                go mode
+                internal_matcher.appendTail buffer
+                buffer.to_text
             Mode.All ->
                 internal_matcher = this.build_matcher input start end
                 internal_matcher.replaceAll replacement
