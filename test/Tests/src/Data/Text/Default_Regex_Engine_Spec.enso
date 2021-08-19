@@ -93,7 +93,7 @@ spec =
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal input
 
-        Test.specify "should return `Nothing` if there are no matchesn first mode" <|
+        Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "abc"
             match = pattern.match input mode=Mode.First
@@ -163,6 +163,85 @@ spec =
             match.at 0 . group 0 . should_equal "cd"
             match.at 1 . group 0 . should_equal "ef"
             match.at 2 . group 0 . should_equal "gh"
+
+    Test.group "The default regex engine's Pattern.find" <|
+        engine = Default_Engine.new
+
+        Test.specify "should be able to `find` the first instance of the pattern in the input" <|
+            pattern = engine.compile "(..)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=Mode.First
+            match . should_be_a Text
+            match . should_equal "ab"
+
+        Test.specify "should return `Nothing` if there are no matches in first mode" <|
+            pattern = engine.compile "(aa)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=Mode.First
+            match . should_equal Nothing
+
+        Test.specify "should be able to `find` at most N instances of the pattern in the input" <|
+            pattern = engine.compile "(..)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=3
+            match.length . should_equal 3
+            match.at 0 . should_equal "ab"
+            match.at 1 . should_equal "cd"
+            match.at 2 . should_equal "ef"
+
+        Test.specify "should `find` fewer than N instances when there are fewer than N in the input" <|
+            pattern = engine.compile "(..)" []
+            input = "abcdef"
+            match = pattern.find input mode=5
+            match.length . should_equal 3
+            match.at 0 . should_equal "ab"
+            match.at 1 . should_equal "cd"
+            match.at 2 . should_equal "ef"
+
+        Test.specify "should return `Nothing` when a counted match fails" <|
+            pattern = engine.compile "(aa)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=3
+            match . should_equal Nothing
+
+        Test.specify "should be able to `find` the all instances of the pattern in the input" <|
+            pattern = engine.compile "(..)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=Mode.All
+            match.length . should_equal 5
+            match.at 0 . should_equal "ab"
+            match.at 1 . should_equal "cd"
+            match.at 2 . should_equal "ef"
+            match.at 3 . should_equal "gh"
+            match.at 4 . should_equal "ij"
+
+        Test.specify "should return `Nothing` when an all match match fails" <|
+            pattern = engine.compile "(aa)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=Mode.All
+            match . should_equal Nothing
+
+        Test.specify "should be able to `find` the pattern against the entire input" <|
+            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            input = "aa ab abc a bc bcd"
+            match = pattern.find input mode=Mode.Full
+            match . should_be_a Text
+            match . should_equal input
+
+        Test.specify "should return `Nothing` if a full find does not match the entire input" <|
+            pattern = engine.compile "(..)" []
+            input = "aa ab"
+            full_match = pattern.find input mode=Mode.Full
+            full_match . should_equal Nothing
+
+        Test.specify "should be able to `find` the pattern against bounded input" <|
+            pattern = engine.compile "(..)" []
+            input = "abcdefghij"
+            match = pattern.find input mode=(Mode.Bounded 2 8)
+            match.length . should_equal 3
+            match.at 0 . should_equal "cd"
+            match.at 1 . should_equal "ef"
+            match.at 2 . should_equal "gh"
 
     Test.group "Match.group" <|
         engine = Default_Engine.new

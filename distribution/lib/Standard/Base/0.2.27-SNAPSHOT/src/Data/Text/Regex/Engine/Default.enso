@@ -220,8 +220,13 @@ type Pattern
             _ -> do_match_mode mode 0 input.length
 
     ## TODO
-    # find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
-    # find input mode=Mode.All = Errors.unimplemented
+    find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
+    find input mode=Mode.All =
+        matches = this.match input mode
+        case matches of
+            Match _ _ _ -> matches.group 0
+            Vector.Vector _ -> matches.map (_.group 0)
+            _ -> matches
 
     ## TODO
     # split : Text -> Mode.Mode -> Vector.Vector Text | Nothing
