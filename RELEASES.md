@@ -1,13 +1,20 @@
 # Enso Next
 
+# Enso 0.2.26 (2021-08-19)
+
 ## Libraries
 
 - Implement `File.list` which allows to list files inside of a directory and
   filter them using glob patterns
   ([#1961](https://github.com/enso-org/enso/pull/1961)).
-
 - Implement a host of missing helpers in the Table library
   ([#1963](https://github.com/enso-org/enso/pull/1963)).
+
+## Known Issues
+
+- This is a beta release, so please see the
+  [issue tracker](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+created%3A%3C2021-08-19)
+  for issues opened before the release date.
 
 # Enso 0.2.25 (2021-08-18)
 
