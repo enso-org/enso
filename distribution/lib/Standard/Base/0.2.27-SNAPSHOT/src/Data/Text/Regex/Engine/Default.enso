@@ -452,8 +452,8 @@ type Pattern
 
        Arguments:
        - input: The text in which to perform the replacement(s).
-       - mode: The matching mode to use for finding candidates to replace.
        - replacement: The literal text with which to replace any matches.
+       - mode: The matching mode to use for finding candidates to replace.
 
        If this method performs no replacements it will return the `input` text
        unchanged.
