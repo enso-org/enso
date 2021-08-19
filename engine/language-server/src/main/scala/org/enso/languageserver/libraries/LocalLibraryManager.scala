@@ -16,8 +16,8 @@ import org.enso.pkg.validation.NameValidation
 import org.enso.yaml.YamlHelper
 
 import java.io.File
-import java.nio.file.Files
-import scala.util.{Failure, Success, Try}
+import java.nio.file.{Files, Path}
+import scala.util.{Success, Try}
 
 /** An Actor that manages local libraries. */
 class LocalLibraryManager(
@@ -144,7 +144,7 @@ class LocalLibraryManager(
         .toRight(LocalLibraryNotFoundError(libraryName))
         .toTry
       manifestPath = libraryRootPath / LibraryManifest.filename
-      manifest <- YamlHelper.load[LibraryManifest](manifestPath)
+      manifest <- loadManifest(manifestPath)
     } yield GetMetadataResponse(
       description = manifest.description,
       tagLine     = manifest.tagLine
@@ -160,15 +160,22 @@ class LocalLibraryManager(
       .toRight(LocalLibraryNotFoundError(libraryName))
       .toTry
     manifestPath = libraryRootPath / LibraryManifest.filename
-    manifest <- YamlHelper.load[LibraryManifest](manifestPath)
+    manifest <- loadManifest(manifestPath)
     updatedManifest = manifest.copy(
       description = description,
       tagLine     = tagLine
     )
-  } yield FileSystem.writeTextFile(
-    manifestPath,
-    YamlHelper.toYaml(updatedManifest)
-  )
+  } yield saveManifest(manifestPath, updatedManifest)
+
+  private def loadManifest(manifestPath: Path): Try[LibraryManifest] =
+    if (Files.exists(manifestPath))
+      YamlHelper.load[LibraryManifest](manifestPath)
+    else Success(LibraryManifest.empty)
+
+  private def saveManifest(
+    manifestPath: Path,
+    manifest: LibraryManifest
+  ): Unit = FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(manifest))
 
   /** Finds the edition associated with the current project, if specified in its
     * config.

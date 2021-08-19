@@ -101,12 +101,96 @@ class LibrariesTest extends BaseServerTest {
     }
 
     "get and set the metadata" in {
-      ???
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/create",
+            "id": 0,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "authors": [],
+              "maintainers": [],
+              "license": ""
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 1,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "description": null,
+              "tagLine": null
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/setMetadata",
+            "id": 2,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "description": "The description...",
+              "tagLine": "tag-line"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 3,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "description": "The description...",
+              "tagLine": "tag-line"
+            }
+          }
+          """)
     }
 
     def port: Int = 47308
 
-    "create, publish a library and fetch its manifest" in {
+    "create, publish a library and fetch its manifest from the server" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -171,6 +255,9 @@ class LibrariesTest extends BaseServerTest {
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
       }
+
+      // Once the server is down, the metadata request should fail, especially as the published version is not cached.
+      // TODO
     }
   }
 
