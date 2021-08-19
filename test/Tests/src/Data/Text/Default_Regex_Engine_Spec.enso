@@ -156,28 +156,13 @@ spec =
             match . should_be_a Default_Engine.Match
 
         Test.specify "should be able to `match` the pattern against bounded input" <|
-            Nothing
-
-        Test.specify "should be able to `match` in ascii mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in case insensitive mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in dotall mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in multiline mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in verbose mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in literal mode" <|
-            Nothing
-
-        Test.specify "should be able to `match` in unix lines mode" <|
-            Nothing
+            pattern = engine.compile "(..)" []
+            input = "abcdefghij"
+            match = pattern.match input mode=(Mode.Bounded 2 8)
+            match.length . should_equal 3
+            match.at 0 . group 0 . should_equal "cd"
+            match.at 1 . group 0 . should_equal "ef"
+            match.at 2 . group 0 . should_equal "gh"
 
     Test.group "Match.group" <|
         engine = Default_Engine.new

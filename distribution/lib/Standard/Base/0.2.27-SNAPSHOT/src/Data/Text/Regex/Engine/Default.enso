@@ -174,7 +174,7 @@ type Pattern
                     go : Integer -> Integer -> Nothing
                     go offset remaining_count =
                         should_continue = remaining_count > 0
-                        if should_continue.not then Nothing else
+                        if should_continue.not || (offset > end) then Nothing else
                             internal_matcher = this.build_matcher input start end
                             found = internal_matcher.find offset
 
@@ -193,14 +193,15 @@ type Pattern
 
                     go : Integer -> Nothing
                     go offset =
-                        internal_matcher = this.build_matcher input start end
-                        found = internal_matcher.find offset
+                        if offset >= end then Nothing else
+                            internal_matcher = this.build_matcher input start end
+                            found = internal_matcher.find offset
 
-                        if found.not then Nothing else
-                            builder.append (Match internal_matcher start end)
+                            if found.not then Nothing else
+                                builder.append (Match internal_matcher start end)
 
-                            if internal_matcher.hitEnd then Nothing else
-                                @Tail_Call go (internal_matcher.end 0)
+                                if internal_matcher.hitEnd then Nothing else
+                                    @Tail_Call go (internal_matcher.end 0)
 
                     go start
                     vector = builder.to_vector
@@ -213,11 +214,13 @@ type Pattern
                 Mode.Bounded _ _ _ -> Panic.throw Recursive_Mode_Error
 
         case mode of
-            Mode.Bounded start end sub_mode -> do_match_mode sub_mode start end
+            Mode.Bounded start end sub_mode ->
+                if start < end then do_match_mode sub_mode start end else
+                    Panic.throw Invalid_Bounds_Error
             _ -> do_match_mode mode 0 input.length
 
     ## TODO
-    # find : Text -> Mode.Mode -> Text | Vector.Veector Text | Nothing
+    # find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
     # find input mode=Mode.All = Errors.unimplemented
 
     ## TODO
@@ -452,6 +455,14 @@ from_enso_options opts =
     if opts.contains Global_Option.Ascii_Matching then options_bitmask else
         unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
         options_bitmask.bit_or unicode
+
+## PRIVATE
+type Invalid_Bounds_Error
+
+## PRIVATE
+Invalid_Bounds_Error.to_display_text : Text
+Invalid_Bounds_Error.to_display_text =
+    "The start bound cannot be greater than the end bound."
 
 ## PRIVATE
 type Recursive_Mode_Error
