@@ -18,8 +18,11 @@ spec =
 
     Test.group "Regexes" <|
         Test.specify "should be able to be compiled" <|
-            Nothing
+            pattern = Regex.compile "(?<dots>..)" case_insensitive=True
+            pattern . should_be_a Default_Engine.Pattern
+            pattern.options . should_equal [Option.Case_Insensitive]
 
         Test.specify "should be able to be escaped" <|
-            Nothing
+            pattern = "http://example.com"
+            Regex.escape pattern . should_equal "\Qhttp://example.com\E"
 

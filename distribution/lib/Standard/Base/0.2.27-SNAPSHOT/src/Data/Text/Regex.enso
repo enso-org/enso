@@ -1,6 +1,7 @@
-## TODO Module doc
-   TODO Clarify behaviour around "characters"
-   TODO Common syntax specification
+## This module contains the basic interface to the more advanced functionality
+   of Enso's regular expression engine.
+
+   TODO Examples
 
 from Standard.Base import all
 
@@ -8,7 +9,7 @@ import Standard.Base.Data.Map
 import Standard.Base.Data.Text.Span
 import Standard.Base.Data.Text.Regex
 import Standard.Base.Data.Text.Regex.Engine
-import Standard.Base.Data.Text.Regex.Engine.Default
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Text.Split_Kind
@@ -65,11 +66,10 @@ import Standard.Base.Error.Extensions as Errors
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-
-   # TODO Examples
-# compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern
-# compile expression engine=Default.Engine.new match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    # Errors.unimplemented
+compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern
+compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    options_vec = here.from_flags match_ascii case_insensitive dotall multiline verbose extra_opts
+    engine.compile expression options_vec
 
 ## Escape the special characters in `expression` such that the result is a valid
    literal pattern for the original string.
@@ -82,11 +82,8 @@ import Standard.Base.Error.Extensions as Errors
    ! Matching Engines
      Care should be taken to ensure that you use the same engine for escaping
      and matching, as engine syntax may differ in certain cases.
-
-   > Example
-     TODO with custom engine, without
-# escape : Text -> Engine.Engine -> Text
-# escape expression engine=Default = engine.build.escape expression
+escape : Text -> Engine.Engine -> Text
+escape expression engine=Default_Engine.new = engine.escape expression
 
 # !!!!!!!!!!!!! TODO These should be in `Text.Extensions` !!!!!!!!!!!!!!!!!!
 
