@@ -59,4 +59,3 @@ spec = Test.group "Columns" <|
         c_2 = Column.from_vector "c_2" ["foo", "bar", "foo", "baz", "bar"]
         c_2.duplicate_count.to_vector.should_equal [0, 0, 1, 0, 1]
 
-
