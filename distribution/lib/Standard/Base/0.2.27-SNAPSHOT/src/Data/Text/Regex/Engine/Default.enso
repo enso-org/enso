@@ -301,7 +301,69 @@ type Pattern
         Vector.Vector _ -> True
         _ -> False
 
-    ## TODO
+    ## ADVANCED
+
+       Tries to find the text in the `input` that matches against the pattern
+       `this`.
+
+       Arguments:
+       - input: The text to find matches in.
+       - mode: The matching mode to use.
+
+       This method will _always_ return `Nothing` if it fails to find any
+       matches.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+
+       > Example
+         Find the first instance of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input mode=Mode.First
+
+       > Example
+         Find up to the first 3 instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input mode=3
+
+       > Example
+         Find all instances of the pattern `".."` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.find input
+
+       > Example
+         Find if the pattern `".*"` matches on the entire input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".*" []
+                 input = "abcdefghij"
+                 pattern.find input mode=Mode.Full
     find : Text -> Mode.Mode -> Text | Vector.Vector Text | Nothing
     find input mode=Mode.All =
         matches = this.match input mode
@@ -310,7 +372,50 @@ type Pattern
             Vector.Vector _ -> matches.map (_.group 0)
             _ -> matches
 
-    ## TODO
+    ## ADVANCED
+
+       Splits the `input` text based on the pattern described by `this`.
+
+       Arguments:
+       - input: The text to splut based on the pattern described by `this`.
+       - mode: The splitting mode to use.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element.
+
+       > Example
+         Split the input on the first instance of the pattern `"aa"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa" []
+                 input = "abaaabbaabba"
+                 pattern.match input mode=Mode.First
+
+       > Example
+         Split on up to the first 3 instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input mode=3
+
+       > Example
+         Split on all all instances of the pattern `"a"` in the input.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "a" []
+                 input = "bacadaeaf"
+                 pattern.match input
     split : Text -> (Mode.First | Integer | Mode.All) -> Vector.Vector Text
     split input mode=Mode.All =
         # Java uses this to mean the max length of the resulting array, so we
@@ -331,7 +436,55 @@ type Pattern
         splits = this.internal_pattern.split input limit
         Vector.Vector splits
 
-    ## TODO
+    ## ADVANCED
+
+       Replace all occurrences of the pattern described by `this` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - mode: The matching mode to use for finding candidates to replace.
+       - replacement: The literal text with which to replace any matches.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+
+       > Example
+         Replace the first occurrence of the pattern `".."` in the input with
+         the text `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+             import Standard.Base.Data.Text.Regex.Mode
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile ".." []
+                 input = "abcdefghij"
+                 pattern.replace input "REPLACED" mode=Mode.First
+
+       > Example
+         Replace up to the first 3 instances of the pattern `"aa"` in the input
+         with the text `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa" []
+                 input = "aabbaaaabb"
+                 pattern.replace input "REPLACED" mode=3
+
+       > Example
+         Replace all instances of the pattern `"aa"` in the input with the text
+         `"REPLACED"`.
+
+             import Standard.Base.Data.Text.Regex.Engine.Default
+
+             example_match =
+                 engine = Default.new
+                 pattern = engine.compile "aa []
+                 input = "aabbaabbbbbaab"
+                 pattern.replace input "REPLACED"
     replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
     replace input replacement mode=Mode.All =
         do_replace_mode mode start end = case mode of
