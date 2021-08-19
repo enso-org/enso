@@ -66,8 +66,7 @@ import Standard.Base.Error.Extensions as Errors
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
 
-   > Example
-     TODO no overrides, with overrides, with options, with specific engine
+   # TODO Examples
 # compile : Text -> Engine.Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Engine.Pattern
 # compile expression engine=Default.Engine.new match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
     # Errors.unimplemented
@@ -304,21 +303,36 @@ import Standard.Base.Error.Extensions as Errors
 # Text.replace_new old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
     # Errors.unimplemented
 
-type Group
+## PRIVATE
 
-    ## PRIVATE
+   Turns the options flags into a vector of options.
+from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Option.Option
+from_flags match_ascii case_insensitive dotall multiline verbose extra_opts =
+    builder = Vector.new_builder
 
-       A representation of the content matched by a group.
+    process_override : Boolean | Nothing -> Option -> Nothing
+    process_override param option = case param of
+        Boolean -> if param then builder.append option
+        Nothing -> if extra_opts.contains option then builder.append option
 
-       Arguments:
-       - text: The text matched by the group
-    type Group (text : Text | Nothing) (start : Integer | Nothing) (end : Integer | Nothing)
+    process_override match_ascii Option.Ascii_Matching
+    process_override case_insensitive Option.Case_Insensitive
+    process_override dotall Option.Dotall
+    process_override multiline Option.Multiline
+    process_override verbose Option.Verbose
 
-    ## PRIVATE
+    ## Add any non-overridable options from extra_opts
+    extra_opts.each opt->
+        not_ascii = opt != Option.Ascii_Matching
+        not_insensitive = opt != Option.Case_Insensitive
+        not_dotall = opt != Option.Dotall
+        not_multiline = opt != Option.Multiline
+        not_verbose = opt != Option.Verbose
 
-       Checks whether `this` actually matched in the input.
-    matched : Boolean
-    matched = !this.text.is_nothing
+        if not_ascii && not_insensitive && not_dotall && not_multiline && not_verbose then
+            builder.append opt
+
+    builder.to_vector
 
 ## PRIVATE
 
