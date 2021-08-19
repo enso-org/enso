@@ -19,6 +19,10 @@ import java.nio.file.{Files, Path}
   * actions). So this class performs no synchronization and in the second case
   * it is the user's case to not import libraries that are in the middle of
   * being copied into this repository.
+  *
+  * Usually, this implementation should not be used for the primary cache, as
+  * other processes can concurrently access it, so the access should be
+  * synchronized.
   */
 class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
   private val logger = Logger[LocalReadOnlyRepository]
