@@ -252,7 +252,7 @@ Text.not_empty = this.is_empty.not
 
          "Hello".utf_8
 Text.utf_8 : Vector.Vector Byte
-Text.utf_8 = Vector.from_array (Text_Utils.get_bytes this)
+Text.utf_8 = Vector.Vector (Text_Utils.get_bytes this)
 
 ## Takes a vector of bytes and returns Text resulting from decoding it as UTF-8.
 
@@ -280,7 +280,7 @@ Text.from_utf_8 bytes = Text_Utils.from_utf_8 bytes.to_array
 
          "Hello".codepoints
 Text.codepoints : Vector.Vector Integer
-Text.codepoints = Vector.from_array (Text_Utils.get_codepoints this)
+Text.codepoints = Vector.Vector (Text_Utils.get_codepoints this)
 
 ## Takes an array of numbers and returns the text resulting from interpreting it
    as a sequence of Unicode codepoints.

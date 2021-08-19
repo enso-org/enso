@@ -16,7 +16,7 @@ export Standard.Table.Io.Format
 export Standard.Table.Io.Spreadsheet_Write_Mode
 export Standard.Table.Data.Column
 
-from Standard.Table.Data.Table export new, from_rows, join, No_Such_Column_Error, Table
+from Standard.Table.Data.Table export new, from_rows, join, concat, No_Such_Column_Error, Table
 from Standard.Table.Data.Order_Rule export Order_Rule
 
 ## ALIAS To Table

@@ -28,8 +28,7 @@ public class Table {
   public Table(Column[] columns) {
     this(
         columns,
-        new DefaultIndex(
-            (columns == null || columns.length == 0) ? 0 : columns[0].getSize()));
+        new DefaultIndex((columns == null || columns.length == 0) ? 0 : columns[0].getSize()));
   }
 
   public Table(Column[] columns, Index index) {
@@ -296,37 +295,64 @@ public class Table {
     return names.contains(name) ? name + suffix : name;
   }
 
+  private static class NamedBuilder {
+    private final String name;
+    private final InferredBuilder builder;
+
+    private NamedBuilder(String name, int size) {
+      this.name = name;
+      this.builder = new InferredBuilder(size);
+    }
+  }
+
   /**
-   * Concatenates {@code other} to {@code this}. Any column that is present in one table, but
-   * missing in another, will be {@code null}-padded in the positions corresponding to the missing
-   * column.
+   * Concatenates tables. Any column that is present in one table, but missing in another, will be
+   * {@code null}-padded in the positions corresponding to the missing column.
    *
-   * @param other the table to append to this one.
+   * @param tables the (non-empty) list of tables to concatenate.
    * @return a table result from concatenating both tables
    */
-  public Table concat(Table other) {
-    Index newIndex = concatIndexes(index, other.index);
-    List<Column> newColumns = new ArrayList<>();
-    int leftLen = rowCount();
-    int rightLen = other.rowCount();
-    for (Column c : columns) {
-      Column match = other.getColumnByName(c.getName());
-      Storage storage =
-          match == null
-              ? nullPad(rightLen, c.getStorage(), false)
-              : concatStorages(c.getStorage(), match.getStorage());
-      Column r = new Column(c.getName(), newIndex, storage);
-      newColumns.add(r);
-    }
-    for (Column c : other.columns) {
-      boolean match = newColumns.stream().anyMatch(col -> col.getName().equals(c.getName()));
-      if (!match) {
-        Storage storage = nullPad(leftLen, c.getStorage(), true);
-        Column r = new Column(c.getName(), newIndex, storage);
-        newColumns.add(r);
+  public static Table concat(List<Table> tables) {
+
+    Index newIndex =
+        concatIndexes(tables.stream().map(Table::getIndex).collect(Collectors.toList()));
+
+    int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
+
+    List<NamedBuilder> builders = new ArrayList<>();
+    int completedRows = 0;
+    for (var table : tables) {
+      for (var column : table.getColumns()) {
+        var matchingBuilder =
+            builders.stream().filter(bldr -> bldr.name.equals(column.getName())).findFirst();
+        NamedBuilder builder;
+        if (matchingBuilder.isPresent()) {
+          builder = matchingBuilder.get();
+        } else {
+          builder = new NamedBuilder(column.getName(), resultSize);
+          builders.add(builder);
+          builder.builder.appendNulls(completedRows);
+        }
+        var storage = column.getStorage();
+        for (int i = 0; i < storage.size(); i++) {
+          builder.builder.appendNoGrow(storage.getItemBoxed(i));
+        }
       }
+      for (var builder : builders) {
+        var columnExists =
+            Arrays.stream(table.getColumns()).anyMatch(col -> col.getName().equals(builder.name));
+        if (!columnExists) {
+          builder.builder.appendNulls(table.rowCount());
+        }
+      }
+      completedRows += table.rowCount();
     }
-    return new Table(newColumns.toArray(new Column[0]), newIndex);
+
+    Column[] newColumns =
+        builders.stream()
+            .map(builder -> new Column(builder.name, newIndex, builder.builder.seal()))
+            .toArray(Column[]::new);
+    return new Table(newColumns, newIndex);
   }
 
   private Storage concatStorages(Storage left, Storage right) {
@@ -354,19 +380,18 @@ public class Table {
     return builder.seal();
   }
 
-  private Index concatIndexes(Index left, Index right) {
-    if (left instanceof DefaultIndex && right instanceof DefaultIndex) {
-      return new DefaultIndex(left.size() + right.size());
+  private static Index concatIndexes(List<Index> indexes) {
+    int resultSize = indexes.stream().mapToInt(Index::size).sum();
+    if (indexes.stream().allMatch(ix -> ix instanceof DefaultIndex)) {
+      return new DefaultIndex(resultSize);
     } else {
-      InferredBuilder builder = new InferredBuilder(left.size() + right.size());
-      for (int i = 0; i < left.size(); i++) {
-        builder.appendNoGrow(left.iloc(i));
+      InferredBuilder builder = new InferredBuilder(resultSize);
+      for (var index : indexes) {
+        for (int i = 0; i < index.size(); i++) {
+          builder.appendNoGrow(index.iloc(i));
+        }
       }
-      for (int j = 0; j < right.size(); j++) {
-        builder.appendNoGrow(right.iloc(j));
-      }
-      Storage storage = builder.seal();
-      return HashIndex.fromStorage(left.getName(), storage);
+      return HashIndex.fromStorage(indexes.get(0).getName(), builder.seal());
     }
   }
 
