@@ -529,6 +529,12 @@ type Match
     ## PRIVATE
 
        A representation of a regular expression match.
+
+       Arguments:
+       - internal_match: The internal representation of the regular expression
+         match.
+       - region_start: The start of the region over which the match was made.
+       - region_end: The end of the region over which the match was made.
     type Match (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer)
 
     ## Gets the text matched by the group with the provided identifier, or
@@ -546,7 +552,22 @@ type Match
          index based on their position in the pattern.
 
        > Example
-         TODO
+         Get the text of the group with the index 0.
+
+             import Standard.Examples
+
+             example_group =
+                 match = Examples.match
+                 match.group 0
+
+       > Example
+         Get the text of the group with the name "letters".
+
+             import Standard.Examples
+
+             example_group =
+                 match = Examples.match
+                 match.group "letters"
     group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
     group id =
         Panic.recover (this.internal_match.group id) . map_error (here.handle_error _ id)
@@ -567,7 +588,14 @@ type Match
          index based on their position in the pattern.
 
        > Example
-         TODO
+         Get a vector of the text matched by all of the groups in this match,
+         replacing the value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 match.groups default="UNMATCHED"
     groups : (a : Any) -> Vector.Vector (Text | a)
     groups default=Nothing =
         group_numbers = 0.up_to this.internal_match.groupCount+1
@@ -585,7 +613,14 @@ type Match
          index did not participate in the match.
 
        > Example
-         TODO
+         Get the map of all of the named groups in this match, replacing the
+         value for groups that didn't match with "UNMATCHED".
+
+             import Standard.Examples
+
+             example_groups =
+                 match = Examples.match
+                 matcg.named_groups default="UNMATCHED"
     named_groups : (a : Any) -> Map Text (Text | a)
     named_groups default=Nothing =
         group_names = Vector.Vector <|
@@ -605,12 +640,20 @@ type Match
        - id: The identifier for the group to fetch the start index for.
 
        ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
 
        > Example
-         TODO
+         Get the start index in the input where the full pattern matched for
+         this match.
+
+             import Standard.Examples
+
+             example_start =
+                 match = Examples.match
+                 match.start 0
     start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     start id =
         result = Panic.recover (this.internal_match.start id)
@@ -625,12 +668,20 @@ type Match
        - id: The identifier for the group to fetch the end index for.
 
        ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
 
        > Example
-         TODO
+         Get the end index in the input where the full pattern matched for this
+         match.
+
+             import Standard.Examples
+
+             example_end =
+                 match = Examples.match
+                 match.end 0
     end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
     end id =
         result = Panic.recover (this.internal_match.end id)
@@ -644,12 +695,19 @@ type Match
        - id: The identifier for the group to fetch the end index for.
 
        ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
 
        > Example
-         TODO
+         Get the span over the input that was matched by the full match.
+
+             import Standard.Examples
+
+             example_Span =
+                 match = Examples.match
+                 match.span 0
     span : Integer | Text -> Span | Nothing ! Regex.No_Such_Group_Error
     span id = case this.group id of
         Nothing -> Nothing
@@ -658,30 +716,48 @@ type Match
     ## Returns the start character index of the match's region.
 
        ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
 
        > Example
-         TODO
+         Get the start position in the input to which this match was limited.
+
+             import Standard.Examples
+
+             example_start_position =
+                 match = Examples.match
+                 match.start_position
     start_position : Integer
     start_position = this.region_start
 
     ## Returns the end character index of the match's region.
 
        ! What is a Character?
-         A character is defined as an Extended Grapheme Cluster, see Unicode
-         Standard Annex 29. This is the smallest unit that still has semantic
-         meaning in most text-processing applications.
+         This regular expression engine defines a "character" to mean a UTF-16
+         character. This means that these indices should only be used with the
+         result of calling `.utf_16` on the text. Using them with `.characters`
+         or `.codepoints` will produce incorrect results.
 
        > Example
-         TODO
+         Get the end position in the input to which this match was limited.
+
+             import Standard.Examples
+
+             example_end_position =
+                 match = Examples.match
+                 match.end_position
     end_position : Integer
     end_position = this.region_end
 
 ## PRIVATE
 
    Handle errors when looking up group info.
+
+   Arguments:
+   - error: The error as a value.
+   - id: The group identifier with which the error is associated.
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
     Polyglot_Error err ->
@@ -750,17 +826,29 @@ from_enso_options opts =
         options_bitmask.bit_or unicode
 
 ## PRIVATE
+
+   An error representing that the bounds for a match are invalid.
 type Invalid_Bounds_Error
 
 ## PRIVATE
+
+   Provides a human-readable representation of the invalid bounds error.
 Invalid_Bounds_Error.to_display_text : Text
 Invalid_Bounds_Error.to_display_text =
     "The start bound cannot be greater than the end bound."
 
 ## PRIVATE
+
+   An error representing that there is something wrong with the mode for a regex
+   match.
+
+   Arguments:
+   - message: The text of the message to display to users.
 type Mode_Error (message : Text)
 
 ## PRIVATE
+
+   Provides a human-readable representation of the invalid bounds error.
 Mode_Error.to_display_text : Text
 Mode_Error.to_display_text = this.message.to_text
 

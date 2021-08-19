@@ -123,3 +123,8 @@ spec = Test.group "Examples" <|
     Test.specify "should provide an aggregate table" <|
         Examples.aggregate_table
 
+    Test.specify "should provide an example of a regex match" <|
+        match = Examples.match
+        match.groups.length . should_equal 5
+        match.named_groups.size . should_equal 2
+
