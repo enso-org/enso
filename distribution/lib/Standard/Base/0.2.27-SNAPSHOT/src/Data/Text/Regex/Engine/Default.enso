@@ -168,6 +168,9 @@ type Pattern
                 if internal_matcher . find start . not then Nothing else
                     Match internal_matcher start end
             Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot match a negative number of times."
+
                 builder = Vector.new_builder
 
                 go : Integer -> Integer -> Nothing
@@ -235,19 +238,58 @@ type Pattern
         # add 1.
         limit = case mode of
             Mode.First -> 2
-            Integer -> mode + 1
+            Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot match a negative number of times."
+
+                mode + 1
             Mode.All -> 0
             Mode.Full -> Panic.throw <|
                 Mode_Error "Splitting on a full match yields an empty text."
-            Mode.Bounded start end sub_mode -> Panic.throw <|
+            Mode.Bounded _ _ _ -> Panic.throw <|
                 Mode_Error "Splitting on a bounded region is not well-defined."
 
         splits = this.internal_pattern.split input limit
         Vector.Vector splits
 
     ## TODO
-    # replace : Text -> Text -> Mode.Mode -> Text
-    # replace input replacement mode=Mode.All = Errors.unimplemented
+    replace : Text -> Text -> (Mode.First | Integer | Mode.All | Mode.Full) -> Text
+    replace input replacement mode=Mode.All =
+        do_replace_mode mode start end = case mode of
+            Mode.First ->
+                internal_matcher = this.build_matcher input start end
+                internal_matcher.replaceFirst replacement
+            Integer ->
+                if mode < 0 then Panic.throw <|
+                    Mode_Error "Cannot replace a negative number of times."
+
+                go text region_start region_end remaining_replacements =
+                    should_stop = remaining_replacements <= 0
+
+                    if should_stop then text else
+                        internal_matcher = this.build_matcher text region_start region_end
+                        result = internal_matcher.replaceFirst replacement
+
+                        if internal_matcher.hitEnd then result else
+                            replacements = remaining_replacements - 1
+
+                            @Tail_Call go result region_start region_end replacements
+
+                go input start end mode
+            Mode.All ->
+                internal_matcher = this.build_matcher input start end
+                internal_matcher.replaceAll replacement
+            Mode.Full ->
+                case this.match input mode=Mode.Full of
+                    Match _ _ _ -> replacement
+                    Nothing -> input
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Modes cannot be recursive."
+
+        case mode of
+            Mode.Bounded _ _ _ -> Panic.throw <|
+                Mode_Error "Bounded replacements are not well-formed."
+            _ -> do_replace_mode mode 0 input.length
 
 type Match
 

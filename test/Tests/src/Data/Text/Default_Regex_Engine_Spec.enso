@@ -292,6 +292,64 @@ spec =
             match.at 3 . should_equal "e"
             match.at 4 . should_equal "f"
 
+    Test.group "The default regex engine's Pattern.replace" <|
+        engine = Default_Engine.new
+
+        Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
+            pattern = engine.compile "abc" []
+            input = "aa ab abc a bc abc"
+            match = pattern.replace input "REPLACED" mode=Mode.First
+            match . should_be_a Text
+            match . should_equal "aa ab REPLACED a bc abc"
+
+        Test.specify "should return the string unchanged if there are no matches to replace in first mode" <|
+            pattern = engine.compile "xyz" []
+            input = "aa ab ac ad"
+            match = pattern.replace input "REPLACED" mode=Mode.First
+            match . should_equal input
+
+        Test.specify "should be able to replace at most N instances of the pattern in the input" <|
+            pattern = engine.compile "aa" []
+            input = "aa ab aa ac ad aa aa ax"
+            match = pattern.replace input "REPLACED" mode=3
+            match . should_equal "REPLACED ab REPLACED ac ad REPLACED aa ax"
+
+        Test.specify "should replace fewer than N instances when there are fewer than N in the input" <|
+            pattern = engine.compile "aa" []
+            input = "aa ab aa ac ad aa aa ax"
+            match = pattern.replace input "REPLACED" mode=10
+            match . should_equal "REPLACED ab REPLACED ac ad REPLACED REPLACED ax"
+
+        Test.specify "should return the input when a counted replace fails" <|
+            pattern = engine.compile "aa" []
+            input = "abcdefghij"
+            match = pattern.replace input "REPLACED" mode=3
+            match . should_equal input
+
+        Test.specify "should be able to replace the all instances of the pattern in the input" <|
+            pattern = engine.compile "aa" []
+            input = "aa ab aa ac ad aa aa ax"
+            match = pattern.replace input "REPLACED" mode=Mode.All
+            match . should_equal "REPLACED ab REPLACED ac ad REPLACED REPLACED ax"
+
+        Test.specify "should return the input when an all replace fails" <|
+            pattern = engine.compile "aa" []
+            input = "abcdefghij"
+            match = pattern.replace input "REPLACED" mode=Mode.All
+            match . should_equal input
+
+        Test.specify "should be able to replace the entire input only if it matches" <|
+            pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
+            input = "aa ab abc a bc bcd"
+            match = pattern.replace input "REPLACED" mode=Mode.Full
+            match . should_equal "REPLACED"
+
+        Test.specify "should return the input for a full replace if the pattern doesn't match the entire input" <|
+            pattern = engine.compile "(..)" []
+            input = "aa ab"
+            full_match = pattern.replace input "REPLACED" mode=Mode.Full
+            full_match . should_equal input
+
     Test.group "Match.group" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
