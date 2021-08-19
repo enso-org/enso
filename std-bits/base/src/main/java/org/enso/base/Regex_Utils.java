@@ -1,6 +1,5 @@
 package org.enso.base;
 
-import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 

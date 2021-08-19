@@ -243,6 +243,55 @@ spec =
             match.at 1 . should_equal "ef"
             match.at 2 . should_equal "gh"
 
+    Test.group "The default regex engine's Pattern.split" <|
+        engine = Default_Engine.new
+
+        Test.specify "should be able to `split` on the first instance of the pattern" <|
+            pattern = engine.compile "cd" []
+            input = "abcdefghij"
+            match = pattern.split input mode=Mode.First
+            match.length . should_equal 2
+            match.at 0 . should_equal "ab"
+            match.at 1 . should_equal "efghij"
+
+        Test.specify "should return the original text if there are no matches in first mode" <|
+            pattern = engine.compile "(aa)" []
+            input = "abcdefghij"
+            match = pattern.split input mode=Mode.First
+            match . should_equal ["abcdefghij"]
+
+        Test.specify "should be able to `split` on at most N instances of the pattern in the input" <|
+            pattern = engine.compile "a" []
+            input = "bacadaeaf"
+            match = pattern.split input mode=3
+            match.length . should_equal 4
+            match.at 0 . should_equal "b"
+            match.at 1 . should_equal "c"
+            match.at 2 . should_equal "d"
+            match.at 3 . should_equal "eaf"
+
+        Test.specify "should `split` on fewer than N instances when there are fewer than N in the input" <|
+            pattern = engine.compile "a" []
+            input = "bacadaeaf"
+            match = pattern.split input mode=10
+            match.length . should_equal 5
+            match.at 0 . should_equal "b"
+            match.at 1 . should_equal "c"
+            match.at 2 . should_equal "d"
+            match.at 3 . should_equal "e"
+            match.at 4 . should_equal "f"
+
+        Test.specify "should be able to `split` on the all instances of the pattern in the input" <|
+            pattern = engine.compile "(a)" []
+            input = "bacadaeaf"
+            match = pattern.split input mode=Mode.All
+            match.length . should_equal 5
+            match.at 0 . should_equal "b"
+            match.at 1 . should_equal "c"
+            match.at 2 . should_equal "d"
+            match.at 3 . should_equal "e"
+            match.at 4 . should_equal "f"
+
     Test.group "Match.group" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
