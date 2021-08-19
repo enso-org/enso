@@ -85,6 +85,34 @@ trait Editions {
         "that will imply it."
       )
   }
+
+  object Edition {
+
+    /** Alternative constructor for creating editions.
+      *
+      * Useful for manually created editions.
+      *
+      * @param parent a parent edition (if applicable)
+      * @param engineVersion an engine version; it should be defined if the
+      *                      edition wants to override the setting from the parent
+      *                      or if it has no parents
+      * @param repositories a list of repositories directly defined in the
+      *                     edition (does not include ones defined in the parents)
+      * @param libraries a list of libraries directly defined in the edition
+      *                  (does not include ones defined in the parents)
+      */
+    def make(
+      parent: Option[NestedEditionType]      = None,
+      engineVersion: Option[SemVer]          = None,
+      repositories: Seq[Editions.Repository] = Seq.empty,
+      libraries: Seq[Library]                = Seq.empty
+    ): Edition = Edition(
+      parent,
+      engineVersion,
+      repositories.map(r => (r.name, r)).toMap,
+      libraries.map(l => (l.name, l)).toMap
+    )
+  }
 }
 
 object Editions {

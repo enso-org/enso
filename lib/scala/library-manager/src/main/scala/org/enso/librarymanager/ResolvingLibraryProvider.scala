@@ -16,16 +16,6 @@ trait ResolvingLibraryProvider {
   def findLibrary(
     name: LibraryName
   ): Either[ResolvingLibraryProvider.Error, ResolvedLibrary]
-
-  /** Resolves which library version should be used and checks if it is already
-    * cached.
-    *
-    * If it returns `false`, it means that the analogous call to [[findLibrary]]
-    * will need to download.
-    */
-  def isLibraryCached(
-    name: LibraryName
-  ): Either[ResolvingLibraryProvider, Boolean]
 }
 
 object ResolvingLibraryProvider {
