@@ -137,6 +137,10 @@ class LocalLibraryManager(
     FindLibraryResponse(pathOpt)
   }
 
+  /** Loads the metadata for a local library.
+    *
+    * If the manifest does not exist, an empty but successful response is sent.
+    */
   private def getMetadata(libraryName: LibraryName): Try[GetMetadataResponse] =
     for {
       libraryRootPath <- localLibraryProvider
@@ -150,6 +154,10 @@ class LocalLibraryManager(
       tagLine     = manifest.tagLine
     )
 
+  /** Sets the metadata.
+    *
+    * The manifest file is created if it did not exist.
+    */
   private def setMetadata(
     libraryName: LibraryName,
     description: Option[String],
@@ -160,18 +168,35 @@ class LocalLibraryManager(
       .toRight(LocalLibraryNotFoundError(libraryName))
       .toTry
     manifestPath = libraryRootPath / LibraryManifest.filename
-    manifest <- loadManifest(manifestPath)
+    manifest <- loadManifest(manifestPath).recover { error =>
+      logger.error(
+        s"Failed to load the manifest for local library [$libraryName].",
+        error
+      )
+      logger.warn(
+        s"Falling back to an empty manifest for [$libraryName] " +
+        s"due to loading errors."
+      )
+
+      LibraryManifest.empty
+    }
     updatedManifest = manifest.copy(
       description = description,
       tagLine     = tagLine
     )
   } yield saveManifest(manifestPath, updatedManifest)
 
+  /** Tries to load the manifest.
+    *
+    * If the file does not exist, an empty manifest is returned. Any other
+    * issues related to loading the file are treated as errors.
+    */
   private def loadManifest(manifestPath: Path): Try[LibraryManifest] =
     if (Files.exists(manifestPath))
       YamlHelper.load[LibraryManifest](manifestPath)
     else Success(LibraryManifest.empty)
 
+  /** Saves the manifest file. */
   private def saveManifest(
     manifestPath: Path,
     manifest: LibraryManifest

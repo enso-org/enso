@@ -89,7 +89,8 @@ class LibraryGetMetadataHandler(
 
   // TODO [RW] Once the manifests of downloaded libraries are being cached,
   //  it may be worth to try resolving the local cache first to avoid
-  //  downloading the manifest again.
+  //  downloading the manifest again. This should be done before the issues
+  //  #1772 or #1775 are completed.
   private def fetchPublishedMetadata(
     libraryName: LibraryName,
     version: String,
