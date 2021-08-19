@@ -121,3 +121,11 @@ spec =
             date_1!=date_2 . should_be_true
             date_1>date_2 . should_be_true
             date_1<date_2 . should_be_false
+
+        Test.specify "should return the correct week of year" <|
+            date_1 = Date.parse "2021-08-01"
+            date_1.week_of_year Locale.mexico . should_equal 32
+
+            date_2 = Date.parse "2021-01-01"
+            date_2.week_of_year Locale.us . should_equal 1
+            date_2.week_of_year Locale.uk . should_equal 0

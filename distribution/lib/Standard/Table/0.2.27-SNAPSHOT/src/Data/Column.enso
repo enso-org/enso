@@ -455,7 +455,9 @@ type Column
        provided default.
 
        Arguments:
-       - default: The value to replace missing values with.
+       - default: The value to replace missing values with. If this argument
+         is a column, the value from `default` at the corresponding position
+         will be used.
 
        > Example
          Fill missing values in a column with the value 20.5.
@@ -463,12 +465,17 @@ type Column
              import Standard.Examples
 
              example_fill_missing = Examples.decimal_column.fill_missing 20.5
-    fill_missing : Any -> Column
+    fill_missing : Column | Any -> Column
     fill_missing default =
         storage = this.java_column.getStorage
         index = this.java_column.getIndex
         name = this.java_column.getName
-        new_st = storage.fillMissing default
+        new_st = case default of
+            Column java_col ->
+                other_storage = java_col.getStorage
+                storage.fillMissingFrom other_storage
+            _ ->
+                storage.fillMissing default
         col = Java_Column.new name index new_st
         Column col
 
@@ -595,6 +602,11 @@ type Column
        - that: The column to zip with `this`.
        - function: A binary function that is applied to corresponding pairs of
          elements of `this` and `that` to produce a value.
+       - skip_missing: controls whether missing values should be passed to the
+         `function`. The default value of `True` will skip the rows for which
+         the value in either column is missing and automatically append
+         `Nothing` to the result table. If set to `False`, every pair of values
+         is passed to `function`.
 
        > Example
          Zip two columns together as pairs.
@@ -603,12 +615,12 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Column
-    zip that function =
+    zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
+    zip that function skip_missing=True =
         s1 = this.java_column.getStorage
         ix = this.java_column.getIndex
         s2 = that.java_column.getStorage
-        rs = s1.zip Nothing function s2
+        rs = s1.zip Nothing function s2 skip_missing
         Column (Java_Column.new "Result" ix rs)
 
     ## ALIAS Rename Column
@@ -1047,6 +1059,20 @@ type Column
         mask = OrderBuilder.buildReversedMask this.length
         Column <| this.java_column.applyMask mask
 
+    ## UNSTABLE
+
+       Returns a column of numbers, in which every entry denotes how many times
+       the value at the given position occured before.
+
+       > Example
+         Count duplicate occurences of values in a column.
+
+             import Standard.Examples
+
+             example_duplicate_count = Examples.integer_column.duplicate_count
+    duplicate_count : Column
+    duplicate_count = Column this.java_column.duplicateCount
+
 ## Wraps a column grouped by its index. Allows performing aggregation operations
    on the contained values.
 type Aggregate_Column
@@ -1245,7 +1271,7 @@ run_vectorized_binary_op column name fallback_fn operand = case operand of
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
-        rs = s1.zip name fallback_fn s2
+        rs = s1.zip name fallback_fn s2 True
         Column (Java_Column.new "Result" ix rs)
     _ ->
         s1 = column.java_column.getStorage

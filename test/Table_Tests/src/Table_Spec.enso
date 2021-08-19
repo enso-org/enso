@@ -106,6 +106,11 @@ spec =
             c = a.zip b x-> y-> x + y.to_text
             c.to_vector.should_equal ['foo6.3', 'bar3.1', 'baz5.2', 'spam4.6', 'eggs8.0']
 
+            x = Column.from_vector 'a' [1, Nothing, 2, Nothing]
+            y = Column.from_vector 'b' [0, 0, 0, 0]
+            r = x.zip y skip_missing=False x-> y-> if x == 1 then x else y
+            r.to_vector.should_equal [1, 0, 0, 0]
+
         Test.specify "should handle vectorized equality and fall back on non-vectorized if needed" <|
             c_str = Column.from_vector 'x' ['a', 'b', Nothing, 'b']
             (c_str == 'b').to_vector.should_equal [False, True, Nothing, True]
