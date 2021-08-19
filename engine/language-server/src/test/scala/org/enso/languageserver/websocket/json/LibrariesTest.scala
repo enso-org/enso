@@ -212,13 +212,35 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/setMetadata",
+            "id": 1,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "description": "Description for publication.",
+              "tagLine": "published-lib"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": null
+          }
+          """)
+
+      val baseUrl       = s"http://localhost:$port/"
+      val repositoryUrl = baseUrl + "libraries"
+      val repoRoot      = getTestDirectory.resolve("libraries_repo_root")
       EmptyRepository.withServer(port, repoRoot, uploads = true) {
-        val uploadUrl = s"http://localhost:$port/upload"
+        val uploadUrl       = baseUrl + "upload"
+        val uploadRequestId = 2
         client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/publish",
-            "id": 1,
+            "id": $uploadRequestId,
             "params": {
               "namespace": "user",
               "name": "Publishable_Lib",
@@ -233,12 +255,14 @@ class LibrariesTest extends BaseServerTest {
         while (!found) {
           val rawResponse = client.expectSomeJson()
           val response    = rawResponse.asObject.value
-          val idMatches =
-            response("id").flatMap(_.asNumber).flatMap(_.toInt).contains(1)
+          val idMatches = response("id")
+            .flatMap(_.asNumber)
+            .flatMap(_.toInt)
+            .contains(uploadRequestId)
           if (idMatches) {
             rawResponse shouldEqual json"""
               { "jsonrpc": "2.0",
-                "id": 1,
+                "id": $uploadRequestId,
                 "result": null
               }
               """
@@ -254,10 +278,52 @@ class LibrariesTest extends BaseServerTest {
           .resolve("0.0.1")
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
+
+        client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 3,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "version": {
+                "type": "PublishedLibraryVersion",
+                "version": "0.0.1",
+                "repositoryUrl": $repositoryUrl
+              }
+            }
+          }
+          """)
+        client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "description": "Description for publication.",
+              "tagLine": "published-lib"
+            }
+          }
+          """)
       }
 
       // Once the server is down, the metadata request should fail, especially as the published version is not cached.
-      // TODO
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 4,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "version": {
+                "type": "PublishedLibraryVersion",
+                "version": "0.0.1",
+                "repositoryUrl": $repositoryUrl
+              }
+            }
+          }
+          """)
+      val errorMsg = client.expectSomeJson().asObject.value
+      errorMsg("id").value.asNumber.value.toInt.value shouldEqual 4
+      errorMsg("error").value.asObject shouldBe defined
     }
   }
 

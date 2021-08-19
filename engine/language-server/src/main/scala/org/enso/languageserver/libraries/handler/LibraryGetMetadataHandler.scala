@@ -1,12 +1,11 @@
 package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
-import akka.pattern.pipe
 import com.typesafe.scalalogging.LazyLogging
 import nl.gn0s1s.bump.SemVer
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.{
@@ -53,7 +52,7 @@ class LibraryGetMetadataHandler(
             libraryName,
             version,
             repositoryUrl
-          ) pipeTo self
+          ).onComplete(self ! _)
       }
 
       val cancellable =
@@ -67,7 +66,8 @@ class LibraryGetMetadataHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      replyTo ! RequestTimeout
+      logger.error("Request [{}] timed out.", id)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case Success(
