@@ -59,6 +59,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`FileSegment`](#filesegment)
   - [`ContentRoot`](#contentroot)
   - [`LibraryEntry`](#libraryentry)
+  - [`LibraryVersion`](#libraryversion)
+  - [`Contact`](#contact)
   - [`EditionReference`](#editionreference)
 - [Connection Management](#connection-management)
   - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
@@ -161,7 +163,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`library/setMetadata`](#librarysetmetadata)
   - [`library/publish`](#librarypublish)
   - [`library/preinstall`](#librarypreinstall)
-- [Errors](#errors-74)
+- [Errors](#errors-75)
   - [`Error`](#error)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
@@ -1330,8 +1332,13 @@ interface LibraryEntry {
   namespace: String;
   name: String;
   version: LibraryVersion;
+  isCached: Boolean;
 }
 ```
+
+### `LibraryVersion`
+
+Represents a library version, as returned in `LibraryEntry`.
 
 ```typescript
 type LibraryVersion = LocalLibraryVersion | PublishedLibraryVersion;
@@ -1351,12 +1358,19 @@ interface PublishedLibraryVersion {
 interface LocalLibraryVersion {}
 ```
 
-The local libraries do not have metadata associated with them by default, as for
-the published libraries, the canonical way to access the metadata is to download
-the manifest, as described in the
-[library repository structure](../libraries/repositories.md#libraries-repository).
-So the manifest URL can be found by combining the repository URL and library
-name and version: `<repositoryUrl>/<namespace>/<name>/<version>/manifest.yaml`.
+### `Contact`
+
+Represents contact information of authors or maintainers.
+
+Both fields are optional, but for the contact to be valid, at least one of them
+must be defined.
+
+```typescript
+interface Contact {
+  name?: String;
+  email?: String;
+}
+```
 
 ### `EditionReference`
 
@@ -3415,6 +3429,9 @@ null;
 This message allows a client to modify the configuration for an existing
 visualisation.
 
+A successful response means that the new visualization configuration has been
+applied. In case of an error response, the visualization state does not change.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
@@ -4355,8 +4372,8 @@ added, the library will be loaded and its content root will be sent in a
 {
   namespace: String;
   name: String;
-  authors: [String];
-  maintainers: [String];
+  authors: [Contact];
+  maintainers: [Contact];
   license: String;
 }
 ```
@@ -4378,7 +4395,13 @@ null;
 
 ### `library/getMetadata`
 
-Gets metadata associated with a local library that will be used for publishing.
+Gets metadata associated with a specific library version.
+
+If the version is `LocalLibraryVersion`, it will try to read the manifest file
+of the local library and return an empty result if the manifest does not exist.
+
+If the version is `PublishedLibraryVersion`, it will fetch the manifest from the
+library repository. A cached manifest may also be used, if it is available.
 
 All returned fields are optional, as they may be missing.
 
@@ -4388,6 +4411,7 @@ All returned fields are optional, as they may be missing.
 {
   namespace: String;
   name: String;
+  version: LibraryVersion;
 }
 ```
 

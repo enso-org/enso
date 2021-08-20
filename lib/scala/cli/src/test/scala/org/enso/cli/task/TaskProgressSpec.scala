@@ -1,11 +1,11 @@
 package org.enso.cli.task
 
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.util.{Success, Try}
 
-class MappedTaskSpec extends AnyWordSpec with Matchers {
+class TaskProgressSpec extends AsyncWordSpec with Matchers {
   "TaskProgress.map" should {
     "run only once even with multiple listeners" in {
       var runs  = 0
@@ -35,6 +35,17 @@ class MappedTaskSpec extends AnyWordSpec with Matchers {
 
       answer shouldEqual Some(Success("foobar"))
       runs shouldEqual 1
+    }
+  }
+
+  "TaskProgress.toFuture" should {
+    "return a future that is completed when the original task is" in {
+      val task1 = new TaskProgressImplementation[String]()
+      task1.setComplete(Success("foo"))
+
+      task1.toFuture.map { result =>
+        result shouldEqual "foo"
+      }
     }
   }
 }

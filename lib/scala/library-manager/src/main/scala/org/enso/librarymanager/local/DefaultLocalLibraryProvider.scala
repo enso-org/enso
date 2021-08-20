@@ -2,6 +2,7 @@ package org.enso.librarymanager.local
 
 import com.typesafe.scalalogging.Logger
 import org.enso.editions.LibraryName
+import org.enso.librarymanager.LibraryLocations
 import org.enso.logger.masking.MaskedPath
 
 import java.nio.file.{Files, Path}
@@ -47,4 +48,13 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path])
       }
     case Nil => None
   }
+}
+
+object DefaultLocalLibraryProvider {
+
+  /** Creates a [[DefaultLocalLibraryProvider]] from the [[LibraryLocations]]
+    * configuration.
+    */
+  def make(locations: LibraryLocations): DefaultLocalLibraryProvider =
+    new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
 }

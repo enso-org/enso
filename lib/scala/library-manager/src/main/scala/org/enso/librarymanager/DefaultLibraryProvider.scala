@@ -9,81 +9,33 @@ import org.enso.distribution.{
   TemporaryDirectoryManager
 }
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
-import org.enso.librarymanager.local.DefaultLocalLibraryProvider
+import org.enso.librarymanager.local.{
+  DefaultLocalLibraryProvider,
+  LocalLibraryProvider
+}
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.cache.DownloadingLibraryCache
 import org.enso.librarymanager.published.{
   DefaultPublishedLibraryProvider,
   PublishedLibraryProvider
 }
-import org.enso.logger.masking.MaskedPath
-
-import java.nio.file.Path
 
 /** A helper class for loading libraries.
   *
-  * @param distributionManager  a distribution manager
-  * @param resourceManager      a resource manager
-  * @param lockUserInterface    an interface that will handle notifications
-  *                             about waiting on locks
-  * @param progressReporter     an interface that will handle progress
-  *                             notifications
-  * @param languageHome         a language home which may contain bundled libraries
-  * @param edition              the edition used in the project
-  * @param preferLocalLibraries project setting whether to use local libraries
+  * @param localLibraryProvider     provider of local (unpublished) libraries
+  * @param publishedLibraryProvider provider of published libraries
+  * @param edition                  the edition used in the project
+  * @param preferLocalLibraries     project setting whether to use local
+  *                                 libraries
   */
-class DefaultLibraryProvider(
-  distributionManager: DistributionManager,
-  resourceManager: ResourceManager,
-  lockUserInterface: LockUserInterface,
-  progressReporter: ProgressReporter,
-  languageHome: Option[LanguageHome],
+class DefaultLibraryProvider private (
+  localLibraryProvider: LocalLibraryProvider,
+  publishedLibraryProvider: PublishedLibraryProvider,
   edition: Editions.ResolvedEdition,
   preferLocalLibraries: Boolean
 ) extends ResolvingLibraryProvider {
-  private val logger = Logger[DefaultLibraryProvider]
-  private val localLibrarySearchPaths =
-    distributionManager.paths.localLibrariesSearchPaths.toList
-  private val localLibraryProvider = new DefaultLocalLibraryProvider(
-    localLibrarySearchPaths
-  )
-
+  private val logger   = Logger[DefaultLibraryProvider]
   private val resolver = LibraryResolver(localLibraryProvider)
-
-  private val cacheRoot = distributionManager.paths.cachedLibraries
-  private val primaryCache = new DownloadingLibraryCache(
-    cacheRoot,
-    TemporaryDirectoryManager(distributionManager, resourceManager),
-    resourceManager,
-    lockUserInterface,
-    progressReporter
-  )
-  private val additionalCacheLocations = {
-    val engineBundleRoot = languageHome.map(_.libraries)
-    val locations =
-      engineBundleRoot.toList ++ distributionManager.auxiliaryLibraryCaches()
-    locations.distinct
-  }
-  private val additionalCaches =
-    additionalCacheLocations.map(new LocalReadOnlyRepository(_))
-
-  private val publishedLibraryProvider: PublishedLibraryProvider =
-    new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
-
-  locally {
-    def mask(path: Path): String = MaskedPath(path).applyMasking()
-
-    logger.trace(
-      s"Local library search paths = ${localLibrarySearchPaths.map(mask)}"
-    )
-    logger.trace(
-      s"Primary library cache = ${mask(cacheRoot)}"
-    )
-    logger.trace(
-      s"Auxiliary (bundled) library caches = " +
-      s"${additionalCacheLocations.map(mask)}"
-    )
-  }
 
   /** Resolves the library version that should be used based on the
     * configuration and returns its location on the filesystem.
@@ -122,5 +74,53 @@ class DefaultLibraryProvider(
           .left
           .map(ResolvingLibraryProvider.Error.DownloadFailed)
     }
+  }
+}
+
+object DefaultLibraryProvider {
+
+  /** Creates a [[ResolvingLibraryProvider]] that can download new libraries.
+    *
+    * @param distributionManager  a distribution manager
+    * @param resourceManager      a resource manager
+    * @param lockUserInterface    an interface that will handle notifications
+    *                             about waiting on locks
+    * @param progressReporter     an interface that will handle progress
+    *                             notifications
+    * @param languageHome         a language home which may contain bundled libraries
+    * @param edition              the edition used in the project
+    * @param preferLocalLibraries project setting whether to use local libraries
+    */
+  def make(
+    distributionManager: DistributionManager,
+    resourceManager: ResourceManager,
+    lockUserInterface: LockUserInterface,
+    progressReporter: ProgressReporter,
+    languageHome: Option[LanguageHome],
+    edition: Editions.ResolvedEdition,
+    preferLocalLibraries: Boolean
+  ): ResolvingLibraryProvider = {
+    val locations = LibraryLocations.resolve(distributionManager, languageHome)
+    val primaryCache = new DownloadingLibraryCache(
+      locations.primaryCacheRoot,
+      TemporaryDirectoryManager(distributionManager, resourceManager),
+      resourceManager,
+      lockUserInterface,
+      progressReporter
+    )
+    val additionalCaches =
+      locations.additionalCacheRoots.map(new LocalReadOnlyRepository(_))
+
+    val localLibraryProvider =
+      new DefaultLocalLibraryProvider(locations.localLibrarySearchPaths)
+    val publishedLibraryProvider =
+      new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
+
+    new DefaultLibraryProvider(
+      localLibraryProvider,
+      publishedLibraryProvider,
+      edition,
+      preferLocalLibraries
+    )
   }
 }
