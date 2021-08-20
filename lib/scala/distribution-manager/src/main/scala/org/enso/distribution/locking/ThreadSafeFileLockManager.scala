@@ -33,7 +33,7 @@ import java.nio.file.Path
   *
   * @param locksRoot the directory in which lockfiles should be kept
   */
-class ThreadSafeFileLockManager(locksRoot: Path) extends LockManager {
+class ThreadSafeFileLockManager(locksRoot: Path) extends ThreadSafeLockManager {
   val fileLockManager = new FileLockManager(locksRoot)
   val localLocks =
     collection.concurrent.TrieMap.empty[String, ThreadSafeLock]

@@ -213,6 +213,34 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ProgressNotification],
         name  = "progressNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.AcquireLockRequest],
+        name  = "acquireLockRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ReleaseLockRequest],
+        name  = "releaseLockRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockAcquired],
+        name  = "lockAcquired"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CannotAcquireImmediately],
+        name  = "cannotAcquireImmediately"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockAcquireFailed],
+        name  = "lockAcquireFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockReleased],
+        name  = "lockReleased"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.LockReleaseFailed],
+        name  = "lockReleaseFailed"
       )
     )
   )
@@ -1418,6 +1446,24 @@ object Runtime {
         success: Boolean
       ) extends NotificationType
     }
+
+    case class AcquireLockRequest(
+      resourceName: String,
+      exclusive: Boolean,
+      returnImmediately: Boolean
+    ) extends ApiRequest
+
+    case class ReleaseLockRequest(lockId: UUID) extends ApiRequest
+
+    case class LockAcquired(lockId: UUID) extends ApiResponse
+
+    case class CannotAcquireImmediately() extends ApiResponse
+
+    case class LockAcquireFailed(errorMessage: String) extends ApiResponse
+
+    case class LockReleased() extends ApiResponse
+
+    case class LockReleaseFailed(errorMessage: String) extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

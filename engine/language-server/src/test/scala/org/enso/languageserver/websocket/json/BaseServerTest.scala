@@ -5,6 +5,7 @@ import io.circe.literal._
 import io.circe.parser.parse
 import io.circe.syntax.EncoderOps
 import org.apache.commons.io.FileUtils
+import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.{EditionResolver, Editions}
 import org.enso.editions.updater.EditionManager
@@ -34,6 +35,7 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
+import org.enso.languageserver.runtime.lockmanager.LockManagerService
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeFailureMapper}
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
@@ -241,6 +243,11 @@ class BaseServerTest
       editionResolver
     )
     val editionManager = EditionManager(distributionManager, Some(languageHome))
+    val lockManager = new ThreadSafeFileLockManager(
+      distributionManager.paths.locks
+    )
+
+    system.actorOf(LockManagerService.props(lockManager))
 
     val projectSettingsManager = system.actorOf(
       ProjectSettingsManager.props(

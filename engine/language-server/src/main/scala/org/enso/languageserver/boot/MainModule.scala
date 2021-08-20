@@ -1,6 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
+import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
@@ -33,6 +34,7 @@ import org.enso.languageserver.protocol.json.{
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime._
+import org.enso.languageserver.runtime.lockmanager.LockManagerService
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -285,6 +287,14 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
     editionResolver
   )
   val editionManager = EditionManager(distributionManager, Some(languageHome))
+  val lockManager = new ThreadSafeFileLockManager(
+    distributionManager.paths.locks
+  )
+
+  system.actorOf(
+    LockManagerService.props(lockManager),
+    "lock-manager-service"
+  )
 
   val projectSettingsManager = system.actorOf(
     ProjectSettingsManager.props(contentRoot.file, editionResolver),
