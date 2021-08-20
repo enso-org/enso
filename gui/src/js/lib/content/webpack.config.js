@@ -35,6 +35,7 @@ module.exports = {
             path.resolve(thisPath, 'src', 'index.html'),
             path.resolve(thisPath, 'src', 'run.js'),
             path.resolve(thisPath, 'src', 'style.css'),
+            path.resolve(thisPath, 'src', 'docsStyle.css'),
             path.resolve(thisPath, 'assets'),
             path.resolve(wasmPath, 'ide.wasm'),
         ]),
