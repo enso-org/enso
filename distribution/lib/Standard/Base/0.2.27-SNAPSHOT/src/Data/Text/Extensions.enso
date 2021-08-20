@@ -6,6 +6,7 @@ from Standard.Base import all
 from Standard.Builtins import Text, Prim_Text_Helpers
 
 import Standard.Base.Data.Text.Regex
+import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Line_Ending_Style
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Base.Data.Locale
@@ -140,9 +141,12 @@ Text.characters =
      value of the flag takes precedence over the value in `extra_opts` when
      merging the options to the engine. The flags are _unset_ (have value
      `Nothing`) by default.
-# Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing
-# Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    # Errors.unimplemented
+Text.match : Text | Engine.Pattern -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Match | Vector.Vector Match | Nothing ! Regex.Compile_Error
+Text.match pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+    compiled_pattern.match this mode
+
+## TODO matches
 
 ## ALIAS Find Text
 

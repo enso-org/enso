@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+import Standard.Base.Data.Text.Regex.Mode
+import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
 import Standard.Test
@@ -100,7 +102,38 @@ spec =
             Text.from_utf_16 kshi_chars . should_equal kshi
 
     Test.group "Regex matching" <|
-        Nothing
+        Test.specify "should be possible on text" <|
+            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Mode.First
+            match . should_be_a Default_Engine.Match
+            match.group 1 . should_equal "Goes Here"
+
+        Test.specify "should be possible in ascii mode" <|
+            match = "İ".match "\w" mode=Mode.First match_ascii=True
+            match . should_equal Nothing
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            match = "MY".match "my" mode=Mode.First case_insensitive=True
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal "MY"
+
+        Test.specify "should be possible in dotall mode" <|
+            match = 'Foo\n'.match "(....)" mode=Mode.First dotall=True
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal 'Foo\n'
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.match "^(...)$" multiline=True
+            match.length . should_equal 2
+            match.at 0 . group 1 . should_equal "Foo"
+            match.at 1 . group 1 . should_equal "bar"
+
+        Test.specify "should be possible in verbose mode" <|
+            match = "abcde".match "(..) " verbose=True mode=Mode.First
+            match . should_be_a Default_Engine.Match
+            match.group 0 . should_equal "ab"
 
     Test.group "Regex matches" <|
         Nothing
