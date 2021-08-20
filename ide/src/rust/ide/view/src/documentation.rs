@@ -37,24 +37,9 @@ pub const VIEW_HEIGHT : f32 = 300.0;
 /// Content in the documentation view when there is no data available.
 const CORNER_RADIUS     : f32  = crate::graph_editor::component::node::CORNER_RADIUS;
 const PADDING           : f32  = 15.0;
+const PADDING_TOP       : f32  = 5.0;
 const CODE_BLOCK_CLASS  : &str = "doc-code-container";
 const COPY_BUTTON_CLASS : &str = "doc-copy-btn";
-
-/// Get documentation view stylesheet from a CSS file.
-///
-/// TODO [MM] : This file is generated currently from Tailwind CSS file.
-///             It should be somehow gathered from website repo.
-fn documentation_style() -> String {
-    format!("<style>{}</style>", include_str!("documentation/style.css"))
-        .replace("theme-light", "light-theme")
-        .replace("theme-dark", "dark-theme")
-        .replace("body,html{font-family:var(--global-font)}", "body,html{font-family:\"DejaVuSansMonoBook\"}")
-        .replace(".doc .tags{display:flex;font-size:16px}", ".doc .tags{display:flex;font-size:13px}")
-        .replace("margin-left:15px", "margin-left:0px")
-        .replace("doc-copy-btn{display:none", "doc-copy-btn{")
-        .replace("padding:2px 6px 3px;", "padding:2px 6px;line-height:1.35")
-        .replace("font-size:15px;", "font-size:13px;")
-}
 
 
 
@@ -69,9 +54,10 @@ type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    logger : Logger,
-    dom    : DomSymbol,
-    size   : Rc<Cell<Vector2>>,
+    logger    : Logger,
+    outer_dom : DomSymbol,
+    inner_dom : DomSymbol,
+    size      : Rc<Cell<Vector2>>,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
     /// to EnsoGL shapes, and pass them to the DOM instead.
     overlay            : overlay::View,
@@ -84,9 +70,11 @@ impl Model {
     fn new(scene:&Scene) -> Self {
         let logger         = Logger::new("DocumentationView");
         let display_object = display::object::Instance::new(&logger);
-        let div            = web::create_div();
-        let dom            = DomSymbol::new(&div);
-        let size           = Rc::new(Cell::new(Vector2(VIEW_WIDTH,VIEW_HEIGHT)));
+        let outer_div      = web::create_div();
+        let outer_dom      = DomSymbol::new(&outer_div);
+        let inner_div      = web::create_div();
+        let inner_dom      = DomSymbol::new(&inner_div);
+        let size           = Rc::new(Cell::new(Vector2(VIEW_WIDTH-PADDING,VIEW_HEIGHT-PADDING-PADDING_TOP)));
         let overlay        = overlay::View::new(&logger);
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape system (#795)
@@ -95,25 +83,33 @@ impl Model {
         let bg_color   = styles.get_color(style_path);
         let bg_color   = bg_color.to_javascript_string();
 
-        dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
-        dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
-        dom.dom().set_style_or_warn("overflow-y"      ,"auto"                       ,&logger);
-        dom.dom().set_style_or_warn("overflow-x"      ,"auto"                       ,&logger);
-        dom.dom().set_style_or_warn("background-color",bg_color                     ,&logger);
-        dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
-        dom.dom().set_style_or_warn("padding-top"     ,"5px"                        ,&logger);
-        dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
-        dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
-        shadow::add_to_dom_element(&dom,&styles,&logger);
+        outer_dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
+        outer_dom.dom().set_style_or_warn("overflow-y"       ,"auto"                       ,&logger);
+        outer_dom.dom().set_style_or_warn("overflow-x"       ,"auto"                       ,&logger);
+        outer_dom.dom().set_style_or_warn("background-color",bg_color                     ,&logger);
+        outer_dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
+        outer_dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
+        shadow::add_to_dom_element(&outer_dom,&styles,&logger);
+
+        inner_dom.dom().set_attribute_or_warn("class"       ,"scrollable"                 ,&logger);
+        inner_dom.dom().set_style_or_warn("white-space"     ,"normal"                     ,&logger);
+        inner_dom.dom().set_style_or_warn("overflow-y"       ,"auto"                       ,&logger);
+        inner_dom.dom().set_style_or_warn("overflow-x"       ,"auto"                       ,&logger);
+        inner_dom.dom().set_style_or_warn("padding"         ,format!("{}px",PADDING)      ,&logger);
+        inner_dom.dom().set_style_or_warn("padding-top"     ,"5px"                        ,&logger);
+        inner_dom.dom().set_style_or_warn("pointer-events"  ,"auto"                       ,&logger);
+        inner_dom.dom().set_style_or_warn("border-radius"   ,format!("{}px",CORNER_RADIUS),&logger);
 
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);
-        display_object.add_child(&dom);
+        display_object.add_child(&outer_dom);
+        outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
-        scene.dom.layers.front.manage(&dom);
+        scene.dom.layers.front.manage(&outer_dom);
+        scene.dom.layers.front.manage(&inner_dom);
 
         let code_copy_closures = default();
-        Model {logger,dom,size,overlay,display_object,code_copy_closures}.init()
+        Model {logger,outer_dom,inner_dom,size,overlay,display_object,code_copy_closures}.init()
     }
 
     fn init(self) -> Self {
@@ -131,9 +127,12 @@ impl Model {
     /// Create a container for generated content and embed it with stylesheet.
     fn push_to_dom(&self, content:String) {
         let no_doc_txt = "<p style=\"color: #a3a6a9;\">No documentation available</p>";
-        let content    = content.replace("<p>No documentation available</p>",no_doc_txt);
-        let data_str   = format!(r#"{}{}"#,documentation_style(),content);
-        self.dom.dom().set_inner_html(&data_str);
+        // FIXME [MM] : Temporary solution until engine update with changed class name in docs parser.
+        let content = content.replace("<p>No documentation available</p>",no_doc_txt)
+            .replace("class=\"doc\"", "class=\"enso docs\"")
+            .replace("\"font-size: 13px;\"", "\"font-size: 15px;\"")
+            .replace("ALIAS", "alias");
+        self.inner_dom.dom().set_inner_html(&content);
     }
 
     /// Append listeners to copy buttons in doc to enable copying examples.
@@ -141,8 +140,8 @@ impl Model {
     /// returns top-to-bottom sorted list of elements, as found in:
     /// https://stackoverflow.com/questions/35525811/order-of-elements-in-document-getelementsbyclassname-array
     fn attach_listeners_to_copy_buttons(&self) {
-        let code_blocks  = self.dom.dom().get_elements_by_class_name(CODE_BLOCK_CLASS);
-        let copy_buttons = self.dom.dom().get_elements_by_class_name(COPY_BUTTON_CLASS);
+        let code_blocks  = self.inner_dom.dom().get_elements_by_class_name(CODE_BLOCK_CLASS);
+        let copy_buttons = self.inner_dom.dom().get_elements_by_class_name(COPY_BUTTON_CLASS);
         let closures     = (0..copy_buttons.length()).map(|i| -> Result<CodeCopyClosure,u32> {
             let create_closures = || -> Option<CodeCopyClosure> {
                 let copy_button = copy_buttons.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
@@ -204,11 +203,12 @@ impl Model {
     }
 
     fn reload_style(&self) {
-        let size        = self.size.get();
-        let padding     = (size.x.min(size.y) / 2.0).min(PADDING);
-        self.dom.set_size(Vector2(size.x,size.y));
-        self.dom.dom().set_style_or_warn("padding",format!("{}px",padding),&self.logger);
-        self.dom.dom().set_style_or_warn("padding-top","5px",&self.logger);
+        let size    = self.size.get();
+        let padding = (size.x.min(size.y) / 2.0).min(PADDING);
+        self.outer_dom.set_size(Vector2(size.x,size.y));
+        self.inner_dom.set_size(Vector2(size.x-padding,size.y-padding-PADDING_TOP));
+        self.inner_dom.dom().set_style_or_warn("padding"    ,format!("{}px",padding)    ,&self.logger);
+        self.inner_dom.dom().set_style_or_warn("padding-top",format!("{}px",PADDING_TOP),&self.logger);
     }
 }
 
@@ -316,7 +316,7 @@ impl View {
 
 impl From<View> for visualization::Instance {
     fn from(t: View) -> Self {
-        Self::new(&t,&t.visualization_frp,&t.frp.network,Some(t.model.dom.clone_ref()))
+        Self::new(&t,&t.visualization_frp,&t.frp.network,Some(t.model.outer_dom.clone_ref()))
     }
 }
 

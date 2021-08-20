@@ -169,10 +169,11 @@ impl Model {
         let padding_text = format!("{}px",PADDING_TEXT);
 
         dom.dom().set_attribute_or_warn("class","visualization scrollable",&logger);
-        dom.dom().set_style_or_warn("overflow-x"    ,"hidden"             ,&logger);
-        dom.dom().set_style_or_warn("overflow-y"    ,"auto"               ,&logger);
+        dom.dom().set_style_or_warn("overflow-x"     ,"hidden"             ,&logger);
+        dom.dom().set_style_or_warn("overflow-y"     ,"auto"               ,&logger);
         dom.dom().set_style_or_warn("font-family"   ,"DejaVuSansMonoBook" ,&logger);
         dom.dom().set_style_or_warn("font-size"     ,"12px"               ,&logger);
+        dom.dom().set_style_or_warn("border-radius" ,"14px"               ,&logger);
         dom.dom().set_style_or_warn("padding-left"  ,&padding_text        ,&logger);
         dom.dom().set_style_or_warn("padding-top"   ,&padding_text        ,&logger);
         dom.dom().set_style_or_warn("pointer-events","auto"               ,&logger);
