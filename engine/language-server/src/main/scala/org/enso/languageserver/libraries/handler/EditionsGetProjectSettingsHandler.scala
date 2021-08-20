@@ -2,7 +2,7 @@ package org.enso.languageserver.libraries.handler
 
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
+import org.enso.jsonrpc.{Errors, Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
 import org.enso.languageserver.libraries.ProjectSettingsManager
@@ -42,7 +42,8 @@ class EditionsGetProjectSettingsHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      replyTo ! RequestTimeout
+      logger.error("Request [{}] timed out.", id)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case Success(settings: ProjectSettingsManager.SettingsResponse) =>

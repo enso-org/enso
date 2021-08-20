@@ -2,6 +2,7 @@ package org.enso.languageserver.libraries
 
 import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.distribution.FileSystem.PathSyntax
 import org.enso.distribution.{DistributionManager, FileSystem}
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LocalLibraryManagerProtocol._
@@ -9,12 +10,14 @@ import org.enso.librarymanager.local.{
   DefaultLocalLibraryProvider,
   LocalLibraryProvider
 }
-import org.enso.pkg.PackageManager
+import org.enso.librarymanager.published.repository.LibraryManifest
+import org.enso.pkg.{Contact, PackageManager}
 import org.enso.pkg.validation.NameValidation
+import org.enso.yaml.YamlHelper
 
 import java.io.File
-import java.nio.file.Files
-import scala.util.{Failure, Success, Try}
+import java.nio.file.{Files, Path}
+import scala.util.{Success, Try}
 
 /** An Actor that manages local libraries. */
 class LocalLibraryManager(
@@ -22,18 +25,20 @@ class LocalLibraryManager(
   distributionManager: DistributionManager
 ) extends Actor
     with LazyLogging {
+  val localLibraryProvider = new DefaultLocalLibraryProvider(
+    distributionManager.paths.localLibrariesSearchPaths.toList
+  )
+
   override def receive: Receive = { case request: Request =>
     request match {
-      case GetMetadata(_) =>
-        logger.warn(
-          "Getting local library metadata is currently not implemented."
+      case GetMetadata(libraryName) =>
+        sender() ! getMetadata(libraryName)
+      case request: SetMetadata =>
+        sender() ! setMetadata(
+          request.libraryName,
+          description = request.description,
+          tagLine     = request.tagLine
         )
-        sender() ! Success(GetMetadataResponse(None, None))
-      case SetMetadata(_, _, _) =>
-        logger.error(
-          "Setting local library metadata is currently not implemented."
-        )
-        sender() ! Failure(new NotImplementedError())
       case ListLocalLibraries =>
         sender() ! listLocalLibraries()
       case Create(libraryName, authors, maintainers, license) =>
@@ -60,13 +65,10 @@ class LocalLibraryManager(
     */
   private def createLibrary(
     libraryName: LibraryName,
-    authors: Seq[String],
-    maintainers: Seq[String],
+    authors: Seq[Contact],
+    maintainers: Seq[Contact],
     license: String
   ): Try[Unit] = Try {
-    // TODO [RW] modify protocol to be able to create Contact instances
-    val _ = (authors, maintainers)
-
     validateLibraryName(libraryName)
 
     // TODO [RW] make the exceptions more relevant
@@ -90,10 +92,12 @@ class LocalLibraryManager(
 
     PackageManager.Default.create(
       libraryPath.toFile,
-      name      = libraryName.name,
-      namespace = libraryName.namespace,
-      edition   = findCurrentProjectEdition(),
-      license   = license
+      name        = libraryName.name,
+      namespace   = libraryName.namespace,
+      edition     = findCurrentProjectEdition(),
+      authors     = authors.toList,
+      maintainers = maintainers.toList,
+      license     = license
     )
   }
 
@@ -128,12 +132,74 @@ class LocalLibraryManager(
   private def findLibrary(
     libraryName: LibraryName
   ): Try[FindLibraryResponse] = Try {
-    val localLibraryProvider = new DefaultLocalLibraryProvider(
-      distributionManager.paths.localLibrariesSearchPaths.toList
-    )
     val pathOpt = localLibraryProvider.findLibrary(libraryName)
     FindLibraryResponse(pathOpt)
   }
+
+  /** Loads the metadata for a local library.
+    *
+    * If the manifest does not exist, an empty but successful response is sent.
+    */
+  private def getMetadata(libraryName: LibraryName): Try[GetMetadataResponse] =
+    for {
+      libraryRootPath <- localLibraryProvider
+        .findLibrary(libraryName)
+        .toRight(LocalLibraryNotFoundError(libraryName))
+        .toTry
+      manifestPath = libraryRootPath / LibraryManifest.filename
+      manifest <- loadManifest(manifestPath)
+    } yield GetMetadataResponse(
+      description = manifest.description,
+      tagLine     = manifest.tagLine
+    )
+
+  /** Sets the metadata.
+    *
+    * The manifest file is created if it did not exist.
+    */
+  private def setMetadata(
+    libraryName: LibraryName,
+    description: Option[String],
+    tagLine: Option[String]
+  ): Try[Unit] = for {
+    libraryRootPath <- localLibraryProvider
+      .findLibrary(libraryName)
+      .toRight(LocalLibraryNotFoundError(libraryName))
+      .toTry
+    manifestPath = libraryRootPath / LibraryManifest.filename
+    manifest <- loadManifest(manifestPath).recover { error =>
+      logger.error(
+        s"Failed to load the manifest for local library [$libraryName].",
+        error
+      )
+      logger.warn(
+        s"Falling back to an empty manifest for [$libraryName] " +
+        s"due to loading errors."
+      )
+
+      LibraryManifest.empty
+    }
+    updatedManifest = manifest.copy(
+      description = description,
+      tagLine     = tagLine
+    )
+  } yield saveManifest(manifestPath, updatedManifest)
+
+  /** Tries to load the manifest.
+    *
+    * If the file does not exist, an empty manifest is returned. Any other
+    * issues related to loading the file are treated as errors.
+    */
+  private def loadManifest(manifestPath: Path): Try[LibraryManifest] =
+    if (Files.exists(manifestPath))
+      YamlHelper.load[LibraryManifest](manifestPath)
+    else Success(LibraryManifest.empty)
+
+  /** Saves the manifest file. */
+  private def saveManifest(
+    manifestPath: Path,
+    manifest: LibraryManifest
+  ): Unit = FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(manifest))
 
   /** Finds the edition associated with the current project, if specified in its
     * config.

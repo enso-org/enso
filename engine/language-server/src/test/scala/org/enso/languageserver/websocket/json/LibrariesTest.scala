@@ -10,6 +10,7 @@ import org.enso.librarymanager.published.repository.{
   EmptyRepository,
   ExampleRepository
 }
+import org.enso.pkg.{Contact, PackageManager}
 
 import java.nio.file.Files
 
@@ -53,8 +54,20 @@ class LibrariesTest extends BaseServerTest {
             "params": {
               "namespace": "user",
               "name": "My_Local_Lib",
-              "authors": [],
-              "maintainers": [],
+              "authors": [
+                {
+                  "name": "user",
+                  "email": "example@example.com"
+                }
+              ],
+              "maintainers": [
+                {
+                  "name": "only-name"
+                },
+                {
+                  "email": "foo@example.com"
+                }
+              ],
               "license": ""
             }
           }
@@ -100,9 +113,7 @@ class LibrariesTest extends BaseServerTest {
       // TODO [RW] error handling (#1877)
     }
 
-    def port: Int = 47308
-
-    "create and publish a library" in {
+    "get and set the metadata" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -110,7 +121,7 @@ class LibrariesTest extends BaseServerTest {
             "id": 0,
             "params": {
               "namespace": "user",
-              "name": "Publishable_Lib",
+              "name": "Metadata_Test_Lib",
               "authors": [],
               "maintainers": [],
               "license": ""
@@ -124,13 +135,137 @@ class LibrariesTest extends BaseServerTest {
           }
           """)
 
-      val repoRoot = getTestDirectory.resolve("libraries_repo_root")
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 1,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "description": null,
+              "tagLine": null
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/setMetadata",
+            "id": 2,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "description": "The description...",
+              "tagLine": "tag-line"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 3,
+            "params": {
+              "namespace": "user",
+              "name": "Metadata_Test_Lib",
+              "version": {
+                "type": "LocalLibraryVersion"
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "description": "The description...",
+              "tagLine": "tag-line"
+            }
+          }
+          """)
+    }
+
+    def port: Int = 47308
+
+    "create, publish a library and fetch its manifest from the server" in {
+      val client = getInitialisedWsClient()
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/create",
+            "id": 0,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "authors": [
+                {
+                  "name": "user",
+                  "email": "example@example.com"
+                }
+              ],
+              "maintainers": [
+                {
+                  "name": "only-name"
+                },
+                {
+                  "email": "foo@example.com"
+                }
+              ],
+              "license": ""
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/setMetadata",
+            "id": 1,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "description": "Description for publication.",
+              "tagLine": "published-lib"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": null
+          }
+          """)
+
+      val baseUrl       = s"http://localhost:$port/"
+      val repositoryUrl = baseUrl + "libraries"
+      val repoRoot      = getTestDirectory.resolve("libraries_repo_root")
       EmptyRepository.withServer(port, repoRoot, uploads = true) {
-        val uploadUrl = s"http://localhost:$port/upload"
+        val uploadUrl       = baseUrl + "upload"
+        val uploadRequestId = 2
         client.send(json"""
           { "jsonrpc": "2.0",
             "method": "library/publish",
-            "id": 1,
+            "id": $uploadRequestId,
             "params": {
               "namespace": "user",
               "name": "Publishable_Lib",
@@ -145,12 +280,14 @@ class LibrariesTest extends BaseServerTest {
         while (!found) {
           val rawResponse = client.expectSomeJson()
           val response    = rawResponse.asObject.value
-          val idMatches =
-            response("id").flatMap(_.asNumber).flatMap(_.toInt).contains(1)
+          val idMatches = response("id")
+            .flatMap(_.asNumber)
+            .flatMap(_.toInt)
+            .contains(uploadRequestId)
           if (idMatches) {
             rawResponse shouldEqual json"""
               { "jsonrpc": "2.0",
-                "id": 1,
+                "id": $uploadRequestId,
                 "result": null
               }
               """
@@ -166,7 +303,60 @@ class LibrariesTest extends BaseServerTest {
           .resolve("0.0.1")
         val mainPackage = libraryRoot.resolve("main.tgz")
         assert(Files.exists(mainPackage))
+        val pkg = PackageManager.Default.loadPackage(libraryRoot.toFile).get
+        pkg.config.authors should contain theSameElementsAs Seq(
+          Contact(name = Some("user"), email = Some("example@example.com"))
+        )
+        pkg.config.maintainers should contain theSameElementsAs Seq(
+          Contact(name = Some("only-name"), email = None),
+          Contact(name = None, email              = Some("foo@example.com"))
+        )
+
+        client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 3,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "version": {
+                "type": "PublishedLibraryVersion",
+                "version": "0.0.1",
+                "repositoryUrl": $repositoryUrl
+              }
+            }
+          }
+          """)
+        client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "description": "Description for publication.",
+              "tagLine": "published-lib"
+            }
+          }
+          """)
       }
+
+      // Once the server is down, the metadata request should fail, especially as the published version is not cached.
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "library/getMetadata",
+            "id": 4,
+            "params": {
+              "namespace": "user",
+              "name": "Publishable_Lib",
+              "version": {
+                "type": "PublishedLibraryVersion",
+                "version": "0.0.1",
+                "repositoryUrl": $repositoryUrl
+              }
+            }
+          }
+          """)
+      val errorMsg = client.expectSomeJson().asObject.value
+      errorMsg("id").value.asNumber.value.toInt.value shouldEqual 4
+      errorMsg("error").value.asObject shouldBe defined
     }
   }
 

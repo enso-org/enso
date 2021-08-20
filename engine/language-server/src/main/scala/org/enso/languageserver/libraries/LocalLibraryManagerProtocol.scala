@@ -1,6 +1,7 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
+import org.enso.pkg.Contact
 
 import java.nio.file.Path
 
@@ -34,8 +35,8 @@ object LocalLibraryManagerProtocol {
   /** A request to create a new library project. */
   case class Create(
     libraryName: LibraryName,
-    authors: Seq[String],
-    maintainers: Seq[String],
+    authors: Seq[Contact],
+    maintainers: Seq[Contact],
     license: String
   ) extends Request
 
@@ -44,4 +45,12 @@ object LocalLibraryManagerProtocol {
 
   /** A response to [[FindLibrary]]. */
   case class FindLibraryResponse(libraryRoot: Option[Path])
+
+  /** Indicates that a library with the given name was not found among local
+    * libraries.
+    */
+  case class LocalLibraryNotFoundError(libraryName: LibraryName)
+      extends RuntimeException(
+        s"Local library [$libraryName] has not been found."
+      )
 }
