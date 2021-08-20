@@ -22,7 +22,7 @@ const resRoot = path.join(contentRoot, 'Resources')
 
 // TODO: Refactor this once we have a better wau to get the used engine version.
 //  See the tracking issue for more information https://github.com/enso-org/ide/issues/1359
-const ENGINE = '0.2.24'
+const ENGINE = '0.2.26'
 const ID = '"Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)"'
 // Placeholder name for temporary archives.
 const tmpArchive = 'temporary_archive.zip'
@@ -110,7 +110,7 @@ function signArchive(archivePath, archiveName, binPaths) {
 const toSign = [
     {
         jarDir:
-            `enso/dist/${ENGINE}/lib/Standard/Database/0.1.0/polyglot/java`,
+            `enso/dist/${ENGINE}/lib/Standard/Database/${ENGINE}/polyglot/java`,
         jarName: 'sqlite-jdbc-3.34.0.jar',
         jarContent: [
             'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
