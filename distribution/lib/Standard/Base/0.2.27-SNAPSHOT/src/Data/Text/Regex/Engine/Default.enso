@@ -4,14 +4,34 @@
    syntax, extended with support for the unicode character classes and
    properties. A detailed explanation of the syntax is below.
 
-   ! Characters
+   ! Raw Strings
+     Enso has support for raw strings using the `""` quotes. Within a raw
+     string, all characters are interpreted to mean themselves. This means that
+     you do not need to double-escape special characters in regular expressions.
+
+   ! Characters and Regex
      When the default regex engine provdies a position with regards to
      "characters", it is referring to positions in terms of the UTF-16
      characters in the text. These indices must be used to index into the
      vector of UTF-16 characters. It will otherwise be wrong.
 
+   ! Escaping
+     The backslash character `"\"` serves to introduce escaped constructs, as
+     defined in "Syntax Specification" below, as well as to quote characters
+     that would otherwise be interpreted as unescaped constructs. As a result,
+     the expression `"\\"` matches a single backslash, and `"\{"` matches an
+     opening brace.
+
+     It is a parse error for the regular expression to use a backslash prior to
+     any alphabetic character that does not denote an escaped construct. It is,
+     however, valid to put a backslash before any symbolic character.
+
    ? Syntax Specification
-     TODO Full syntax specification.
+     The syntax supported by the default regular expression engine is described
+     here. The pattern described by the regular expression can then be used to
+     match against text.
+
+     TBC
 
 from Standard.Base import all
 
