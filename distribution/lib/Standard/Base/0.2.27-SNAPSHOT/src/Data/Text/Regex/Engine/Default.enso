@@ -307,7 +307,7 @@ type Pattern
                  input = "aa"
                  pattern.matches input
     matches : Text -> Boolean
-    matches input = case this.match input mode=Mode.All of
+    matches input = case this.match input mode=Mode.First of
         Match _ _ _ -> True
         Vector.Vector _ -> True
         _ -> False

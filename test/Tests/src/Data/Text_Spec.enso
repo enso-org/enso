@@ -136,7 +136,26 @@ spec =
             match.group 0 . should_equal "ab"
 
     Test.group "Regex matches" <|
-        Nothing
+        Test.specify "should be possible on text" <|
+            "My Text: Goes Here".matches "^My Text: (.+)$" . should_be_true
+
+        Test.specify "should be possible in ascii mode" <|
+            "İ".matches "\w" match_ascii=True . should_be_false
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            "MY".matches "my" case_insensitive=True . should_be_true
+
+        Test.specify "should be possible in dotall mode" <|
+            'Foo\n'.matches "(....)" dotall=True . should_be_true
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            text.matches "^(...)$" multiline=True . should_be_true
+
+        Test.specify "should be possible in verbose mode" <|
+            "abcde".matches "(..) # Match two of any character" verbose=True . should_be_true
 
     Test.group "Regex finding" <|
         Nothing
