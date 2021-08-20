@@ -192,7 +192,46 @@ spec =
             match . should_equal "ab"
 
     Test.group "Regex splitting" <|
-        Nothing
+        Test.specify "should be possible on text" <|
+            splits = "abcde".split "[bd]"
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "c"
+            splits.at 2 . should_equal "e"
+
+        Test.specify "should be possible in ascii mode" <|
+            splits = "İiİ".split "\w" match_ascii=True
+            splits.length . should_equal 2
+            splits.at 0 . should_equal "İ"
+            splits.at 1 . should_equal "İ"
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            splits = "abaBa".split "b" case_insensitive=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "a"
+            splits.at 2 . should_equal "a"
+
+        Test.specify "should be possible in dotall mode" <|
+            splits = 'ab\nabcd'.split "b." dotall=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "a"
+            splits.at 2 . should_equal "d"
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.split "$" multiline=True
+            match.length . should_equal 2
+
+        Test.specify "should be possible in verbose mode" <|
+            splits = "abcde".split "[bd] # Split on the letters `b` and `d`" verbose=True
+            splits.length . should_equal 3
+            splits.at 0 . should_equal "a"
+            splits.at 1 . should_equal "c"
+            splits.at 2 . should_equal "e"
 
     Test.group "Regex replacement" <|
         Nothing
