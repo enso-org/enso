@@ -158,7 +158,38 @@ spec =
             "abcde".matches "(..) # Match two of any character" verbose=True . should_be_true
 
     Test.group "Regex finding" <|
-        Nothing
+        Test.specify "should be possible on text" <|
+            match = "My Text: Goes Here".find "^My Text: (.+)$" mode=Mode.First
+            match . should_be_a Text
+            match . should_equal "My Text: Goes Here"
+
+        Test.specify "should be possible in ascii mode" <|
+            match = "İ".find "\w" mode=Mode.First match_ascii=True
+            match . should_equal Nothing
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            match = "MY".find "my" mode=Mode.First case_insensitive=True
+            match . should_be_a Text
+            match . should_equal "MY"
+
+        Test.specify "should be possible in dotall mode" <|
+            match = 'Foo\n'.find "(....)" mode=Mode.First dotall=True
+            match . should_be_a Text
+            match . should_equal 'Foo\n'
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            match = text.find "^(...)$" multiline=True
+            match.length . should_equal 2
+            match.at 0 . should_equal "Foo"
+            match.at 1 . should_equal "bar"
+
+        Test.specify "should be possible in verbose mode" <|
+            match = "abcde".find "(..) # Match two of any character" verbose=True mode=Mode.First
+            match . should_be_a Text
+            match . should_equal "ab"
 
     Test.group "Regex splitting" <|
         Nothing
