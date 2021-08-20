@@ -296,10 +296,19 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
      value of the flag takes precedence over the value in `extra_opts` when
      merging the options to the engine. The flags are _unset_ (have value
      `Nothing`) by default.
-
-# Text.split_new : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
-# Text.split_new separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    # Errors.unimplemented
+Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
+Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    case separator of
+        Split_Kind.Words -> Vector.Vector this.words
+        Split_Kind.Whitespace ->
+            pattern = Regex.compile "\s+" match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern.split this mode=mode
+        Split_Kind.Lines ->
+            pattern = Regex.compile "\v+" match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern.split this mode=mode
+        Text ->
+            pattern = Regex.compile separator match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+            pattern.split this mode=mode
 
 ## ALIAS Replace Text
 
@@ -368,14 +377,14 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
      Split the text on whitespace into a vector of items.
 
          "ham eggs cheese tomatoes".split Split_Kind.Whitespace
-Text.split : Split_Kind -> Vector.Vector Text
-Text.split (separator = Split_Kind.Whitespace) =
-    result = case separator of
-        Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
-        Split_Kind.Lines -> Text_Utils.split_on_lines this
-        Split_Kind.Words -> this.words
-        Text -> Text_Utils.split_by_literal this separator
-    Vector.from_array result
+# Text.split : Split_Kind -> Vector.Vector Text
+# Text.split (separator = Split_Kind.Whitespace) =
+    # result = case separator of
+        # Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
+        # Split_Kind.Lines -> Text_Utils.split_on_lines this
+        # Split_Kind.Words -> this.words
+        # Text -> Text_Utils.split_by_literal this separator
+    # Vector.from_array result
 
 ## ALIAS Get Words
 
