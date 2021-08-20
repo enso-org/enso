@@ -34,6 +34,9 @@ pub enum RpcError<Payload:Debug+Send+Sync+'static = serde_json::Value> {
     MismatchedResponseType,
 
     /// Response timeout.
+    /// 
+    /// Note that this represents the client-side timeout. Server-side timeout will be treated as 
+    /// an [`RemoteError`]. 
     #[allow(missing_docs)]
     #[fail(display = "Response timed out after {} ms.", millis)]
     TimeoutError{millis:u128},

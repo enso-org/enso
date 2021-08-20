@@ -1733,11 +1733,11 @@ impl Model {
         executor::global::spawn(task);
         Ok(id)
     }
-
-
-    /// Repeatedly try to attach visualization to the node (as defined by the map).
-    ///
-    /// Up to `attempts` will be made.
+    
+    /// Try attaching visualization to the node.
+    /// 
+    /// In case of timeout failure, retries up to total `attempts` count will be made. 
+    /// For other kind of errors no further attempts will be made.
     fn try_attaching_visualization_task
     (&self, node_id:graph_editor::NodeId, visualizations_map:VisualizationMap, attempts:usize)
     -> impl Future<Output=AttachingResult<impl Stream<Item=VisualizationUpdateData>>> {
@@ -1756,10 +1756,15 @@ impl Model {
                             {node_id}.");
                             return AttachingResult::Attached(stream);
                         }
-                        Err(e) => {
-                            error!(logger, "Failed to attach visualization {id} for node {node_id} \
-                            (attempt {i}): {e}");
+                        Err(e) if enso_protocol::language_server::is_timeout_error(&e) => {
+                            warning!(logger, "Failed to attach visualization {id} for node \
+                            {node_id} (attempt {i}). Will retry, as it is a timeout error.");
                             last_error = Some(e);
+                        }
+                        Err(e) => {
+                            warning!(logger, "Failed to attach visualization {id} for node \
+                            {node_id}: {e}");
+                            return AttachingResult::Failed(e)
                         }
                     }
                 } else {
@@ -1789,7 +1794,7 @@ impl Model {
     ) -> impl Future<Output=()> {
         let graph_frp  = self.view.graph().frp.clone_ref();
         let map        = visualizations_map.clone();
-        let attempts   = crate::constants::INITIAL_VISUALIZATION_ATTACH_ATTEMPTS;
+        let attempts   = crate::constants::ATTACHING_TIMEOUT_RETRIES;
         let stream_fut = self.try_attaching_visualization_task(node_id,map,attempts);
         async move {
             // No need to log anything here, as `try_attaching_visualization_task` does this.

@@ -24,10 +24,11 @@ pub use api::RemoteMethodCall;
 pub use api::Result;
 pub use enso_prelude as prelude;
 pub use ensogl_system_web as ensogl;
-pub use transport::Transport;
-pub use transport::TransportEvent;
+pub use error::RpcError;
 pub use handler::Event;
 pub use handler::Handler;
+pub use transport::Transport;
+pub use transport::TransportEvent;
 
 #[cfg(test)] pub use utils::test::traits::*;
 

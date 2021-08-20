@@ -22,11 +22,12 @@ pub const PROJECTS_MAIN_MODULE:&str = "Main";
 /// Visualization folder where IDE can look for user-defined visualizations per project.
 pub const VISUALIZATION_DIRECTORY:&str = "visualization";
 
-/// How many times IDE will try to attach initial visualization on loading project.
-///
-/// This is necessary, because the request will be timing out for a while, until the stdlib
-/// compilation is done.
-pub const INITIAL_VISUALIZATION_ATTACH_ATTEMPTS:usize = 50;
+/// How many times IDE will try attaching visualization when there is a timeout error.
+/// 
+/// Timeout error suggests that there might be nothing wrong with the request, just that the backend
+/// is currently too busy to reply or that there is some connectivity hiccup. Thus, it makes sense
+/// to give it a few more tries.
+pub const ATTACHING_TIMEOUT_RETRIES:usize = 50;
 
 /// A module with language-specific constants.
 pub mod keywords {

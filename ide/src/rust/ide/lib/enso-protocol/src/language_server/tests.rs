@@ -512,7 +512,7 @@ fn test_execution_context() {
     let old_version = Sha3_224::new(b"Hello world!");
     let new_version = Sha3_224::new(b"Hello, world!");
     let path        = main.clone();
-    let edit        = FileEdit {path,edits,old_version,new_version:new_version};
+    let edit        = FileEdit {path,edits,old_version,new_version};
     test_request(
         |client| client.apply_text_file_edit(&edit),
         "text/applyEdit",
