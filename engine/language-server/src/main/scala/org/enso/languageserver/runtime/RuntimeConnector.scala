@@ -1,12 +1,15 @@
 package org.enso.languageserver.runtime
 
 import java.nio.ByteBuffer
-
 import akka.actor.{Actor, ActorRef, Props, Stash}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.runtime.RuntimeConnector.Destroy
+import org.enso.languageserver.runtime.RuntimeConnector.{
+  Destroy,
+  MessageFromRuntime
+}
 import org.enso.polyglot.runtime.Runtime
+import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /** An actor managing a connection to Enso's runtime server.
@@ -44,14 +47,25 @@ class RuntimeConnector
     senders: Map[Runtime.Api.RequestId, ActorRef]
   ): Receive = {
     case Destroy => context.stop(self)
-    case msg: Runtime.Api.Request =>
+
+    case msg: Runtime.ApiEnvelope =>
       engine.sendBinary(Runtime.Api.serialize(msg))
-      msg.requestId.foreach { id =>
-        context.become(initialized(engine, senders + (id -> sender())))
+
+      msg match {
+        case Api.Request(Some(id), _) =>
+          context.become(initialized(engine, senders + (id -> sender())))
+        case _ =>
       }
-    case Runtime.Api.Response(None, msg: Runtime.ApiNotification) =>
+
+    case MessageFromRuntime(msg: Runtime.Api.Request) =>
       context.system.eventStream.publish(msg)
-    case msg @ Runtime.Api.Response(Some(correlationId), _) =>
+    case MessageFromRuntime(
+          Runtime.Api.Response(None, msg: Runtime.ApiNotification)
+        ) =>
+      context.system.eventStream.publish(msg)
+    case MessageFromRuntime(
+          msg @ Runtime.Api.Response(Some(correlationId), _)
+        ) =>
       senders.get(correlationId).foreach(_ ! msg)
       context.become(initialized(engine, senders - correlationId))
   }
@@ -87,8 +101,8 @@ object RuntimeConnector {
 
     override def sendBinary(data: ByteBuffer): Unit =
       Runtime.Api
-        .deserializeResponse(data)
-        .foreach(actor ! _)
+        .deserializeApiEnvelope(data)
+        .foreach(actor ! MessageFromRuntime(_))
 
     override def sendPing(data: ByteBuffer): Unit = peerEndpoint.sendPong(data)
 
@@ -96,4 +110,6 @@ object RuntimeConnector {
 
     override def sendClose(): Unit = actor ! RuntimeConnector.Destroy
   }
+
+  case class MessageFromRuntime(message: ApiEnvelope)
 }

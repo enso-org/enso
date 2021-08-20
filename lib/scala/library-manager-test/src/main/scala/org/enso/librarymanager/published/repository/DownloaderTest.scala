@@ -41,7 +41,6 @@ trait DownloaderTest { self: HasTestDirectory =>
 
       action(cache)
     } finally {
-      resourceManager.releaseMainLock()
       resourceManager.unlockTemporaryDirectory()
     }
   }

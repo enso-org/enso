@@ -1441,6 +1441,14 @@ object Runtime {
     def serialize(message: Response): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
 
+    /** Serializes an ApiEnvelope into a byte buffer.
+      *
+      * @param message the message to serialize.
+      * @return the serialized version of the message.
+      */
+    def serialize(message: ApiEnvelope): ByteBuffer =
+      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
+
     /** Deserializes a byte buffer into a Request message.
       *
       * @param bytes the buffer to deserialize
@@ -1456,6 +1464,15 @@ object Runtime {
       */
     def deserializeResponse(bytes: ByteBuffer): Option[Response] =
       Try(mapper.readValue(bytes.array(), classOf[Response])).toOption
+
+    /** Deserializes a byte buffer into an ApiEnvelope, which can be a Request
+      * or a Response.
+      *
+      * @param bytes the buffer to deserialize
+      * @return the deserialized message, if the byte buffer can be deserialized.
+      */
+    def deserializeApiEnvelope(bytes: ByteBuffer): Option[ApiEnvelope] =
+      Try(mapper.readValue(bytes.array(), classOf[ApiEnvelope])).toOption
   }
 
 }
