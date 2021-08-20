@@ -3429,6 +3429,9 @@ null;
 This message allows a client to modify the configuration for an existing
 visualisation.
 
+A successful response means that the new visualization configuration has been
+applied. In case of an error response, the visualization state does not change.
+
 - **Type:** Request
 - **Direction:** Client -> Server
 - **Connection:** Protocol
