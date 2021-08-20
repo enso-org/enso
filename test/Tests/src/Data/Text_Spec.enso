@@ -234,5 +234,30 @@ spec =
             splits.at 2 . should_equal "e"
 
     Test.group "Regex replacement" <|
-        Nothing
+        Test.specify "should be possible on text" <|
+            result = "ababab".replace "b" "a"
+            result . should_equal "aaaaaa"
+
+        Test.specify "should be possible in ascii mode" <|
+            result = "İiİ".replace "\w" "a" match_ascii=True
+            result . should_equal "İaİ"
+
+        Test.specify "should be possible in case-insensitive mode" <|
+            result = "abaBa".replace "b" "a" case_insensitive=True
+            result . should_equal "aaaaa"
+
+        Test.specify "should be possible in dotall mode" <|
+            result = 'ab\na'.replace "b." "a" dotall=True
+            result . should_equal "aaa"
+
+        Test.specify "should be possible in multiline mode" <|
+            text = """
+                Foo
+                bar
+            result = text.replace '\n' "" multiline=True
+            result . should_equal "Foobar"
+
+        Test.specify "should be possible in verbose mode" <|
+            result = "ababd".replace "b\w # Replacing a `b` followed by any word character" "a" verbose=True
+            result . should_equal "aaa"
 

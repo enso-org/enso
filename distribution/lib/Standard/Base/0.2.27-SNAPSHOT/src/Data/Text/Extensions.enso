@@ -250,7 +250,7 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
     compiled_pattern = Regex.compile pattern match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
     compiled_pattern.find this mode
 
-## ALIAS Split
+## ALIAS Split Text
 
    Takes a separator and returns the vector that results from splitting `this`
    on the configured number of occurrences of `separator`.
@@ -296,6 +296,16 @@ Text.find pattern mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dot
      value of the flag takes precedence over the value in `extra_opts` when
      merging the options to the engine. The flags are _unset_ (have value
      `Nothing`) by default.
+
+   > Example
+     Split the comma-separated text into a vector of items.
+
+         "ham,eggs,cheese,tomatoes".split ","
+
+   > Example
+     Split the text on whitespace into a vector of items.
+
+         "ham eggs cheese tomatoes".split Split_Kind.Whitespace
 Text.split : Split_Kind -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Vector.Vector Text
 Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
     case separator of
@@ -356,35 +366,14 @@ Text.split separator=Split_Kind.Whitespace mode=Mode.All match_ascii=Nothing cas
      merging the options to the engine. The flags are _unset_ (have value
      `Nothing`) by default.
 
-# Text.replace_new : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
-# Text.replace_new old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
-    # Errors.unimplemented
-
-## ALIAS Split
-
-   Takes a separator string and returns a vector resulting from splitting
-   `this` on each occurence of `separator`.
-
-   Arguments:
-   - separator: The separator to use to split the text.
-
    > Example
-     Split the comma-separated text into a vector of items.
+     Replace letters in the text "aaa".
 
-         "ham,eggs,cheese,tomatoes".split ","
-
-   > Example
-     Split the text on whitespace into a vector of items.
-
-         "ham eggs cheese tomatoes".split Split_Kind.Whitespace
-# Text.split : Split_Kind -> Vector.Vector Text
-# Text.split (separator = Split_Kind.Whitespace) =
-    # result = case separator of
-        # Split_Kind.Whitespace -> Text_Utils.split_on_whitespace this
-        # Split_Kind.Lines -> Text_Utils.split_on_lines this
-        # Split_Kind.Words -> this.words
-        # Text -> Text_Utils.split_by_literal this separator
-    # Vector.from_array result
+         'aaa'.replace 'aa' 'b' == 'ba'
+Text.replace : Text | Engine.Pattern -> Text -> Mode.Mode -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector.Vector Option.Option -> Text
+Text.replace old_sequence new_sequence mode=Mode.All match_ascii=Nothing case_insensitive=Nothing dotall=Nothing multiline=Nothing verbose=Nothing extra_opts=[] =
+    compiled_pattern = Regex.compile old_sequence match_ascii=match_ascii case_insensitive=case_insensitive dotall=dotall multiline=multiline verbose=verbose extra_opts=extra_opts
+    compiled_pattern.replace this new_sequence mode
 
 ## ALIAS Get Words
 
@@ -651,24 +640,6 @@ Text.ends_with suffix = Text_Utils.ends_with this suffix
          "Hello".contains "ell"
 Text.contains : Text -> Boolean
 Text.contains sequence = Text_Utils.contains this sequence
-
-## ALIAS Replace Text
-
-   Replaces each occurrences of `old_sequence` within `this` with `new_sequence`.
-
-   Arguments:
-   - old_sequence: The text to search for in `this`.
-   - new_sequence: The text to replace any occurrence of `old_sequence` with.
-
-   The replacement from the beginning of the text, as shown in the example below.
-
-   > Example
-     Replace letters in the text "aaa".
-
-         'aaa'.replace 'aa' 'b' == 'ba'
-Text.replace : Text -> Text -> Text
-Text.replace old_sequence new_sequence =
-    Text_Utils.replace this old_sequence new_sequence
 
 ## Text to JSON conversion.
 
