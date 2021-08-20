@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Regex.Mode
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Locale
 import Standard.Base.Data.Text.Split_Kind
@@ -103,21 +102,21 @@ spec =
 
     Test.group "Regex matching" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Mode.First
+            match = "My Text: Goes Here".match "^My Text: (.+)$" mode=Regex_Mode.First
             match . should_be_a Default_Engine.Match
             match.group 1 . should_equal "Goes Here"
 
         Test.specify "should be possible in ascii mode" <|
-            match = "İ".match "\w" mode=Mode.First match_ascii=True
+            match = "İ".match "\w" mode=Regex_Mode.First match_ascii=True
             match . should_equal Nothing
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".match "my" mode=Mode.First case_insensitive=True
+            match = "MY".match "my" mode=Regex_Mode.First case_insensitive=True
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal "MY"
 
         Test.specify "should be possible in dotall mode" <|
-            match = 'Foo\n'.match "(....)" mode=Mode.First dotall=True
+            match = 'Foo\n'.match "(....)" mode=Regex_Mode.First dotall=True
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal 'Foo\n'
 
@@ -131,7 +130,7 @@ spec =
             match.at 1 . group 1 . should_equal "bar"
 
         Test.specify "should be possible in verbose mode" <|
-            match = "abcde".match "(..) # Match two of any character" verbose=True mode=Mode.First
+            match = "abcde".match "(..) # Match two of any character" verbose=True mode=Regex_Mode.First
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal "ab"
 
@@ -159,21 +158,21 @@ spec =
 
     Test.group "Regex finding" <|
         Test.specify "should be possible on text" <|
-            match = "My Text: Goes Here".find "^My Text: (.+)$" mode=Mode.First
+            match = "My Text: Goes Here".find "^My Text: (.+)$" mode=Regex_Mode.First
             match . should_be_a Text
             match . should_equal "My Text: Goes Here"
 
         Test.specify "should be possible in ascii mode" <|
-            match = "İ".find "\w" mode=Mode.First match_ascii=True
+            match = "İ".find "\w" mode=Regex_Mode.First match_ascii=True
             match . should_equal Nothing
 
         Test.specify "should be possible in case-insensitive mode" <|
-            match = "MY".find "my" mode=Mode.First case_insensitive=True
+            match = "MY".find "my" mode=Regex_Mode.First case_insensitive=True
             match . should_be_a Text
             match . should_equal "MY"
 
         Test.specify "should be possible in dotall mode" <|
-            match = 'Foo\n'.find "(....)" mode=Mode.First dotall=True
+            match = 'Foo\n'.find "(....)" mode=Regex_Mode.First dotall=True
             match . should_be_a Text
             match . should_equal 'Foo\n'
 
@@ -187,7 +186,7 @@ spec =
             match.at 1 . should_equal "bar"
 
         Test.specify "should be possible in verbose mode" <|
-            match = "abcde".find "(..) # Match two of any character" verbose=True mode=Mode.First
+            match = "abcde".find "(..) # Match two of any character" verbose=True mode=Regex_Mode.First
             match . should_be_a Text
             match . should_equal "ab"
 
