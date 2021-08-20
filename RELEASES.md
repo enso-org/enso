@@ -1,5 +1,10 @@
 # Enso Next
 
+## Tooling
+
+- Implement Language Server endpoints for getting and setting library metadata
+  ([#1967](https://github.com/enso-org/enso/pull/1967)).
+
 # Enso 0.2.26 (2021-08-19)
 
 ## Libraries
