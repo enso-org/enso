@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.ChangesetBuilder;
+import org.enso.interpreter.instrument.ConnectedLockManager;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.instrument.MethodCallsCache;
@@ -57,6 +58,7 @@ public class ExecutionService {
   private final NotificationHandler.Forwarder notificationForwarder;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
+  private final ConnectedLockManager connectedLockManager;
 
   /**
    * Creates a new instance of this service.
@@ -68,10 +70,12 @@ public class ExecutionService {
   public ExecutionService(
       Context context,
       IdExecutionInstrument idExecutionInstrument,
-      NotificationHandler.Forwarder notificationForwarder) {
+      NotificationHandler.Forwarder notificationForwarder,
+      ConnectedLockManager connectedLockManager) {
     this.idExecutionInstrument = idExecutionInstrument;
     this.context = context;
     this.notificationForwarder = notificationForwarder;
+    this.connectedLockManager = connectedLockManager;
   }
 
   /** @return the language context. */
@@ -104,6 +108,10 @@ public class ExecutionService {
   public void initializeLanguageServerConnection(Endpoint endpoint) {
     var notificationHandler = new NotificationHandler.InteractiveMode(endpoint);
     notificationForwarder.addListener(notificationHandler);
+
+    if (connectedLockManager != null) {
+      connectedLockManager.connect(endpoint);
+    }
   }
 
   /**

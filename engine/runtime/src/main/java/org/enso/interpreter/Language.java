@@ -8,9 +8,13 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.distribution.DistributionManager;
+import org.enso.distribution.Environment;
+import org.enso.distribution.locking.LockManager;
+import org.enso.distribution.locking.ThreadSafeFileLockManager;
 import org.enso.interpreter.epb.EpbLanguage;
+import org.enso.interpreter.instrument.ConnectedLockManager;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
-import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -70,11 +74,27 @@ public final class Language extends TruffleLanguage<Context> {
       notificationHandler.addListener(TextMode$.MODULE$);
     }
 
-    Context context = new Context(this, getLanguageHome(), env, notificationHandler);
+    var environment = new Environment() {};
+    var distributionManager = new DistributionManager(environment);
+
+    LockManager lockManager;
+    ConnectedLockManager connectedLockManager = null;
+    if (isTextMode) {
+      lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
+    } else {
+      connectedLockManager = new ConnectedLockManager();
+      lockManager = connectedLockManager;
+    }
+
+    Context context =
+        new Context(
+            this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
     idExecutionInstrument = env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
-    env.registerService(new ExecutionService(context, idExecutionInstrument, notificationHandler));
+    env.registerService(
+        new ExecutionService(
+            context, idExecutionInstrument, notificationHandler, connectedLockManager));
     return context;
   }
 

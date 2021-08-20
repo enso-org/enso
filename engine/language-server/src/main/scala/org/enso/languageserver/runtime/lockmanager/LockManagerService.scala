@@ -9,8 +9,9 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 }
 
 import java.util.UUID
+import java.util.concurrent.Executors
 import scala.annotation.tailrec
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
@@ -36,7 +37,8 @@ class LockManagerService(underlyingLockManager: ThreadSafeLockManager)
   }
 
   // TODO [RW] how to create a good EC for IO ops?
-  implicit private val ec = scala.concurrent.ExecutionContext.global
+  implicit private val ec: ExecutionContext =
+    ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
 
   override def receive: Receive = {
     case Runtime.Api.Request(
