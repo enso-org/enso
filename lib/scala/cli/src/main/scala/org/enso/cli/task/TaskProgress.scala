@@ -1,7 +1,7 @@
 package org.enso.cli.task
 
 import java.util.concurrent.LinkedTransferQueue
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
 /** Represents a long-running background task.
@@ -21,6 +21,19 @@ trait TaskProgress[A] {
     * exceptions that were reported.
     */
   def force(): A = TaskProgress.waitForTask(this).get
+
+  /** Creates a [[Future]] that is completed once this [[TaskProgress]] instance
+    * is completed.
+    */
+  def toFuture: Future[A] = {
+    val promise = Promise[A]()
+    addProgressListener(new ProgressListener[A] {
+      override def progressUpdate(done: Long, total: Option[Long]): Unit = ()
+
+      override def done(result: Try[A]): Unit = promise.complete(result)
+    })
+    promise.future
+  }
 
   /** Specifies unit associated with progress of this task. */
   def unit: ProgressUnit = ProgressUnit.Unspecified

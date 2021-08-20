@@ -51,7 +51,8 @@ class LibraryCreateHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      replyTo ! RequestTimeout
+      logger.error("Request [{}] timed out.", id)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
     case Success(_) =>

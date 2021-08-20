@@ -4,6 +4,7 @@ import io.circe.Json
 import io.circe.literal.JsonStringContext
 import org.enso.editions.{LibraryName, LibraryVersion}
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
+import org.enso.pkg.Contact
 
 object LibraryApi {
   case object EditionsListAvailable extends Method("editions/listAvailable") {
@@ -114,8 +115,8 @@ object LibraryApi {
     case class Params(
       namespace: String,
       name: String,
-      authors: Seq[String],
-      maintainers: Seq[String],
+      authors: Seq[Contact],
+      maintainers: Seq[Contact],
       license: String
     )
 
@@ -129,7 +130,11 @@ object LibraryApi {
 
   case object LibraryGetMetadata extends Method("library/getMetadata") { self =>
 
-    case class Params(namespace: String, name: String)
+    case class Params(
+      namespace: String,
+      name: String,
+      version: LibraryEntry.LibraryVersion
+    )
 
     case class Result(description: Option[String], tagLine: Option[String])
 

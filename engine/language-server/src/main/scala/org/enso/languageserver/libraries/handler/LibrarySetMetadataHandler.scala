@@ -1,32 +1,91 @@
 package org.enso.languageserver.libraries.handler
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.jsonrpc.{Request, ResponseError}
+import org.enso.editions.LibraryName
+import org.enso.jsonrpc.{
+  Errors,
+  Id,
+  Request,
+  ResponseError,
+  ResponseResult,
+  Unused
+}
 import org.enso.languageserver.filemanager.FileManagerApi.FileSystemError
 import org.enso.languageserver.libraries.LibraryApi._
+import org.enso.languageserver.libraries.LocalLibraryManagerProtocol
+import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
+
+import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success}
 
 /** A request handler for the `library/setMetadata` endpoint.
   *
-  * It is currently a stub implementation which will be refined later on.
+  * @param timeout request timeout
+  * @param localLibraryManager a reference to the LocalLibraryManager
   */
-class LibrarySetMetadataHandler
-    extends Actor
+class LibrarySetMetadataHandler(
+  timeout: FiniteDuration,
+  localLibraryManager: ActorRef
+) extends Actor
     with LazyLogging
     with UnhandledLogging {
-  override def receive: Receive = {
-    case Request(LibrarySetMetadata, id, _: LibrarySetMetadata.Params) =>
-      // TODO [RW] actual implementation
-      sender() ! ResponseError(
-        Some(id),
-        FileSystemError("Feature not implemented")
+  import context.dispatcher
+
+  override def receive: Receive = requestStage
+
+  private def requestStage: Receive = {
+    case Request(
+          LibrarySetMetadata,
+          id,
+          LibrarySetMetadata.Params(namespace, name, description, tagLine)
+        ) =>
+      val libraryName = LibraryName(namespace, name)
+      localLibraryManager ! LocalLibraryManagerProtocol.SetMetadata(
+        libraryName,
+        description = description,
+        tagLine     = tagLine
       )
+
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
+  }
+
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
+    case RequestTimeout =>
+      logger.error("Request [{}] timed out.", id)
+      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      context.stop(self)
+
+    case Success(_) =>
+      replyTo ! ResponseResult(
+        LibrarySetMetadata,
+        id,
+        Unused
+      )
+      cancellable.cancel()
+      context.stop(self)
+
+    case Failure(exception) =>
+      replyTo ! ResponseError(Some(id), FileSystemError(exception.getMessage))
+      cancellable.cancel()
+      context.stop(self)
   }
 }
 
 object LibrarySetMetadataHandler {
 
-  /** Creates a configuration object to create [[LibrarySetMetadataHandler]]. */
-  def props(): Props = Props(new LibrarySetMetadataHandler)
+  /** Creates a configuration object to create [[LibrarySetMetadataHandler]].
+    *
+    * @param timeout request timeout
+    * @param localLibraryManager a reference to the LocalLibraryManager
+    */
+  def props(timeout: FiniteDuration, localLibraryManager: ActorRef): Props =
+    Props(new LibrarySetMetadataHandler(timeout, localLibraryManager))
 }

@@ -2,8 +2,6 @@ package org.enso.editions
 
 import nl.gn0s1s.bump.SemVer
 
-import scala.util.Try
-
 /** Defines the general edition structure.
   *
   * We split the data type into two categories: Raw and Resolved editions.
@@ -122,12 +120,11 @@ object Editions {
 
   object Repository {
 
-    /** A helper function that creates a Repository instance from a raw string
-      * URL.
+    /** An alternative constructor for unnamed repositories.
+      *
+      * The URL is used as the repository name.
       */
-    def make(name: String, url: String): Try[Repository] = Try {
-      Repository(name, url)
-    }
+    def apply(url: String): Repository = Repository(url, url)
   }
 
   /** Implements the Raw editions that can be directly parsed from a YAML
