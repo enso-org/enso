@@ -131,7 +131,7 @@ spec =
             match.at 1 . group 1 . should_equal "bar"
 
         Test.specify "should be possible in verbose mode" <|
-            match = "abcde".match "(..) " verbose=True mode=Mode.First
+            match = "abcde".match "(..) # Match two of any character" verbose=True mode=Mode.First
             match . should_be_a Default_Engine.Match
             match.group 0 . should_equal "ab"
 
