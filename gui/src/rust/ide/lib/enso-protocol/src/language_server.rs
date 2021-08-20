@@ -7,6 +7,7 @@
 //! This file tries to follow the scheme of the protocol specification.
 
 pub mod connection;
+pub mod constants;
 pub mod response;
 #[cfg(test)]
 mod tests;
@@ -162,3 +163,57 @@ trait API {
     , tags        : Option<Vec<SuggestionEntryType>>
     ) -> response::Completion;
 }}
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+/// Check if the given `Error` value corresponds to an RPC call timeout.
+/// 
+/// Recognizes both client- and server-side timeouts.
+pub fn is_timeout_error(error:&failure::Error) -> bool {
+    use json_rpc::messages;
+    use json_rpc::RpcError;
+    use json_rpc::RpcError::*;
+    const  TIMEOUT:i64 = constants::ErrorCodes::Timeout as i64;
+    matches!(error.downcast_ref::<RpcError>()
+      , Some(TimeoutError{..})
+      | Some(RemoteError(messages::Error{code:TIMEOUT,..})))
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    
+    #[test]
+    fn recognize_timeout_errors() {
+        type RpcError = json_rpc::RpcError::<serde_json::Value>;
+        
+        // Server-side errors.
+        let text  = r#"{"code":11,"message":"Request timeout"}"#;
+        let msg   = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+        let error = RpcError::RemoteError(msg).into();
+        assert!(is_timeout_error(&error));
+        
+        let text  = r#"{"code":2007,"message":"Evaluation of the visualisation expression failed"}"#;
+        let msg   = serde_json::from_str::<json_rpc::messages::Error>(text).unwrap();
+        let error = RpcError::RemoteError(msg).into();
+        assert!(!is_timeout_error(&error));
+        
+        
+        // Client-side errors.
+        let error = RpcError::TimeoutError {millis:500}.into();
+        assert!(is_timeout_error(&error));
+        
+        let error = RpcError::LostConnection.into();
+        assert!(!is_timeout_error(&error));
+    }
+}

@@ -674,8 +674,8 @@ impl HardcodedLayers {
              , &tooltip_text
              , &cursor
              ]);
-        Self {viz,below_main,main,port_selection,label,above_nodes,above_nodes_text,panel,panel_text
-             ,node_searcher,node_searcher_mask,tooltip,tooltip_text,cursor,root,mask}
+        Self {root,viz,below_main,main,port_selection,label,above_nodes,above_nodes_text,panel
+             ,panel_text,node_searcher,node_searcher_mask,tooltip,tooltip_text,cursor,mask}
     }
 }
 

@@ -90,7 +90,7 @@ impl Instance {
         }
         context.draw_buffers(&draw_buffers);
         context.bind_framebuffer(target,None);
-        Framebuffer {native,context}
+        Framebuffer {context,native}
     }
 }
 
