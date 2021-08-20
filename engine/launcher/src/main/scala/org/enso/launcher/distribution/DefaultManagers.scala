@@ -1,24 +1,15 @@
 package org.enso.launcher.distribution
 
+import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.distribution.{
   PortableDistributionManager,
   TemporaryDirectoryManager
-}
-import org.enso.distribution.locking.{
-  ResourceManager,
-  ThreadSafeFileLockManager
 }
 import org.enso.launcher.cli.{
   CLIRuntimeVersionManagementUserInterface,
   GlobalCLIOptions
 }
-import org.enso.runtimeversionmanager.components.{
-  GraalVMComponentConfiguration,
-  InstallerKind,
-  RuntimeComponentConfiguration,
-  RuntimeComponentUpdaterFactory,
-  RuntimeVersionManager
-}
+import org.enso.runtimeversionmanager.components._
 import org.enso.runtimeversionmanager.releases.engine.EngineRepository
 import org.enso.runtimeversionmanager.releases.graalvm.GraalCEReleaseProvider
 
@@ -39,8 +30,10 @@ object DefaultManagers {
   lazy val defaultFileLockManager =
     new ThreadSafeFileLockManager(distributionManager.paths.locks)
 
-  /** Default [[ResourceManager]] using the [[defaultFileLockManager]]. */
-  lazy val defaultResourceManager = new ResourceManager(defaultFileLockManager)
+  /** Default [[LauncherResourceManager]] using the [[defaultFileLockManager]]. */
+  lazy val defaultResourceManager = new LauncherResourceManager(
+    defaultFileLockManager
+  )
 
   /** Default [[TemporaryDirectoryManager]]. */
   lazy val temporaryDirectoryManager =
