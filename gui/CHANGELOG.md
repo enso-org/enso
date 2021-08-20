@@ -1,13 +1,3 @@
-# Next Release
-
-#### Enso Compiler
-
-- [Updated Enso engine to version 0.2.26][1801]. If you're interested in the
-  enhancements and fixes made to the Enso compiler, you can find their release
-  notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
-
-[1801]: https://github.com/enso-org/ide/pull/1801
-
 # Enso 2.0.0-alpha.12 (2021-08-13)
 
 <br/>![New Features](/docs/assets/tags/new_features.svg)
@@ -19,10 +9,14 @@
 - [GeoMap visualization will ignore points with `null` coordinates][1775]. Now
   the presence of such points in the dataset will not break initial map
   positioning.
-- [Updated Enso engine to version 0.2.24][1798]. If you're interested in the
+
+#### Enso Compiler
+
+- [Updated Enso engine to version 0.2.26][1801]. If you're interested in the
   enhancements and fixes made to the Enso compiler, you can find their release
   notes [here](https://github.com/enso-org/enso/blob/main/RELEASES.md).
 
+[1801]: https://github.com/enso-org/ide/pull/1801
 [1775]: https://github.com/enso-org/ide/pull/1775
 [1798]: https://github.com/enso-org/ide/pull/1798
 [1804]: https://github.com/enso-org/ide/pull/1804
