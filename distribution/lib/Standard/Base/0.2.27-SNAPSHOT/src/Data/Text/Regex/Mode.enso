@@ -1,0 +1,34 @@
+## A description of how the regex engine will match on the content.
+
+   This lets you configure how you want to match, from the `First` match only,
+   to matching on the `Full` content of the input text.
+
+from Standard.Base import all
+
+type Mode
+
+    ## The regex will only match the first instance it finds.
+    type First
+
+    ## The regex will match up to some `Integer` number of instances.
+    Integer
+
+    ## The regex will make all possible matches.
+    type All
+
+    ## The regex will only match if the _entire_ text matches.
+    type Full
+
+    ## The regex will only match within the region defined by start..end.
+
+       Arguments:
+       - start: The inclusive start bound of the region.
+       - end: The exclusive end bound of the region.
+       - mode: The mode to use within the bounded region.
+
+       ! Units
+         The `start` and `end` indices range over _characters_ in the text. The
+         precise definition of `character` is, for the moment, defined by the
+         regular expression engine itself.
+    type Bounded (start : Integer) (end : Integer) (mode : (First | Integer | All | Full) = All)
+

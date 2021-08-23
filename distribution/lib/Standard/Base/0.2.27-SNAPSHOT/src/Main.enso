@@ -21,6 +21,7 @@ import Standard.Base.Meta
 import Standard.Base.Meta.Enso_Project
 import Standard.Base.Polyglot.Java
 import Standard.Base.System.File
+import Standard.Base.Data.Text.Regex.Mode as Regex_Mode
 
 from Standard.Builtins import Nothing, Number, Integer, Any, True, False, Cons, Boolean, Arithmetic_Error
 
@@ -35,6 +36,7 @@ export Standard.Base.Data.Vector
 export Standard.Base.Math
 export Standard.Base.Meta
 export Standard.Base.System.File
+export Standard.Base.Data.Text.Regex.Mode as Regex_Mode
 
 from Standard.Base.Data.Any.Extensions export all
 from Standard.Base.Data.Array.Extensions export all

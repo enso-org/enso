@@ -1183,4 +1183,15 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Error]
     }
   }
+
+  "AST translation of text" should {
+    "not need any escapes" in {
+      val ir =
+        """"Foo bar \ \n baz"
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Literal.Text]
+      ir.asInstanceOf[IR.Literal.Text].text shouldEqual "Foo bar \\ \\n baz"
+    }
+  }
 }
